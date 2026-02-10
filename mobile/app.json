@@ -28,7 +28,9 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -56,7 +58,11 @@
       ]
     ],
     "extra": {
-      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-    }
+      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE",
+      "eas": {
+        "projectId": "be78596e-4800-4b0c-b4c6-8da986423352"
+      }
+    },
+    "owner": "botsyst3m"
   }
 }
