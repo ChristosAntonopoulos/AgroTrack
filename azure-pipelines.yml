@@ -274,7 +274,12 @@ stages:
         export EXPO_TOKEN="$(EXPO_TOKEN)"
         export EXPO_PUBLIC_API_URL="$(backendApiUrl)"
         
+        # Configure credentials to use remote (Expo-managed) if needed
+        echo "Configuring Android credentials..."
+        echo "Note: EAS will use Expo-managed credentials (remote) as configured in eas.json"
+        
         # Run EAS build with explicit token
+        # credentialsSource: remote in eas.json tells EAS to use Expo-managed credentials
         EXPO_TOKEN="$EXPO_TOKEN" EXPO_PUBLIC_API_URL="$(backendApiUrl)" eas build --platform android --profile production --non-interactive --wait
       displayName: 'Build Android APK with EAS (wait for completion)'
       env:
