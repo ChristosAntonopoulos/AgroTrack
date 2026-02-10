@@ -216,9 +216,6 @@ stages:
         cd mobile
         echo "Verifying EAS project is configured..."
         echo ""
-        echo "Note: EAS project must be initialized locally first."
-        echo "If this is the first build, run 'eas init' locally in the mobile/ directory."
-        echo ""
         echo "Checking project configuration..."
         if [ -f "eas.json" ]; then
           echo "✅ eas.json found"
@@ -227,21 +224,43 @@ stages:
           echo "⚠️  eas.json not found - project may not be initialized"
         fi
         
-        # Verify authentication
-        EXPO_USERNAME=$(eas whoami 2>/dev/null | head -1 || echo "")
-        if [ -n "$EXPO_USERNAME" ]; then
+        echo ""
+        echo "Verifying EXPO_TOKEN authentication..."
+        # Set token and verify authentication
+        export EXPO_TOKEN="$(EXPO_TOKEN)"
+        if [ -z "$EXPO_TOKEN" ]; then
+          echo "ERROR: EXPO_TOKEN is empty!"
+          exit 1
+        fi
+        
+        # Verify token format (should start with exp_)
+        if [[ ! "$EXPO_TOKEN" =~ ^exp_ ]]; then
+          echo "WARNING: EXPO_TOKEN format may be incorrect (should start with 'exp_')"
+        fi
+        
+        # Test authentication
+        EXPO_USERNAME=$(EXPO_TOKEN="$EXPO_TOKEN" eas whoami 2>&1)
+        if [ $? -eq 0 ] && [ -n "$EXPO_USERNAME" ]; then
           echo "✅ Authenticated as: $EXPO_USERNAME"
         else
-          echo "⚠️  Could not verify authentication"
+          echo "❌ Authentication failed!"
+          echo "Error output: $EXPO_USERNAME"
+          echo ""
+          echo "Please verify:"
+          echo "  1. EXPO_TOKEN is set correctly in Azure DevOps variables"
+          echo "  2. Token is not expired"
+          echo "  3. Token has 'build' permissions"
+          echo "  4. Get a new token from: https://expo.dev/accounts/[username]/settings/access-tokens"
+          exit 1
         fi
         
         echo ""
         echo "Proceeding with build..."
         echo "API URL: $(backendApiUrl)"
-      displayName: 'Verify EAS Project Configuration'
+      displayName: 'Verify EAS Project Configuration and Authentication'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
-      continueOnError: true
+      continueOnError: false
 
     - script: |
         cd mobile
@@ -250,7 +269,13 @@ stages:
         echo "API URL: $(backendApiUrl)"
         echo ""
         echo "This will start a cloud build. It may take 10-15 minutes."
-        EXPO_PUBLIC_API_URL=$(backendApiUrl) eas build --platform android --profile production --non-interactive --wait
+        
+        # Ensure EXPO_TOKEN is exported
+        export EXPO_TOKEN="$(EXPO_TOKEN)"
+        export EXPO_PUBLIC_API_URL="$(backendApiUrl)"
+        
+        # Run EAS build with explicit token
+        EXPO_TOKEN="$EXPO_TOKEN" EXPO_PUBLIC_API_URL="$(backendApiUrl)" eas build --platform android --profile production --non-interactive --wait
       displayName: 'Build Android APK with EAS (wait for completion)'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
