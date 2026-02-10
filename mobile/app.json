@@ -20,6 +20,7 @@
       }
     },
     "android": {
+      "package": "com.agrotrack.olivelifecycle",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
