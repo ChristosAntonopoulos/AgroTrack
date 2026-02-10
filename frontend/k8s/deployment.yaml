@@ -6,7 +6,7 @@ metadata:
   labels:
     app: olive-lifecycle-frontend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: olive-lifecycle-frontend
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: agrotrack/frontend:latest
+        image: PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG
         imagePullPolicy: Always
         ports:
         - containerPort: 80

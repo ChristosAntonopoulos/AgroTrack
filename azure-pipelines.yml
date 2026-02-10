@@ -112,11 +112,17 @@ stages:
             continueOnError: true
 
           - script: |
-              # Update deployment with latest image
-              kubectl set image deployment/frontend-deployment \
-                frontend=$(fullImageName):$(imageTag) \
-                -n $(kubernetesNamespace) || \
-              kubectl apply -f frontend/k8s/deployment.yaml
+              # Replace placeholder image name in deployment.yaml if deployment doesn't exist
+              if ! kubectl get deployment frontend-deployment -n $(kubernetesNamespace) > /dev/null 2>&1; then
+                echo "Deployment doesn't exist. Replacing placeholder image name..."
+                sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullImageName):$(imageTag)|g" frontend/k8s/deployment.yaml
+                kubectl apply -f frontend/k8s/deployment.yaml
+              else
+                echo "Deployment exists. Updating image..."
+                kubectl set image deployment/frontend-deployment \
+                  frontend=$(fullImageName):$(imageTag) \
+                  -n $(kubernetesNamespace)
+              fi
             displayName: 'Apply/Update deployment'
 
           - script: 'kubectl apply -f frontend/k8s/service.yaml'
@@ -145,9 +151,16 @@ stages:
                 echo "✅ Frontend is accessible at:"
                 echo "   http://185.193.66.50:$NODE_PORT"
                 echo ""
+                echo "📌 NodePort Information:"
+                echo "   - Assigned Port: $NODE_PORT (auto-assigned in range 30000-32767)"
+                echo "   - To find the port manually, run:"
+                echo "     kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}'"
+                echo ""
                 echo "Note: Replace 185.193.66.50 with your Kubernetes node IP if different"
               else
                 echo "⚠️  NodePort not yet assigned. Check service status above."
+                echo "   To find the port manually, run:"
+                echo "   kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}'"
               fi
             displayName: 'Display deployment status and URL'
 
@@ -330,9 +343,16 @@ stages:
           echo "✅ Frontend is accessible at:"
           echo "   http://185.193.66.50:$NODE_PORT"
           echo ""
+          echo "📌 NodePort Information:"
+          echo "   - Assigned Port: $NODE_PORT (auto-assigned in range 30000-32767)"
+          echo "   - To find the port manually, run:"
+          echo "     kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}'"
+          echo ""
           echo "Update your browser to access the application."
           echo "Replace 185.193.66.50 with your Kubernetes node IP if different."
         else
           echo "⚠️  Could not determine service URL. Check service status above."
+          echo "   To find the port manually, run:"
+          echo "   kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}'"
         fi
       displayName: 'Display deployment URL'
