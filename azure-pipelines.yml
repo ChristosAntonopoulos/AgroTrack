@@ -57,12 +57,11 @@ stages:
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
     - script: |
-        cd frontend
         docker build \
           -t $(fullImageName):$(imageTag) \
           -t $(fullImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
-          -f $(dockerfilePath) .
+          -f $(dockerfilePath) frontend
       displayName: 'Build Docker image'
 
     - script: 'docker push $(fullImageName):$(imageTag)'
