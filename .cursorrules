@@ -1,0 +1,43 @@
+# Olive Lifecycle Platform - Root Coding Standards
+
+## General Principles
+- Follow SOLID principles
+- DRY (Don't Repeat Yourself)
+- Keep components/functions small and focused
+- Comment complex business logic; avoid obvious comments
+- Security-first approach: validate all inputs, never commit secrets
+
+## Git Workflow
+- Feature branches: `feature/module-name`
+- Bugfix branches: `bugfix/issue-description`
+- Commit messages: Clear, present tense (e.g., "Add field lifecycle validation")
+- Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
+
+## Documentation
+- README per module with setup instructions
+- Inline comments for business logic
+- API documentation (Swagger for backend)
+- Configuration documentation
+
+## Security
+- Never commit secrets (use environment variables)
+- Validate all inputs server-side
+- Use HTTPS for API communication
+- Sanitize user data in forms
+- Implement proper authentication and authorization
+
+## Project Structure
+- Backend: Clean Architecture with clear separation of concerns
+- Frontend: Component-driven development
+- Mobile: Offline-first architecture
+
+## Environment Configuration
+- Use environment variables for all configuration
+- Provide .env.example files
+- Never hardcode connection strings or API keys
+
+## Code Quality
+- Consistent naming conventions per platform
+- Proper error handling
+- Logging for important operations
+- Performance optimization where needed

@@ -1,0 +1,269 @@
+/* ============================================
+   BASE VARIABLES (Shared across all themes)
+   ============================================ */
+:root {
+  /* Primary Colors - Olive Theme */
+  --color-primary: #2d5016;
+  --color-primary-light: #4a7c2a;
+  --color-primary-lighter: #6b9a3f;
+  --color-accent: #8b9a46;
+  
+  /* Status Colors */
+  --color-success: #28a745;
+  --color-success-light: #d4edda;
+  --color-success-dark: #218838;
+  --color-success-gradient: linear-gradient(135deg, #28a745 0%, #218838 100%);
+  --color-warning: #ffc107;
+  --color-warning-light: #fff3cd;
+  --color-warning-dark: #e0a800;
+  --color-warning-gradient: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  --color-error: #dc3545;
+  --color-error-light: #f8d7da;
+  --color-error-dark: #c82333;
+  --color-error-gradient: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  --color-info: #17a2b8;
+  --color-info-light: #d1ecf1;
+  --color-info-dark: #138496;
+  --color-info-gradient: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  
+  /* Secondary Colors */
+  --color-secondary: #6c757d;
+  --color-secondary-light: #adb5bd;
+  --color-secondary-dark: #5a6268;
+  --color-secondary-gradient: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  
+  /* Lifecycle Colors */
+  --color-lifecycle-low: #4a7c2a;
+  --color-lifecycle-high: #8b9a46;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+  
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  
+  /* Sidebar */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 80px;
+  
+  /* Header */
+  --header-height: 64px;
+}
+
+/* ============================================
+   LIGHT THEME (Default with Backgrounds)
+   ============================================ */
+:root,
+[data-theme="light"] {
+  /* Background Layers (Semantic) */
+  --bg-page: #f0f2f5;
+  --bg-page-gradient: linear-gradient(135deg, #f0f2f5 0%, #e0e2e5 100%);
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f5f7fa;
+  --bg-elevated: #fafbfc;
+  --bg-interactive: #f8f9fa;
+  --bg-hover: #e9ecef;
+  
+  /* Component Backgrounds */
+  --bg-card: #fafbfc;
+  --bg-card-hover: #ffffff;
+  --bg-button: var(--color-primary);
+  --bg-button-hover: var(--color-primary-light);
+  --bg-input: #ffffff;
+  --bg-input-focus: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-header: #ffffff;
+  --bg-footer: #f8f9fa;
+  --bg-section: #f5f7fa;
+  --bg-section-alt: #fafbfc;
+  
+  /* Text Colors */
+  --color-text-primary: #212529;
+  --color-text-secondary: #6c757d;
+  --color-text-muted: #adb5bd;
+  --color-text-inverse: #ffffff;
+  
+  /* Border Colors */
+  --color-border: #dee2e6;
+  --color-border-light: #e9ecef;
+  --color-border-hover: #ced4da;
+  
+  /* Surface Colors (Legacy support) */
+  --color-background: var(--bg-page);
+  --color-background-gradient: var(--bg-page-gradient);
+  --color-surface: var(--bg-surface);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-surface-elevated: var(--bg-elevated);
+  
+  /* Gradient Backgrounds */
+  --gradient-primary: linear-gradient(135deg, #2d5016 0%, #4a7c2a 100%);
+  --gradient-primary-light: linear-gradient(135deg, #4a7c2a 0%, #6b9a3f 100%);
+  --gradient-surface: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  --gradient-card: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 2px 8px rgba(45, 80, 22, 0.08), 0 1px 3px rgba(45, 80, 22, 0.12);
+  --shadow-card-hover: 0 8px 24px rgba(45, 80, 22, 0.12), 0 4px 8px rgba(45, 80, 22, 0.16);
+  
+  /* Lifecycle Backgrounds */
+  --color-lifecycle-low-bg: #e8f5e9;
+  --color-lifecycle-high-bg: #f1f8e9;
+}
+
+/* ============================================
+   WHITE THEME (Minimal, Clean)
+   ============================================ */
+[data-theme="white"] {
+  /* Background Layers - Minimal */
+  --bg-page: #ffffff;
+  --bg-page-gradient: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #fafafa;
+  --bg-elevated: #ffffff;
+  --bg-interactive: #ffffff;
+  --bg-hover: #f5f5f5;
+  
+  /* Component Backgrounds - Minimal */
+  --bg-card: #ffffff;
+  --bg-card-hover: #fafafa;
+  --bg-button: var(--color-primary);
+  --bg-button-hover: var(--color-primary-light);
+  --bg-input: #ffffff;
+  --bg-input-focus: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-header: #ffffff;
+  --bg-footer: #ffffff;
+  --bg-section: #ffffff;
+  --bg-section-alt: #fafafa;
+  
+  /* Text Colors */
+  --color-text-primary: #212529;
+  --color-text-secondary: #6c757d;
+  --color-text-muted: #adb5bd;
+  --color-text-inverse: #ffffff;
+  
+  /* Border Colors - More visible for contrast */
+  --color-border: #e0e0e0;
+  --color-border-light: #f0f0f0;
+  --color-border-hover: #d0d0d0;
+  
+  /* Surface Colors */
+  --color-background: #ffffff;
+  --color-background-gradient: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-hover: #fafafa;
+  --color-surface-elevated: #ffffff;
+  
+  /* Gradient Backgrounds - Minimal */
+  --gradient-primary: linear-gradient(135deg, #2d5016 0%, #4a7c2a 100%);
+  --gradient-primary-light: linear-gradient(135deg, #4a7c2a 0%, #6b9a3f 100%);
+  --gradient-surface: #ffffff;
+  --gradient-card: #ffffff;
+  
+  /* Shadows - Subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  /* Lifecycle Backgrounds */
+  --color-lifecycle-low-bg: #f5f5f5;
+  --color-lifecycle-high-bg: #fafafa;
+}
+
+/* ============================================
+   DARK THEME
+   ============================================ */
+[data-theme="dark"] {
+  /* Background Layers - Dark */
+  --bg-page: #1a1a1a;
+  --bg-page-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  --bg-surface: #2d2d2d;
+  --bg-surface-hover: #353535;
+  --bg-elevated: #3a3a3a;
+  --bg-interactive: #2d2d2d;
+  --bg-hover: #404040;
+  
+  /* Component Backgrounds - Dark */
+  --bg-card: #2d2d2d;
+  --bg-card-hover: #353535;
+  --bg-button: var(--color-primary-light);
+  --bg-button-hover: var(--color-primary-lighter);
+  --bg-input: #2d2d2d;
+  --bg-input-focus: #353535;
+  --bg-sidebar: #252525;
+  --bg-header: #2d2d2d;
+  --bg-footer: #1f1f1f;
+  --bg-section: #252525;
+  --bg-section-alt: #2d2d2d;
+  
+  /* Text Colors - Dark */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b0b0b0;
+  --color-text-muted: #808080;
+  --color-text-inverse: #212529;
+  
+  /* Border Colors - Dark */
+  --color-border: #404040;
+  --color-border-light: #353535;
+  --color-border-hover: #4a4a4a;
+  
+  /* Surface Colors */
+  --color-background: var(--bg-page);
+  --color-background-gradient: var(--bg-page-gradient);
+  --color-surface: var(--bg-surface);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-surface-elevated: var(--bg-elevated);
+  
+  /* Gradient Backgrounds - Dark */
+  --gradient-primary: linear-gradient(135deg, #4a7c2a 0%, #6b9a3f 100%);
+  --gradient-primary-light: linear-gradient(135deg, #6b9a3f 0%, #8b9a46 100%);
+  --gradient-surface: linear-gradient(135deg, #2d2d2d 0%, #252525 100%);
+  --gradient-card: linear-gradient(135deg, #2d2d2d 0%, #353535 100%);
+  
+  /* Shadows - Dark */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.6);
+  
+  /* Lifecycle Backgrounds - Dark */
+  --color-lifecycle-low-bg: #2d3a2a;
+  --color-lifecycle-high-bg: #3a3d2a;
+  
+  /* Status Colors - Adjusted for dark */
+  --color-success-light: #1e4628;
+  --color-warning-light: #4a3d1e;
+  --color-error-light: #4a1e1e;
+  --color-info-light: #1e3a42;
+}

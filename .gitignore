@@ -1,0 +1,62 @@
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sln.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+bin/
+obj/
+*.dll
+*.exe
+
+# Dependencies
+node_modules/
+packages/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Azure DevOps
+.azure/
+
+# Docker
+*.dockerignore
+
+# Kubernetes secrets
+*-secret.yaml
+*secrets*.yaml

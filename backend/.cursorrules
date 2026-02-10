@@ -1,0 +1,119 @@
+# Backend (C# ASP.NET Core) - Coding Standards
+
+## Architecture & Structure
+- Use Clean Architecture with clear separation:
+  - API Layer: Controllers, DTOs, Middleware
+  - Application Layer: Business logic, Services, Interfaces
+  - Core Layer: Domain models, Entities, Enums
+  - Infrastructure Layer: MongoDB, External services, Repositories
+  - Common Layer: Shared utilities, Helpers
+
+## Naming Conventions
+- Classes: PascalCase (e.g., `FieldService`, `UserRepository`)
+- Methods: PascalCase (e.g., `GetFieldById`, `CreateFieldAsync`)
+- Properties: PascalCase
+- Private fields: _camelCase (e.g., `_logger`, `_fieldRepository`)
+- Parameters: camelCase
+- Constants: UPPER_SNAKE_CASE
+- Interfaces: I prefix (e.g., `IFieldService`, `IRepository`)
+
+## Dependency Injection
+- Use constructor injection for all dependencies
+- Register services in Program.cs or extension methods
+- Use appropriate lifetimes: Singleton, Scoped, Transient
+- Avoid service locator pattern
+
+## Async/Await
+- Use `async Task` or `async Task<T>` for all I/O operations
+- Use `ConfigureAwait(false)` in library code
+- Avoid blocking calls (`.Result`, `.Wait()`)
+- Proper cancellation token propagation
+
+## MongoDB Best Practices
+- Use MongoDB.Driver native driver
+- Create indexes for frequently queried fields
+- Use projection to limit returned fields
+- Implement repository pattern for data access
+- Use transactions for multi-document operations
+- Store timestamps (CreatedAt, UpdatedAt) on all documents
+
+## Error Handling
+- Use custom exception types (e.g., `FieldNotFoundException`, `UnauthorizedException`)
+- Log all errors with context using structured logging
+- Return meaningful HTTP status codes
+- Use global exception handling middleware
+- Never expose internal errors to clients
+
+## API Design
+- RESTful endpoints following resource naming
+- Use DTOs (Data Transfer Objects) for API contracts
+- Version APIs (e.g., `/api/v1/`)
+- Use proper HTTP verbs (GET, POST, PUT, DELETE, PATCH)
+- Return standardized response format
+
+## Validation
+- Validate inputs using DataAnnotations or FluentValidation
+- Validate at service boundaries
+- Return validation errors in consistent format
+
+## Logging
+- Use structured logging (Serilog recommended)
+- Log important operations for audit trail
+- Use appropriate log levels (Debug, Information, Warning, Error)
+- Include context (userId, fieldId, etc.) in log messages
+
+## Code Organization
+- One class per file
+- Group related classes in folders by feature/domain
+- Use namespaces matching folder structure
+- Keep controllers thin - delegate to services
+
+## Example Patterns
+
+### Controller Pattern
+```csharp
+[ApiController]
+[Route("api/v1/[controller]")]
+[Authorize]
+public class FieldsController : ControllerBase
+{
+    private readonly IFieldService _fieldService;
+    
+    public FieldsController(IFieldService fieldService)
+    {
+        _fieldService = fieldService;
+    }
+    
+    [HttpPost]
+    public async Task<ActionResult<FieldDto>> CreateField([FromBody] CreateFieldDto dto)
+    {
+        var result = await _fieldService.CreateFieldAsync(dto);
+        return Ok(result);
+    }
+}
+```
+
+### Service Pattern
+```csharp
+public interface IFieldService
+{
+    Task<FieldDto> CreateFieldAsync(CreateFieldDto dto);
+}
+
+public class FieldService : IFieldService
+{
+    private readonly IFieldRepository _repository;
+    private readonly ILogger<FieldService> _logger;
+    
+    public FieldService(IFieldRepository repository, ILogger<FieldService> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+    
+    public async Task<FieldDto> CreateFieldAsync(CreateFieldDto dto)
+    {
+        // Implementation
+    }
+}
+```

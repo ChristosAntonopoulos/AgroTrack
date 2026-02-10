@@ -1,0 +1,339 @@
+# Azure DevOps Pipeline for AgroTrack Frontend and Mobile Deployment
+# Builds frontend Docker image, pushes to Docker Hub, deploys to Kubernetes
+# Builds mobile Android APK using EAS
+
+trigger:
+  - master
+  - main
+
+variables:
+  # Variable group for secrets (optional - will use pipeline variables if group doesn't exist)
+  - group: AgroTrack-Secrets
+  - name: dockerRegistry
+    value: '$(DOCKER_USERNAME)'  # Uses DOCKER_USERNAME from variable group
+  - name: imageName
+    value: 'agrotrack-frontend'
+  - name: fullImageName
+    value: '$(dockerRegistry)/$(imageName)'
+  - name: imageTag
+    value: '$(Build.BuildId)'
+  - name: dockerfilePath
+    value: 'frontend/Dockerfile'
+  - name: kubernetesNamespace
+    value: 'agrotrack-frontend'
+  - name: backendApiUrl
+    value: 'http://185.193.66.50:31247/api'  # Backend API URL (already deployed)
+
+stages:
+- stage: BuildFrontend
+  displayName: 'Build Frontend'
+  jobs:
+  - job: BuildFrontend
+    displayName: 'Build and Push Frontend Docker Image'
+    pool:
+      name: 'Default'
+    steps:
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: '18.x'
+
+    - script: 'cd frontend && npm ci'
+      displayName: 'Install frontend dependencies'
+
+    - script: |
+        echo "Building React app with API URL: $(backendApiUrl)"
+        cd frontend
+        REACT_APP_API_URL=$(backendApiUrl) npm run build
+      displayName: 'Build React application'
+      env:
+        REACT_APP_API_URL: $(backendApiUrl)
+
+    - script: |
+        echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
+      displayName: 'Login to Docker Hub'
+      env:
+        DOCKER_USERNAME: $(DOCKER_USERNAME)
+        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
+    - script: |
+        cd frontend
+        docker build \
+          -t $(fullImageName):$(imageTag) \
+          -t $(fullImageName):latest \
+          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
+          -f $(dockerfilePath) .
+      displayName: 'Build Docker image'
+
+    - script: 'docker push $(fullImageName):$(imageTag)'
+      displayName: 'Push Docker image with tag'
+
+    - script: 'docker push $(fullImageName):latest'
+      displayName: 'Push Docker image as latest'
+
+    - script: 'docker images | grep $(imageName)'
+      displayName: 'List Docker images'
+
+- stage: DeployFrontend
+  displayName: 'Deploy Frontend to Kubernetes'
+  dependsOn: BuildFrontend
+  condition: succeeded()
+  jobs:
+  - deployment: DeployFrontend
+    displayName: 'Deploy Frontend to Kubernetes'
+    environment: 'production'
+    pool:
+      name: 'Default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              kubectl create namespace $(kubernetesNamespace) --dry-run=client -o yaml | kubectl apply -f -
+            displayName: 'Ensure namespace exists'
+
+          - script: 'kubectl apply -f frontend/k8s/namespace.yaml'
+            displayName: 'Apply namespace configuration'
+
+          - task: Bash@3
+            displayName: 'Update ConfigMap with API URL'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Update ConfigMap with the backend API URL
+                kubectl create configmap frontend-config \
+                  --from-literal=REACT_APP_API_URL="$(backendApiUrl)" \
+                  --namespace=$(kubernetesNamespace) \
+                  --dry-run=client -o yaml | kubectl apply -f -
+                
+                echo "ConfigMap updated with API URL: $(backendApiUrl)"
+
+          - script: 'kubectl apply -f frontend/k8s/configmap.yaml'
+            displayName: 'Apply ConfigMap'
+            continueOnError: true
+
+          - script: |
+              # Update deployment with latest image
+              kubectl set image deployment/frontend-deployment \
+                frontend=$(fullImageName):$(imageTag) \
+                -n $(kubernetesNamespace) || \
+              kubectl apply -f frontend/k8s/deployment.yaml
+            displayName: 'Apply/Update deployment'
+
+          - script: 'kubectl apply -f frontend/k8s/service.yaml'
+            displayName: 'Apply service'
+
+          - script: |
+              echo "Waiting for deployment to be ready..."
+              kubectl rollout status deployment/frontend-deployment -n $(kubernetesNamespace) --timeout=300s
+            displayName: 'Wait for deployment rollout'
+            continueOnError: true
+
+          - script: |
+              echo "=== Frontend Deployment Status ==="
+              echo ""
+              kubectl get deployment frontend-deployment -n $(kubernetesNamespace)
+              echo ""
+              kubectl get pods -n $(kubernetesNamespace) -l app=olive-lifecycle-frontend
+              echo ""
+              echo "=== Service Information ==="
+              kubectl get service frontend-service -n $(kubernetesNamespace)
+              echo ""
+              
+              # Get the assigned NodePort
+              NODE_PORT=$(kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}')
+              if [ -n "$NODE_PORT" ]; then
+                echo "✅ Frontend is accessible at:"
+                echo "   http://185.193.66.50:$NODE_PORT"
+                echo ""
+                echo "Note: Replace 185.193.66.50 with your Kubernetes node IP if different"
+              else
+                echo "⚠️  NodePort not yet assigned. Check service status above."
+              fi
+            displayName: 'Display deployment status and URL'
+
+          - script: |
+              echo "=== Pod Logs (last 20 lines) ==="
+              PODS=$(kubectl get pods -n $(kubernetesNamespace) -l app=olive-lifecycle-frontend -o jsonpath='{.items[*].metadata.name}')
+              for POD in $PODS; do
+                echo "--- Logs from $POD ---"
+                kubectl logs $POD -n $(kubernetesNamespace) --tail=20 || true
+              done
+            displayName: 'Display pod logs'
+            continueOnError: true
+
+- stage: BuildMobile
+  displayName: 'Build Mobile APK'
+  dependsOn: DeployFrontend
+  condition: succeeded()
+  jobs:
+  - job: BuildMobile
+    displayName: 'Build Android APK with EAS'
+    pool:
+      name: 'Default'
+    steps:
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: '18.x'
+
+    - script: 'npm install -g eas-cli'
+      displayName: 'Install EAS CLI'
+
+    - script: |
+        if [ -z "${EXPO_TOKEN:-}" ]; then
+          echo "ERROR: EXPO_TOKEN is not set!"
+          echo ""
+          echo "Please add EXPO_TOKEN to the AgroTrack-Secrets variable group:"
+          echo "  1. Go to Azure DevOps → Pipelines → Library"
+          echo "  2. Open AgroTrack-Secrets variable group"
+          echo "  3. Add variable: EXPO_TOKEN (mark as secret)"
+          echo "  4. Get token from: https://expo.dev/accounts/[username]/settings/access-tokens"
+          exit 1
+        fi
+        echo "EXPO_TOKEN is set (length: ${#EXPO_TOKEN} characters)"
+        echo "EAS CLI will automatically use EXPO_TOKEN environment variable for authentication"
+      displayName: 'Verify EXPO_TOKEN is set'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+
+    - script: 'cd mobile && npm install'
+      displayName: 'Install mobile dependencies'
+
+    - script: |
+        cd mobile
+        echo "Verifying EAS project is configured..."
+        echo ""
+        echo "Note: EAS project must be initialized locally first."
+        echo "If this is the first build, run 'eas init' locally in the mobile/ directory."
+        echo ""
+        echo "Checking project configuration..."
+        if [ -f "eas.json" ]; then
+          echo "✅ eas.json found"
+          cat eas.json
+        else
+          echo "⚠️  eas.json not found - project may not be initialized"
+        fi
+        
+        # Verify authentication
+        EXPO_USERNAME=$(eas whoami 2>/dev/null | head -1 || echo "")
+        if [ -n "$EXPO_USERNAME" ]; then
+          echo "✅ Authenticated as: $EXPO_USERNAME"
+        else
+          echo "⚠️  Could not verify authentication"
+        fi
+        
+        echo ""
+        echo "Proceeding with build..."
+        echo "API URL: $(backendApiUrl)"
+      displayName: 'Verify EAS Project Configuration'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+      continueOnError: true
+
+    - script: |
+        cd mobile
+        echo "Starting EAS build for Android APK..."
+        echo "Build profile: production"
+        echo "API URL: $(backendApiUrl)"
+        echo ""
+        echo "This will start a cloud build. It may take 10-15 minutes."
+        EXPO_PUBLIC_API_URL=$(backendApiUrl) eas build --platform android --profile production --non-interactive --wait
+      displayName: 'Build Android APK with EAS (wait for completion)'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+        EXPO_PUBLIC_API_URL: $(backendApiUrl)
+      continueOnError: false
+      timeoutInMinutes: 25
+
+    - script: |
+        cd mobile
+        echo "Downloading the completed APK..."
+        eas build:download --latest --platform android --output ./agrotrack-mobile.apk --non-interactive
+        
+        if [ ! -f "./agrotrack-mobile.apk" ]; then
+          echo "ERROR: APK file not found after download"
+          echo "Build may have failed. Check Expo dashboard for details."
+          exit 1
+        fi
+        
+        APK_SIZE=$(du -h ./agrotrack-mobile.apk | cut -f1)
+        echo "✅ APK downloaded successfully!"
+        echo "Size: $APK_SIZE"
+        ls -lh ./agrotrack-mobile.apk
+      displayName: 'Download APK from EAS'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+      continueOnError: false
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish APK as artifact'
+      inputs:
+        pathToPublish: 'mobile/agrotrack-mobile.apk'
+        artifactName: 'mobile-apk'
+        publishLocation: 'Container'
+
+    - script: |
+        echo "=== Mobile Build Summary ==="
+        echo ""
+        echo "✅ APK built successfully!"
+        echo ""
+        echo "To install on your phone:"
+        echo "  1. Go to Azure DevOps → Pipelines → Latest run"
+        echo "  2. Click on 'Artifacts'"
+        echo "  3. Download 'mobile-apk' artifact"
+        echo "  4. Transfer APK to your Android phone"
+        echo "  5. Install the APK (enable 'Install from unknown sources' if needed)"
+        echo ""
+        echo "The app will automatically connect to:"
+        echo "  $(backendApiUrl)"
+      displayName: 'Display build summary'
+
+- stage: HealthCheck
+  displayName: 'Health Check'
+  dependsOn: DeployFrontend
+  condition: succeeded()
+  jobs:
+  - job: HealthCheck
+    displayName: 'Verify Frontend Deployment'
+    pool:
+      name: 'Default'
+    steps:
+    - script: 'kubectl get pods -n $(kubernetesNamespace)'
+      displayName: 'List all pods'
+
+    - script: 'kubectl get services -n $(kubernetesNamespace)'
+      displayName: 'List all services'
+
+    - script: 'kubectl get deployments -n $(kubernetesNamespace)'
+      displayName: 'Check deployment status'
+
+    - script: |
+        echo "Testing frontend health endpoint..."
+        NODE_PORT=$(kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
+        if [ -n "$NODE_PORT" ]; then
+          echo "Frontend URL: http://185.193.66.50:$NODE_PORT"
+          echo "Health endpoint: http://185.193.66.50:$NODE_PORT/health"
+          curl -f http://185.193.66.50:$NODE_PORT/health || echo "Health check failed, but continuing..."
+        else
+          echo "Could not determine NodePort. Check service status above."
+        fi
+        echo ""
+        echo "Health check completed (non-blocking)"
+      displayName: 'Check Frontend Health'
+      continueOnError: true
+
+    - script: |
+        echo "=== Deployment Summary ==="
+        echo ""
+        NODE_PORT=$(kubectl get service frontend-service -n $(kubernetesNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
+        if [ -n "$NODE_PORT" ]; then
+          echo "✅ Frontend is accessible at:"
+          echo "   http://185.193.66.50:$NODE_PORT"
+          echo ""
+          echo "Update your browser to access the application."
+          echo "Replace 185.193.66.50 with your Kubernetes node IP if different."
+        else
+          echo "⚠️  Could not determine service URL. Check service status above."
+        fi
+      displayName: 'Display deployment URL'

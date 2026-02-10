@@ -1,0 +1,174 @@
+# Mobile (React Native + Expo) - Coding Standards
+
+## Component Structure
+- Use functional components with hooks
+- One component per file
+- File names match component name (PascalCase)
+- Use TypeScript for type safety
+- Platform-specific code: `.ios.tsx` and `.android.tsx` extensions
+
+## Naming Conventions
+- Screens: PascalCase with Screen suffix (e.g., `TaskListScreen.tsx`)
+- Components: PascalCase (e.g., `TaskCard.tsx`, `PhotoPicker.tsx`)
+- Hooks: useCamelCase (e.g., `useOfflineMode`, `useSync`)
+- Files: Match component name
+- Constants: UPPER_SNAKE_CASE
+- Variables and functions: camelCase
+
+## Folder Organization
+```
+src/
+├── screens/          # Screen components
+├── components/       # Reusable components
+├── services/         # API client & offline storage
+├── hooks/            # Custom hooks
+├── context/          # State & offline management
+├── utils/            # Helpers & offline storage
+└── navigation/       # Navigation structure
+```
+
+## Offline-First Architecture
+- Use AsyncStorage for local data persistence
+- Implement sync queue for pending operations
+- Detect network state changes
+- Show sync status indicators
+- Handle conflict resolution (server-wins strategy)
+
+## State Management
+- Use Context API for global state (auth, sync status)
+- Local state (useState) for screen-specific data
+- Custom hooks for shared logic
+- Consider Redux/Zustand for complex state if needed
+
+## Performance
+- Use React.memo for expensive components
+- Optimize FlatList with proper keyExtractor and getItemLayout
+- Lazy load images
+- Minimize re-renders with useMemo and useCallback
+- Profile with React Native Debugger
+
+## Native Features
+- Camera: Use expo-camera or react-native-image-picker
+- Location: Use expo-location for GPS
+- Permissions: Handle permission requests gracefully
+- Notifications: Use expo-notifications
+
+## Example Patterns
+
+### Screen Pattern
+```typescript
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList } from 'react-native';
+import { taskService } from '../services/taskService';
+import { useOfflineMode } from '../hooks/useOfflineMode';
+
+export const TaskListScreen: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { isOnline, syncPending } = useOfflineMode();
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const loadTasks = async () => {
+    try {
+      const data = await taskService.getAssignedTasks();
+      setTasks(data);
+    } catch (error) {
+      // Handle error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View>
+      {!isOnline && <OfflineBanner />}
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <TaskCard task={item} />}
+      />
+    </View>
+  );
+};
+```
+
+### Offline Storage Pattern
+```typescript
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export class OfflineQueue {
+  private static QUEUE_KEY = 'syncQueue';
+
+  static async addOperation(operation: SyncOperation): Promise<void> {
+    const queue = await this.getQueue();
+    queue.push({ ...operation, timestamp: Date.now(), id: uuid.v4() });
+    await AsyncStorage.setItem(this.QUEUE_KEY, JSON.stringify(queue));
+  }
+
+  static async getQueue(): Promise<SyncOperation[]> {
+    const data = await AsyncStorage.getItem(this.QUEUE_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  static async syncPending(): Promise<void> {
+    const queue = await this.getQueue();
+    for (const op of queue) {
+      try {
+        await api[op.method](op.endpoint, op.data);
+        await this.removeOperation(op.id);
+      } catch (error) {
+        // Handle conflict
+      }
+    }
+  }
+}
+```
+
+### Service Pattern with Offline Support
+```typescript
+import NetInfo from '@react-native-community/netinfo';
+import { OfflineQueue } from '../utils/offlineQueue';
+
+export const taskService = {
+  updateTaskStatus: async (taskId: string, status: TaskStatus): Promise<void> => {
+    const isOnline = (await NetInfo.fetch()).isConnected;
+    
+    if (isOnline) {
+      await api.put(`/api/v1/tasks/${taskId}/status`, { status });
+    } else {
+      await OfflineQueue.addOperation({
+        method: 'put',
+        endpoint: `/api/v1/tasks/${taskId}/status`,
+        data: { status },
+      });
+    }
+  },
+};
+```
+
+## Error Handling
+- Use error boundaries for screen error handling
+- Display user-friendly error messages
+- Log errors for debugging
+- Handle network errors gracefully
+- Show retry options for failed operations
+
+## Navigation
+- Use React Navigation
+- Type-safe navigation with TypeScript
+- Deep linking support
+- Navigation state persistence
+
+## Testing
+- Test on both iOS and Android
+- Test offline scenarios
+- Test permission flows
+- Test on different screen sizes
+
+## Platform-Specific Code
+- Use Platform.OS for platform checks
+- Use .ios.tsx and .android.tsx for platform-specific components
+- Handle platform-specific UI differences

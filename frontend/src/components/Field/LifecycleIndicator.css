@@ -1,0 +1,44 @@
+.lifecycle-indicator {
+  display: inline-flex;
+}
+
+.lifecycle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lifecycle-badge.low {
+  background-color: var(--color-lifecycle-low-bg);
+  color: var(--color-lifecycle-low);
+}
+
+.lifecycle-badge.high {
+  background-color: var(--color-lifecycle-high-bg);
+  color: var(--color-lifecycle-high);
+}
+
+.lifecycle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+}
+
+.lifecycle-badge.low .lifecycle-dot {
+  background-color: var(--color-lifecycle-low);
+}
+
+.lifecycle-badge.high .lifecycle-dot {
+  background-color: var(--color-lifecycle-high);
+}
+
+.lifecycle-label {
+  font-size: 0.75rem;
+}

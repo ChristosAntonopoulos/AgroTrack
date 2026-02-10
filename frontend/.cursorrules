@@ -1,0 +1,155 @@
+# Frontend (React + TypeScript) - Coding Standards
+
+## Component Structure
+- Use functional components with hooks
+- One component per file
+- File names match component name (PascalCase)
+- Use TypeScript for type safety
+- Separate logic with custom hooks
+
+## Naming Conventions
+- Components: PascalCase (e.g., `FieldCard.tsx`, `TaskList.tsx`)
+- Hooks: useCamelCase (e.g., `useFieldData`, `useAuth`)
+- Files: Match component name
+- Constants: UPPER_SNAKE_CASE
+- Variables and functions: camelCase
+- Types/Interfaces: PascalCase with descriptive names
+
+## Folder Organization
+```
+src/
+├── components/        # Reusable UI components
+│   ├── Field/
+│   ├── Task/
+│   ├── Lifecycle/
+│   └── Common/
+├── pages/            # Page-level components
+├── services/         # API client calls
+├── hooks/            # Custom React hooks
+├── context/          # State management (Context API)
+├── utils/            # Helper functions
+└── styles/           # Global & component styles
+```
+
+## State Management
+- Use Context API for auth and global state
+- Local state (useState) for component-specific data
+- Custom hooks for shared logic
+- Consider Redux/Zustand only if Context becomes unwieldy
+
+## Component Patterns
+- Destructure props in function signature
+- Use PropTypes or TypeScript interfaces for prop validation
+- Memoize expensive computations (useMemo, useCallback)
+- Extract reusable logic into custom hooks
+- Keep components focused on single responsibility
+
+## API Integration
+- Create service layer for API calls (use Axios)
+- Use environment variables for API base URL
+- Implement request/response interceptors for auth tokens
+- Handle loading and error states
+- Use try-catch for error handling
+
+## Styling
+- Use CSS Modules or styled-components
+- Mobile-first responsive design
+- Consistent spacing and typography
+- Use CSS variables for theming
+
+## Performance
+- Use React.memo for expensive components
+- Lazy load routes with React.lazy
+- Optimize images
+- Avoid unnecessary re-renders
+
+## Example Patterns
+
+### Component Pattern
+```typescript
+import { useState, useEffect } from 'react';
+import { fieldService } from '../services/fieldService';
+
+interface FieldListProps {
+  userId: string;
+}
+
+export const FieldList: React.FC<FieldListProps> = ({ userId }) => {
+  const [fields, setFields] = useState<Field[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFields = async () => {
+      try {
+        const data = await fieldService.getFields(userId);
+        setFields(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFields();
+  }, [userId]);
+
+  if (loading) return <Loading />;
+  if (error) return <ErrorBanner message={error} />;
+
+  return (
+    <div className="field-list">
+      {fields.map(field => (
+        <FieldCard key={field.id} field={field} />
+      ))}
+    </div>
+  );
+};
+```
+
+### Custom Hook Pattern
+```typescript
+export const useFields = (userId: string) => {
+  const [fields, setFields] = useState<Field[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch logic
+  }, [userId]);
+
+  return { fields, loading, error };
+};
+```
+
+### Service Pattern
+```typescript
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL,
+});
+
+export const fieldService = {
+  getFields: async (userId: string): Promise<Field[]> => {
+    const response = await api.get(`/api/v1/fields?userId=${userId}`);
+    return response.data;
+  },
+  
+  createField: async (field: CreateFieldDto): Promise<Field> => {
+    const response = await api.post('/api/v1/fields', field);
+    return response.data;
+  },
+};
+```
+
+## Error Handling
+- Use error boundaries for component error handling
+- Display user-friendly error messages
+- Log errors for debugging
+- Handle network errors gracefully
+
+## Accessibility
+- Use semantic HTML
+- Add ARIA labels where needed
+- Ensure keyboard navigation
+- Test with screen readers
