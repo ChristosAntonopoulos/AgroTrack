@@ -11,6 +11,8 @@ import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
 import Badge from '../components/Common/Badge';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import DemoTourPanel from '../components/Demo/DemoTourPanel';
+import { demoStore } from '../services/demo/demoStore';
 import { Layers, CheckSquare, TrendingUp, MapPin } from 'lucide-react';
 import './DashboardPage.css';
 
@@ -46,12 +48,40 @@ const DashboardPage: React.FC = () => {
   const isFieldOwner = user?.role === 'FieldOwner';
   const isProducer = user?.role === 'Producer';
 
+  const demoProgress = user?.userId ? demoStore.getDemoProgress(user.userId, user.role) : null;
+
   const totalArea = fields.reduce((sum, field) => sum + field.area, 0);
   const pendingTasks = tasks.filter((t) => t.status === 'pending').length;
   const inProgressTasks = tasks.filter((t) => t.status === 'in_progress').length;
   const completedTasks = tasks.filter((t) => t.status === 'completed').length;
   const lowYearFields = fields.filter((f) => f.currentLifecycleYear === 'low').length;
   const highYearFields = fields.filter((f) => f.currentLifecycleYear === 'high').length;
+
+  const ownerCommand = (() => {
+    if (!isFieldOwner && user?.role !== 'Administrator') return null;
+    demoStore.ensureSeeded();
+    const allTasks = demoStore.getTasks();
+    const approvalsPending = allTasks.filter((t) => t.status === 'completed' && t.approvalStatus === 'pending').length;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const overdueFieldIds = new Set(
+      allTasks
+        .filter((t) => t.status !== 'completed' && t.scheduledEnd && new Date(t.scheduledEnd) < today)
+        .map((t) => t.fieldId)
+    );
+
+    const issues = demoStore.getIssues();
+    const openIssues = issues.filter((i) => i.status === 'Open');
+    const highOpenIssues = openIssues.filter((i) => i.severity === 'High').length;
+
+    return {
+      approvalsPending,
+      fieldsAtRisk: overdueFieldIds.size,
+      openIssues: openIssues.length,
+      highOpenIssues,
+    };
+  })();
 
   if (loading) {
     return <LoadingSpinner fullScreen />;
@@ -67,6 +97,52 @@ const DashboardPage: React.FC = () => {
           <p className="dashboard-subtitle">Welcome back, {user?.email}</p>
         </div>
       </div>
+
+      {user?.userId && demoProgress && !demoProgress.dismissed ? (
+        <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+          <DemoTourPanel userId={user.userId} role={user.role} />
+        </div>
+      ) : null}
+
+      {ownerCommand ? (
+        <div className="owner-command-grid">
+          <Card hover className="owner-command-card" onClick={() => navigate('/approvals')}>
+            <div className="owner-command-top">
+              <div className="owner-command-title">Approvals pending</div>
+              <Badge variant={ownerCommand.approvalsPending > 0 ? 'warning' : 'success'} size="sm">
+                {ownerCommand.approvalsPending}
+              </Badge>
+            </div>
+            <div className="owner-command-sub">Review completed work from producers.</div>
+          </Card>
+
+          <Card hover className="owner-command-card" onClick={() => navigate('/issues')}>
+            <div className="owner-command-top">
+              <div className="owner-command-title">Issues open</div>
+              <Badge variant={ownerCommand.openIssues > 0 ? 'warning' : 'success'} size="sm">
+                {ownerCommand.openIssues}
+              </Badge>
+            </div>
+            <div className="owner-command-sub">
+              {ownerCommand.highOpenIssues > 0 ? (
+                <span><strong>{ownerCommand.highOpenIssues}</strong> high severity need attention.</span>
+              ) : (
+                <span>No high severity issues.</span>
+              )}
+            </div>
+          </Card>
+
+          <Card hover className="owner-command-card" onClick={() => navigate('/fields')}>
+            <div className="owner-command-top">
+              <div className="owner-command-title">Fields at risk</div>
+              <Badge variant={ownerCommand.fieldsAtRisk > 0 ? 'warning' : 'success'} size="sm">
+                {ownerCommand.fieldsAtRisk}
+              </Badge>
+            </div>
+            <div className="owner-command-sub">Fields with overdue work.</div>
+          </Card>
+        </div>
+      ) : null}
 
       <div className="dashboard-stats">
         {isFieldOwner && (

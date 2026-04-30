@@ -1,0 +1,53 @@
+.fields-map {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.fields-map-leaflet {
+  height: 100%;
+  width: 100%;
+}
+
+.fields-map-empty {
+  display: grid;
+  place-items: center;
+  padding: 40px 16px;
+  text-align: center;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.fields-map-empty-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+}
+
+.fields-map-empty-title {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.fields-map-empty-subtitle {
+  color: #6b7280;
+  max-width: 520px;
+}
+
+.fields-map-popup-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.fields-map-popup-row {
+  margin-top: 4px;
+}
+
+.fields-map-popup-hint {
+  margin-top: 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+

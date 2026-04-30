@@ -18,6 +18,10 @@ import CalendarPage from './pages/CalendarPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
+import TodayPage from './pages/TodayPage';
+import ApprovalsPage from './pages/ApprovalsPage';
+import IssuesPage from './pages/IssuesPage';
 import './App.css';
 
 function App() {
@@ -48,6 +52,10 @@ function App() {
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="reports" element={<ReportsPage />} />
+                <Route path="today" element={<TodayPage />} />
+                <Route path="approvals" element={<ApprovalsPage />} />
+                <Route path="issues" element={<IssuesPage />} />
+                <Route path="ministry" element={<MinistryNotificationsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="" element={<Navigate to="/dashboard" replace />} />
               </Route>

@@ -1,0 +1,91 @@
+.ministry-notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.ministry-notif-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.ministry-notif-card.unread {
+  border-left: 4px solid var(--color-primary);
+}
+
+.ministry-notif-card.read {
+  opacity: 0.85;
+}
+
+.ministry-notif-card-main {
+  cursor: pointer;
+}
+
+.ministry-notif-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.ministry-notif-card-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.ministry-notif-card-badges {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.ministry-notif-card-message {
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.ministry-notif-card-meta {
+  margin-top: var(--spacing-sm);
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.ministry-notif-card-actions {
+  display: inline-flex;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+}
+
+.ministry-notif-empty {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 48px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-interactive);
+}
+
+.ministry-notif-empty-icon {
+  font-size: 44px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.ministry-notif-empty-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.ministry-notif-empty-subtitle {
+  color: var(--color-text-secondary);
+}
+

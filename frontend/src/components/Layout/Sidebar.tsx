@@ -8,6 +8,10 @@ import {
   BarChart2,
   FileText,
   Calendar,
+  Bell,
+  Route,
+  ClipboardCheck,
+  AlertTriangle,
   Settings,
 } from 'lucide-react';
 import './Sidebar.css';
@@ -48,6 +52,24 @@ const Sidebar: React.FC<SidebarProps> = () => {
       roles: ['FieldOwner', 'Producer', 'Agronomist'],
     },
     {
+      path: '/today',
+      label: 'Today',
+      icon: <Route />,
+      roles: ['Producer'],
+    },
+    {
+      path: '/approvals',
+      label: 'Approvals',
+      icon: <ClipboardCheck />,
+      roles: ['FieldOwner', 'Administrator'],
+    },
+    {
+      path: '/issues',
+      label: 'Issues',
+      icon: <AlertTriangle />,
+      roles: ['FieldOwner', 'Administrator'],
+    },
+    {
       path: '/calendar',
       label: 'Calendar',
       icon: <Calendar />,
@@ -64,6 +86,12 @@ const Sidebar: React.FC<SidebarProps> = () => {
       label: 'Reports',
       icon: <FileText />,
       roles: ['FieldOwner', 'Administrator'],
+    },
+    {
+      path: '/ministry',
+      label: 'Ministry',
+      icon: <Bell />,
+      roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
     },
     {
       path: '/settings',

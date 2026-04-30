@@ -48,6 +48,21 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const handleDemoLogin = async (email: string) => {
+    setError(null);
+    setLoading(true);
+    setEmail(email);
+    setPassword('password123');
+    try {
+      await login(email, 'password123');
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'FieldOwner':
@@ -86,6 +101,46 @@ const LoginPage: React.FC = () => {
           <h1>Welcome Back</h1>
           <h2>Login to your account</h2>
           {error && <div className="error-message">{error}</div>}
+
+          {showQuickLogin && (
+            <div className="quick-login-section">
+              <h3>Demo Login</h3>
+              <div className="quick-login-buttons">
+                <Button
+                  type="button"
+                  onClick={() => handleDemoLogin('owner@olivefarm.com')}
+                  disabled={loading}
+                  variant="primary"
+                  fullWidth
+                  className="quick-login-btn"
+                >
+                  <span className="quick-login-icon">{getRoleIcon('FieldOwner')}</span>
+                  <div className="quick-login-info">
+                    <span className="quick-login-name">John Smith</span>
+                    <span className="quick-login-role">FieldOwner</span>
+                  </div>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={() => handleDemoLogin('producer1@olivefarm.com')}
+                  disabled={loading}
+                  variant="success"
+                  fullWidth
+                  className="quick-login-btn"
+                >
+                  <span className="quick-login-icon">{getRoleIcon('Producer')}</span>
+                  <div className="quick-login-info">
+                    <span className="quick-login-name">Maria Garcia</span>
+                    <span className="quick-login-role">Producer</span>
+                  </div>
+                </Button>
+              </div>
+              <div className="quick-login-divider">
+                <span>OR</span>
+              </div>
+            </div>
+          )}
           
           {showQuickLogin && (
             <div className="quick-login-section">

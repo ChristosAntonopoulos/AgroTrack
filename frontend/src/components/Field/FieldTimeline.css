@@ -1,0 +1,51 @@
+.ftl .card-body {
+  padding-top: var(--spacing-md);
+}
+
+.ftl-filters {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-md);
+}
+
+.ftl-filters select {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.ftl-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.ftl-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-interactive);
+}
+
+.ftl-message {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.ftl-time {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.ftl-empty {
+  color: var(--color-text-secondary);
+  padding: var(--spacing-md);
+  text-align: center;
+}
+

@@ -1,0 +1,142 @@
+.ftb .card-body {
+  padding-top: var(--spacing-md);
+}
+
+.ftb-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(240px, 1fr));
+  gap: var(--spacing-md);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-sm);
+}
+
+.ftb-col {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-interactive);
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+}
+
+.ftb-col-header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
+  align-items: center;
+}
+
+.ftb-col-title {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.ftb-col-sub {
+  grid-column: 1 / -1;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.ftb-col-count {
+  grid-row: 1;
+  grid-column: 2;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.ftb-col-body {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.ftb-task {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: var(--spacing-md);
+}
+
+.ftb-task-top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.ftb-task-title {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.ftb-task-badges {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ftb-task-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin-top: var(--spacing-xs);
+}
+
+.ftb-overdue {
+  color: var(--color-warning);
+  font-weight: 800;
+}
+
+.ftb-task-actions,
+.ftb-owner-approval,
+.ftb-reassign {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.ftb-reassign select {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.ftb-evidence {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px dashed var(--color-border);
+}
+
+.ftb-evidence-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--spacing-sm);
+}
+
+.ftb-evidence-form input {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 900px) {
+  .ftb-evidence-form {
+    grid-template-columns: 1fr;
+  }
+}
+

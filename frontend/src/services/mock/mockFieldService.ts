@@ -1,7 +1,6 @@
 import { Field, CreateFieldDto, UpdateFieldDto } from '../fieldService';
-import { mockFields, mockTasks, simulateDelay } from './mockData';
-
-let fields = [...mockFields];
+import { simulateDelay } from './mockData';
+import { demoStore } from '../demo/demoStore';
 
 // Helper to get current user from localStorage (mimicking auth context)
 const getCurrentUser = () => {
@@ -19,6 +18,10 @@ const getCurrentUser = () => {
 export const mockFieldService = {
   getFields: async (): Promise<Field[]> => {
     await simulateDelay();
+    demoStore.ensureSeeded();
+    const fields = demoStore.getFields();
+    const tasks = demoStore.getTasks();
+    const assignments = demoStore.getAssignments();
     const user = getCurrentUser();
     if (!user) {
       return [];
@@ -29,11 +32,15 @@ export const mockFieldService = {
       return fields.filter(f => f.ownerId === user.userId || f.ownerId === user.id);
     }
     
-    // Producers get fields where they have assigned tasks
+    // Producers get fields where they are assigned (or have assigned tasks)
     if (user.role === 'Producer') {
       const userId = user.userId || user.id;
-      const userTasks = mockTasks.filter(t => t.assignedTo === userId);
-      const fieldIds = Array.from(new Set(userTasks.map(t => t.fieldId)));
+      const assignedFieldIds = Object.entries(assignments)
+        .filter(([, producerIds]) => producerIds.includes(userId))
+        .map(([fieldId]) => fieldId);
+
+      const taskFieldIds = Array.from(new Set(tasks.filter(t => t.assignedTo === userId).map(t => t.fieldId)));
+      const fieldIds = Array.from(new Set([...assignedFieldIds, ...taskFieldIds]));
       return fields.filter(f => fieldIds.includes(f.id));
     }
 
@@ -43,6 +50,9 @@ export const mockFieldService = {
 
   getField: async (id: string): Promise<Field> => {
     await simulateDelay();
+    demoStore.ensureSeeded();
+    const fields = demoStore.getFields();
+    const tasks = demoStore.getTasks();
     const field = fields.find(f => f.id === id);
     if (!field) {
       throw new Error('Field not found');
@@ -56,7 +66,7 @@ export const mockFieldService = {
     // Check access: owner or has tasks in this field
     const userId = user.userId || user.id;
     const isOwner = field.ownerId === userId;
-    const hasTasks = user.role === 'Producer' && mockTasks.some(t => t.fieldId === id && t.assignedTo === userId);
+    const hasTasks = user.role === 'Producer' && tasks.some(t => t.fieldId === id && t.assignedTo === userId);
     
     if (!isOwner && !hasTasks && user.role !== 'Administrator' && user.role !== 'Agronomist') {
       throw new Error('You do not have access to this field.');
@@ -67,6 +77,7 @@ export const mockFieldService = {
 
   createField: async (data: CreateFieldDto): Promise<Field> => {
     await simulateDelay();
+    demoStore.ensureSeeded();
     const user = getCurrentUser();
     const userId = user?.userId || user?.id || 'user1';
     
@@ -78,30 +89,59 @@ export const mockFieldService = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    fields.push(newField);
+    demoStore.setFields([...demoStore.getFields(), newField]);
     return { ...newField };
   },
 
   updateField: async (id: string, data: UpdateFieldDto): Promise<Field> => {
     await simulateDelay();
-    const index = fields.findIndex(f => f.id === id);
-    if (index === -1) {
-      throw new Error('Field not found');
-    }
-    fields[index] = {
-      ...fields[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return { ...fields[index] };
+    const updated = demoStore.updateField(id, data);
+    return { ...updated };
   },
 
   deleteField: async (id: string): Promise<void> => {
     await simulateDelay();
+    demoStore.ensureSeeded();
+    const fields = demoStore.getFields();
     const index = fields.findIndex(f => f.id === id);
     if (index === -1) {
       throw new Error('Field not found');
     }
-    fields.splice(index, 1);
+    const next = [...fields];
+    next.splice(index, 1);
+    demoStore.setFields(next);
+  },
+
+  getAssignedProducers: async (fieldId: string): Promise<string[]> => {
+    await simulateDelay();
+    demoStore.ensureSeeded();
+    const assignments = demoStore.getAssignments();
+    return assignments[fieldId] || [];
+  },
+
+  assignProducer: async (fieldId: string, producerId: string): Promise<void> => {
+    await simulateDelay();
+    demoStore.ensureSeeded();
+    demoStore.assignProducerToField(fieldId, producerId);
+    demoStore.addEvent({
+      type: 'producer_assigned',
+      timestamp: new Date().toISOString(),
+      fieldId,
+      actorUserId: 'user1',
+      message: `Producer assigned to field: ${producerId}`,
+    });
+  },
+
+  unassignProducer: async (fieldId: string, producerId: string): Promise<void> => {
+    await simulateDelay();
+    demoStore.ensureSeeded();
+    demoStore.unassignProducerFromField(fieldId, producerId);
+    demoStore.addEvent({
+      type: 'producer_unassigned',
+      timestamp: new Date().toISOString(),
+      fieldId,
+      actorUserId: 'user1',
+      message: `Producer removed from field: ${producerId}`,
+    });
   },
 };

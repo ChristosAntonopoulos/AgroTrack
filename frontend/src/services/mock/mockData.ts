@@ -54,8 +54,8 @@ export const mockFields: Field[] = [
     id: 'field1',
     ownerId: 'user1',
     name: 'North Olive Grove',
-    latitude: 37.7749,
-    longitude: -122.4194,
+    latitude: 37.1568,
+    longitude: 21.586,
     area: 12.5,
     variety: 'Kalamata',
     treeAge: 15,
@@ -69,8 +69,8 @@ export const mockFields: Field[] = [
     id: 'field2',
     ownerId: 'user1',
     name: 'South Valley Fields',
-    latitude: 37.7849,
-    longitude: -122.4094,
+    latitude: 37.1492,
+    longitude: 21.5745,
     area: 8.3,
     variety: 'Arbequina',
     treeAge: 8,
@@ -84,8 +84,8 @@ export const mockFields: Field[] = [
     id: 'field3',
     ownerId: 'user1',
     name: 'East Hill Plantation',
-    latitude: 37.7649,
-    longitude: -122.4294,
+    latitude: 37.1615,
+    longitude: 21.5668,
     area: 15.7,
     variety: 'Picual',
     treeAge: 20,
@@ -99,8 +99,8 @@ export const mockFields: Field[] = [
     id: 'field4',
     ownerId: 'user1',
     name: 'West Slope Orchard',
-    latitude: 37.7549,
-    longitude: -122.4394,
+    latitude: 37.1455,
+    longitude: 21.5908,
     area: 6.2,
     variety: 'Koroneiki',
     treeAge: 12,
@@ -114,8 +114,8 @@ export const mockFields: Field[] = [
     id: 'field5',
     ownerId: 'user1',
     name: 'Central Meadow',
-    latitude: 37.7949,
-    longitude: -122.3994,
+    latitude: 37.153,
+    longitude: 21.5612,
     area: 10.0,
     variety: 'Frantoio',
     treeAge: 18,
@@ -128,70 +128,268 @@ export const mockFields: Field[] = [
 ];
 
 // Mock Tasks
-const taskTypes = ['Pruning', 'Harvesting', 'Fertilization', 'Irrigation', 'Pest Control', 'Soil Testing'];
-const taskStatuses = ['pending', 'in_progress', 'completed'];
+const daysFromNow = (days: number) => {
+  const d = new Date(now);
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+};
 
-function generateMockTasks(): Task[] {
-  const tasks: Task[] = [];
-  const today = new Date();
-  
-  mockFields.forEach((field, fieldIndex) => {
-    // Generate 5-8 tasks per field
-    const taskCount = 5 + Math.floor(Math.random() * 4);
-    
-    for (let i = 0; i < taskCount; i++) {
-      const daysAgo = Math.floor(Math.random() * 90); // Tasks from last 90 days
-      const scheduledStart = new Date(today);
-      scheduledStart.setDate(scheduledStart.getDate() - daysAgo);
-      const scheduledEnd = new Date(scheduledStart);
-      scheduledEnd.setDate(scheduledEnd.getDate() + Math.floor(Math.random() * 7) + 1);
-      
-      const status = taskStatuses[Math.floor(Math.random() * taskStatuses.length)];
-      let actualStart: string | undefined;
-      let actualEnd: string | undefined;
-      
-      if (status === 'in_progress' || status === 'completed') {
-        actualStart = new Date(scheduledStart.getTime() + Math.random() * 86400000).toISOString();
-      }
-      if (status === 'completed') {
-        actualEnd = new Date(scheduledEnd.getTime() - Math.random() * 86400000).toISOString();
-      }
-      
-      const assignedTo = Math.random() > 0.3 ? mockUsers[1 + Math.floor(Math.random() * 3)].id : undefined;
-      
-      const task: Task = {
-        id: `task${fieldIndex + 1}_${i + 1}`,
-        fieldId: field.id,
-        type: taskTypes[Math.floor(Math.random() * taskTypes.length)],
-        title: `${taskTypes[Math.floor(Math.random() * taskTypes.length)]} - ${field.name}`,
-        description: `Perform ${taskTypes[Math.floor(Math.random() * taskTypes.length)].toLowerCase()} on ${field.name}`,
-        status,
-        assignedTo,
-        scheduledStart: scheduledStart.toISOString(),
-        scheduledEnd: scheduledEnd.toISOString(),
-        actualStart,
-        actualEnd,
-        lifecycleYear: field.currentLifecycleYear,
-        cost: status === 'completed' ? Math.random() * 500 + 100 : undefined,
-        evidence: status === 'completed' && Math.random() > 0.5 ? [
-          {
-            photoUrl: `https://picsum.photos/400/300?random=${fieldIndex}_${i}`,
-            notes: 'Task completed successfully',
-            timestamp: actualEnd || scheduledEnd.toISOString(),
-          }
-        ] : [],
-        createdAt: scheduledStart.toISOString(),
-        updatedAt: status === 'completed' ? (actualEnd || scheduledEnd.toISOString()) : scheduledStart.toISOString(),
-      };
-      
-      tasks.push(task);
-    }
-  });
-  
-  return tasks;
-}
+// Curated demo tasks: stable IDs, intentional statuses, role-assigned work.
+// Demo users:
+// - Owner: user1 (FieldOwner)
+// - Producer: user2 (Producer)
+export const mockTasks: Task[] = [
+  // Field 1: mix of overdue, in progress, and completed (pending approval)
+  {
+    id: 'task-field1-1',
+    fieldId: 'field1',
+    type: 'Irrigation',
+    title: 'Irrigation - North Olive Grove',
+    description: 'Inspect irrigation lines and verify flow in all zones.',
+    priority: 'High',
+    estimatedMinutes: 45,
+    materials: ['Gloves', 'Wrench', 'Flashlight'],
+    checklist: ['Check main valve box', 'Inspect zone lines', 'Verify pressure at end lines', 'Log any leaks'],
+    status: 'pending',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(-6),
+    scheduledEnd: daysFromNow(-2), // overdue
+    lifecycleYear: 'low',
+    evidence: [],
+    createdAt: daysFromNow(-10),
+    updatedAt: daysFromNow(-6),
+  },
+  {
+    id: 'task-field1-2',
+    fieldId: 'field1',
+    type: 'Pest Control',
+    title: 'Pest Control - North Olive Grove',
+    description: 'Scout for olive fruit fly and record hotspot locations.',
+    priority: 'High',
+    estimatedMinutes: 60,
+    materials: ['Notebook', 'Traps', 'Gloves'],
+    checklist: ['Walk north edge', 'Inspect fruit samples', 'Mark hotspots', 'Update notes'],
+    status: 'in_progress',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(-3),
+    scheduledEnd: daysFromNow(1),
+    actualStart: daysFromNow(-2),
+    lifecycleYear: 'low',
+    evidence: [],
+    createdAt: daysFromNow(-8),
+    updatedAt: daysFromNow(-2),
+  },
+  {
+    id: 'task-field1-3',
+    fieldId: 'field1',
+    type: 'Soil Testing',
+    title: 'Soil Testing - North Olive Grove',
+    description: 'Collect samples from 3 representative zones and log results.',
+    priority: 'Medium',
+    estimatedMinutes: 90,
+    materials: ['Sample bags', 'Marker', 'Shovel'],
+    checklist: ['Collect 3 samples', 'Label bags', 'Take photo', 'Record moisture'],
+    status: 'completed',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(-14),
+    scheduledEnd: daysFromNow(-12),
+    actualStart: daysFromNow(-13),
+    actualEnd: daysFromNow(-12),
+    lifecycleYear: 'low',
+    cost: 220,
+    evidence: [
+      {
+        photoUrl: '/demo-images/olive-branch.jpg',
+        notes: 'Collected samples from north/center/south zones.',
+        timestamp: daysFromNow(-12),
+      },
+    ],
+    createdAt: daysFromNow(-16),
+    updatedAt: daysFromNow(-12),
+  },
 
-export const mockTasks = generateMockTasks();
+  // Field 2: high-year harvest prep
+  {
+    id: 'task-field2-1',
+    fieldId: 'field2',
+    type: 'Pruning',
+    title: 'Pruning - South Valley Fields',
+    description: 'Light pruning to improve airflow; avoid over-pruning.',
+    priority: 'Medium',
+    estimatedMinutes: 120,
+    materials: ['Pruning shears', 'Gloves', 'Ladder'],
+    checklist: ['Remove deadwood', 'Open canopy', 'Avoid over-prune', 'Clean tools'],
+    status: 'completed',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(-20),
+    scheduledEnd: daysFromNow(-18),
+    actualStart: daysFromNow(-19),
+    actualEnd: daysFromNow(-18),
+    lifecycleYear: 'high',
+    cost: 340,
+    evidence: [
+      {
+        kind: 'before',
+        photoUrl: '/demo-images/olive-tree-field.jpg',
+        notes: 'Before pruning: dense inner canopy.',
+        timestamp: daysFromNow(-19),
+      },
+      {
+        kind: 'after',
+        photoUrl: '/demo-images/olive-grove-hillside.jpg',
+        notes: 'After pruning: improved airflow and light exposure.',
+        timestamp: daysFromNow(-18),
+      },
+    ],
+    createdAt: daysFromNow(-22),
+    updatedAt: daysFromNow(-18),
+  },
+  {
+    id: 'task-field2-2',
+    fieldId: 'field2',
+    type: 'Fertilization',
+    title: 'Fertilization - South Valley Fields',
+    description: 'Apply recommended nutrients; record quantities used.',
+    priority: 'Medium',
+    estimatedMinutes: 70,
+    materials: ['Fertilizer', 'Scale', 'Gloves'],
+    checklist: ['Confirm dosage', 'Apply evenly', 'Record quantities', 'Rinse tools'],
+    status: 'pending',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(-1),
+    scheduledEnd: daysFromNow(3),
+    lifecycleYear: 'high',
+    evidence: [],
+    createdAt: daysFromNow(-4),
+    updatedAt: daysFromNow(-1),
+  },
+  {
+    id: 'task-field2-3',
+    fieldId: 'field2',
+    type: 'Irrigation',
+    title: 'Irrigation Check - South Valley Fields',
+    description: 'Confirm irrigation schedule and check for leaks.',
+    priority: 'Low',
+    estimatedMinutes: 30,
+    materials: ['Flashlight'],
+    checklist: ['Check schedule', 'Inspect for leaks', 'Confirm water source'],
+    status: 'pending',
+    scheduledStart: daysFromNow(2),
+    scheduledEnd: daysFromNow(6),
+    lifecycleYear: 'high',
+    evidence: [],
+    createdAt: daysFromNow(-1),
+    updatedAt: daysFromNow(-1),
+  },
+
+  // Field 3: producer has one task, plus owner-only planning
+  {
+    id: 'task-field3-1',
+    fieldId: 'field3',
+    type: 'Harvesting',
+    title: 'Harvest Plan - East Hill Plantation',
+    description: 'Prepare harvest plan and crew schedule for next 2 weeks.',
+    priority: 'Medium',
+    estimatedMinutes: 50,
+    materials: ['Calendar', 'Phone'],
+    checklist: ['Check forecast', 'Draft crew schedule', 'Confirm equipment', 'Share plan'],
+    status: 'in_progress',
+    scheduledStart: daysFromNow(-4),
+    scheduledEnd: daysFromNow(4),
+    actualStart: daysFromNow(-4),
+    lifecycleYear: 'low',
+    evidence: [],
+    createdAt: daysFromNow(-7),
+    updatedAt: daysFromNow(-4),
+  },
+  {
+    id: 'task-field3-2',
+    fieldId: 'field3',
+    type: 'Pest Control',
+    title: 'Pest Control - East Hill Plantation',
+    description: 'Spot-check leaves and fruit; flag any damage areas.',
+    priority: 'Medium',
+    estimatedMinutes: 40,
+    materials: ['Notebook', 'Gloves'],
+    checklist: ['Inspect sample trees', 'Flag damage areas', 'Take photos', 'Report issues'],
+    status: 'pending',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(1),
+    scheduledEnd: daysFromNow(5),
+    lifecycleYear: 'low',
+    evidence: [],
+    createdAt: daysFromNow(-2),
+    updatedAt: daysFromNow(-2),
+  },
+
+  // Field 4: completed with evidence, already approved-looking (not required)
+  {
+    id: 'task-field4-1',
+    fieldId: 'field4',
+    type: 'Soil Testing',
+    title: 'Soil Testing - West Slope Orchard',
+    description: 'Verify pH and moisture. Log readings.',
+    priority: 'Low',
+    estimatedMinutes: 60,
+    materials: ['pH meter', 'Notebook'],
+    checklist: ['Measure pH', 'Measure moisture', 'Log readings', 'Note anomalies'],
+    status: 'completed',
+    scheduledStart: daysFromNow(-30),
+    scheduledEnd: daysFromNow(-28),
+    actualStart: daysFromNow(-29),
+    actualEnd: daysFromNow(-28),
+    lifecycleYear: 'high',
+    cost: 180,
+    evidence: [
+      {
+        photoUrl: '/demo-images/olive-hills-village.jpg',
+        notes: 'pH stable; moisture low on west edge.',
+        timestamp: daysFromNow(-28),
+      },
+    ],
+    createdAt: daysFromNow(-32),
+    updatedAt: daysFromNow(-28),
+  },
+
+  // Field 5: overdue alert, plus a near-term task
+  {
+    id: 'task-field5-1',
+    fieldId: 'field5',
+    type: 'Irrigation',
+    title: 'Irrigation Setup - Central Meadow',
+    description: 'Set irrigation schedule for the next week based on weather.',
+    priority: 'High',
+    estimatedMinutes: 35,
+    materials: ['Phone', 'Notebook'],
+    checklist: ['Check forecast', 'Set schedule', 'Verify timers', 'Log settings'],
+    status: 'pending',
+    assignedTo: 'user2',
+    scheduledStart: daysFromNow(-5),
+    scheduledEnd: daysFromNow(-1), // overdue
+    lifecycleYear: 'low',
+    evidence: [],
+    createdAt: daysFromNow(-8),
+    updatedAt: daysFromNow(-5),
+  },
+  {
+    id: 'task-field5-2',
+    fieldId: 'field5',
+    type: 'Pruning',
+    title: 'Pruning - Central Meadow',
+    description: 'Remove suckers and shape canopy for uniform exposure.',
+    priority: 'Low',
+    estimatedMinutes: 75,
+    materials: ['Pruning shears', 'Gloves'],
+    checklist: ['Remove suckers', 'Shape canopy', 'Clean tools'],
+    status: 'pending',
+    scheduledStart: daysFromNow(3),
+    scheduledEnd: daysFromNow(7),
+    lifecycleYear: 'low',
+    evidence: [],
+    createdAt: daysFromNow(-1),
+    updatedAt: daysFromNow(-1),
+  },
+];
 
 // Mock Lifecycles
 export const mockLifecycles: Lifecycle[] = mockFields.map((field, index) => ({

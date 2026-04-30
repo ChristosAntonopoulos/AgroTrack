@@ -1,0 +1,365 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import PageContainer from '../components/Common/PageContainer';
+import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import Card from '../components/Common/Card';
+import Button from '../components/Common/Button';
+import Badge from '../components/Common/Badge';
+import EmptyState from '../components/Common/EmptyState';
+import LoadingSpinner from '../components/Common/LoadingSpinner';
+import { demoStore } from '../services/demo/demoStore';
+import { Field } from '../services/fieldService';
+import { Task } from '../services/taskService';
+import { locationService, Location } from '../services/locationService';
+import { useNavigate } from 'react-router-dom';
+import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import L from 'leaflet';
+import './TodayPage.css';
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+const openDirections = (lat: number, lng: number) => {
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
+const numberedIcon = (n: number) =>
+  L.divIcon({
+    className: 'route-marker',
+    html: `<div class="route-marker-inner">${n}</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  });
+
+const TodayPage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    demoStore.ensureSeeded();
+    if (user?.userId) {
+      demoStore.markDemoStep(user.userId, user.role || 'Producer', 'producer_visit_today');
+    }
+    (async () => {
+      try {
+        const loc = await locationService.getCurrentLocation({ enableHighAccuracy: false, timeoutMs: 5000 });
+        setCurrentLocation(loc);
+      } catch (e: any) {
+        setLocationError(e?.message || 'Location unavailable');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [user?.userId, user?.role]);
+
+  const producerId = user?.userId;
+  const role = user?.role || '';
+
+  const [routeMode, setRouteMode] = useState(false);
+  const [currentStopIndex, setCurrentStopIndex] = useState(0);
+  const [completedStops, setCompletedStops] = useState<string[]>([]);
+
+  const { fields, tasks } = useMemo(() => {
+    demoStore.ensureSeeded();
+    return { fields: demoStore.getFields(), tasks: demoStore.getTasks() };
+  }, []);
+
+  const myOpenTasks = useMemo(() => {
+    if (!producerId) return [];
+    return tasks
+      .filter((t) => t.assignedTo === producerId)
+      .filter((t) => t.status !== 'completed');
+  }, [tasks, producerId]);
+
+  const recommended = useMemo(() => {
+    const now = new Date();
+    const today = startOfDay(now);
+    const list = myOpenTasks.slice();
+    list.sort((a, b) => {
+      const ad = a.scheduledEnd ? new Date(a.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+      const bd = b.scheduledEnd ? new Date(b.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+      const aOver = a.scheduledEnd ? new Date(a.scheduledEnd) < today : false;
+      const bOver = b.scheduledEnd ? new Date(b.scheduledEnd) < today : false;
+      if (aOver !== bOver) return aOver ? -1 : 1;
+      return ad - bd;
+    });
+    return list.slice(0, 3);
+  }, [myOpenTasks]);
+
+  const routeFields = useMemo(() => {
+    const fieldIds = Array.from(new Set(recommended.map((t) => t.fieldId).concat(myOpenTasks.map((t) => t.fieldId))));
+    const list = fieldIds
+      .map((id) => fields.find((f) => f.id === id))
+      .filter(Boolean) as Field[];
+
+    const withGps = list.filter((f) => typeof f.latitude === 'number' && typeof f.longitude === 'number');
+    if (!currentLocation) {
+      return withGps.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Nearest-next heuristic.
+    const remaining = withGps.slice();
+    const ordered: Field[] = [];
+    let cursor = { latitude: currentLocation.latitude, longitude: currentLocation.longitude };
+    while (remaining.length > 0) {
+      remaining.sort((a, b) => {
+        const da = locationService.calculateDistance(cursor.latitude, cursor.longitude, a.latitude!, a.longitude!);
+        const db = locationService.calculateDistance(cursor.latitude, cursor.longitude, b.latitude!, b.longitude!);
+        return da - db;
+      });
+      const next = remaining.shift()!;
+      ordered.push(next);
+      cursor = { latitude: next.latitude!, longitude: next.longitude! };
+    }
+    return ordered;
+  }, [fields, myOpenTasks, recommended, currentLocation]);
+
+  useEffect(() => {
+    if (!producerId) return;
+    demoStore.ensureSeeded();
+    const state = demoStore.getRouteState(producerId);
+    setRouteMode(state.active);
+    setCurrentStopIndex(state.currentIndex || 0);
+    setCompletedStops(state.completedFieldIds || []);
+  }, [producerId]);
+
+  const persistRoute = (patch: Partial<{ active: boolean; currentIndex: number; completedFieldIds: string[] }>) => {
+    if (!producerId) return;
+    const current = demoStore.getRouteState(producerId);
+    const next = {
+      ...current,
+      ...patch,
+      startedAt: patch.active && !current.active ? new Date().toISOString() : current.startedAt,
+    };
+    demoStore.setRouteState(producerId, next);
+  };
+
+  const startRoute = () => {
+    setRouteMode(true);
+    setCurrentStopIndex(0);
+    setCompletedStops([]);
+    persistRoute({ active: true, currentIndex: 0, completedFieldIds: [] });
+    if (routeFields[0]) {
+      demoStore.addEvent({
+        type: 'task_status_changed',
+        timestamp: new Date().toISOString(),
+        fieldId: routeFields[0].id,
+        actorUserId: producerId,
+        message: `Route started. First stop: ${routeFields[0].name}`,
+      });
+    }
+  };
+
+  const stopRoute = () => {
+    setRouteMode(false);
+    persistRoute({ active: false });
+  };
+
+  const markStopDone = (fieldId: string, fieldName: string) => {
+    const next = Array.from(new Set([...completedStops, fieldId]));
+    setCompletedStops(next);
+    persistRoute({ completedFieldIds: next });
+    demoStore.addEvent({
+      type: 'task_status_changed',
+      timestamp: new Date().toISOString(),
+      fieldId,
+      actorUserId: producerId,
+      message: `Route stop completed: ${fieldName}`,
+    });
+  };
+
+  const goToStop = (idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, Math.max(0, routeFields.length - 1)));
+    setCurrentStopIndex(clamped);
+    persistRoute({ currentIndex: clamped });
+  };
+
+  const center: [number, number] = useMemo(() => {
+    if (currentLocation) return [currentLocation.latitude, currentLocation.longitude];
+    if (routeFields[0]?.latitude && routeFields[0]?.longitude) return [routeFields[0].latitude, routeFields[0].longitude];
+    return [37.7749, -122.4194];
+  }, [currentLocation, routeFields]);
+
+  if (role !== 'Producer') {
+    return (
+      <PageContainer>
+        <EmptyState title="This page is for Producers" description="Log in as a Producer to see Today’s Route." />
+      </PageContainer>
+    );
+  }
+
+  if (loading) return <LoadingSpinner fullScreen />;
+
+  return (
+    <PageContainer>
+      <div className="today-page">
+        <Breadcrumbs />
+
+        <div className="today-header">
+          <div>
+            <h1>Today</h1>
+            <p className="today-subtitle">Your next actions and the best route across fields</p>
+          </div>
+          <div className="today-header-right">
+            {locationError ? (
+              <Badge variant="warning" size="sm">{locationError}</Badge>
+            ) : currentLocation ? (
+              <Badge variant="success" size="sm">Location ready</Badge>
+            ) : null}
+
+            {routeFields.length > 0 ? (
+              routeMode ? (
+                <Button size="sm" variant="outline" onClick={stopRoute}>
+                  End route
+                </Button>
+              ) : (
+                <Button size="sm" variant="primary" onClick={startRoute}>
+                  Start route
+                </Button>
+              )
+            ) : null}
+          </div>
+        </div>
+
+        <div className="today-grid">
+          <Card title="Recommended next tasks" subtitle="Start here for maximum impact">
+            {recommended.length === 0 ? (
+              <EmptyState title="No tasks assigned" description="You’re all caught up." />
+            ) : (
+              <div className="today-task-list">
+                {recommended.map((t) => (
+                  <div key={t.id} className="today-task">
+                    <div className="today-task-main">
+                      <div className="today-task-title">{t.title}</div>
+                      <div className="today-task-meta">
+                        <Badge size="sm" variant={t.status === 'in_progress' ? 'info' : 'warning'}>
+                          {t.status.replace('_', ' ')}
+                        </Badge>
+                        {t.scheduledEnd ? <span>Due: {new Date(t.scheduledEnd).toLocaleDateString()}</span> : null}
+                      </div>
+                    </div>
+                    <div className="today-task-actions">
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/fields/${t.fieldId}`)}>
+                        View field
+                      </Button>
+                      <Button size="sm" variant="primary" onClick={() => navigate(`/tasks/${t.id}`)}>
+                        Open task
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card title="Today’s route" subtitle="Fields ordered by distance (nearest-next)">
+            {routeFields.length === 0 ? (
+              <EmptyState title="No route yet" description="Assign tasks to see your route." />
+            ) : (
+              <div className="today-route">
+                <div className="today-route-list">
+                  {routeFields.map((f, idx) => {
+                    const dist =
+                      currentLocation && f.latitude && f.longitude
+                        ? locationService.calculateDistance(
+                            currentLocation.latitude,
+                            currentLocation.longitude,
+                            f.latitude,
+                            f.longitude
+                          )
+                        : null;
+                    const fieldTasks = myOpenTasks.filter((t) => t.fieldId === f.id);
+                    const nextDue = fieldTasks
+                      .filter((t) => t.scheduledEnd)
+                      .slice()
+                      .sort((a, b) => new Date(a.scheduledEnd!).getTime() - new Date(b.scheduledEnd!).getTime())[0];
+
+                    return (
+                      <div
+                        key={f.id}
+                        className={`today-route-item ${routeMode && idx === currentStopIndex ? 'active' : ''} ${completedStops.includes(f.id) ? 'done' : ''}`}
+                      >
+                        <div className="today-route-left">
+                          <div className="today-route-order">{idx + 1}</div>
+                          <div>
+                            <div className="today-route-name">{f.name}</div>
+                            <div className="today-route-meta">
+                              {dist != null ? <span>{Math.round(dist * 10) / 10} km</span> : <span>Distance n/a</span>}
+                              {nextDue?.scheduledEnd ? (
+                                <span>Next due: {new Date(nextDue.scheduledEnd).toLocaleDateString()}</span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="today-route-actions">
+                          {routeMode ? (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => goToStop(idx)}>
+                                Go
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={completedStops.includes(f.id) ? 'outline' : 'success'}
+                                onClick={() => markStopDone(f.id, f.name)}
+                                disabled={completedStops.includes(f.id)}
+                              >
+                                {completedStops.includes(f.id) ? 'Done' : 'Mark done'}
+                              </Button>
+                            </>
+                          ) : null}
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/fields/${f.id}`)}>
+                            Open
+                          </Button>
+                          {f.latitude && f.longitude ? (
+                            <Button size="sm" variant="ghost" onClick={() => openDirections(f.latitude!, f.longitude!)}>
+                              Directions
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="today-route-map">
+                  <MapContainer center={center} zoom={12} scrollWheelZoom className="today-leaflet">
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {currentLocation ? (
+                      <Marker position={[currentLocation.latitude, currentLocation.longitude]}>
+                        <Popup>Your location</Popup>
+                      </Marker>
+                    ) : null}
+                    {routeFields.map((f, idx) => (
+                      <Marker
+                        key={f.id}
+                        position={[f.latitude!, f.longitude!]}
+                        icon={numberedIcon(idx + 1)}
+                        eventHandlers={{
+                          click: () => navigate(`/fields/${f.id}`),
+                        }}
+                      >
+                        <Popup>
+                          <strong>{idx + 1}. {f.name}</strong>
+                        </Popup>
+                      </Marker>
+                    ))}
+                  </MapContainer>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </PageContainer>
+  );
+};
+
+export default TodayPage;
+

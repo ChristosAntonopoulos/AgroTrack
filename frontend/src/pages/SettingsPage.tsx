@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { settingsService, UserPreferences, Theme } from '../services/settingsService';
+import { isMockMode } from '../services/serviceFactory';
+import { demoStore } from '../services/demo/demoStore';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
@@ -54,6 +56,13 @@ const SettingsPage: React.FC = () => {
       default:
         return <Sun size={18} />;
     }
+  };
+
+  const handleResetDemo = () => {
+    const ok = window.confirm('Reset demo data? This will restore the original demo fields, tasks, and assignments.');
+    if (!ok) return;
+    demoStore.reset();
+    window.location.reload();
   };
 
   return (
@@ -214,6 +223,23 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
           </Card>
+
+          {isMockMode() ? (
+            <Card className="settings-section">
+              <div className="section-header">
+                <Globe />
+                <h2>Demo</h2>
+              </div>
+              <div className="section-content">
+                <p style={{ marginTop: 0, color: 'var(--color-text-secondary)' }}>
+                  Reset the demo back to the original story if things get messy.
+                </p>
+                <Button variant="warning" onClick={handleResetDemo}>
+                  Reset Demo Data
+                </Button>
+              </div>
+            </Card>
+          ) : null}
 
           <div className="settings-actions">
             <Button
