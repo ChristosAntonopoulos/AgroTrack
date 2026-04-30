@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService } from '../services/serviceFactory';
 import { getLifecycleService } from '../services/serviceFactory';
@@ -22,11 +22,15 @@ import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { RefreshCw, Play, Edit, ArrowLeft, CheckCircle2, XCircle, UserPlus, Navigation, Sparkles } from 'lucide-react';
+import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../utils/taskRules';
 import './FieldDetailPage.css';
+
+type ControlRoomTab = 'board' | 'timeline' | 'evidence';
 
 const FieldDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
@@ -38,6 +42,7 @@ const FieldDetailPage: React.FC = () => {
   const [assigningProducerId, setAssigningProducerId] = useState<string>('');
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
+  const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
   const approvalsRef = useRef<HTMLDivElement | null>(null);
 
   const [showIssueModal, setShowIssueModal] = useState(false);
@@ -46,6 +51,9 @@ const FieldDetailPage: React.FC = () => {
   const [issueTitle, setIssueTitle] = useState('');
   const [issueDescription, setIssueDescription] = useState('');
   const [issuePhotoUrl, setIssuePhotoUrl] = useState('');
+
+  const [controlRoomTab, setControlRoomTab] = useState<ControlRoomTab>('board');
+  const handledInitialAction = useRef(false);
 
   useEffect(() => {
     if (id) {
@@ -64,6 +72,16 @@ const FieldDetailPage: React.FC = () => {
       demoStore.markDemoStep(user.userId, user.role, 'owner_view_timeline');
     }
   }, [user?.role, user?.userId]);
+
+  useEffect(() => {
+    if (!user?.userId) return;
+    demoStore.ensureSeeded();
+    const prefs = demoStore.getFieldUiPrefs(user.userId);
+    const next = prefs.fieldDetailTab;
+    if (next === 'board' || next === 'timeline' || next === 'evidence') {
+      setControlRoomTab(next);
+    }
+  }, [user?.userId]);
 
   const loadField = async () => {
     try {
@@ -168,6 +186,26 @@ const FieldDetailPage: React.FC = () => {
     return mine[0].id;
   }, [tasks, user?.role, user?.userId]);
 
+  useEffect(() => {
+    if (handledInitialAction.current) return;
+    if (!id) return;
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    if (!action) return;
+
+    if (action === 'issue') {
+      handledInitialAction.current = true;
+      setShowIssueModal(true);
+      return;
+    }
+    if (action === 'start') {
+      if (!recommendedNextTaskId) return;
+      handledInitialAction.current = true;
+      void handleStartRecommended();
+      setControlRoomTab('board');
+    }
+  }, [id, location.search, recommendedNextTaskId]);
+
   const handleAssignProducer = async () => {
     if (!id || !assigningProducerId) return;
     const fieldService: any = getFieldService();
@@ -218,9 +256,15 @@ const FieldDetailPage: React.FC = () => {
   const handleAddEvidence = async (taskId: string) => {
     if (!evidenceNotes.trim() && !evidencePhotoUrl.trim()) return;
     const taskService = getTaskService();
-    await taskService.addEvidence(taskId, evidencePhotoUrl.trim() || undefined, evidenceNotes.trim() || undefined);
+    await taskService.addEvidence(
+      taskId,
+      evidencePhotoUrl.trim() || undefined,
+      evidenceNotes.trim() || undefined,
+      evidenceKind
+    );
     setEvidenceNotes('');
     setEvidencePhotoUrl('');
+    setEvidenceKind('general');
     await loadTasks();
   };
 
@@ -234,6 +278,14 @@ const FieldDetailPage: React.FC = () => {
 
   const handleReviewApprovals = () => {
     approvalsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleSelectControlRoomTab = (tab: ControlRoomTab) => {
+    setControlRoomTab(tab);
+    if (!user?.userId) return;
+    demoStore.ensureSeeded();
+    const current = demoStore.getFieldUiPrefs(user.userId);
+    demoStore.setFieldUiPrefs(user.userId, { ...current, fieldDetailTab: tab });
   };
 
   const handleStartRecommended = async () => {
@@ -417,6 +469,123 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </Card>
 
+          <Card className="field-control-room-card" padding="md">
+            <div className="fcr-focus">
+              <div className="fcr-focus-left">
+                <div className="fcr-focus-title">Today’s Focus</div>
+                <div className="fcr-focus-metrics">
+                  <span>
+                    <strong>Overdue:</strong> {riskSummary.overdueCount}
+                  </span>
+                  <span>
+                    <strong>Next due:</strong>{' '}
+                    {riskSummary.nextDue?.scheduledEnd ? new Date(riskSummary.nextDue.scheduledEnd).toLocaleDateString() : '—'}
+                  </span>
+                  <span>
+                    <strong>Approvals:</strong> {riskSummary.approvalsPending}
+                  </span>
+                </div>
+              </div>
+              <div className="fcr-focus-actions">
+                {isFieldOwner ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleReviewApprovals}
+                    disabled={riskSummary.approvalsPending === 0}
+                  >
+                    Review approvals
+                  </Button>
+                ) : isProducer ? (
+                  <Button variant="primary" size="sm" onClick={handleStartRecommended} disabled={!recommendedNextTaskId}>
+                    Start next task
+                  </Button>
+                ) : null}
+                <Button variant="outline" size="sm" onClick={() => handleSelectControlRoomTab('timeline')}>
+                  Timeline
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleSelectControlRoomTab('evidence')}>
+                  Evidence
+                </Button>
+              </div>
+            </div>
+
+            <div className="fcr-tabs" role="tablist" aria-label="Field control room">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={controlRoomTab === 'board'}
+                className={controlRoomTab === 'board' ? 'active' : ''}
+                onClick={() => handleSelectControlRoomTab('board')}
+              >
+                Board
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={controlRoomTab === 'timeline'}
+                className={controlRoomTab === 'timeline' ? 'active' : ''}
+                onClick={() => handleSelectControlRoomTab('timeline')}
+              >
+                Timeline
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={controlRoomTab === 'evidence'}
+                className={controlRoomTab === 'evidence' ? 'active' : ''}
+                onClick={() => handleSelectControlRoomTab('evidence')}
+              >
+                Evidence
+              </button>
+            </div>
+
+            <div className="fcr-body">
+              {controlRoomTab === 'board' ? (
+                <>
+                  {tasks.length > 0 && <FieldMonitoring tasks={tasks} />}
+                  <FieldTaskBoard
+                    fieldId={field.id}
+                    tasks={tasks}
+                    currentUserId={user?.userId}
+                    role={user?.role || ''}
+                    onChanged={loadTasks}
+                  />
+                </>
+              ) : null}
+
+              {controlRoomTab === 'timeline' ? <FieldTimeline fieldId={field.id} /> : null}
+
+              {controlRoomTab === 'evidence' ? (
+                <div className="fcr-evidence">
+                  <div className="fcr-evidence-section">
+                    <div className="fcr-evidence-title">Latest Photos</div>
+                    <EvidenceGallery items={latestEvidence} title="" emptyText="No photos yet for this field." />
+                  </div>
+
+                  {latestBeforeAfter ? (
+                    <div className="fcr-evidence-section">
+                      <div className="fcr-evidence-title">Before / After</div>
+                      <div style={{ marginBottom: 'var(--spacing-sm)', color: 'var(--color-text-secondary)' }}>
+                        Latest: <strong>{latestBeforeAfter.taskTitle}</strong>
+                      </div>
+                      <div className="before-after-grid">
+                        <div>
+                          <div className="before-after-label">Before</div>
+                          <EvidenceGallery items={latestBeforeAfter.before} title="" emptyText="No “before” photos yet." />
+                        </div>
+                        <div>
+                          <div className="before-after-label">After</div>
+                          <EvidenceGallery items={latestBeforeAfter.after} title="" emptyText="No “after” photos yet." />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </Card>
+
           {showIssueModal ? (
             <div className="issue-modal" role="dialog" aria-modal="true">
               <div className="issue-backdrop" onClick={() => setShowIssueModal(false)} />
@@ -521,44 +690,6 @@ const FieldDetailPage: React.FC = () => {
             )}
           </Card>
 
-          <Card className="field-detail-section">
-            <h2>Latest Photos</h2>
-            <EvidenceGallery items={latestEvidence} title="" emptyText="No photos yet for this field." />
-          </Card>
-
-          {latestBeforeAfter ? (
-            <Card className="field-detail-section">
-              <h2>Before / After</h2>
-              <div style={{ marginBottom: 'var(--spacing-sm)', color: 'var(--color-text-secondary)' }}>
-                Latest: <strong>{latestBeforeAfter.taskTitle}</strong>
-              </div>
-              <div className="before-after-grid">
-                <div>
-                  <div className="before-after-label">Before</div>
-                  <EvidenceGallery items={latestBeforeAfter.before} title="" emptyText="No “before” photos yet." />
-                </div>
-                <div>
-                  <div className="before-after-label">After</div>
-                  <EvidenceGallery items={latestBeforeAfter.after} title="" emptyText="No “after” photos yet." />
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          {tasks.length > 0 && (
-            <FieldMonitoring tasks={tasks} />
-          )}
-
-          <FieldTaskBoard
-            fieldId={field.id}
-            tasks={tasks}
-            currentUserId={user?.userId}
-            role={user?.role || ''}
-            onChanged={loadTasks}
-          />
-
-          <FieldTimeline fieldId={field.id} />
-
           {isFieldOwner ? (
             <Card className="field-detail-section">
               <h2>Assignments</h2>
@@ -657,6 +788,9 @@ const FieldDetailPage: React.FC = () => {
                 <div className="mytasks-list">
                   {myTasks.map((t) => {
                     const statusVariant = t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : 'warning';
+                    const needsPair = requiresBeforeAfter(t.type);
+                    const hasPair = hasBeforeAfterEvidence(t);
+                    const completeDisabled = needsPair && !hasPair;
                     return (
                       <div key={t.id} className="mytask-item">
                         <div className="mytask-main">
@@ -676,7 +810,7 @@ const FieldDetailPage: React.FC = () => {
                             </Button>
                           ) : null}
                           {t.status !== 'completed' ? (
-                            <Button size="sm" variant="success" onClick={() => handleCompleteTask(t.id)}>
+                            <Button size="sm" variant="success" onClick={() => handleCompleteTask(t.id)} disabled={completeDisabled}>
                               Complete
                             </Button>
                           ) : null}
@@ -684,6 +818,13 @@ const FieldDetailPage: React.FC = () => {
 
                         <div className="mytask-evidence">
                           <div className="evidence-form">
+                            {needsPair ? (
+                              <select value={evidenceKind} onChange={(e) => setEvidenceKind(e.target.value as any)} aria-label="Evidence kind">
+                                <option value="before">Before</option>
+                                <option value="after">After</option>
+                                <option value="general">General</option>
+                              </select>
+                            ) : null}
                             <input
                               type="url"
                               placeholder="Photo URL (optional)"
@@ -705,6 +846,9 @@ const FieldDetailPage: React.FC = () => {
                               Add evidence
                             </Button>
                           </div>
+                          {needsPair && !hasPair ? (
+                            <div className="mytask-evidence-hint">Before/after proof required to complete.</div>
+                          ) : null}
 
                           {(t.evidence || []).length > 0 ? (
                             <div className="evidence-gallery">

@@ -87,7 +87,7 @@ export const mockTaskService = {
     return { ...(updated as any) };
   },
 
-  addEvidence: async (id: string, photoUrl?: string, notes?: string): Promise<Task> => {
+  addEvidence: async (id: string, photoUrl?: string, notes?: string, kind?: Evidence['kind']): Promise<Task> => {
     await simulateDelay();
     demoStore.ensureSeeded();
     const current = demoStore.getTasks().find((t) => t.id === id);
@@ -97,7 +97,7 @@ export const mockTaskService = {
       photoUrl,
       notes,
       timestamp: new Date().toISOString(),
-      kind: 'general',
+      kind: kind || 'general',
     };
     
     const updated = demoStore.updateTask(id, {

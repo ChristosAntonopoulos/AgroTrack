@@ -191,6 +191,87 @@
   margin-top: var(--spacing-md);
 }
 
+.field-control-room-card {
+  position: relative;
+}
+
+.fcr-focus {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.fcr-focus-title {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.fcr-focus-metrics {
+  margin-top: 4px;
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+.fcr-focus-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.fcr-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.fcr-tabs button {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.fcr-tabs button.active {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+  background: var(--bg-interactive);
+}
+
+.fcr-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.fcr-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.fcr-evidence-title {
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-primary);
+}
+
 .assignments {
   display: flex;
   flex-direction: column;

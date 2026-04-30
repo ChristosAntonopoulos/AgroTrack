@@ -186,6 +186,8 @@ const FieldsPage: React.FC = () => {
                 <FieldsMap
                   fields={fields}
                   onFieldPress={(fieldId) => navigate(`/fields/${fieldId}`)}
+                  onStartNextTask={(fieldId) => navigate(`/fields/${fieldId}?action=start`)}
+                  onReportIssue={(fieldId) => navigate(`/fields/${fieldId}?action=issue`)}
                   heightPx={520}
                 />
               </Card>

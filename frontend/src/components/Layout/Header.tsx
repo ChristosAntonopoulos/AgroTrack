@@ -1,8 +1,9 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { User, LogOut, Menu } from 'lucide-react';
 import NotificationBell from '../Notifications/NotificationBell';
+import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import './Header.css';
 
 interface HeaderProps {
@@ -12,6 +13,9 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const role = (user?.role || '') as AppRole;
+  const pageTitle = resolvePageTitle(location.pathname, role);
 
   const handleLogout = () => {
     logout();
@@ -35,7 +39,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <button className="menu-button" onClick={onMenuClick} aria-label="Toggle menu">
           <Menu />
         </button>
-        <h1 className="app-title">Olive Lifecycle</h1>
+        <div className="header-titles">
+          <div className="app-title">Olive Lifecycle</div>
+          <div className="page-title">{pageTitle}</div>
+        </div>
       </div>
       
       <div className="header-right">

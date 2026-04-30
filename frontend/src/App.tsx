@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -22,6 +22,7 @@ import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import TodayPage from './pages/TodayPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import IssuesPage from './pages/IssuesPage';
+import RoleHomeRedirect from './components/Common/RoleHomeRedirect';
 import './App.css';
 
 function App() {
@@ -57,7 +58,7 @@ function App() {
                 <Route path="issues" element={<IssuesPage />} />
                 <Route path="ministry" element={<MinistryNotificationsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
-                <Route path="" element={<Navigate to="/dashboard" replace />} />
+                <Route path="" element={<RoleHomeRedirect />} />
               </Route>
             </Routes>
           </Router>

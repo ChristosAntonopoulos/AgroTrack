@@ -6,6 +6,7 @@ import Card from '../Common/Card';
 import EmptyState from '../Common/EmptyState';
 import { demoStore } from '../../services/demo/demoStore';
 import { getTaskService } from '../../services/serviceFactory';
+import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../../utils/taskRules';
 import { CheckCircle2, Play, Plus, UserCog } from 'lucide-react';
 import './FieldTaskBoard.css';
 
@@ -33,6 +34,7 @@ const getProducerName = (producerId?: string) => {
 const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, onChanged }) => {
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
+  const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
   const [reassignTarget, setReassignTarget] = useState<Record<string, string>>({});
 
   const now = new Date();
@@ -100,12 +102,18 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
     await onChanged();
   };
 
-  const addEvidence = async (taskId: string) => {
+  const addEvidence = async (taskId: string, kind?: 'before' | 'after' | 'general') => {
     if (!evidenceNotes.trim() && !evidencePhotoUrl.trim()) return;
     const service = getTaskService();
-    await service.addEvidence(taskId, evidencePhotoUrl.trim() || undefined, evidenceNotes.trim() || undefined);
+    await service.addEvidence(
+      taskId,
+      evidencePhotoUrl.trim() || undefined,
+      evidenceNotes.trim() || undefined,
+      kind || evidenceKind
+    );
     setEvidenceNotes('');
     setEvidencePhotoUrl('');
+    setEvidenceKind('general');
     await onChanged();
   };
 
@@ -151,6 +159,9 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
     const priority = t.priority || 'Medium';
     const est = t.estimatedMinutes;
     const materials = t.materials || [];
+    const needsPair = requiresBeforeAfter(t.type);
+    const hasPair = hasBeforeAfterEvidence(t);
+    const completeDisabled = needsPair && !hasPair;
 
     return (
       <div key={t.id} className="ftb-task">
@@ -188,7 +199,13 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
               </Button>
             ) : null}
             {t.status !== 'completed' ? (
-              <Button size="sm" variant="success" icon={<CheckCircle2 size={16} />} onClick={() => updateStatus(t.id, 'completed')}>
+              <Button
+                size="sm"
+                variant="success"
+                icon={<CheckCircle2 size={16} />}
+                onClick={() => updateStatus(t.id, 'completed')}
+                disabled={completeDisabled}
+              >
                 Complete
               </Button>
             ) : null}
@@ -198,6 +215,13 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
         {role === 'Producer' && canActOnTask(t) ? (
           <div className="ftb-evidence">
             <div className="ftb-evidence-form">
+              {needsPair ? (
+                <select value={evidenceKind} onChange={(e) => setEvidenceKind(e.target.value as any)} aria-label="Evidence kind">
+                  <option value="before">Before</option>
+                  <option value="after">After</option>
+                  <option value="general">General</option>
+                </select>
+              ) : null}
               <input
                 type="url"
                 placeholder="Photo URL"
@@ -210,10 +234,15 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
                 value={evidenceNotes}
                 onChange={(e) => setEvidenceNotes(e.target.value)}
               />
-              <Button size="sm" variant="outline" icon={<Plus size={16} />} onClick={() => addEvidence(t.id)}>
+              <Button size="sm" variant="outline" icon={<Plus size={16} />} onClick={() => addEvidence(t.id, needsPair ? evidenceKind : 'general')}>
                 Add
               </Button>
             </div>
+            {needsPair && !hasPair ? (
+              <div className="ftb-evidence-hint">
+                Before/after proof required to complete.
+              </div>
+            ) : null}
           </div>
         ) : null}
 

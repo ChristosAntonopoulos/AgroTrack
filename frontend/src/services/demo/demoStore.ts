@@ -61,6 +61,12 @@ export type DemoIssue = {
   status: DemoIssueStatus;
 };
 
+export type DemoFieldUiTab = 'board' | 'timeline' | 'evidence';
+
+export type DemoFieldUiPrefs = {
+  fieldDetailTab?: DemoFieldUiTab;
+};
+
 type DemoState = {
   schemaVersion: number;
   seededAt: string;
@@ -72,10 +78,11 @@ type DemoState = {
   demoProgressByUserId: Record<string, DemoProgress>;
   issues: DemoIssue[];
   routeStateByUserId: Record<string, DemoRouteState>;
+  fieldUiPrefsByUserId: Record<string, DemoFieldUiPrefs>;
 };
 
 const STORAGE_KEY = 'agrotrack_demo_state_v1';
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 export type DemoRouteState = {
   active: boolean;
@@ -241,6 +248,7 @@ const seedState = (): DemoState => {
     demoProgressByUserId: {},
     issues,
     routeStateByUserId: {},
+    fieldUiPrefsByUserId: {},
   };
 };
 
@@ -280,6 +288,17 @@ const loadState = (): DemoState => {
       ...(parsed as any),
       schemaVersion: SCHEMA_VERSION,
       routeStateByUserId: {},
+      fieldUiPrefsByUserId: {},
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
+    return upgraded;
+  }
+
+  if ((parsed as any).schemaVersion === 5) {
+    const upgraded: DemoState = {
+      ...(parsed as any),
+      schemaVersion: SCHEMA_VERSION,
+      fieldUiPrefsByUserId: {},
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
     return upgraded;
@@ -306,6 +325,12 @@ const loadState = (): DemoState => {
 
   if (!(parsed as any).routeStateByUserId) {
     const fixed = { ...(parsed as any), routeStateByUserId: {} } as DemoState;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
+    return fixed;
+  }
+
+  if (!(parsed as any).fieldUiPrefsByUserId) {
+    const fixed = { ...(parsed as any), fieldUiPrefsByUserId: {} } as DemoState;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
     return fixed;
   }
@@ -417,6 +442,17 @@ export const demoStore = {
     const state = loadState();
     const routeStateByUserId = { ...(state.routeStateByUserId || {}), [userId]: route };
     saveState({ ...state, routeStateByUserId });
+  },
+
+  getFieldUiPrefs: (userId: string): DemoFieldUiPrefs => {
+    const state = loadState();
+    return state.fieldUiPrefsByUserId?.[userId] || {};
+  },
+
+  setFieldUiPrefs: (userId: string, prefs: DemoFieldUiPrefs) => {
+    const state = loadState();
+    const fieldUiPrefsByUserId = { ...(state.fieldUiPrefsByUserId || {}), [userId]: prefs };
+    saveState({ ...state, fieldUiPrefsByUserId });
   },
 
   setFields: (fields: Field[]) => {

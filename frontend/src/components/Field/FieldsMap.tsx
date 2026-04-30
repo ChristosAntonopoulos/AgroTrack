@@ -20,6 +20,8 @@ type FieldsMapProps = {
   fields: Field[];
   heightPx?: number;
   onFieldPress?: (fieldId: string) => void;
+  onStartNextTask?: (fieldId: string) => void;
+  onReportIssue?: (fieldId: string) => void;
 };
 
 const FitBounds: React.FC<{ bounds: L.LatLngBoundsExpression }> = ({ bounds }) => {
@@ -30,7 +32,9 @@ const FitBounds: React.FC<{ bounds: L.LatLngBoundsExpression }> = ({ bounds }) =
   return null;
 };
 
-const FieldsMap: React.FC<FieldsMapProps> = ({ fields, heightPx = 420, onFieldPress }) => {
+const ASSUMED_TRAVEL_SPEED_KMH = 25;
+
+const FieldsMap: React.FC<FieldsMapProps> = ({ fields, heightPx = 420, onFieldPress, onStartNextTask, onReportIssue }) => {
   const fieldsWithGps = useMemo(
     () => fields.filter((f) => typeof f.latitude === 'number' && typeof f.longitude === 'number'),
     [fields]
@@ -101,6 +105,8 @@ const FieldsMap: React.FC<FieldsMapProps> = ({ fields, heightPx = 420, onFieldPr
                   field.longitude
                 )
               : null;
+          const etaMinutes =
+            distanceKm != null ? Math.max(1, Math.round((distanceKm / ASSUMED_TRAVEL_SPEED_KMH) * 60)) : null;
 
           return (
             <Marker
@@ -124,6 +130,27 @@ const FieldsMap: React.FC<FieldsMapProps> = ({ fields, heightPx = 420, onFieldPr
                       <strong>Distance:</strong> {Math.round(distanceKm * 10) / 10} km
                     </div>
                   ) : null}
+                  {etaMinutes != null ? (
+                    <div className="fields-map-popup-row">
+                      <strong>ETA:</strong> ~{etaMinutes} min
+                    </div>
+                  ) : null}
+
+                  <div className="fields-map-popup-actions">
+                    <button type="button" onClick={() => onFieldPress?.(field.id)}>
+                      Open
+                    </button>
+                    {onStartNextTask ? (
+                      <button type="button" onClick={() => onStartNextTask(field.id)}>
+                        Start next task
+                      </button>
+                    ) : null}
+                    {onReportIssue ? (
+                      <button type="button" onClick={() => onReportIssue(field.id)}>
+                        Report issue
+                      </button>
+                    ) : null}
+                  </div>
                   {locationError ? (
                     <div className="fields-map-popup-hint">Enable location permissions to see distances.</div>
                   ) : null}

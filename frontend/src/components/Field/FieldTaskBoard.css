@@ -122,8 +122,16 @@
 
 .ftb-evidence-form {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: auto 1fr 1fr auto;
   gap: var(--spacing-sm);
+}
+
+.ftb-evidence-form select {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .ftb-evidence-form input {
@@ -132,6 +140,12 @@
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
+}
+
+.ftb-evidence-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 900px) {

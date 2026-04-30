@@ -79,7 +79,7 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
       }
 
       const taskService = getTaskService();
-      await taskService.addEvidence(taskId, photoUrl, notes.trim() || undefined);
+      await taskService.addEvidence(taskId, photoUrl, notes.trim() || undefined, 'general');
       
       // Reset form
       setPhotoFile(null);

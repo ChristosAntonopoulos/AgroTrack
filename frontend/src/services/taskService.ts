@@ -120,8 +120,8 @@ export const taskService = {
     }
   },
 
-  addEvidence: async (id: string, photoUrl?: string, notes?: string): Promise<Task> => {
-    const payload = { photoUrl, notes };
+  addEvidence: async (id: string, photoUrl?: string, notes?: string, kind?: Evidence['kind']): Promise<Task> => {
+    const payload = { photoUrl, notes, kind };
     try {
       const response = await api.post<Task>(`/api/v1/tasks/${id}/evidence`, payload);
       return response.data;
@@ -136,7 +136,7 @@ export const taskService = {
           title: 'Task',
           status: 'in_progress',
           lifecycleYear: '',
-          evidence: [{ photoUrl, notes, timestamp: now }],
+          evidence: [{ photoUrl, notes, kind, timestamp: now }],
           createdAt: now,
           updatedAt: now,
         };

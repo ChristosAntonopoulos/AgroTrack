@@ -51,3 +51,24 @@
   font-size: 12px;
 }
 
+.fields-map-popup-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fields-map-popup-actions button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.fields-map-popup-actions button:hover {
+  background: #f9fafb;
+}
+
