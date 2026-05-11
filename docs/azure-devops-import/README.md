@@ -44,10 +44,11 @@ How to publish the AgroTrack wiki (stored at `/docs/wiki` in this repository) as
 
 ## Important conventions used in this repo
 
-- **Spaces in folder names and filenames** are intentional (e.g. `00 Start Here`, `Welcome to AgroTrack.md`). Azure DevOps Wiki supports this and renders them as page titles.
-- **`.order` files** list filenames without the `.md` extension, and folder names as-is. Each entry on its own line.
-- **Numeric prefixes** on folders (e.g. `02 Business`) help readers see structure and also drive ordering as a fallback if `.order` is missing.
-- **Links between pages** use relative paths with URL-encoded spaces (e.g. `./Welcome%20to%20AgroTrack.md`). These render correctly in Azure DevOps Wiki.
+- **Hyphens replace spaces** in folder names and filenames (e.g. `00-Start-Here/`, `Welcome-to-AgroTrack.md`). Azure DevOps Wiki converts hyphens back to spaces when rendering the page title in the sidebar, so users see "Welcome to AgroTrack" while the file on disk stays URL-safe. This is the Microsoft-recommended convention — spaces in wiki page filenames cause page-resolution errors.
+- **Each section folder has a `README.md`** which Azure DevOps treats as the landing page when the user clicks the section name in the sidebar.
+- **`.order` files** list filenames without the `.md` extension, and folder names as-is. Each entry on its own line. `README` is **not** listed because the wiki picks it up automatically as the folder's index.
+- **Numeric prefixes** on folders (e.g. `02-Business`) drive section ordering and surface structure to readers.
+- **Links between pages** use plain relative paths with hyphens (e.g. `./Welcome-to-AgroTrack.md`). No URL encoding needed.
 
 ## Updating the wiki after publishing
 
@@ -72,10 +73,12 @@ How to publish the AgroTrack wiki (stored at `/docs/wiki` in this repository) as
 
 ## Common pitfalls
 
+- **Spaces in filenames** — never use them. Always replace spaces with hyphens (`-`). Spaces in wiki page files cause "Could not load the page" errors.
 - **Forgetting to update `.order`** — the page exists but doesn't appear, or appears in the wrong position.
 - **Mismatched casing in `.order`** — Azure DevOps is case-sensitive; the entry must match the filename exactly minus `.md`.
-- **Broken relative links** — when a page is moved, links to it must be updated. URL-encode spaces with `%20`.
-- **Special characters** in filenames — stick to letters, numbers, spaces, hyphens.
+- **Broken relative links** — when a page is renamed, links to it must be updated.
+- **Special characters** in filenames — stick to letters, numbers, and hyphens.
+- **Stale published wiki** — after large renames, unpublish the code wiki in Azure DevOps and republish so the index is rebuilt from scratch.
 
 ## Unpublishing or re-publishing
 

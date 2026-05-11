@@ -23,7 +23,7 @@ This folder holds outdated, deprecated or superseded wiki pages. Nothing is dele
    - Link to the replacement page if any
 3. Remove the page from the original folder's `.order` file.
 4. Add the page to the local `.order` file in Archive (optional, for explicit ordering).
-5. If the change is significant, log it in [Decision Log](../01%20Company/Decision%20Log.md).
+5. If the change is significant, log it in [Decision Log](../01-Company/Decision-Log.md).
 
 ## What NOT to archive
 

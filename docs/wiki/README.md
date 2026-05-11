@@ -46,18 +46,18 @@ Heavy technical work and scaling come **after** validation. The technical sectio
 
 | Section | What's inside |
 |---|---|
-| [00 Start Here](./00%20Start%20Here/Welcome%20to%20AgroTrack.md) | Orientation, one-pagers, current priorities, glossary |
-| [01 Company](./01%20Company/Company%20Overview.md) | Vision, mission, values, team, decisions |
-| [02 Business](./02%20Business/Business%20Plan.md) | Problem, market, competitors, model, pricing, GTM |
-| [03 Product](./03%20Product/Product%20Vision.md) | MVP, features, personas, journeys, roadmap |
-| [04 Customer Research](./04%20Customer%20Research/Research%20Plan.md) | Interview guides, notes, validation findings |
-| [05 Technical](./05%20Technical/Technical%20Overview.md) | Plain-language summary of the platform |
-| [06 Scrum and Delivery](./06%20Scrum%20and%20Delivery/Scrum%20Process.md) | Process, work items, DoR, DoD, sprint plans |
-| [07 Design and UX](./07%20Design%20and%20UX/Design%20Principles.md) | Principles, flows, wireframes, branding |
-| [08 Marketing and Sales](./08%20Marketing%20and%20Sales/Brand%20Positioning.md) | Positioning, value prop, channels, pitch |
-| [09 Legal and Compliance](./09%20Legal%20and%20Compliance/Legal%20Checklist.md) | Formation, GDPR, data ownership, risks |
-| [10 Meetings](./10%20Meetings/Meeting%20Notes.md) | Meeting notes and recurring syncs |
-| [11 Templates](./11%20Templates/Meeting%20Notes%20Template.md) | Reusable templates |
+| [00 Start Here](./00-Start-Here/Welcome-to-AgroTrack.md) | Orientation, one-pagers, current priorities, glossary |
+| [01 Company](./01-Company/Company-Overview.md) | Vision, mission, values, team, decisions |
+| [02 Business](./02-Business/Business-Plan.md) | Problem, market, competitors, model, pricing, GTM |
+| [03 Product](./03-Product/Product-Vision.md) | MVP, features, personas, journeys, roadmap |
+| [04 Customer Research](./04-Customer-Research/Research-Plan.md) | Interview guides, notes, validation findings |
+| [05 Technical](./05-Technical/Technical-Overview.md) | Plain-language summary of the platform |
+| [06 Scrum and Delivery](./06-Scrum-and-Delivery/Scrum-Process.md) | Process, work items, DoR, DoD, sprint plans |
+| [07 Design and UX](./07-Design-and-UX/Design-Principles.md) | Principles, flows, wireframes, branding |
+| [08 Marketing and Sales](./08-Marketing-and-Sales/Brand-Positioning.md) | Positioning, value prop, channels, pitch |
+| [09 Legal and Compliance](./09-Legal-and-Compliance/Legal-Checklist.md) | Formation, GDPR, data ownership, risks |
+| [10 Meetings](./10-Meetings/Meeting-Notes.md) | Meeting notes and recurring syncs |
+| [11 Templates](./11-Templates/Meeting-Notes-Template.md) | Reusable templates |
 | [Archive](./Archive/README.md) | Deprecated and historical pages |
 
 ## Open Questions
