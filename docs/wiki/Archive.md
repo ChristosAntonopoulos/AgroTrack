@@ -6,7 +6,7 @@
 
 ## Purpose
 
-This folder holds outdated, deprecated or superseded wiki pages. Nothing is deleted — it is moved here so the history is preserved without cluttering the active wiki.
+Outdated, deprecated or superseded wiki pages. Nothing is deleted — pages move here so the history is preserved without cluttering the active wiki.
 
 ## When to archive a page
 
@@ -23,7 +23,7 @@ This folder holds outdated, deprecated or superseded wiki pages. Nothing is dele
    - Link to the replacement page if any
 3. Remove the page from the original folder's `.order` file.
 4. Add the page to the local `.order` file in Archive (optional, for explicit ordering).
-5. If the change is significant, log it in [Decision Log](../01%20Company/Decision%20Log.md).
+5. If the change is significant, log it in [Decision Log](./01%20Company/Decision%20Log.md).
 
 ## What NOT to archive
 
@@ -37,11 +37,7 @@ This folder holds outdated, deprecated or superseded wiki pages. Nothing is dele
 |---|---|---|---|
 | (none yet) |  |  |  |
 
-## Open Questions
+## Notes
 
-- Do we ever delete from Archive? (Default: no.)
-- How do we deal with archived pages that still have inbound links?
-
-## Next Actions
-
-- Check this folder quarterly to confirm nothing here should be revived
+- The `/docs/wiki/Archive/` folder is created automatically the first time a page is moved here.
+- Quarterly, check this section to confirm nothing here should be revived.
