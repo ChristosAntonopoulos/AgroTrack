@@ -1,22 +1,22 @@
-# 03 Product
+# 03 Προϊόν
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ενεργή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What AgroTrack is as a product, what is in the MVP, what is not, and who it is for. The most important page here is [MVP Definition](./MVP-Definition.md) — it controls scope.
+Τι είναι το AgroTrack ως προϊόν, τι περιλαμβάνει το MVP, τι όχι, και για ποιον απευθύνεται. Η πιο σημαντική σελίδα εδώ είναι η [Ορισμός MVP](./MVP-Definition.md) — ελέγχει το εύρος.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Product Vision](./Product-Vision.md) — the long-term direction of the product
-- [MVP Definition](./MVP-Definition.md) — must / should / could / out of scope
-- [Core Features](./Core-Features.md) — what AgroTrack does, in plain language
-- [Feature Prioritization](./Feature-Prioritization.md) — how we decide what to build first
-- [User Personas](./User-Personas.md) — the people we design for
-- [User Journeys](./User-Journeys.md) — the main flows end-to-end
-- [Product Roadmap](./Product-Roadmap.md) — themes across the quarters
-- [Product Requirements](./Product-Requirements.md) — what the MVP must do
-- [Non Functional Requirements](./Non-Functional-Requirements.md) — quality attributes
-- [Out of Scope](./Out-of-Scope.md) — what we explicitly do not build for MVP
+- [Οραματική προϊόντος](./Product-Vision.md) — η μακροπρόθεσμη κατεύθυνση του προϊόντος
+- [Ορισμός MVP](./MVP-Definition.md) — must / should / could / out of scope
+- [Βασικά features](./Core-Features.md) — τι κάνει το AgroTrack, με απλά λόγια
+- [Προτεραιοποίηση features](./Feature-Prioritization.md) — πώς αποφασίζουμε τι χτίζουμε πρώτα
+- [User personas](./User-Personas.md) — τα άτομα για τα οποία σχεδιάζουμε
+- [Διαδρομές χρηστών](./User-Journeys.md) — οι κύριες ροές από άκρο σε άκρο
+- [Product roadmap](./Product-Roadmap.md) — θεματικές ανά τρίμηνο
+- [Απαιτήσεις προϊόντος](./Product-Requirements.md) — τι πρέπει να κάνει το MVP
+- [Non-functional requirements](./Non-Functional-Requirements.md) — χαρακτηριστικά ποιότητας
+- [Out of scope](./Out-of-Scope.md) — τι δεν χτίζουμε ρητά για το MVP

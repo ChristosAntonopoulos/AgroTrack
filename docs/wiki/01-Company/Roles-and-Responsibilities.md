@@ -1,43 +1,43 @@
-# Roles and Responsibilities
+# Ρόλοι και αρμοδιότητες
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Προσχέδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Who owns what, so nothing falls between chairs.
+Ποιος είναι υπεύθυνος για τι, ώστε τίποτα να μην «πέφτει ανάμεσα».
 
-## RACI for current phase
+## RACI για την τρέχουσα φάση
 
-R = Responsible (does the work), A = Accountable (final call), C = Consulted, I = Informed.
+R = Responsible (κάνει τη δουλειά), A = Accountable (τελική απόφαση), C = Consulted, I = Informed.
 
-| Area | CEO | CTO | PM | Engineer | Designer | Domain Expert |
+| Τομέας | CEO | CTO | PM | Engineer | Designer | Domain Expert |
 |---|---|---|---|---|---|---|
-| Business strategy | A/R | C | C | I | I | C |
+| Επιχειρηματική στρατηγική | A/R | C | C | I | I | C |
 | Fundraising | A/R | C | I | I | I | I |
-| Customer interviews | C | I | A/R | I | I | R |
-| MVP definition | C | C | A/R | C | C | C |
+| Συνεντεύξεις πελατών | C | I | A/R | I | I | R |
+| Ορισμός MVP | C | C | A/R | C | C | C |
 | Product backlog | I | C | A/R | C | C | C |
-| Architecture | I | A/R | C | R | I | I |
-| Code quality | I | A/R | I | R | I | I |
+| Αρχιτεκτονική | I | A/R | C | R | I | I |
+| Ποιότητα κώδικα | I | A/R | I | R | I | I |
 | Wireframes | I | C | C | I | A/R | C |
 | Branding | C | I | C | I | A/R | I |
-| Hiring | A | C | C | I | I | I |
-| Wiki upkeep | C | C | A/R | C | C | C |
+| Προσλήψεις | A | C | C | I | I | I |
+| Συντήρηση wiki | C | C | A/R | C | C | C |
 
-## Decision rights
+## Δικαιώματα αποφάσεων
 
-- **Reversible decisions** (e.g. wording, feature labels, sprint scope): the owner of the area decides.
-- **Hard-to-reverse decisions** (e.g. tech direction, pricing model, hires, big partnerships): discussed by founders, recorded in the [Decision Log](./Decision-Log.md).
-- **Customer commitments** (e.g. pilots, money, timelines): require CEO sign-off and a record in the Decision Log.
+- **Αναστρέψιμες αποφάσεις** (π.χ. διατύπωση, ετικέτες λειτουργιών, εύρος Sprint): αποφασίζει ο υπεύθυνος του τομέα.
+- **Δύσκολα αναστρέψιμες αποφάσεις** (π.χ. τεχνολογική κατεύθυνση, μοντέλο τιμολόγησης, προσλήψεις, μεγάλες συνεργασίες): συζητούνται από τους ιδρυτές, καταγράφονται στο [Decision Log](./Decision-Log.md).
+- **Δεσμεύσεις προς πελάτες** (π.χ. πιλοτικά προγράμματα, χρήματα, χρονοδιαγράμματα): απαιτούν έγκριση CEO και καταγραφή στο Decision Log.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Who is the "product manager" today if there is no dedicated PM?
-- Who runs the Scrum ceremonies?
+- Ποιος είναι ο «product manager» σήμερα αν δεν υπάρχει αποκλειστικός PM;
+- Ποιος διευθύνει τις τελετουργίες Scrum;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Fill in real names against the RACI columns
-- Confirm the Scrum Master role for Sprint 0
+- Συμπλήρωση πραγματικών ονομάτων στις στήλες RACI
+- Επιβεβαίωση του ρόλου Scrum Master για το Sprint 0

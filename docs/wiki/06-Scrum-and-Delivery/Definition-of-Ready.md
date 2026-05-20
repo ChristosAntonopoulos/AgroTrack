@@ -1,44 +1,44 @@
 # Definition of Ready
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A Product Backlog Item is "ready" when it can be brought into a sprint without surprises.
+Ένα Product Backlog Item είναι «έτοιμο» όταν μπορεί να μπει σε Sprint χωρίς εκπλήξεις.
 
-## Checklist — PBI is Ready when:
+## Checklist — το PBI είναι Ready όταν:
 
-- [ ] The PBI has a clear, user-focused title (e.g. "An owner can create a field").
-- [ ] The PBI describes the user outcome in 1–3 sentences.
-- [ ] Acceptance criteria are written in Given/When/Then format.
-- [ ] Edge cases the team can think of are listed.
-- [ ] Dependencies (other PBIs, decisions, data) are listed or already resolved.
-- [ ] A rough size estimate exists (S / M / L or story points).
-- [ ] At least one designer or engineer has reviewed and asks no big new questions.
-- [ ] If UX is needed, basic wireframes or sketches exist.
-- [ ] If customer impact, the customer-facing wording is clear.
+- [ ] Το PBI έχει σαφή, εστιασμένο στον χρήστη τίτλο (π.χ. «An owner can create a field»).
+- [ ] Το PBI περιγράφει το αποτέλεσμα χρήστη σε 1–3 προτάσεις.
+- [ ] Τα acceptance criteria είναι γραμμένα σε μορφή Given/When/Then.
+- [ ] Τα edge cases που η ομάδα μπορεί να σκεφτεί είναι καταγεγραμμένα.
+- [ ] Οι εξαρτήσεις (άλλα PBI, αποφάσεις, δεδομένα) είναι καταγεγραμμένες ή ήδη επιλυμένες.
+- [ ] Υπάρχει κατά προσέγγιση εκτίμηση μεγέθους (S / M / L ή story points).
+- [ ] Τουλάχιστον ένας σχεδιαστής ή μηχανικός έχει αναθεωρήσει και δεν θέτει μεγάλα νέα ερωτήματα.
+- [ ] Αν χρειάζεται UX, υπάρχουν βασικά wireframes ή σκίτσα.
+- [ ] Αν επηρεάζει πελάτη, η διατύπωση προς τον πελάτη είναι σαφής.
 
-## What "Not Ready" looks like
+## Πώς φαίνεται το «Not Ready»
 
-- Vague title ("Improve fields page").
-- No acceptance criteria.
-- Open questions blocking the whole PBI.
-- Hidden dependencies on work that hasn't started.
+- Ασαφής τίτλος («Improve fields page»).
+- Χωρίς acceptance criteria.
+- Ανοιχτά ερωτήματα που μπλοκάρουν ολόκληρο το PBI.
+- Κρυφές εξαρτήσεις από δουλειά που δεν έχει ξεκινήσει.
 
-## When in doubt
+## Σε αμφιβολία
 
-- Ask the Product Owner.
-- Add a "Question" tag on the PBI and discuss in the next refinement meeting.
-- Do not bring an un-Ready PBI into a sprint.
+- Ρωτήστε τον Product Owner.
+- Προσθέστε ετικέτα «Question» στο PBI και συζητήστε στην επόμενη συνάντηση refinement.
+- Μην φέρετε PBI που δεν είναι Ready σε Sprint.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we require wireframes for every PBI or only customer-facing ones?
-- Who approves Ready status?
+- Απαιτούμε wireframes για κάθε PBI ή μόνο για αυτά που βλέπει ο πελάτης;
+- Ποιος εγκρίνει την κατάσταση Ready;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Use this checklist in the first refinement session
-- Iterate after Sprint 1
+- Χρησιμοποιήστε αυτό το checklist στην πρώτη συνεδρία refinement
+- Επαναλάβετε μετά το Sprint 1

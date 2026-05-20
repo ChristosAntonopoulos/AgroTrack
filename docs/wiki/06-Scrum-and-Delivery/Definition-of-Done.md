@@ -1,47 +1,47 @@
 # Definition of Done
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A PBI is "done" when there is nothing else hidden to do. "Done" means usable, tested, and visible.
+Ένα PBI είναι «ολοκληρωμένο» όταν δεν μένει κρυφή δουλειά. «Done» σημαίνει χρησιμοποιήσιμο, δοκιμασμένο και ορατό.
 
-## Checklist — PBI is Done when:
+## Checklist — το PBI είναι Done όταν:
 
-- [ ] All acceptance criteria pass.
-- [ ] The code is reviewed and merged.
-- [ ] Basic manual testing has happened against the acceptance criteria.
-- [ ] No new bugs introduced (that we know of) — or known bugs are tracked.
-- [ ] The change is deployed to staging.
-- [ ] The Product Owner has accepted it.
-- [ ] Relevant wiki pages are updated (if user-facing wording or behaviour changed).
-- [ ] Any related Tasks under the PBI are closed.
-- [ ] Tags / metadata in Azure Boards are correct.
+- [ ] Όλα τα acceptance criteria περνούν.
+- [ ] Ο κώδικας έχει αναθεωρηθεί και συγχωνευτεί.
+- [ ] Έχει γίνει βασική χειροκίνητη δοκιμή έναντι των acceptance criteria.
+- [ ] Δεν εισήχθησαν νέα σφάλματα (που γνωρίζουμε) — ή τα γνωστά σφάλματα παρακολουθούνται.
+- [ ] Η αλλαγή έχει αναπτυχθεί σε staging.
+- [ ] Ο Product Owner το έχει αποδεχτεί.
+- [ ] Οι σχετικές σελίδες wiki ενημερώθηκαν (αν άλλαξε διατύπωση ή συμπεριφορά προς τον χρήστη).
+- [ ] Οι σχετικές Tasks κάτω από το PBI είναι κλειστές.
+- [ ] Ετικέτες / μεταδεδομένα στο Azure Boards είναι σωστά.
 
-## Stretch (we do these more rigorously as we grow):
+## Stretch (τα κάνουμε πιο αυστηρά καθώς μεγαλώνουμε):
 
-- [ ] Automated tests cover the new behaviour.
-- [ ] Monitoring or analytics added for the new feature where useful.
-- [ ] Help text / tooltips updated.
-- [ ] Translation strings updated.
+- [ ] Αυτοματοποιημένες δοκιμές καλύπτουν τη νέα συμπεριφορά.
+- [ ] Προστέθηκαν παρακολούθηση ή αναλυτικά για το νέο χαρακτηριστικό όπου χρήσιμο.
+- [ ] Ενημερώθηκαν κείμενα βοήθειας / tooltips.
+- [ ] Ενημερώθηκαν συμβολοσειρές μετάφρασης.
 
-## What "Not Done" looks like
+## Πώς φαίνεται το «Not Done»
 
-- "Code is written but not tested yet."
-- "It works on my machine but not in staging."
-- "Acceptance criteria mostly pass, except…"
-- "We forgot to update the docs."
+- «Ο κώδικας γράφτηκε αλλά δεν δοκιμάστηκε ακόμα.»
+- «Δουλεύει στον υπολογιστή μου αλλά όχι στο staging.»
+- «Τα acceptance criteria περνούν κυρίως, εκτός από…»
+- «Ξεχάσαμε να ενημερώσουμε την τεκμηρίωση.»
 
-Anything in this list means the PBI is not Done — even if the code is technically merged.
+Οτιδήποτε από αυτή τη λίστα σημαίνει ότι το PBI δεν είναι Done — ακόμα κι αν ο κώδικας έχει τεχνικά συγχωνευτεί.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- When do we tighten the stretch list?
-- Do we add accessibility to DoD before MVP launch?
+- Πότε σφίγγουμε τη λίστα stretch;
+- Προσθέτουμε προσβασιμότητα στο DoD πριν το launch του MVP;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Walk this list through with the team in the first sprint review
-- Adjust based on Sprint 0 experience
+- Περάστε αυτή τη λίστα με την ομάδα στο πρώτο sprint review
+- Προσαρμόστε με βάση την εμπειρία του Sprint 0

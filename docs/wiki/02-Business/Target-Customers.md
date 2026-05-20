@@ -1,54 +1,54 @@
-# Target Customers
+# Στόχοι πελάτες
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Who exactly we are selling to first. Narrow beats broad.
+Σε ποιον ακριβώς πουλάμε πρώτα. Στενό νικά ευρύ.
 
-## Beachhead customer
+## Beachhead πελάτης
 
-> **An olive field owner in Greece or Italy who owns 1 to 20 fields and works with one or two producers, who wants more visibility and clearer records but doesn't have time for heavy software.**
+> **Ιδιοκτήτης ελαιώνα στην Ελλάδα ή Ιταλία με 1 έως 20 αγροτεμάχια και έναν ή δύο παραγωγούς, που θέλει περισσότερη ορατότητα και καθαρότερα αρχεία αλλά δεν έχει χρόνο για βαρύ λογισμικό.**
 
-## Why this customer first
+## Γιατί αυτός ο πελάτης πρώτα
 
-- The pain is real and acknowledged in initial conversations.
-- The decision-maker (the owner) is the same as the buyer.
-- The lifecycle is well defined, multi-year, and well understood.
-- Geography is close to us and accessible for interviews and pilots.
-- A successful olive vertical translates well to other tree crops and vineyards.
+- Ο πόνος είναι πραγματικός και αναγνωρίζεται σε αρχικές συζητήσεις.
+- Ο αποφασίζων (ιδιοκτήτης) είναι και ο αγοραστής.
+- Ο κύκλος ζωής είναι καλά ορισμένος, πολυετής και κατανοητός.
+- Η γεωγραφία είναι κοντά μας και προσιτή για interview και pilots.
+- Επιτυχημένη κάθετη ελιάς μεταφράζεται καλά σε άλλες δενδροκαλλιέργειες και αμπέλια.
 
-## Customer signals to look for
+## Σήματα πελάτη που αναζητούμε
 
-- Owns or co-owns olive fields
-- Doesn't work the fields full-time (or works them but coordinates with helpers)
-- Already complains about poor visibility, lost notes, missed tasks
-- Currently uses notebooks, Excel, or WhatsApp groups
-- Has a smartphone they actually use
+- Ιδιοκτεί ή συνιδιοκτεί ελαιώνες
+- Δεν δουλεύει full-time στα αγροτεμάχια (ή δουλεύει αλλά συντονίζει με βοηθούς)
+- Ήδη παραπονιέται για κακή ορατότητα, χαμένες σημειώσεις, χαμένες εργασίες
+- Χρησιμοποιεί σημειωματάρια, Excel ή ομάδες WhatsApp
+- Έχει smartphone που χρησιμοποιεί πραγματικά
 
-## Who is NOT our target right now
+## Ποιος ΔΕΝ είναι στόχος τώρα
 
-- Large industrial farms with existing ERP systems
-- Field hands who don't manage anyone or anything
-- Pure agronomy consultants (later)
-- Markets outside the Mediterranean olive belt (later)
+- Μεγάλες βιομηχανικές φάρμες με υπάρχον ERP
+- Απλοί εργάτες χωρίς διαχείριση
+- Καθαρά γεωπονικά γραφεία (αργότερα)
+- Αγορές εκτός μεσογειακής ζώνης ελιάς (αργότερα)
 
-## Buyer vs user
+## Αγοραστής vs χρήστης
 
-| Type | Who | Notes |
+| Τύπος | Ποιος | Σημειώσεις |
 |---|---|---|
-| Buyer | Owner | Decides and pays |
-| Primary user | Owner + Producer | Both use the platform daily |
-| Influencer | Agronomist, family members | Often shape the decision |
+| Αγοραστής | Ιδιοκτήτης | Αποφασίζει και πληρώνει |
+| Κύριος χρήστης | Ιδιοκτήτης + Παραγωγός | Και οι δύο χρησιμοποιούν την πλατφόρμα καθημερινά |
+| Επηρεαστής | Γεωπόνος, οικογένεια | Συχνά διαμορφώνουν την απόφαση |
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Is the strongest first buyer the **owner** or the **producer who manages many owners' fields**?
-- Are co-ops a better entry point because they aggregate buyers?
+- Ο ισχυρότερος πρώτος αγοραστής είναι ο **ιδιοκτήτης** ή ο **παραγωγός που διαχειρίζεται πολλούς ιδιοκτήτες**;
+- Οι συνεταιρισμοί είναι καλύτερο σημείο εισόδου γιατί συγκεντρώνουν αγοραστές;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Interview at least 5 owners and 5 producers
-- Decide the first buyer persona after the first interview round
+- Κάντε τουλάχιστον 5 interview με ιδιοκτήτες και 5 με παραγωγούς
+- Αποφασίστε το πρώτο buyer persona μετά τον πρώτο γύρο interview

@@ -1,49 +1,49 @@
-# Founders and Team
+# Ιδρυτές και ομάδα
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Προσχέδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Who is on the team, what they do, and how to reach them.
+Ποιος είναι στην ομάδα, τι κάνει ο καθένας και πώς επικοινωνείτε μαζί του.
 
-## Founders
+## Ιδρυτές
 
-| Name | Role | Focus areas | Contact |
+| Όνομα | Ρόλος | Πεδία εστίασης | Επικοινωνία |
 |---|---|---|---|
-| TBD | Founder / CEO | Business, customer, fundraising | TBD |
-| TBD | Founder / CTO | Product, technology, delivery | TBD |
-| TBD | Founder / COO | Operations, partnerships | TBD |
+| TBD | Founder / CEO | Επιχείρηση, πελάτες, fundraising | TBD |
+| TBD | Founder / CTO | Προϊόν, τεχνολογία, παράδοση | TBD |
+| TBD | Founder / COO | Λειτουργίες, συνεργασίες | TBD |
 
-## Team
+## Ομάδα
 
-| Name | Role | Focus areas | Contact |
+| Όνομα | Ρόλος | Πεδία εστίασης | Επικοινωνία |
 |---|---|---|---|
-| TBD | Product / PM | Product backlog, customer research | TBD |
+| TBD | Product / PM | Product backlog, έρευνα πελατών | TBD |
 | TBD | Engineer | Backend, web, mobile demo | TBD |
 | TBD | Designer | UX, branding, wireframes | TBD |
-| TBD | Domain expert / Agronomist | Crop cycle, field workflow, validation | TBD |
+| TBD | Domain expert / Agronomist | Κύκλος καλλιέργειας, ροή εργασιών στο πεδίο, validation | TBD |
 
-## Advisors
+## Σύμβουλοι
 
-| Name | Background | What we ask them | Contact |
+| Όνομα | Υπόβαθρο | Τι ζητάμε από αυτούς | Επικοινωνία |
 |---|---|---|---|
 | TBD | TBD | TBD | TBD |
 
-## Where we work
+## Πού εργαζόμαστε
 
-- Communication: TBD (Slack / Teams / Discord)
-- Documents: This wiki
-- Work tracking: Azure DevOps Boards
-- Calls: TBD
+- Επικοινωνία: TBD (Slack / Teams / Discord)
+- Έγγραφα: Αυτό το wiki
+- Παρακολούθηση εργασιών: Azure DevOps Boards
+- Κλήσεις: TBD
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Who is the single point of contact for customers right now?
-- Do we add an external agronomist advisor before Sprint 1?
+- Ποιος είναι το μοναδικό σημείο επαφής για πελάτες αυτή τη στιγμή;
+- Προσθέτουμε εξωτερικό σύμβουλο αγρονόμο πριν το Sprint 1;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Fill in real names and contacts
-- Add LinkedIn / short bio links for each person
+- Συμπλήρωση πραγματικών ονομάτων και στοιχείων επικοινωνίας
+- Προσθήκη συνδέσμων LinkedIn / σύντομων βιογραφιών για κάθε άτομο

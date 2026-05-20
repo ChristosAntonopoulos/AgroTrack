@@ -1,57 +1,57 @@
 # QA Process
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we keep quality acceptable at our current size — without slowing the team down.
+Πώς διατηρούμε αποδεκτή ποιότητα στο τρέχον μέγεθός μας — χωρίς να επιβραδύνουμε την ομάδα.
 
-## Principles
+## Αρχές
 
-- Everyone owns quality, not just one QA person.
-- We test before we call something Done.
-- Bugs found in pilots are gold — they tell us what real users do.
-- We catch what we can; we don't promise zero defects.
+- Όλοι είναι υπεύθυνοι για την ποιότητα, όχι μόνο ένα άτομο QA.
+- Δοκιμάζουμε πριν πούμε κάτι Done.
+- Σφάλματα που βρίσκονται σε πιλότους είναι χρυσός — δείχνουν τι κάνουν πραγματικοί χρήστες.
+- Πιάνουμε ό,τι μπορούμε· δεν υποσχόμαστε μηδενικά σφάλματα.
 
-## Levels of testing (current phase)
+## Επίπεδα δοκιμών (τρέχουσα φάση)
 
-| Level | What | When | Who |
+| Επίπεδο | Τι | Πότε | Ποιος |
 |---|---|---|---|
-| Developer self-test | Check the change works on the developer's machine | Before code review | Author |
-| Code review | Another set of eyes on logic | Before merging | Another developer |
-| Manual acceptance test | Run through the acceptance criteria on staging | Before marking PBI Done | PBI assignee + PM |
-| Cross-browser / cross-device check | Quick check on a phone and a laptop | Before pilot exposure | Anyone available |
-| Pilot feedback | Real users in real conditions | Continuous | Pilots + team |
+| Αυτοδοκιμή developer | Έλεγχος ότι η αλλαγή δουλεύει στον υπολογιστή του developer | Πριν το code review | Συγγραφέας |
+| Code review | Δεύτερο ζεύγος ματιών στη λογική | Πριν τη συγχώνευση | Άλλος developer |
+| Χειροκίνητη δοκιμή αποδοχής | Διέλευση acceptance criteria στο staging | Πριν σημειωθεί PBI Done | Υπεύθυνος PBI + PM |
+| Έλεγχος cross-browser / cross-device | Γρήγορος έλεγχος σε κινητό και laptop | Πριν έκθεση σε πιλότο | Όποιος διαθέσιμος |
+| Ανατροφοδότηση πιλότου | Πραγματικοί χρήστες σε πραγματικές συνθήκες | Συνεχώς | Πιλότοι + ομάδα |
 
-## What we add as we grow
+## Τι προσθέτουμε καθώς μεγαλώνουμε
 
-- Automated unit tests for tricky logic.
-- Basic end-to-end tests for the main flows.
-- A dedicated QA pass before each pilot release.
+- Αυτοματοποιημένες unit tests για δύσκολη λογική.
+- Βασικές end-to-end δοκιμές για τις κύριες ροές.
+- Αφιερωμένο πέρασμα QA πριν από κάθε pilot release.
 
-## Bug lifecycle
+## Κύκλος ζωής σφάλματος
 
-1. Bug reported (internal or from a pilot).
-2. Triage: confirm, reproduce, classify (critical / high / medium / low).
-3. Critical bugs: fix immediately outside the sprint.
-4. Others: add to the backlog with severity, schedule like any work.
-5. Closed after verification on staging or production.
+1. Αναφορά σφάλματος (εσωτερική ή από πιλότο).
+2. Triage: επιβεβαίωση, αναπαραγωγή, ταξινόμηση (critical / high / medium / low).
+3. Κρίσιμα σφάλματα: διόρθωση αμέσως εκτός Sprint.
+4. Άλλα: προσθήκη στο backlog με σοβαρότητα, προγραμματισμός σαν οποιαδήποτε δουλειά.
+5. Κλείσιμο μετά επαλήθευση σε staging ή production.
 
-## Triage rules
+## Κανόνες triage
 
-- **Critical:** Data loss, security issue, app unusable for many users. Drop everything.
-- **High:** Important flow broken. Fix in current sprint if possible.
-- **Medium:** Annoying but workaround exists. Next sprint.
-- **Low:** Cosmetic, edge cases. Backlog, may stay there.
+- **Critical:** Απώλεια δεδομένων, θέμα ασφάλειας, εφαρμογή αχρησιμοποίητη για πολλούς χρήστες. Αφήνουμε τα πάντα.
+- **High:** Σημαντική ροή χαλασμένη. Διόρθωση στο τρέχον Sprint αν είναι δυνατό.
+- **Medium:** Ενοχλητικό αλλά υπάρχει workaround. Επόμενο Sprint.
+- **Low:** Αισθητικά, edge cases. Backlog, μπορεί να μείνει εκεί.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- When do we hire / assign a dedicated QA role?
-- Do we use a separate bug tracker or stay inside Azure Boards?
+- Πότε προσλαμβάνουμε / αναθέτουμε αφιερωμένο ρόλο QA;
+- Χρησιμοποιούμε ξεχωριστό bug tracker ή μένουμε στο Azure Boards;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Run the first manual acceptance test pass in Sprint 1
-- Add automated tests for the auth flow before pilot launch
+- Διεξάγετε το πρώτο χειροκίνητο πέρασμα δοκιμής αποδοχής στο Sprint 1
+- Προσθέστε αυτοματοποιημένες δοκιμές για τη ροή auth πριν το launch πιλότου

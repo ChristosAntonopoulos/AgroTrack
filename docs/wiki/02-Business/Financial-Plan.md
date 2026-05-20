@@ -1,54 +1,54 @@
-# Financial Plan
+# Οικονομικό σχέδιο
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A simple, honest view of how money flows in and out of AgroTrack in the first phase.
+Απλή, ειλικρινής εικόνα του πώς κυλούν τα χρήματα στο και έξω από το AgroTrack στην πρώτη φάση.
 
-## Funding stance
+## Στάση χρηματοδότησης
 
-- Currently bootstrapped / founder-funded.
-- We may raise a small pre-seed once validation is clear, but not before.
-- Every euro is spent against a hypothesis we are testing.
+- Προς το παρόν bootstrapped / χρηματοδοτούμενο από founders.
+- Μπορεί να γίνει μικρό pre-seed όταν η validation είναι σαφής, αλλά όχι πριν.
+- Κάθε ευρώ ξοδεύεται για υπόθεση που δοκιμάζουμε.
 
-## Cost categories (first 12 months)
+## Κατηγορίες κόστους (πρώτοι 12 μήνες)
 
-| Category | Notes | Priority |
+| Κατηγορία | Σημειώσεις | Προτεραιότητα |
 |---|---|---|
-| Founder time | Mostly opportunity cost | High |
-| Cloud hosting | Minimal at MVP scale | Low |
-| Domain, email, basic tools | Wiki, Boards, email, design tools | Low |
-| Legal and accounting | Company formation, contracts | Medium |
-| Customer research costs | Travel, small gifts for interviewees | Medium |
-| Branding and landing page | Basic identity, simple site | Medium |
-| Pilot support | Founder time, small printed materials | Medium |
+| Χρόνος founders | Κυρίως opportunity cost | Υψηλή |
+| Cloud hosting | Ελάχιστο σε κλίμακα MVP | Χαμηλή |
+| Domain, email, βασικά εργαλεία | Wiki, Boards, email, design tools | Χαμηλή |
+| Νομικά και λογιστικά | Ίδρυση εταιρείας, συμβάσεις | Μεσαία |
+| Κόστη έρευνας πελατών | Ταξίδια, μικρά δώρα για interviewees | Μεσαία |
+| Branding και landing page | Βασική ταυτότητα, απλός ιστότοπος | Μεσαία |
+| Υποστήριξη pilots | Χρόνος founders, μικρά έντυπα | Μεσαία |
 
-## Revenue hypothesis (first 12 months)
+## Υπόθεση εσόδων (πρώτοι 12 μήνες)
 
-| Stage | Time | Expected customers | Expected MRR |
+| Στάδιο | Χρόνος | Αναμενόμενοι πελάτες | Αναμενόμενο MRR |
 |---|---|---|---|
-| Validation | Months 1–3 | 0 (free pilots) | €0 |
-| Early pilots | Months 3–6 | 3 pilots | €0–€100 |
-| First paid | Months 6–9 | 3–5 paying | Modest |
-| Repeatable | Months 9–12 | 10+ paying | Meaningful but small |
+| Validation | Μήνες 1–3 | 0 (δωρεάν pilots) | €0 |
+| Πρώιμα pilots | Μήνες 3–6 | 3 pilots | €0–€100 |
+| Πρώτη πληρωμή | Μήνες 6–9 | 3–5 πληρωμένοι | Μετριοπαθές |
+| Επαναλαμβανόμενο | Μήνες 9–12 | 10+ πληρωμένοι | Σημαντικό αλλά μικρό |
 
-These are hypotheses — real numbers replace them once we start paid plans.
+Αυτές είναι υποθέσεις — πραγματικοί αριθμοί τους αντικαθιστούν όταν ξεκινήσουν τα πληρωμένα πλάνα.
 
-## Budget rules of thumb
+## Κανόνες προϋπολογισμού
 
-- Don't spend on growth before product works for 3 pilots.
-- Don't spend on tooling that doesn't help a paying customer.
-- Track every euro against a hypothesis.
+- Μην ξοδεύετε σε growth πριν το προϊόν δουλέψει για 3 pilots.
+- Μην ξοδεύετε σε εργαλεία που δεν βοηθούν πληρωμένο πελάτη.
+- Καταγράψτε κάθε ευρώ έναντι υπόθεσης.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we raise before or after the first paying customer?
-- What is the minimum runway we want to keep at all times?
+- Κάνουμε raise πριν ή μετά τον πρώτο πληρωμένο πελάτη;
+- Ποιο είναι το ελάχιστο runway που θέλουμε πάντα;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Build a simple monthly spend tracker
-- Define the "ready to raise" checkpoint clearly
+- Φτιάξτε απλό μηνιαίο tracker δαπανών
+- Ορίστε σαφώς το checkpoint «έτοιμοι για raise»

@@ -1,18 +1,18 @@
-# 01 Company
+# 01 Εταιρεία
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Everything about AgroTrack as a company: who we are, what we believe, who is on the team, and the decisions that shape us.
+Όλα όσα αφορούν την AgroTrack ως εταιρεία: ποιοι είμαστε, τι πιστεύουμε, ποιος είναι στην ομάδα και οι αποφάσεις που μας διαμορφώνουν.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Company Overview](./Company-Overview.md) — who we are at a glance
-- [Vision Mission Values](./Vision-Mission-Values.md) — the long-term direction and what we hold each other to
-- [Founders and Team](./Founders-and-Team.md) — who does what
-- [Roles and Responsibilities](./Roles-and-Responsibilities.md) — RACI and decision rights
-- [Company Roadmap](./Company-Roadmap.md) — business milestones over time
-- [Decision Log](./Decision-Log.md) — important decisions and why we made them
+- [Company Overview](./Company-Overview.md) — ποιοι είμαστε με μια ματιά
+- [Vision Mission Values](./Vision-Mission-Values.md) — η μακροπρόθεσμη κατεύθυνση και τι ζητάμε ο ένας από τον άλλον
+- [Founders and Team](./Founders-and-Team.md) — ποιος κάνει τι
+- [Roles and Responsibilities](./Roles-and-Responsibilities.md) — RACI και δικαιώματα αποφάσεων
+- [Company Roadmap](./Company-Roadmap.md) — επιχειρηματικά ορόσημα στο χρόνο
+- [Decision Log](./Decision-Log.md) — σημαντικές αποφάσεις και γιατί τις πήραμε

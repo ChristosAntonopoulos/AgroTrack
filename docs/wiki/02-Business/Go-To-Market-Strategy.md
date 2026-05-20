@@ -1,72 +1,72 @@
-# Go To Market Strategy
+# Στρατηγική go-to-market
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack reaches its first customers and grows from there.
+Πώς το AgroTrack φτάνει στους πρώτους πελάτες και μεγαλώνει από εκεί.
 
-## Stage 1 — Validation and pilots (now)
+## Στάδιο 1 — Validation και pilots (τώρα)
 
-- **Goal:** 10+ interviews, 3+ pilots, learn fast.
-- **Channels:** Founders' network, agricultural co-ops, olive associations, agronomist intros, social posts in farmer groups.
-- **Offer:** Free pilot in exchange for honest feedback and a structured weekly call.
-- **Success metric:** 3 pilots actively using the platform within 60 days.
+- **Στόχος:** 10+ interview, 3+ pilots, γρήγορη μάθηση.
+- **Κανάλια:** Δίκτυο founders, αγροτικοί συνεταιρισμοί, συνδέσμοι ελιάς, εισαγωγές από γεωπόνους, αναρτήσεις σε ομάδες αγροτών.
+- **Προσφορά:** Δωρεάν pilot ανταλλάγματα ειλικρινούς feedback και δομημένης εβδομαδιαίας κλήσης.
+- **Μετρική επιτυχίας:** 3 pilots που χρησιμοποιούν ενεργά την πλατφόρμα εντός 60 ημερών.
 
-## Stage 2 — First paying customers
+## Στάδιο 2 — Πρώτοι πληρωμένοι πελάτες
 
-- **Goal:** First 10 paying customers.
-- **Channels:** Direct outreach, content (olive-focused articles), referrals from pilots, agronomist partnerships.
-- **Offer:** Discounted annual plan, white-glove onboarding.
-- **Success metric:** 10 paying customers at a consistent price point, <15% monthly churn.
+- **Στόχος:** Πρώτοι 10 πληρωμένοι πελάτες.
+- **Κανάλια:** Άμεση προσέγγιση, περιεχόμενο (άρθρα για ελιά), παραπομπές από pilots, συνεργασίες με γεωπόνους.
+- **Προσφορά:** Εκπτωμένο ετήσιο πλάνο, white-glove onboarding.
+- **Μετρική επιτυχίας:** 10 πληρωμένοι σε σταθερό price point, <15% μηνιαίου churn.
 
-## Stage 3 — Repeatable sales
+## Στάδιο 3 — Επαναλαμβανόμενες πωλήσεις
 
-- **Goal:** Show we can sell predictably.
-- **Channels:** Inbound from content and SEO, co-op partnerships, referral program, paid acquisition tests.
-- **Offer:** Self-serve sign-up plus assisted sales for larger accounts.
-- **Success metric:** Sales playbook documented; cost to acquire is below first-year revenue.
+- **Στόχος:** Απόδειξη ότι πουλάμε προβλέψιμα.
+- **Κανάλια:** Inbound από περιεχόμενο και SEO, συνεργασίες συνεταιρισμών, πρόγραμμα παραπομπών, δοκιμές paid acquisition.
+- **Προσφορά:** Self-serve εγγραφή συν assisted sales για μεγαλύτερους λογαριασμούς.
+- **Μετρική επιτυχίας:** Playbook πωλήσεων τεκμηριωμένο· κόστος απόκτησης κάτω από έσοδα πρώτου έτους.
 
-## Stage 4 — Expansion
+## Στάδιο 4 — Επέκταση
 
-- **Goal:** Second vertical (e.g. vineyards) and second geography.
-- **Channels:** Partnerships, conferences, customer references.
+- **Στόχος:** Δεύτερη κάθετη (π.χ. αμπέλια) και δεύτερη γεωγραφία.
+- **Κανάλια:** Συνεργασίες, συνέδρια, αναφορές πελατών.
 
-## Channel mix
+## Μίξη καναλιών
 
-| Channel | Phase | Notes |
+| Κανάλι | Φάση | Σημειώσεις |
 |---|---|---|
-| Direct outreach | All | Personal, founder-led at first |
-| Agricultural co-ops | Stage 2+ | Aggregate buyers |
-| Olive oil producer associations | Stage 2+ | Trust and reach |
-| Agronomist partners | Stage 2+ | Strong recommender role |
-| Content / SEO | Stage 2+ | Long-term inbound |
-| Social media (FB groups, YouTube) | Stage 2+ | Farmers are active in groups |
-| Conferences and field days | Stage 3+ | Brand and demos |
-| Paid acquisition | Stage 3+ | Only when CAC is known |
+| Άμεση προσέγγιση | Όλες | Προσωπική, founder-led αρχικά |
+| Αγροτικοί συνεταιρισμοί | Στάδιο 2+ | Συγκέντρωση αγοραστών |
+| Συνδέσμοι παραγωγών ελαιολάδου | Στάδιο 2+ | Εμπιστοσύνη και εμβέλεια |
+| Συνεργάτες γεωπόνοι | Στάδιο 2+ | Ισχυρός ρόλος σύστασης |
+| Περιεχόμενο / SEO | Στάδιο 2+ | Μακροπρόθεσμο inbound |
+| Social media (ομάδες FB, YouTube) | Στάδιο 2+ | Οι αγρότες είναι ενεργοί σε ομάδες |
+| Συνέδρια και field days | Στάδιο 3+ | Brand και demos |
+| Paid acquisition | Στάδιο 3+ | Μόνο όταν το CAC είναι γνωστό |
 
-## Geographic rollout
+## Γεωγραφική κύλιση
 
-1. One country first (TBD: Greece or Italy)
-2. Adjacent country once playbook works
-3. Then broaden across the Mediterranean olive belt
+1. Μία χώρα πρώτα (TBD: Ελλάδα ή Ιταλία)
+2. Γειτονική χώρα όταν δουλεύει το playbook
+3. Μετά ευρύτερα στη μεσογειακή ζώνη ελιάς
 
-## What we will NOT do early
+## Τι ΔΕΝ κάνουμε νωρίς
 
-- National advertising
-- Trade booth at every conference
-- Heavy outbound sales reps
-- Building before we have pilot feedback
+- Εθνικές διαφημίσεις
+- Stand σε κάθε συνέδριο
+- Βαριά outbound με SDRs
+- Build πριν το feedback των pilots
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- First country: Greece or Italy?
-- Is the agronomist channel strong enough to be a wedge?
+- Πρώτη χώρα: Ελλάδα ή Ιταλία;
+- Το κανάλι γεωπόνων είναι αρκετά δυνατό για wedge;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Build a shortlist of co-ops and associations to contact
-- Identify 3 agronomists willing to refer pilots
-- Decide first country for the pilot phase
+- Φτιάξτε shortlist συνεταιρισμών και συνδέσμων για επικοινωνία
+- Εντοπίστε 3 γεωπόνους πρόθυμους να παραπέμπουν pilots
+- Αποφασίστε πρώτη χώρα για τη φάση pilot

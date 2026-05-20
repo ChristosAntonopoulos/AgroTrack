@@ -1,77 +1,77 @@
 # Sprint 0 Plan
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Sprint 0 is the "set things up" sprint. It is not about building features — it is about getting the team ready to deliver consistently from Sprint 1 onwards.
+Το Sprint 0 είναι το Sprint «ρύθμισης». Δεν αφορά χαρακτηριστικά — αφορά την προετοιμασία της ομάδας να παραδίδει συνεπώς από το Sprint 1 και μετά.
 
-## Sprint goal
+## Στόχος Sprint
 
-> Set up the team, the boards, the wiki and the demo, complete the first 5 customer interviews, and lock the MVP scope.
+> Ρύθμιση ομάδας, πινάκων, wiki και demo, ολοκλήρωση των πρώτων 5 συνεντεύξεων πελατών και κλείδωμα εμβέλειας MVP.
 
-## Duration
+## Διάρκεια
 
-Two weeks.
+Δύο εβδομάδες.
 
-## Outputs at end of Sprint 0
+## Έξοδοι στο τέλος του Sprint 0
 
-- [ ] Azure DevOps Boards configured with Epics, Features and at least one Feature's worth of PBIs.
-- [ ] This wiki populated and reviewed by the team.
-- [ ] Working demo platform available to walk customers through.
-- [ ] 5 customer interviews completed and logged.
-- [ ] [Pain Points](../04-Customer-Research/Pain-Points.md) updated based on those interviews.
-- [ ] MVP scope locked in [MVP Definition](../03-Product/MVP-Definition.md).
-- [ ] Sprint 1 plan ready (see [Sprint 1 Plan](./Sprint-1-Plan.md)).
-- [ ] Working agreement signed off (see [Scrum Process](./Scrum-Process.md)).
+- [ ] Το Azure Boards ρυθμισμένο με Epic, Features και τουλάχιστον ένα Feature αξίας PBI.
+- [ ] Αυτό το wiki συμπληρωμένο και αναθεωρημένο από την ομάδα.
+- [ ] Λειτουργική πλατφόρμα demo για παρουσίαση σε πελάτες.
+- [ ] 5 συνεντεύξεις πελατών ολοκληρωμένες και καταγεγραμμένες.
+- [ ] Ενημέρωση [Pain Points](../04-Customer-Research/Pain-Points.md) με βάση αυτές τις συνεντεύξεις.
+- [ ] Εμβέλεια MVP κλειδωμένη στο [MVP Definition](../03-Product/MVP-Definition.md).
+- [ ] Σχέδιο Sprint 1 έτοιμο (βλ. [Sprint 1 Plan](./Sprint-1-Plan.md)).
+- [ ] Συνεργατική συμφωνία εγκεκριμένη (βλ. [Scrum Process](./Scrum-Process.md)).
 
-## Work items (illustrative)
+## Work items (ενδεικτικά)
 
-### Process
+### Διαδικασία
 
-- Set up Azure Boards iterations and area paths.
-- Create initial Epics and Features.
-- Configure dashboards (sprint, backlog, retro board).
-- Decide and document working hours, ceremony times, and tools.
+- Ρύθμιση iterations και area paths στο Azure Boards.
+- Δημιουργία αρχικών Epic και Features.
+- Ρύθμιση dashboards (Sprint, backlog, retro board).
+- Απόφαση και τεκμηρίωση ωραρίου, ωρών τελετουργιών και εργαλείων.
 
 ### Wiki
 
-- Populate /docs/wiki (this).
-- Publish as Wiki in Azure DevOps.
-- Walk team through it in a 30-minute session.
+- Συμπλήρωση /docs/wiki (αυτό).
+- Δημοσίευση ως Wiki στο Azure DevOps.
+- Παρουσίαση στην ομάδα σε συνεδρία 30 λεπτών.
 
 ### Demo
 
-- Confirm demo runs end-to-end.
-- Prepare a 10-minute demo flow for sales calls.
-- Identify the gaps the demo cannot show yet.
+- Επιβεβαίωση ότι το demo τρέχει end-to-end.
+- Προετοιμασία ροής demo 10 λεπτών για κλήσεις πωλήσεων.
+- Εντοπισμός κενών που το demo δεν μπορεί ακόμα να δείξει.
 
-### Customer research
+### Έρευνα πελατών
 
-- Book and run 5 interviews.
-- Synthesise pains and quotes.
-- Update [Pain Points](../04-Customer-Research/Pain-Points.md) and [Validation Findings](../04-Customer-Research/Validation-Findings.md).
+- Κράτηση και διεξαγωγή 5 συνεντεύξεων.
+- Σύνθεση πόνων και αποσπασμάτων.
+- Ενημέρωση [Pain Points](../04-Customer-Research/Pain-Points.md) και [Validation Findings](../04-Customer-Research/Validation-Findings.md).
 
-### Product
+### Προϊόν
 
-- Lock MVP must-haves.
-- Translate must-haves into Features and PBIs.
-- Have at least 5 PBIs Ready for Sprint 1.
+- Κλείδωμα must-haves του MVP.
+- Μετάφραση must-haves σε Features και PBI.
+- Τουλάχιστον 5 PBI Ready για το Sprint 1.
 
-## Risks for Sprint 0
+## Κίνδυνοι για το Sprint 0
 
-- Spending too much time setting up tools, not enough on customer interviews.
-- Treating Sprint 0 as a "no-pressure" sprint and overrunning.
-- Building features before MVP scope is locked.
+- Πολύς χρόνος σε εργαλεία, λίγος σε συνεντεύξεις πελατών.
+- Το Sprint 0 ως Sprint «χωρίς πίεση» με υπέρβαση χρόνου.
+- Ανάπτυξη χαρακτηριστικών πριν κλειδωθεί η εμβέλεια MVP.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we include any small product work in Sprint 0?
-- Who runs the first team review meeting at the end of Sprint 0?
+- Συμπεριλαμβάνουμε μικρή δουλειά προϊόντος στο Sprint 0;
+- Ποιος διεξάγει την πρώτη συνάντηση αναθεώρησης ομάδας στο τέλος του Sprint 0;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Start Sprint 0 on the agreed start date
-- Book the [First Team Review Meeting](../10-Meetings/First-Team-Review-Meeting.md) for end of Sprint 0
+- Ξεκινήστε το Sprint 0 την συμφωνημένη ημερομηνία έναρξης
+- Κρατήστε την [First Team Review Meeting](../10-Meetings/First-Team-Review-Meeting.md) για το τέλος του Sprint 0

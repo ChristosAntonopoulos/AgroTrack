@@ -1,66 +1,66 @@
-# Problem Statement
+# Δήλωση προβλήματος
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Describe the problem AgroTrack solves in clear, customer-grounded language. This page is what we re-read before every customer call.
+Περιγράψτε το πρόβλημα που λύνει το AgroTrack με σαφή, εδαφισμένη στη πραγματικότητα του πελάτη γλώσσα. Αυτή η σελίδα είναι αυτό που ξαναδιαβάζουμε πριν από κάθε κλήση πελάτη.
 
-## The problem in one sentence
+## Το πρόβλημα σε μία πρόταση
 
-Field owners and the producers who work their land do not share a clean, up-to-date view of what is happening on each field — and the cost of that confusion is real money, time and trust.
+Οι ιδιοκτήτες αγροτεμαχίων και οι παραγωγοί που δουλεύουν τη γη τους δεν μοιράζονται μια καθαρή, ενημερωμένη εικόνα του τι συμβαίνει σε κάθε αγροτεμάχιο — και το κόστος αυτής της σύγχυσης είναι πραγματικά χρήματα, χρόνος και εμπιστοσύνη.
 
-## Who has this problem
+## Ποιος έχει αυτό το πρόβλημα
 
-- Field owners who do not work the land themselves and depend on a producer
-- Owner-operators with many fields
-- Producers who work multiple fields, sometimes for multiple owners
-- Agronomists advising multiple farms
-- Co-ops and mid-size agricultural businesses
+- Ιδιοκτήτες αγροτεμαχίων που δεν δουλεύουν οι ίδιοι τη γη και εξαρτώνται από έναν παραγωγό
+- Ιδιοκτήτες-χειριστές με πολλά αγροτεμάχια
+- Παραγωγοί που δουλεύουν σε πολλά αγροτεμάχια, μερικές φορές για πολλούς ιδιοκτήτες
+- Γεωπόνοι που συμβουλεύουν πολλές φάρμες
+- Συνεταιρισμοί και μεσαίες αγροτικές επιχειρήσεις
 
-## Pain points
+## Σημεία πόνου
 
-| Pain | What it looks like today |
+| Πόνος | Πώς φαίνεται σήμερα |
 |---|---|
-| No shared view between owner and producer | Owner calls producer to ask "what did you do on field X this week?" |
-| No reliable history per field | Last year's treatments are in a notebook, a phone, or nobody's memory |
-| Tasks fall through the cracks | Pruning, treatment or harvest done late or skipped entirely |
-| Costs are unclear | Owners don't know what a field actually costs to run |
-| Reporting is painful | Subsidy or compliance paperwork is rebuilt from scratch each time |
-| Knowledge walks out the door | When a key producer leaves, the field's history goes with them |
-| Tools don't fit | Generic apps don't understand crop cycles; farm ERPs are too heavy |
+| Καμία κοινή εικόνα μεταξύ ιδιοκτήτη και παραγωγού | Ο ιδιοκτήτης καλεί τον παραγωγό: «τι κάνατε στο αγροτεμάχιο Χ αυτή την εβδομάδα;» |
+| Καμία αξιόπιστη ιστορία ανά αγροτεμάχιο | Οι περσινές μεταχειρίσεις είναι σε σημειωματάριο, σε τηλέφωνο ή στη μνήμη κανενός |
+| Εργασίες που ξεφεύγουν | Κλάδεμα, μεταχείριση ή συγκομιδή γίνονται αργά ή παραλείπονται εντελώς |
+| Ασαφή κόστη | Οι ιδιοκτήτες δεν ξέρουν τι κοστίζει πραγματικά ένα αγροτεμάχιο |
+| Επίπονη αναφορά | Χαρτιά επιδοτήσεων ή συμμόρφωσης ξαναφτιάχνονται από την αρχή κάθε φορά |
+| Η γνώση φεύγει με τον άνθρωπο | Όταν φεύγει ένας βασικός παραγωγός, η ιστορία του αγροτεμαχίου φεύγει μαζί του |
+| Εργαλεία που δεν ταιριάζουν | Γενικές εφαρμογές δεν καταλαβαίνουν κύκλους καλλιέργειας· τα farm ERP είναι πολύ βαριά |
 
-## Alternatives today
+## Εναλλακτικές σήμερα
 
-- **Paper notebooks** — common, lost easily, hard to share.
-- **Spreadsheets** — flexible but quickly become a mess, no mobile workflow.
-- **WhatsApp / phone calls** — the de facto coordination layer, with no record.
-- **Farm ERPs** — exist, but are too expensive and complex for most owners and small producers.
-- **General to-do apps / Trello / Notion** — used by some, but ignore the crop lifecycle.
+- **Χάρτινα σημειωματάρια** — συνηθισμένα, χάνονται εύκολα, δύσκολο να μοιραστούν.
+- **Υπολογιστικά φύλλα** — ευέλικτα αλλά γρήγορα γίνονται χάος, χωρίς ροή εργασίας στο κινητό.
+- **WhatsApp / τηλεφωνικές κλήσεις** — το de facto επίπεδο συντονισμού, χωρίς αρχείο.
+- **Farm ERP** — υπάρχουν, αλλά είναι πολύ ακριβά και σύνθετα για τους περισσότερους ιδιοκτήτες και μικρούς παραγωγούς.
+- **Γενικές εφαρμογές to-do / Trello / Notion** — τις χρησιμοποιούν μερικοί, αλλά αγνοούν τον κύκλο ζωής της καλλιέργειας.
 
-## Why this matters now
+## Γιατί έχει σημασία τώρα
 
-- Climate variability makes timing more important than ever — late pruning or treatment costs yield.
-- Subsidies and certifications require traceability that paper can't deliver.
-- The next generation of owners expects digital tools.
-- Affordable smartphones and rural data plans finally make a mobile-first product realistic.
+- Η κλιματική μεταβλητότητα κάνει τον χρόνο πιο κρίσιμο από ποτέ — καθυστερημένο κλάδεμα ή μεταχείριση κοστίζει απόδοση.
+- Επιδοτήσεις και πιστοποιήσεις απαιτούν ιχνηλασιμότητα που το χαρτί δεν προσφέρει.
+- Η επόμενη γενιά ιδιοκτητών περιμένει ψηφιακά εργαλεία.
+- Οι προσιτές smartphones και τα αγροτικά πακέτα δεδομένων κάνουν επιτέλους ρεαλιστικό ένα mobile-first προϊόν.
 
-## Symptoms we listen for in interviews
+## Συμπτώματα που ακούμε σε interview
 
-- "I'm not really sure what was done on that field last year."
-- "We argue about who said what should happen this week."
-- "I had a great producer; when he left I lost half the history."
-- "I just use Excel — it works, kind of."
-- "I tried [X tool] but it didn't fit how we actually work."
+- «Δεν είμαι σίγουρος τι έγινε στο αγροτεμάχιο πέρυσι.»
+- «Τσακωνόμαστε για το ποιος είπε τι πρέπει να γίνει αυτή την εβδομάδα.»
+- «Είχα εξαιρετικό παραγωγό· όταν έφυγε έχασα τη μισή ιστορία.»
+- «Χρησιμοποιώ απλά Excel — δουλεύει, κάπως.»
+- «Δοκίμασα [εργαλείο X] αλλά δεν ταιριάζει με τον τρόπο που δουλεύουμε.»
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Is the strongest pain felt by the owner, the producer, or both equally?
-- How much do customers spend today on the workarounds (Excel time, mistakes, lost yield)?
+- Ο ισχυρότερος πόνος αισθάνεται από τον ιδιοκτήτη, τον παραγωγό ή και τους δύο εξίσου;
+- Πόσο ξοδεύουν σήμερα οι πελάτει σε workaround (χρόνος Excel, λάθη, χαμένη απόδοση);
 
-## Next Actions
+## Επόμενα βήματα
 
-- Capture quotes from interviews that match each pain
-- Quantify at least one pain in money or hours
+- Καταγράψτε quotes από interview που ταιριάζουν σε κάθε πόνο
+- Ποσοτικοποιήστε τουλάχιστον έναν πόνο σε χρήμα ή ώρες

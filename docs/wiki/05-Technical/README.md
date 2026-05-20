@@ -1,26 +1,26 @@
-# 05 Technical
+# 05 Τεχνικό
 
-**Status:** Living section — kept deliberately light
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ενεργή ενότητα — διατηρείται εσκεμμένα ελαφριά
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A plain-language view of what AgroTrack looks like under the hood. Written so any team member — not just developers — can read it.
+Μια απλή, κατανοητή εικόνα του τι είναι το AgroTrack «κάτω από το καπό». Γραμμένη ώστε να τη διαβάζει οποιοσδήποτε μέλος της ομάδας — όχι μόνο developers.
 
-We are in the validation phase. This section is intentionally lightweight; we add detail only when product or business decisions force it.
+Είμαστε στη φάση επικύρωσης. Αυτή η ενότητα είναι εσκεμμένα ελαφριά· προσθέτουμε λεπτομέρειες μόνο όταν το απαιτούν αποφάσεις προϊόντος ή επιχείρησης.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Technical Overview](./Technical-Overview.md) — the system in one page
-- [Architecture](./Architecture.md) — how the parts fit together
-- [Frontend](./Frontend.md) — the user interface
-- [Backend](./Backend.md) — the brain
-- [Database](./Database.md) — where data lives (MongoDB)
-- [Data Model](./Data-Model.md) — the entities we track, in plain language
-- [API Design](./API-Design.md) — how the parts talk to each other
-- [Authentication and Authorization](./Authentication-and-Authorization.md) — who can do what
-- [Infrastructure](./Infrastructure.md) — where it all runs
-- [DevOps and CICD](./DevOps-and-CICD.md) — how code reaches customers
-- [Security](./Security.md) — how we protect customer data
-- [Technical Decision Log](./Technical-Decision-Log.md) — record of technical choices
+- [Technical Overview](./Technical-Overview.md) — το σύστημα σε μία σελίδα
+- [Architecture](./Architecture.md) — πώς ενώνονται τα μέρη
+- [Frontend](./Frontend.md) — το περιβάλλον χρήστη
+- [Backend](./Backend.md) — ο «εγκέφαλος»
+- [Database](./Database.md) — πού ζουν τα δεδομένα (MongoDB)
+- [Data Model](./Data-Model.md) — οι οντότητες που παρακολουθούμε, σε απλή γλώσσα
+- [API Design](./API-Design.md) — πώς επικοινωνούν τα μέρη μεταξύ τους
+- [Authentication and Authorization](./Authentication-and-Authorization.md) — ποιος μπορεί να κάνει τι
+- [Infrastructure](./Infrastructure.md) — πού τρέχει όλο
+- [DevOps and CICD](./DevOps-and-CICD.md) — πώς φτάνει ο κώδικας στους πελάτες
+- [Security](./Security.md) — πώς προστατεύουμε τα δεδομένα πελατών
+- [Technical Decision Log](./Technical-Decision-Log.md) — καταγραφή τεχνικών επιλογών

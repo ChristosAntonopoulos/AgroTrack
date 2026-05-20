@@ -1,46 +1,46 @@
 # Accessibility
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we make AgroTrack usable by as many people as possible. Practical, not legalistic, at our current stage.
+Πώς κάνουμε το AgroTrack χρησιμοποιήσιμο από όσο το δυνατόν περισσότερους ανθρώπους. Πρακτικό, όχι νομικιστικό, στο τρέχον στάδιο μας.
 
-## Baseline goals (MVP)
+## Βασικοί στόχοι (MVP)
 
-- Color contrast meets standard readability levels.
-- Font sizes are large enough on phones without zoom.
-- All buttons and form elements are reachable by keyboard.
-- Images have alt text.
-- Forms have proper labels.
-- Error messages explain what to fix.
+- Η αντίθεση χρωμάτων πληροί τυπικά επίπεδα αναγνωσιμότητας.
+- Τα μεγέθη γραμματοσειράς είναι αρκετά μεγάλα στο κινητό χωρίς zoom.
+- Όλα τα κουμπιά και τα στοιχεία φόρμας είναι προσβάσιμα με πληκτρολόγιο.
+- Οι εικόνες έχουν alt text.
+- Οι φόρμες έχουν σωστές ετικέτες.
+- Τα μηνύματα σφάλματος εξηγούν τι να διορθωθεί.
 
-## Out of scope right now
+## Εκτός εμβέλειας προς το παρόν
 
-- Full WCAG 2.1 AA audit.
-- Screen reader certification.
-- Translations into multiple languages.
+- Πλήρης έλεγχος WCAG 2.1 AA.
+- Πιστοποίηση screen reader.
+- Μεταφράσεις σε πολλές γλώσσες.
 
-These come as we grow. We do not promise full compliance at MVP — but we don't actively hurt accessibility either.
+Έρχονται καθώς μεγαλώνουμε. Δεν υποσχόμαστε πλήρη συμμόρφωση στο MVP — αλλά ούτε βλάπτουμε ενεργά την accessibility.
 
-## Practical checks during build
+## Πρακτικοί έλεγχοι κατά την ανάπτυξη
 
-| Check | When |
+| Έλεγχος | Πότε |
 |---|---|
-| Color contrast | At design time |
-| Tap target size | At design time |
-| Keyboard nav for main flows | Before pilot |
-| Alt text for images | Always |
-| Form labels | Always |
+| Αντίθεση χρωμάτων | Στον σχεδιασμό |
+| Μέγεθος περιοχής πατήματος | Στον σχεδιασμό |
+| Πλοήγηση με πληκτρολόγιο για κύρια user flows | Πριν το pilot |
+| Alt text για εικόνες | Πάντα |
+| Ετικέτες φόρμας | Πάντα |
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- When do we commit to a formal accessibility standard?
-- Do we offer larger font modes earlier than expected?
+- Πότε δεσμευόμαστε σε επίσημο πρότυπο accessibility;
+- Προσφέρουμε λειτουργία μεγαλύτερης γραμματοσειράς νωρίτερα από το αναμενόμενο;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Run a quick contrast check on whatever we have today
-- Add an accessibility item to the [Definition of Done](../06-Scrum-and-Delivery/Definition-of-Done.md) once basics are in place
+- Γρήγορος έλεγχος αντίθεσης σε ό,τι έχουμε σήμερα
+- Προσθήκη στοιχείου accessibility στο [Definition of Done](../06-Scrum-and-Delivery/Definition-of-Done.md) μόλις βρίσκονται στη θέση τους τα βασικά

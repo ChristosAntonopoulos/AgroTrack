@@ -1,37 +1,37 @@
 # API Design
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What the "API" is, in plain language.
+Τι είναι το «API», σε απλή γλώσσα.
 
-## What the API is
+## Τι είναι το API
 
-The API is the way the web app talks to the backend. Every time the user clicks "Save field" or "Log activity", the app sends a small message to the backend through the API.
+Το API είναι ο τρόπος με τον οποίο το web app μιλάει στο backend. Κάθε φορά που ο χρήστης πατά «Αποθήκευση πεδίου» ή «Καταγραφή δραστηριότητας», η εφαρμογή στέλνει ένα μικρό μήνυμα στο backend μέσω του API.
 
-The user never sees this directly — it just happens.
+Ο χρήστης δεν το βλέπει ποτέ απευθείας — απλώς συμβαίνει.
 
-## Principles
+## Αρχές
 
-- Simple and consistent. Doing similar things should look similar.
-- Built around the same words customers use: fields, crop cycles, tasks, activities.
-- Secured. Every request is checked to make sure the user is who they say they are and is allowed to do what they're trying to do.
+- Απλό και συνεπές. Παρόμοιες ενέργειες πρέπει να μοιάζουν μεταξύ τους.
+- Χτισμένο γύρω από τις ίδιες λέξεις που χρησιμοποιούν οι πελάτες: πεδία, κύκλοι καλλιέργειας, εργασίες, δραστηριότητες.
+- Ασφαλές. Κάθε αίτημα ελέγχεται ώστε ο χρήστης να είναι αυτός που δηλώνει και να επιτρέπεται η ενέργεια που προσπαθεί.
 
-## What is NOT in scope right now
+## Τι ΔΕΝ είναι στο scope προς το παρόν
 
-- Public API for third parties.
-- Webhooks or external integrations.
-- Versioning beyond a single current version.
+- Δημόσιο API για τρίτους.
+- Webhooks ή εξωτερικές ενσωματώσεις.
+- Versioning πέρα από μία τρέχουσα έκδοση.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we publish a public API once we have customers? Many farm tools never do.
-- Do we expose a read-only API to agronomists in year 2?
+- Δημοσιεύουμε δημόσιο API όταν αποκτήσουμε πελάτες; Πολλά αγροτικά εργαλεία δεν το κάνουν ποτέ.
+- Εκθέτουμε read-only API σε γεωπόνους το 2ο έτος;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Keep this page light until we have external integrations
-- Document the small set of endpoints used by the web app inside the codebase
+- Να παραμένει αυτή η σελίδα ελαφριά μέχρι να έχουμε εξωτερικές ενσωματώσεις
+- Τεκμηρίωση του μικρού συνόλου endpoints που χρησιμοποιεί το web app μέσα στον κώδικα

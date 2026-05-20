@@ -1,47 +1,47 @@
-# Company Overview
+# Επισκόπηση εταιρείας
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Προσχέδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A single page that describes the company at a slightly deeper level than the one-pager — useful for new hires, investors and partners.
+Μία σελίδα που περιγράφει την εταιρεία σε ελαφρώς μεγαλύτερο βάθος από το one-pager — χρήσιμη για νέους συνεργάτες, επενδυτές και εταίρους.
 
-## Who we are
+## Ποιοι είμαστε
 
-AgroTrack is an early-stage agricultural technology company. We are building the operational backbone for field-based agriculture: a platform where every field, crop cycle, task and cost is tracked in one shared workspace.
+Η AgroTrack είναι μια startup αγροτικής τεχνολογίας σε πρώιμο στάδιο. Χτίζουμε τον επιχειρησιακό σκελετό για τη γεωργία στο πεδίο: μια platform όπου κάθε αγροτεμάχιο, κύκλος καλλιέργειας, εργασία και κόστος καταγράφονται σε έναν κοινό χώρο εργασίας.
 
-## Why we exist
+## Γιατί υπάρχουμε
 
-Agriculture is one of the largest, oldest and most important industries in the world — and one of the least digitised at the operational level. Owners often don't know what is happening on their land. Producers struggle to coordinate. Decisions are made on memory and gut. We believe the same level of clarity modern businesses take for granted should be normal in agriculture too.
+Η γεωργία είναι ένας από τους μεγαλύτερους, παλαιότερους και σημαντικότερους κλάδους στον κόσμο — και ένας από τους λιγότερο ψηφιοποιημένους σε επιχειρησιακό επίπεδο. Οι ιδιοκτήτες συχνά δεν γνωρίζουν τι συμβαίνει στη γη τους. Οι παραγωγοί δυσκολεύονται να συντονιστούν. Οι αποφάσεις βασίζονται στη μνήμη και την εμπειρία. Πιστεύουμε ότι το ίδιο επίπεδο σαφήνειας που οι σύγχρονες επιχειρήσεις θεωρούν δεδομένο πρέπει να γίνει φυσιολογικό και στη γεωργία.
 
-## What stage we are at
+## Σε ποιο στάδιο βρισκόμαστε
 
-- Validation phase: confirming the problem with real customers.
-- Building a demo platform in parallel to make conversations concrete.
-- Defining the MVP.
-- Setting up Scrum, Boards and Wiki to run as a real team from Sprint 0.
+- Φάση validation: επιβεβαιώνουμε το πρόβλημα με πραγματικούς πελάτες.
+- Παράλληλα χτίζουμε μια demo platform ώστε οι συζητήσεις να γίνονται συγκεκριμένες.
+- Ορίζουμε το MVP.
+- Ρυθμίζουμε Scrum, Boards και wiki για να λειτουργούμε ως πραγματική ομάδα από το Sprint 0.
 
-## How we operate
+## Πώς λειτουργούμε
 
-- Small team, flat structure, decisions captured in writing.
-- Weekly sync, two-week sprints, public backlog.
-- Wiki-first: if it isn't written down here, it doesn't exist.
-- We talk to customers every week.
+- Μικρή ομάδα, επίπεδη δομή, αποφάσεις καταγεγραμμένες γραπτώς.
+- Εβδομαδιαίος συγχρονισμός, δίεβδομα Sprints, δημόσιο backlog.
+- Wiki-first: αν δεν είναι γραμμένο εδώ, δεν υπάρχει.
+- Μιλάμε με πελάτες κάθε εβδομάδα.
 
-## Where we want to go
+## Πού θέλουμε να φτάσουμε
 
-- Year 1: Validated MVP with first paying customers in olive cultivation.
-- Year 2: Repeatable sales motion, expansion into one or two adjacent crops.
-- Year 3+: Multi-crop, multi-region agricultural operating system.
+- Έτος 1: Επικυρωμένο MVP με τους πρώτους πληρωτές πελάτες στην καλλιέργεια ελιάς.
+- Έτος 2: Επαναλαμβανόμενη κίνηση πωλήσεων, επέκταση σε έναν ή δύο γειτονικούς καρπούς.
+- Έτος 3+: Πολυκαλλιεργειακό, πολυπεριφερειακό γεωργικό λειτουργικό σύστημα.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Legal entity setup and where to incorporate (see `09 Legal and Compliance/Company Formation`).
-- First-hire priorities.
+- Σύσταση νομικού προσώπου και πού θα ενσωματωθούμε (βλ. `09 Legal and Compliance/Company Formation`).
+- Προτεραιότητες πρώτης πρόσληψης.
 
-## Next Actions
+## Επόμενα βήματα
 
-- Lock in the company name and branding decision in `Decision Log`.
-- Decide on legal entity within the next 60 days.
+- Καταγραφή της απόφασης για το όνομα και την ταυτότητα της εταιρείας στο `Decision Log`.
+- Απόφαση για νομικό πρόσωπο εντός των επόμενων 60 ημερών.

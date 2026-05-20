@@ -1,69 +1,69 @@
 # GDPR
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack handles personal data under the EU's GDPR. Not legal advice — a working summary for the team.
+Πώς το AgroTrack χειρίζεται προσωπικά δεδομένα σύμφωνα με το GDPR της ΕΕ. Δεν αποτελεί νομική συμβουλή — εργαζόμενη περίληψη για την ομάδα.
 
-## Who is in scope
+## Ποιοι εμπίπτουν
 
-We operate in the EU and store data about EU residents. GDPR applies to AgroTrack.
+Λειτουργούμε στην ΕΕ και αποθηκεύουμε δεδομένα για κατοίκους ΕΕ. Το GDPR ισχύει για το AgroTrack.
 
-## What personal data we hold
+## Ποια προσωπικά δεδομένα κρατάμε
 
-| Data | Why we have it | Source |
+| Δεδομένα | Γιατί τα έχουμε | Πηγή |
 |---|---|---|
-| User name | To identify the user in the app | User input |
-| User email | Login, communication, password reset | User input |
-| User role | Permissions | User / admin input |
-| Organisation membership | Access control | Admin input |
-| Field details (name, size, location) | Core product function | User input |
-| Activity / task / expense records | Core product function | User input |
-| Login timestamps and IP (basic) | Security | Automatic |
+| Όνομα χρήστη | Για αναγνώριση του χρήστη στην εφαρμογή | Εισαγωγή χρήστη |
+| Email χρήστη | Σύνδεση, επικοινωνία, επαναφορά κωδικού | Εισαγωγή χρήστη |
+| Ρόλος χρήστη | Δικαιώματα | Εισαγωγή χρήστη / διαχειριστή |
+| Συμμετοχή σε οργανισμό | Έλεγχος πρόσβασης | Εισαγωγή διαχειριστή |
+| Στοιχεία αγροτεμαχίου (όνομα, μέγεθος, τοποθεσία) | Βασική λειτουργία προϊόντος | Εισαγωγή χρήστη |
+| Εγγραφές δραστηριότητας / εργασίας / δαπάνης | Βασική λειτουργία προϊόντος | Εισαγωγή χρήστη |
+| Χρονικές σημάνσεις σύνδεσης και IP (βασικά) | Ασφάλεια | Αυτόματα |
 
-We do **not** collect: payment card data directly (handled by payment provider when applicable), location of users themselves (only fields), personal identification numbers, health data.
+Δεν συλλέγουμε: δεδομένα πληρωμής κάρτας απευθείας (μέσω παρόχου πληρωμών όπου ισχύει), τοποθεσία των ίδιων των χρηστών (μόνο αγροτεμάχια), αριθμούς ταυτότητας, δεδομένα υγείας.
 
-## GDPR principles we follow
+## Αρχές GDPR που ακολουθούμε
 
-1. **Lawfulness, fairness, transparency** — clear Privacy Policy.
-2. **Purpose limitation** — we only use data for AgroTrack's product.
-3. **Data minimisation** — we collect only what we need.
-4. **Accuracy** — users can update or correct their data.
-5. **Storage limitation** — we delete data when an account is closed (with reasonable retention for legal reasons).
-6. **Integrity and confidentiality** — encryption, access controls.
-7. **Accountability** — we keep records of processing.
+1. **Νομιμότητα, δικαιοσύνη, διαφάνεια** — σαφής Privacy Policy.
+2. **Περιορισμός σκοπού** — χρησιμοποιούμε δεδομένα μόνο για το προϊόν του AgroTrack.
+3. **Ελαχιστοποίηση δεδομένων** — συλλέγουμε μόνο ό,τι χρειαζόμαστε.
+4. **Ακρίβεια** — οι χρήστες μπορούν να ενημερώνουν ή να διορθώνουν τα δεδομένα τους.
+5. **Περιορισμός αποθήκευσης** — διαγράφουμε δεδομένα όταν κλείνει λογαριασμός (με λογική διατήρηση για legal λόγους).
+6. **Ακεραιότητα και εμπιστευτικότητα** — κρυπτογράφηση, έλεγχοι πρόσβασης.
+7. **Λογοδοσία** — κρατάμε αρχεία επεξεργασίας.
 
-## User rights we will support
+## Δικαιώματα χρηστών που θα υποστηρίξουμε
 
-- Right to access (export your data on request).
-- Right to rectification (edit your data).
-- Right to erasure ("delete my account").
-- Right to portability (export to a common format).
-- Right to object.
-- Right to withdraw consent for non-essential processing.
+- Δικαίωμα πρόσβασης (εξαγωγή δεδομένων κατόπιν αιτήματος).
+- Δικαίωμα διόρθωσης (επεξεργασία δεδομένων).
+- Δικαίωμα διαγραφής («διαγραφή του λογαριασμού μου»).
+- Δικαίωμα φορητότητας (εξαγωγή σε κοινή μορφή).
+- Δικαίωμα εναντίωσης.
+- Δικαίωμα ανάκλησης συγκατάθεσης για μη απαραίτητη επεξεργασία.
 
-## Sub-processors
+## Υπο-επεξεργαστές
 
-We use third-party services (cloud hosting, email delivery, etc.) — these are "sub-processors". A list is maintained in the Privacy Policy.
+Χρησιμοποιούμε υπηρεσίες τρίτων (cloud hosting, αποστολή email κ.λπ.) — αυτοί είναι «υπο-επεξεργαστές». Η λίστα διατηρείται στην Privacy Policy.
 
-## Data breach plan
+## Σχέδιο παραβίασης δεδομένων
 
-If a personal data breach happens:
+Αν συμβεί παραβίαση προσωπικών δεδομένων:
 
-1. Contain and stop the breach.
-2. Notify affected customers within 72 hours when required.
-3. Document the breach internally.
-4. Fix the root cause.
+1. Περιορισμός και διακοπή της παραβίασης.
+2. Ειδοποίηση επηρεαζόμενων πελατών εντός 72 ωρών όπου απαιτείται.
+3. Εσωτερική τεκμηρίωση της παραβίασης.
+4. Διόρθωση της ρίζας του προβλήματος.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we appoint a formal DPO (Data Protection Officer)?
-- Where exactly is customer data stored geographically?
+- Ορίζουμε επίσημο DPO (Data Protection Officer);
+- Πού ακριβώς αποθηκεύονται γεωγραφικά τα δεδομένα πελατών;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Engage a lawyer to review GDPR readiness before first paid pilot
-- Publish a simple, readable Privacy Policy alongside the landing page
+- Συνεργασία με δικηγόρο για ανασκόπηση ετοιμότητας GDPR πριν το πρώτο πληρωμένο πιλοτικό
+- Δημοσίευση απλής, ευανάγνωστης Privacy Policy δίπλα στη landing page

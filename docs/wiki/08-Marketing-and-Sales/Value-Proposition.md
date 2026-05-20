@@ -1,55 +1,55 @@
-# Value Proposition
+# Value proposition
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The shortest, clearest way to say "why AgroTrack" to a real person.
+Ο συντομότερος, πιο σαφής τρόπος να πούμε «γιατί AgroTrack» σε έναν πραγματικό άνθρωπο.
 
-## One-liner
+## Μία γραμμή
 
-**AgroTrack helps olive owners and producers manage every field, every cycle, every cost — together.**
+**Το AgroTrack βοηθά ιδιοκτήτες και παραγωγούς ελιάς να διαχειρίζονται κάθε χωράφι, κάθε κύκλο, κάθε κόστος — μαζί.**
 
-## Three-liner
+## Τρεις γραμμές
 
-- Know what is happening on every field, this week and last year.
-- Plan, do and record work without losing anything in WhatsApp.
-- See the real cost of every field, every cycle, every task.
+- Ξέρετε τι συμβαίνει σε κάθε χωράφι, αυτή την εβδομάδα και πέρυσι.
+- Σχεδιάστε, κάντε και καταγράψτε δουλειά χωρίς να χάνεται τίποτα στο WhatsApp.
+- Δείτε το πραγματικό κόστος κάθε χωραφιού, κάθε κύκλου, κάθε εργασίας.
 
-## For each persona
+## Ανά persona
 
-### For the owner
+### Για τον ιδιοκτήτη
 
-> Stop guessing what's happening on your fields. See the work, the costs and the lifecycle in one place — on your phone.
+> Σταματήστε να μαντεύετε τι συμβαίνει στα χωράφια σας. Δείτε τη δουλειά, τα κόστη και τον κύκλο ζωής σε ένα μέρος — στο κινητό σας.
 
-### For the producer
+### Για τον παραγωγό
 
-> Less explaining, more doing. Log what you did in 30 seconds. The owner sees it instantly. No more repeat questions.
+> Λιγότερες εξηγήσεις, περισσότερη δουλειά. Καταγράψτε τι κάνατε σε 30 δευτερόλεπτα. Ο ιδιοκτήτης το βλέπει αμέσως. Όχι άλλες επαναλαμβανόμενες ερωτήσεις.
 
-### For the admin / family manager
+### Για τον διαχειριστή / οικογένεια
 
-> One place for fields, costs and people. No more "where did I write that?".
+> Ένα μέρος για χωράφια, κόστη και ανθρώπους. Όχι άλλο «πού το είχα γράψει;».
 
-### For the agronomist (future)
+### Για τον γεωπόνο (μελλοντικά)
 
-> Walk into any field with its full history in your pocket.
+> Μπείτε σε κάθε χωράφι με πλήρη ιστορικό στην τσέπη σας.
 
-## What we trade off
+## Τι θυσιάζουμε
 
-- We are not the cheapest.
-- We are not the most feature-rich.
-- We are not the right tool for industrial-scale farms.
+- Δεν είμαστε οι φθηνότεροι.
+- Δεν είμαστε οι πιο πλούσιοι σε features.
+- Δεν είμαστε το σωστό εργαλείο για βιομηχανική κλίμακα.
 
-We are the **simplest, most owner-and-producer-friendly** way to run olive fields together.
+Είμαστε ο **πιο απλός, πιο φιλικός προς ιδιοκτήτη και παραγωγό** τρόπος να τρέχετε μαζί ελαιοκτήματα.
 
-## Open Questions
+## Ανοιχτές ερωτήσεις
 
-- Is "manage every field, every cycle, every cost" too long for a hero headline?
-- Do we anchor on "owner + producer together" or on "lifecycle"?
+- Είναι το «διαχειρίζονται κάθε χωράφι, κάθε κύκλο, κάθε κόστος» πολύ μακρύ για hero τίτλο;
+- Δένουμε στο «ιδιοκτήτης + παραγωγός μαζί» ή στον «κύκλο ζωής»;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Test 3 different one-liners on the landing page
-- Decide which to use long-term after the first batch of traffic
+- Δοκιμή 3 διαφορετικών one-liners στο landing page
+- Απόφαση ποια να κρατήσουμε μακροπρόθεσμα μετά το πρώτο κύμα επισκεπτών

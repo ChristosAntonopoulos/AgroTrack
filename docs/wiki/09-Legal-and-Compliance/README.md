@@ -1,21 +1,21 @@
 # 09 Legal and Compliance
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ενεργή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The legal, privacy and risk side of AgroTrack. We track what we need to set up, what we hold ourselves to, and the risks we watch.
+Η legal, privacy και risk πλευρά του AgroTrack. Παρακολουθούμε τι χρειάζεται να στηθεί, τι δεσμευόμαστε να τηρούμε και ποιους κινδύνους παρακολουθούμε.
 
-This is not legal advice — these pages capture our working understanding and what we need to formalise with a lawyer.
+Δεν αποτελεί νομική συμβουλή — αυτές οι σελίδες καταγράφουν την εργαζόμενη κατανόησή μας και τι πρέπει να τυποποιήσουμε με δικηγόρο.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Legal Checklist](./Legal-Checklist.md) — prioritised list of legal items to set up
-- [Company Formation](./Company-Formation.md) — entity type, jurisdiction, founder agreements
-- [GDPR](./GDPR.md) — how we handle personal data
-- [Privacy Policy Notes](./Privacy-Policy-Notes.md) — working notes for the policy
-- [Terms of Service Notes](./Terms-of-Service-Notes.md) — working notes for the terms
-- [Data Ownership](./Data-Ownership.md) — who owns the data inside AgroTrack
-- [Risk Register](./Risk-Register.md) — running list of business and product risks
+- [Legal Checklist](./Legal-Checklist.md) — προτεραιοποιημένη λίστα legal στοιχείων προς ρύθμιση
+- [Company Formation](./Company-Formation.md) — τύπος οντότητας, δικαιοδοσία, συμφωνίες ιδρυτών
+- [GDPR](./GDPR.md) — πώς χειριζόμαστε προσωπικά δεδομένα
+- [Privacy Policy Notes](./Privacy-Policy-Notes.md) — εργαζόμενα σημειώματα για την Privacy Policy
+- [Terms of Service Notes](./Terms-of-Service-Notes.md) — εργαζόμενα σημειώματα για τους Terms of Service
+- [Data Ownership](./Data-Ownership.md) — ποιος κατέχει τα δεδομένα μέσα στο AgroTrack
+- [Risk Register](./Risk-Register.md) — τρέχουσα λίστα επιχειρηματικών και προϊοντικών κινδύνων

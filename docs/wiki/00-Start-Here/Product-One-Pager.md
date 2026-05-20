@@ -1,56 +1,56 @@
-# Product One-Pager
+# Product One-Pager — Προϊόν σε μία σελίδα
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The one-page answer to "what does the product do?". For prospects, candidates and partners.
+Η απάντηση σε μία σελίδα στο «τι κάνει το προϊόν;». Για prospects, υποψηφίους και συνεργάτες.
 
-## The product in one sentence
+## Το προϊόν σε μία πρόταση
 
-AgroTrack is the shared workspace for field owners, producers and agronomists to plan, run and review every crop cycle on every field.
+Το AgroTrack είναι ο κοινός χώρος εργασίας για ιδιοκτήτες fields, παραγωγούς και γεωπόνους ώστε να σχεδιάζουν, εκτελούν και ανασκοπούν κάθε κύκλο καλλιέργειας σε κάθε field.
 
-## What it does
+## Τι κάνει
 
-| Capability | What the user gets |
+| Δυνατότητα | Τι κερδίζει ο χρήστης |
 |---|---|
-| Field management | A clean, organised list of all their fields with key details |
-| Crop cycle management | Start and follow a crop from planting to harvest |
-| Lifecycle stage tracking | Know what stage each field is in, this week and next |
-| Task management | Plan, assign and complete the work that needs doing |
-| Activity history | A timeline of everything that happened on each field |
-| Basic cost tracking | See how much each field, crop and cycle actually costs |
-| Basic dashboard | One screen to see status across all fields |
+| Διαχείριση fields | Καθαρή, οργανωμένη λίστα όλων των fields με βασικές λεπτομέρειες |
+| Διαχείριση κύκλου καλλιέργειας | Έναρξη και παρακολούθηση καλλιέργειας από φύτευση μέχρι συγκομιδή |
+| Παρακολούθηση σταδίων κύκλου ζωής | Γνώση σε ποιο στάδιο είναι κάθε field αυτή και την επόμενη εβδομάδα |
+| Διαχείριση εργασιών | Σχεδιασμός, ανάθεση και ολοκλήρωση της δουλειάς που πρέπει να γίνει |
+| Ιστορικό δραστηριοτήτων | Χρονολόγιο όλων όσων έγιναν σε κάθε field |
+| Βασική παρακολούθηση κόστους | Ορατότητα στο πόσο κοστίζει πραγματικά κάθε field, καλλιέργεια και κύκλος |
+| Βασικό dashboard | Μία οθόνη για κατάσταση σε όλα τα fields |
 
-## Who uses it
+## Ποιος το χρησιμοποιεί
 
-- **Owners** see the big picture and the money.
-- **Producers** plan and execute the day-to-day work.
-- **Admins** manage users, roles and settings inside an organisation.
-- **Agronomists** (future) advise across multiple organisations.
+- **Owners** βλέπουν τη μεγάλη εικόνα και τα χρήματα.
+- **Producers** σχεδιάζουν και εκτελούν την καθημερινή δουλειά.
+- **Admins** διαχειρίζονται χρήστες, ρόλους και ρυθμίσεις μέσα σε organisation.
+- **Agronomists** (μελλοντικά) συμβουλεύουν σε πολλές organisations.
 
-## How it is different
+## Πώς διαφέρει
 
-- Built for the **shared reality** of owner + producer, not just one of them.
-- Focused on **crop lifecycle**, not generic to-do lists.
-- Designed for the field, on a phone, with notes and costs at hand.
-- Starts small and useful, instead of trying to cover everything from day one.
+- Φτιαγμένο για την **κοινή πραγματικότητα** ιδιοκτήτη + παραγωγού, όχι μόνο για τον έναν.
+- Εστιασμένο στον **κύκλο ζωής καλλιέργειας**, όχι σε γενικές λίστες εργασιών.
+- Σχεδιασμένο για το field, στο τηλέφωνο, με σημειώσεις και κόστη στο χέρι.
+- Ξεκινά μικρό και χρήσιμο, αντί να καλύπτει τα πάντα από την πρώτη μέρα.
 
-## Where to learn more
+## Πού να μάθετε περισσότερα
 
 - [Product Vision](../03-Product/Product-Vision.md)
 - [MVP Definition](../03-Product/MVP-Definition.md)
 - [User Personas](../03-Product/User-Personas.md)
 - [User Journeys](../03-Product/User-Journeys.md)
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is the single screenshot that explains the product?
-- What is the 30-second demo flow?
+- Ποια είναι η μία screenshot που εξηγεί το προϊόν;
+- Ποια είναι η ροή demo 30 δευτερολέπτων;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Create a single hero screenshot
-- Record a 30-second demo walkthrough
+- Δημιουργία μίας κεντρικής screenshot
+- Εγγραφή περιήγησης demo 30 δευτερολέπτων

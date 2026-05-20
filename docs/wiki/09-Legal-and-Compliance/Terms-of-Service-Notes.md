@@ -1,54 +1,54 @@
 # Terms of Service Notes
 
-**Status:** Draft notes — not the final terms
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρα σημειώματα — όχι οι τελικοί όροι
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Working notes for the AgroTrack Terms of Service. The final terms must be reviewed by a lawyer.
+Εργαζόμενα σημειώματα για τους Terms of Service του AgroTrack. Οι τελικοί όροι πρέπει να ελεγχθούν από δικηγόρο.
 
-## What the Terms must cover
+## Τι πρέπει να καλύπτουν οι Terms of Service
 
-- Who provides the service (us, our legal entity).
-- What the service does and does not do.
-- Account creation and acceptable use.
-- Subscription, billing and cancellation.
-- Refund policy.
-- Customer data and ownership (link to [Data Ownership](./Data-Ownership.md)).
-- Privacy reference (link to Privacy Policy).
-- Service level expectations (uptime, support).
-- Limitation of liability.
-- Termination and account closure.
-- Disputes and applicable law.
-- Changes to terms.
+- Ποιος παρέχει την υπηρεσία (εμείς, η νομική μας οντότητα).
+- Τι κάνει και τι δεν κάνει η υπηρεσία.
+- Δημιουργία λογαριασμού και αποδεκτή χρήση.
+- Συνδρομή, χρέωση και ακύρωση.
+- Πολιτική επιστροφών.
+- Δεδομένα πελάτη και data ownership (σύνδεσμος προς [Data Ownership](./Data-Ownership.md)).
+- Αναφορά privacy (σύνδεσμος προς Privacy Policy).
+- Προσδοκίες επιπέδου υπηρεσίας (uptime, υποστήριξη).
+- Περιορισμός ευθύνης.
+- Τερματισμός και κλείσιμο λογαριασμού.
+- Διαφορές και εφαρμοστέο δίκαιο.
+- Αλλαγές στους όρους.
 
-## Tone
+## Τόνος
 
-- Clear and direct.
-- Plain English by default.
-- Legal precision where required, but readable.
+- Σαφής και άμεσος.
+- Απλά αγγλικά από προεπιλογή.
+- Legal ακρίβεια όπου απαιτείται, αλλά ευανάγνωστα.
 
-## Things we want to make obvious
+## Τι θέλουμε να είναι προφανές
 
-- Customers own their data.
-- Customers can export their data.
-- Customers can cancel anytime.
-- We don't sell data.
-- We are not liable for crop outcomes — AgroTrack records and helps, but does not make agronomic decisions for the user.
+- Οι πελάτες κατέχουν τα δεδομένα τους.
+- Οι πελάτες μπορούν να εξάγουν τα δεδομένα τους.
+- Οι πελάτες μπορούν να ακυρώσουν ανά πάσα στιγμή.
+- Δεν πουλάμε δεδομένα.
+- Δεν ευθυνόμαστε για αγροτικά αποτελέσματα — το AgroTrack καταγράφει και βοηθά, αλλά δεν παίρνει αγρονομικές αποφάσεις για τον χρήστη.
 
-## Things we want to avoid
+## Τι θέλουμε να αποφύγουμε
 
-- Hidden auto-renewal traps.
-- Buried clauses.
-- Walls of text.
+- Κρυφές παγίδες αυτόματης ανανέωσης.
+- Θαμμένες ρήτρες.
+- Τείχη κειμένου.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Where is the legal jurisdiction for disputes?
-- Do we offer a clear refund window (e.g. 14 days)?
+- Ποια είναι η legal δικαιοδοσία για διαφορές;
+- Προσφέρουμε σαφές παράθυρο επιστροφής (π.χ. 14 ημέρες);
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Engage a lawyer for ToS v1
-- Publish ToS before first paying customer
+- Συνεργασία με δικηγόρο για ToS v1
+- Δημοσίευση Terms of Service πριν τον πρώτο πληρωτή πελάτη

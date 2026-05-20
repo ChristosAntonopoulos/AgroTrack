@@ -1,52 +1,52 @@
 # User Story Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Use this for every PBI in Azure Boards. Keep stories user-focused.
+Χρησιμοποίησέ το για κάθε PBI στο Azure Boards. Κράτα τις ιστορίες εστιασμένες στον χρήστη.
 
 ---
 
-## Story format
+## Μορφή user story
 
-> **As a** [persona],
-> **I want** [outcome],
-> **so that** [reason / value].
+> **Ως** [persona],
+> **θέλω** [αποτέλεσμα],
+> **ώστε** [λόγος / αξία].
 
-### Example
+### Παράδειγμα
 
-> As an **owner**,
-> I want to **see all my fields and their current lifecycle stage**,
-> so that I **know at a glance what's happening across my farm**.
+> Ως **ιδιοκτήτης**,
+> θέλω να **βλέπω όλα τα αγροτεμάχια μου και το τρέχον στάδιο κύκλου ζωής τους**,
+> ώστε να **ξέρω με μια ματιά τι συμβαίνει σε όλο το αγρόκτημα**.
 
-### Acceptance criteria (Given / When / Then)
+### Κριτήρια αποδοχής (Given / When / Then)
 
-- **Given** [context],
-  **When** [action],
-  **Then** [observable outcome].
+- **Given** [πλαίσιο],
+  **When** [ενέργεια],
+  **Then** [παρατηρήσιμο αποτέλεσμα].
 
-### Example acceptance criteria
+### Παράδειγμα κριτηρίων αποδοχής
 
-- **Given** I am logged in as an owner with at least one field,
-  **When** I open the dashboard,
-  **Then** I see each of my fields and the lifecycle stage of its current crop cycle.
+- **Given** είμαι συνδεδεμένος ως ιδιοκτήτης με τουλάχιστον ένα αγροτεμάχιο,
+  **When** ανοίγω το dashboard,
+  **Then** βλέπω κάθε αγροτεμάχιο και το στάδιο κύκλου ζωής του τρέχοντος κύκλου καλλιέργειας.
 
-- **Given** I have a field with no active crop cycle,
-  **When** I open the dashboard,
-  **Then** the field is shown with "No active cycle" instead of a stage.
+- **Given** έχω αγροτεμάχιο χωρίς ενεργό κύκλο καλλιέργειας,
+  **When** ανοίγω το dashboard,
+  **Then** το αγροτεμάχιο εμφανίζεται με «Χωρίς ενεργό κύκλο» αντί για στάδιο.
 
-### Notes
+### Σημειώσεις
 
-- Keep the story to one sentence in each part.
-- Keep acceptance criteria to 1–5 entries — more usually means the story is too big.
-- One PBI should usually fit inside one sprint.
-- If you can't write Given/When/Then for it, it's probably not Ready.
+- Κράτα κάθε μέρος της ιστορίας σε μία πρόταση.
+- Κράτα τα κριτήρια αποδοχής σε 1–5 καταχωρήσεις — περισσότερα συνήθως σημαίνει ότι η ιστορία είναι πολύ μεγάλη.
+- Ένα PBI συνήθως χωρά σε ένα Sprint.
+- Αν δεν μπορείς να γράψεις Given/When/Then, πιθανόν δεν είναι Ready.
 
-### Anti-patterns to avoid
+### Anti-patterns να αποφεύγεις
 
-- "As a user, I want a feature, so that it works." — Too vague.
-- "As a developer, I want to refactor X." — Use a technical task, not a user story.
-- Stories without acceptance criteria.
+- «Ως χρήστης, θέλω feature, ώστε να δουλεύει.» — Πολύ αόριστο.
+- «Ως developer, θέλω refactor X.» — Χρησιμοποίησε technical task, όχι user story.
+- Ιστορίες χωρίς κριτήρια αποδοχής.

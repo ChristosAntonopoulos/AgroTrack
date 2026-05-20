@@ -1,21 +1,21 @@
-# 10 Meetings
+# 10 Συναντήσεις
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό τμήμα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Where we capture meeting notes and the recurring meetings the team runs. All notes follow the [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
+Εδώ καταγράφουμε meeting notes και τις επαναλαμβανόμενες συναντήσεις της ομάδας. Όλες οι σημειώσεις ακολουθούν το [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
 
-## Pages in this section
+## Σελίδες σε αυτό το τμήμα
 
-- [Meeting Notes](./Meeting-Notes.md) — running index of all meeting notes
-- [First Team Review Meeting](./First-Team-Review-Meeting.md) — the first formal team review, fully laid out and ready to run
-- [Weekly Syncs](./Weekly-Syncs.md) — the weekly business sync
+- [Meeting Notes](./Meeting-Notes.md) — συνεχής ευρετήριο όλων των meeting notes
+- [First Team Review Meeting](./First-Team-Review-Meeting.md) — η πρώτη επίσημη ομαδική ανασκόπηση, πλήρως σχεδιασμένη και έτοιμη για διεξαγωγή
+- [Weekly Syncs](./Weekly-Syncs.md) — ο εβδομαδιαίος επιχειρηματικός συγχρονισμός
 
-## How to log a new meeting
+## Πώς να καταγράψεις μια νέα συνάντηση
 
-1. Copy the [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
-2. Add a section in [Meeting Notes](./Meeting-Notes.md) (or a new child page).
-3. Move any decisions to the [Decision Log](../01-Company/Decision-Log.md).
+1. Αντέγραψε το [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
+2. Πρόσθεσε ενότητα στο [Meeting Notes](./Meeting-Notes.md) (ή νέα θυγατρική σελίδα).
+3. Μετακίνησε τυχόν αποφάσεις στο [Decision Log](../01-Company/Decision-Log.md).

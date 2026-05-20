@@ -1,54 +1,54 @@
 # DevOps and CI/CD
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we move code from a developer's machine to customers, in plain language.
+Πώς μετακινούμε κώδικα από τη μηχανή του developer στους πελάτες, σε απλή γλώσσα.
 
-## The flow
+## Η ροή
 
-1. A developer writes code on their own machine.
-2. They share it through Azure DevOps Repos.
-3. An automatic pipeline checks the code (builds it, runs tests, looks for problems).
-4. If everything is fine, the code is deployed to staging.
-5. Once tested in staging, it is promoted to production where real customers use it.
+1. Ένας developer γράφει κώδικα στη δική του μηχανή.
+2. Τον μοιράζεται μέσω Azure DevOps Repos.
+3. Ένα αυτόματο pipeline ελέγχει τον κώδικα (build, tests, αναζήτηση προβλημάτων).
+4. Αν όλα είναι εντάξει, ο κώδικας deploy σε staging.
+5. Αφού δοκιμαστεί στο staging, προωθείται σε production όπου τον χρησιμοποιούν οι πραγματικοί πελάτες.
 
-## Tools we use
+## Εργαλεία που χρησιμοποιούμε
 
-| Area | Tool |
+| Τομέας | Εργαλείο |
 |---|---|
-| Code hosting | Azure DevOps Repos |
-| Work tracking | Azure DevOps Boards |
-| Documentation | Azure DevOps Wiki (this) |
-| Automated builds | Azure Pipelines |
+| Φιλοξενία κώδικα | Azure DevOps Repos |
+| Παρακολούθηση εργασιών | Azure DevOps Boards |
+| Τεκμηρίωση | Azure DevOps Wiki (αυτό) |
+| Αυτόματα builds | Azure Pipelines |
 
-## What is automated today
+## Τι είναι αυτοματοποιημένο σήμερα
 
-- Building the code.
-- Running basic checks.
-- Deploying to staging.
+- Build του κώδικα.
+- Βασικοί έλεγχοι.
+- Deploy σε staging.
 
-## What is NOT automated yet
+## Τι ΔΕΝ είναι αυτοματοποιημένο ακόμα
 
-- Full end-to-end test coverage.
-- Automatic rollback if something goes wrong in production.
-- Automated database migrations beyond basic scripts.
+- Πλήρη κάλυψη end-to-end tests.
+- Αυτόματο rollback αν κάτι πάει στραβά στο production.
+- Αυτόματες database migrations πέρα από βασικά scripts.
 
-## Branching basics
+## Βασικά branching
 
-- One main branch for the current good state.
-- Each piece of work happens on its own branch.
-- Code is reviewed before being merged.
+- Ένα main branch για την τρέχουσα καλή κατάσταση.
+- Κάθε εργασία σε δικό της branch.
+- Ο κώδικας ελέγχεται πριν το merge.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- When do we add automatic deploy to production?
-- When do we add automatic rollback?
+- Πότε προσθέτουμε αυτόματο deploy στο production;
+- Πότε προσθέτουμε αυτόματο rollback;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm staging environment is stable before first pilot
-- Add a simple "deploy to production" button before paid customers
+- Επιβεβαίωση ότι το staging είναι σταθερό πριν το πρώτο pilot
+- Απλό κουμπί «deploy to production» πριν τους πληρωμένους πελάτες

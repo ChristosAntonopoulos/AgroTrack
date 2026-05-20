@@ -1,54 +1,54 @@
 # Technical Overview
 
-**Status:** Draft — intentionally light at this stage
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — εσκεμμένα ελαφρύ σε αυτό το στάδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A plain-language summary of what the AgroTrack platform looks like under the hood. Written so anyone on the team — not just developers — can understand it.
+Μια απλή, κατανοητή περίληψη του πώς φαίνεται τεχνικά η πλατφόρμα AgroTrack. Γραμμένη ώστε να την κατανοεί οποιοσδήποτε στην ομάδα — όχι μόνο developers.
 
-> **Note on depth:** This section is intentionally lightweight while we are validating the business and defining the MVP. We add detail only when we need it. The goal of the wiki right now is to support business and product decisions, not to document complex architecture.
+> **Σημείωση βάθους:** Αυτή η ενότητα είναι εσκεμμένα ελαφριά όσο επικυρώνουμε την επιχείρηση και ορίζουμε το MVP. Προσθέτουμε λεπτομέρειες μόνο όταν τις χρειαζόμαστε. Στόχος του wiki αυτή τη στιγμή είναι να στηρίζει αποφάσεις επιχείρησης και προϊόντος, όχι να τεκμηριώνει πολύπλοκη architecture.
 
-## What AgroTrack is, technically
+## Τι είναι το AgroTrack, τεχνικά
 
-A simple web and mobile-web application backed by an API and a database. Customers access it through a browser on their phone or laptop. Their data lives safely in the cloud.
+Μια απλή εφαρμογή web και mobile-web που στηρίζεται σε API και database. Οι πελάτες την προσπελάζουν μέσω browser στο κινητό ή στον υπολογιστή. Τα δεδομένα τους ζουν με ασφάλεια στο cloud.
 
-## The three main parts
+## Τα τρία κύρια μέρη
 
-| Part | What it does | Who uses it |
+| Μέρος | Τι κάνει | Ποιος το χρησιμοποιεί |
 |---|---|---|
-| **Web app** | The interface owners and producers use on their phone or laptop | All users |
-| **Backend / API** | The brain — receives requests, applies business rules, stores data | The web app talks to it |
-| **Database** | Where every field, task, activity and user lives | The backend |
+| **Web app** | Το περιβάλλον που χρησιμοποιούν ιδιοκτήτες και παραγωγοί στο κινητό ή στον υπολογιστή | Όλοι οι χρήστες |
+| **Backend / API** | Ο «εγκέφαλος» — δέχεται αιτήματα, εφαρμόζει επιχειρησιακούς κανόνες, αποθηκεύει δεδομένα | Το web app επικοινωνεί μαζί του |
+| **Database** | Πού ζουν όλα τα πεδία, εργασίες, δραστηριότητες και χρήστες | Το backend |
 
-## Where it runs
+## Πού τρέχει
 
-- In the cloud, on standard hosting.
-- Customers do not install anything — they just go to the website.
-- We don't run any of our own hardware.
+- Στο cloud, σε τυπικό hosting.
+- Οι πελάτες δεν εγκαθιστούν τίποτα — απλώς μπαίνουν στον ιστότοπο.
+- Δεν τρέχουμε δικό μας hardware.
 
-## What it does not do (yet)
+## Τι δεν κάνει (ακόμα)
 
-- No mobile native apps (later — for now mobile web is enough)
-- No offline mode (later)
-- No connections to sensors, satellites or external farm equipment
-- No AI / machine learning features
+- Όχι native mobile apps (αργότερα — προς το παρόν αρκεί το mobile web)
+- Όχι offline mode (αργότερα)
+- Όχι συνδέσεις με αισθητήρες, δορυφόρους ή εξωτερικό εξοπλισμό αγρού
+- Όχι χαρακτηριστικά AI / machine learning
 
-## Decisions that affect the technical side
+## Αποφάσεις που επηρεάζουν την τεχνική πλευρά
 
-These are noted briefly here and explained in [Technical Decision Log](./Technical-Decision-Log.md):
+Σημειώνονται εν συντομία εδώ και εξηγούνται στο [Technical Decision Log](./Technical-Decision-Log.md):
 
-- Demo platform exists and runs today.
-- Data is stored in MongoDB.
-- Heavy technical investments wait until validation is complete.
+- Υπάρχει demo platform και τρέχει σήμερα.
+- Τα δεδομένα αποθηκεύονται σε MongoDB.
+- Βαριές τεχνικές επενδύσεις περιμένουν μέχρι να ολοκληρωθεί η επικύρωση.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we keep the demo as-is or refactor before pilots?
-- How much do we share about the technical side with customers in sales conversations?
+- Κρατάμε το demo ως έχει ή κάνουμε refactor πριν από τα pilots;
+- Πόσο μοιραζόμαστε την τεχνική πλευρά με πελάτες σε συζητήσεις πωλήσεων;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Keep this section short and current until MVP is locked
-- Add depth only when product decisions force it
+- Να παραμένει αυτή η ενότητα σύντομη και ενημερωμένη μέχρι να «κλειδώσει» το MVP
+- Να προστίθεται βάθος μόνο όταν το απαιτούν αποφάσεις προϊόντος

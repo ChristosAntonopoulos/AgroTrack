@@ -1,18 +1,18 @@
-# 08 Marketing and Sales
+# 08 Marketing και Πωλήσεις
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack reaches customers and turns interest into pilots and paid contracts. Positioning, copy, channels and partnerships.
+Πώς το AgroTrack φτάνει στους πελάτες και μετατρέπει το ενδιαφέρον σε πιλοτικά προγράμματα και πληρωμένα συμβόλαια. Brand positioning, αντίγραφο, κανάλια και partnerships.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Brand Positioning](./Brand-Positioning.md) — where AgroTrack sits in the customer's mind
-- [Value Proposition](./Value-Proposition.md) — the shortest way to say "why AgroTrack"
-- [Landing Page Copy](./Landing-Page-Copy.md) — first draft of the public site
-- [Pitch Notes](./Pitch-Notes.md) — 30-second, 2-minute and 5-minute pitches
-- [Marketing Channels](./Marketing-Channels.md) — where we find customers
-- [Partnership Ideas](./Partnership-Ideas.md) — co-ops, agronomists, associations
+- [Brand positioning](./Brand-Positioning.md) — πού κάθεται το AgroTrack στο μυαλό του πελάτη
+- [Value proposition](./Value-Proposition.md) — ο συντομότερος τρόπος να πούμε «γιατί AgroTrack»
+- [Landing page](./Landing-Page-Copy.md) — πρώτο προσχέδιο του δημόσιου site
+- [Pitch](./Pitch-Notes.md) — pitch 30 δευτερολέπτων, 2 λεπτών και 5 λεπτών
+- [Κανάλια marketing](./Marketing-Channels.md) — πού βρίσκουμε πελάτες
+- [Ιδέες partnership](./Partnership-Ideas.md) — συνεταιρισμοί, γεωπόνοι, σωματεία

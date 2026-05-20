@@ -1,69 +1,69 @@
-# Business Model
+# Επιχειρηματικό μοντέλο
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack makes money. Captures the model, not the exact prices (those live in [Pricing Strategy](./Pricing-Strategy.md)).
+Πώς βγάζει χρήμα το AgroTrack. Περιγράφει το μοντέλο, όχι τις ακριβείς τιμές (αυτές στο [Pricing Strategy](./Pricing-Strategy.md)).
 
-## Model
+## Μοντέλο
 
-**Recurring SaaS subscription**, billed monthly or annually, per organisation, with a free tier or trial for new users.
+**Επαναλαμβανόμενη συνδρομή SaaS**, χρέωση μηνιαία ή ετήσια, ανά οργανισμό, με δωρεάν επίπεδο ή δοκιμή για νέους χρήστες.
 
-## Why this model
+## Γιατί αυτό το μοντέλο
 
-- Predictable revenue.
-- Aligned with customer value — they pay while they get value, they stop if they don't.
-- Familiar to customers from other tools.
-- Easy to start (no integration cost), easy to scale.
+- Προβλέψιμα έσοδα.
+- Ευθυγραμμισμένο με την αξία για τον πελάτη — πληρώνει όσο παίρνει αξία, σταματά αν δεν παίρνει.
+- Οικείο στους πελάτες από άλλα εργαλεία.
+- Εύκολο ξεκίνημα (χωρίς κόστος ενσωμάτωσης), εύκολη κλιμάκωση.
 
-## Revenue sources (in order)
+## Πηγές εσόδων (κατά σειρά)
 
-1. **Subscriptions** — core source.
-2. **Onboarding / setup services** — optional, for larger customers.
-3. **Co-op or partnership packages** — bulk deals via aggregators.
-4. **Future:** premium modules (advanced reporting, certification support, marketplace tie-ins).
+1. **Συνδρομές** — κύρια πηγή.
+2. **Υπηρεσίες onboarding / setup** — προαιρετικά, για μεγαλύτερους πελάτες.
+3. **Πακέτα συνεταιρισμών ή συνεργασιών** — μαζικές συμφωνίες μέσω aggregators.
+4. **Μελλοντικά:** premium modules (προχωρημένες αναφορές, υποστήριξη πιστοποίησης, marketplace tie-ins).
 
-## What we will NOT do (for now)
+## Τι ΔΕΝ θα κάνουμε (προς το παρόν)
 
-- Take a cut of farmers' revenue or production.
-- Sell their data.
-- Sell ads.
-- Be a marketplace.
+- Ποσοστό στα έσοδα ή την παραγωγή των αγροτών.
+- Πώληση των δεδομένων τους.
+- Διαφημίσεις.
+- Marketplace.
 
-## Cost structure (high level)
+## Δομή κόστους (υψηλού επιπέδου)
 
-- Engineering and product team (largest)
-- Cloud hosting (small at MVP scale)
-- Sales and onboarding (grows over time)
-- Customer support
-- Legal, accounting and admin
+- Ομάδα engineering και product (μεγαλύτερο)
+- Cloud hosting (μικρό σε κλίμακα MVP)
+- Πωλήσεις και onboarding (μεγαλώνει με τον χρόνο)
+- Υποστήριξη πελατών
+- Νομικά, λογιστικά και admin
 
-## Unit economics (hypothesis, to validate)
+## Unit economics (υπόθεση, προς validation)
 
-| Metric | Hypothesis |
+| Μετρική | Υπόθεση |
 |---|---|
-| Average revenue per customer per month | TBD (€20–60) |
+| Μέσο έσοδο ανά πελάτη ανά μήνα | TBD (€20–60) |
 | Customer acquisition cost (CAC) | TBD |
-| Gross margin | High (typical SaaS, 70%+) |
-| Payback period | TBD |
-| Annual churn target | <15% |
+| Μικτό περιθώριο | Υψηλό (τυπικό SaaS, 70%+) |
+| Περίοδος απόσβεσης | TBD |
+| Στόχος ετήσιου churn | <15% |
 
-## Key levers
+## Βασικοί μοχλοί
 
-- Pricing tier mix
-- Conversion from free / trial to paid
-- Upsell to higher tiers
-- Reducing churn via real workflow lock-in
+- Μίξη pricing tiers
+- Μετατροπή από δωρεάν / δοκιμή σε πληρωμή
+- Upsell σε υψηλότερα επίπεδα
+- Μείωση churn μέσω πραγματικού lock-in ροής εργασίας
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Per organisation vs per field pricing — which feels fairer to customers?
-- Should onboarding be free, paid, or bundled?
+- pricing ανά οργανισμό vs ανά αγροτεμάχιο — τι φαίνεται πιο δίκαιο;
+- Το onboarding να είναι δωρεάν, επί πληρωμή ή bundled;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm hypothesis prices through interviews
-- Decide pricing axis (organisation, field bands, users) after first 10 interviews
+- Επιβεβαιώστε τις υποθετικές τιμές μέσω interview
+- Αποφασίστε άξονα pricing (οργανισμός, ζώνες αγροτεμαχίων, χρήστες) μετά τα πρώτα 10 interview

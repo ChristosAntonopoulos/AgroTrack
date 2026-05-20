@@ -1,44 +1,44 @@
-# Design Principles
+# Αρχές σχεδιασμού
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A short list of rules that guide every design decision in AgroTrack.
+Σύντομη λίστα κανόνων που καθοδηγούν κάθε απόφαση σχεδιασμού στο AgroTrack.
 
-## Principles
+## Αρχές
 
-1. **Designed for the field, not the office.** If it can't be used outside on a phone with one hand and a bit of mud on the screen, it's not done.
-2. **One main action per screen.** New users should always know what to do next.
-3. **Show the field's reality.** Lifecycle stage, current tasks, latest activity — at a glance.
-4. **Plain words.** No agronomic jargon unless the user asked for it. No technical jargon ever.
-5. **Fast is a feature.** Slow apps are abandoned, especially on mobile data.
-6. **Show, don't ask.** Pre-fill what we know. Don't make the user re-enter the same thing.
-7. **Forgiving by default.** Confirm destructive actions. Make it easy to undo.
-8. **Consistent over clever.** Same patterns across screens beat individually brilliant solutions.
+1. **Σχεδιασμένο για το χωράφι, όχι το γραφείο.** Αν δεν μπορεί να χρησιμοποιηθεί έξω στο κινητό με το ένα χέρι και λίγη λάσπη στην οθόνη, δεν έχει τελειώσει.
+2. **Μία κύρια ενέργεια ανά οθόνη.** Οι νέοι χρήστες πρέπει πάντα να ξέρουν τι να κάνουν στη συνέχεια.
+3. **Δείξε την πραγματικότητα του χωραφιού.** Στάδιο κύκλου ζωής, τρέχουσες εργασίες, τελευταία δραστηριότητα — με μια ματιά.
+4. **Απλά λόγια.** Όχι αγρονομική ορολογία εκτός αν τη ζήτησε ο χρήστης. Ποτέ τεχνική ορολογία.
+5. **Η ταχύτητα είναι feature.** Οι αργές εφαρμογές εγκαταλείπονται, ειδικά σε mobile data.
+6. **Δείξε, μην ρωτάς.** Συμπλήρωσε ό,τι ξέρουμε. Μην κάνεις τον χρήστη να ξαναπληκτρολογεί το ίδιο.
+7. **Επιεικές από προεπιλογή.** Επιβεβαίωση καταστροφικών ενεργειών. Εύκολη αναίρεση.
+8. **Συνέπεια πάνω από εξυπνάδα.** Ίδια μοτίβα σε όλες τις οθόνες, όχι ξεχωριστές «έξυπνες» λύσεις.
 
-## What we avoid
+## Τι αποφεύγουμε
 
-- Long forms.
-- Modal stacking (one modal opening another).
-- Branded sounds, splash animations, marketing inside the product.
-- Patterns that punish slow connections.
+- Μακριές φόρμες.
+- Στοίβαξη modal (ένα modal ανοίγει άλλο).
+- Branded ήχοι, splash animations, marketing μέσα στο προϊόν.
+- Μοτίβα που τιμωρούν αργές συνδέσεις.
 
 ## Mobile-first checklist
 
-- Big tap targets.
-- One-thumb reach for primary actions.
-- Forms that work in landscape and portrait.
-- Network errors handled gracefully (retry, save draft locally if simple).
+- Μεγάλες περιοχές πατήματος.
+- Πρόσβαση με τον αντίχειρα για κύριες ενέργειες.
+- Φόρμες που δουλεύουν σε landscape και portrait.
+- Σφάλματα δικτύου με χάρη (retry, τοπική αποθήκευση προσχεδίου αν είναι απλό).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we need a dark mode for outdoor visibility?
-- Do we add voice input for activity logging?
+- Χρειαζόμαστε dark mode για ορατότητα έξω;
+- Προσθέτουμε φωνητική εισαγωγή για καταγραφή δραστηριότητας;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Review every wireframe against these principles
-- Update the principles after the first round of user testing
+- Ανασκόπηση κάθε wireframe έναντι αυτών των αρχών
+- Ενημέρωση των αρχών μετά τον πρώτο γύρο δοκιμών με χρήστες

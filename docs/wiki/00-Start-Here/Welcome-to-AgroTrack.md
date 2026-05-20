@@ -1,55 +1,55 @@
-# Welcome to AgroTrack
+# Καλώς ήρθατε στο AgroTrack
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-This is the orientation page. If you are new to the team, read this first.
+Αυτή είναι η σελίδα προσανατολισμού. Αν είστε νέοι στην ομάδα, διαβάστε πρώτα αυτή.
 
-## What we are building
+## Τι χτίζουμε
 
-AgroTrack is a platform that helps the people who work the land — owners, producers, farmers, agronomists — manage fields and crops through their full lifecycle. From planting to harvest, every task, cost, observation and decision lives in one place.
+Το AgroTrack είναι μια platform που βοηθά τους ανθρώπους που δουλεύουν τη γη — ιδιοκτήτες, παραγωγούς, αγρότες, γεωπόνους — να διαχειρίζονται fields και καλλιέργειες σε όλο τον κύκλο ζωής τους. Από τη φύτευση μέχρι τη συγκομιδή, κάθε εργασία, κόστος, παρατήρηση και απόφαση ζει σε ένα μέρος.
 
-The first market we focus on is olive cultivation. Once the model works there, we expand to other crops.
+Η πρώτη αγορά που στοχεύουμε είναι η καλλιέργεια ελιάς. Μόλις το μοντέλο λειτουργεί εκεί, επεκτείνουμε σε άλλες καλλιέργειες.
 
-## Who it is for
+## Για ποιον είναι
 
-- **Field owners** who want to know what is happening on their land without doing every job themselves.
-- **Producers and farmers** who manage day-to-day field operations and need a simple way to plan and report.
-- **Agronomists** who advise multiple owners and need shared records.
-- **Agricultural teams** of any size who need to collaborate across fields and seasons.
+- **Ιδιοκτήτες fields** που θέλουν να ξέρουν τι συμβαίνει στη γη τους χωρίς να κάνουν κάθε εργασία οι ίδιοι.
+- **Παραγωγοί και αγρότες** που διαχειρίζονται τις καθημερινές λειτουργίες στα fields και χρειάζονται απλό τρόπο σχεδιασμού και αναφοράς.
+- **Γεωπόνοι** που συμβουλεύουν πολλούς ιδιοκτήτες και χρειάζονται κοινά αρχεία.
+- **Αγροτικές ομάδες** κάθε μεγέθους που χρειάζονται συνεργασία σε fields και εποχές.
 
-## Where we are today
+## Πού βρισκόμαστε σήμερα
 
-- Validating the problem with real customers (interviews in progress)
-- Defining the MVP scope
-- Setting up Scrum, Azure Boards, and this wiki
-- Building a small demo of the platform in parallel
+- validation του προβλήματος με πραγματικούς πελάτες (συνεντεύξεις σε εξέλιξη)
+- Ορισμός του εύρους του MVP
+- Ρύθμιση Scrum, Azure Boards και αυτού του wiki
+- Κατασκευή ενός μικρού demo της platform παράλληλα
 
-The technical side of the project is intentionally simple right now. Once we know what to build, we will scale it.
+Η τεχνική πλευρά του έργου είναι σκόπιμα απλή αυτή τη στιγμή. Μόλις ξέρουμε τι να χτίσουμε, θα την κλιμακώσουμε.
 
-## What to read next
+## Τι να διαβάσετε στη συνέχεια
 
-1. [Company One-Pager](./Company-One-Pager.md) — the 60-second view of the company
-2. [Product One-Pager](./Product-One-Pager.md) — the 60-second view of the product
-3. [Current Priorities](./Current-Priorities.md) — what we are working on this week
-4. [Glossary](./Glossary.md) — terms used across the wiki
-5. [Business Plan](../02-Business/Business-Plan.md) — the full business picture
+1. [Company One-Pager](./Company-One-Pager.md) — η εταιρεία σε 60 δευτερόλεπτα
+2. [Product One-Pager](./Product-One-Pager.md) — το προϊόν σε 60 δευτερόλεπτα
+3. [Current Priorities](./Current-Priorities.md) — σε τι δουλεύουμε αυτή την εβδομάδα
+4. [Glossary](./Glossary.md) — όροι που χρησιμοποιούνται σε όλο το wiki
+5. [Business Plan](../02-Business/Business-Plan.md) — η πλήρης επιχειρηματική εικόνα
 
-## How to contribute to this wiki
+## Πώς να συνεισφέρετε σε αυτό το wiki
 
-- Edit any page. There are no gatekeepers.
-- If you start a new page, add it to the folder's `.order` file so it shows up in the right place.
-- Use the templates in `11 Templates` whenever possible.
-- Move outdated pages to `/Archive` rather than deleting them.
+- Επεξεργαστείτε οποιαδήποτε σελίδα. Δεν υπάρχουν «φύλακες».
+- Αν ξεκινήσετε νέα σελίδα, προσθέστε την στο αρχείο `.order` του φακέλου ώστε να εμφανίζεται στη σωστή θέση.
+- Χρησιμοποιήστε τα πρότυπα στο `11 Templates` όποτε είναι δυνατόν.
+- Μεταφέρετε παρωχημένες σελίδες στο `/Archive` αντί να τις διαγράφετε.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Who owns onboarding of new team members?
-- Should we add a short video walkthrough?
+- Ποιος είναι υπεύθυνος για την ενσωμάτωση νέων μελών της ομάδας;
+- Να προσθέσουμε σύντομο βίντεο περιήγησης;
 
-## Next Actions
+## Επόμενα βήματα
 
-- New team members complete this page checklist in their first day
+- Τα νέα μέλη της ομάδας ολοκληρώνουν αυτή τη λίστα ελέγχου την πρώτη ημέρα τους

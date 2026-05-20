@@ -1,24 +1,24 @@
-# 06 Scrum and Delivery
+# 06 Scrum και Παράδοση
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack works as a Scrum team. Light enough to be useful at our size, structured enough to scale.
+Πώς λειτουργεί το AgroTrack ως Scrum ομάδα. Αρκετά ελαφρύ για να είναι χρήσιμο στο μέγεθός μας, αρκετά δομημένο για να κλιμακωθεί.
 
-If you are joining a sprint for the first time, read [Scrum Process](./Scrum-Process.md) and [Work Item Structure](./Work-Item-Structure.md) first.
+Αν συμμετέχετε σε Sprint για πρώτη φορά, διαβάστε πρώτα το [Scrum Process](./Scrum-Process.md) και το [Work Item Structure](./Work-Item-Structure.md).
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Scrum Process](./Scrum-Process.md) — sprint length, ceremonies, roles, working agreements
-- [Work Item Structure](./Work-Item-Structure.md) — Epic / Feature / PBI / Task with examples
-- [Definition of Ready](./Definition-of-Ready.md) — when a PBI can enter a sprint
-- [Definition of Done](./Definition-of-Done.md) — when work is really finished
-- [Sprint Planning](./Sprint-Planning.md) — the planning meeting
-- [Sprint 0 Plan](./Sprint-0-Plan.md) — setup sprint
-- [Sprint 1 Plan](./Sprint-1-Plan.md) — first build sprint
-- [Backlog Management](./Backlog-Management.md) — how the backlog stays clean
-- [QA Process](./QA-Process.md) — how we keep quality acceptable
-- [Release Process](./Release-Process.md) — how code reaches customers
+- [Scrum Process](./Scrum-Process.md) — διάρκεια Sprint, τελετουργίες, ρόλοι, συνεργατικές συμφωνίες
+- [Work Item Structure](./Work-Item-Structure.md) — Epic / Feature / PBI / Task με παραδείγματα
+- [Definition of Ready](./Definition-of-Ready.md) — πότε ένα PBI μπορεί να μπει σε Sprint
+- [Definition of Done](./Definition-of-Done.md) — πότε η δουλειά είναι πραγματικά ολοκληρωμένη
+- [Sprint Planning](./Sprint-Planning.md) — η συνάντηση σχεδιασμού
+- [Sprint 0 Plan](./Sprint-0-Plan.md) — Sprint ρύθμισης
+- [Sprint 1 Plan](./Sprint-1-Plan.md) — πρώτο Sprint ανάπτυξης
+- [Backlog Management](./Backlog-Management.md) — πώς το backlog παραμένει καθαρό
+- [QA Process](./QA-Process.md) — πώς διατηρούμε αποδεκτή ποιότητα
+- [Release Process](./Release-Process.md) — πώς ο κώδικας φτάνει στους πελάτες

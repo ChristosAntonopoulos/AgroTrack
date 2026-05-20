@@ -1,79 +1,79 @@
 # Competitor Analysis Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Use this template for each direct or relevant competitor. Add the filled page or section under [Competitor Research](../02-Business/Competitor-Research.md).
+Χρησιμοποίησε αυτό το template για κάθε άμεσο ή σχετικό ανταγωνιστή. Πρόσθεσε τη συμπληρωμένη σελίδα ή ενότητα στο [Competitor Research](../02-Business/Competitor-Research.md).
 
 ---
 
-## Competitor: [Name]
+## Ανταγωνιστής: [Όνομα]
 
-- **Date analysed:**
-- **Owner of this analysis:**
-- **Website:**
-- **Country / region:**
-- **Stage:** (Early / Growth / Established / Public)
+- **Ημερομηνία ανάλυσης:**
+- **Υπεύθυνος ανάλυσης:**
+- **Ιστοσελίδα:**
+- **Χώρα / περιοχή:**
+- **Στάδιο:** (Early / Growth / Established / Public)
 
-### What they do
+### Τι κάνουν
 
-Short description in plain language.
+Σύντομη περιγραφή σε απλή γλώσσα.
 
-### Target customer
+### Στόχος πελάτη
 
-Who they primarily sell to.
+Σε ποιον πουλάνε κυρίως.
 
-### Strengths
+### Δυνατά σημεία
 
-- Bullet list.
+- Λίστα.
 
-### Weaknesses
+### Αδυναμίες
 
-- Bullet list.
+- Λίστα.
 
-### How they price
+### Πώς τιμολογούν
 
-- Tiers, anchors, public or "contact sales".
+- Επίπεδα, anchors, δημόσια ή «contact sales».
 
-### What customers say
+### Τι λένε οι πελάτες
 
-- Public reviews, forum chatter, customer quotes if available.
+- Δημόσιες κριτικές, φόρουμ, ατάκες πελατών αν υπάρχουν.
 
-### How they differ from AgroTrack
+### Πώς διαφέρουν από το AgroTrack
 
-| Dimension | Them | Us |
+| Διάσταση | Αυτοί | Εμείς |
 |---|---|---|
-| Target user | | Owners + producers, together |
-| Crop focus | | Olive first |
-| Mobile experience | | Field-first |
-| Pricing accessibility | | Aimed at small-to-mid operators |
-| Lifecycle modelling | | Core to the product |
-| Heavy ERP features | | Not in scope |
+| Στόχος χρήστης | | Ιδιοκτήτες + παραγωγοί, μαζί |
+| Εστίαση καλλιέργειας | | Ελιά πρώτα |
+| Εμπειρία mobile | | Field-first |
+| Προσιτότητα τιμολόγησης | | Στοχευμένο σε μικρούς-μεσαίους |
+| Μοντελοποίηση κύκλου ζωής | | Κεντρικό στο προϊόν |
+| Βαριά ERP features | | Εκτός εύρους |
 
-### Threat level
+### Επίπεδο απειλής
 
-- Low / Medium / High and why.
+- Low / Medium / High και γιατί.
 
-### Things we could learn from them
+### Τι μπορούμε να μάθουμε από αυτούς
 
-- What they do well that we should consider.
+- Τι κάνουν καλά που πρέπει να εξετάσουμε.
 
-### Things to avoid
+### Τι να αποφύγουμε
 
-- Mistakes / friction they have that we should not copy.
+- Λάθη / τριβές που δεν πρέπει να αντιγράψουμε.
 
-### Sources
+### Πηγές
 
-- Links to product pages, articles, reviews.
+- Σύνδεσμοι προς σελίδες προϊόντος, άρθρα, κριτικές.
 
-### Open Questions
+### Ανοιχτά ερωτήματα
 
 -
 
-### Linked pages
+### Συνδεδεμένες σελίδες
 
 - [Competitor Research](../02-Business/Competitor-Research.md)
 - [Brand Positioning](../08-Marketing-and-Sales/Brand-Positioning.md)

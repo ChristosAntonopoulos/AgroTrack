@@ -1,59 +1,59 @@
-# Pitch Notes
+# Σημειώσεις pitch
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What we say in pitches — to customers, partners, advisors, future investors. Plain language, no slide deck dependency.
+Τι λέμε σε pitch — σε πελάτες, συνεργάτες, συμβούλους, μελλοντικούς επενδυτές. Απλή γλώσσα, χωρίς εξάρτηση από deck διαφανειών.
 
-## 30-second pitch
+## Pitch 30 δευτερολέπτων
 
-> AgroTrack is the shared workspace for olive owners and producers. We help them plan crop cycles, track tasks, log activity from the field and see real costs — all on the phone they already use. We start with olives in the Mediterranean and expand to other crops once we are proven.
+> Το AgroTrack είναι ο κοινός χώρος εργασίας για ιδιοκτήτες και παραγωγούς ελιάς. Τους βοηθάμε να σχεδιάζουν κύκλους καλλιέργειας, να παρακολουθούν εργασίες, να καταγράφουν δραστηριότητα από το χωράφι και να βλέπουν πραγματικά κόστη — όλα στο κινητό που ήδη χρησιμοποιούν. Ξεκινάμε με ελιές στη Μεσόγειο και επεκτεινόμαστε σε άλλες καλλιέργειες μόλις αποδειχθούμε.
 
-## 2-minute pitch
+## Pitch 2 λεπτών
 
-1. **The problem.** Olive owners and producers manage their fields with paper, Excel and WhatsApp. Nobody has a clean view of what's happening. Tasks slip. Costs are unclear. History walks out the door when someone leaves.
-2. **The solution.** AgroTrack is a simple shared workspace where owners and producers see the same fields, the same tasks, the same activity, the same costs.
-3. **Who we are.** [Team intro]
-4. **Where we are.** Validation phase. Demo running. Customer interviews underway. MVP scope close to locked.
-5. **What we want from you.** [Tailored — feedback, intro, pilot, advice, money]
+1. **Το πρόβλημα.** Ιδιοκτήτες και παραγωγοί ελιάς διαχειρίζονται τα χωράφια με χαρτί, Excel και WhatsApp. Κανείς δεν έχει καθαρή εικόνα του τι συμβαίνει. Οι εργασίες ξεφεύγουν. Τα κόστη είναι ασαφή. Η ιστορία φεύγει όταν φεύγει κάποιος.
+2. **Η λύση.** Το AgroTrack είναι ένας απλός κοινός χώρος εργασίας όπου ιδιοκτήτες και παραγωγοί βλέπουν τα ίδια χωράφια, τις ίδιες εργασίες, την ίδια δραστηριότητα, τα ίδια κόστη.
+3. **Ποιοι είμαστε.** [Εισαγωγή ομάδας]
+4. **Πού είμαστε.** Φάση επικύρωσης. Demo σε λειτουργία. Συνεντεύξεις πελατών σε εξέλιξη. Το scope του MVP σχεδόν κλειδωμένο.
+5. **Τι θέλουμε από εσάς.** [Προσαρμοσμένο — feedback, εισαγωγή, πιλοτικό, συμβουλή, κεφάλαιο]
 
-## 5-minute pitch outline
+## Περίγραμμα pitch 5 λεπτών
 
-- Slide 1: The problem (with a real quote from a customer)
-- Slide 2: The solution (visual of owner + producer in the same workspace)
-- Slide 3: How it works (3 steps from the landing page)
-- Slide 4: Who it's for (personas)
-- Slide 5: Market and beachhead (olive cultivation, Mediterranean)
-- Slide 6: Business model and pricing direction
-- Slide 7: Traction so far (interviews, pilots, demo)
-- Slide 8: Team
-- Slide 9: Ask
+- Διαφάνεια 1: Το πρόβλημα (με πραγματικό quote πελάτη)
+- Διαφάνεια 2: Η λύση (οπτική ιδιοκτήτη + παραγωγού στον ίδιο χώρο)
+- Διαφάνεια 3: Πώς λειτουργεί (3 βήματα από το landing page)
+- Διαφάνεια 4: Για ποιους είναι (personas)
+- Διαφάνεια 5: Αγορά και beachhead (καλλιέργεια ελιάς, Μεσόγειος)
+- Διαφάνεια 6: Επιχειρηματικό μοντέλο και κατεύθυνση τιμολόγησης
+- Διαφάνεια 7: Traction μέχρι σήμερα (συνεντεύξεις, πιλοτικά, demo)
+- Διαφάνεια 8: Ομάδα
+- Διαφάνεια 9: Το αίτημά μας
 
-## Tailoring notes
+## Σημειώσεις προσαρμογής
 
-| Audience | Lead with | Avoid |
+| Κοινό | Ξεκινάμε με | Αποφεύγουμε |
 |---|---|---|
-| Customer | Their pain in their words | Pricing too early |
-| Investor | Market + traction + team | Feature laundry list |
-| Partner | Mutual benefit | Long product tour |
-| Advisor | What we don't know | Defensive answers |
+| Πελάτης | Τον πόνο τους με δικές τους λέξεις | Τιμολόγηση πολύ νωρίς |
+| Επενδυτής | Αγορά + traction + ομάδα | Μακρύς κατάλογος features |
+| Συνεργάτης | Αμοιβαίο όφελος | Μακρή περιήγηση προϊόντος |
+| Σύμβουλος | Αυτό που δεν ξέρουμε | Αμυντικές απαντήσεις |
 
-## Common questions and short answers
+## Συχνές ερωτήσεις και σύντομες απαντήσεις
 
-- "Why olives first?" — Defined lifecycle, accessible market, real owner-producer pain, our roots.
-- "Why won't customers just keep using Excel?" — Excel doesn't ride to the field on a phone, and it doesn't keep the owner and producer in sync.
-- "Why now?" — Smartphone adoption in rural areas + climate-driven need for tighter timing + generational change in owners.
-- "How is this different from [X competitor]?" — See [Competitor Research](../02-Business/Competitor-Research.md).
+- «Γιατί ελιές πρώτα;» — Ορισμένος κύκλος ζωής, προσβάσιμη αγορά, πραγματικός πόνος ιδιοκτήτη-παραγωγού, οι ρίζες μας.
+- «Γιατί δεν θα συνεχίσουν με Excel;» — Το Excel δεν πηγαίνει στο χωράφι στο κινητό και δεν κρατά ιδιοκτήτη και παραγωγό συγχρονισμένους.
+- «Γιατί τώρα;» — Υιοθέτηση smartphone στην ύπαιθρο + ανάγκη για πιο στενό χρονισμό λόγω κλίματος + γενεακή αλλαγή στους ιδιοκτήτες.
+- «Πώς διαφέρει από [ανταγωνιστή X];» — Δείτε [Competitor Research](../02-Business/Competitor-Research.md).
 
-## Open Questions
+## Ανοιχτές ερωτήσεις
 
-- Do we need a public deck, or stay private until pilots run?
-- Should the 30-second pitch use "olives" or stay broader?
+- Χρειαζόμαστε δημόσιο deck ή να μείνουμε ιδιωτικοί μέχρι να τρέξουν πιλοτικά;
+- Το pitch 30 δευτερολέπτων να λέει «ελιές» ή να μείνει πιο ευρύ;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Practice the 2-minute pitch with the full team
-- Capture every new question we get and add to the list above
+- Εξάσκηση του pitch 2 λεπτών με όλη την ομάδα
+- Καταγραφή κάθε νέας ερώτησης και προσθήκη στη λίστα παραπάνω

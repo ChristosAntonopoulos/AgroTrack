@@ -1,63 +1,63 @@
 # Security
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we protect customer data and the platform. Written for non-technical readers.
+Πώς προστατεύουμε δεδομένα πελατών και την πλατφόρμα. Γραμμένο για μη τεχνικούς αναγνώστες.
 
-## Principles
+## Αρχές
 
-- Customers' data belongs to them.
-- We collect only what we need.
-- We protect what we hold.
-- We are honest if something goes wrong.
+- Τα δεδομένα των πελατών τους ανήκουν.
+- Συλλέγουμε μόνο ό,τι χρειαζόμαστε.
+- Προστατεύουμε ό,τι κρατάμε.
+- Είμαστε ειλικρινείς αν κάτι πάει στραβά.
 
-## What we do today
+## Τι κάνουμε σήμερα
 
-- Encrypt data in transit (HTTPS for all traffic).
-- Encrypt sensitive data at rest in the database.
-- Store passwords securely.
-- Separate each organisation's data.
-- Limit who on the team can access production data.
+- Κρυπτογράφηση δεδομένων σε μεταφορά (HTTPS για όλη την κίνηση).
+- Κρυπτογράφηση ευαίσθητων δεδομένων at rest στη database.
+- Ασφαλής αποθήκευση κωδικών.
+- Διαχωρισμός δεδομένων ανά οργανισμό.
+- Περιορισμός ποιος στην ομάδα έχει πρόσβαση σε production data.
 
-## What we will add later
+## Τι θα προσθέσουμε αργότερα
 
 - Two-factor authentication.
-- Single sign-on with major providers.
-- A more formal security review before scaling beyond pilots.
-- Audit logs visible to admins.
+- Single sign-on με μεγάλους providers.
+- Πιο τυπική security αξιολόγηση πριν κλιμακώσουμε πέρα από pilots.
+- Audit logs ορατά σε admins.
 
-## Risks we watch
+## Κίνδυνοι που παρακολουθούμε
 
-- Phishing or password theft.
-- Misconfigured cloud resources.
-- Code mistakes that leak data between organisations.
-- Loss of access (forgotten admin credentials).
+- Phishing ή κλοπή κωδικού.
+- Λανθασμένη ρύθμιση cloud resources.
+- Σφάλματα κώδικα που διαρρέουν δεδομένα μεταξύ οργανισμών.
+- Απώλεια πρόσβασης (ξεχασμένα admin credentials).
 
-## Incident response
+## Αντιμετώπιση περιστατικών
 
-If something goes wrong:
+Αν κάτι πάει στραβά:
 
-1. Contain it immediately (revoke access, take it offline if needed).
-2. Tell affected customers as soon as possible.
-3. Fix the root cause.
-4. Write up the incident and what we learned.
+1. Άμεση περιορισμός (ανάκληση πρόσβασης, offline αν χρειάζεται).
+2. Ενημέρωση επηρεαζόμενων πελατών το συντομότερο.
+3. Διόρθωση της ρίζας του προβλήματος.
+4. Καταγραφή του περιστατικού και των μαθημάτων.
 
-## What we will never do
+## Τι δεν θα κάνουμε ποτέ
 
-- Sell customer data.
-- Share customer data with third parties without consent.
-- Hide an incident from affected customers.
+- Πώληση δεδομένων πελατών.
+- Κοινοποίηση δεδομένων πελατών σε τρίτους χωρίς συγκατάθεση.
+- Απόκρυψη περιστατικού από επηρεαζόμενους πελάτες.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we need a formal security review before first paid customer?
-- Do we need cyber insurance?
+- Χρειαζόμαστε τυπική security αξιολόγηση πριν τον πρώτο πληρωμένο πελάτη;
+- Χρειαζόμαστε cyber insurance;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm secure hosting setup before pilot
-- Draft an incident response one-pager before first paid customer
+- Επιβεβαίωση ασφαλούς setup hosting πριν το pilot
+- Πρόχειρο incident response πριν τον πρώτο πληρωμένο πελάτη

@@ -1,60 +1,60 @@
-# Market Research
+# Έρευνα αγοράς
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What we know (and need to confirm) about the size and shape of our market.
+Τι ξέρουμε (και πρέπει να επιβεβαιώσουμε) για το μέγεθος και το σχήμα της αγοράς μας.
 
-## Market framing
+## Πλαίσιο αγοράς
 
-- **TAM (Total Addressable Market):** All field-based agricultural operations globally that could benefit from a shared owner-producer lifecycle platform.
-- **SAM (Serviceable Available Market):** Olive, vineyard and other tree-crop operations in Mediterranean Europe.
-- **SOM (Serviceable Obtainable Market) — first 3 years:** Olive operations in Greece, Italy, Spain, Portugal in the 1–100 field range.
+- **TAM (Total Addressable Market):** Όλες οι γεωργικές επιχειρήσεις με αγροτεμάχια παγκοσμίως που θα ωφελούνταν από κοινή πλατφόρμα κύκλου ζωής ιδιοκτήτη-παραγωγού.
+- **SAM (Serviceable Available Market):** Ελαιο-, αμπελο- και άλλες δενδροκαλλιέργειες στη Μεσόγειο Ευρώπη.
+- **SOM (Serviceable Obtainable Market) — πρώτα 3 έτη:** Ελαιοκαλλιέργειες στην Ελλάδα, Ιταλία, Ισπανία, Πορτογαλία με 1–100 αγροτεμάχια.
 
-Exact numbers are TBD. We capture our estimates and the sources below.
+Οι ακριβείς αριθμοί είναι TBD. Καταγράφουμε εκτιμήσεις και πηγές παρακάτω.
 
-## Estimates to validate
+## Εκτιμήσεις προς validation
 
-| Metric | Estimate | Source / Method | Confidence |
+| Μετρική | Εκτίμηση | Πηγή / Μέθοδος | Εμπιστοσύνη |
 |---|---|---|---|
-| Olive farms in Greece, Italy, Spain, Portugal | TBD | FAO, EU agricultural census | Low until confirmed |
-| % with smartphone use among owners | TBD | Survey, interviews | Low |
-| Average willingness to pay per month | TBD | Interviews | Low |
-| % currently using software for field management | TBD | Interviews, market reports | Low |
+| Ελαιώνες στην Ελλάδα, Ιταλία, Ισπανία, Πορτογαλία | TBD | FAO, αγροτική απογραφή ΕΕ | Χαμηλή μέχρι επιβεβαίωση |
+| % χρήσης smartphone μεταξύ ιδιοκτητών | TBD | Έρευνα, interview | Χαμηλή |
+| Μέση διάθεση πληρωμής ανά μήνα | TBD | Interview | Χαμηλή |
+| % που χρησιμοποιεί λογισμικό διαχείρισης αγροτεμαχίων | TBD | Interview, αναφορές αγοράς | Χαμηλή |
 
-## Macro trends
+## Μακροοικονομικές τάσεις
 
-- Climate change increasing volatility in yield → more value in precise records.
-- Generational handover of farms → new owners more digital.
-- EU CAP reforms and subsidy systems demanding more traceability.
-- Rural connectivity improving.
-- Inflation in inputs (fertiliser, fuel) → owners want cost visibility.
+- Κλιματική αλλαγή αυξάνει τη μεταβλητότητα απόδοσης → μεγαλύτερη αξία σε ακριβή αρχεία.
+- Γενεολογική μεταβίβαση φαρμών → νέοι ιδιοκτήτες πιο ψηφιακοί.
+- Μεταρρυθμίσεις CAP ΕΕ και επιδοτήσεις απαιτούν περισσότερη ιχνηλασιμότητα.
+- Βελτίωση αγροτικής συνδεσιμότητας.
+- Ακρίβεια σε εισροές (λίπασμα, καύσιμα) → οι ιδιοκτήτες θέλουν ορατότητα κόστους.
 
-## Local market notes (first geographies)
+## Τοπικές σημειώσεις (πρώτες γεωγραφίες)
 
-| Country | Notes |
+| Χώρα | Σημειώσεις |
 |---|---|
-| Greece | Highly fragmented ownership, strong olive culture, many absentee owners. |
-| Italy | Mix of small heritage farms and modern operations. Co-op influence strong. |
-| Spain | Larger average farm size, more industrialised. Stronger existing tool penetration. |
-| Portugal | Smaller market but accessible, growing premium olive segment. |
+| Ελλάδα | Υψηλά κατακερματισμένη ιδιοκτησία, ισχυρή ελαιοκουλτούρα, πολλοί απόντες ιδιοκτήτες. |
+| Ιταλία | Μίξη μικρών παραδοσιακών και σύγχρονων επιχειρήσεων. Ισχυρή επιρροή συνεταιρισμών. |
+| Ισπανία | Μεγαλύτερο μέσο μέγεθος φάρμας, πιο βιομηχανοποιημένη. Ισχυρότερη διείσδυση εργαλείων. |
+| Πορτογαλία | Μικρότερη αγορά αλλά προσιτή, αναπτυσσόμενο premium τμήμα ελιάς. |
 
-## Sources to gather
+## Πηγές προς συλλογή
 
-- FAO statistics
-- EU CAP and Eurostat agricultural data
-- National olive oil councils / producer associations
-- Direct interviews
+- Στατιστικά FAO
+- Δεδομένα CAP ΕΕ και Eurostat
+- Εθνικοί συνεταιρισμοί / συνδέσμοι παραγωγών ελαιολάδου
+- Άμεσα interview
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Which country do we focus on first for pilots?
-- Is there a public dataset that gives us reliable field counts per geography?
+- Σε ποια χώρα εστιάζουμε πρώτα για pilots;
+- Υπάρχει δημόσιο dataset με αξιόπιστες μετρήσεις αγροτεμαχίων ανά γεωγραφία;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Replace TBD numbers with sourced estimates
-- Decide first country for pilot recruitment
+- Αντικαταστήστε αριθμούς TBD με εκτιμήσεις με πηγή
+- Αποφασίστε πρώτη χώρα για recruitment pilots

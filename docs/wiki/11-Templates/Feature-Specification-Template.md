@@ -1,78 +1,78 @@
 # Feature Specification Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Copy this template when proposing or scoping a new feature. The filled spec becomes the source of truth for that feature.
+Αντέγραψε αυτό το template όταν προτείνεις ή ορίζεις νέο feature. Το συμπληρωμένο spec γίνεται η πηγή αλήθειας για αυτό το feature.
 
 ---
 
-## Feature: [Name]
+## Feature: [Όνομα]
 
-- **Status:** Draft / Proposed / In progress / Shipped / Deprecated
-- **Owner:**
-- **Last Updated:**
+- **Κατάσταση:** Draft / Proposed / In progress / Shipped / Deprecated
+- **Υπεύθυνος:**
+- **Τελευταία ενημέρωση:**
 
-### Purpose
+### Σκοπός
 
-One sentence: what this feature does and for whom.
+Μία πρόταση: τι κάνει αυτό το feature και για ποιον.
 
-### Customer problem
+### Πρόβλημα πελάτη
 
-What pain (from [Pain Points](../04-Customer-Research/Pain-Points.md)) or signal this feature addresses.
+Ποιον πόνο (από [Pain Points](../04-Customer-Research/Pain-Points.md)) ή σήμα αντιμετωπίζει αυτό το feature.
 
-### Users
+### Χρήστες
 
-Which persona(s) this is primarily for.
+Ποια persona(s) απευθύνεται κυρίως.
 
-### Outcome
+### Αποτέλεσμα
 
-What "success" looks like once this feature is live.
+Πώς μοιάζει η «επιτυχία» όταν το feature είναι live.
 
-### Scope
+### Εύρος
 
-#### In scope
+#### Εντός εύρους
 
-- Bullet list of specific behaviours included.
+- Λίστα συγκεκριμένων συμπεριφορών που περιλαμβάνονται.
 
-#### Out of scope
+#### Εκτός εύρους
 
-- Bullet list of what we explicitly exclude.
+- Λίστα ό,τι εξαιρούμε ρητά.
 
-### User stories / PBIs
+### user story / PBIs
 
-A list of the PBIs that make up this feature.
+Λίστα PBIs που αποτελούν αυτό το feature.
 
-### Acceptance criteria (Given / When / Then)
+### Κριτήρια αποδοχής (Given / When / Then)
 
-For each PBI, at least one Given/When/Then example.
+Για κάθε PBI, τουλάχιστον ένα παράδειγμα Given/When/Then.
 
-### Dependencies
+### Εξαρτήσεις
 
-- Other features
-- Decisions needed
-- External dependencies
+- Άλλα features
+- Αποφάσεις που χρειάζονται
+- Εξωτερικές εξαρτήσεις
 
-### Open Questions
-
--
-
-### Risks
+### Ανοιχτά ερωτήματα
 
 -
 
-### Linked work items
+### risk
 
-- Azure Boards link: TBD
+-
 
-### Linked pages
+### Συνδεδεμένα work items
+
+- Σύνδεσμος Azure Boards: TBD
+
+### Συνδεδεμένες σελίδες
 
 - [Feature Prioritization](../03-Product/Feature-Prioritization.md)
 - [Core Features](../03-Product/Core-Features.md)
 
-### Next Actions
+### Επόμενες ενέργειες
 
 -

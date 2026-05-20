@@ -1,62 +1,62 @@
-# Pricing Strategy
+# Στρατηγική pricing
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we price AgroTrack — assumptions, tiers, and what we are testing.
+Πώς κοστολογούμε το AgroTrack — υποθέσεις, επίπεδα και τι δοκιμάζουμε.
 
-## Pricing principles
+## Αρχές pricing
 
-- **Simple to understand.** A small olive owner should know what they will pay in 10 seconds.
-- **Aligned to value.** More fields, more value, more revenue.
-- **Friendly entry.** Free or trial tier so people can try without committing.
-- **Predictable.** Monthly or annual subscription, no surprise fees.
+- **Απλό στην κατανόηση.** Ένας μικρός ιδιοκτήτης ελιάς να ξέρει σε 10 δευτερόλεπτα τι θα πληρώσει.
+- **Ευθυγραμμισμένο με αξία.** Περισσότερα αγροτεμάχια, περισσότερη αξία, περισσότερα έσοδα.
+- **Φιλική είσοδος.** Δωρεάν ή δοκιμαστικό επίπεδο χωρίς δέσμευση.
+- **Προβλέψιμο.** Μηνιαία ή ετήσια συνδρομή, χωρίς έκπληξη σε τέλη.
 
-## Hypothesis tiers
+## Υποθετικά επίπεδα
 
-| Tier | Target | Indicative price | Limits | Notes |
+| Επίπεδο | Στόχος | Ενδεικτική τιμή | Όρια | Σημειώσεις |
 |---|---|---|---|---|
-| Free / Trial | New users, 1-3 fields | €0 | Limited fields, limited users | Drives adoption and word of mouth |
-| Starter | Small owner or producer | €15-25 / month / org | Up to 10 fields, up to 3 users | Most small olive owners |
-| Pro | Mid-size operations | €60-90 / month / org | Unlimited fields, unlimited users, dashboards | Owner-operators, small producers managing many owners |
-| Custom | Co-ops, large operators | Negotiated | Custom features, onboarding, integrations | Sold via direct relationship |
+| Free / Trial | Νέοι χρήστες, 1-3 αγροτεμάχια | €0 | Περιορισμένα αγροτεμάχια, περιορισμένοι χρήστες | Οδηγεί adoption και word of mouth |
+| Starter | Μικρός ιδιοκτήτης ή παραγωγός | €15-25 / μήνα / org | Έως 10 αγροτεμάχια, έως 3 χρήστες | Οι περισσότεροι μικροί ιδιοκτήτες ελιάς |
+| Pro | Μεσαίες επιχειρήσεις | €60-90 / μήνα / org | Απεριόριστα αγροτεμάχια, απεριόριστοι χρήστες, dashboards | Ιδιοκτήτες-χειριστές, μικροί παραγωγοί με πολλούς ιδιοκτήτες |
+| Custom | Συνεταιρισμοί, μεγάλοι χειριστές | Διαπραγματευμένο | Custom features, onboarding, ενσωματώσεις | Πώληση μέσω άμεσης σχέσης |
 
-All prices are **hypotheses to test**.
+Όλες οι τιμές είναι **υποθέσεις προς δοκιμή**.
 
-## Pricing axes considered
+## Άξονες pricing που εξετάστηκαν
 
-| Axis | Pros | Cons |
+| Άξονας | Πλεονεκτήματα | Μειονεκτήματα |
 |---|---|---|
-| Per organisation | Simple, predictable | Doesn't scale with usage |
-| Per field band | Aligned with size and value | Customers may game the count |
-| Per user | Familiar SaaS axis | Limits collaboration |
-| Per hectare | Closest to "real" value | Hard to verify, friction at signup |
+| Ανά οργανισμό | Απλό, προβλέψιμο | Δεν κλιμακώνεται με χρήση |
+| Ζώνες αγροτεμαχίων | Ευθυγραμμισμένο με μέγεθος και αξία | Οι πελάτες μπορεί να «παίζουν» με τον αριθμό |
+| Ανά χρήστη | Οικείος άξονας SaaS | Περιορίζει τη συνεργασία |
+| Ανά εκτάριο | Πιο κοντά στην «πραγματική» αξία | Δύσκολο επαλήθευση, τριβή στο signup |
 
-Current preference: **per organisation with field bands** as the simplest model that still scales with customer size.
+Τρέχουσα προτίμηση: **ανά οργανισμό με ζώνες αγροτεμαχίων** ως το απλούστερο μοντέλο που κλιμακώνεται με το μέγεθος πελάτη.
 
-## Discounts and promotions
+## Εκπτώσεις και προσφορές
 
-- Annual billing discount: 10–15%
-- Co-op or partnership pricing: negotiated case by case
-- Pilot pricing: free or steep discount during first pilots in exchange for feedback
+- Έκπτωση ετήσιας χρέωσης: 10–15%
+- pricing συνεταιρισμών ή συνεργασιών: διαπραγματευμένο case by case
+- pricing pilots: δωρεάν ή μεγάλη έκπτωση στα πρώτα pilots ανταλλάγματα feedback
 
-## What we explicitly avoid
+## Τι αποφεύγουμε ρητά
 
-- Hidden fees
-- Per-document or per-task usage fees
-- Tying pricing to data we don't ourselves measure (e.g. yield)
+- Κρυφά τέλη
+- Τέλη ανά έγγραφο ή ανά εργασία
+- pricing δεμένο σε δεδομένα που δεν μετράμε εμείς (π.χ. απόδοση)
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Will customers pay annual upfront, or only monthly at this stage?
-- Where should the Starter / Pro line really sit (5 fields? 10? 25?)?
-- Is there a strong willingness to pay among producers (segment 2), or do they expect owners to pay?
+- Θα πληρώσουν ετήσια εκ των προτέρων ή μόνο μηνιαία σε αυτό το στάδιο;
+- Πού πρέπει να είναι πραγματικά η γραμμή Starter / Pro (5 αγροτεμάχια; 10; 25;);
+- Υπάρχει ισχυρή διάθεση πληρωμής στους παραγωγούς (τμήμα 2) ή περιμένουν να πληρώνουν οι ιδιοκτήτες;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Ask explicit price-anchor questions in interviews ("Would you pay €X / month? Why or why not?")
-- Test two pricing pages against pilot customers
-- Lock the v1 pricing for the MVP pilot phase
+- Ρωτήστε ρητά ερωτήματα price-anchor σε interview («Θα πληρώνατε €X / μήνα; Γιατί ναι ή όχι;»)
+- Δοκιμάστε δύο pricing pages με pilot πελάτες
+- Κλειδώστε το pricing v1 για τη φάση pilot του MVP

@@ -1,57 +1,57 @@
-# Company One-Pager
+# Company One-Pager — Εταιρεία σε μία σελίδα
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The one-page answer to "what is the company?". Use this in pitches, intros, and quick conversations.
+Η απάντηση σε μία σελίδα στο «τι είναι η εταιρεία;». Χρησιμοποιήστε την σε παρουσιάσεις, γνωριμίες και σύντομες συζητήσεις.
 
-## Company at a glance
+## Η εταιρεία με μια ματιά
 
-| Field | Value |
+| Στοιχείο | Τιμή |
 |---|---|
-| Name | AgroTrack |
-| What we do | Agricultural lifecycle management platform |
-| First vertical | Olive cultivation |
-| Stage | Pre-MVP, validation phase |
-| Team size | TBD |
-| Headquarters | TBD |
-| Founded | TBD |
-| Website | TBD |
+| Όνομα | AgroTrack |
+| Τι κάνουμε | platform διαχείρισης αγροτικού κύκλου ζωής |
+| Πρώτος κλάδος | Καλλιέργεια ελιάς |
+| Στάδιο | Pre-MVP, φάση validation |
+| Μέγεθος ομάδας | TBD |
+| Έδρα | TBD |
+| Ίδρυση | TBD |
+| Ιστοσελίδα | TBD |
 
-## Mission
+## Αποστολή
 
-Help everyone who works the land run their fields with the same clarity a modern business runs its operations.
+Να βοηθάμε όλους όσοι δουλεύουν τη γη να διαχειρίζονται τα fields τους με την ίδια σαφήνεια που μια σύγχρονη επιχείρηση διαχειρίζεται τις λειτουργίες της.
 
-## What we sell
+## Τι πουλάμε
 
-A web and mobile platform where field owners, producers and agronomists plan crop cycles, assign tasks, record activity, track costs and collaborate across roles.
+Μια web και mobile platform όπου ιδιοκτήτες fields, παραγωγοί και γεωπόνοι σχεδιάζουν κύκλους καλλιέργειας, αναθέτουν εργασίες, καταγράφουν δραστηριότητα, παρακολουθούν κόστη και συνεργάζονται μεταξύ ρόλων.
 
-## Why now
+## Γιατί τώρα
 
-- Smallholder and mid-size agricultural operations are still run with paper notebooks, spreadsheets and WhatsApp.
-- Owners and producers struggle to share a single view of what is happening on the land.
-- Climate variability and cost pressure make accurate records more valuable than ever.
-- Mobile coverage and smartphone use in rural areas are finally good enough.
+- Μικρές και μεσαίες αγροτικές επιχειρήσεις τρέχουν ακόμα με χαρτένια σημειωματάρια, υπολογιστικά φύλλα και WhatsApp.
+- Ιδιοκτήτες και παραγωγοί δυσκολεύονται να μοιράζονται μία ενιαία εικόνα του τι συμβαίνει στη γη.
+- Η κλιματική μεταβλητότητα και η πίεση κόστους καθιστούν τις ακριβείς καταγραφές πιο πολύτιμες από ποτέ.
+- Η κάλυψη κινητής και η χρήση smartphone σε αγροτικές περιοχές είναι επιτέλους αρκετά καλές.
 
-## Traction so far
+## Πρόοδος μέχρι σήμερα
 
-- TBD interviews completed
-- TBD letters of intent or pilots lined up
-- Demo platform in development
+- TBD συνεντεύξεις ολοκληρωμένες
+- TBD επιστολές πρόθεσης ή pilots σε εξέλιξη
+- Demo platform σε ανάπτυξη
 
-## Ask
+## Αίτημα
 
-What we currently need from partners, investors and advisors. To be filled in.
+Τι χρειαζόμαστε τώρα από συνεργάτες, επενδυτές και συμβούλους. Θα συμπληρωθεί.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is our short pitch in one sentence?
-- Who are our first three reference customers?
+- Ποιο είναι το σύντομο pitch μας σε μία πρόταση;
+- Ποιοι είναι οι πρώτοι τρεις πελάτες αναφοράς μας;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Lock down the one-sentence pitch
-- Add real numbers in the "at a glance" table
+- Κλείδωμα του pitch σε μία πρόταση
+- Προσθήκη πραγματικών αριθμών στον πίνακα «με μια ματιά»

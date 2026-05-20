@@ -1,115 +1,115 @@
-# Interview Questions
+# Ερωτήσεις Interview
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A complete guide for customer interviews. Use it as a checklist, not a script. Let the conversation breathe.
+Πλήρης οδηγός για customer interview. Χρησιμοποιήστε τον ως checklist, όχι ως σενάριο. Αφήστε τη συζήτηση να ρέει φυσικά.
 
-## How to use this guide
+## Πώς να χρησιμοποιήσετε αυτόν τον οδηγό
 
-- Start with rapport, not the product.
-- Listen 80%, talk 20%.
-- Ask open questions ("How do you…?", "Walk me through…").
-- Probe with "Why?" and "Can you give me an example?".
-- Avoid leading questions ("Wouldn't it be great if…?").
-- Don't pitch the product until the end. Even then, only if relevant.
+- Ξεκινήστε με rapport, όχι με το προϊόν.
+- Ακούστε 80%, μιλήστε 20%.
+- Κάντε ανοιχτές ερωτήσεις («Πώς…;», «Περιγράψτε μου βήμα-βήμα…»).
+- Εμβαθύνετε με «Γιατί;» και «Μπορείτε να μου δώσετε ένα παράδειγμα;».
+- Αποφύγετε κατευθυντικές ερωτήσεις («Δεν θα ήταν υπέροχο αν…;»).
+- Μην παρουσιάζετε το προϊόν μέχρι το τέλος. Και τότε, μόνο αν είναι σχετικό.
 
-## Section 1 — Warm-up and context
+## Ενότητα 1 — Ζέσταμα και πλαίσιο
 
-- Tell me a bit about yourself and your relationship with olive fields.
-- How many fields do you own / manage? Where are they?
-- Who else is involved — producers, family, agronomists?
-- How long have you been doing this?
+- Πείτε μου λίγα για εσάς και τη σχέση σας με αγροτεμάχια ελιάς.
+- Πόσα αγροτεμάχια κατέχετε / διαχειρίζεστε; Πού βρίσκονται;
+- Ποιος άλλος εμπλέκεται — παραγωγοί, οικογένεια, γεωπόνοι;
+- Εδώ και πόσο καιρό ασχολείστε με αυτό;
 
-## Section 2 — Managing fields today
+## Ενότητα 2 — Διαχείριση αγροτεμαχίων σήμερα
 
-- Walk me through a typical week on the fields.
-- What tools or systems do you use today to manage your fields? (Excel, paper, WhatsApp, apps?)
-- How do you remember what you did last week / last month / last year on a specific field?
-- How do you decide what work needs to happen and when?
-- Who decides? Who does the work? Who tracks it?
+- Περιγράψτε μου μια τυπική εβδομάδα στα αγροτεμάχια.
+- Ποια εργαλεία ή συστήματα χρησιμοποιείτε σήμερα για τη διαχείριση; (Excel, χαρτί, WhatsApp, εφαρμογές;)
+- Πώς θυμάστε τι κάνατε την προηγούμενη εβδομάδα / τον προηγούμενο μήνα / πέρυσι σε ένα συγκεκριμένο αγροτεμάχιο;
+- Πώς αποφασίζετε ποια εργασία πρέπει να γίνει και πότε;
+- Ποιος αποφασίζει; Ποιος εκτελεί; Ποιος παρακολουθεί;
 
-## Section 3 — Crop lifecycle
+## Ενότητα 3 — Κύκλος ζωής καλλιέργειας
 
-- How do you think about the crop year — by stages, by months, by something else?
-- How do you know which stage each of your fields is in right now?
-- What changes between stages in what you do day to day?
-- What surprises you most about lifecycle timing?
+- Πώς σκέφτεστε το αγροτικό έτος — ανά στάδια, ανά μήνες, με άλλο τρόπο;
+- Πώς γνωρίζετε σε ποιο στάδιο βρίσκεται κάθε αγροτεμάχιο αυτή τη στιγμή;
+- Τι αλλάζει μεταξύ σταδίων στην καθημερινή σας δουλειά;
+- Τι σας εκπλήσσει περισσότερο ως προς τον χρονισμό του κύκλου ζωής;
 
-## Section 4 — Tasks and execution
+## Ενότητα 4 — Εργασίες και εκτέλεση
 
-- How do you plan tasks (pruning, treatments, irrigation, harvest)?
-- How do you assign tasks to people?
-- How do you know a task was actually done — and done well?
-- What happens when a task is missed or done late? Has it cost you money?
+- Πώς σχεδιάζετε εργασίες (κλάδεμα, ψεκασμούς, άρδευση, συγκομιδή);
+- Πώς αναθέτετε εργασίες σε ανθρώπους;
+- Πώς γνωρίζετε ότι μια εργασία έγινε πραγματικά — και έγινε καλά;
+- Τι συμβαίνει όταν μια εργασία χάνεται ή γίνεται αργά; Σας κόστισε χρήμα;
 
-## Section 5 — Costs and money
+## Ενότητα 5 — Κόστη και χρήμα
 
-- How do you track what each field costs you?
-- Do you know which field is the most expensive to run? Why?
-- How do you handle invoices, receipts, materials?
-- What would you do differently if you had clearer cost data?
+- Πώς παρακολουθείτε τι σας κοστίζει κάθε αγροτεμάχιο;
+- Ξέρετε ποιο αγροτεμάχιο είναι το πιο ακριβό στη λειτουργία; Γιατί;
+- Πώς χειρίζεστε τιμολόγια, αποδείξεις, υλικά;
+- Τι θα κάνατε διαφορετικά αν είχατε πιο καθαρά δεδομένα κόστους;
 
-## Section 6 — Owner / producer communication
+## Ενότητα 6 — Επικοινωνία ιδιοκτήτη / παραγωγού
 
-- (For owners) How does your producer keep you informed?
-- (For producers) How do owners keep up with what you do?
-- What channels do you use today? (WhatsApp, phone, in-person)
-- What goes wrong in this communication? Can you give an example?
+- (Για ιδιοκτήτες) Πώς σας ενημερώνει ο παραγωγός;
+- (Για παραγωγούς) Πώς παρακολουθούν οι ιδιοκτήτες τι κάνετε;
+- Ποια κανάλια χρησιμοποιείτε σήμερα; (WhatsApp, τηλέφωνο, δια ζώσης)
+- Τι πάει στραβά σε αυτή την επικοινωνία; Μπορείτε να δώσετε ένα παράδειγμα;
 
-## Section 7 — Pain points and emotion
+## Ενότητα 7 — Pain point και συναισθήματα
 
-- What is the most frustrating thing about how you manage your fields today?
-- If you could magically fix one thing, what would it be?
-- What have you tried in the past that didn't work? Why?
+- Ποιο είναι το πιο εκνευριστικό στοιχείο στον τρόπο που διαχειρίζεστε τα αγροτεμάχια σήμερα;
+- Αν μπορούσατε να διορθώσετε μαγικά ένα πράγμα, τι θα ήταν;
+- Τι έχετε δοκιμάσει στο παρελθόν που δεν δούλεψε; Γιατί;
 
-## Section 8 — Existing tools
+## Ενότητα 8 — Υπάρχοντα εργαλεία
 
-- Have you tried any apps or software for field management?
-- What did you like? What didn't work?
-- Why did you stop using them, if you stopped?
+- Έχετε δοκιμάσει εφαρμογές ή λογισμικό για διαχείριση αγροτεμαχίων;
+- Τι σας άρεσε; Τι δεν δούλεψε;
+- Γιατί σταματήσατε να τα χρησιμοποιείτε, αν σταματήσατε;
 
-## Section 9 — Willingness to pay
+## Ενότητα 9 — Προθυμία πληρωμής
 
-- If a tool solved [main pain they mentioned], what would it be worth to you per month?
-- Have you ever paid for software for your fields? How much?
-- If I told you AgroTrack costs €X per month, what's your first reaction? Why?
+- Αν ένα εργαλείο έλυνε [το κύριο pain point που ανέφεραν], τι θα άξιζε για εσάς τον μήνα;
+- Έχετε πληρώσει ποτέ για λογισμικό στα αγροτεμάχια σας; Πόσο;
+- Αν σας έλεγα ότι το AgroTrack κοστίζει €X τον μήνα, ποια είναι η πρώτη σας αντίδραση; Γιατί;
 
-(Note: anchor at multiple prices to read reactions: €5, €15, €50.)
+(Σημείωση: δοκιμάστε πολλαπλές τιμές για να διαβάσετε αντιδράσεις: €5, €15, €50.)
 
-## Section 10 — Optional: show the demo
+## Ενότητα 10 — Προαιρετικά: επίδειξη demo
 
-If they are engaged and the conversation is warm:
+Αν είναι ενεργοί και η συζήτηση είναι ζεστή:
 
-- Walk through the demo flow (signup → field → cycle → task → activity).
-- Ask: "What feels useful here? What feels missing? What feels confusing?"
-- Ask: "Would you try this with one of your fields for a month?"
+- Περάστε τη ροή demo (εγγραφή → αγροτεμάχιο → κύκλος → εργασία → δραστηριότητα).
+- Ρωτήστε: «Τι σας φαίνεται χρήσιμο εδώ; Τι λείπει; Τι σας μπερδεύει;»
+- Ρωτήστε: «Θα το δοκιμάζατε με ένα από τα αγροτεμάχια σας για έναν μήνα;»
 
-## Section 11 — Wrap-up
+## Ενότητα 11 — Κλείσιμο
 
-- Is there anyone else in your network we should talk to?
-- Can we come back to you with more questions later?
-- (If they showed strong interest) Would you be willing to pilot AgroTrack?
+- Υπάρχει κάποιος άλλος στο δίκτυό σας που θα έπρεπε να μιλήσουμε;
+- Μπορούμε να επιστρέψουμε με περισσότερες ερωτήσεις αργότερα;
+- (Αν έδειξαν έντονο ενδιαφέρον) Θα ήσασταν διατεθειμένοι να κάνετε πιλοτικό AgroTrack;
 
-## Things to capture for every interview
+## Τι να καταγράφετε σε κάθε interview
 
-- Date, name, role, location
-- Number of fields, crop, scale
-- Top 3 pain points in their own words
-- Memorable quotes
-- Willingness to pilot (yes / maybe / no)
-- Willingness to pay (range and reaction)
-- Whether they'd refer us to others
+- Ημερομηνία, όνομα, ρόλος, τοποθεσία
+- Αριθμός αγροτεμαχίων, καλλιέργεια, κλίμακα
+- Τα 3 κύρια pain point με δικά τους λόγια
+- Αξιομνημόνευτα παραθέματα
+- Προθυμία για πιλοτικό (ναι / ίσως / όχι)
+- Προθυμία πληρωμής (εύρος και αντίδραση)
+- Αν θα μας προωθούσαν σε άλλους
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we share the demo in interview 1 or wait for interview 2?
-- Do we need a separate guide for producers vs owners?
+- Δείχνουμε το demo στο interview 1 ή περιμένουμε για interview 2;
+- Χρειαζόμαστε ξεχωριστό οδηγό για παραγωγούς έναντι ιδιοκτητών;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Pilot this guide with 2 interviews, then refine
-- Translate into Greek and Italian once stable
+- Δοκιμάστε αυτόν τον οδηγό σε 2 interview, μετά βελτιώστε τον
+- Μετά την σταθεροποίηση, δημιουργήστε ιταλική έκδοση

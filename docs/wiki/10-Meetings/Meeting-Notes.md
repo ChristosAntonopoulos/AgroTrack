@@ -1,41 +1,41 @@
-# Meeting Notes
+# meeting notes
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A running index of meeting notes for AgroTrack. Each meeting gets a section here, using the [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
+Συνεχές ευρετήριο meeting notes για το AgroTrack. Κάθε συνάντηση παίρνει ενότητα εδώ, με βάση το [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
 
-## Conventions
+## Συμβάσεις
 
-- One section per meeting, newest at the top.
-- Title format: `YYYY-MM-DD — Meeting name`.
-- Decisions made go to the [Decision Log](../01-Company/Decision-Log.md).
-- Action items get an owner and a date.
+- Μία ενότητα ανά συνάντηση, η νεότερη στην κορυφή.
+- Μορφή τίτλου: `YYYY-MM-DD — Όνομα συνάντησης`.
+- Οι αποφάσεις πηγαίνουν στο [Decision Log](../01-Company/Decision-Log.md).
+- Τα action items έχουν υπεύθυνο και ημερομηνία.
 
-## Meeting index
+## Ευρετήριο συναντήσεων
 
-| Date | Meeting | Owner | Link |
+| Ημερομηνία | Συνάντηση | Υπεύθυνος | Σύνδεσμος |
 |---|---|---|---|
-| TBD | First Team Review Meeting | TBD | [Open](./First-Team-Review-Meeting.md) |
+| TBD | First Team Review Meeting | TBD | [Άνοιγμα](./First-Team-Review-Meeting.md) |
 | TBD | Sprint 0 Planning | TBD | TBD |
 | TBD | Sprint 0 Review | TBD | TBD |
 | TBD | Sprint 0 Retro | TBD | TBD |
 
-## How to add a new meeting
+## Πώς να προσθέσεις νέα συνάντηση
 
-1. Add a row to the index above.
-2. Either create a new page, or paste filled template content as a section below.
-3. Always capture: attendees, agenda, decisions, action items.
+1. Πρόσθεσε γραμμή στον πίνακα παραπάνω.
+2. Δημιούργησε νέα σελίδα ή επικόλλησε συμπληρωμένο template ως ενότητα από κάτω.
+3. Καταγράφε πάντα: συμμετέχοντες, ατζέντα, αποφάσεις, action items.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we keep meeting notes for daily stand-ups? (Suggested: no, keep stand-ups verbal.)
-- How long do we retain meeting notes? (Suggested: indefinitely; move stale ones to Archive only if truly outdated.)
+- Κρατάμε meeting notes για daily stand-ups; (Πρόταση: όχι, τα stand-ups μένουν προφορικά.)
+- Πόσο καιρό διατηρούμε meeting notes; (Πρόταση: επ' αόριστον· μετακίνηση παρωχημένων μόνο στο Archive αν είναι πραγματικά ξεπερασμένες.)
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Use this index from the first team meeting onwards
-- Schedule the [First Team Review Meeting](./First-Team-Review-Meeting.md)
+- Χρήση αυτού του ευρετηρίου από την πρώτη ομαδική συνάντηση και μετά
+- Προγραμματισμός της [First Team Review Meeting](./First-Team-Review-Meeting.md)

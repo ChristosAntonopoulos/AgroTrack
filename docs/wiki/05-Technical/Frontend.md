@@ -1,42 +1,42 @@
 # Frontend
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What the "frontend" is, in plain language.
+Τι είναι το «frontend», σε απλή γλώσσα.
 
-## What the frontend is
+## Τι είναι το frontend
 
-The frontend is the part of AgroTrack that the user actually sees and clicks. It runs in a web browser — on a phone, tablet or laptop. The user does not install anything; they just open a website.
+Το frontend είναι το μέρος του AgroTrack που ο χρήστης βλέπει και πατά. Τρέχει σε web browser — σε κινητό, tablet ή laptop. Ο χρήστης δεν εγκαθιστά τίποτα· απλώς ανοίγει ιστότοπο.
 
-## What it does
+## Τι κάνει
 
-- Shows the screens (login, dashboard, fields, tasks, etc.).
-- Captures what the user types and clicks.
-- Talks to the backend to get and save data.
+- Εμφανίζει τις οθόνες (login, dashboard, πεδία, εργασίες κ.λπ.).
+- Καταγράφει ό,τι πληκτρολογεί και πατά ο χρήστης.
+- Μιλάει στο backend για ανάκτηση και αποθήκευση δεδομένων.
 
-## What is important for our customers
+## Τι έχει σημασία για τους πελάτες μας
 
-- Works well on phones.
-- Loads fast on mobile data.
-- Easy to use without training.
-- Translatable to other languages later.
+- Δουλεύει καλά σε κινητά.
+- Φορτώνει γρήγορα σε mobile data.
+- Εύκολο στη χρήση χωρίς εκπαίδευση.
+- Μεταφράσιμο σε άλλες γλώσσες αργότερα.
 
-## What is NOT in scope right now
+## Τι ΔΕΝ είναι στο scope προς το παρόν
 
-- A native iOS or Android app.
-- A separate "mobile only" version.
-- Heavy graphics, animations or complex interactions.
+- Native εφαρμογή iOS ή Android.
+- Ξεχωριστή έκδοση «μόνο για κινητό».
+- Βαριά γραφικά, animations ή σύνθετες αλληλεπιδράσεις.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we need a native app for the producer role to keep field usage fast?
-- When do we add language support beyond English?
+- Χρειαζόμαστε native app για τον ρόλο παραγωγού ώστε η χρήση στο πεδίο να μένει γρήγορη;
+- Πότε προσθέτουμε γλώσσες πέρα από τα Αγγλικά;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm mobile UX is enough for producers in pilots
-- Set up translation infrastructure when we have a non-English pilot
+- Επιβεβαίωση ότι το mobile UX αρκεί για παραγωγούς στα pilots
+- Ρύθμιση υποδομής μετάφρασης όταν έχουμε pilot μη αγγλόφωνο

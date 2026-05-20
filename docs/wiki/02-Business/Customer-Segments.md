@@ -1,39 +1,39 @@
-# Customer Segments
+# Τμήματα πελατών
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Break down the market into segments we can prioritise. The first segment is our beachhead; the others come later.
+Ανάλυση της αγοράς σε τμήματα που μπορούμε να προτεραιοποιήσουμε. Το πρώτο τμήμα είναι το beachhead· τα υπόλοιπα αργότερα.
 
-## Segments
+## Τμήματα
 
-| # | Segment | Description | Size of pain | Willingness to pay | Priority |
+| # | Τμήμα | Περιγραφή | Μέγεθος πόνου | Διάθεση πληρωμής | Προτεραιότητα |
 |---|---|---|---|---|---|
-| 1 | Small olive owners | 1-20 fields, often offsite, work with a producer | High | Medium-High | **First** |
-| 2 | Independent producers | Manage fields for multiple owners | High | Medium | Second |
-| 3 | Mid-size owner-operators | 20-100 fields, family-run business | Medium-High | High | Third |
-| 4 | Agricultural co-ops | Aggregate small owners | Medium | High (per co-op) | Later |
-| 5 | Agronomists | Advise multiple farms | Medium | Low (individually) | Later |
-| 6 | Large industrial farms | 500+ ha, existing ERP | Lower (already have tools) | Variable | Not in scope |
-| 7 | Other tree crops / vineyards | Adjacent verticals | TBD | TBD | Year 2 |
+| 1 | Μικροί ιδιοκτήτες ελιάς | 1-20 αγροτεμάχια, συχνά εκτός τόπου, με παραγωγό | Υψηλό | Μεσαίο-Υψηλό | **Πρώτο** |
+| 2 | Ανεξάρτητοι παραγωγοί | Διαχείριση αγροτεμαχίων πολλών ιδιοκτητών | Υψηλό | Μεσαίο | Δεύτερο |
+| 3 | Μεσαίοι ιδιοκτήτες-χειριστές | 20-100 αγροτεμάχια, οικογενειακή επιχείρηση | Μεσαίο-Υψηλό | Υψηλό | Τρίτο |
+| 4 | Αγροτικοί συνεταιρισμοί | Συγκέντρωση μικρών ιδιοκτητών | Μεσαίο | Υψηλό (ανά συνεταιρισμό) | Αργότερα |
+| 5 | Γεωπόνοι | Συμβουλή πολλών φαρμών | Μεσαίο | Χαμηλό (ατομικά) | Αργότερα |
+| 6 | Μεγάλες βιομηχανικές φάρμες | 500+ ha, υπάρχον ERP | Χαμηλότερο (έχουν ήδη εργαλεία) | Μεταβλητό | Εκτός scope |
+| 7 | Άλλες δενδροκαλλιέργειες / αμπέλια | Γειτονικές κάθετες | TBD | TBD | Έτος 2 |
 
-## Segment 1 deep-dive (beachhead)
+## Βαθιά ανάλυση τμήματος 1 (beachhead)
 
-- **Profile:** Olive owner, often professional in another job, owns the land, hires a producer for day-to-day work.
-- **Geography:** Greece, Italy, Spain, Portugal initially.
-- **Number of fields:** 1 to 20.
-- **Trigger to buy:** Frustration with not knowing what is happening on the land, especially around treatments, costs and end-of-season results.
-- **Where to find them:** Local agricultural co-ops, olive oil producer associations, online groups, agronomist networks.
+- **Προφίλ:** Ιδιοκτήτης ελιάς, συχνά επαγγελματίας αλλού, ιδιοκτεί τη γη, προσλαμβάνει παραγωγό για καθημερινή δουλειά.
+- **Γεωγραφία:** Αρχικά Ελλάδα, Ιταλία, Ισπανία, Πορτογαλία.
+- **Αριθμός αγροτεμαχίων:** 1 έως 20.
+- **Trigger αγοράς:** Απογοήτευση από έλλειψη ορατότητας στη γη, ειδικά σε μεταχειρίσεις, κόστη και αποτελέσματα σεζόν.
+- **Πού τους βρίσκουμε:** Τοπικοί συνεταιρισμοί, συνδέσμοι παραγωγών ελαιολάδου, online ομάδες, δίκτυα γεωπόνων.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Is segment 2 (independent producers) actually higher priority because they pull owners in?
-- Do agronomists make a strong recommender channel even if they don't buy?
+- Το τμήμα 2 (ανεξάρτητοι παραγωγοί) έχει πραγματικά υψηλότερη προτεραιότητα γιατί «τραβούν» ιδιοκτήτες;
+- Οι γεωπόνοι είναι ισχυρό κανάλι σύστασης ακόμα κι αν δεν αγοράζουν;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Validate segment 1 first
-- Track interview counts per segment in [Customer Research](../04-Customer-Research/Interview-Notes.md)
+- Επικυρώστε πρώτα το τμήμα 1
+- Καταγράψτε αριθμό interview ανά τμήμα στο [Customer Research](../04-Customer-Research/Interview-Notes.md)

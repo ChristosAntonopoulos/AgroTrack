@@ -1,59 +1,59 @@
-# Validation Plan
+# Σχέδιο validation
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we prove (or disprove) the business before investing heavily in building.
+Πώς αποδεικνύουμε (ή ανατρέπουμε) την επιχείρηση πριν επενδύσουμε βαριά στο build.
 
-## Validation goals
+## Στόχοι validation
 
-By the end of the validation phase, we want clear answers to:
+Μέχρι το τέλος της φάσης validation θέλουμε σαφείς απαντήσεις σε:
 
-1. Is the problem real and acute for olive owners and producers?
-2. Is the AgroTrack solution direction the right one?
-3. Is there willingness to pay at our hypothesised price?
-4. Can we recruit pilot customers through our current channels?
-5. Is olive really the right beachhead, or should we pivot?
+1. Το πρόβλημα είναι πραγματικό και οξύ για ιδιοκτήτες και παραγωγούς ελιάς;
+2. Η κατεύθυνση λύσης AgroTrack είναι η σωστή;
+3. Υπάρχει διάθεση πληρωμής στην υποθετική μας τιμή;
+4. Μπορούμε να προσελκύσουμε pilot πελάτες μέσα από τα τρέχοντα κανάλια;
+5. Η ελιά είναι πραγματικά το σωστό beachhead ή πρέπει pivot;
 
-## Methods
+## Μέθοδοι
 
-| Method | What it tells us | Target |
+| Μέθοδος | Τι μας λέει | Στόχος |
 |---|---|---|
-| Customer interviews | Problem, current workflow, pain, willingness to pay | 10+ in first round |
-| Demo walkthroughs | Whether the solution direction resonates | 5+ demos |
-| Free pilots | Whether the product is actually used | 3 pilots, 4+ weeks each |
-| Pricing experiments | Whether customers will pay at our hypothesised tier | 5 price-anchor conversations |
-| Landing page test | Whether the value prop attracts the right audience | 100+ visitors, X signups |
+| Customer interview | Πρόβλημα, τρέχουσα ροή, πόνος, διάθεση πληρωμής | 10+ στον πρώτο γύρο |
+| Demo walkthroughs | Αν η κατεύθυνση λύσης αντηχεί | 5+ demos |
+| Δωρεάν pilots | Αν το προϊόν χρησιμοποιείται πραγματικά | 3 pilots, 4+ εβδομάδες το καθένα |
+| Πειράματα pricing | Αν θα πληρώσουν στο υποθετικό επίπεδο | 5 price-anchor συζητήσεις |
+| Δοκιμή landing page | Αν το value prop προσελκύει το σωστό κοινό | 100+ επισκέπτες, X εγγραφές |
 
-## Validation milestones
+## Ορόσημα validation
 
-| Milestone | Definition | Owner | Status |
+| Ορόσημο | Ορισμός | Υπεύθυνος | Κατάσταση |
 |---|---|---|---|
-| First 10 interviews complete | All 10 logged in Interview Notes, themes synthesised | TBD | Not started |
-| First 3 LOIs / pilot commitments | Verbal or written commitment to pilot | TBD | Not started |
-| MVP scope frozen | Locked in MVP Definition, signed off by team | TBD | Not started |
-| 3 pilots running | Actually using AgroTrack weekly | TBD | Not started |
-| First paid contract | Signed and paid | TBD | Not started |
+| Ολοκλήρωση πρώτων 10 interview | Και τα 10 στο Interview Notes, θέματα συνθέτηκαν | TBD | Δεν ξεκίνησε |
+| Πρώτες 3 LOI / δεσμεύσεις pilot | Ρητή ή γραπτή δέσμευση για pilot | TBD | Δεν ξεκίνησε |
+| Scope MVP παγωμένο | Κλειδωμένο στο MVP Definition, έγκριση ομάδας | TBD | Δεν ξεκίνησε |
+| 3 pilots σε λειτουργία | Πραγματική εβδομαδιαία χρήση AgroTrack | TBD | Δεν ξεκίνησε |
+| Πρώτη πληρωμένη σύμβαση | Υπογεγραμμένη και πληρωμένη | TBD | Δεν ξεκίνησε |
 
-## What kills the current direction
+## Τι «σκοτώνει» την τρέχουσα κατεύθυνση
 
-We are honest about what would make us pivot:
+Είμαστε ειλικρινείς για τι θα μας οδηγούσε σε pivot:
 
-- Fewer than 50% of interviewees recognise the pain we describe.
-- Owners refuse to pay anything above €5/month — pricing model breaks.
-- Producers in pilots don't use the mobile app at all after week 2.
-- We can't find 3 pilot customers in 60 days despite real effort.
+- Λιγότερο από 50% των interviewees αναγνωρίζουν τον πόνο που περιγράφουμε.
+- Οι ιδιοκτήτες αρνούνται πληρωμή πάνω από €5/μήνα — το μοντέλο pricing σπάει.
+- Οι παραγωγοί στα pilots δεν χρησιμοποιούν καθόλου την mobile εφαρμογή μετά την εβδομάδα 2.
+- Δεν βρίσκουμε 3 pilot πελάτες σε 60 ημέρες παρά πραγματική προσπάθεια.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is the right number of interviews before we lock MVP — 10? 15?
-- Do we need cross-country interviews to validate the model?
+- Πόσα interview πριν κλειδώσουμε το MVP — 10; 15;
+- Χρειαζόμαστε interview σε πολλές χώρες για validation του μοντέλου;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Book the next 5 interview slots this week
-- Run the [First Team Review Meeting](../10-Meetings/First-Team-Review-Meeting.md) once first 10 are done
-- Capture every finding in [Validation Findings](../04-Customer-Research/Validation-Findings.md)
+- Κλείστε τα επόμενα 5 interview slots αυτή την εβδομάδα
+- Τρέξτε το [First Team Review Meeting](../10-Meetings/First-Team-Review-Meeting.md) όταν ολοκληρωθούν τα πρώτα 10
+- Καταγράψτε κάθε εύρημα στο [Validation Findings](../04-Customer-Research/Validation-Findings.md)

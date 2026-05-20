@@ -1,41 +1,41 @@
-# Interview Notes
+# Σημειώσεις Interview
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A running list of all completed customer interviews. Each interview is a child page (or section) using the [Customer Interview Template](../11-Templates/Customer-Interview-Template.md).
+Συνεχής καταγραφή όλων των ολοκληρωμένων customer interview. Κάθε interview είναι θυγατρική σελίδα (ή ενότητα) με βάση το [Customer Interview Template](../11-Templates/Customer-Interview-Template.md).
 
-## Master list
+## Κύρια λίστα
 
-| # | Date | Interviewee | Role | Country | Fields | Willing to pilot? | Linked notes |
+| # | Ημερομηνία | Συνεντευξιαζόμενος | Ρόλος | Χώρα | Αγροτεμάχια | Προθυμία για πιλοτικό; | Συνδεδεμένες σημειώσεις |
 |---|---|---|---|---|---|---|---|
-| 1 | TBD | TBD | Owner | TBD | TBD | TBD | TBD |
-| 2 | TBD | TBD | Producer | TBD | TBD | TBD | TBD |
-| 3 | TBD | TBD | Owner | TBD | TBD | TBD | TBD |
-| 4 | TBD | TBD | Producer | TBD | TBD | TBD | TBD |
-| 5 | TBD | TBD | Owner | TBD | TBD | TBD | TBD |
-| 6 | TBD | TBD | Owner | TBD | TBD | TBD | TBD |
-| 7 | TBD | TBD | Producer | TBD | TBD | TBD | TBD |
-| 8 | TBD | TBD | Agronomist | TBD | TBD | TBD | TBD |
-| 9 | TBD | TBD | Owner | TBD | TBD | TBD | TBD |
-| 10 | TBD | TBD | Producer | TBD | TBD | TBD | TBD |
+| 1 | TBD | TBD | Ιδιοκτήτης | TBD | TBD | TBD | TBD |
+| 2 | TBD | TBD | Παραγωγός | TBD | TBD | TBD | TBD |
+| 3 | TBD | TBD | Ιδιοκτήτης | TBD | TBD | TBD | TBD |
+| 4 | TBD | TBD | Παραγωγός | TBD | TBD | TBD | TBD |
+| 5 | TBD | TBD | Ιδιοκτήτης | TBD | TBD | TBD | TBD |
+| 6 | TBD | TBD | Ιδιοκτήτης | TBD | TBD | TBD | TBD |
+| 7 | TBD | TBD | Παραγωγός | TBD | TBD | TBD | TBD |
+| 8 | TBD | TBD | Γεωπόνος | TBD | TBD | TBD | TBD |
+| 9 | TBD | TBD | Ιδιοκτήτης | TBD | TBD | TBD | TBD |
+| 10 | TBD | TBD | Παραγωγός | TBD | TBD | TBD | TBD |
 
-## How to add a new interview
+## Πώς να προσθέσετε νέο interview
 
-1. Copy the [Customer Interview Template](../11-Templates/Customer-Interview-Template.md) content.
-2. Add a row in the table above.
-3. Paste the filled template as a section below, or create a child page.
-4. Update [Pain Points](./Pain-Points.md) with anything new.
+1. Αντιγράψτε το περιεχόμενο του [Customer Interview Template](../11-Templates/Customer-Interview-Template.md).
+2. Προσθέστε μια γραμμή στον πίνακα παραπάνω.
+3. Επικολλήστε το συμπληρωμένο πρότυπο ως ενότητα παρακάτω, ή δημιουργήστε θυγατρική σελίδα.
+4. Ενημερώστε τα [Pain Points](./Pain-Points.md) με ό,τι είναι καινούργιο.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we keep interview detail in this page or as child pages?
-- How do we anonymise notes if requested?
+- Κρατάμε τις λεπτομέρειες interview σε αυτή τη σελίδα ή ως θυγατρικές σελίδες;
+- Πώς ανωνυμοποιούμε σημειώσεις αν ζητηθεί;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Move to child-page-per-interview once we have more than 5 interviews
-- Add a column for "Quote highlight" once notes have real content
+- Μετάβαση σε μία θυγατρική σελίδα ανά interview όταν έχουμε πάνω από 5 interview
+- Προσθήκη στήλης «Επιλεγμένο παράθεμα» όταν οι σημειώσεις έχουν πραγματικό περιεχόμενο

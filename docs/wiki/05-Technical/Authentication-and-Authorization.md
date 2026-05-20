@@ -1,48 +1,48 @@
 # Authentication and Authorization
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Plain-language explanation of how AgroTrack handles logging in and permissions.
+Απλή εξήγηση του πώς το AgroTrack χειρίζεται σύνδεση (login) και δικαιώματα.
 
-## Authentication — who you are
+## Authentication — ποιος είσαι
 
-- Users sign up with an email and a password.
-- Passwords are stored securely (never as plain text).
-- Forgot-password flow is included.
-- More advanced login methods (Google sign-in, magic links) are out of scope for MVP.
+- Οι χρήστες εγγράφονται με email και κωδικό.
+- Οι κωδικοί αποθηκεύονται με ασφάλεια (ποτέ ως απλό κείμενο).
+- Υπάρχει ροή «ξέχασα τον κωδικό».
+- Πιο προχωρημένες μέθοδοι σύνδεσης (Google sign-in, magic links) είναι εκτός scope για το MVP.
 
-## Authorization — what you can do
+## Authorization — τι μπορείς να κάνεις
 
-AgroTrack uses three main roles inside each organisation:
+Το AgroTrack χρησιμοποιεί τρεις κύριους ρόλους μέσα σε κάθε οργανισμό:
 
-| Role | Can do |
+| Ρόλος | Μπορεί να |
 |---|---|
-| **Owner** | Everything inside their organisation. Sees all fields, all activities, all costs. Manages users. |
-| **Producer** | Sees fields they are assigned to or invited to. Logs activity, updates tasks. Cannot manage users or organisation settings. |
-| **Admin** | Manages users, invitations and organisation settings. May or may not also be an owner. |
+| **Owner** | Τα πάντα μέσα στον οργανισμό του. Βλέπει όλα τα πεδία, όλες τις δραστηριότητες, όλα τα κόστη. Διαχειρίζεται χρήστες. |
+| **Producer** | Βλέπει πεδία στα οποία έχει ανατεθεί ή έχει προσκληθεί. Καταγράφει δραστηριότητα, ενημερώνει εργασίες. Δεν διαχειρίζεται χρήστες ή ρυθμίσεις οργανισμού. |
+| **Admin** | Διαχειρίζεται χρήστες, προσκλήσεις και ρυθμίσεις οργανισμού. Μπορεί ή όχι να είναι και Owner. |
 
-A future role for **Agronomist** is planned but not in MVP.
+Μελλοντικός ρόλος **Agronomist** προγραμματίζεται αλλά δεν είναι στο MVP.
 
-## Multi-organisation users
+## Χρήστες σε πολλούς οργανισμούς
 
-A single user can belong to multiple organisations (e.g. a producer who works for several owners). Their role can be different in each one.
+Ένας χρήστης μπορεί να ανήκει σε πολλούς οργανισμούς (π.χ. παραγωγός που δουλεύει για πολλούς ιδιοκτήτες). Ο ρόλος του μπορεί να διαφέρει σε καθέναν.
 
-## What is NOT in scope right now
+## Τι ΔΕΝ είναι στο scope προς το παρόν
 
-- Single sign-on (SSO) with corporate identity providers.
-- Two-factor authentication (added later).
-- Granular per-field permissions (the role applies organisation-wide).
+- Single sign-on (SSO) με εταιρικούς identity providers.
+- Two-factor authentication (προστίθεται αργότερα).
+- Λεπτομερή δικαιώματα ανά πεδίο (ο ρόλος ισχύει σε επίπεδο οργανισμού).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we need a "view only" role for family members?
-- Do we expose role differences clearly enough in the UI?
+- Χρειαζόμαστε ρόλο «μόνο προβολή» για μέλη της οικογένειας;
+- Εμφανίζουμε αρκετά καθαρά τις διαφορές ρόλων στο UI;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm three-role model with first pilot customers
-- Plan 2FA for after first paid customers
+- Επιβεβαίωση μοντέλου τριών ρόλων με τους πρώτους pilot πελάτες
+- Σχεδιασμός 2FA μετά τους πρώτους πληρωμένους πελάτες

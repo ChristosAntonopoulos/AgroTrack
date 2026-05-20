@@ -1,68 +1,68 @@
 # User Flows
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The main flows the user goes through, screen-level. Tied to the higher-level [User Journeys](../03-Product/User-Journeys.md).
+Τα κύρια user flows που περνάει ο χρήστης, σε επίπεδο οθόνης. Συνδέονται με τις υψηλότερου επιπέδου [Διαδρομές χρηστών](../03-Product/User-Journeys.md).
 
-## Flow 1 — Sign up and first field
+## Ροή 1 — Εγγραφή και πρώτο χωράφι
 
-1. Landing page → "Sign up".
-2. Sign-up form → email, password.
-3. "Create your organisation" form → name, country, crop.
-4. "Add your first field" form → name, size, crop, optional location.
-5. "Start crop cycle" prompt → confirm or skip.
-6. Dashboard with the first field visible.
+1. Landing page → «Εγγραφή».
+2. Φόρμα εγγραφής → email, κωδικός.
+3. Φόρμα «Δημιουργία οργανισμού» → όνομα, χώρα, καλλιέργεια.
+4. Φόρμα «Προσθήκη πρώτου χωραφιού» → όνομα, μέγεθος, καλλιέργεια, προαιρετική τοποθεσία.
+5. Προτροπή «Έναρξη κύκλου καλλιέργειας» → επιβεβαίωση ή παράλειψη.
+6. Dashboard με το πρώτο χωράφι ορατό.
 
-## Flow 2 — Invite a producer
+## Ροή 2 — Πρόσκληση παραγωγού
 
-1. From settings → "People".
-2. "Invite person" → enter email and role (Producer).
-3. The invited person gets an email.
-4. They click the link, set a password, and land on the dashboard with shared fields visible.
+1. Από ρυθμίσεις → «Άτομα».
+2. «Πρόσκληση ατόμου» → εισαγωγή email και ρόλου (Producer).
+3. Ο προσκεκλημένος λαμβάνει email.
+4. Κάνει κλικ στον σύνδεσμο, ορίζει κωδικό και φτάνει στο dashboard με κοινά χωράφια ορατά.
 
-## Flow 3 — Log an activity from the field
+## Ροή 3 — Καταγραφή δραστηριότητας από το χωράφι
 
-1. Open the app on the phone (already logged in).
-2. Tap the field.
-3. Tap "Log activity".
-4. Pick or type the activity type.
-5. Add an optional note.
-6. Save → confirmation visible.
+1. Άνοιγμα της εφαρμογής στο κινητό (ήδη συνδεδεμένος).
+2. Πάτημα στο χωράφι.
+3. Πάτημα «Καταγραφή δραστηριότητας».
+4. Επιλογή ή πληκτρολόγηση τύπου δραστηριότητας.
+5. Προαιρετική σημείωση.
+6. Αποθήκευση → ορατή επιβεβαίωση.
 
-## Flow 4 — Move a crop cycle forward
+## Ροή 4 — Προώθηση κύκλου καλλιέργειας
 
-1. Open the field.
-2. See the current lifecycle stage.
-3. Tap the stage → "Move to next stage".
-4. Confirm.
-5. New stage is visible; new tasks (if templated) appear.
+1. Άνοιγμα του χωραφιού.
+2. Ορατό το τρέχον στάδιο κύκλου ζωής.
+3. Πάτημα στο στάδιο → «Μετάβαση στο επόμενο στάδιο».
+4. Επιβεβαίωση.
+5. Νέο στάδιο ορατό· νέες εργασίες (αν υπάρχουν πρότυπα) εμφανίζονται.
 
-## Flow 5 — Add an expense
+## Ροή 5 — Προσθήκη εξόδου
 
-1. Open the field.
-2. Tap "Expenses".
-3. Tap "+ Add expense".
-4. Amount, currency, description, link to a task or activity (optional).
-5. Save → total updates.
+1. Άνοιγμα του χωραφιού.
+2. Πάτημα «Έξοδα».
+3. Πάτημα «+ Προσθήκη εξόδου».
+4. Ποσό, νόμισμα, περιγραφή, σύνδεση με εργασία ή δραστηριότητα (προαιρετικά).
+5. Αποθήκευση → ενημερώνεται το σύνολο.
 
-## Cross-cutting flows
+## Διασταυρούμενες ροές
 
-- Login.
-- Forgot password.
-- Logout.
-- Edit profile.
-- Switch organisation (for multi-org users).
+- Σύνδεση.
+- Ξεχασμένος κωδικός.
+- Αποσύνδεση.
+- Επεξεργασία προφίλ.
+- Αλλαγή οργανισμού (για χρήστες με πολλούς οργανισμούς).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Should activity logging be reachable in one tap from the dashboard, not just the field detail?
-- Where do we put the "Add expense" action — inside the field or from a top-level "+" button?
+- Πρέπει η καταγραφή δραστηριότητας να είναι προσβάσιμη με ένα πάτημα από το dashboard, όχι μόνο από τη λεπτομέρεια χωραφιού;
+- Πού τοποθετούμε την ενέργεια «Προσθήκη εξόδου» — μέσα στο χωράφι ή από κουμπί «+» ανώτερου επιπέδου;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Sketch flows 1, 3 and 5 first
-- Walk a real owner through each flow during an interview
+- Σκίτσα των ροών 1, 3 και 5 πρώτα
+- Διέλευση κάθε user flow με πραγματικό owner σε συνέντευξη

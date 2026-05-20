@@ -1,61 +1,61 @@
-# Feature Prioritization
+# Προτεραιοποίηση features
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A simple framework and a current snapshot of what we build first.
+Απλό πλαίσιο και τρέχουσα εικόνα του τι χτίζουμε πρώτα.
 
-## Framework: MoSCoW
+## Πλαίσιο: MoSCoW
 
-| Priority | Meaning |
+| Προτεραιότητα | Σημασία |
 |---|---|
-| Must have | In MVP. Without this, MVP fails. |
-| Should have | Soon after MVP. Important but not blocking the first pilot. |
-| Could have later | Valuable but can wait. Re-evaluate when MVP is in pilots. |
-| Out of scope for MVP | We explicitly don't build this now. |
+| Must have | Στο MVP. Χωρίς αυτό, το MVP αποτυγχάνει. |
+| Should have | Σύντομα μετά το MVP. Σημαντικό αλλά δεν μπλοκάρει τον πρώτο πιλότο. |
+| Could have later | Πολύτιμο αλλά μπορεί να περιμένει. Επανεκτίμηση όταν το MVP είναι σε πιλότους. |
+| Out of scope για το MVP | Δεν το χτίζουμε ρητά τώρα. |
 
-## Snapshot
+## Στιγμιότυπο
 
-| Feature | Priority | Notes |
+| Feature | Προτεραιότητα | Σημειώσεις |
 |---|---|---|
-| User registration / login | Must | Basic access |
-| Roles: owner, producer, admin | Must | Reflects two-sided reality |
-| Field management | Must | The base object |
-| Crop cycle management | Must | What makes us different |
-| Lifecycle stage tracking | Must | Visibility per field |
-| Task management | Must | Plan and execute |
-| Notes / activity history | Must | The record of work |
-| Basic expense tracking | Must | First cost visibility |
-| Basic dashboard | Must | One-screen status |
-| Multi-user invitations | Should | Smooth onboarding |
-| Filters and search | Should | Usability at small scale |
-| Weekly reminders | Should | Nudge active use |
-| Mobile polish for producers | Should | Field reality |
-| Documents and photos | Could | Useful but not blocking MVP |
-| Reports / exports | Could | Useful for owners |
-| Calendar view | Could | Nice once data is rich |
-| Agronomist role | Could | Channel play later |
-| Integrations (accounting, weather) | Could | Later |
-| Multi-crop expansion | Could | Year 2 |
-| Satellite / sensors / IoT | Out of scope | Not now |
-| Heavy accounting | Out of scope | Not our space |
-| Marketplace | Out of scope | Not our model |
+| Εγγραφή / σύνδεση χρηστών | Must | Βασική πρόσβαση |
+| Ρόλοι: owner, producer, admin | Must | Αντικατοπτρίζει διπλή πλευρά |
+| Διαχείριση χωραφιών | Must | Το βασικό αντικείμενο |
+| Διαχείριση κύκλου καλλιέργειας | Must | Αυτό που μας ξεχωρίζει |
+| Παρακολούθηση σταδίων κύκλου ζωής | Must | Ορατότητα ανά χωράφι |
+| Διαχείριση εργασιών | Must | Σχεδιασμός και εκτέλεση |
+| Σημειώσεις / ιστορικό δραστηριότητας | Must | Το αρχείο της δουλειάς |
+| Βασική παρακολούθηση εξόδων | Must | Πρώτη ορατότητα κόστους |
+| Βασικό dashboard | Must | Κατάσταση σε μία οθόνη |
+| Προσκλήσεις πολλών χρηστών | Should | Ομαλό onboarding |
+| Φίλτρα και αναζήτηση | Should | Χρηστικότητα σε μικρή κλίμακα |
+| Εβδομαδιαίες υπενθυμίσεις | Should | Ώθηση ενεργής χρήσης |
+| Εκλέπτυνση κινητού για παραγωγούς | Should | Πραγματικότητα χωραφιού |
+| Έγγραφα και φωτογραφίες | Could | Χρήσιμο αλλά δεν μπλοκάρει MVP |
+| Αναφορές / εξαγωγές | Could | Χρήσιμο για owners |
+| Προβολή ημερολογίου | Could | Ωραίο όταν τα δεδομένα είναι πλούσια |
+| Ρόλος γεωπόνου | Could | Channel play αργότερα |
+| Ενσωματώσεις (λογιστική, καιρός) | Could | Αργότερα |
+| Επέκταση σε πολλές καλλιέργειες | Could | Έτος 2 |
+| Δορυφόρος / αισθητήρες / IoT | Out of scope | Όχι τώρα |
+| Βαριά λογιστική | Out of scope | Δεν είναι ο χώρος μας |
+| Marketplace | Out of scope | Δεν είναι το μοντέλο μας |
 
-## How we make changes to this list
+## Πώς αλλάζουμε αυτή τη λίστα
 
-- Anyone can propose a change in a sprint review.
-- Changes are decided by the PM with founder sign-off if it affects MVP scope.
-- All scope changes are logged in [Decision Log](../01-Company/Decision-Log.md).
+- Οποιοσδήποτε μπορεί να προτείνει αλλαγή σε sprint review.
+- Οι αλλαγές αποφασίζονται από PM με έγκριση founder αν επηρεάζουν εύρος MVP.
+- Όλες οι αλλαγές εύρους καταχωρούνται στο [Decision Log](../01-Company/Decision-Log.md).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Should "Weekly reminders" be Must (engagement risk) instead of Should?
-- Is mobile polish truly a Should, or a Must for pilot success?
+- Πρέπει οι «Εβδομαδιαίες υπενθυμίσεις» να είναι Must (κίνδυνος engagement) αντί για Should;
+- Η εκλέπτυνση κινητού είναι πραγματικά Should ή Must για επιτυχία πιλότου;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Re-score this list after first 5 interviews
-- Translate Must-haves into Epics in Azure Boards
+- Επαναβαθμολόγηση μετά τις πρώτες 5 συνεντεύξεις
+- Μετάφραση must-haves σε Epics στο Azure Boards

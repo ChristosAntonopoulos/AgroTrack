@@ -1,50 +1,50 @@
 # Risk Register
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A running list of risks across the business. Updated at every sprint review and any time a new risk appears.
+Τρέχουσα λίστα κινδύνων σε όλη την επιχείρηση. Ενημερώνεται σε κάθε sprint review και όποτε εμφανίζεται νέος κίνδυνος.
 
-Use the [Risk Template](../11-Templates/Risk-Template.md) for new entries.
+Χρησιμοποιήστε το [Risk Template](../11-Templates/Risk-Template.md) για νέες καταχωρήσεις.
 
-## Severity scale
+## Κλίμακα σοβαρότητας
 
-- **Likelihood:** Low / Medium / High
-- **Impact:** Low / Medium / High
-- **Score:** Likelihood × Impact
+- **Πιθανότητα:** Χαμηλή / Μέτρια / Υψηλή
+- **Επίπτωση:** Χαμηλή / Μέτρια / Υψηλή
+- **Βαθμολογία:** Πιθανότητα × Επίπτωση
 
-## Risk table
+## Πίνακας κινδύνων
 
-| # | Risk | Category | Likelihood | Impact | Mitigation | Owner | Status |
+| # | Κίνδυνος | Κατηγορία | Πιθανότητα | Επίπτωση | Μετριασμός | Υπεύθυνος | Κατάσταση |
 |---|---|---|---|---|---|---|---|
-| R1 | We build the wrong MVP | Product | Medium | High | Heavy customer interviews, pilot before scaling | PM | Open |
-| R2 | Owners won't pay because "Excel works" | Business | Medium | High | Price anchor questions early, pilot with paid commitment | CEO | Open |
-| R3 | Producers won't adopt the mobile app | Product | Medium | High | Test mobile UX in pilots, simplify ruthlessly | Design + Eng | Open |
-| R4 | Competitor with deep pockets enters | Market | Low-Medium | High | Move fast, build loyalty in pilot phase | CEO | Open |
-| R5 | GDPR / data privacy missteps | Legal | Medium | Medium | Engage lawyer before first pilot, publish Privacy Policy | CEO | Open |
-| R6 | Founder bandwidth — too few people doing too much | Operational | High | Medium | Tight scope, no scope creep | All founders | Open |
-| R7 | Pilot churn after free phase | Business | Medium | High | Convert pilots to paid with a clear plan from day one | CEO | Open |
-| R8 | Critical bug in production damages trust | Operational | Medium | High | QA process, staging-first releases, incident response plan | CTO | Open |
-| R9 | Demo platform code base hard to maintain | Technical | Medium | Medium | Treat as throwaway where needed; refactor before scaling | CTO | Open |
-| R10 | We over-build before validation | Strategic | Medium | High | Lock MVP scope, defer "nice to haves" | PM + CEO | Open |
-| R11 | Loss of a key founder or hire | Operational | Low | High | Clear documentation, founder agreements, IP assignment | CEO | Open |
-| R12 | Negative sentiment in farmer community | Brand | Low | High | Be honest, respect customers, never oversell | CEO | Open |
+| R1 | Φτιάχνουμε λάθος MVP | Προϊόν | Μέτρια | Υψηλή | Εντατικές συνεντεύξεις πελατών, πιλοτικό πριν την κλιμάκωση | PM | Ανοιχτό |
+| R2 | Οι ιδιοκτήτες δεν θα πληρώσουν γιατί «το Excel αρκεί» | Επιχείρηση | Μέτρια | Υψηλή | Ερωτήσεις τιμής νωρίς, πιλοτικό με δέσμευση πληρωμής | CEO | Ανοιχτό |
+| R3 | Οι παραγωγοί δεν θα υιοθετήσουν την εφαρμογή κινητού | Προϊόν | Μέτρια | Υψηλή | Δοκιμή mobile UX σε πιλοτικά, απλοποίηση αμείλικτα | Design + Eng | Ανοιχτό |
+| R4 | Ανταγωνιστής με βαθιά τσέπη μπαίνει στην αγορά | Αγορά | Χαμηλή-Μέτρια | Υψηλή | Γρήγορη κίνηση, πιστότητα στη φάση πιλοτικού | CEO | Ανοιχτό |
+| R5 | Σφάλματα GDPR / privacy δεδομένων | Legal | Μέτρια | Μέτρια | Συνεργασία με δικηγόρο πριν το πρώτο πιλοτικό, δημοσίευση Privacy Policy | CEO | Ανοιχτό |
+| R6 | Εύρος ιδρυτών — λίγοι άνθρωποι, πολλά πράγματα | Λειτουργικό | Υψηλή | Μέτρια | Στενό scope, χωρίς διόγκωση scope | Όλοι οι ιδρυτές | Ανοιχτό |
+| R7 | Αποχώρηση πιλοτικών μετά τη δωρεάν φάση | Επιχείρηση | Μέτρια | Υψηλή | Μετατροπή πιλοτικών σε πληρωτές με σαφές σχέδιο από την πρώτη μέρα | CEO | Ανοιχτό |
+| R8 | Κρίσιμο bug σε production χαλάει την εμπιστοσύνη | Λειτουργικό | Μέτρια | Υψηλή | Διαδικασία QA, κυκλοφορίες πρώτα σε staging, σχέδιο αντιμετώπισης περιστατικών | CTO | Ανοιχτό |
+| R9 | Βάση κώδικα demo δύσκολη στη συντήρηση | Τεχνικό | Μέτρια | Μέτρια | Θεωρία ως disposable όπου χρειάζεται· refactor πριν την κλιμάκωση | CTO | Ανοιχτό |
+| R10 | Υπερ-ανάπτυξη πριν την επικύρωση | Στρατηγικό | Μέτρια | Υψηλή | Κλείδωμα scope MVP, αναβολή «nice to have» | PM + CEO | Ανοιχτό |
+| R11 | Απώλεια κύριου ιδρυτή ή προσλήψης | Λειτουργικό | Χαμηλή | Υψηλή | Σαφή τεκμηρίωση, συμφωνίες ιδρυτών, εκχώρηση IP | CEO | Ανοιχτό |
+| R12 | Αρνητική εικόνα στην κοινότητα αγροτών | Brand | Χαμηλή | Υψηλή | Ειλικρίνεια, σεβασμός πελατών, χωρίς υπερπώληση | CEO | Ανοιχτό |
 
-## How we update this register
+## Πώς ενημερώνουμε αυτό το μητρώο
 
-- At every sprint review, walk through the top 5 risks.
-- Add new risks immediately when identified.
-- Close a risk only when the mitigation has actually been done.
+- Σε κάθε sprint review, περνάμε τους 5 κορυφαίους κινδύνους.
+- Προσθέτουμε νέους κινδύνους αμέσως όταν εντοπίζονται.
+- Κλείνουμε κίνδυνο μόνο όταν ο μετριασμός έχει πραγματικά ολοκληρωθεί.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Should we add a financial / runway risk explicitly?
-- Are macro risks (regulation, climate events) properly captured?
+- Προσθέτουμε ρητά κίνδυνο οικονομικών / runway;
+- Καλύπτονται σωστά μακρο-κίνδυνοι (ρύθμιση, κλιματικά γεγονότα);
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Review top 5 risks at next team review
-- Move R5 mitigation forward (legal review for GDPR)
+- Ανασκόπηση των 5 κορυφαίων κινδύνων στο επόμενο team review
+- Προώθηση μετριασμού R5 (legal ανασκόπηση για GDPR)

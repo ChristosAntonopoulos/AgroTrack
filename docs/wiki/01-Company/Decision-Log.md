@@ -1,59 +1,59 @@
-# Decision Log
+# Καταγραφή αποφάσεων
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A running list of important decisions and why we made them. If a decision isn't here, it didn't happen.
+Συνεχής κατάλογος σημαντικών αποφάσεων και του λόγου που τις πήραμε. Αν μια απόφαση δεν είναι εδώ, δεν έγινε.
 
-Use the [Decision Record Template](../11-Templates/Decision-Record-Template.md) for each entry.
+Χρησιμοποιήστε το [Decision Record Template](../11-Templates/Decision-Record-Template.md) για κάθε καταχώρηση.
 
-## How to use
+## Πώς να το χρησιμοποιείτε
 
-- Add new decisions at the top.
-- Never edit a closed decision. If it changes, add a new decision that supersedes it and link it.
-- Decisions are short. Detail lives in the underlying page.
+- Προσθέτετε νέες αποφάσεις στην κορυφή.
+- Ποτέ μην επεξεργάζεστε κλειστή απόφαση. Αν αλλάξει, προσθέστε νέα απόφαση που την αντικαθιστά και συνδέστε την.
+- Οι αποφάσεις είναι σύντομες. Η λεπτομέρεια βρίσκεται στη σχετική σελίδα.
 
-## Decisions
+## Αποφάσεις
 
-### D-001 — Product name and positioning
+### D-001 — Όνομα προϊόντος και θέση στην αγορά
 
-- **Date:** TBD
-- **Status:** Proposed
-- **Context:** The existing codebase is currently branded "Olive Lifecycle Platform". We want a broader product brand that supports expansion into other crops.
-- **Decision:** Use **AgroTrack** as the company and product name. Position olive cultivation as the first vertical.
-- **Consequences:** Public materials, landing page, repo READMEs and demo screens will gradually update. Existing code namespaces (e.g. `OliveLifecycle.*`) remain until a refactor sprint is justified.
-- **Owner:** CEO
-- **Linked pages:** [Company Overview](./Company-Overview.md), [Brand Positioning](../08-Marketing-and-Sales/Brand-Positioning.md)
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Προτεινόμενη
+- **Πλαίσιο:** Ο υπάρχων κώδικας φέρεται προς το παρόν την επωνυμία «Olive Lifecycle Platform». Θέλουμε ευρύτερη επωνυμία προϊόντος που υποστηρίζει επέκταση σε άλλους καρπούς.
+- **Απόφαση:** Χρήση **AgroTrack** ως όνομα εταιρείας και προϊόντος. Θέση της καλλιέργειας ελιάς ως πρώτης κάθετης.
+- **Συνέπειες:** Δημόσια υλικά, landing page, README αποθετηρίων και οθόνες demo θα ενημερώνονται σταδιακά. Τα υπάρχοντα namespaces κώδικα (π.χ. `OliveLifecycle.*`) παραμένουν μέχρι να δικαιολογηθεί Sprint αναδόμησης.
+- **Υπεύθυνος:** CEO
+- **Συνδεδεμένες σελίδες:** [Company Overview](./Company-Overview.md), [Brand Positioning](../08-Marketing-and-Sales/Brand-Positioning.md)
 
-### D-002 — Focus first vertical on olives
+### D-002 — Εστίαση πρώτης κάθετης στις ελιές
 
-- **Date:** TBD
-- **Status:** Proposed
-- **Context:** We need a focused, deep beachhead market. Olives offer a multi-year, well-defined lifecycle and an underserved owner-producer relationship.
-- **Decision:** First customer segment is olive owners and producers. Other crops are out of scope for MVP.
-- **Consequences:** Domain language, lifecycle stages and pilot recruitment all target olive growers.
-- **Owner:** CEO
-- **Linked pages:** [Target Customers](../02-Business/Target-Customers.md), [MVP Definition](../03-Product/MVP-Definition.md)
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Προτεινόμενη
+- **Πλαίσιο:** Χρειαζόμαστε εστιασμένη, βαθιά αγορά εισόδου. Οι ελιές προσφέρουν πολυετή, καλά ορισμένο κύκλο ζωής και ανεκπλήρωτη σχέση ιδιοκτήτη–παραγωγού.
+- **Απόφαση:** Το πρώτο τμήμα πελατών είναι ιδιοκτήτες και παραγωγοί ελιάς. Άλλοι καρποί εκτός εύρους για το MVP.
+- **Συνέπειες:** Γλώσσα τομέα, στάδια κύκλου ζωής και στρατολόγηση πιλοτικών στοχεύουν καλλιεργητές ελιάς.
+- **Υπεύθυνος:** CEO
+- **Συνδεδεμένες σελίδες:** [Target Customers](../02-Business/Target-Customers.md), [MVP Definition](../03-Product/MVP-Definition.md)
 
-### D-003 — Wiki-first documentation
+### D-003 — Τεκμηρίωση με προτεραιότητα στο wiki
 
-- **Date:** TBD
-- **Status:** Validated
-- **Context:** The team needs a single source of truth that scales as we hire.
-- **Decision:** All non-code knowledge lives in `/docs/wiki`, published to Azure DevOps Wiki via "Publish code as Wiki".
-- **Consequences:** PRs may include wiki updates. New team members read the wiki first.
-- **Owner:** PM
-- **Linked pages:** [Azure DevOps Import README](../../azure-devops-import/README.md)
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Επικυρωμένη
+- **Πλαίσιο:** Η ομάδα χρειάζεται μία πηγή αλήθειας που κλιμακώνεται καθώς προσλαμβάνουμε.
+- **Απόφαση:** Όλη η μη-κωδικοποιημένη γνώση ζει στο `/docs/wiki`, δημοσιευμένη στο Azure DevOps Wiki μέσω «Publish code as Wiki».
+- **Συνέπειες:** Τα PR μπορεί να περιλαμβάνουν ενημερώσεις wiki. Οι νέοι συνεργάτες διαβάζουν πρώτα το wiki.
+- **Υπεύθυνος:** PM
+- **Συνδεδεμένες σελίδες:** [Azure DevOps Import README](../../azure-devops-import/README.md)
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Who reviews proposed decisions?
-- How often do we close out "Proposed" decisions into "Validated"?
+- Ποιος εξετάζει τις προτεινόμενες αποφάσεις;
+- Πόσο συχνά κλείνουμε αποφάσεις «Προτεινόμενη» σε «Επικυρωμένη»;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Add real dates and owners as decisions are formally accepted
-- Add D-004+ as new decisions land
+- Προσθήκη πραγματικών ημερομηνιών και υπευθύνων καθώς οι αποφάσεις γίνονται επίσημες
+- Προσθήκη D-004+ καθώς προκύπτουν νέες αποφάσεις

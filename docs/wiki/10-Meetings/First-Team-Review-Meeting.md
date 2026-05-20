@@ -1,30 +1,30 @@
 # First Team Review Meeting
 
-**Status:** Draft — ready to run
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — έτοιμο για διεξαγωγή
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-This is the first formal team review of the AgroTrack business, product and process. Everyone reads the wiki beforehand and comes ready to align, decide and assign next steps.
+Αυτή είναι η πρώτη επίσημη ομαδική ανασκόπηση της επιχείρησης, του προϊόντος και της διαδικασίας AgroTrack. Όλοι διαβάζουν το wiki εκ των προτέρων και έρχονται έτοιμοι για ευθυγράμμιση, αποφάσεις και ανάθεση επόμενων βημάτων.
 
-## When
+## Πότε
 
-- Date: TBD
-- Duration: 90 minutes
-- Format: Video call or in-person
+- Ημερομηνία: TBD
+- Διάρκεια: 90 λεπτά
+- Μορφή: Βιντεοκλήση ή δια ζώσης
 
-## Attendees
+## Συμμετέχοντες
 
-- All founders
+- Όλοι οι ιδρυτές
 - Product / PM
 - Engineering
 - Design
-- Domain expert / agronomist (if available)
+- Domain expert / γεωπόνος (αν διαθέσιμος)
 
-## Pre-read
+## Προανάγνωση
 
-Every attendee reads, at minimum:
+Κάθε συμμετέχων διαβάζει, τουλάχιστον:
 
 1. [Welcome to AgroTrack](../00-Start-Here/Welcome-to-AgroTrack.md)
 2. [Current Priorities](../00-Start-Here/Current-Priorities.md)
@@ -35,82 +35,82 @@ Every attendee reads, at minimum:
 7. [Sprint 0 Plan](../06-Scrum-and-Delivery/Sprint-0-Plan.md)
 8. [Risks and Assumptions](../02-Business/Risks-and-Assumptions.md)
 
-## Agenda
+## Ατζέντα
 
-| Time | Topic | Owner |
+| Χρόνος | Θέμα | Υπεύθυνος |
 |---|---|---|
-| 0–5 min | Welcome and goal of the meeting | CEO |
-| 5–20 min | Walk through the wiki at a high level | PM |
-| 20–35 min | Review the business plan and target customer | CEO |
-| 35–55 min | Review the MVP scope: must / should / could / out | PM |
-| 55–70 min | Review Sprint 0 plan and the way we work | Scrum Master |
-| 70–80 min | Risks, assumptions, open questions | CEO |
-| 80–90 min | Decisions, owners, next actions | All |
+| 0–5 λεπ | Καλωσόρισμα και στόχος συνάντησης | CEO |
+| 5–20 λεπ | Υψηλού επιπέδου περίληψη wiki | PM |
+| 20–35 λεπ | Ανασκόπηση επιχειρηματικού σχεδίου και στόχου πελάτη | CEO |
+| 35–55 λεπ | Ανασκόπηση εύρους MVP: must / should / could / out | PM |
+| 55–70 λεπ | Ανασκόπηση σχεδίου Sprint 0 και τρόπου εργασίας | Scrum Master |
+| 70–80 λεπ | Risk, υποθέσεις, ανοιχτά ερωτήματα | CEO |
+| 80–90 λεπ | Αποφάσεις, υπεύθυνοι, επόμενες ενέργειες | Όλοι |
 
-## Pages we review live
+## Σελίδες που εξετάζουμε ζωντανά
 
-- [MVP Definition](../03-Product/MVP-Definition.md) — must/should/could lists
-- [Feature Prioritization](../03-Product/Feature-Prioritization.md) — confirm priorities
+- [MVP Definition](../03-Product/MVP-Definition.md) — λίστες must/should/could
+- [Feature Prioritization](../03-Product/Feature-Prioritization.md) — επιβεβαίωση προτεραιοτήτων
 - [Sprint 0 Plan](../06-Scrum-and-Delivery/Sprint-0-Plan.md)
 - [Validation Plan](../02-Business/Validation-Plan.md)
 - [Risk Register](../09-Legal-and-Compliance/Risk-Register.md)
 
-## Questions to ask the team
+## Ερωτήσεις προς την ομάδα
 
-1. Do we believe the problem is real for our target customer?
-2. Are we focused on the right beachhead (olive owners + producers)?
-3. Is the MVP scope right — anything missing, anything to cut?
-4. What is the biggest risk we are NOT talking about enough?
-5. Are we clear on roles and decision rights?
-6. Is anyone over- or under-loaded for Sprint 0?
-7. What would we cut first if Sprint 0 slips by a week?
-8. Who owns the customer interview pipeline?
-9. Who owns the wiki upkeep?
-10. What's the one thing each person commits to before next meeting?
+1. Πιστεύουμε ότι το πρόβλημα είναι πραγματικό για τον στόχο πελάτη μας;
+2. Εστιάζουμε στο σωστό beachhead (ιδιοκτήτες + παραγωγοί ελιάς);
+3. Είναι σωστό το εύρος του MVP — λείπει κάτι, κόβουμε κάτι;
+4. Ποιο είναι το μεγαλύτερο risk που ΔΕΝ συζητάμε αρκετά;
+5. Είμαστε σαφείς για ρόλους και δικαιώματα απόφασης;
+6. Κάποιος είναι υπερ- ή υποφορτωμένος για το Sprint 0;
+7. Τι θα κόβαμε πρώτα αν το Sprint 0 καθυστερήσει μια εβδομάδα;
+8. Ποιος είναι υπεύθυνος για το pipeline customer interview;
+9. Ποιος είναι υπεύθυνος για τη συντήρηση του wiki;
+10. Ποιο είναι το ένα πράγμα που δεσμεύεται καθένας πριν την επόμενη συνάντηση;
 
-## Decisions needed (today)
+## Αποφάσεις που χρειάζονται (σήμερα)
 
-- [ ] Confirm or update the MVP must-have list.
-- [ ] Confirm the Sprint 0 goal and end date.
-- [ ] Confirm the interview target (number, personas, geography) for Sprint 0.
-- [ ] Confirm the Scrum Master role for Sprint 0.
-- [ ] Confirm decision-making process for scope changes during Sprint 0.
-- [ ] Confirm the data ownership stance.
+- [ ] Επιβεβαίωση ή ενημέρωση λίστας must-have του MVP.
+- [ ] Επιβεβαίωση στόχου και ημερομηνίας λήξης Sprint 0.
+- [ ] Επιβεβαίωση στόχου interview (αριθμός, personas, γεωγραφία) για Sprint 0.
+- [ ] Επιβεβαίωση ρόλου Scrum Master για Sprint 0.
+- [ ] Επιβεβαίωση διαδικασίας απόφασης για αλλαγές εύρους κατά το Sprint 0.
+- [ ] Επιβεβαίωση στάσης ιδιοκτησίας δεδομένων.
 
-All decisions made today go into [Decision Log](../01-Company/Decision-Log.md).
+Όλες οι αποφάσεις σήμερα πηγαίνουν στο [Decision Log](../01-Company/Decision-Log.md).
 
-## Research assignments (to walk out with)
+## Αναθέσεις έρευνας (να φύγουμε με αυτές)
 
-| Assignment | Owner | Due |
+| Ανάθεση | Υπεύθυνος | Προθεσμία |
 |---|---|---|
-| Confirm 5 interview slots booked | TBD | End of week 1 |
-| Update Pain Points after first 3 interviews | TBD | End of week 2 |
-| Re-cost Sprint 0 work in Azure Boards | TBD | End of week 1 |
-| Draft Privacy Policy with lawyer | TBD | End of Sprint 0 |
-| Confirm hosting / staging setup | TBD | End of Sprint 0 |
+| Επιβεβαίωση 5 κρατημένων θέσεων interview | TBD | Τέλος εβδομάδας 1 |
+| Ενημέρωση Pain Points μετά τα πρώτα 3 interview | TBD | Τέλος εβδομάδας 2 |
+| Επανεκτίμηση δουλειάς Sprint 0 στο Azure Boards | TBD | Τέλος εβδομάδας 1 |
+| Πρόχειρο Privacy Policy με δικηγόρο | TBD | Τέλος Sprint 0 |
+| Επιβεβαίωση hosting / staging | TBD | Τέλος Sprint 0 |
 
-## Follow-up actions (after meeting)
+## Ενέργειες μετά τη συνάντηση
 
-- [ ] Notes posted in [Meeting Notes](./Meeting-Notes.md).
-- [ ] Decisions logged in [Decision Log](../01-Company/Decision-Log.md).
-- [ ] Action items added to Azure Boards.
-- [ ] Sprint 0 officially started.
-- [ ] Next team meeting scheduled.
+- [ ] Σημειώσεις δημοσιευμένες στο [Meeting Notes](./Meeting-Notes.md).
+- [ ] Αποφάσεις καταγεγραμμένες στο [Decision Log](../01-Company/Decision-Log.md).
+- [ ] Action items προστέθηκαν στο Azure Boards.
+- [ ] Το Sprint 0 ξεκίνησε επίσημα.
+- [ ] Προγραμματίστηκε η επόμενη ομαδική συνάντηση.
 
-## Notes from the meeting (to be filled in)
+## Σημειώσεις από τη συνάντηση (προς συμπλήρωση)
 
-- Discussion summary: TBD
-- Surprises: TBD
-- Disagreements: TBD
-- Quotes worth remembering: TBD
+- Περίληψη συζήτησης: TBD
+- Εκπλήξεις: TBD
+- Διαφωνίες: TBD
+- Ατάκες που αξίζει να θυμόμαστε: TBD
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Should we invite an advisor or external agronomist to this first meeting?
-- Should this meeting include a customer call playback?
+- Να προσκαλέσουμε σύμβουλο ή εξωτερικό γεωπόνο σε αυτή την πρώτη συνάντηση;
+- Να περιλαμβάνει αυτή η συνάντηση playback κλήσης πελάτη;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Book the meeting
-- Send pre-read links to all attendees 48 hours before
-- Prepare the live walkthrough screens
+- Κράτηση συνάντησης
+- Αποστολή συνδέσμων προανάγνωσης 48 ώρες πριν
+- Προετοιμασία οθονών ζωντανής παρουσίασης

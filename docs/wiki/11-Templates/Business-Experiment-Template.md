@@ -1,66 +1,66 @@
 # Business Experiment Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Use for any structured experiment — pricing test, landing page test, channel test, message test. Tracks the hypothesis, the test, and the result.
+Για κάθε δομημένο πείραμα — δοκιμή τιμολόγησης, landing page, κανάλι, μήνυμα. Καταγράφει υπόθεση, δοκιμή και αποτέλεσμα.
 
 ---
 
-## Experiment: [Short name]
+## Πείραμα: [Σύντομο όνομα]
 
-- **Date proposed:**
-- **Owner:**
-- **Status:** Proposed / Running / Done / Cancelled
-- **Linked assumption:** (e.g. A3 in [Risks and Assumptions](../02-Business/Risks-and-Assumptions.md))
+- **Ημερομηνία πρότασης:**
+- **Υπεύθυνος:**
+- **Κατάσταση:** Proposed / Running / Done / Cancelled
+- **Συνδεδεμένη υπόθεση:** (π.χ. A3 στο [Risks and Assumptions](../02-Business/Risks-and-Assumptions.md))
 
-### Hypothesis
+### Υπόθεση
 
-> We believe that **[change]** will result in **[outcome]** for **[which users]**.
+> Πιστεύουμε ότι **[αλλαγή]** θα οδηγήσει σε **[αποτέλεσμα]** για **[ποιους χρήστες]**.
 
-### Why this matters
+### Γιατί έχει σημασία
 
-Which decision the result of this experiment will inform.
+Ποια απόφαση θα ενημερώσει το αποτέλεσμα αυτού του πειράματος.
 
-### Method
+### Μέθοδος
 
-How we run the experiment in concrete terms.
+Πώς τρέχουμε το πείραμα σε συγκεκριμένους όρους.
 
-### Test setup
+### Ρύθμιση δοκιμής
 
-- Sample / audience:
-- Channels:
-- Variants:
-- Duration:
-- Tools:
+- Δείγμα / κοινό:
+- Κανάλια:
+- Παραλλαγές:
+- Διάρκεια:
+- Εργαλεία:
 
-### Success criteria
+### Κριτήρια επιτυχίας
 
-- What result counts as a "yes":
-- What result counts as a "no":
-- What result is inconclusive:
+- Ποιο αποτέλεσμα μετράει ως «ναι»:
+- Ποιο αποτέλεσμα μετράει ως «όχι»:
+- Ποιο αποτέλεσμα είναι ασαφές:
 
-### Risks of running the experiment
+### risk από τη διεξαγωγή του πειράματος
 
-- Possible negative customer reactions
-- Brand impact
-- Time cost
+- Πιθανές αρνητικές αντιδράσεις πελατών
+- Επίδραση brand
+- Κόστος χρόνου
 
-### Result
+### Αποτέλεσμα
 
-- Outcome:
-- Numbers:
-- Surprises:
+- Έκβαση:
+- Αριθμοί:
+- Εκπλήξεις:
 
-### Decision after the experiment
+### Απόφαση μετά το πείραμα
 
-- What we will do differently.
-- Linked entry in [Decision Log](../01-Company/Decision-Log.md) if applicable.
+- Τι θα κάνουμε διαφορετικά.
+- Συνδεδεμένη καταχώρηση στο [Decision Log](../01-Company/Decision-Log.md) αν ισχύει.
 
-### Linked pages
+### Συνδεδεμένες σελίδες
 
 - [Validation Plan](../02-Business/Validation-Plan.md)
 - [Validation Findings](../04-Customer-Research/Validation-Findings.md)

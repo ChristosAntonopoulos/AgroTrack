@@ -1,48 +1,48 @@
-# Validation Findings
+# Ευρήματα Validation
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What we have learned, mapped against the assumptions we set out to test in [Validation Plan](../02-Business/Validation-Plan.md).
+Τι έχουμε μάθει, σε σχέση με τα hypothesis που θέσαμε να δοκιμάσουμε στο [Validation Plan](../02-Business/Validation-Plan.md).
 
-## Assumption tracker
+## Παρακολούθηση hypothesis
 
-| # | Assumption | Status | Evidence | Decision |
+| # | Hypothesis | Κατάσταση | Αποδείξεις | Απόφαση |
 |---|---|---|---|---|
-| A1 | Owners and producers struggle with shared visibility | Not yet tested | — | TBD |
-| A2 | Olive cultivation is the right beachhead | Not yet tested | — | TBD |
-| A3 | Owners will pay €15–€60 / month | Not yet tested | — | TBD |
-| A4 | A lightweight, mobile-first tool is what they want | Not yet tested | — | TBD |
-| A5 | Owners are the primary buyer | Not yet tested | — | TBD |
-| A6 | Agronomists are useful recommenders | Not yet tested | — | TBD |
-| A7 | We can recruit 3 pilots in 60 days through our network | Not yet tested | — | TBD |
+| A1 | Ιδιοκτήτες και παραγωγοί δυσκολεύονται με κοινή ορατότητα | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
+| A2 | Η καλλιέργεια ελιάς είναι το σωστό beachhead | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
+| A3 | Οι ιδιοκτήτες θα πληρώνουν €15–€60 / μήνα | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
+| A4 | Θέλουν ελαφρύ εργαλείο με προτεραιότητα στο κινητό | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
+| A5 | Οι ιδιοκτήτες είναι ο κύριος αγοραστής | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
+| A6 | Οι γεωπόνοι είναι χρήσιμοι συστάτες | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
+| A7 | Μπορούμε να προσελκύσουμε 3 πιλοτικά σε 60 ημέρες μέσω του δικτύου μας | Δεν έχει δοκιμαστεί ακόμα | — | TBD |
 
-## What we are confident in
+## Σε τι είμαστε σίγουροι
 
-(To be filled as interviews progress.)
+(Θα συμπληρωθεί καθώς προχωρούν τα interview.)
 
-## What we are NOT confident in
+## Σε τι ΔΕΝ είμαστε σίγουροι
 
-(To be filled as interviews progress.)
+(Θα συμπληρωθεί καθώς προχωρούν τα interview.)
 
-## Pivots we are watching for
+## Pivots που παρακολουθούμε
 
-If any of these become clear, we change direction:
+Αν κάποιο από τα παρακάτω γίνει σαφές, αλλάζουμε κατεύθυνση:
 
-- Strong pain not in our list → we re-shape the product.
-- Owners say "Excel works fine" consistently → we re-shape the value prop.
-- Producers won't touch any app → we may need to redesign for owner-only first.
-- Pricing falls below €5/month consistently → business model needs to change.
+- Ισχυρό pain point εκτός της λίστας μας → αναδιαμορφώνουμε το προϊόν.
+- Οι ιδιοκτήτες λένε συνεχώς «το Excel μου αρκεί» → αναδιαμορφώνουμε την πρόταση αξίας.
+- Οι παραγωγοί δεν αγγίζουν καμία εφαρμογή → ίσως χρειαστεί σχεδιασμός πρώτα μόνο για ιδιοκτήτες.
+- Η τιμολόγηση πέφτει συνεχώς κάτω από €5/μήνα → αλλάζει το επιχειρηματικό μοντέλο.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- How many interviews until we trust a finding?
-- Who decides when an assumption is "validated" vs "rejected"?
+- Πόσα interview χρειάζονται μέχρι να εμπιστευτούμε ένα εύρημα;
+- Ποιος αποφασίζει πότε ένα hypothesis είναι «validated» έναντι «rejected»;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Update after each batch of 5 interviews
-- Bring findings to every sprint review
+- Ενημέρωση μετά από κάθε ομάδα 5 interview
+- Παρουσίαση ευρημάτων σε κάθε sprint review

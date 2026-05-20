@@ -1,17 +1,17 @@
-# 07 Design and UX
+# 07 Σχεδιασμός και UX
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ενεργή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The principles and rules that guide every design decision in AgroTrack, plus our user flows, wireframes, branding and accessibility notes.
+Οι αρχές και οι κανόνες που καθοδηγούν κάθε απόφαση σχεδιασμού στο AgroTrack, συν τα user flows, wireframes, branding και σημειώσεις accessibility μας.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Design Principles](./Design-Principles.md) — rules we hold every design to
-- [User Flows](./User-Flows.md) — main screen-level flows
-- [Wireframes](./Wireframes.md) — where we keep wireframe links
-- [Branding](./Branding.md) — voice, identity, visual direction
-- [Accessibility](./Accessibility.md) — our accessibility baseline
+- [Αρχές σχεδιασμού](./Design-Principles.md) — κανόνες που τηρούμε σε κάθε σχεδιασμό
+- [User Flows](./User-Flows.md) — κύριες ροές σε επίπεδο οθόνης
+- [Wireframes](./Wireframes.md) — πού κρατάμε συνδέσμους wireframe
+- [Branding](./Branding.md) — φωνή, ταυτότητα, οπτική κατεύθυνση
+- [Accessibility](./Accessibility.md) — η βασική γραμμή accessibility μας

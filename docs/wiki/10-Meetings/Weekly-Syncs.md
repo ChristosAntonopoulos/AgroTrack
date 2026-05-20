@@ -1,54 +1,54 @@
-# Weekly Syncs
+# Εβδομαδιαίοι συγχρονισμοί
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A regular 30–45 minute team sync, separate from Scrum ceremonies. Keeps the business side aligned with delivery.
+Τακτικός συγχρονισμός ομάδας 30–45 λεπτών, ξεχωριστά από τις τελετουργίες Scrum. Διατηρεί ευθυγράμμιση της επιχειρηματικής πλευράς με την παράδοση.
 
-## When
+## Πότε
 
-- Day / time: TBD (suggested: every Friday)
-- Duration: 30–45 minutes
-- Attendees: All founders + PM (+ others as needed)
+- Ημέρα / ώρα: TBD (πρόταση: κάθε Παρασκευή)
+- Διάρκεια: 30–45 λεπτά
+- Συμμετέχοντες: Όλοι οι ιδρυτές + PM (+ άλλοι αν χρειάζεται)
 
-## Standard agenda
+## Τυπική ατζέντα
 
-| Time | Topic |
+| Χρόνος | Θέμα |
 |---|---|
-| 0–5 min | Wins of the week |
-| 5–15 min | Customer signal (new interviews, feedback, intros) |
-| 15–25 min | Product / delivery progress vs sprint goal |
-| 25–35 min | Open decisions, blockers |
-| 35–45 min | Priorities for next week, owners |
+| 0–5 λεπ | Νίκες της εβδομάδας |
+| 5–15 λεπ | Σήμα πελάτη (νέα interview, feedback, εισαγωγές) |
+| 15–25 λεπ | Πρόοδος προϊόντος / παράδοσης έναντι στόχου Sprint |
+| 25–35 λεπ | Ανοιχτές αποφάσεις, εμπόδια |
+| 35–45 λεπ | Προτεραιότητες επόμενης εβδομάδας, υπεύθυνοι |
 
-## What this meeting is for
+## Για τι είναι αυτή η συνάντηση
 
-- Surfacing customer signals that should change product priorities.
-- Resolving cross-functional blockers.
-- Ensuring the business and product narratives stay aligned.
+- Ανάδειξη σημάτων πελατών που πρέπει να αλλάξουν προτεραιότητες προϊόντος.
+- Επίλυση εμποδίων μεταξύ λειτουργιών.
+- Διατήρηση ευθυγράμμισης επιχειρηματικής και προϊοντικής αφήγησης.
 
-## What this meeting is NOT for
+## Για τι ΔΕΝ είναι αυτή η συνάντηση
 
-- Replacing daily stand-ups.
-- Detailed engineering discussions.
-- Pitch rehearsals.
-- Status reporting only — we use Azure Boards for that.
+- Αντικατάσταση daily stand-ups.
+- Λεπτομερείς τεχνικές συζητήσεις.
+- Προετοιμασία pitch.
+- Μόνο status reporting — για αυτό χρησιμοποιούμε Azure Boards.
 
-## Notes
+## Σημειώσεις
 
-- Notes go into [Meeting Notes](./Meeting-Notes.md) with one section per week.
-- Decisions go into [Decision Log](../01-Company/Decision-Log.md).
-- Items needing more time get a separate working session.
+- Οι σημειώσεις πηγαίνουν στο [Meeting Notes](./Meeting-Notes.md) με μία ενότητα ανά εβδομάδα.
+- Οι αποφάσεις πηγαίνουν στο [Decision Log](../01-Company/Decision-Log.md).
+- Θέματα που χρειάζονται περισσότερο χρόνο παίρνουν ξεχωριστή working session.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Is 30 min enough, or should it be 45 by default?
-- Do we cancel if there's nothing to discuss, or run it anyway?
+- Αρκούν 30 λεπτά ή πρέπει να είναι 45 από προεπιλογή;
+- Ακυρώνουμε αν δεν υπάρχει τίποτα να συζητήσουμε, ή γίνεται πάντα;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Pick the recurring day and time
-- Set up the recurring calendar invite
+- Επιλογή επαναλαμβανόμενης ημέρας και ώρας
+- Ρύθμιση επαναλαμβανόμενης πρόσκλησης ημερολογίου

@@ -1,14 +1,14 @@
 # Work Item Structure
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we organise work in Azure DevOps Boards. One shared structure across the team.
+Πώς οργανώνουμε τη δουλειά στο Azure Boards. Μία κοινή δομή σε όλη την ομάδα.
 
-## Hierarchy
+## Ιεραρχία
 
 ```
 Epic
@@ -17,18 +17,18 @@ Epic
               └── Task
 ```
 
-| Level | What it is | Example |
+| Επίπεδο | Τι είναι | Παράδειγμα |
 |---|---|---|
-| **Epic** | A large business objective. Spans multiple sprints. Owned by the business. | "Launch MVP with first pilots" |
-| **Feature** | A deliverable capability. Multiple PBIs roll up into a Feature. | "Field management" |
-| **Product Backlog Item (PBI)** | A user or business outcome we can ship. Has acceptance criteria. | "An owner can create a field with name, size and crop" |
-| **Task** | A specific implementation, research or design action. Hours of work, not days. | "Build the create-field form" |
+| **Epic** | Μεγάλος επιχειρηματικός στόχος. Διασχίζει πολλά Sprint. Ιδιοκτησία από την επιχείρηση. | «Launch MVP with first pilots» |
+| **Feature** | Παραδοτέα δυνατότητα. Πολλά PBI συνοψίζονται σε Feature. | «Field management» |
+| **Product Backlog Item (PBI)** | Αποτέλεσμα χρήστη ή επιχείρησης που μπορούμε να παραδώσουμε. Έχει acceptance criteria. | «An owner can create a field with name, size and crop» |
+| **Task** | Συγκεκριμένη υλοποίηση, έρευνα ή σχεδιαστική ενέργεια. Ώρες δουλειάς, όχι ημέρες. | «Build the create-field form» |
 
-## Examples for AgroTrack MVP
+## Παραδείγματα για AgroTrack MVP
 
 ### Epic: Launch MVP with first pilots
 
-Features under this Epic:
+Features κάτω από αυτό το Epic:
 
 - Authentication and roles
 - Field management
@@ -41,7 +41,7 @@ Features under this Epic:
 
 ### Feature: Field management
 
-PBIs under this Feature:
+PBI κάτω από αυτό το Feature:
 
 - An owner can create a field.
 - An owner can edit a field.
@@ -61,7 +61,7 @@ Acceptance criteria (Given / When / Then):
   **When** I submit the form,
   **Then** I see an error telling me the name is required.
 
-Tasks under this PBI (illustrative):
+Tasks κάτω από αυτό το PBI (ενδεικτικά):
 
 - Design the create-field form
 - Build the create-field form
@@ -69,35 +69,35 @@ Tasks under this PBI (illustrative):
 - Show the new field in the dashboard
 - Write a manual test plan
 
-## How we name things
+## Πώς ονομάζουμε πράγματα
 
-| Type | Naming convention | Example |
+| Τύπος | Σύμβαση ονοματοδοσίας | Παράδειγμα |
 |---|---|---|
-| Epic | Short outcome phrase | "Launch MVP with first pilots" |
-| Feature | Capability area | "Field management" |
-| PBI | User-style outcome | "An owner can create a field" |
-| Task | Action verb + object | "Build the create-field form" |
+| Epic | Σύντομη φράση αποτελέσματος | «Launch MVP with first pilots» |
+| Feature | Περιοχή δυνατότητας | «Field management» |
+| PBI | Αποτέλεσμα σε στυλ χρήστη | «An owner can create a field» |
+| Task | Ρήμα ενέργειας + αντικείμενο | «Build the create-field form» |
 
-## Fields we keep up to date
+## Πεδία που κρατάμε ενημερωμένα
 
 - State (New, In Progress, Done, Removed)
 - Assignee
 - Sprint / Iteration
-- Tags (use sparingly)
-- Acceptance criteria (PBIs only)
+- Tags (με φειδώ)
+- Acceptance criteria (μόνο PBI)
 
-## What we don't do
+## Τι δεν κάνουμε
 
-- Story points obsession. We may estimate roughly but we don't burn time tuning velocity.
-- Sub-tasks beyond Task level. Keep it simple.
-- Statuses beyond New / Active / Done unless we really need them.
+- Εμμονή με story points. Μπορούμε να εκτιμήσουμε κατά προσέγγιση αλλά δεν καίμε χρόνο ρυθμίζοντας velocity.
+- Υπο-εργασίες πέρα από επίπεδο Task. Κρατάμε απλά.
+- Καταστάσεις πέρα από New / Active / Done εκτός αν πραγματικά τις χρειαζόμαστε.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we use Story Points or just T-shirt sizes (S/M/L)?
-- Do we keep "Bug" as a separate work item type or fold into PBIs?
+- Χρησιμοποιούμε Story Points ή μόνο μεγέθη μπλουζάκι (S/M/L);
+- Κρατάμε το «Bug» ως ξεχωριστό τύπο work item ή το ενσωματώνουμε σε PBI;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Lock the work item types we use in Azure Boards
-- Seed the first Epics and Features in Sprint 0
+- Κλειδώστε τους τύπους work item που χρησιμοποιούμε στο Azure Boards
+- Σπείρατε τα πρώτα Epic και Features στο Sprint 0

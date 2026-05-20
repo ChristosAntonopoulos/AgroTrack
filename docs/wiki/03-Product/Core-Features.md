@@ -1,70 +1,70 @@
-# Core Features
+# Βασικά features
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The set of capabilities AgroTrack offers, in plain language. Use this when explaining the product to anyone.
+Το σύνολο των δυνατοτήτων που προσφέρει το AgroTrack, με απλά λόγια. Χρησιμοποιήστε το όταν εξηγείτε το προϊόν σε οποιονδήποτε.
 
-## Feature list
+## Λίστα features
 
-### Field management
+### Διαχείριση χωραφιών
 
-Add a field with name, size, location and crop. Edit and archive fields. See all fields at a glance.
+Προσθήκη χωραφιού με όνομα, μέγεθος, τοποθεσία και καλλιέργεια. Επεξεργασία και αρχειοθέτηση χωραφιών. Προβολή όλων των χωραφιών με μια ματιά.
 
-### Crop cycle management
+### Διαχείριση κύκλου καλλιέργειας
 
-Start a crop cycle on a field. Each cycle has a planned start, expected harvest, and a set of lifecycle stages.
+Έναρξη κύκλου καλλιέργειας σε χωράφι. Κάθε κύκλος έχει προγραμματισμένη έναρξη, αναμενόμενο τρύγο και σετ σταδίων κύκλου ζωής.
 
-### Lifecycle stage tracking
+### Παρακολούθηση σταδίων κύκλου ζωής
 
-For each cycle, advance through stages (e.g. dormant → bud break → flowering → fruit set → harvest). Always see the current stage per field.
+Για κάθε κύκλο, προχώρηση σε στάδια (π.χ. αδράνεια → έκρηξη οφθαλμού → άνθηση → δέσμευση καρπού → τρύγος). Πάντα βλέπετε το τρέχον στάδιο ανά χωράφι.
 
-### Task management
+### Διαχείριση εργασιών
 
-Create tasks linked to a field, cycle or stage. Assign tasks to a person. Mark tasks as planned, in progress or done. Add notes.
+Δημιουργία εργασιών συνδεδεμένων με χωράφι, κύκλο ή στάδιο. Ανάθεση εργασιών σε άτομο. Σήμανση ως προγραμματισμένη, σε εξέλιξη ή ολοκληρωμένη. Προσθήκη σημειώσεων.
 
-### Activity history
+### Ιστορικό δραστηριότητας
 
-Log what happened on a field: irrigated, treated, pruned, observed. Every activity is timestamped and visible to owner and producer.
+Καταγραφή του τι έγινε σε χωράφι: πότισμα, επεξεργασία, κλάδεμα, παρατήρηση. Κάθε δραστηριότητα έχει χρονική σήμανση και είναι ορατή σε owner και producer.
 
-### Notes
+### Σημειώσεις
 
-Free-text notes against a field, cycle, or activity. For everything that doesn't fit a structured field.
+Ελεύθερο κείμενο σε χωράφι, κύκλο ή δραστηριότητα. Για ό,τι δεν χωράει σε δομημένο πεδίο.
 
-### Basic expense tracking
+### Βασική παρακολούθηση εξόδων
 
-Record an expense (amount, what for, against which field / cycle / task). See total cost per field over time.
+Καταγραφή εξόδου (ποσό, για τι, σε ποιο χωράφι / κύκλο / εργασία). Συνολικό κόστος ανά χωράφι με τον χρόνο.
 
-### Basic dashboard
+### Βασικό dashboard
 
-A single screen showing: how many fields, what stage each is in, what tasks are open, recent activity.
+Μία οθόνη που δείχνει: πόσα χωράφια, σε ποιο στάδιο το καθένα, ποιες εργασίες είναι ανοιχτές, πρόσφατη δραστηριότητα.
 
-### Roles and permissions
+### Ρόλοι και δικαιώματα
 
-Owner, producer, admin. Each sees what they should see. Owner controls who joins the organisation.
+Owner, producer, admin. Ο καθένας βλέπει ό,τι πρέπει. Ο owner ελέγχει ποιος εντάσσεται στον οργανισμό.
 
-### Multi-user organisations
+### Οργανισμοί με πολλούς χρήστες
 
-Several people share an organisation: owner, producer, family member, agronomist (later).
+Πολλά άτομα μοιράζονται έναν οργανισμό: owner, producer, μέλος οικογένειας, γεωπόνος (αργότερα).
 
-## Beyond core (not now)
+## Πέρα από το βασικό (όχι τώρα)
 
-- Documents and photos
-- Reports and exports
-- Notifications and reminders
-- Calendar view
-- Multi-crop expansion
-- Integrations
+- Έγγραφα και φωτογραφίες
+- Αναφορές και εξαγωγές
+- Ειδοποιήσεις και υπενθυμίσεις
+- Προβολή ημερολογίου
+- Επέκταση σε πολλές καλλιέργειες
+- Ενσωματώσεις
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Is "Notes" really separate from "Activity", or should they merge?
-- Should "Tasks" and "Activity" be one stream in the UI?
+- Είναι οι «Σημειώσεις» πραγματικά ξεχωριστές από την «Δραστηριότητα», ή πρέπει να ενωθούν;
+- Πρέπει «Εργασίες» και «Δραστηριότητα» να είναι ένα stream στο UI;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm the feature names we use externally
-- Add a 1-line description per feature for the landing page
+- Επιβεβαίωση ονομάτων features που χρησιμοποιούμε εξωτερικά
+- Προσθήκη περιγραφής μίας γραμμής ανά feature για την landing page

@@ -1,96 +1,96 @@
-# Azure DevOps Wiki — Publish Instructions
+# Azure DevOps Wiki — Οδηγίες δημοσίευσης
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How to publish the AgroTrack wiki (stored at `/docs/wiki` in this repository) as an Azure DevOps Wiki using the "Publish code as Wiki" feature.
+Πώς να δημοσιεύσετε το wiki του AgroTrack (αποθηκευμένο στο `/docs/wiki` σε αυτό το repository) ως Azure DevOps Wiki, χρησιμοποιώντας τη λειτουργία «Publish code as Wiki».
 
-## Why publish from code
+## Γιατί δημοσίευση από κώδικα
 
-- Wiki content lives next to the code, version controlled.
-- Pull requests can include wiki changes.
-- We get a single source of truth across content and code.
+- Το περιεχόμενο του wiki ζει δίπλα στον κώδικα, με version control.
+- Τα pull request μπορούν να περιλαμβάνουν αλλαγές στο wiki.
+- Έχουμε μία μοναδική πηγή αλήθειας για περιεχόμενο και κώδικα.
 
-## Prerequisites
+## Προαπαιτούμενα
 
-- An Azure DevOps project for AgroTrack.
-- The repository (`AgroTrack`) imported into Azure Repos, or visible to the same project.
-- A branch with the latest `/docs/wiki` content (usually `main`).
-- Permission to manage wikis in the Azure DevOps project (typically Project Administrator or equivalent).
+- Έργο Azure DevOps για το AgroTrack.
+- Το repository (`AgroTrack`) εισαγμένο στο Azure Repos ή ορατό στο ίδιο έργο.
+- Branch με το πιο πρόσφατο περιεχόμενο `/docs/wiki` (συνήθως `main`).
+- Δικαίωμα διαχείρισης wiki στο έργο Azure DevOps (συνήθως Project Administrator ή ισοδύναμο).
 
-## One-time publish steps
+## Βήματα μίας φοράς για δημοσίευση
 
-1. In Azure DevOps, open your project.
-2. Go to **Overview → Wiki**.
-3. Click **Publish code as wiki**.
-4. Configure:
-   - **Repository:** select the `AgroTrack` repository.
-   - **Branch:** typically `main`.
+1. Στο Azure DevOps, ανοίξτε το έργο σας.
+2. Μεταβείτε σε **Overview → Wiki**.
+3. Κάντε κλικ **Publish code as wiki**.
+4. Ρυθμίστε:
+   - **Repository:** επιλέξτε το repository `AgroTrack`.
+   - **Branch:** συνήθως `main`.
    - **Folder:** `/docs/wiki`
-   - **Wiki name:** `AgroTrack Wiki` (or similar).
-5. Click **Publish**.
-6. Azure DevOps will read the folder and render it as a wiki.
+   - **Wiki name:** `AgroTrack Wiki` (ή παρόμοιο).
+5. Κάντε κλικ **Publish**.
+6. Το Azure DevOps θα διαβάσει τον φάκελο και θα το αποδώσει ως wiki.
 
-## How the structure maps
+## Πώς αντιστοιχίζεται η δομή
 
-- Each folder under `/docs/wiki` becomes a section.
-- Each `.md` file becomes a page.
-- Each `.order` file controls the page order within its folder.
-- The root `.order` at `/docs/wiki/.order` controls the top-level section order.
-- The root `/docs/wiki/README.md` is the wiki's home page.
+- Κάθε φάκελος κάτω από `/docs/wiki` γίνεται τμήμα.
+- Κάθε αρχείο `.md` γίνεται σελίδα.
+- Κάθε αρχείο `.order` ελέγχει τη σειρά σελίδων μέσα στον φάκελο.
+- Το root `.order` στο `/docs/wiki/.order` ελέγχει τη σειρά των τμημάτων ανώτατου επιπέδου.
+- Το root `/docs/wiki/README.md` είναι η αρχική σελίδα του wiki.
 
-## Important conventions used in this repo
+## Σημαντικές συμβάσεις σε αυτό το repo
 
-- **Hyphens replace spaces** in folder names and filenames (e.g. `00-Start-Here/`, `Welcome-to-AgroTrack.md`). Azure DevOps Wiki converts hyphens back to spaces when rendering the page title in the sidebar, so users see "Welcome to AgroTrack" while the file on disk stays URL-safe. This is the Microsoft-recommended convention — spaces in wiki page filenames cause page-resolution errors.
-- **Each section folder has a `README.md`** which Azure DevOps treats as the landing page when the user clicks the section name in the sidebar.
-- **`.order` files** list filenames without the `.md` extension, and folder names as-is. Each entry on its own line. `README` is **not** listed because the wiki picks it up automatically as the folder's index.
-- **Numeric prefixes** on folders (e.g. `02-Business`) drive section ordering and surface structure to readers.
-- **Links between pages** use plain relative paths with hyphens (e.g. `./Welcome-to-AgroTrack.md`). No URL encoding needed.
+- **Παύλες αντί για κενά** στα ονόματα φακέλων και αρχείων (π.χ. `00-Start-Here/`, `Welcome-to-AgroTrack.md`). Το Azure DevOps Wiki μετατρέπει τις παύλες σε κενά κατά την απόδοση του τίτλου στη sidebar, ώστε οι χρήστες να βλέπουν «Welcome to AgroTrack» ενώ το αρχείο στο δίσκο παραμένει URL-safe. Αυτή είναι η συνιστώμενη σύμβαση της Microsoft — κενά σε ονόματα αρχείων wiki προκαλούν σφάλματα ανάλυσης σελίδων.
+- **Κάθε φάκελος τμήματος έχει `README.md`**, που το Azure DevOps χρησιμοποιεί ως landing page όταν ο χρήστης κάνει κλικ στο όνομα του τμήματος στη sidebar.
+- **Αρχεία `.order`** καταγράφουν ονόματα αρχείων χωρίς την επέκταση `.md` και ονόματα φακέλων ως έχουν. Κάθε καταχώρηση σε ξεχωριστή γραμμή. Το `README` **δεν** καταγράφεται, γιατί το wiki το αναγνωρίζει αυτόματα ως index του φακέλου.
+- **Αριθμητικά προθήματα** σε φακέλους (π.χ. `02-Business`) καθορίζουν τη σειρά τμημάτων και τη δομή για τους αναγνώστες.
+- **Σύνδεσμοι μεταξύ σελίδων** χρησιμοποιούν απλές σχετικές διαδρομές με παύλες (π.χ. `./Welcome-to-AgroTrack.md`). Δεν χρειάζεται URL encoding.
 
-## Updating the wiki after publishing
+## Ενημέρωση του wiki μετά τη δημοσίευση
 
-- Edit Markdown files in this repo as normal.
-- Commit and push to the configured branch.
-- Azure DevOps automatically reflects the changes — no separate publish step needed.
-- For best history, edit via pull requests when content is non-trivial.
+- Επεξεργαστείτε αρχεία Markdown στο repo κανονικά.
+- Κάντε commit και push στο ρυθμισμένο branch.
+- Το Azure DevOps αντικατοπτρίζει τις αλλαγές αυτόματα — δεν χρειάζεται ξεχωριστό βήμα δημοσίευσης.
+- Για καλύτερο ιστορικό, επεξεργαστείτε μέσω pull request όταν το περιεχόμενο δεν είναι ασήμαντο.
 
-## Adding new pages
+## Προσθήκη νέων σελίδων
 
-1. Create the `.md` file in the appropriate folder under `/docs/wiki/`.
-2. Add the filename (without `.md`) to that folder's `.order` file in the right position.
-3. Commit and push.
-4. The page appears in the wiki automatically.
+1. Δημιουργήστε το αρχείο `.md` στον κατάλληλο φάκελο κάτω από `/docs/wiki/`.
+2. Προσθέστε το όνομα αρχείου (χωρίς `.md`) στο `.order` του φακέλου στη σωστή θέση.
+3. Κάντε commit και push.
+4. Η σελίδα εμφανίζεται στο wiki αυτόματα.
 
-## Adding new sections
+## Προσθήκη νέων τμημάτων
 
-1. Create a new folder under `/docs/wiki/`.
-2. Add a `.order` file inside the new folder listing its pages.
-3. Add the new folder name to the root `/docs/wiki/.order`.
-4. Commit and push.
+1. Δημιουργήστε νέο φάκελο κάτω από `/docs/wiki/`.
+2. Προσθέστε αρχείο `.order` μέσα στον φάκελο με τις σελίδες του.
+3. Προσθέστε το όνομα του νέου φακέλου στο root `/docs/wiki/.order`.
+4. Κάντε commit και push.
 
-## Common pitfalls
+## Συχνά λάθη
 
-- **Spaces in filenames** — never use them. Always replace spaces with hyphens (`-`). Spaces in wiki page files cause "Could not load the page" errors.
-- **Forgetting to update `.order`** — the page exists but doesn't appear, or appears in the wrong position.
-- **Mismatched casing in `.order`** — Azure DevOps is case-sensitive; the entry must match the filename exactly minus `.md`.
-- **Broken relative links** — when a page is renamed, links to it must be updated.
-- **Special characters** in filenames — stick to letters, numbers, and hyphens.
-- **Stale published wiki** — after large renames, unpublish the code wiki in Azure DevOps and republish so the index is rebuilt from scratch.
+- **Κενά σε ονόματα αρχείων** — μην τα χρησιμοποιείτε ποτέ. Αντικαταστήστε πάντα με παύλες (`-`). Κενά σε αρχεία σελίδων wiki προκαλούν σφάλμα «Could not load the page».
+- **Ξεχασμένη ενημέρωση `.order`** — η σελίδα υπάρχει αλλά δεν εμφανίζεται ή εμφανίζεται σε λάθος θέση.
+- **Λάθος πεζοποίηση στο `.order`** — το Azure DevOps είναι case-sensitive· η καταχώρηση πρέπει να ταιριάζει ακριβώς με το όνομα αρχείου χωρίς `.md`.
+- **Σπασμένοι σχετικοί σύνδεσμοι** — όταν μετονομάζεται σελίδα, πρέπει να ενημερώνονται οι σύνδεσμοι προς αυτή.
+- **Ειδικοί χαρακτήρες** σε ονόματα αρχείων — μείνετε σε γράμματα, αριθμούς και παύλες.
+- **Παρωχημένο δημοσιευμένο wiki** — μετά από μεγάλες μετονομασίες, κάντε unpublish το code wiki στο Azure DevOps και ξαναδημοσιεύστε ώστε να ξαναχτιστεί το index από την αρχή.
 
-## Unpublishing or re-publishing
+## Unpublish ή re-publish
 
-- To stop publishing: in Azure DevOps Wiki settings, choose to unpublish the code wiki.
-- To change the source folder or branch: unpublish and re-publish with new settings.
+- Για διακοπή δημοσίευσης: στις ρυθμίσεις Azure DevOps Wiki, επιλέξτε unpublish του code wiki.
+- Για αλλαγή source folder ή branch: unpublish και ξαναδημοσίευση με νέες ρυθμίσεις.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we also enable a separate "project wiki" (non-code) for ad-hoc notes?
-- How do we handle wiki access permissions for external collaborators?
+- Ενεργοποιούμε και ξεχωριστό «project wiki» (μη από κώδικα) για σημειώσεις ad-hoc;
+- Πώς διαχειριζόμαστε δικαιώματα πρόσβασης στο wiki για εξωτερικούς συνεργάτες;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Publish the wiki for the first time in Sprint 0
-- Add the published wiki URL to the README of this repo
+- Πρώτη δημοσίευση του wiki στο Sprint 0
+- Προσθήκη του URL του δημοσιευμένου wiki στο README αυτού του repo

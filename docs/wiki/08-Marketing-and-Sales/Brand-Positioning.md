@@ -1,51 +1,51 @@
-# Brand Positioning
+# Brand positioning
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Where AgroTrack sits in the customer's mind — and how we want it to feel different from anything else they could choose.
+Πού κάθεται το AgroTrack στο μυαλό του πελάτη — και πώς θέλουμε να νιώθει διαφορετικό από οτιδήποτε άλλο θα μπορούσε να επιλέξει.
 
-## Positioning statement
+## Δήλωση brand positioning
 
-> **For** olive field owners and producers
-> **who** want a clear, shared view of every field and crop cycle,
-> **AgroTrack is** a simple shared workspace
-> **that** plans, runs and remembers everything that happens on the land,
-> **unlike** spreadsheets, WhatsApp groups or heavy farm software,
-> **because** it's built around how owners and producers actually work together.
+> **Για** ιδιοκτήτες ελαιοκτημάτων και παραγωγούς
+> **που** θέλουν μια σαφή, κοινή εικόνα κάθε χωραφιού και κάθε κύκλου καλλιέργειας,
+> **το AgroTrack είναι** ένας απλός κοινός χώρος εργασίας
+> **που** σχεδιάζει, εκτελεί και θυμάται ό,τι συμβαίνει στο χωράφι,
+> **σε αντίθεση με** υπολογιστικά φύλλα, ομάδες WhatsApp ή βαριά αγροτικά λογισμικά,
+> **επειδή** χτίστηκε γύρω από τον τρόπο που ιδιοκτήτες και παραγωγοί συνεργάζονται στην πράξη.
 
-## What we want customers to feel
+## Τι θέλουμε να νιώθουν οι πελάτες
 
-- "Finally something built for us."
-- "This is simple, I get it."
-- "My producer / my owner is on the same page as me."
-- "I don't need to remember everything anymore."
+- «Επιτέλους κάτι φτιαγμένο για εμάς.»
+- «Είναι απλό, το καταλαβαίνω.»
+- «Ο παραγωγός μου / ο ιδιοκτήτης μου είναι στην ίδια σελίδα με μένα.»
+- «Δεν χρειάζεται να θυμάμαι τα πάντα πια.»
 
-## What we want customers NOT to feel
+## Τι ΔΕΝ θέλουμε να νιώθουν οι πελάτες
 
-- "This is too complicated."
-- "This is for big industrial farms."
-- "I'd need to be a tech person to use this."
-- "This is just another generic to-do app."
+- «Είναι πολύ περίπλοκο.»
+- «Είναι για μεγάλα βιομηχανικά αγροκτήματα.»
+- «Πρέπει να είμαι τεχνικός για να το χρησιμοποιήσω.»
+- «Είναι ακόμα μια γενική εφαρμογή to-do.»
 
-## Where we sit vs alternatives
+## Πού κάθεται σε σχέση με εναλλακτικές
 
-| Compared to | We say |
+| Σε σύγκριση με | Λέμε |
 |---|---|
-| Excel | "Excel works… until it doesn't. AgroTrack works on your phone, in the field, with your producer." |
-| WhatsApp groups | "WhatsApp is great for messages. AgroTrack remembers what was actually done." |
-| Heavy farm ERPs | "Built for olive owners and producers, not industrial farms. Costs less, takes less time to learn." |
-| Generic project tools | "We understand crop cycles. Trello doesn't." |
+| Excel | «Το Excel δουλεύει… μέχρι να μην δουλεύει. Το AgroTrack δουλεύει στο κινητό σας, στο χωράφι, με τον παραγωγό σας.» |
+| Ομάδες WhatsApp | «Το WhatsApp είναι εξαιρετικό για μηνύματα. Το AgroTrack θυμάται τι έγινε στην πράξη.» |
+| Βαριά αγροτικά ERP | «Φτιαγμένο για ιδιοκτήτες και παραγωγούς ελιάς, όχι βιομηχανικά αγροκτήματα. Κοστίζει λιγότερο, μαθαίνεται πιο γρήγορα.» |
+| Γενικά εργαλεία έργου | «Καταλαβαίνουμε τους κύκλους καλλιέργειας. Το Trello όχι.» |
 
-## Open Questions
+## Ανοιχτές ερωτήσεις
 
-- Do we lean harder on the "shared owner-producer" framing or the "lifecycle" framing?
-- Is "shared workspace" the right phrase or is "shared notebook" friendlier?
+- Ενισχύουμε περισσότερο το πλαίσιο «κοινός ιδιοκτήτης-παραγωγός» ή το πλαίσιο «κύκλος ζωής»;
+- Είναι η φράση «κοινός χώρος εργασίας» η σωστή ή το «κοινό σημειωματάριο» είναι πιο φιλικό;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Test the positioning statement in 5 interviews
-- Lock the public version on the landing page
+- Δοκιμή της δήλωσης brand positioning σε 5 συνεντεύξεις
+- Κλείδωμα της δημόσιας έκδοσης στο landing page

@@ -1,39 +1,39 @@
-# Customer Feedback
+# Ανατροφοδότηση Πελατών
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A running log of feedback from pilots and demos. Different from interview notes — this is feedback on the actual product.
+Συνεχής καταγραφή ανατροφοδότησης από πιλοτικά και demos. Διαφέρει από τις σημειώσεις interview — εδώ είναι ανατροφοδότηση για το πραγματικό προϊόν.
 
-## How to use
+## Πώς να χρησιμοποιήσετε
 
-- Add new entries at the top.
-- Tag each entry with: source (pilot / demo / email / call), persona, severity (low / medium / high), and category (UX / feature / bug / pricing / process).
-- Convert important items into Product Backlog Items in Azure Boards.
+- Προσθέτετε νέες καταχωρήσεις στην κορυφή.
+- Ετικετάρετε κάθε καταχώρηση με: πηγή (πιλοτικό / demo / email / κλήση), persona, σοβαρότητα (χαμηλή / μέτρια / υψηλή) και κατηγορία (UX / λειτουργία / σφάλμα / τιμολόγηση / διαδικασία).
+- Μετατρέπετε σημαντικά στοιχεία σε Product Backlog Items στο Azure Boards.
 
-## Feedback log
+## Καταγραφή ανατροφοδότησης
 
-| Date | Source | Persona | Category | Severity | Feedback | Linked work item |
+| Ημερομηνία | Πηγή | Persona | Κατηγορία | Σοβαρότητα | Ανατροφοδότηση | Συνδεδεμένο work item |
 |---|---|---|---|---|---|---|
 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 
-## Themes (refresh monthly)
+## Θέματα (ανανέωση μηνιαία)
 
-- Theme 1: TBD
-- Theme 2: TBD
-- Theme 3: TBD
+- Θέμα 1: TBD
+- Θέμα 2: TBD
+- Θέμα 3: TBD
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- How do we ensure feedback doesn't sit unactioned?
-- Do we expose a feedback link inside the product?
+- Πώς εξασφαλίζουμε ότι η ανατροφοδότηση δεν μένει χωρίς ενέργεια;
+- Εκθέτουμε σύνδεσμο ανατροφοδότησης μέσα στο προϊόν;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Capture feedback from the first 3 demos
-- Add a "Send feedback" link in the product once MVP is live
+- Καταγραφή ανατροφοδότησης από τα πρώτα 3 demos
+- Προσθήκη συνδέσμου «Αποστολή ανατροφοδότησης» στο προϊόν μόλις το MVP είναι live

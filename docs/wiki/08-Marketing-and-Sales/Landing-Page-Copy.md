@@ -1,105 +1,105 @@
-# Landing Page Copy
+# Αντίγραφο landing page
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The first version of copy for the AgroTrack landing page. This is a starting point — we test variations once the page is live.
-
----
-
-## Hero section
-
-**Headline:**
-Run your olive fields together.
-
-**Subheadline:**
-AgroTrack is the shared workspace for olive owners and producers. Plan crop cycles, track tasks, log activity, and see real costs — all in one place, on any phone.
-
-**Primary call to action:**
-Start free
-
-**Secondary call to action:**
-See how it works
+Η πρώτη έκδοση αντίγραφου για το landing page του AgroTrack. Είναι σημείο εκκίνησης — δοκιμάζουμε παραλλαγές μόλις η σελίδα είναι live.
 
 ---
 
-## Section 1 — What it does
+## Ενότητα hero
 
-**Title:** Everything on your fields, in one place
+**Τίτλος:**
+Διαχειριστείτε μαζί τα ελαιοκτήματά σας.
 
-| Capability | One-line description |
+**Υπότιτλος:**
+Το AgroTrack είναι ο κοινός χώρος εργασίας για ιδιοκτήτες και παραγωγούς ελιάς. Σχεδιάστε κύκλους καλλιέργειας, παρακολουθήστε εργασίες, καταγράψτε δραστηριότητα και δείτε πραγματικά κόστη — όλα σε ένα μέρος, σε οποιοδήποτε κινητό.
+
+**Κύρια πρόσκληση για δράση:**
+Ξεκινήστε δωρεάν
+
+**Δευτερεύουσα πρόσκληση για δράση:**
+Δείτε πώς λειτουργεί
+
+---
+
+## Ενότητα 1 — Τι κάνει
+
+**Τίτλος:** Όλα στα χωράφια σας, σε ένα μέρος
+
+| Δυνατότητα | Περιγραφή μίας γραμμής |
 |---|---|
-| Fields | Add every field with its size, crop and details. |
-| Crop cycles | Follow each cycle from planting to harvest. |
-| Lifecycle stages | Always know what stage every field is in. |
-| Tasks | Plan and assign the work that needs doing. |
-| Activity | Log what was done in 30 seconds, from the field. |
-| Costs | See what each field really costs you. |
+| Χωράφια | Προσθέστε κάθε χωράφι με μέγεθος, καλλιέργεια και λεπτομέρειες. |
+| Κύκλοι καλλιέργειας | Ακολουθήστε κάθε κύκλο από τη φύτευση μέχρι τη συγκομιδή. |
+| Στάδια κύκλου ζωής | Ξέρετε πάντα σε ποιο στάδιο βρίσκεται κάθε χωράφι. |
+| Εργασίες | Σχεδιάστε και αναθέστε τη δουλειά που πρέπει να γίνει. |
+| Δραστηριότητα | Καταγράψτε τι έγινε σε 30 δευτερόλεπτα, από το χωράφι. |
+| Κόστη | Δείτε τι σας κοστίζει πραγματικά κάθε χωράφι. |
 
 ---
 
-## Section 2 — Who it is for
+## Ενότητα 2 — Για ποιους είναι
 
-**Title:** Built for owners and producers — together
+**Τίτλος:** Φτιαγμένο για ιδιοκτήτες και παραγωγούς — μαζί
 
-- **Owners**: Know what's happening without being there.
-- **Producers**: Less explaining, more doing.
-- **Family and admins**: One place for fields, costs and people.
-
----
-
-## Section 3 — How it works (3 steps)
-
-1. **Add your fields.** Name, size, crop. That's enough to start.
-2. **Start a crop cycle.** AgroTrack follows it through every stage.
-3. **Work together.** Owners, producers and family see the same reality, on any phone.
+- **Ιδιοκτήτες**: Ξέρετε τι συμβαίνει χωρίς να είστε εκεί.
+- **Παραγωγοί**: Λιγότερες εξηγήσεις, περισσότερη δουλειά.
+- **Οικογένεια και διαχειριστές**: Ένα μέρος για χωράφια, κόστη και ανθρώπους.
 
 ---
 
-## Section 4 — Why now
+## Ενότητα 3 — Πώς λειτουργεί (3 βήματα)
 
-- Climate makes timing critical.
-- Costs are rising.
-- Memory and notebooks aren't enough anymore.
-- AgroTrack remembers, so you don't have to.
-
----
-
-## Section 5 — Pricing teaser
-
-**Title:** Simple pricing
-
-- Free for your first fields.
-- Paid plans starting at €X / month.
-- Cancel anytime.
-
-[Link to pricing details]
+1. **Προσθέστε τα χωράφια σας.** Όνομα, μέγεθος, καλλιέργεια. Αρκεί για να ξεκινήσετε.
+2. **Ξεκινήστε κύκλο καλλιέργειας.** Το AgroTrack τον ακολουθεί σε κάθε στάδιο.
+3. **Δουλέψτε μαζί.** Ιδιοκτήτες, παραγωγοί και οικογένεια βλέπουν την ίδια πραγματικότητα, σε οποιοδήποτε κινητό.
 
 ---
 
-## Section 6 — Final CTA
+## Ενότητα 4 — Γιατί τώρα
 
-**Title:** Run your fields the modern way.
-**Button:** Start free
+- Το κλίμα κάνει τον χρόνο κρίσιμο.
+- Τα κόστη αυξάνονται.
+- Η μνήμη και τα σημειωματάρια δεν αρκούν πια.
+- Το AgroTrack θυμάται, ώστε εσείς να μην χρειάζεται.
 
 ---
 
-## What we deliberately don't put on the page
+## Ενότητα 5 — Ενδεικτική τιμολόγηση
 
-- AI buzzwords.
-- Stock photos of red tractors.
-- Long testimonials before we have real ones.
-- Logos of partners we don't have yet.
+**Τίτλος:** Απλή τιμολόγηση
 
-## Open Questions
+- Δωρεάν για τα πρώτα σας χωράφια.
+- Πληρωμένα πακέτα από €X / μήνα.
+- Ακύρωση ανά πάσα στιγμή.
 
-- Do we lead with "olive" or with "agriculture" on the public page?
-- Hero CTA: "Start free" or "Book a demo"?
+[Σύνδεσμος για λεπτομέρειες τιμολόγησης]
 
-## Next Actions
+---
 
-- Publish v1 of the page in the first language we target
-- A/B test the hero headline after the first 100 visitors
+## Ενότητα 6 — Τελική CTA
+
+**Τίτλος:** Διαχειριστείτε τα χωράφια σας με σύγχρονο τρόπο.
+**Κουμπί:** Ξεκινήστε δωρεάν
+
+---
+
+## Τι σκόπιτα ΔΕΝ βάζουμε στη σελίδα
+
+- Buzzwords για AI.
+- Stock φωτογραφίες κόκκινων τρακτέρ.
+- Μακριές μαρτυρίες πριν έχουμε πραγματικές.
+- Λογότυπα συνεργατών που δεν έχουμε ακόμα.
+
+## Ανοιχτές ερωτήσεις
+
+- Προβάλλουμε «ελιά» ή «γεωργία» στη δημόσια σελίδα;
+- Hero CTA: «Ξεκινήστε δωρεάν» ή «Κλείστε demo»;
+
+## Επόμενες ενέργειες
+
+- Δημοσίευση v1 της σελίδας στην πρώτη γλώσσα-στόχο
+- A/B test του hero τίτλου μετά τους πρώτους 100 επισκέπτες

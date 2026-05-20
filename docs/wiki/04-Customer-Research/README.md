@@ -1,18 +1,18 @@
-# 04 Customer Research
+# 04 Έρευνα Πελατών
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ενεργή ενότητα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we listen to customers and what we have learned. Every assumption in the business is tested through interviews and pilots — this section holds the plan, the questions, the notes and the findings.
+Πώς ακούμε τους πελάτες και τι έχουμε μάθει. Κάθε hypothesis στην επιχείρηση δοκιμάζεται μέσω interview και πιλοτικών προγραμμάτων — αυτή η ενότητα περιέχει το σχέδιο, τις ερωτήσεις, τις σημειώσεις και τα ευρήματα.
 
-## Pages in this section
+## Σελίδες σε αυτή την ενότητα
 
-- [Research Plan](./Research-Plan.md) — how we run customer research
-- [Interview Questions](./Interview-Questions.md) — the full guide for customer interviews
-- [Interview Notes](./Interview-Notes.md) — log of completed interviews
-- [Pain Points](./Pain-Points.md) — consolidated list with frequency and quotes
-- [Validation Findings](./Validation-Findings.md) — what we have confirmed or killed
-- [Customer Feedback](./Customer-Feedback.md) — feedback from demos and pilots
+- [Research Plan](./Research-Plan.md) — πώς διεξάγουμε customer research
+- [Interview Questions](./Interview-Questions.md) — ο πλήρης οδηγός για customer interview
+- [Interview Notes](./Interview-Notes.md) — καταγραφή ολοκληρωμένων interview
+- [Pain Points](./Pain-Points.md) — ενοποιημένη λίστα με συχνότητα και παραθέματα
+- [Validation Findings](./Validation-Findings.md) — τι έχουμε επιβεβαιώσει ή απορρίψει
+- [Customer Feedback](./Customer-Feedback.md) — ανατροφοδότηση από demos και πιλοτικά

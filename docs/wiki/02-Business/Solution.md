@@ -1,58 +1,58 @@
-# Solution
+# Λύση
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack solves the problem in [Problem Statement](./Problem-Statement.md). Plain language, no engineering detail.
+Πώς το AgroTrack λύνει το πρόβλημα στο [Problem Statement](./Problem-Statement.md). Απλή γλώσσα, χωρίς τεχνικές λεπτομέρειες.
 
-## What AgroTrack does
+## Τι κάνει το AgroTrack
 
-A single platform — web and mobile — where:
+Μία ενιαία πλατφόρμα — web και mobile — όπου:
 
-- **Fields** are listed once and never lost.
-- **Crop cycles** turn each season into a clear plan with stages.
-- **Tasks** make the work visible and assignable.
-- **Activity** is logged from the field, on a phone, in seconds.
-- **Costs** are recorded next to the work that caused them.
-- **Owners and producers** see the same reality, in real time.
+- Τα **αγροτεμάχια** καταχωρούνται μία φορά και δεν χάνονται.
+- Οι **κύκλοι καλλιέργειας** μετατρέπουν κάθε σεζόν σε σαφές σχέδιο με στάδια.
+- Οι **εργασίες** κάνουν τη δουλειά ορατή και αναθέσιμη.
+- Η **δραστηριότητα** καταγράφεται από το χωράφι, στο τηλέφωνο, σε δευτερόλεπτα.
+- Τα **κόστη** καταγράφονται δίπλα στη δουλειά που τα προκάλεσε.
+- **Ιδιοκτήτες και παραγωγοί** βλέπουν την ίδια πραγματικότητα, σε πραγματικό χρόνο.
 
-## How it solves each pain
+## Πώς λύνει κάθε πόνο
 
-| Pain | How AgroTrack helps |
+| Πόνος | Πώς βοηθά το AgroTrack |
 |---|---|
-| No shared view between owner and producer | Both have access to the same field, same tasks, same activity feed. |
-| No reliable history | Every action on every field is timestamped and searchable. |
-| Tasks fall through the cracks | Tasks are scheduled, assigned and tracked to completion. |
-| Costs are unclear | Expenses are tied to fields, cycles and tasks for a clean per-field cost. |
-| Reporting is painful | The data needed for reports is already there. |
-| Knowledge walks out the door | History stays with the organisation, not the person. |
-| Tools don't fit | Built around crop cycles, not generic to-dos. |
+| Καμία κοινή εικόνα μεταξύ ιδιοκτήτη και παραγωγού | Και οι δύο έχουν πρόσβαση στο ίδιο αγροτεμάχιο, τις ίδιες εργασίες, το ίδιο feed δραστηριότητας. |
+| Καμία αξιόπιστη ιστορία | Κάθε ενέργεια σε κάθε αγροτεμάχιο έχει χρονική σήμανση και είναι αναζητήσιμη. |
+| Εργασίες που ξεφεύγουν | Οι εργασίες προγραμματίζονται, ανατίθενται και παρακολουθούνται μέχρι ολοκλήρωση. |
+| Ασαφή κόστη | Τα έξοδα συνδέονται με αγροτεμάχια, κύκλους και εργασίες για καθαρό κόστος ανά αγροτεμάχιο. |
+| Επίπονη αναφορά | Τα δεδομένα για αναφορές είναι ήδη εκεί. |
+| Η γνώση φεύγει με τον άνθρωπο | Η ιστορία μένει στον οργανισμό, όχι στο άτομο. |
+| Εργαλεία που δεν ταιριάζουν | Φτιαγμένο γύρω από κύκλους καλλιέργειας, όχι γενικά to-do. |
 
-## What makes the solution different
+## Τι κάνει τη λύση διαφορετική
 
-- **Built for two-sided reality** — owner and producer in one workspace, not just one of them.
-- **Crop lifecycle first** — not a generic task tracker.
-- **Mobile in the field** — designed to be used outside, with one hand, dirty.
-- **Small and useful** — starts with the basics and grows with the customer.
+- **Για δύο πλευρές** — ιδιοκτήτης και παραγωγός σε ένα workspace, όχι μόνο ο ένας.
+- **Κύκλος ζωής καλλιέργειας πρώτα** — όχι γενικός task tracker.
+- **Mobile στο χωράφι** — σχεδιασμένο για χρήση έξω, με ένα χέρι, σε βρώμικα χέρια.
+- **Μικρό και χρήσιμο** — ξεκινά με τα βασικά και μεγαλώνει με τον πελάτη.
 
-## What is NOT in scope (today)
+## Τι ΔΕΝ είναι στο scope (σήμερα)
 
-- Satellite imagery and sensor integration (later)
-- Heavy financial accounting (later)
-- IoT devices, drones, smart irrigation hardware (later)
-- Marketplace, trading, supply chain modules (later)
+- Δορυφορικές εικόνες και ενσωμάτωση αισθητήρων (αργότερα)
+- Βαρύ λογιστικό (αργότερα)
+- IoT, drones, έξυπνη άρδευση (αργότερα)
+- Marketplace, εμπόριο, supply chain (αργότερα)
 
-See [Out of Scope](../03-Product/Out-of-Scope.md) for the full MVP scope discussion.
+Δείτε το [Out of Scope](../03-Product/Out-of-Scope.md) για την πλήρη συζήτηση scope του MVP.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Does the owner-producer "shared workspace" framing resonate in interviews?
-- Is the lifecycle model strong enough to feel different from a to-do app?
+- Το framing «κοινό workspace ιδιοκτήτη-παραγωγού» αντηχεί σε interview;
+- Το μοντέλο κύκλου ζωής είναι αρκετά δυνατό για να φαίνεται διαφορετικό από εφαρμογή to-do;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Validate the framing with at least 5 customer interviews
-- Draft the demo flow that shows owner + producer side-by-side
+- Επικυρώστε το framing με τουλάχιστον 5 customer interview
+- Σχεδιάστε τη ροή demo που δείχνει ιδιοκτήτη + παραγωγό δίπλα-δίπλα

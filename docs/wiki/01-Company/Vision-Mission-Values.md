@@ -1,44 +1,44 @@
-# Vision, Mission and Values
+# Όραμα, αποστολή και αξίες
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Προσχέδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The long-term direction and the principles we hold each other to.
+Η μακροπρόθεσμη κατεύθυνση και οι αρχές που ζητάμε ο ένας από τον άλλον.
 
-## Vision
+## Όραμα
 
-A world where every field — no matter how small — is managed with the clarity, accountability and shared visibility of a modern business.
+Ένας κόσμος όπου κάθε αγροτεμάχιο — όσο μικρό κι αν είναι — διαχειρίζεται με τη σαφήνεια, την λογοδοσία και την κοινή ορατότητα μιας σύγχρονης επιχείρησης.
 
-## Mission
+## Αποστολή
 
-Give field owners, producers and agronomists a single, simple platform to plan, run and review every crop cycle together.
+Να δίνουμε σε ιδιοκτήτες αγροτεμαχίων, παραγωγούς και αγρονόμους μια απλή, ενιαία platform για να σχεδιάζουν, εκτελούν και αξιολογούν κάθε κύκλο καλλιέργειας μαζί.
 
-## Values
+## Αξίες
 
-| Value | What it means in practice |
+| Αξία | Τι σημαίνει στην πράξη |
 |---|---|
-| **Customer truth** | Decisions are based on what real customers say and do, not opinions in the room. |
-| **Small and useful** | We ship the smallest version that creates real value, then expand. |
-| **Shared reality** | One source of truth — for the team, the product, and our customers. |
-| **Move fast, write it down** | Speed without memory is chaos. We capture decisions and learnings. |
-| **Respect the land and the people** | Our customers do hard, important work. We don't waste their time. |
-| **Honest about risk** | We name risks early and openly. |
+| **Αλήθεια πελάτη** | Οι αποφάσεις βασίζονται σε αυτό που λένε και κάνουν οι πραγματικοί πελάτες, όχι σε απόψεις στο δωμάτιο. |
+| **Μικρό και χρήσιμο** | Παραδίδουμε την μικρότερη έκδοση που δημιουργεί πραγματική αξία, μετά επεκτείνουμε. |
+| **Κοινή πραγματικότητα** | Μία πηγή αλήθειας — για την ομάδα, το προϊόν και τους πελάτες μας. |
+| **Γρήγορα, με καταγραφή** | Η ταχύτητα χωρίς μνήμη είναι χάος. Καταγράφουμε αποφάσεις και μαθήματα. |
+| **Σεβασμός στη γη και στους ανθρώπους** | Οι πελάτες μας κάνουν σκληρή, σημαντική δουλειά. Δεν τους σπαταλάμε τον χρόνο. |
+| **Ειλικρίνεια για τον κίνδυνο** | Ονομάζουμε τους κινδύνους νωρίς και ανοιχτά. |
 
-## What we will not do
+## Τι δεν θα κάνουμε
 
-- We will not chase features no customer has asked for.
-- We will not over-engineer before we have product-market fit.
-- We will not promise what we cannot deliver.
+- Δεν θα κυνηγάμε λειτουργίες που κανένας πελάτης δεν ζήτησε.
+- Δεν θα υπερ-σχεδιάζουμε πριν έχουμε product-market fit.
+- Δεν θα υποσχόμαστε ό,τι δεν μπορούμε να παραδώσουμε.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we have a sixth value missing? (e.g. sustainability, transparency)
-- How do we test that these values hold under pressure?
+- Λείπει μια έκτη αξία; (π.χ. βιωσιμότητα, διαφάνεια)
+- Πώς ελέγχουμε ότι αυτές οι αξίες ισχύουν υπό πίεση;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Review values with the full team and commit
-- Add a section to onboarding that walks through these values
+- Ανασκόπηση αξιών με όλη την ομάδα και δέσμευση
+- Προσθήκη ενότητας στο onboarding που παρουσιάζει αυτές τις αξίες

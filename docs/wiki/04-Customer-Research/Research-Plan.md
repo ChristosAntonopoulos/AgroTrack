@@ -1,76 +1,76 @@
-# Research Plan
+# Σχέδιο Έρευνας
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we run customer research to validate the AgroTrack opportunity.
+Πώς διεξάγουμε customer research για validation της ευκαιρίας AgroTrack.
 
-## Goals
+## Στόχοι
 
-By the end of the first research round, we want to be able to answer:
+Μέχρι το τέλος του πρώτου γύρου έρευνας, θέλουμε να μπορούμε να απαντήσουμε:
 
-1. Is the problem real and acute for olive owners and producers?
-2. How do they manage fields, lifecycle, tasks and costs today?
-3. What do they spend (money, time, frustration) on the workarounds?
-4. Would they pilot AgroTrack? Would they pay for it?
-5. Is olive the right beachhead?
+1. Είναι το πρόβλημα πραγματικό και οξύ για ιδιοκτήτες και παραγωγούς ελιάς;
+2. Πώς διαχειρίζονται σήμερα αγροτεμάχια, κύκλο ζωής, εργασίες και κόστη;
+3. Τι ξοδεύουν (χρήματα, χρόνο, απογοήτευση) σε προσωρινές λύσεις;
+4. Θα έκαναν πιλοτικό AgroTrack; Θα πλήρωναν για αυτό;
+5. Είναι η ελιά το σωστό beachhead;
 
-## Target
+## Στόχος
 
-| Persona | Target interviews (first round) |
+| Persona | Στόχος interview (πρώτος γύρος) |
 |---|---|
-| Owner | 5 |
-| Producer | 5 |
-| Owner + Producer pair | 2-3 if possible |
-| Agronomist | 2 (light-touch) |
+| Ιδιοκτήτης | 5 |
+| Παραγωγός | 5 |
+| Ζεύγος Ιδιοκτήτης + Παραγωγού | 2-3 αν είναι δυνατό |
+| Γεωπόνος | 2 (ελαφριά επαφή) |
 
-## Channels for recruitment
+## Κανάλια προσέλκυσης
 
-- Founders' personal networks
-- Olive co-ops and producer associations
-- Agronomist intros
-- Posts in farmer-focused Facebook / Telegram groups
-- Direct outreach via LinkedIn for owners with public profiles
+- Προσωπικά δίκτυα των ιδρυτών
+- Συνεταιρισμοί ελιάς και σωματεία παραγωγών
+- Συστάσεις από γεωπόνους
+- Δημοσιεύσεις σε ομάδες Facebook / Telegram που απευθύνονται σε αγρότες
+- Άμεση επικοινωνία μέσω LinkedIn με ιδιοκτήτες που έχουν δημόσιο προφίλ
 
-## Format
+## Μορφή
 
-- 30–45 minutes per interview
-- Video call preferred; phone or in-person acceptable
-- One interviewer, one note-taker where possible
-- Use the [Customer Interview Template](../11-Templates/Customer-Interview-Template.md) for notes
-- Use the [Interview Questions](./Interview-Questions.md) as a guide, not a script
+- 30–45 λεπτά ανά interview
+- Προτιμάται βιντεοκλήση· τηλέφωνο ή δια ζώσης επίσης αποδεκτά
+- Ένας interviewer, ένας note-taker όπου είναι δυνατό
+- Χρησιμοποιήστε το [Customer Interview Template](../11-Templates/Customer-Interview-Template.md) για σημειώσεις
+- Χρησιμοποιήστε τις [Interview Questions](./Interview-Questions.md) ως οδηγό, όχι ως σενάριο
 
-## Ethics and incentives
+## Ηθική και κίνητρα
 
-- Always state the conversation is for product research.
-- Be honest: we are early, no product yet, we want to learn.
-- Optional: small thank-you (coffee voucher, sample, donation to a local cause). Avoid cash incentives that can bias answers.
-- Do not ask for personal data we don't need.
+- Δηλώνετε πάντα ότι η συζήτηση είναι για έρευνα προϊόντος.
+- Είστε ειλικρινείς: είμαστε σε πρώιμο στάδιο, δεν υπάρχει ακόμα προϊόν, θέλουμε να μάθουμε.
+- Προαιρετικά: μικρή ευχαριστία (κουπόνι καφέ, δείγμα, δωρεά σε τοπικό σκοπό). Αποφύγετε μετρητά κίνητρα που μπορεί να μεροληπήσουν τις απαντήσεις.
+- Μην ζητάτε προσωπικά δεδομένα που δεν χρειαζόμαστε.
 
-## Cadence
+## Ρυθμός
 
-- Aim for 2–4 interviews per week during the validation phase.
-- Synthesise after every 5 interviews.
+- Στόχος 2–4 interview την εβδομάδα κατά τη φάση validation.
+- Σύνθεση ευρημάτων μετά από κάθε 5 interview.
 
-## Synthesis process
+## Διαδικασία σύνθεσης
 
-After each batch of 5 interviews:
+Μετά από κάθε ομάδα 5 interview:
 
-1. Re-read all notes.
-2. Update [Pain Points](./Pain-Points.md) with new themes and frequencies.
-3. Update [Validation Findings](./Validation-Findings.md) with what was confirmed / killed.
-4. Update [Decision Log](../01-Company/Decision-Log.md) if any major decision is now obvious.
-5. Adjust the interview guide for the next batch.
+1. Ξαναδιαβάστε όλες τις σημειώσεις.
+2. Ενημερώστε τα [Pain Points](./Pain-Points.md) με νέα θέματα και συχνότητες.
+3. Ενημερώστε τα [Validation Findings](./Validation-Findings.md) με ό,τι επιβεβαιώθηκε / απορρίφθηκε.
+4. Ενημερώστε το [Decision Log](../01-Company/Decision-Log.md) αν κάποια σημαντική απόφαση είναι πλέον προφανής.
+5. Προσαρμόστε τον οδηγό interview για την επόμενη ομάδα.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- How do we get good cross-country variety in the first 10 interviews?
-- Should we also interview agronomists in round 1 or wait?
+- Πώς εξασφαλίζουμε καλή ποικιλία χωρών στα πρώτα 10 interview;
+- Να συνεντευξιάσουμε και γεωπόνους στον γύρο 1 ή να περιμένουμε;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Build the shortlist of 15 potential interviewees this week
-- Book the first 5 interviews
+- Φτιάξτε τη shortlist 15 πιθανών συνεντευξιαζόμενων αυτή την εβδομάδα
+- Κλείστε τα πρώτα 5 interview

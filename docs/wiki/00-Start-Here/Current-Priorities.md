@@ -1,39 +1,39 @@
-# Current Priorities
+# Τρέχουσες προτεραιότητες
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What the team is focused on right now. This page should never be more than three priorities deep.
+Σε τι εστιάζει η ομάδα αυτή τη στιγμή. Αυτή η σελίδα δεν πρέπει ποτέ να έχει περισσότερες από τρεις προτεραιότητες.
 
-## Top three priorities this phase
+## Οι τρεις κορυφαίες προτεραιότητες αυτής της φάσης
 
-1. **Validate the problem** with real customers — at least 10 interviews completed and synthesised.
-2. **Define the MVP** — must-have features locked in, with clear acceptance criteria.
-3. **Set up the way we work** — Scrum process, Azure Boards, this wiki, Sprint 0 plan ready.
+1. **validation του προβλήματος** με πραγματικούς πελάτες — τουλάχιστον 10 συνεντεύξεις ολοκληρωμένες και συνθετικοποιημένες.
+2. **Ορισμός του MVP** — απαραίτητα χαρακτηριστικά κλειδωμένα, με σαφή κριτήρια αποδοχής.
+3. **Ρύθμιση του τρόπου που δουλεύουμε** — διαδικασία Scrum, Azure Boards, αυτό το wiki, σχέδιο Sprint 0 έτοιμο.
 
-## Out of scope right now
+## Εκτός εύρους αυτή τη στιγμή
 
-- Heavy technical investment beyond a working demo
-- Multi-crop expansion (we focus on olives first)
-- Marketing site, paid acquisition, partnerships at scale
-- Mobile native polish (a basic mobile experience is enough for now)
+- Βαρύ τεχνικό επενδυτικό πέρα από ένα λειτουργικό demo
+- Επέκταση σε πολλές καλλιέργειες (εστιάζουμε πρώτα στις ελιές)
+- Ιστοσελίδα marketing, πληρωμένη απόκτηση, συνεργασίες σε κλίμακα
+- Εξειδίκευση native mobile (μια βασική εμπειρία mobile αρκεί προς το παρόν)
 
-## How priorities change
+## Πώς αλλάζουν οι προτεραιότητες
 
-- Reviewed at every sprint review.
-- The team votes on changes; founders have the final call.
-- Decisions are recorded in `01 Company/Decision Log.md`.
+- Ανασκόπηση σε κάθε sprint review.
+- Η ομάδα ψηφίζει αλλαγές· οι ιδρυτές έχουν την τελική απόφαση.
+- Οι αποφάσεις καταγράφονται στο `01 Company/Decision Log.md`.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we have the right people doing the right thing this sprint?
-- What would we cut if a priority slips by a week?
+- Έχουμε τους σωστούς ανθρώπους να κάνουν το σωστό πράγμα αυτό το Sprint;
+- Τι θα κόβαμε αν μια προτεραιότητα καθυστερήσει μια εβδομάδα;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm interview targets per persona by end of week
-- Confirm MVP scope at next team review
-- Publish Sprint 0 plan and start it
+- Επιβεβαίωση στόχων συνεντεύξεων ανά persona μέχρι το τέλος της εβδομάδας
+- Επιβεβαίωση εύρους MVP στην επόμενη ομαδική ανασκόπηση
+- Δημοσίευση σχεδίου Sprint 0 και έναρξη

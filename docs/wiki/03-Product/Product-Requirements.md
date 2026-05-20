@@ -1,80 +1,80 @@
-# Product Requirements
+# Απαιτήσεις προϊόντος
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Functional requirements for the MVP, written in plain language. Detailed acceptance criteria live in Product Backlog Items inside Azure Boards.
+Λειτουργικές απαιτήσεις για το MVP, με απλά λόγια. Λεπτομερή acceptance criteria βρίσκονται σε Product Backlog Items μέσα στο Azure Boards.
 
-## Accounts and organisations
+## Λογαριασμοί και οργανισμοί
 
-- A user can register with email and password.
-- A user can log in and out.
-- A user can create an organisation.
-- An organisation has a name, country and base crop type.
-- A user can belong to multiple organisations.
-- An admin can invite other users to an organisation.
-- Each member has a role: owner, producer or admin.
+- Ένας χρήστης μπορεί να εγγραφεί με email και κωδικό.
+- Ένας χρήστης μπορεί να συνδεθεί και να αποσυνδεθεί.
+- Ένας χρήστης μπορεί να δημιουργήσει οργανισμό.
+- Ένας οργανισμός έχει όνομα, χώρα και βασικό τύπο καλλιέργειας.
+- Ένας χρήστης μπορεί να ανήκει σε πολλούς οργανισμούς.
+- Ένας admin μπορεί να προσκαλέσει άλλους χρήστες σε οργανισμό.
+- Κάθε μέλος έχει ρόλο: owner, producer ή admin.
 
-## Fields
+## Χωράφια
 
-- A user can create a field with name, size, optional location, and crop.
-- A field belongs to exactly one organisation.
-- A user can edit a field.
-- A user can archive a field (not delete) to keep history.
-- A field shows: current crop cycle, current lifecycle stage, recent tasks, recent activity.
+- Ένας χρήστης μπορεί να δημιουργήσει χωράφι με όνομα, μέγεθος, προαιρετική τοποθεσία και καλλιέργεια.
+- Ένα χωράφι ανήκει σε ακριβώς έναν οργανισμό.
+- Ένας χρήστης μπορεί να επεξεργαστεί χωράφι.
+- Ένας χρήστης μπορεί να αρχειοθετήσει χωράφι (όχι διαγραφή) για διατήρηση ιστορικού.
+- Ένα χωράφι δείχνει: τρέχοντα κύκλο καλλιέργειας, τρέχον στάδιο κύκλου ζωής, πρόσφατες εργασίες, πρόσφατη δραστηριότητα.
 
-## Crop cycles
+## Κύκλοι καλλιέργειας
 
-- A user can start a crop cycle on a field.
-- A crop cycle has a planned start date and expected end date.
-- A crop cycle has lifecycle stages (e.g. olive: dormant → bud break → flowering → fruit set → harvest).
-- A user can move to the next or previous stage.
-- A user can close a crop cycle when the season ends.
-- A field can have one active cycle at a time; previous cycles are kept as history.
+- Ένας χρήστης μπορεί να ξεκινήσει κύκλο καλλιέργειας σε χωράφι.
+- Ένας κύκλος καλλιέργειας έχει προγραμματισμένη ημερομηνία έναρξης και αναμενόμενη ημερομηνία λήξης.
+- Ένας κύκλος καλλιέργειας έχει στάδια κύκλου ζωής (π.χ. ελιά: αδράνεια → έκρηξη οφθαλμού → άνθηση → δέσμευση καρπού → τρύγος).
+- Ένας χρήστης μπορεί να μεταβεί στο επόμενο ή προηγούμενο στάδιο.
+- Ένας χρήστης μπορεί να κλείσει κύκλο καλλιέργειας όταν τελειώνει η σεζόν.
+- Ένα χωράφι μπορεί να έχει έναν ενεργό κύκλο κάθε φορά· προηγούμενοι κύκλοι διατηρούνται ως ιστορικό.
 
-## Tasks
+## Εργασίες
 
-- A user can create a task on a field, optionally tied to a cycle or stage.
-- A task has: title, description, status (planned, in progress, done), assignee, due date.
-- A user can update a task's status.
-- Tasks are listed per field and per organisation.
+- Ένας χρήστης μπορεί να δημιουργήσει εργασία σε χωράφι, προαιρετικά συνδεδεμένη με κύκλο ή στάδιο.
+- Μια εργασία έχει: τίτλο, περιγραφή, κατάσταση (προγραμματισμένη, σε εξέλιξη, ολοκληρωμένη), υπεύθυνο, ημερομηνία λήξης.
+- Ένας χρήστης μπορεί να ενημερώσει την κατάσταση εργασίας.
+- Οι εργασίες καταχωρούνται ανά χωράφι και ανά οργανισμό.
 
-## Activity / notes
+## Δραστηριότητα / σημειώσεις
 
-- A user can log an activity on a field with a short description and timestamp.
-- Activities form a timeline per field.
-- A user can add a free-text note on a field, cycle or activity.
+- Ένας χρήστης μπορεί να καταγράψει δραστηριότητα σε χωράφι με σύντομη περιγραφή και χρονική σήμανση.
+- Οι δραστηριότητες σχηματίζουν χρονολόγιο ανά χωράφι.
+- Ένας χρήστης μπορεί να προσθέσει ελεύθερη σημείωση σε χωράφι, κύκλο ή δραστηριότητα.
 
-## Expenses
+## Έξοδα
 
-- A user can record an expense with amount, currency, description, against a field, cycle or task.
-- A user can see total cost per field and per cycle.
+- Ένας χρήστης μπορεί να καταγράψει έξοδο με ποσό, νόμισμα, περιγραφή, σε χωράφι, κύκλο ή εργασία.
+- Ένας χρήστης μπορεί να δει συνολικό κόστος ανά χωράφι και ανά κύκλο.
 
 ## Dashboard
 
-- Logged-in users see a dashboard listing their fields and current lifecycle stages.
-- The dashboard shows open tasks for the user.
-- The dashboard shows recent activity across fields.
+- Συνδεδεμένοι χρήστες βλέπουν dashboard με χωράφια και τρέχοντα στάδια κύκλου ζωής.
+- Το dashboard δείχνει ανοιχτές εργασίες για τον χρήστη.
+- Το dashboard δείχνει πρόσφατη δραστηριότητα σε όλα τα χωράφια.
 
-## Permissions (MVP-level)
+## Δικαιώματα (επίπεδο MVP)
 
-- Owner: full access within the organisation.
-- Producer: can view fields, log activity, manage tasks; cannot manage users or pricing.
-- Admin: can invite/remove members and edit organisation settings.
+- Owner: πλήρης πρόσβαση εντός οργανισμού.
+- Producer: μπορεί να δει χωράφια, να καταγράψει δραστηριότητα, να διαχειριστεί εργασίες· δεν μπορεί να διαχειριστεί χρήστες ή τιμολόγηση.
+- Admin: μπορεί να προσκαλέσει/αφαιρέσει μέλη και να επεξεργαστεί ρυθμίσεις οργανισμού.
 
-## Out of scope for MVP
+## Out of scope για το MVP
 
-See [Out of Scope](./Out-of-Scope.md).
+Βλ. [Out of scope](./Out-of-Scope.md).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Are lifecycle stages fixed per crop, or user-configurable?
-- Should expenses support categories in MVP?
+- Τα στάδια κύκλου ζωής είναι σταθερά ανά καλλιέργεια ή ρυθμίζονται από τον χρήστη;
+- Τα έξοδα πρέπει να υποστηρίζουν κατηγορίες στο MVP;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Convert each section above into Epics and PBIs in Azure Boards
-- Add Given/When/Then acceptance criteria per PBI (see [Work Item Structure](../06-Scrum-and-Delivery/Work-Item-Structure.md))
+- Μετατροπή κάθε ενότητας παραπάνω σε Epics και PBIs στο Azure Boards
+- Προσθήκη acceptance criteria Given/When/Then ανά PBI (βλ. [Δομή work items](../06-Scrum-and-Delivery/Work-Item-Structure.md))

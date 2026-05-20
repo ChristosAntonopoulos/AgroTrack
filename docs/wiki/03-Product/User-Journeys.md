@@ -1,75 +1,75 @@
-# User Journeys
+# Διαδρομές χρηστών
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The main flows our users follow. These are not screen-by-screen flows — they are the human story end-to-end.
+Οι κύριες ροές που ακολουθούν οι χρήστες μας. Δεν είναι ροές οθόνη-προς-οθόνη — είναι η ανθρώπινη ιστορία από άκρο σε άκρο.
 
-## Journey 1 — New owner sets up their first field
+## Διαδρομή 1 — Νέα owner ρυθμίζει το πρώτο της χωράφι
 
-1. Maria hears about AgroTrack from another owner.
-2. She signs up, creates her organisation "Family Olives".
-3. She adds her first field: name, approximate size, location, crop = Olive.
-4. She starts a crop cycle for the current season.
-5. The platform shows her the lifecycle stages for olive.
-6. She invites her producer Yiannis.
+1. Η Μαρία μαθαίνει για το AgroTrack από άλλη owner.
+2. Εγγράφεται, δημιουργεί τον οργανισμό της «Family Olives».
+3. Προσθέτει το πρώτο της χωράφι: όνομα, κατά προσέγγιση μέγεθος, τοποθεσία, καλλιέργεια = Ελιά.
+4. Ξεκινά κύκλο καλλιέργειας για την τρέχουσα σεζόν.
+5. Η πλατφόρμα της δείχνει τα στάδια κύκλου ζωής για ελιά.
+6. Προσκαλεί τον παραγωγό της Γιάννη.
 
-**Success:** A field exists, a cycle exists, the producer is invited — all in under 5 minutes.
+**Επιτυχία:** Υπάρχει χωράφι, υπάρχει κύκλος, ο παραγωγός προσκλήθηκε — όλα σε λιγότερο από 5 λεπτά.
 
-## Journey 2 — Producer logs work from the field
+## Διαδρομή 2 — Producer καταγράφει δουλειά από το χωράφι
 
-1. Yiannis finishes irrigating field "Lower Grove".
-2. On his phone, he opens AgroTrack.
-3. Selects the field, adds an activity: "Irrigated, 4 hours".
-4. Optionally adds a short note.
-5. Marks the related task as done if one existed.
+1. Ο Γιάννης τελειώνει το πότισμα στο χωράφι «Lower Grove».
+2. Στο κινητό του, ανοίγει το AgroTrack.
+3. Επιλέγει το χωράφι, προσθέτει δραστηριότητα: «Πότισα, 4 ώρες».
+4. Προαιρετικά προσθέτει σύντομη σημείωση.
+5. Σημειώνει τη σχετική εργασία ως ολοκληρωμένη αν υπήρχε.
 
-**Success:** Under 30 seconds from finishing work to record saved.
+**Επιτυχία:** Λιγότερο από 30 δευτερόλεπτα από το τέλος της δουλειάς μέχρι την αποθηκευμένη καταγραφή.
 
-## Journey 3 — Owner reviews the week
+## Διαδρομή 3 — Owner αξιολογεί την εβδομάδα
 
-1. Sunday evening, Maria opens AgroTrack on her laptop.
-2. Dashboard shows: 8 fields, current stage of each, open tasks.
-3. She reviews this week's activity feed per field.
-4. She sees the cost of this week's work.
-5. She adds a note: "Pruning to start next Tuesday."
+1. Κυριακή βράδυ, η Μαρία ανοίγει το AgroTrack στο laptop της.
+2. Το dashboard δείχνει: 8 χωράφια, τρέχον στάδιο του καθενός, ανοιχτές εργασίες.
+3. Εξετάζει τη ροή δραστηριότητας της εβδομάδας ανά χωράφι.
+4. Βλέπει το κόστος της δουλειάς αυτής της εβδομάδας.
+5. Προσθέτει σημείωση: «Κλάδεμα να ξεκινήσει την επόμενη Τρίτη.»
 
-**Success:** Maria feels in control of the operation without calling anyone.
+**Επιτυχία:** Η Μαρία νιώθει ότι ελέγχει τη λειτουργία χωρίς να καλέσει κανέναν.
 
-## Journey 4 — Plan the next stage
+## Διαδρομή 4 — Σχεδιασμός επόμενου σταδίου
 
-1. The current lifecycle stage is "Bud break".
-2. The platform suggests the next stage is "Flowering" (or owner sets it manually).
-3. Owner / producer creates tasks for the next stage.
-4. Tasks are assigned and scheduled.
+1. Το τρέχον στάδιο κύκλου ζωής είναι «Έκρηξη οφθαλμού».
+2. Η πλατφόρμα προτείνει ότι το επόμενο στάδιο είναι «Άνθηση» (ή η owner το ορίζει χειροκίνητα).
+3. Owner / producer δημιουργούν εργασίες για το επόμενο στάδιο.
+4. Οι εργασίες ανατίθενται και προγραμματίζονται.
 
-**Success:** Each field has a clear short-term plan.
+**Επιτυχία:** Κάθε χωράφι έχει σαφές βραχυπρόθεσμο σχέδιο.
 
-## Journey 5 — End of season
+## Διαδρομή 5 — Τέλος σεζόν
 
-1. The crop cycle reaches "Harvest" stage.
-2. Activity is logged across harvest days.
-3. Expenses are finalised against the cycle.
-4. The cycle is closed.
-5. A simple summary is visible: total cost, key activities, harvest result.
+1. Ο κύκλος καλλιέργειας φτάνει στο στάδιο «Τρύγος».
+2. Η δραστηριότητα καταγράφεται κατά τις ημέρες τρύγου.
+3. Τα έξοδα οριστικοποιούνται στον κύκλο.
+4. Ο κύκλος κλείνει.
+5. Ορατή απλή σύνοψη: συνολικό κόστος, βασικές δραστηριότητες, αποτέλεσμα τρύγου.
 
-**Success:** A clean record exists for next year's planning.
+**Επιτυχία:** Υπάρχει καθαρό αρχείο για τον σχεδιασμό του επόμενου έτους.
 
-## Cross-cutting flows
+## Διασταυρούμενες ροές
 
-- **Onboarding a producer** — invitation, role assignment, first field visible.
-- **Switching roles** — admin promotes a user, removes another.
-- **Recovering an account** — forgot password, reset email.
+- **Onboarding παραγωγού** — πρόσκληση, ανάθεση ρόλου, πρώτο ορατό χωράφι.
+- **Αλλαγή ρόλων** — admin προάγει χρήστη, αφαιρεί άλλον.
+- **Ανάκτηση λογαριασμού** — ξεχασμένος κωδικός, email επαναφοράς.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is the very first thing a new user should see after sign-up?
-- Should we suggest a default crop cycle template per crop?
+- Ποιο είναι το πολύ πρώτο πράγμα που βλέπει νέος χρήστης μετά την εγγραφή;
+- Πρέπει να προτείνουμε προεπιλεγμένο πρότυπο κύκλου καλλιέργειας ανά καλλιέργεια;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Sketch wireframes for journeys 1, 2 and 3 first
-- Walk each journey through with a real customer in an interview
+- Σκίτσα wireframes για τις διαδρομές 1, 2 και 3 πρώτα
+- Διέλευση κάθε διαδρομής με πραγματικό πελάτη σε συνέντευξη

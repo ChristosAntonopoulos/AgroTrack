@@ -1,43 +1,43 @@
 # Pain Points
 
-**Status:** Draft — populated from interviews
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — συμπληρώνεται από interview
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A consolidated list of pain points we hear in customer interviews. Includes how often we hear each one and a representative quote.
+Ενοποιημένη λίστα pain point που ακούμε σε customer interview. Περιλαμβάνει πόσο συχνά ακούμε το καθένα και ένα αντιπροσωπευτικό παράθεμα.
 
-## How to use
+## Πώς να χρησιμοποιήσετε
 
-- After each interview, add any new pain or increment the count for an existing one.
-- Capture the strongest quote, even if it's short.
-- Pain frequency drives prioritisation in [Feature Prioritization](../03-Product/Feature-Prioritization.md).
+- Μετά από κάθε interview, προσθέστε νέο pain point ή αυξήστε τον αριθμό για υπάρχον.
+- Καταγράψτε το ισχυρότερο παράθεμα, ακόμα κι αν είναι σύντομο.
+- Η συχνότητα pain point καθορίζει προτεραιότητες στο [Feature Prioritization](../03-Product/Feature-Prioritization.md).
 
-## Pain table
+## Πίνακας pain point
 
-| # | Pain | Frequency (out of interviews) | Severity (1-5) | Representative quote |
+| # | Pain point | Συχνότητα (από interview) | Σοβαρότητα (1-5) | Αντιπροσωπευτικό παράθεμα |
 |---|---|---|---|---|
-| P1 | No shared view between owner and producer | 0 / 0 | TBD | "TBD" |
-| P2 | No reliable history per field | 0 / 0 | TBD | "TBD" |
-| P3 | Tasks missed or done late | 0 / 0 | TBD | "TBD" |
-| P4 | Costs are unclear | 0 / 0 | TBD | "TBD" |
-| P5 | Reporting for subsidies / compliance is painful | 0 / 0 | TBD | "TBD" |
-| P6 | Knowledge walks out the door with people | 0 / 0 | TBD | "TBD" |
-| P7 | Existing tools don't fit | 0 / 0 | TBD | "TBD" |
-| P8 | Hard to coordinate multiple producers / fields | 0 / 0 | TBD | "TBD" |
-| P9 | (Add new ones as they appear) | — | — | — |
+| P1 | Χωρίς κοινή εικόνα μεταξύ ιδιοκτήτη και παραγωγού | 0 / 0 | TBD | "TBD" |
+| P2 | Χωρίς αξιόπιστο ιστορικό ανά αγροτεμάχιο | 0 / 0 | TBD | "TBD" |
+| P3 | Εργασίες που χάνονται ή γίνονται αργά | 0 / 0 | TBD | "TBD" |
+| P4 | Ασαφή κόστη | 0 / 0 | TBD | "TBD" |
+| P5 | Επίπονη αναφορά για επιδοτήσεις / συμμόρφωση | 0 / 0 | TBD | "TBD" |
+| P6 | Η γνώση φεύγει μαζί με τους ανθρώπους | 0 / 0 | TBD | "TBD" |
+| P7 | Τα υπάρχοντα εργαλεία δεν ταιριάζουν | 0 / 0 | TBD | "TBD" |
+| P8 | Δύσκολος συντονισμός πολλών παραγωγών / αγροτεμαχίων | 0 / 0 | TBD | "TBD" |
+| P9 | (Προσθέστε νέα καθώς εμφανίζονται) | — | — | — |
 
-## Cross-cutting observations
+## Διασταυρούμενες παρατηρήσεις
 
-- Capture patterns here that don't fit a single pain row (e.g. "everyone uses WhatsApp", "no one trusts paid software").
+- Καταγράψτε εδώ μοτίβα που δεν χωράνε σε μία γραμμή pain point (π.χ. «όλοι χρησιμοποιούν WhatsApp», «κανείς δεν εμπιστεύεται πληρωτό λογισμικό»).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Are pains different between owners and producers in a meaningful way?
-- Are pains different by country?
+- Τα pain point διαφέρουν ουσιαστικά μεταξύ ιδιοκτητών και παραγωγών;
+- Τα pain point διαφέρουν ανά χώρα;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Update after every interview
-- Re-rank pains after first 10 interviews
+- Ενημέρωση μετά από κάθε interview
+- Επανατάξη pain point μετά τα πρώτα 10 interview

@@ -1,42 +1,42 @@
 # Database
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What the database is, in plain language.
+Τι είναι η database, σε απλή γλώσσα.
 
-## What the database is
+## Τι είναι η database
 
-The database is where AgroTrack stores all customer information — fields, crop cycles, tasks, activities, expenses, users and so on. Whenever a user does something in the app (creates a field, logs an activity, adds an expense), the data goes here.
+Η database είναι εκεί που το AgroTrack αποθηκεύει όλες τις πληροφορίες πελατών — πεδία, κύκλους καλλιέργειας, εργασίες, δραστηριότητες, έξοδα, χρήστες κ.λπ. Κάθε φορά που ο χρήστης κάνει κάτι στην εφαρμογή (δημιουργεί πεδίο, καταγράφει δραστηριότητα, προσθέτει έξοδο), τα δεδομένα πηγαίνουν εδώ.
 
-## What we use
+## Τι χρησιμοποιούμε
 
 **MongoDB.**
 
-That is all the detail this page needs at this stage. MongoDB is a well-known database used by thousands of products. We picked it because the team is comfortable with it and it fits how our data looks.
+Αυτό αρκεί για αυτή τη σελίδα σε αυτό το στάδιο. Η MongoDB είναι γνωστή database που τη χρησιμοποιούν χιλιάδες προϊόντα. Την επιλέξαμε γιατί η ομάδα είναι άνετη μαζί της και ταιριάζει στο σχήμα των δεδομένων μας.
 
-## What is important for our customers
+## Τι έχει σημασία για τους πελάτες μας
 
-- Their data is stored safely.
-- Their data is backed up regularly.
-- One customer's data is never mixed with another's.
-- They can export their data if they want it.
+- Τα δεδομένα τους αποθηκεύονται με ασφάλεια.
+- Γίνονται τακτικά backups.
+- Τα δεδομένα ενός πελάτη δεν μπερδεύονται ποτέ με άλλου.
+- Μπορούν να εξάγουν τα δεδομένα τους αν το θέλουν.
 
-## What is NOT in scope right now
+## Τι ΔΕΝ είναι στο scope προς το παρόν
 
-- Complex data analytics (later).
-- Multiple databases per customer.
-- Heavy custom reporting infrastructure.
+- Σύνθετα analytics δεδομένων (αργότερα).
+- Πολλαπλές databases ανά πελάτη.
+- Βαριά custom υποδομή reporting.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is our backup frequency and retention policy?
-- Do we keep audit logs of every change in MVP?
+- Ποια είναι η συχνότητα backup και η πολιτική διατήρησης;
+- Κρατάμε audit logs κάθε αλλαγής στο MVP;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm backup setup before the first pilot goes live
-- Document a customer data export process (manual is fine for now)
+- Επιβεβαίωση setup backup πριν ζωντανέψει το πρώτο pilot
+- Τεκμηρίωση διαδικασίας εξαγωγής δεδομένων πελάτη (χειροκίνητη είναι εντάξει προς το παρόν)

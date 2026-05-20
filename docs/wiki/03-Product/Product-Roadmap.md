@@ -1,51 +1,51 @@
-# Product Roadmap
+# Product roadmap
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The product timeline at a high level. Not a commitment, but a working plan.
+Το χρονοδιάγραμμα του προϊόντος σε υψηλό επίπεδο. Όχι δέσμευση, αλλά εργαζόμενο σχέδιο.
 
-## Themes by quarter
+## Θεματικές ανά τρίμηνο
 
-| Quarter | Theme | What ships |
+| Τρίμηνο | Θεματική | Τι παραδίδεται |
 |---|---|---|
-| Q1 | Foundations | Auth, roles, organisations, fields |
-| Q2 | Lifecycle | Crop cycles, lifecycle stages, tasks |
-| Q3 | Activity & costs | Activity history, notes, basic expenses, basic dashboard |
-| Q4 | Polish & pilots | Mobile polish, invitations, first paid pilots |
+| Q1 | Θεμέλια | Auth, ρόλοι, οργανισμοί, χωράφια |
+| Q2 | Κύκλος ζωής | Κύκλοι καλλιέργειας, στάδια κύκλου ζωής, εργασίες |
+| Q3 | Δραστηριότητα & κόστη | Ιστορικό δραστηριότητας, σημειώσεις, βασικά έξοδα, βασικό dashboard |
+| Q4 | Εκλέπτυνση & πιλότοι | Εκλέπτυνση κινητού, προσκλήσεις, πρώτοι πληρωμένοι πιλότοι |
 
-Dates are TBD and added once Sprint 0 is complete.
+Οι ημερομηνίες είναι TBD και προστίθενται όταν ολοκληρωθεί το Sprint 0.
 
-## Future quarters (high level)
+## Μελλοντικά τρίμηνα (υψηλό επίπεδο)
 
-| Period | Themes |
+| Περίοδος | Θεματικές |
 |---|---|
-| Year 2, H1 | Documents and photos, exports/reports, weekly reminders, basic notifications |
-| Year 2, H2 | Multi-crop foundation, agronomist role, calendar view |
-| Year 3+ | Integrations, advanced cost reporting, certification helpers |
+| Έτος 2, Α' εξάμηνο | Έγγραφα και φωτογραφίες, εξαγωγές/αναφορές, εβδομαδιαίες υπενθυμίσεις, βασικές ειδοποιήσεις |
+| Έτος 2, Β' εξάμηνο | Θεμέλια πολλών καλλιεργειών, ρόλος γεωπόνου, προβολή ημερολογίου |
+| Έτος 3+ | Ενσωματώσεις, προηγμένες αναφορές κόστους, βοηθήματα πιστοποίησης |
 
-## What is explicitly NOT on the roadmap
+## Τι ΔΕΝ είναι ρητά στο roadmap
 
-- Satellite imagery / sensors / IoT
+- Δορυφορικές εικόνες / αισθητήρες / IoT
 - Marketplace
-- Heavy accounting
-- Native mobile apps (web-based mobile is enough until proven otherwise)
+- Βαριά λογιστική
+- Native εφαρμογές κινητού (αρκεί mobile web μέχρι να αποδειχθεί το αντίθετο)
 
-## How we update this roadmap
+## Πώς ενημερώνουμε αυτό το roadmap
 
-- At end of each sprint, we look at what shipped vs planned.
-- At end of each quarter, we re-balance themes for the next.
-- Changes go into [Decision Log](../01-Company/Decision-Log.md) if they affect scope.
+- Στο τέλος κάθε sprint, βλέπουμε τι παραδόθηκε έναντι του σχεδίου.
+- Στο τέλος κάθε τριμήνου, ξαναισορροπούμε θεματικές για το επόμενο.
+- Αλλαγές καταχωρούνται στο [Decision Log](../01-Company/Decision-Log.md) αν επηρεάζουν το εύρος.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we publicly share this roadmap with pilots, or keep it internal?
-- Should mobile polish be earlier?
+- Δημοσιεύουμε αυτό το roadmap στους πιλότους ή το κρατάμε εσωτερικό;
+- Πρέπει η εκλέπτυνση κινητού να έρθει νωρίτερα;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm Q1 theme and lock it in Sprint 0
-- Map each theme to Epics in Azure Boards
+- Επιβεβαίωση θεματικής Q1 και κλείδωμα στο Sprint 0
+- Αντιστοίχιση κάθε θεματικής σε Epics στο Azure Boards

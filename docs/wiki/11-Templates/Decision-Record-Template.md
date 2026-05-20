@@ -1,58 +1,58 @@
 # Decision Record Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Copy this template into [Decision Log](../01-Company/Decision-Log.md) or [Technical Decision Log](../05-Technical/Technical-Decision-Log.md) for every important decision.
-
----
-
-## D-XXX — [Short, clear decision title]
-
-- **Date:** YYYY-MM-DD
-- **Status:** Proposed / Validated / Superseded / Reversed
-- **Owner:** Who made the call
-- **Decision-makers:** Who was in the room
-
-### Context
-
-What was happening that required a decision? What had we tried? What constraints applied?
-
-### Options considered
-
-1. Option A — short description, pros, cons
-2. Option B — short description, pros, cons
-3. Option C — short description, pros, cons
-
-### Decision
-
-The decision in one sentence.
-
-### Rationale
-
-Why we picked this option. Honest reasoning, not justification after the fact.
-
-### Consequences
-
-- What changes because of this decision.
-- What new risks or constraints come with it.
-- What we are explicitly choosing not to do.
-
-### Reversibility
-
-- Easy to reverse / Costly to reverse / Practically irreversible.
-
-### Linked pages
-
-- Related pages, work items or external links.
+Αντέγραψε αυτό το template στο [Decision Log](../01-Company/Decision-Log.md) ή στο [Technical Decision Log](../05-Technical/Technical-Decision-Log.md) για κάθε σημαντική απόφαση.
 
 ---
 
-## Tips
+## D-XXX — [Σύντομος, σαφής τίτλος απόφασης]
 
-- Keep it short. One screen if possible.
-- Don't update closed decisions. Create a new one that supersedes them.
-- Use the same ID system everywhere (D-001, D-002, …).
+- **Ημερομηνία:** YYYY-MM-DD
+- **Κατάσταση:** Proposed / Validated / Superseded / Reversed
+- **Υπεύθυνος:** Ποιος πήρε την απόφαση
+- **Αποφασίζοντες:** Ποιοι ήταν παρόντες
+
+### Πλαίσιο
+
+Τι συνέβαινε που απαιτούσε απόφαση; Τι είχαμε δοκιμάσει; Ποιοι περιορισμοί ισχύαν;
+
+### Επιλογές που εξετάστηκαν
+
+1. Επιλογή Α — σύντομη περιγραφή, πλεονεκτήματα, μειονεκτήματα
+2. Επιλογή Β — σύντομη περιγραφή, πλεονεκτήματα, μειονεκτήματα
+3. Επιλογή Γ — σύντομη περιγραφή, πλεονεκτήματα, μειονεκτήματα
+
+### Απόφαση
+
+Η απόφαση σε μία πρόταση.
+
+### Αιτιολόγηση
+
+Γιατί επιλέξαμε αυτή την επιλογή. Ειλικρινής λογική, όχι δικαιολογία εκ των υστέρων.
+
+### Συνέπειες
+
+- Τι αλλάζει λόγω αυτής της απόφασης.
+- Ποια νέα risk ή περιορισμοί την συνοδεύουν.
+- Τι επιλέγουμε ρητά να μην κάνουμε.
+
+### Αναστρεψιμότητα
+
+- Εύκολη αναστροφή / Δαπανηρή αναστροφή / Πρακτικά μη αναστρέψιμη.
+
+### Συνδεδεμένες σελίδες
+
+- Σχετικές σελίδες, work items ή εξωτερικοί σύνδεσμοι.
+
+---
+
+## Συμβουλές
+
+- Κράτα το σύντομο. Μία οθόνη αν είναι δυνατόν.
+- Μην ενημερώνεις κλειστές αποφάσεις. Δημιούργησε νέα που τις αντικαθιστούν.
+- Χρησιμοποίησε το ίδιο σύστημα ID παντού (D-001, D-002, …).

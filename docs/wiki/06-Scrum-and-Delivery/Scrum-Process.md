@@ -1,60 +1,60 @@
 # Scrum Process
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How AgroTrack works as a Scrum team. Designed to be light enough to be useful at our size, structured enough to scale.
+Πώς λειτουργεί το AgroTrack ως Scrum ομάδα. Σχεδιασμένο να είναι αρκετά ελαφρύ για να είναι χρήσιμο στο μέγεθός μας, αρκετά δομημένο για να κλιμακωθεί.
 
-## Sprint length
+## Διάρκεια Sprint
 
-**Two weeks.**
+**Δύο εβδομάδες.**
 
-Short enough to react fast, long enough to ship something meaningful.
+Αρκετά σύντομο για γρήγορη αντίδραση, αρκετά μακρύ για να παραδώσουμε κάτι ουσιαστικό.
 
-## Ceremonies
+## Τελετουργίες
 
-| Ceremony | When | Duration | Purpose |
+| Τελετουργία | Πότε | Διάρκεια | Σκοπός |
 |---|---|---|---|
-| Sprint Planning | First day of sprint | 60–90 min | Agree on what we will deliver this sprint |
-| Daily stand-up | Every working day | 10–15 min | Surface blockers and progress, not status reporting |
-| Backlog refinement | Mid-sprint | 60 min | Keep the next sprint's backlog ready |
-| Sprint Review | Last day of sprint | 45–60 min | Show what we built, get feedback |
-| Sprint Retrospective | Last day of sprint | 30–45 min | What went well, what to change |
+| Sprint Planning | Πρώτη ημέρα του Sprint | 60–90 λεπτά | Συμφωνία για το τι θα παραδώσουμε αυτό το Sprint |
+| Daily stand-up | Κάθε εργάσιμη ημέρα | 10–15 λεπτά | Αναδείξτε εμπόδια και πρόοδο, όχι αναφορά κατάστασης |
+| Backlog refinement | Μέσα στο Sprint | 60 λεπτά | Κρατήστε το backlog του επόμενου Sprint έτοιμο |
+| Sprint Review | Τελευταία ημέρα του Sprint | 45–60 λεπτά | Δείξτε τι φτιάξατε, λάβετε ανατροφοδότηση |
+| Sprint Retrospective | Τελευταία ημέρα του Sprint | 30–45 λεπτά | Τι πήγε καλά, τι να αλλάξουμε |
 
-## Roles
+## Ρόλοι
 
-| Scrum role | Who in our team | Notes |
+| Ρόλος Scrum | Ποιος στην ομάδα μας | Σημειώσεις |
 |---|---|---|
-| Product Owner | PM (or CEO at this stage) | Owns the backlog and priorities |
-| Scrum Master | TBD | Keeps the process clean, removes blockers |
-| Development Team | Engineers, designer, domain expert | Cross-functional |
+| Product Owner | PM (ή CEO σε αυτό το στάδιο) | Ιδιοκτήτης του backlog και των προτεραιοτήτων |
+| Scrum Master | TBD | Κρατάει τη διαδικασία καθαρή, αφαιρεί εμπόδια |
+| Development Team | Μηχανικοί, σχεδιαστής, ειδικός τομέα | Διαλειτουργική |
 
-## Working agreements
+## Συνεργατικές συμφωνίες
 
-- We work transparently. Anyone can see the board at any time.
-- We finish what we start. We don't pile up half-done work.
-- We test what we build before calling it done.
-- We update Azure Boards as the source of truth.
-- We respect time-boxes for ceremonies.
+- Δουλεύουμε διαφανώς. Οποιοσδήποτε μπορεί να δει τον πίνακα ανά πάσα στιγμή.
+- Ολοκληρώνουμε ό,τι ξεκινάμε. Δεν σωρεύουμε ημιτελή δουλειά.
+- Δοκιμάζουμε ό,τι φτιάχνουμε πριν το πούμε ολοκληρωμένο.
+- Ενημερώνουμε το Azure Boards ως πηγή αλήθειας.
+- Σεβόμαστε τα χρονικά όρια των τελετουργιών.
 
-## What we measure
+## Τι μετράμε
 
-- Sprint goal achieved (yes / partial / no)
-- Number of PBIs completed
-- Customer feedback received in the sprint
-- Major blockers
+- Επίτευξη στόχου Sprint (ναι / μερικώς / όχι)
+- Αριθμός PBI που ολοκληρώθηκαν
+- Ανατροφοδότηση πελατών που λήφθηκε στο Sprint
+- Σημαντικά εμπόδια
 
-We do not chase velocity numbers in this phase. Outcomes matter more than story points.
+Δεν κυνηγάμε αριθμούς velocity σε αυτή τη φάση. Τα αποτελέσματα μετράνε περισσότερο από story points.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Who plays the Scrum Master role formally?
-- Do we need a separate refinement meeting or fold it into daily?
+- Ποιος αναλαμβάνει επίσημα τον ρόλο Scrum Master;
+- Χρειαζόμαστε ξεχωριστή συνάντηση refinement ή την ενσωματώνουμε στο daily;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm cadence and times with the team
-- Pick the first Sprint Master rotation for Sprint 0
+- Επιβεβαιώστε ρυθμό και ώρες με την ομάδα
+- Επιλέξτε την πρώτη εναλλαγή Sprint Master για το Sprint 0

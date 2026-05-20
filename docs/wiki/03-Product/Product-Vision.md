@@ -1,47 +1,47 @@
-# Product Vision
+# Οραματική προϊόντος
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The long-term picture of what AgroTrack becomes as a product. Short, clear, and ambitious.
+Η μακροπρόθεσμη εικόνα του τι γίνεται το AgroTrack ως προϊόν. Σύντομη, σαφής και φιλόδοξη.
 
-## Vision statement
+## Δήλωση οράματος
 
-**AgroTrack is the shared workspace where everyone responsible for a field — owner, producer, agronomist — plans, runs and reviews every crop cycle together.**
+**Το AgroTrack είναι ο κοινός χώρος εργασίας όπου όλοι όσοι ευθύνονται για ένα χωράφι — ιδιοκτήτης, παραγωγός, γεωπόνος — σχεδιάζουν, εκτελούν και αξιολογούν κάθε κύκλο καλλιέργειας μαζί.**
 
-## What the product becomes over time
+## Τι γίνεται το προϊόν με τον χρόνο
 
-| Horizon | What's true |
+| Ορίζοντας | Τι ισχύει |
 |---|---|
-| **Today (MVP)** | A simple, shared workspace for fields, crop cycles, tasks, activity and basic costs. |
-| **Year 1** | Solid lifecycle management, dashboards, multi-user, mobile-first, polished UX. |
-| **Year 2** | Multi-crop support, agronomist tools, certification/reporting helpers, integrations with cost/accounting systems. |
-| **Year 3+** | A reliable agricultural operations layer that connects with sensors, satellite, supply chain, and finance partners. |
+| **Σήμερα (MVP)** | Απλός, κοινός χώρος εργασίας για χωράφια, κύκλους καλλιέργειας, εργασίες, δραστηριότητα και βασικά κόστη. |
+| **Έτος 1** | Σταθερή διαχείριση κύκλου ζωής, dashboards, πολλοί χρήστες, mobile-first, εκλεπτυσμένο UX. |
+| **Έτος 2** | Υποστήριξη πολλών καλλιεργειών, εργαλεία για γεωπόνους, βοηθήματα πιστοποίησης/αναφορών, ενσωματώσεις με συστήματα κόστους/λογιστικής. |
+| **Έτος 3+** | Αξιόπιστο επίπεδο γεωργικών λειτουργιών που συνδέεται με αισθητήρες, δορυφόρο, εφοδιαστική αλυσίδα και χρηματοοικονομικούς συνεργάτες. |
 
-## Principles
+## Αρχές
 
-- **Built for the field, not the office.** The product must work outside, on a phone, with one hand.
-- **Lifecycle first.** We organise around crop cycles, not calendars or to-do lists.
-- **Two-sided by default.** Owner and producer always see the same reality.
-- **Useful in five minutes.** A new user gets value before the end of the first session.
-- **Small wins beat big features.** We always prefer the simplest version that solves the real pain.
+- **Φτιαγμένο για το χωράφι, όχι το γραφείο.** Το προϊόν πρέπει να λειτουργεί έξω, στο κινητό, με το ένα χέρι.
+- **Ο κύκλος ζωής πρώτα.** Οργανώνουμε γύρω από κύκλους καλλιέργειας, όχι ημερολόγια ή λίστες εργασιών.
+- **Διπλής πλευράς από προεπιλογή.** Ιδιοκτήτης και παραγωγός βλέπουν πάντα την ίδια πραγματικότητα.
+- **Χρήσιμο σε πέντε λεπτά.** Ένας νέος χρήστης αποκτά αξία πριν τελειώσει η πρώτη συνεδρία.
+- **Μικρές νίκες κερδίζουν τα μεγάλα features.** Προτιμάμε πάντα την απλούστερη έκδοση που λύνει τον πραγματικό πόνο.
 
-## What we are NOT becoming
+## Τι ΔΕΝ γινόμαστε
 
-- A heavy farm ERP
-- An accounting tool
-- A marketplace
-- A hardware company
+- Βαρύ ERP αγροτικής επιχείρησης
+- Εργαλείο λογιστικής
+- Marketplace
+- Εταιρεία hardware
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- How explicit is the "owner vs producer" framing in the product UI?
-- Do we expose agronomists as first-class users from day one or later?
+- Πόσο ρητό είναι το πλαίσιο «ιδιοκτήτης vs παραγωγός» στο UI του προϊόντος;
+- Εμφανίζουμε τους γεωπόνους ως πρωτογενείς χρήστες από την πρώτη μέρα ή αργότερα;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm vision wording with the team
-- Use the vision statement on the landing page and in pitches
+- Επιβεβαίωση διατύπωσης οράματος με την ομάδα
+- Χρήση της δήλωσης οράματος στην landing page και σε παρουσιάσεις

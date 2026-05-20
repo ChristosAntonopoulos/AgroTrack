@@ -1,27 +1,27 @@
 # 11 Templates
 
-**Status:** Living section
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό τμήμα
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Reusable templates the team copy-pastes for common pieces of work. If you find yourself writing the same structure twice, that is a sign a template belongs here.
+Επαναχρησιμοποιήσιμα template που η ομάδα αντιγράφει-επικολλά για κοινές εργασίες. Αν γράφεις την ίδια δομή δύο φορές, αυτό είναι σημάδι ότι χρειάζεται template εδώ.
 
-## Pages in this section
+## Σελίδες σε αυτό το τμήμα
 
-- [Meeting Notes Template](./Meeting-Notes-Template.md) — for every meeting
-- [Customer Interview Template](./Customer-Interview-Template.md) — for every customer interview
-- [Feature Specification Template](./Feature-Specification-Template.md) — for proposing or scoping a feature
-- [User Story Template](./User-Story-Template.md) — for PBIs in Azure Boards
-- [Decision Record Template](./Decision-Record-Template.md) — for entries in the Decision Logs
-- [Competitor Analysis Template](./Competitor-Analysis-Template.md) — for each competitor we research
-- [Business Experiment Template](./Business-Experiment-Template.md) — for structured experiments
-- [Risk Template](./Risk-Template.md) — for new risks in the register
+- [Meeting Notes Template](./Meeting-Notes-Template.md) — για κάθε συνάντηση
+- [Customer Interview Template](./Customer-Interview-Template.md) — για κάθε customer interview
+- [Feature Specification Template](./Feature-Specification-Template.md) — για πρόταση ή ορισμό feature
+- [User Story Template](./User-Story-Template.md) — για PBIs στο Azure Boards
+- [Decision Record Template](./Decision-Record-Template.md) — για καταχωρήσεις στα Decision Logs
+- [Competitor Analysis Template](./Competitor-Analysis-Template.md) — για κάθε ανταγωνιστή που ερευνάμε
+- [Business Experiment Template](./Business-Experiment-Template.md) — για δομημένα πειράματα
+- [Risk Template](./Risk-Template.md) — για νέα risk στο μητρώο
 
-## How to use a template
+## Πώς να χρησιμοποιείς ένα template
 
-- Copy the full template body.
-- Paste into the destination page.
-- Fill it in. Don't leave bracketed placeholders behind.
-- If you improve the template while filling it in, update the template page too.
+- Αντέγραψε όλο το σώμα του template.
+- Επικόλλησε στη σελίδα προορισμού.
+- Συμπλήρωσέ το. Μην αφήνεις placeholders σε αγκύλες.
+- Αν βελτιώνεις το template καθώς το συμπληρώνεις, ενημέρωσε και τη σελίδα template.

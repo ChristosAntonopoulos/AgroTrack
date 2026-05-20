@@ -1,72 +1,72 @@
-# Sales Strategy
+# Στρατηγική πωλήσεων
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we actually convert interest into paying customers.
+Πώς μετατρέπουμε πραγματικά το ενδιαφέρον σε πληρωμένους πελάτες.
 
-## Motion
+## Κίνηση
 
-**Founder-led sales** for the first 10–20 customers. Direct conversations, real demos, real onboarding. We learn what the customer cares about and what objections appear.
+**Πωλήσεις από founders** για τους πρώτους 10–20 πελάτες. Άμεσες συζητήσεις, πραγματικά demos, πραγματικό onboarding. Μαθαίνουμε τι νοιάζει τον πελάτη και ποιες αντιρρήσεις εμφανίζονται.
 
-## Pipeline stages
+## Στάδια pipeline
 
-| Stage | Definition | Exit criteria |
+| Στάδιο | Ορισμός | Κριτήρια εξόδου |
 |---|---|---|
-| Lead | A contact who fits our target profile | Booked a call |
-| Qualified | Call done, problem confirmed | Wants to see a demo |
-| Demo | Saw the product | Wants to pilot |
-| Pilot | Actively using AgroTrack | At least 4 weeks of consistent use |
-| Negotiation | Pricing discussion | Verbal yes |
-| Closed-Won | Contract signed, payment received | — |
-| Closed-Lost | Customer declined | Reason captured |
+| Lead | Επαφή που ταιριάζει στο προφίλ στόχου | Κλήση κλεισμένη |
+| Qualified | Κλήση ολοκληρωμένη, πρόβλημα επιβεβαιωμένο | Θέλει demo |
+| Demo | Είδε το προϊόν | Θέλει pilot |
+| Pilot | Χρησιμοποιεί ενεργά το AgroTrack | Τουλάχιστον 4 εβδομάδες σταθερής χρήσης |
+| Negotiation | Συζήτηση pricing | Ρητό ναι |
+| Closed-Won | Υπογεγραμμένη σύμβαση, πληρωμή ελήφθη | — |
+| Closed-Lost | Ο πελάτης αρνήθηκε | Καταγεγραμμένος λόγος |
 
-## Lead sources (current phase)
+## Πηγές leads (τρέχουσα φάση)
 
-- Founders' networks
-- Agricultural co-ops and associations
-- Agronomist referrals
-- Social posts in farmer communities
+- Δίκτυα founders
+- Αγροτικοί συνεταιρισμοί και σύνδεσμοι
+- Παραπομπές από γεωπόνους
+- Αναρτήσεις σε κοινότητες αγροτών
 
-## Sales conversation structure
+## Δομή συζήτησης πώλησης
 
-1. **Listen first** — let them describe how they manage fields today.
-2. **Reflect the pain** — confirm we understand their reality.
-3. **Show the relevant slice** — not the whole demo; the part that solves their pain.
-4. **Talk pilot, not contract** — first goal is a pilot.
-5. **Set the next step** — never end a call without a date.
+1. **Ακούμε πρώτα** — αφήνουμε να περιγράψουν πώς διαχειρίζονται τα αγροτεμάχια σήμερα.
+2. **Αντικατοπτρίζουμε τον πόνο** — επιβεβαιώνουμε ότι καταλαβαίνουμε την πραγματικότητά τους.
+3. **Δείχνουμε το σχετικό κομμάτι** — όχι ολόκληρο demo· το μέρος που λύνει τον πόνο τους.
+4. **Μιλάμε για pilot, όχι σύμβαση** — πρώτος στόχος είναι pilot.
+5. **Θέτουμε επόμενο βήμα** — ποτέ τέλος κλήσης χωρίς ημερομηνία.
 
-## Demo script (first version)
+## Σενάριο demo (πρώτη έκδοση)
 
-- 5 minutes: their pain confirmed back to them
-- 10 minutes: demo flow (sign up → field → crop cycle → task → activity)
-- 5 minutes: pricing direction and what a pilot looks like
-- 5 minutes: questions and next step
+- 5 λεπτά: ο πόνος τους επιβεβαιωμένος πίσω σε αυτούς
+- 10 λεπτά: ροή demo (εγγραφή → αγροτεμάχιο → κύκλος καλλιέργειας → εργασία → δραστηριότητα)
+- 5 λεπτά: κατεύθυνση pricing και πώς μοιάζει ένα pilot
+- 5 λεπτά: ερωτήματα και επόμενο βήμα
 
-## Objection bank (to grow over time)
+## Τράπεζα αντιρρήσεων (να μεγαλώνει με τον χρόνο)
 
-| Objection | Response direction |
+| Αντίρρηση | Κατεύθυνση απάντησης |
 |---|---|
-| "I already use Excel." | Show how easy it is to put a single field in AgroTrack and feel the difference. |
-| "My producer won't use it." | Show the mobile experience; offer to onboard the producer ourselves in the pilot. |
-| "Too expensive." | Reposition against the cost of confusion or one missed treatment. |
-| "We don't have time." | Pilot starts with one field, 10 minutes a week. |
+| «Ήδη χρησιμοποιώ Excel.» | Δείξτε πόσο εύκολο είναι να βάλουν ένα αγροτεμάχιο στο AgroTrack και να νιώσουν τη διαφορά. |
+| «Ο παραγωγός μου δεν θα το χρησιμοποιήσει.» | Δείξτε την εμπειρία mobile· προσφέρετε να κάνουμε εμείς onboarding στον παραγωγό στο pilot. |
+| «Πολύ ακριβό.» | Επανατοποθετήστε έναντι του κόστους σύγχυσης ή μιας χαμένης μεταχείρισης. |
+| «Δεν έχουμε χρόνο.» | Το pilot ξεκινά με ένα αγροτεμάχιο, 10 λεπτά την εβδομάδα. |
 
-## What we will NOT do
+## Τι ΔΕΝ κάνουμε
 
-- Spend on outbound SDRs at this stage.
-- Promise features we don't have.
-- Sign multi-year contracts before we know the product holds.
+- Δαπάνη σε outbound SDRs σε αυτό το στάδιο.
+- Υπόσχεση features που δεν έχουμε.
+- Πολυετή συμβάσεις πριν ξέρουμε ότι το προϊόν «κρατά».
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is the lowest-friction first action? (Sign up? Pilot? Demo?)
-- Do we need a partner agronomist on the first calls?
+- Ποια είναι η ενέργεια πρώτου βήματος με τη μικρότερη τριβή; (Εγγραφή; Pilot; Demo;)
+- Χρειαζόμαστε συνεργάτη γεωπόνο στις πρώτες κλήσεις;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Build the first version of the demo script
-- Define what counts as a "pilot" formally
+- Φτιάξτε την πρώτη έκδοση του σενάριου demo
+- Ορίστε τυπικά τι σημαίνει «pilot»

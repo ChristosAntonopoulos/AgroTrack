@@ -1,47 +1,47 @@
 # Risk Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Add a new entry to [Risk Register](../09-Legal-and-Compliance/Risk-Register.md) using this format. Keep risks short and actionable.
+Πρόσθεσε νέα καταχώρηση στο [Risk Register](../09-Legal-and-Compliance/Risk-Register.md) με αυτή τη μορφή. Κράτα τα risk σύντομα και actionable.
 
 ---
 
-## R-XXX — [Risk title]
+## R-XXX — [Τίτλος risk]
 
-- **Category:** Product / Business / Market / Technical / Operational / Legal / Brand / Financial
-- **Owner:**
-- **Status:** Open / Mitigated / Closed / Accepted
-- **Date raised:**
+- **Κατηγορία:** Product / Business / Market / Technical / Operational / Legal / Brand / Financial
+- **Υπεύθυνος:**
+- **Κατάσταση:** Open / Mitigated / Closed / Accepted
+- **Ημερομηνία καταγραφής:**
 
-### Description
+### Περιγραφή
 
-What could go wrong, in plain language.
+Τι μπορεί να πάει στραβά, σε απλή γλώσσα.
 
-### Likelihood
+### Πιθανότητα
 
-Low / Medium / High — and why.
+Low / Medium / High — και γιατί.
 
-### Impact
+### Επίπτωση
 
-Low / Medium / High — and what it would cost us.
+Low / Medium / High — και τι θα μας κόστιζε.
 
-### Early-warning signals
+### Σήματα πρώιμης προειδοποίησης
 
-What we would see if this risk starts to materialise.
+Τι θα βλέπαμε αν αυτό το risk αρχίσει να υλοποιείται.
 
-### Mitigation
+### Μετριασμός
 
-What we are doing (or will do) to reduce likelihood or impact.
+Τι κάνουμε (ή θα κάνουμε) για μείωση πιθανότητας ή επίπτωσης.
 
-### Contingency
+### Σχέδιο έκτακτης ανάγκης
 
-What we will do if the risk actually happens.
+Τι θα κάνουμε αν το risk πραγματικά συμβεί.
 
-### Linked pages
+### Συνδεδεμένες σελίδες
 
 - [Risk Register](../09-Legal-and-Compliance/Risk-Register.md)
-- Related pages, work items or decisions.
+- Σχετικές σελίδες, work items ή αποφάσεις.

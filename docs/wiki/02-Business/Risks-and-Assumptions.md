@@ -1,52 +1,52 @@
-# Risks and Assumptions
+# Κίνδυνοι και υποθέσεις
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Name the risks and the assumptions we are betting on. If we don't write them down, we can't test them.
+Ονομάστε τους κινδύνους και τις υποθέσεις που στοιχηματίζουμε. Αν δεν τις γράψουμε, δεν μπορούμε να τις δοκιμάσουμε.
 
-The detailed risk register is in [Risk Register](../09-Legal-and-Compliance/Risk-Register.md).
+Το λεπτομερές μητρώο κινδύνων είναι στο [Risk Register](../09-Legal-and-Compliance/Risk-Register.md).
 
-## Core assumptions to test
+## Βασικές υποθέσεις προς δοκιμή
 
-| # | Assumption | If wrong, what changes |
+| # | Υπόθεση | Αν είναι λάθος, τι αλλάζει |
 |---|---|---|
-| A1 | Owners and producers struggle with shared visibility on fields | The whole product framing changes |
-| A2 | Olive cultivation is the right beachhead vertical | We pick a different first crop |
-| A3 | Owners will pay €15–€60 / month for the platform | Pricing must drop or model changes |
-| A4 | A mobile-first, lightweight tool is what they want (not heavy ERP) | We rethink complexity |
-| A5 | Owners are the primary buyer (not producers) | Sales motion changes |
-| A6 | Agronomists are useful recommenders, not primary buyers | Channel mix changes |
-| A7 | We can recruit 3 pilots in 60 days through our current network | Timeline slips |
+| A1 | Ιδιοκτήτες και παραγωγοί δυσκολεύονται με κοινή ορατότητα στα αγροτεμάχια | Αλλάζει όλο το framing προϊόντος |
+| A2 | Η ελαιοκαλλιέργεια είναι η σωστή κάθετη beachhead | Επιλέγουμε άλλη πρώτη καλλιέργεια |
+| A3 | Οι ιδιοκτήτες θα πληρώσουν €15–€60 / μήνα για την πλατφόρμα | Το pricing πρέπει να πέσει ή να αλλάξει μοντέλο |
+| A4 | Θέλουν ελαφρύ, mobile-first εργαλείο (όχι βαρύ ERP) | Ξανασκεφόμαστε την πολυπλοκότητα |
+| A5 | Οι ιδιοκτήτες είναι ο κύριος αγοραστής (όχι οι παραγωγοί) | Αλλάζει η κίνηση πωλήσεων |
+| A6 | Οι γεωπόνοι είναι χρήσιμοι συστάτες, όχι κύριοι αγοραστές | Αλλάζει η μίξη καναλιών |
+| A7 | Μπορούμε να προσελκύσουμε 3 pilots σε 60 ημέρες μέσα από το τρέχον δίκτυο | Χάνεται χρονοδιάγραμμα |
 
-## Top risks
+## Κύριοι κίνδυνοι
 
-| # | Risk | Likelihood | Impact | Mitigation |
+| # | Κίνδυνος | Πιθανότητα | Επίπτωση | Μετριασμός |
 |---|---|---|---|---|
-| R1 | We build the wrong MVP | Medium | High | Heavy customer interviews, pilot before scaling |
-| R2 | Owners won't pay because "Excel works" | Medium | High | Price-anchor questions early, pilot with real money commitment |
-| R3 | Producers won't adopt the mobile app | Medium | High | Test mobile UX with real producers in pilots |
-| R4 | Competitor with deep pockets enters the same beachhead | Low–Medium | High | Move fast, build loyalty in pilot phase |
-| R5 | Data privacy concerns (GDPR) slow us down | Medium | Medium | See [GDPR](../09-Legal-and-Compliance/GDPR.md) early |
-| R6 | Founder bandwidth — too few people doing too much | High | Medium | Tight scope, no scope creep |
-| R7 | Pilot churn after free phase | Medium | High | Convert pilots to paid with a clear plan from day one |
+| R1 | Φτιάχνουμε λάθος MVP | Μεσαία | Υψηλή | Πολλά customer interview, pilot πριν κλιμάκωση |
+| R2 | Οι ιδιοκτήτες δεν πληρώνουν γιατί «το Excel δουλεύει» | Μεσαία | Υψηλή | Ερωτήματα price-anchor νωρίς, pilot με πραγματική δέσμευση χρημάτων |
+| R3 | Οι παραγωγοί δεν υιοθετούν την mobile εφαρμογή | Μεσαία | Υψηλή | Δοκιμή mobile UX με πραγματικούς παραγωγούς σε pilots |
+| R4 | Ανταγωνιστής με βαθιές τσέπες στην ίδια beachhead | Χαμηλή–Μεσαία | Υψηλή | Γρήγορη κίνηση, πίστη στη φάση pilot |
+| R5 | Ανησυχίες προστασίας δεδομένων (GDPR) μας καθυστερούν | Μεσαία | Μεσαία | Δείτε [GDPR](../09-Legal-and-Compliance/GDPR.md) νωρίς |
+| R6 | Εύρος χρόνου founders — λίγοι άνθρωποι, πολλά | Υψηλή | Μεσαία | Στενό scope, χωρίς scope creep |
+| R7 | churn pilots μετά τη δωρεάν φάση | Μεσαία | Υψηλή | Μετατροπή σε πληρωμή με σαφές σχέδιο από την πρώτη μέρα |
 
-## Risk vs assumption — which is which?
+## Κίνδυνος vs υπόθεση — τι είναι τι;
 
-- An **assumption** is something we believe to be true that we haven't yet proven.
-- A **risk** is what happens if an assumption fails or if external events go against us.
+- **Υπόθεση** είναι κάτι που πιστεύουμε αληθές χωρίς να το έχουμε αποδείξει ακόμα.
+- **Κίνδυνος** είναι τι συμβαίνει αν μια υπόθεση αποτύχει ή αν εξωτερικά γεγονότα πάνε εναντίον μας.
 
-Each assumption typically has a related risk.
+Κάθε υπόθεση έχει συνήθως σχετικό κίνδυνο.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Are there macro risks we are missing (e.g. regulation, climate events)?
-- Have we under-counted operational risks?
+- Υπάρχουν μακροκίνδυνοι που χάνουμε (π.χ. ρύθμιση, κλιματικά γεγονότα);
+- Έχουμε υποεκτιμήσει λειτουργικούς κινδύνους;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Test the top 3 assumptions in the first 10 interviews
-- Move closed assumptions into the Decision Log as confirmed or rejected
+- Δοκιμάστε τις 3 κορυφαίες υποθέσεις στα πρώτα 10 interview
+- Μετακινήστε κλεισμένες υποθέσεις στο Decision Log ως επιβεβαιωμένες ή απορριφθείσες

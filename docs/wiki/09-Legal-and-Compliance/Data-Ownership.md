@@ -1,58 +1,58 @@
 # Data Ownership
 
-**Status:** Draft — important to clarify early
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — σημαντικό να διευκρινιστεί νωρίς
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Who owns the data inside AgroTrack — owners, producers, organisations, us. Critical for trust.
+Ποιος κατέχει τα δεδομένα μέσα στο AgroTrack — ιδιοκτήτες, παραγωγοί, οργανισμοί, εμείς. Κρίσιμο για εμπιστοσύνη.
 
-## Our principles
+## Οι αρχές μας
 
-1. **The customer's data belongs to the customer.** We store it for them; we don't claim it.
-2. **The organisation, not the individual, owns its operational data.** If a producer leaves an organisation, the field history stays.
-3. **We never sell customer data.**
-4. **We never train external AI models on customer data without explicit consent.**
-5. **Customers can export their data at any time, in a usable format.**
+1. **Τα δεδομένα του πελάτη ανήκουν στον πελάτη.** Τα αποθηκεύουμε για αυτόν· δεν τα διεκδικούμε.
+2. **Ο οργανισμός, όχι το άτομο, κατέχει τα λειτουργικά του δεδομένα.** Αν ένας παραγωγός φύγει από οργανισμό, το ιστορικό αγροτεμαχίου μένει.
+3. **Ποτέ δεν πουλάμε δεδομένα πελατών.**
+4. **Ποτέ δεν εκπαιδεύουμε εξωτερικά μοντέλα AI με δεδομένα πελατών χωρίς ρητή συγκατάθεση.**
+5. **Οι πελάτες μπορούν να εξάγουν τα δεδομένα τους ανά πάσα στιγμή, σε χρησιμοποιήσιμη μορφή.**
 
-## Tricky cases
+## Δύσκολες περιπτώσεις
 
-### A producer works for multiple owners
+### Παραγωγός εργάζεται για πολλούς ιδιοκτήτες
 
-- Each owner's data stays with that owner's organisation.
-- The producer can be a member of multiple organisations.
-- Removing the producer from one organisation does not affect the others.
+- Τα δεδομένα κάθε ιδιοκτήτη μένουν στον οργανισμό αυτού του ιδιοκτήτη.
+- Ο παραγωγός μπορεί να είναι μέλος πολλών οργανισμών.
+- Η αφαίρεση του παραγωγού από έναν οργανισμό δεν επηρεάζει τους άλλους.
 
-### An owner sells a field
+### Ιδιοκτήτης πουλά αγροτεμάχιο
 
-- The new owner can be invited to the organisation, or the field can be transferred to a new organisation.
-- History travels with the field if the buyer wants it; otherwise it is archived in the original organisation.
+- Ο νέος ιδιοκτήτης μπορεί να προσκληθεί στον οργανισμό, ή το αγροτεμάχιο μπορεί να μεταφερθεί σε νέο οργανισμό.
+- Το ιστορικό ταξιδεύει με το αγροτεμάχιο αν το θέλει ο αγοραστής· αλλιώς αρχειοθετείται στον αρχικό οργανισμό.
 
-### An organisation closes
+### Κλείσιμο οργανισμού
 
-- All members are notified.
-- A 30-day window allows export of all data.
-- After that, data is deleted in line with our retention policy (subject to legal exceptions).
+- Όλα τα μέλη ειδοποιούνται.
+- Παράθυρο 30 ημερών για εξαγωγή όλων των δεδομένων.
+- Μετά, τα δεδομένα διαγράφονται σύμφωνα με την πολιτική διατήρησης (με legal εξαιρέσεις).
 
-### Disputes between owner and producer
+### Διαφωνία μεταξύ ιδιοκτήτη και παραγωγού
 
-- We do not adjudicate.
-- Both parties have agreed (through their roles) on data sharing within the organisation.
-- We provide the data; we do not decide who is right.
+- Δεν διαιτητούμε.
+- Και οι δύο πλευρές έχουν συμφωνήσει (μέσω των ρόλων τους) για κοινή χρήση δεδομένων εντός οργανισμού.
+- Παρέχουμε τα δεδομένα· δεν αποφασίζουμε ποιος έχει δίκιο.
 
-## What we make easy
+## Τι κάνουμε εύκολο
 
-- Full export (per organisation) in a common format (CSV / JSON).
-- Bulk archive of fields.
-- Clear ownership labels in the UI.
+- Πλήρης εξαγωγή (ανά οργανισμό) σε κοινή μορφή (CSV / JSON).
+- Μαζική αρχειοθέτηση αγροτεμαχίων.
+- Σαφείς ετικέτες data ownership στο UI.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we allow read-only "guests" that don't share organisation ownership?
-- How do we handle data when a country requires data residency?
+- Επιτρέπουμε «επισκέπτες» μόνο για ανάγνωση που δεν μοιράζονται data ownership οργανισμού;
+- Πώς χειριζόμαστε δεδομένα όταν χώρα απαιτεί data residency;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Codify the data ownership statement in the Terms of Service
-- Add a "Download all my data" feature for organisations before scaling beyond pilots
+- Κωδικοποίηση της δήλωσης data ownership στους Terms of Service
+- Προσθήκη λειτουργίας «Λήψη όλων των δεδομένων μου» για οργανισμούς πριν την κλιμάκωση πέρα από πιλοτικά

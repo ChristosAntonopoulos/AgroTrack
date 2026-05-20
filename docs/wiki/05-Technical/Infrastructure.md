@@ -1,50 +1,50 @@
 # Infrastructure
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Where AgroTrack runs and how. Plain-language version.
+Πού τρέχει το AgroTrack και πώς. Έκδοση σε απλή γλώσσα.
 
-## Where it runs
+## Πού τρέχει
 
-- In the cloud, on standard cloud hosting.
-- Customers do not install anything.
-- We do not run our own servers or hardware.
+- Στο cloud, σε τυπικό cloud hosting.
+- Οι πελάτες δεν εγκαθιστούν τίποτα.
+- Δεν τρέχουμε δικούς μας servers ή hardware.
 
-## Environments
+## Περιβάλλοντα (environments)
 
-| Environment | Purpose | Who uses it |
+| Περιβάλλον | Σκοπός | Ποιος το χρησιμοποιεί |
 |---|---|---|
-| Local | Developers building and testing on their own machines | The team |
-| Staging | A shared environment used to test before showing customers | Team + sometimes pilots |
-| Production | The real environment used by customers | All real customers |
+| Local | Developers που χτίζουν και δοκιμάζουν στις δικές τους μηχανές | Η ομάδα |
+| Staging | Κοινόχρηστο περιβάλλον δοκιμών πριν δείξουμε σε πελάτες | Ομάδα + μερικές φορές pilots |
+| Production | Το πραγματικό περιβάλλον που χρησιμοποιούν οι πελάτες | Όλοι οι πραγματικοί πελάτες |
 
 ## Backups
 
-- Database backups happen on a regular schedule.
-- Restoring from backup is rehearsed at least once before going live with pilots.
+- Γίνονται backups της database σε τακτικό πρόγραμμα.
+- Η επαναφορά από backup έχει δοκιμαστεί τουλάχιστον μία φορά πριν ζωντανέψουν τα pilots.
 
-## Monitoring (light, for now)
+## Monitoring (ελαφρύ, προς το παρόν)
 
-- We know if the site is up or down.
-- We get alerted on critical errors.
-- We do not have heavy monitoring tools yet (added when customer scale justifies it).
+- Ξέρουμε αν ο ιστότοπος είναι up ή down.
+- Ειδοποιούμαστε για κρίσιμα σφάλματα.
+- Δεν έχουμε ακόμα βαριά εργαλεία monitoring (προστίθενται όταν το δικαιολογεί η κλίμακα πελατών).
 
-## What is NOT in scope right now
+## Τι ΔΕΝ είναι στο scope προς το παρόν
 
-- Multi-region deployment.
-- Auto-scaling for spikes (not needed at this scale).
-- Complex disaster recovery beyond regular backups.
+- Ανάπτυξη multi-region.
+- Auto-scaling για αιχμές (δεν χρειάζεται σε αυτή την κλίμακα).
+- Σύνθετη disaster recovery πέρα από τακτικά backups.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Which cloud provider do we standardise on?
-- What is acceptable downtime for pilots?
+- Σε ποιον cloud provider standardize;
+- Ποια downtime είναι αποδεκτή για pilots;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm hosting setup before first pilot
-- Set up basic uptime monitoring before going live
+- Επιβεβαίωση setup hosting πριν το πρώτο pilot
+- Βασικό uptime monitoring πριν go-live

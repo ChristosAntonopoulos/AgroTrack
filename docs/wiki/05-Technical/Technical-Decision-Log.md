@@ -1,59 +1,59 @@
 # Technical Decision Log
 
-**Status:** Living document
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Ζωντανό έγγραφο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Important decisions on the technical side. Smaller, more frequent than the company [Decision Log](../01-Company/Decision-Log.md).
+Σημαντικές αποφάσεις στην τεχνική πλευρά. Μικρότερες και συχνότερες από το εταιρικό [Decision Log](../01-Company/Decision-Log.md).
 
-Use the [Decision Record Template](../11-Templates/Decision-Record-Template.md) for each entry.
+Χρησιμοποιήστε το [Decision Record Template](../11-Templates/Decision-Record-Template.md) για κάθε καταχώρηση.
 
-## Decisions
+## Αποφάσεις
 
 ### TD-001 — Database: MongoDB
 
-- **Date:** TBD
-- **Status:** Validated
-- **Context:** We need a database for the demo and MVP.
-- **Decision:** Use MongoDB.
-- **Consequences:** Team works with a familiar tool. We avoid premature switching costs.
-- **Owner:** CTO
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Validated
+- **Πλαίσιο:** Χρειαζόμαστε database για το demo και το MVP.
+- **Απόφαση:** Χρήση MongoDB.
+- **Συνέπειες:** Η ομάδα δουλεύει με γνώριμο εργαλείο. Αποφεύγουμε πρόωρα κόστη αλλαγής.
+- **Υπεύθυνος:** CTO
 
-### TD-002 — Demo platform exists; treat it as a learning vehicle, not as the final product
+### TD-002 — Υπάρχει demo platform· το αντιμετωπίζουμε ως όχημα μάθησης, όχι ως τελικό προϊόν
 
-- **Date:** TBD
-- **Status:** Proposed
-- **Context:** A working demo exists in the repo.
-- **Decision:** Keep evolving the demo to support sales conversations and early pilots. Do not invest in heavy refactors until validation is complete.
-- **Consequences:** Some quick decisions in the demo will need to be revisited later. That is acceptable.
-- **Owner:** CTO
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Proposed
+- **Πλαίσιο:** Υπάρχει λειτουργικό demo στο repo.
+- **Απόφαση:** Συνεχίζουμε την εξέλιξη του demo για πωλήσεις και πρώιμα pilots. Δεν επενδύουμε σε βαριά refactors μέχρι να ολοκληρωθεί η επικύρωση.
+- **Συνέπειες:** Μερικές γρήγορες επιλογές στο demo θα χρειαστούν επανεξέταση αργότερα. Είναι αποδεκτό.
+- **Υπεύθυνος:** CTO
 
-### TD-003 — Wiki published from `/docs/wiki` via Azure DevOps "Publish code as Wiki"
+### TD-003 — Wiki δημοσιεύεται από `/docs/wiki` μέσω Azure DevOps «Publish code as Wiki»
 
-- **Date:** TBD
-- **Status:** Validated
-- **Context:** We want documentation that lives next to the code and is version controlled.
-- **Decision:** Publish the wiki from `/docs/wiki` in this repo.
-- **Consequences:** Wiki edits go through the same review process as code.
-- **Owner:** CTO
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Validated
+- **Πλαίσιο:** Θέλουμε τεκμηρίωση δίπλα στον κώδικα με version control.
+- **Απόφαση:** Δημοσίευση wiki από `/docs/wiki` σε αυτό το repo.
+- **Συνέπειες:** Οι αλλαγές wiki περνούν από την ίδια διαδικασία review με τον κώδικα.
+- **Υπεύθυνος:** CTO
 
-### TD-004 — Defer native mobile apps until MVP web mobile is proven insufficient
+### TD-004 — Αναβολή native mobile apps μέχρι να αποδειχθεί ανεπαρκές το MVP web mobile
 
-- **Date:** TBD
-- **Status:** Proposed
-- **Context:** Native apps are expensive to build and maintain.
-- **Decision:** Start with web mobile only. Build native only if pilots clearly need it.
-- **Consequences:** Faster MVP. Possible later effort if native becomes required.
-- **Owner:** CTO
+- **Ημερομηνία:** TBD
+- **Κατάσταση:** Proposed
+- **Πλαίσιο:** Οι native εφαρμογές είναι ακριβές στη δημιουργία και συντήρηση.
+- **Απόφαση:** Ξεκινάμε μόνο με web mobile. Native μόνο αν τα pilots το απαιτήσουν ξεκάθαρα.
+- **Συνέπειες:** Ταχύτερο MVP. Πιθανή μελλοντική προσπάθεια αν απαιτηθεί native.
+- **Υπεύθυνος:** CTO
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we add an issue tracker beyond Azure Boards for technical debt?
-- When do we lock the language stack for v1 production rebuild (if ever)?
+- Προσθέτουμε issue tracker πέρα από Azure Boards για technical debt;
+- Πότε «κλειδώνουμε» το language stack για v1 production rebuild (αν ποτέ);
 
-## Next Actions
+## Επόμενα βήματα
 
-- Add new decisions as they happen
-- Re-review TD-002 after Sprint 1
+- Προσθήκη νέων αποφάσεων καθώς συμβαίνουν
+- Επανεξέταση TD-002 μετά το Sprint 1

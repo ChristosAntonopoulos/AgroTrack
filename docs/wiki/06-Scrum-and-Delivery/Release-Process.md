@@ -1,51 +1,51 @@
 # Release Process
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we get changes into customers' hands safely.
+Πώς φέρνουμε αλλαγές στους πελάτες με ασφάλεια.
 
-## Release approach
+## Προσέγγιση release
 
-- **Staging first**: every change goes to staging before customers see it.
-- **Frequent small releases**: rather than rare big ones.
-- **Visible**: any customer-facing change is noted in a simple changelog.
+- **Staging πρώτα**: κάθε αλλαγή πάει σε staging πριν τη δουν οι πελάτες.
+- **Συχνά μικρά release**: αντί για σπάνια μεγάλα.
+- **Ορατά**: κάθε αλλαγή προς τον πελάτη σημειώνεται σε απλό changelog.
 
-## Release flow
+## Ροή release
 
-1. Code is merged into the main branch.
-2. The automatic pipeline builds and deploys to staging.
-3. Manual acceptance testing on staging.
-4. Once approved, the change is promoted to production.
-5. A short note is added to the changelog.
+1. Ο κώδικας συγχωνεύεται στο main branch.
+2. Το αυτόματο pipeline κάνει build και deploy σε staging.
+3. Χειροκίνητη δοκιμή αποδοχής στο staging.
+4. Μετά την έγκριση, η αλλαγή προωθείται σε production.
+5. Προστίθεται σύντομη σημείωση στο changelog.
 
-## Release cadence
+## Ρυθμός release
 
-- During Sprint 0 and Sprint 1: as often as we can, with the team only.
-- During pilots: small, frequent releases, communicated to pilots when relevant.
-- During paid customer phase: predictable weekly or bi-weekly releases, plus emergency fixes.
+- Κατά Sprint 0 και Sprint 1: όσο συχνά μπορούμε, μόνο με την ομάδα.
+- Κατά πιλότους: μικρά, συχνά release, ενημέρωση πιλότων όπου σχετικό.
+- Κατά φάση πληρωτών πελατών: προβλέψιμα εβδομαδιαία ή δίεβδομα release, συν emergency διορθώσεις.
 
-## Communication with customers
+## Επικοινωνία με πελάτες
 
-- Major changes: short email / message before and after the release.
-- Small changes: no proactive comms, but the changelog is available.
-- Bugs that affect customers directly: communicate immediately and transparently.
+- Μεγάλες αλλαγές: σύντομο email / μήνυμα πριν και μετά το release.
+- Μικρές αλλαγές: χωρίς προληπτική επικοινωνία, αλλά το changelog είναι διαθέσιμο.
+- Σφάλματα που επηρεάζουν άμεσα πελάτες: άμεση και διαφανής ενημέρωση.
 
 ## Rollback
 
-- If something breaks, we revert the offending change.
-- If we can't revert in code, we disable the feature flag (where applicable) or pull it from the menu.
-- We always tell the customer what happened.
+- Αν κάτι χαλάσει, επαναφέρουμε την προβληματική αλλαγή.
+- Αν δεν μπορούμε επαναφορά στον κώδικα, απενεργοποιούμε feature flag (όπου ισχύει) ή το αφαιρούμε από το μενού.
+- Πάντα λέμε στον πελάτη τι συνέβη.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we expose the changelog publicly or only to logged-in users?
-- When do we adopt feature flags as a default?
+- Εκθέτουμε το changelog δημόσια ή μόνο σε συνδεδεμένους χρήστες;
+- Πότε υιοθετούμε feature flags ως προεπιλογή;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Write the first version of the customer changelog
-- Confirm the staging-to-production promotion process
+- Γράψτε την πρώτη έκδοση changelog πελατών
+- Επιβεβαιώστε τη διαδικασία προώθησης staging → production

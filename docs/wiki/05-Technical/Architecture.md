@@ -1,14 +1,14 @@
 # Architecture
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The big picture of how the parts of AgroTrack fit together. No code, no schemas — just the shape of the system.
+Η μεγάλη εικόνα του πώς ενώνονται τα μέρη του AgroTrack. Χωρίς κώδικα, χωρίς schemas — μόνο το σχήμα του συστήματος.
 
-## High-level picture
+## Εικόνα υψηλού επιπέδου
 
 ```
 [User on phone or laptop]
@@ -23,42 +23,42 @@ The big picture of how the parts of AgroTrack fit together. No code, no schemas 
 [Database]  <-- where data lives
 ```
 
-## What each part does
+## Τι κάνει κάθε μέρος
 
-- **Web App**: The screens the user sees. Built to work in any modern browser, including phones.
-- **Backend / API**: Receives the user's actions, applies rules (e.g. "is this user allowed to see this field?"), and reads/writes data.
-- **Database**: Stores everything — users, fields, crop cycles, tasks, activities, expenses.
+- **Web App**: Οι οθόνες που βλέπει ο χρήστης. Φτιαγμένο να δουλεύει σε κάθε σύγχρονο browser, συμπεριλαμβανομένων κινητών.
+- **Backend / API**: Δέχεται τις ενέργειες του χρήστη, εφαρμόζει κανόνες (π.χ. «επιτρέπεται σε αυτόν τον χρήστη να δει αυτό το πεδίο;») και διαβάζει/γράφει δεδομένα.
+- **Database**: Αποθηκεύει τα πάντα — χρήστες, πεδία, κύκλους καλλιέργειας, εργασίες, δραστηριότητες, έξοδα.
 
-## Where data flows
+## Ροή δεδομένων
 
-1. The user opens the app on their phone.
-2. They log in.
-3. The app asks the backend for their fields.
-4. The backend checks their permissions and reads from the database.
-5. The backend sends the fields back to the app.
-6. The user sees their fields.
+1. Ο χρήστης ανοίγει την εφαρμογή στο κινητό.
+2. Συνδέεται (login).
+3. Η εφαρμογή ζητά από το backend τα πεδία του.
+4. Το backend ελέγχει τα δικαιώματά του και διαβάζει από τη database.
+5. Το backend στέλνει τα πεδία πίσω στην εφαρμογή.
+6. Ο χρήστης βλέπει τα πεδία του.
 
-That same pattern repeats for every action — create a field, add a task, log an activity.
+Το ίδιο μοτίβο επαναλαμβάνεται για κάθε ενέργεια — δημιουργία πεδίου, προσθήκη εργασίας, καταγραφή δραστηριότητας.
 
-## Why it's simple right now
+## Γιατί είναι απλό προς το παρόν
 
-- We are validating the business. Complexity costs time and money.
-- A simple architecture is enough for early pilots.
-- We add complexity when a real customer need justifies it.
+- Επικυρώνουμε την επιχείρηση. Η πολυπλοκότητα κοστίζει χρόνο και χρήμα.
+- Μια απλή architecture αρκεί για πρώιμα pilots.
+- Προσθέτουμε πολυπλοκότητα όταν το δικαιολογεί πραγματική ανάγκη πελάτη.
 
-## What we will add when needed
+## Τι θα προσθέσουμε όταν χρειαστεί
 
-- More reliable hosting setup (load balancing, backups, monitoring)
-- Native mobile apps (only if mobile web isn't enough)
-- Offline support (only if pilots need it)
-- Integrations with other tools (later)
+- Πιο αξιόπιστο setup hosting (load balancing, backups, monitoring)
+- Native mobile apps (μόνο αν το mobile web δεν αρκεί)
+- Υποστήριξη offline (μόνο αν το απαιτούν pilots)
+- Ενσωματώσεις με άλλα εργαλεία (αργότερα)
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- When does the demo platform get replaced with a "production-ready" version?
-- Do we keep the same architecture or simplify further before MVP?
+- Πότε αντικαθίσταται το demo platform με έκδοση «έτοιμη για production»;
+- Κρατάμε την ίδια architecture ή την απλοποιούμε περαιτέρω πριν το MVP;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm hosting setup for pilots
-- Document any change to this picture as the system grows
+- Επιβεβαίωση setup hosting για pilots
+- Τεκμηρίωση κάθε αλλαγής σε αυτή την εικόνα καθώς μεγαλώνει το σύστημα

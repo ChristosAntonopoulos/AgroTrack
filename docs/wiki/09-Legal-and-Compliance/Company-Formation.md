@@ -1,47 +1,47 @@
 # Company Formation
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we set up AgroTrack as a legal entity.
+Πώς ρυθμίζουμε το AgroTrack ως νομική οντότητα.
 
-## Decisions to make
+## Αποφάσεις προς λήψη
 
-| Decision | Options | Status |
+| Απόφαση | Επιλογές | Κατάσταση |
 |---|---|---|
-| Country of incorporation | TBD (e.g. Greece, Cyprus, Estonia, UK, US) | Not decided |
-| Entity type | Limited company / IKE / LLC / Ltd / similar | Not decided |
-| Founder shareholding split | TBD | Not decided |
-| Vesting schedule for founders | TBD (e.g. 4-year vesting, 1-year cliff) | Not decided |
-| IP assignment from founders to company | Standard practice | To draft |
+| Χώρα ενσωμάτωσης | TBD (π.χ. Ελλάδα, Κύπρος, Εσθονία, ΗΒ, ΗΠΑ) | Δεν αποφασίστηκε |
+| Τύπος οντότητας | Εταιρεία περιορισμένης ευθύνης / ΙΚΕ / LLC / Ltd / παρόμοια | Δεν αποφασίστηκε |
+| Κατανομή μεριδίων ιδρυτών | TBD | Δεν αποφασίστηκε |
+| Πρόγραμμα vesting ιδρυτών | TBD (π.χ. 4ετές vesting, 1ετές cliff) | Δεν αποφασίστηκε |
+| Εκχώρηση IP από ιδρυτές στην εταιρεία | Τυπική πρακτική | Προς σχέδιο |
 
-## Factors to weigh
+## Παράγοντες προς στάθμιση
 
-- Where most founders live and pay tax.
-- Where we expect first customers.
-- Ease of incorporation and ongoing admin.
-- Investor preferences for future fundraising.
-- Cost (incorporation, accounting, compliance).
+- Πού ζουν και φορολογούνται οι περισσότεροι ιδρυτές.
+- Πού αναμένουμε τους πρώτους πελάτες.
+- Ευκολία ενσωμάτωσης και συνεχούς διοίκησης.
+- Προτιμήσεις επενδυτών για μελλοντική χρηματοδότηση.
+- Κόστος (ενσωμάτωση, λογιστική, compliance).
 
-## Process (high level)
+## Διαδικασία (υψηλού επιπέδου)
 
-1. Decide country and entity type.
-2. Choose a corporate services provider or local lawyer.
-3. File incorporation documents.
-4. Set up bank account.
-5. Sign founder agreements (shareholding, vesting, IP assignment).
-6. Register for tax as required.
-7. Get insurance (basic liability at minimum).
+1. Απόφαση χώρας και τύπου οντότητας.
+2. Επιλογή παρόχου εταιρικών υπηρεσιών ή τοπικού δικηγόρου.
+3. Υποβολή εγγράφων ενσωμάτωσης.
+4. Άνοιγμα τραπεζικού λογαριασμού.
+5. Υπογραφή συμφωνιών ιδρυτών (μετοχές, vesting, εκχώρηση IP).
+6. Φορολογική εγγραφή όπου απαιτείται.
+7. Ασφάλιση (βασική ευθύνη τουλάχιστον).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Are there specific tax incentives for agritech startups in our target countries?
-- Do we incorporate before or after the first customer interview round?
+- Υπάρχουν συγκεκριμένα φορολογικά κίνητρα για agritech startups στις χώρες-στόχους;
+- Ενσωματωνόμαστε πριν ή μετά τον πρώτο γύρο συνεντεύξεων πελατών;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Compare 2–3 country options with quick research
-- Talk to one corporate services provider per option
+- Σύγκριση 2–3 επιλογών χώρας με γρήγορη έρευνα
+- Συζήτηση με έναν πάροχο εταιρικών υπηρεσιών ανά επιλογή

@@ -1,43 +1,43 @@
 # Backend
 
-**Status:** Draft — high level only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο υψηλού επιπέδου
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What the "backend" is, in plain language.
+Τι είναι το «backend», σε απλή γλώσσα.
 
-## What the backend is
+## Τι είναι το backend
 
-The backend is the brain of AgroTrack. It is the part that:
+Το backend είναι ο «εγκέφαλος» του AgroTrack. Είναι το μέρος που:
 
-- Receives every action the user takes in the app.
-- Decides if the user is allowed to do it.
-- Applies the business rules (for example, "a producer can log activity but cannot remove other users").
-- Reads and writes data in the database.
-- Sends results back to the app.
+- Δέχεται κάθε ενέργεια του χρήστη στην εφαρμογή.
+- Αποφασίζει αν επιτρέπεται στον χρήστη.
+- Εφαρμόζει τους επιχειρησιακούς κανόνες (π.χ. «ο παραγωγός μπορεί να καταγράψει δραστηριότητα αλλά όχι να αφαιρέσει άλλους χρήστες»).
+- Διαβάζει και γράφει δεδομένα στη database.
+- Στέλνει αποτελέσματα πίσω στην εφαρμογή.
 
-The user never sees the backend directly. It works behind the scenes.
+Ο χρήστης δεν βλέπει ποτέ το backend απευθείας. Δουλεύει στο παρασκήνιο.
 
-## What it does for our customers
+## Τι προσφέρει στους πελάτες μας
 
-- Keeps their data safe and consistent.
-- Makes sure each person only sees the fields and information they should.
-- Powers every screen, every list, every save.
+- Κρατά τα δεδομένα ασφαλή και συνεπή.
+- Βεβαιώνει ότι ο καθένας βλέπει μόνο τα πεδία και τις πληροφορίες που πρέπει.
+- Τροφοδοτεί κάθε οθόνη, κάθε λίστα, κάθε αποθήκευση.
 
-## What is NOT in scope right now
+## Τι ΔΕΝ είναι στο scope προς το παρόν
 
-- Complex automation or AI logic.
-- Integrations with external systems (accounting, weather, sensors).
-- Heavy reporting and analytics engines.
+- Σύνθετη αυτοματοποίηση ή λογική AI.
+- Ενσωματώσεις με εξωτερικά συστήματα (λογιστική, καιρός, αισθητήρες).
+- Βαριά reporting και analytics engines.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- When do we add proper logging and monitoring tooling?
-- When do we move from a single backend to multiple services (if ever)?
+- Πότε προσθέτουμε σωστά εργαλεία logging και monitoring;
+- Πότε (αν ποτέ) περνάμε από ένα backend σε πολλές υπηρεσίες;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm the backend can support 3–5 pilots reliably
-- Add basic health monitoring before the first paid customer
+- Επιβεβαίωση ότι το backend αντέχει 3–5 pilots αξιόπιστα
+- Βασικό health monitoring πριν τον πρώτο πληρωμένο πελάτη

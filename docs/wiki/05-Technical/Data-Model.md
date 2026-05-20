@@ -1,52 +1,52 @@
 # Data Model
 
-**Status:** Draft — conceptual only
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — μόνο εννοιολογικά
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The list of things AgroTrack keeps track of, in plain language. Useful for product, design and business — not a technical schema.
+Η λίστα των πραγμάτων που παρακολουθεί το AgroTrack, σε απλή γλώσσα. Χρήσιμο για προϊόν, σχεδιασμό και επιχείρηση — όχι τεχνικό schema.
 
-## Entities (conceptual)
+## Οντότητες (εννοιολογικά)
 
-| Entity | What it represents | Example |
+| Οντότητα | Τι αντιπροσωπεύει | Παράδειγμα |
 |---|---|---|
-| User | A person who uses AgroTrack | Maria (owner), Yiannis (producer) |
-| Organisation | A group of users sharing fields and data | "Family Olives" |
-| Organisation Member | A user's role inside an organisation | Maria is "owner" in "Family Olives" |
-| Field | A piece of land managed in AgroTrack | "Lower Grove", 3 hectares, olives |
-| Field Owner | Link between an owner and a field (when ownership matters) | Maria owns "Lower Grove" |
-| Crop | What is grown on a field | Olive |
-| Crop Cycle | One season or production cycle on a field | "2026 cycle" on "Lower Grove" |
-| Lifecycle Stage | A phase within a crop cycle | "Flowering" stage |
-| Field Task | A specific job to do on a field | "Prune row 3 by 15 March" |
-| Field Activity | A record of what happened on a field | "Irrigated 4 hours on 12 May" |
-| Expense | A cost recorded against a field, cycle, or task | "€200 for pruning labor" |
-| Document | A file attached to a field, cycle or activity (later) | "Receipt for fertiliser" |
-| Notification | A signal sent to a user (later) | "Pruning is due tomorrow" |
+| User | Άτομο που χρησιμοποιεί το AgroTrack | Μαρία (owner), Γιάννης (producer) |
+| Organisation | Ομάδα χρηστών που μοιράζονται πεδία και δεδομένα | «Οικογένεια Ελιές» |
+| Organisation Member | Ρόλος χρήστη μέσα σε οργανισμό | Η Μαρία είναι «owner» στο «Οικογένεια Ελιές» |
+| Field | Τεμάχι γης που διαχειρίζεται στο AgroTrack | «Κάτω Άλσος», 3 εκτάρια, ελιές |
+| Field Owner | Σύνδεση ιδιοκτήτη με πεδίο (όταν έχει σημασία η ιδιοκτησία) | Η Μαρία κατέχει το «Κάτω Άλσος» |
+| Crop | Τι καλλιεργείται σε πεδίο | Ελιά |
+| Crop Cycle | Μία σεζόν ή κύκλος παραγωγής σε πεδίο | Κύκλος «2026» στο «Κάτω Άλσος» |
+| Lifecycle Stage | Φάση μέσα σε κύκλο καλλιέργειας | Στάδιο «Άνθηση» |
+| Field Task | Συγκεκριμένη εργασία σε πεδίο | «Κλάδεμα σειρά 3 μέχρι 15 Μαρτίου» |
+| Field Activity | Καταγραφή τι έγινε σε πεδίο | «Πότισμα 4 ώρες στις 12 Μαΐου» |
+| Expense | Κόστος καταγεγραμμένο σε πεδίο, κύκλο ή εργασία | «200€ για εργασία κλαδέματος» |
+| Document | Αρχείο συνημμένο σε πεδίο, κύκλο ή δραστηριότητα (αργότερα) | «Απόδειξη λιπάσματος» |
+| Notification | Σήμα προς χρήστη (αργότερα) | «Το κλάδεμα λήγει αύριο» |
 
-## How they relate (in plain language)
+## Πώς συνδέονται (απλά)
 
-- A user can belong to one or more organisations.
-- Each organisation owns many fields.
-- Each field has one current crop cycle and a history of past cycles.
-- Each crop cycle moves through several lifecycle stages.
-- Tasks, activities, and expenses are attached to fields and (optionally) to cycles or tasks.
-- Documents and notifications come later.
+- Ένας χρήστης μπορεί να ανήκει σε έναν ή περισσότερους οργανισμούς.
+- Κάθε οργανισμός έχει πολλά πεδία.
+- Κάθε πεδίο έχει έναν τρέχοντα κύκλο καλλιέργειας και ιστορικό προηγούμενων.
+- Κάθε κύκλος περνά από πολλά στάδια lifecycle.
+- Εργασίες, δραστηριότητες και έξοδα συνδέονται με πεδία και (προαιρετικά) με κύκλους ή εργασίες.
+- Documents και notifications έρχονται αργότερα.
 
-## Why we wrote it like this
+## Γιατί το γράψαμε έτσι
 
-- It mirrors how customers describe their operation.
-- The same words appear in the product UI, in sales conversations, and in our work items.
-- We keep technical details (IDs, types, indexes) out of this page on purpose.
+- Αντικατοπτρίζει πώς περιγράφουν οι πελάτες τη δραστηριότητά τους.
+- Οι ίδιες λέξεις εμφανίζονται στο UI προϊόντος, στις πωλήσεις και στα work items.
+- Κρατάμε τεχνικές λεπτομέρειες (IDs, types, indexes) εκτός αυτής της σελίδας εσκεμμένα.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we keep "Field Owner" as a separate concept, or merge it into the field itself?
-- Should "Crop" be a free-text label or a predefined list?
+- Κρατάμε το «Field Owner» ως ξεχωριστή έννοια ή το ενσωματώνουμε στο πεδίο;
+- Το «Crop» είναι ελεύθερο κείμενο ή προκαθορισμένη λίστα;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm naming with the team — UI labels must match these entity names
-- Re-check when wireframes get created
+- Επιβεβαίωση ονοματολογίας με την ομάδα — οι ετικέτες UI πρέπει να ταιριάζουν με αυτές τις οντότητες
+- Επανέλεγχος όταν δημιουργηθούν wireframes

@@ -1,102 +1,102 @@
 # Customer Interview Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-After every customer interview, copy this template and fill it in. Add a row to [Interview Notes](../04-Customer-Research/Interview-Notes.md).
+Μετά από κάθε customer interview, αντέγραψε αυτό το template και συμπλήρωσέ το. Πρόσθεσε γραμμή στο [Interview Notes](../04-Customer-Research/Interview-Notes.md).
 
 ---
 
-## Interview: [Name] — [YYYY-MM-DD]
+## interview: [Όνομα] — [YYYY-MM-DD]
 
-### Basics
+### Βασικά στοιχεία
 
-- **Date / time:**
-- **Interviewer(s):**
-- **Note taker:**
-- **Interviewee:**
-- **Role:** (Owner / Producer / Admin / Agronomist / Other)
-- **Country / region:**
-- **Number of fields managed:**
-- **Crop(s):**
-- **Years in agriculture:**
-- **How we found them:** (Network / co-op / agronomist / online / other)
+- **Ημερομηνία / ώρα:**
+- **Συνεντευξιαστής(ές):**
+- **Σημειωματάρχος:**
+- **Συνεντευξιαζόμενος:**
+- **Ρόλος:** (Ιδιοκτήτης / Παραγωγός / Admin / Γεωπόνος / Άλλο)
+- **Χώρα / περιοχή:**
+- **Αριθμός αγροτεμαχίων που διαχειρίζεται:**
+- **Καλλιέργεια(ες):**
+- **Έτη στην αγροτική:**
+- **Πώς τους βρήκαμε:** (Δίκτυο / συνεταιρισμός / γεωπόνος / online / άλλο)
 
-### Their current situation
+### Τρέχουσα κατάσταση
 
-- How they manage fields today:
-- Tools they currently use:
-- Who else is involved in their operation:
-- A typical week:
+- Πώς διαχειρίζονται αγροτεμάχια σήμερα:
+- Εργαλεία που χρησιμοποιούν:
+- Ποιοι άλλοι εμπλέκονται στη λειτουργία τους:
+- Τυπική εβδομάδα:
 
-### Pain points (in their words)
+### Pain points (με δικά τους λόγια)
 
 1.
 2.
 3.
 
-### Most painful moment / story
+### Πιο οδυνηρή στιγμή / ιστορία
 
-A specific example that captures the pain. The shorter the quote, the better.
+Συγκεκριμένο παράδειγμα που αποτυπώνει τον πόνο. Όσο πιο σύντομη η ατάκα, τόσο καλύτερα.
 
 > "..."
 
-### How they think about crop lifecycle
+### Πώς σκέφτονται τον κύκλο ζωής καλλιέργειας
 
-- How they break the year down:
-- How they know what stage their fields are in:
-- What changes between stages for them:
+- Πώς χωρίζουν το έτος:
+- Πώς ξέρουν σε ποιο στάδιο είναι τα αγροτεμάχια τους:
+- Τι αλλάζει μεταξύ σταδίων για αυτούς:
 
-### Tasks and execution
+### Εργασίες και εκτέλεση
 
-- How they plan work:
-- How they assign or coordinate work:
-- What goes wrong:
+- Πώς σχεδιάζουν εργασίες:
+- Πώς αναθέτουν ή συντονίζουν εργασίες:
+- Τι πάει στραβά:
 
-### Costs
+### Κόστη
 
-- How they track costs today:
-- Do they know per-field cost? (Yes / No / Roughly):
-- What they wish was clearer:
+- Πώς παρακολουθούν κόστη σήμερα:
+- Ξέρουν κόστος ανά αγροτεμάχι; (Ναι / Όχι / Χονδρικά):
+- Τι θα ήθελαν να είναι πιο σαφές:
 
-### Owner / producer communication
+### Επικοινωνία ιδιοκτήτη / παραγωγού
 
-- Channels used:
-- Frequency:
-- What breaks down:
+- Κανάλια που χρησιμοποιούν:
+- Συχνότητα:
+- Τι χαλάει:
 
-### Willingness to try AgroTrack
+### Προθυμία να δοκιμάσουν το AgroTrack
 
-- Saw the demo? (Yes / No)
-- Reaction:
-- Would they pilot? (Yes / Maybe / No)
-- Why:
+- Είδαν demo; (Ναι / Όχι)
+- Αντίδραση:
+- Θα έκαναν πιλοτικό; (Ναι / Ίσως / Όχι)
+- Γιατί:
 
-### Willingness to pay
+### Προθυμία πληρωμής
 
-- Anchor reactions:
-  - €5 / month:
-  - €15 / month:
-  - €50 / month:
-- Direct quote about value:
+- Αντιδράσεις σε anchors:
+  - €5 / μήνα:
+  - €15 / μήνα:
+  - €50 / μήνα:
+- Άμεση ατάκα για αξία:
 
-### Referrals
+### Παραπομπές
 
-- Names / contacts they offered:
+- Ονόματα / επαφές που πρόσφεραν:
 
-### Our biggest learning from this interview
+### Το μεγαλύτερο μάθημά μας από αυτό το interview
 
-(One sentence. Be honest.)
+(Μία πρόταση. Ειλικρινά.)
 
 ### Action items
 
-| Action | Owner | Due |
+| Ενέργεια | Υπεύθυνος | Προθεσμία |
 |---|---|---|
 |  |  |  |
 
-### Tags
+### Ετικέτες
 
-(Pain themes, persona, geography — useful for synthesis later.)
+(Θέματα πόνου, persona, γεωγραφία — χρήσιμα για σύνθεση αργότερα.)

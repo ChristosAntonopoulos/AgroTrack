@@ -1,65 +1,65 @@
-# User Personas
+# User personas
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The people we design for. Each persona is short, concrete and useful — not a generic marketing avatar.
+Τα άτομα για τα οποία σχεδιάζουμε. Κάθε persona είναι σύντομη, συγκεκριμένη και χρήσιμη — όχι γενικό marketing avatar.
 
-## Persona 1 — Maria, the Owner
+## Persona 1 — Μαρία, η Owner
 
-- **Age:** 45-60
-- **Role:** Owns 8 olive fields inherited from her family.
-- **Job:** Works in a city, manages the olives on the side.
-- **Goal:** Keep the family business running well without being there every day.
-- **Pain:** Doesn't know what's happening on the fields. Relies on a producer she trusts but can't verify.
-- **Tools today:** WhatsApp, occasional spreadsheet, phone calls.
-- **What success looks like for her:** Opens her phone, sees her fields, knows the status, sees what was done this week.
+- **Ηλικία:** 45-60
+- **Ρόλος:** Ιδιοκτήτρια 8 ελαιόφυτων που κληρονόμησε από την οικογένειά της.
+- **Εργασία:** Δουλεύει σε πόλη, διαχειρίζεται τις ελιές εκ του παραδείγματος.
+- **Στόχος:** Να κρατήσει την οικογενειακή επιχείρηση σε καλή πορεία χωρίς να είναι κάθε μέρα στο χωράφι.
+- **Πόνος:** Δεν ξέρει τι γίνεται στα χωράφια. Βασίζεται σε παραγωγό που εμπιστεύεται αλλά δεν μπορεί να επαληθεύσει.
+- **Εργαλεία σήμερα:** WhatsApp, περιστασιακό spreadsheet, τηλεφωνήματα.
+- **Πώς μοιάζει η επιτυχία για αυτήν:** Ανοίγει το κινητό, βλέπει τα χωράφια της, ξέρει την κατάσταση, βλέπει τι έγινε αυτή την εβδομάδα.
 
-## Persona 2 — Yiannis, the Producer
+## Persona 2 — Γιάννης, ο Producer
 
-- **Age:** 35-55
-- **Role:** Independent producer working multiple owners' fields.
-- **Job:** Full-time on the land.
-- **Goal:** Get the work done well, get paid fairly, prove what he did.
-- **Pain:** Owners ask the same question every week. He repeats himself in three WhatsApp groups.
-- **Tools today:** WhatsApp, paper notes, his head.
-- **What success looks like for him:** Logs an activity in 30 seconds, owner sees it, no more "what did you do this week" calls.
+- **Ηλικία:** 35-55
+- **Ρόλος:** Ανεξάρτητος παραγωγός που δουλεύει χωράφια πολλών ιδιοκτητών.
+- **Εργασία:** Πλήρους απασχόλησης στη γη.
+- **Στόχος:** Να κάνει τη δουλειά καλά, να πληρώνεται δίκαια, να αποδεικνύει τι έκανε.
+- **Πόνος:** Οι ιδιοκτήτες κάνουν την ίδια ερώτηση κάθε εβδομάδα. Επαναλαμβάνει τον εαυτό του σε τρεις ομάδες WhatsApp.
+- **Εργαλεία σήμερα:** WhatsApp, χαρτί, η μνήμη του.
+- **Πώς μοιάζει η επιτυχία για αυτόν:** Καταγράφει δραστηριότητα σε 30 δευτερόλεπτα, η owner τη βλέπει, τέλος στα «τι έκανες αυτή την εβδομάδα».
 
-## Persona 3 — Eleni, the Admin / Family Manager
+## Persona 3 — Ελένη, η Admin / Διαχειρίστρια οικογένειας
 
-- **Age:** 30-50
-- **Role:** Helps run the family olive operation.
-- **Job:** Often manages accounts, contracts, schedules for multiple family members.
-- **Goal:** Keep the business organised so nothing falls through.
-- **Pain:** Information is scattered across people and notebooks.
-- **Tools today:** Excel, email, accounting software.
-- **What success looks like for her:** One place where she can see all fields, costs, and people.
+- **Ηλικία:** 30-50
+- **Ρόλος:** Βοηθά στη διαχείριση της οικογενειακής ελαιοκαλλιέργειας.
+- **Εργασία:** Συχνά διαχειρίζεται λογαριασμούς, συμβάσεις, προγράμματα για πολλά μέλη οικογένειας.
+- **Στόχος:** Να κρατήσει την επιχείρηση οργανωμένη ώστε να μην χάνεται τίποτα.
+- **Πόνος:** Οι πληροφορίες είναι διάσπαρτες σε ανθρώπους και σημειωματάρια.
+- **Εργαλεία σήμερα:** Excel, email, λογιστικό λογισμικό.
+- **Πώς μοιάζει η επιτυχία για αυτήν:** Ένα μέρος όπου βλέπει όλα τα χωράφια, κόστη και άτομα.
 
-## Persona 4 — Dimitri, the Agronomist (future)
+## Persona 4 — Δημήτρης, ο Γεωπόνος (μελλοντικό)
 
-- **Age:** 35-60
-- **Role:** Advises multiple owners on crop choice, treatment, pruning.
-- **Job:** Splits time between fields, office and clients.
-- **Goal:** Give better advice based on accurate history per field.
-- **Pain:** Has to re-learn each client's history every visit.
-- **Tools today:** Notebooks, his memory, basic apps.
-- **What success looks like for him:** Pulls up a field, sees its full lifecycle and recent activity in seconds.
+- **Ηλικία:** 35-60
+- **Ρόλος:** Συμβουλεύει πολλούς ιδιοκτήτες για καλλιέργεια, επεξεργασία, κλάδεμα.
+- **Εργασία:** Μοιράζει χρόνο μεταξύ χωραφιών, γραφείου και πελατών.
+- **Στόχος:** Να δίνει καλύτερες συμβουλές με βάση ακριβές ιστορικό ανά χωράφι.
+- **Πόνος:** Ξαναμαθαίνει το ιστορικό κάθε πελάτη σε κάθε επίσκεψη.
+- **Εργαλεία σήμερα:** Σημειωματάρια, μνήμη, βασικές εφαρμογές.
+- **Πώς μοιάζει η επιτυχία για αυτόν:** Ανοίγει χωράφι, βλέπει πλήρη κύκλο ζωής και πρόσφατη δραστηριότητα σε δευτερόλεπτα.
 
-## What we don't design for (in MVP)
+## Για ποιους ΔΕΝ σχεδιάζουμε (στο MVP)
 
-- Large-farm operations managers
-- Field hands without management responsibility
-- Pure consumers / buyers of olive products
+- Διευθυντές λειτουργιών μεγάλων αγροκτημάτων
+- Εργάτες χωραφιού χωρίς διαχειριστική ευθύνη
+- Καθαροί καταναλωτές / αγοραστές ελαιολάδου
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Is Eleni a distinct persona or a variant of Maria?
-- Do we need an "absentee owner" sub-persona who lives abroad?
+- Η Ελένη είναι ξεχωριστή persona ή παραλλαγή της Μαρίας;
+- Χρειαζόμαστε sub-persona «απόν ιδιοκτήτης» που ζει στο εξωτερικό;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Validate persona descriptions with real interviewees
-- Add a real photo / quote per persona once interviews are done
+- Επικύρωση περιγραφών persona με πραγματικούς συνεντεριαζόμενους
+- Προσθήκη πραγματικής φωτογραφίας / αποσπάσματος ανά persona όταν ολοκληρωθούν συνεντεύξεις

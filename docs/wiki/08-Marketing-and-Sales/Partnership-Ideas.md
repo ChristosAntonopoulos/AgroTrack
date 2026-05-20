@@ -1,45 +1,45 @@
-# Partnership Ideas
+# Ιδέες partnership
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A running list of possible partnerships that could accelerate AgroTrack.
+Μια τρέχουσα λίστα πιθανών partnerships που θα μπορούσαν να επιταχύνουν το AgroTrack.
 
-## Partnership types
+## Τύποι partnership
 
-| Type | What we get | What they get | Notes |
+| Τύπος | Τι κερδίζουμε | Τι κερδίζουν | Σημειώσεις |
 |---|---|---|---|
-| Agronomists | Trusted referrals, product credibility | Better records on their clients' fields | Strong early-stage channel |
-| Olive co-ops | Bulk customer access | Modern tool for their members | High-leverage but slow to land |
-| Olive oil mills / producer associations | Reach to thousands of growers | Better data, traceability | Aligned with EU traceability trends |
-| Local agricultural authorities | Endorsement, possible grants | Digitisation of small farms | Slower, bureaucratic |
-| Agricultural universities | Validation, interns, research | Real data, partner for projects | Useful for credibility |
-| Equipment vendors | Cross-promotion | Lock-in to their customers | Lower priority |
-| Cloud / software vendors | Hosting credits, brand visibility | Startup success story | Easy wins |
-| Insurance / finance providers (later) | Distribution to existing farmer base | Better data on their clients | Year 2+ |
+| Γεωπόνοι | Αξιόπιστες παραπομπές, αξιοπιστία προϊόντος | Καλύτερα αρχεία στα χωράφια των πελατών τους | Ισχυρό κανάλι πρώιμου σταδίου |
+| Ελαιοκομικοί συνεταιρισμοί | Μαζική πρόσβαση σε πελάτες | Σύγχρονο εργαλείο για τα μέλη τους | Υψηλή μόχλευση αλλά αργή υλοποίηση |
+| Ελαιοτριβεία / σωματεία παραγωγών | Πρόσβαση σε χιλιάδες καλλιεργητές | Καλύτερα δεδομένα, ιχνηλασιμότητα | Ευθυγραμμισμένο με τάσεις ιχνηλασιμότητας ΕΕ |
+| Τοπικές αγροτικές αρχές | Έγκριση, πιθανές επιχορηγήσεις | Ψηφιοποίηση μικρών αγροκτημάτων | Πιο αργό, γραφειοκρατικό |
+| Γεωπονικές σχολές | Επικύρωση, ασκούμενοι, έρευνα | Πραγματικά δεδομένα, συνεργός σε έργα | Χρήσιμο για αξιοπιστία |
+| Προμηθευτές εξοπλισμού | Διασταυρούμενη προώθηση | Δέσμευση στους πελάτες τους | Χαμηλότερη προτεραιότητα |
+| Cloud / προμηθευτές λογισμικού | Πιστώσεις hosting, ορατότητα brand | Ιστορία επιτυχίας startup | Εύκολες νίκες |
+| Ασφαλιστικές / χρηματοδοτικές (αργότερα) | Διανομή σε υπάρχουσα βάση αγροτών | Καλύτερα δεδομένα για τους πελάτες τους | Έτος 2+ |
 
-## Specific partners to explore (placeholder)
+## Συγκεκριμένοι συνεργάτες προς διερεύνηση (placeholder)
 
-| Name / Org | Country | Type | Status |
+| Όνομα / Οργανισμός | Χώρα | Τύπος | Κατάσταση |
 |---|---|---|---|
-| TBD | TBD | TBD | Not contacted |
+| TBD | TBD | TBD | Δεν επικοινωνήθηκε |
 
-## Partnership principles
+## Αρχές partnership
 
-- We don't trade product roadmap for partnerships.
-- We don't give equity for distribution.
-- We don't lock our customers into a partner's ecosystem.
-- A partnership only counts when value moves both ways.
+- Δεν ανταλλάσσουμε roadmap προϊόντος για partnerships.
+- Δεν δίνουμε μετοχές για διανομή.
+- Δεν κλειδώνουμε τους πελάτες μας στο οικοσύστημα ενός συνεργάτη.
+- Ένα partnership μετράει μόνο όταν η αξία κινείται και στις δύο κατευθύνσεις.
 
-## Open Questions
+## Ανοιχτές ερωτήσεις
 
-- Are there national olive organisations that could endorse us in our first country?
-- Do we offer revenue share for agronomist referrals?
+- Υπάρχουν εθνικοί ελαιοκομικοί οργανισμοί που θα μπορούσαν να μας ενστείρουν στην πρώτη χώρα;
+- Προσφέρουμε μερίδιο εσόδων για παραπομπές από γεωπόνους;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Identify the top 5 partners to approach in the first country
-- Define a simple agronomist referral arrangement
+- Εντοπισμός των 5 κορυφαίων συνεργατών προς προσέγγιση στην πρώτη χώρα
+- Ορισμός απλής ρύθμισης παραπομπής για γεωπόνους

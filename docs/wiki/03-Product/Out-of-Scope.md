@@ -1,41 +1,41 @@
-# Out of Scope (for MVP)
+# Out of scope (για το MVP)
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-What we explicitly do not build for MVP. Saying "no" is as important as saying "yes".
+Τι δεν χτίζουμε ρητά για το MVP. Το «όχι» είναι τόσο σημαντικό όσο το «ναι».
 
-## Out of scope for MVP
+## Out of scope για το MVP
 
-| Item | Why not now | When we revisit |
+| Στοιχείο | Γιατί όχι τώρα | Πότε το ξαναβλέπουμε |
 |---|---|---|
-| Satellite imagery / remote sensing | Heavy, expensive, not the core pain | After product-market fit |
-| Sensors and IoT hardware | Out of our zone | Year 2+ |
-| Native iOS / Android apps | Web mobile is enough to validate | After MVP pilots |
-| Offline-first sync | Adds complexity; pilots have connectivity | After MVP if pilots demand it |
-| Marketplace / trading | Different business model | Long-term |
-| Heavy financial accounting | Other tools do this well | Later, via integration |
-| AI recommendations | Not credible until we have data | Year 2+ |
-| Subsidy / certification automation | Big regulatory surface | Year 2 |
-| Multi-crop beyond olives | Focus first | Year 2 |
-| Detailed payroll for field workers | Out of scope | Not on roadmap |
-| Marketplace for inputs (fertiliser etc.) | Not our model | Not on roadmap |
+| Δορυφορικές εικόνες / τηλεπισκόπηση | Βαρύ, ακριβό, όχι ο βασικός πόνος | Μετά το product-market fit |
+| Αισθητήρες και IoT hardware | Εκτός ζώνης μας | Έτος 2+ |
+| Native εφαρμογές iOS / Android | Αρκεί mobile web για επικύρωση | Μετά πιλοτικά MVP |
+| Offline-first συγχρονισμός | Προσθέτει πολυπλοκότητα· οι πιλότοι έχουν συνδεσιμότητα | Μετά το MVP αν το ζητήσουν οι πιλότοι |
+| Marketplace / εμπόριο | Διαφορετικό επιχειρηματικό μοντέλο | Μακροπρόθεσμα |
+| Βαριά οικονομική λογιστική | Άλλα εργαλεία το κάνουν καλά | Αργότερα, μέσω ενσωμάτωσης |
+| Συστάσεις AI | Δεν είναι αξιόπιστες χωρίς δεδομένα | Έτος 2+ |
+| Αυτοματοποίηση επιδοτήσεων / πιστοποίησης | Μεγάλη ρυθμιστική επιφάνεια | Έτος 2 |
+| Πολλές καλλιέργειες πέρα από ελιές | Εστίαση πρώτα | Έτος 2 |
+| Λεπτομερής μισθοδοσία εργατών χωραφιού | Out of scope | Δεν είναι στο roadmap |
+| Marketplace εισροών (λίπασμα κ.λπ.) | Δεν είναι το μοντέλο μας | Δεν είναι στο roadmap |
 
-## What "out of scope" means
+## Τι σημαίνει «out of scope»
 
-- We don't design it.
-- We don't promise it.
-- We don't build it.
-- If a customer asks for it, we listen and decide whether to revisit the priority.
+- Δεν το σχεδιάζουμε.
+- Δεν το υποσχόμαστε.
+- Δεν το χτίζουμε.
+- Αν το ζητήσει πελάτης, ακούμε και αποφασίζουμε αν ξαναβλέπουμε την προτεραιότητα.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Are there items here that should actually be "Should have" because pilots will demand them?
+- Υπάρχουν στοιχεία εδώ που πρέπει να είναι «Should have» επειδή οι πιλότοι θα τα ζητήσουν;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Re-review this list after Sprint 1
-- Move any items that pilots strongly demand into Could Have
+- Επανεξέταση αυτής της λίστας μετά το Sprint 1
+- Μετακίνηση στοιχείων που ζητούν έντονα οι πιλότοι στο Could Have

@@ -1,61 +1,61 @@
 # Branding
 
-**Status:** Draft — early
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — πρώιμο στάδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The basic visual and verbal identity of AgroTrack.
+Η βασική οπτική και λεκτική ταυτότητα του AgroTrack.
 
-## Brand promise
+## Υπόσχεση brand
 
-> A platform that respects the land and the people who work it. Simple, honest, useful.
+> Μια πλατφόρμα που σέβεται τη γη και τους ανθρώπους που τη δουλεύουν. Απλή, ειλικρινής, χρήσιμη.
 
-## Personality
+## Προσωπικότητα
 
-- **Practical.** No fluff.
-- **Warm.** We are friends of the farmer, not corporate sellers.
-- **Confident, not arrogant.** We know our scope.
-- **Grounded.** Olive trees, not slick startups.
+- **Πρακτική.** Χωρίς περιττά.
+- **Ζεστή.** Είμαστε φίλοι του αγρότη, όχι εταιρικοί πωλητές.
+- **Σίγουρη, όχι αλαζονική.** Ξέρουμε το εύρος μας.
+- **Γειωμένη.** Ελιές, όχι λούστα startups.
 
-## Voice
+## Φωνή
 
-- Plain language. Short sentences.
-- We say "you" and "we", not "the user" or "the platform".
-- We avoid buzzwords (no "synergy", no "disruption").
-- We name things how a farmer would name them.
+- Απλή γλώσσα. Σύντομες προτάσεις.
+- Λέμε «εσύ» και «εμείς», όχι «ο χρήστης» ή «η πλατφόρμα».
+- Αποφεύγουμε buzzwords (όχι «synergy», όχι «disruption»).
+- Ονομάζουμε τα πράγματα όπως θα τα ονόμαζε ένας αγρότης.
 
-## Visual identity (early)
+## Οπτική ταυτότητα (πρώιμο στάδιο)
 
-| Element | Direction | Status |
+| Στοιχείο | Κατεύθυνση | Κατάσταση |
 |---|---|---|
-| Logo | TBD | Not started |
-| Wordmark | "AgroTrack" | Confirmed |
-| Primary color | TBD (natural greens / earth tones likely) | Not chosen |
-| Secondary color | TBD | Not chosen |
-| Typography | TBD | Not chosen |
-| Iconography | Simple, line-based | Direction set |
-| Imagery | Real fields, real people; no stock photos | Direction set |
+| Logo | TBD | Δεν ξεκίνησε |
+| Wordmark | «AgroTrack» | Επιβεβαιωμένο |
+| Κύριο χρώμα | TBD (πιθανά φυσικά πράσινα / γήινοι τόνοι) | Δεν επιλέχθηκε |
+| Δευτερεύον χρώμα | TBD | Δεν επιλέχθηκε |
+| Τυπογραφία | TBD | Δεν επιλέχθηκε |
+| Εικονογραφία | Απλή, γραμμική | Κατεύθυνση ορισμένη |
+| Εικόνες | Πραγματικά χωράφια, πραγματικοί άνθρωποι· όχι stock | Κατεύθυνση ορισμένη |
 
-## Naming
+## Ονομασία
 
-- Product / company: AgroTrack
-- First vertical: "AgroTrack for olives" (informal positioning)
+- Προϊόν / εταιρεία: AgroTrack
+- Πρώτο vertical: «AgroTrack for olives» (ανεπίσημο positioning)
 
-## What we avoid
+## Τι αποφεύγουμε
 
-- Heavy, technical-looking visuals.
-- Generic farm clichés (red tractors, oversaturated wheat fields).
-- AI-styled abstract imagery.
+- Βαρύ, τεχνικό οπτικό ύφος.
+- Γενικές αγροτικές κλισέ (κόκκινα τρακτέρ, υπερκορεσμένοι σταθμοί σιτηρών).
+- Αφηρημένες εικόνες στυλ AI.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we hire external help for the logo or DIY for now?
-- What is the right tone for our first landing page?
+- Προσλαμβάνουμε εξωτερική βοήθεια για το logo ή DIY προς το παρόν;
+- Ποιος είναι ο σωστός τόνος για την πρώτη landing page;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Pick a primary color and typography
-- Draft a placeholder logo
-- Write the landing page in the brand voice ([Landing Page Copy](../08-Marketing-and-Sales/Landing-Page-Copy.md))
+- Επιλογή κύριου χρώματος και τυπογραφίας
+- Σχέδιο προσωρινού logo
+- Σύνταξη της landing page στη φωνή του brand ([Landing Page Copy](../08-Marketing-and-Sales/Landing-Page-Copy.md))

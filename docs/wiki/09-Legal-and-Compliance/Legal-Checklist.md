@@ -1,43 +1,43 @@
 # Legal Checklist
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-A list of legal and compliance items to set up — in priority order. We are not lawyers; this page tracks what we need to do, not legal advice.
+Λίστα legal και compliance στοιχείων προς ρύθμιση — κατά σειρά προτεραιότητας. Δεν είμαστε δικηγόροι· αυτή η σελίδα παρακολουθεί τι πρέπει να κάνουμε, όχι νομική συμβουλή.
 
-## Items
+## Στοιχεία
 
-| # | Item | Why it matters | Status |
+| # | Στοιχείο | Γιατί έχει σημασία | Κατάσταση |
 |---|---|---|---|
-| L1 | Choose legal entity type and country | Required for contracts, banking, taxes | Not started |
-| L2 | Register the company | Once entity type is decided | Not started |
-| L3 | Open a business bank account | Required to take payments | Not started |
-| L4 | Founder agreements | Clarify shares, roles, IP | Not started |
-| L5 | Employee / contractor agreements | When we hire | Not started |
-| L6 | NDA template | For external conversations involving sensitive info | Not started |
-| L7 | Terms of Service for AgroTrack | Required before first paying customer | Not started |
-| L8 | Privacy Policy for AgroTrack | Required before any user signs up | Not started |
-| L9 | Cookie / tracking policy | If we use cookies on the public site | Not started |
-| L10 | GDPR documentation | Records of processing, DPA where needed | Not started |
-| L11 | Trademark search and filing | Protect "AgroTrack" name | Not started |
-| L12 | Insurance review (liability, cyber) | Risk management | Not started |
-| L13 | Tax registration (VAT, etc.) | Once revenue or thresholds apply | Not started |
+| L1 | Επιλογή τύπου νομικής οντότητας και χώρας | Απαιτείται για συμβάσεις, τραπεζικούς λογαριασμούς, φόρους | Δεν ξεκίνησε |
+| L2 | Εγγραφή εταιρείας | Μόλις αποφασιστεί ο τύπος οντότητας | Δεν ξεκίνησε |
+| L3 | Άνοιγμα επιχειρηματικού τραπεζικού λογαριασμού | Απαιτείται για λήψη πληρωμών | Δεν ξεκίνησε |
+| L4 | Συμφωνίες ιδρυτών | Διευκρίνιση μεριδίων, ρόλων, IP | Δεν ξεκίνησε |
+| L5 | Συμβάσεις εργαζομένων / εργολάβων | Όταν προσλάβουμε | Δεν ξεκίνησε |
+| L6 | Πρότυπο NDA | Για εξωτερικές συζητήσεις με ευαίσθητες πληροφορίες | Δεν ξεκίνησε |
+| L7 | Terms of Service για το AgroTrack | Απαιτείται πριν τον πρώτο πληρωτή πελάτη | Δεν ξεκίνησε |
+| L8 | Privacy Policy για το AgroTrack | Απαιτείται πριν από οποιαδήποτε εγγραφή χρήστη | Δεν ξεκίνησε |
+| L9 | Πολιτική cookies / παρακολούθησης | Αν χρησιμοποιούμε cookies στον δημόσιο ιστότοπο | Δεν ξεκίνησε |
+| L10 | Τεκμηρίωση GDPR | Αρχεία επεξεργασίας, DPA όπου απαιτείται | Δεν ξεκίνησε |
+| L11 | Αναζήτηση και κατάθεση σήματος | Προστασία ονόματος «AgroTrack» | Δεν ξεκίνησε |
+| L12 | Ανασκόπηση ασφάλισης (ευθύνη, κυβερνοασφάλεια) | Διαχείριση κινδύνου | Δεν ξεκίνησε |
+| L13 | Φορολογική εγγραφή (ΦΠΑ κ.λπ.) | Μόλις ισχύουν έσοδα ή όρια | Δεν ξεκίνησε |
 
-## Priorities right now
+## Προτεραιότητες τώρα
 
-- L7 + L8: We cannot run pilots properly without Terms of Service and a Privacy Policy.
-- L10: GDPR records — must exist before we hold real customer data.
-- L1 + L2: Company formation in parallel.
+- L7 + L8: Δεν μπορούμε να τρέξουμε πιλοτικά σωστά χωρίς Terms of Service και Privacy Policy.
+- L10: Αρχεία GDPR — πρέπει να υπάρχουν πριν κρατήσουμε πραγματικά δεδομένα πελατών.
+- L1 + L2: Ίδρυση εταιρείας παράλληλα.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Country of incorporation?
-- Which lawyer / firm do we use for L7, L8, L10?
+- Χώρα ενσωμάτωσης;
+- Ποιον δικηγόρο / γραφείο χρησιμοποιούμε για L7, L8, L10;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Decide country of incorporation in the next 30 days
-- Engage a lawyer for Terms of Service, Privacy Policy and GDPR review before first pilot launch
+- Απόφαση χώρας ενσωμάτωσης εντός των επόμενων 30 ημερών
+- Συνεργασία με δικηγόρο για Terms of Service, Privacy Policy και ανασκόπηση GDPR πριν την πρώτη πιλοτική κυκλοφορία

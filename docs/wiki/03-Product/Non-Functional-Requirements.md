@@ -1,72 +1,72 @@
-# Non Functional Requirements
+# Non-functional requirements
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Quality attributes the product should have, in plain language. Not "what" it does, but "how well" it does it.
+Χαρακτηριστικά ποιότητας που πρέπει να έχει το προϊόν, με απλά λόγια. Όχι «τι» κάνει, αλλά «πόσο καλά» το κάνει.
 
-## Usability
+## Χρηστικότητα
 
-- A new user can add their first field within 5 minutes of signing up.
-- A producer can log an activity in under 30 seconds on a phone.
-- Buttons and labels are written for non-technical users (no jargon).
+- Ένας νέος χρήστης μπορεί να προσθέσει το πρώτο του χωράφι εντός 5 λεπτών από την εγγραφή.
+- Ένας producer μπορεί να καταγράψει δραστηριότητα σε λιγότερο από 30 δευτερόλεπτα από κινητό.
+- Κουμπιά και ετικέτες γράφονται για μη τεχνικούς χρήστες (χωρίς jargon).
 
-## Mobile
+## Κινητό
 
-- The web app works well on a recent smartphone browser (Android and iOS).
-- Forms are large, simple and one-handed friendly.
-- Native apps are out of scope for MVP.
+- Η web εφαρμογή λειτουργεί καλά σε πρόσφατο browser smartphone (Android και iOS).
+- Οι φόρμες είναι μεγάλες, απλές και φιλικές για χρήση με ένα χέρι.
+- Native εφαρμογές είναι out of scope για το MVP.
 
-## Performance
+## Απόδοση
 
-- Common pages load fast enough to feel instant on a modern phone with mobile data.
-- The system handles small teams (up to 20 users per organisation) without slowdown.
+- Οι συνηθισμένες σελίδες φορτώνουν αρκετά γρήγορα ώστε να φαίνονται άμεσες σε σύγχρονο κινητό με mobile data.
+- Το σύστημα χειρίζεται μικρές ομάδες (έως 20 χρήστες ανά οργανισμό) χωρίς επιβράδυνση.
 
-## Reliability
+## Αξιοπιστία
 
-- The platform is available during typical working hours for our target geographies.
-- Data is not lost — every write is durable.
-- Recovery from a server restart is automatic.
+- Η πλατφόρμα είναι διαθέσιμη κατά τις τυπικές ώρες εργασίας για τις γεωγραφίες-στόχους μας.
+- Τα δεδομένα δεν χάνονται — κάθε εγγραφή είναι μόνιμη.
+- Η ανάκαμψη από επανεκκίνηση διακομιστή είναι αυτόματη.
 
-## Security and privacy
+## Ασφάλεια και απόρρητο
 
-- Passwords are stored securely.
-- Each organisation's data is isolated from others.
-- GDPR principles apply (see [GDPR](../09-Legal-and-Compliance/GDPR.md)).
-- We do not share or sell customer data.
+- Οι κωδικοί αποθηκεύονται με ασφάλεια.
+- Τα δεδομένα κάθε οργανισμού είναι απομονωμένα από άλλους.
+- Ισχύουν αρχές GDPR (βλ. [GDPR](../09-Legal-and-Compliance/GDPR.md)).
+- Δεν μοιραζόμαστε ούτε πουλάμε δεδομένα πελατών.
 
-## Data ownership
+## Ιδιοκτησία δεδομένων
 
-- Customer data belongs to the customer. They can export it on request.
-- Detailed policy in [Data Ownership](../09-Legal-and-Compliance/Data-Ownership.md).
+- Τα δεδομένα πελάτη ανήκουν στον πελάτη. Μπορούν να εξαχθούν κατόπιν αιτήματος.
+- Λεπτομερής πολιτική στο [Data Ownership](../09-Legal-and-Compliance/Data-Ownership.md).
 
-## Accessibility
+## Προσβασιμότητα
 
-- Reasonable color contrast and font sizes.
-- Keyboard navigation works for primary flows.
-- Full accessibility review comes later (see [Accessibility](../07-Design-and-UX/Accessibility.md)).
+- Λογική αντίθεση χρωμάτων και μεγέθη γραμματοσειράς.
+- Πλοήγηση με πληκτρολόγιο για κύριες ροές.
+- Πλήρης ανασκόπηση προσβασιμότητας αργότερα (βλ. [Accessibility](../07-Design-and-UX/Accessibility.md)).
 
-## Internationalisation
+## Διεθνοποίηση
 
-- MVP language: English first.
-- Plan for Greek and Italian translations after MVP.
-- All user-facing text designed to be translatable.
+- Γλώσσα MVP: αγγλικά πρώτα.
+- Σχέδιο για ελληνικές και ιταλικές μεταφράσεις μετά το MVP.
+- Όλο το κείμενο προς τον χρήστη σχεδιασμένο ώστε να μεταφράζεται.
 
-## Observability (light, for MVP)
+## Παρατηρησιμότητα (ελαφριά, για MVP)
 
-- We know if the app is up or down.
-- We know if a user gets a critical error.
-- We capture basic usage signals to inform product decisions (respecting privacy).
+- Ξέρουμε αν η εφαρμογή είναι up ή down.
+- Ξέρουμε αν ένας χρήστης πήρε κρίσιμο σφάλμα.
+- Συλλέγουμε βασικά σήματα χρήσης για αποφάσεις προϊόντος (με σεβασμό στην ιδιωτικότητα).
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we support offline-first in MVP or push to later?
-- What is the realistic load to plan for at pilot scale?
+- Υποστηρίζουμε offline-first στο MVP ή το περνάμε αργότερα;
+- Ποιο είναι ρεαλιστικό φορτίο για σχεδιασμό σε κλίμακα πιλότου;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm uptime expectation with pilots
-- Decide MVP language(s) for first pilots
+- Επιβεβαίωση προσδοκίας uptime με πιλότους
+- Απόφαση γλωσσών MVP για τους πρώτους πιλότους

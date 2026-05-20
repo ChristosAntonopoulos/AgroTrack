@@ -1,34 +1,34 @@
 # Sprint 1 Plan
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Sprint 1 is the first "build" sprint. The goal is to take the first slice of the MVP from "ready" to "demo-able to a customer".
+Το Sprint 1 είναι το πρώτο Sprint «ανάπτυξης». Ο στόχος είναι να πάρει το πρώτο τμήμα του MVP από «έτοιμο» σε «παρουσιάσιμο σε πελάτη».
 
-## Sprint goal (proposed)
+## Στόχος Sprint (προτεινόμενος)
 
-> An owner can sign up, create an organisation, add their first field, and start a crop cycle — visible on a phone or laptop.
+> Ένας ιδιοκτήτης μπορεί να εγγραφεί, να δημιουργήσει οργανισμό, να προσθέσει το πρώτο αγροτεμάχιο και να ξεκινήσει crop cycle — ορατό σε κινητό ή laptop.
 
-## Outputs at end of Sprint 1
+## Έξοδοι στο τέλος του Sprint 1
 
-- [ ] Working sign-up and login flow.
-- [ ] Organisation creation flow.
-- [ ] Field creation flow with name, size, crop.
-- [ ] Crop cycle start flow with lifecycle stages.
-- [ ] A simple list of fields for the logged-in user.
-- [ ] Demoable end-to-end on staging.
-- [ ] At least 2 new customer interviews completed alongside the build.
+- [ ] Λειτουργική ροή εγγραφής και σύνδεσης.
+- [ ] Ροή δημιουργίας οργανισμού.
+- [ ] Ροή δημιουργίας αγροτεμαχίου με όνομα, μέγεθος, καλλιέργεια.
+- [ ] Ροή έναρξης crop cycle με στάδια lifecycle.
+- [ ] Απλή λίστα αγροτεμαχίων για τον συνδεδεμένο χρήστη.
+- [ ] Demo end-to-end σε staging.
+- [ ] Τουλάχιστον 2 νέες συνεντεύξεις πελατών παράλληλα με την ανάπτυξη.
 
-## Likely Features
+## Πιθανά Features
 
 - Authentication and roles
 - Field management
 - Crop cycle and lifecycle
 
-## Example PBIs
+## Παραδείγματα PBI
 
 - An owner can sign up with email and password.
 - An owner can log in and log out.
@@ -37,31 +37,31 @@ Sprint 1 is the first "build" sprint. The goal is to take the first slice of the
 - An owner can start a crop cycle on a field.
 - An owner can view a list of their fields.
 
-Each PBI must be Ready per [Definition of Ready](./Definition-of-Ready.md) before pull-in.
+Κάθε PBI πρέπει να είναι Ready σύμφωνα με [Definition of Ready](./Definition-of-Ready.md) πριν την έλξη.
 
-## What is explicitly out of Sprint 1
+## Τι είναι ρητά εκτός Sprint 1
 
-- Multi-user invitations.
+- Προσκλήσεις πολλών χρηστών.
 - Tasks.
 - Activity logging.
 - Expenses.
-- Polished mobile UI.
+- Λεπτομερές mobile UI.
 
-These come in Sprint 2 or 3.
+Αυτά έρχονται στο Sprint 2 ή 3.
 
-## Risks for Sprint 1
+## Κίνδυνοι για το Sprint 1
 
-- Scope creep — adding "just one more thing" each day.
-- Pulling in PBIs that are not actually Ready.
-- Forgetting to talk to customers because the team is heads-down building.
+- Διόγκωση εμβέλειας — «ακόμα ένα πράγμα» κάθε μέρα.
+- Έλξη PBI που δεν είναι πραγματικά Ready.
+- Ξεχνάμε τους πελάτες επειδή η ομάδα είναι κλεισμένη στην ανάπτυξη.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we include "edit field" in Sprint 1 or push to Sprint 2?
-- Should we include a minimal dashboard in Sprint 1?
+- Συμπεριλαμβάνουμε «edit field» στο Sprint 1 ή το σπρώχνουμε στο Sprint 2;
+- Να συμπεριλάβουμε ελάχιστο dashboard στο Sprint 1;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Confirm sprint goal in Sprint 0 review
-- Ensure 5 PBIs are Ready by Sprint 1 start
-- Book Sprint 1 review with at least one customer attendee
+- Επιβεβαιώστε στόχο Sprint στο review του Sprint 0
+- Βεβαιωθείτε ότι 5 PBI είναι Ready πριν την έναρξη του Sprint 1
+- Κρατήστε Sprint review του Sprint 1 με τουλάχιστον έναν παρόντα πελάτη

@@ -1,61 +1,61 @@
 # Backlog Management
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-How we keep the backlog clean, prioritised and useful.
+Πώς κρατάμε το backlog καθαρό, προτεραιοποιημένο και χρήσιμο.
 
-## Principles
+## Αρχές
 
-- The backlog is small and sharp, not a graveyard.
-- The top of the backlog is always Ready.
-- Anything older than 6 weeks with no movement gets reviewed or archived.
-- Priority is decided by the Product Owner, informed by customer signals.
+- Το backlog είναι μικρό και οξύ, όχι νεκροταφείο.
+- Η κορυφή του backlog είναι πάντα Ready.
+- Οτιδήποτε είναι παλαιότερο από 6 εβδομάδες χωρίς κίνηση αναθεωρείται ή αρχειοθετείται.
+- Η προτεραιότητα αποφασίζεται από τον Product Owner, ενημερωμένο από σήματα πελατών.
 
-## Structure
+## Δομή
 
-- **Top of backlog (next 1–2 sprints):** Ready PBIs, well understood, sized.
-- **Middle (next 1–3 months):** PBIs with rough idea, not refined yet.
-- **Bottom (later):** Ideas, hypotheses, "maybe" items.
-- **Icebox:** Not happening anytime soon. Optional — only if it stays small.
+- **Κορυφή backlog (επόμενα 1–2 Sprint):** Ready PBI, καλά κατανοητά, με μέγεθος.
+- **Μέση (επόμενοι 1–3 μήνες):** PBI με αρχική ιδέα, όχι ακόμα refined.
+- **Βάση (αργότερα):** Ιδέες, υποθέσεις, στοιχεία «ίσως».
+- **Icebox:** Δεν γίνεται σύντομα. Προαιρετικό — μόνο αν παραμένει μικρό.
 
-## Refinement cadence
+## Ρυθμός refinement
 
-- Weekly: 60 min refinement meeting.
-- Output: top 5–10 PBIs are Ready for the next sprint.
+- Εβδομαδιαία: συνάντηση refinement 60 λεπτών.
+- Αποτέλεσμα: τα κορυφαία 5–10 PBI είναι Ready για το επόμενο Sprint.
 
-## Prioritisation rules of thumb
+## Κανόνες προτεραιότητας (κατά προσέγγιση)
 
-1. Customer-validated pain comes first.
-2. Risk reducers come next (e.g. things blocking pilot success).
-3. Then value-add features.
-4. Anything from internal opinions without customer signal is the lowest priority.
+1. Επικυρωμένος πόνος πελάτη πρώτα.
+2. Μετά μείωση κινδύνου (π.χ. πράγματα που μπλοκάρουν επιτυχία πιλότου).
+3. Έπειτα χαρακτηριστικά προστιθέμενης αξίας.
+4. Οτιδήποτε από εσωτερικές απόψεις χωρίς σήμα πελάτη έχει τη χαμηλότερη προτεραιότητα.
 
-## Sources of new work
+## Πηγές νέας δουλειάς
 
-- Customer interviews
-- Pilot feedback
+- Συνεντεύξεις πελατών
+- Ανατροφοδότηση πιλότου
 - Sprint retros
-- Bug reports
-- Founder strategy decisions
+- Αναφορές σφαλμάτων
+- Στρατηγικές αποφάσεις ιδρυτών
 
-Each source is welcome — but it goes into the backlog and is prioritised like anything else. No "VIP cut-the-line" lane.
+Κάθε πηγή είναι ευπρόσδεκτη — αλλά μπαίνει στο backlog και προτεραιοποιείται όπως οτιδήποτε άλλο. Χωρίς «VIP παράκαμψη ουράς».
 
-## Bug handling
+## Διαχείριση σφαλμάτων
 
-- Bugs reported in production: investigated within the same sprint, fix planned at the next planning.
-- Critical bugs (data loss, security): handled immediately, outside the sprint.
-- Minor bugs: add to the backlog with a "Bug" tag.
+- Σφάλματα που αναφέρονται σε production: διερευνώνται στο ίδιο Sprint, διόρθωση προγραμματίζεται στο επόμενο planning.
+- Κρίσιμα σφάλματα (απώλεια δεδομένων, ασφάλεια): χειρίζονται αμέσως, εκτός Sprint.
+- Μικρά σφάλματα: προστίθενται στο backlog με ετικέτα «Bug».
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we use a separate "Bug" work item type or fold into PBIs?
-- How big is too big for the backlog?
+- Χρησιμοποιούμε ξεχωριστό τύπο work item «Bug» ή τα ενσωματώνουμε σε PBI;
+- Πόσο μεγάλο είναι πολύ μεγάλο για το backlog;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Stand up the first version of the backlog in Sprint 0
-- Hold the first refinement meeting in week 2 of Sprint 0
+- Στήστε την πρώτη έκδοση του backlog στο Sprint 0
+- Κρατήστε την πρώτη συνάντηση refinement την εβδομάδα 2 του Sprint 0

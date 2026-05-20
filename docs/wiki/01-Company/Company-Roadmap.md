@@ -1,35 +1,35 @@
-# Company Roadmap
+# Οδικός χάρτης εταιρείας
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Προσχέδιο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The high-level company timeline — not the product roadmap. This is about milestones for the business.
+Ο χρονοδιάγραμμα εταιρείας σε υψηλό επίπεδο — όχι ο οδικός χάρτης προϊόντος. Αφορά ορόσημα για την επιχείρηση.
 
-## Phases
+## Φάσεις
 
-| Phase | Goal | Key milestones | Status |
+| Φάση | Στόχος | Βασικά ορόσημα | Κατάσταση |
 |---|---|---|---|
-| **0. Setup** | Team, process, wiki, demo | Wiki live, Azure Boards live, demo running, first interviews booked | In progress |
-| **1. Validate** | Confirm the problem and willingness to pay | 10+ customer interviews, 3+ LOIs, pricing hypothesis | Not started |
-| **2. MVP** | Ship the smallest useful product | MVP scope locked, MVP built, 3 pilots running | Not started |
-| **3. First revenue** | First paying customers | First paid contracts, churn understood | Not started |
-| **4. Repeatable sales** | Show we can sell predictably | 10+ paying customers, a clear sales playbook | Not started |
-| **5. Expansion** | Adjacent crops or geographies | 2nd vertical launched | Not started |
+| **0. Setup** | Ομάδα, διαδικασία, wiki, demo | Wiki ενεργό, Azure Boards ενεργό, demo σε λειτουργία, πρώτες συνεντεύξεις κλεισμένες | Σε εξέλιξη |
+| **1. Validate** | Επιβεβαίωση προβλήματος και πρόθεσης πληρωμής | 10+ συνεντεύξεις πελατών, 3+ LOI, υπόθεση τιμολόγησης | Δεν ξεκίνησε |
+| **2. MVP** | Παράδοση του μικρότερου χρήσιμου προϊόντος | Εύρος MVP κλειδωμένο, MVP χτισμένο, 3 πιλοτικά σε εξέλιξη | Δεν ξεκίνησε |
+| **3. First revenue** | Πρώτοι πληρωτές πελάτες | Πρώτα συμβόλαια με αμοιβή, κατανόηση churn | Δεν ξεκίνησε |
+| **4. Repeatable sales** | Απόδειξη προβλέψιμων πωλήσεων | 10+ πληρωτές πελάτες, σαφές playbook πωλήσεων | Δεν ξεκίνησε |
+| **5. Expansion** | Γειτονικοί καρποί ή γεωγραφίες | 2η κάθετη λανσαρισμένη | Δεν ξεκίνησε |
 
-## Time horizon
+## Χρονικός ορίζοντας
 
-- This roadmap is a working hypothesis. Dates will be added once Sprint 0 is done.
-- We update this page at the end of every phase.
+- Αυτός ο οδικός χάρτης είναι εργαζόμενη υπόθεση. Οι ημερομηνίες θα προστεθούν μόλις ολοκληρωθεί το Sprint 0.
+- Ενημερώνουμε αυτή τη σελίδα στο τέλος κάθε φάσης.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- What is the right minimum number of paying customers before raising capital (if we raise)?
-- How long should the validation phase realistically take?
+- Ποιος είναι ο σωστός ελάχιστος αριθμός πληρωτών πελατών πριν από fundraising (αν κάνουμε raise);
+- Πόσο ρεαλιστικά πρέπει να διαρκέσει η φάση validation;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Add target dates per phase after the next team review
-- Define the exit criteria from validation into MVP build clearly
+- Προσθήκη στοχευμένων ημερομηνιών ανά φάση μετά την επόμενη ανασκόπηση ομάδας
+- Σαφής ορισμός κριτηρίων εξόδου από validation προς κατασκευή MVP

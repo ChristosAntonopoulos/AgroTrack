@@ -1,88 +1,88 @@
-# Business Plan
+# Επιχειρηματικό σχέδιο
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-The summary of how AgroTrack becomes a real business. Everything else in this section drills into a part of this plan.
+Η περίληψη του πώς το AgroTrack γίνεται πραγματική επιχείρηση. Όλα τα υπόλοιπα σε αυτή την ενότητα εμβαθύνουν σε μέρος αυτού του σχεδίου.
 
-## One-sentence summary
+## Περίληψη σε μία πρόταση
 
-AgroTrack helps field owners, producers and agronomists run every crop cycle on every field with shared visibility, starting with olive cultivation and expanding from there.
+Το AgroTrack βοηθά ιδιοκτήτες αγροτεμαχίων, παραγωγούς και γεωπόνους να διαχειρίζονται κάθε κύκλο καλλιέργειας σε κάθε αγροτεμάχιο με κοινή ορατότητα, ξεκινώντας με την ελαιοκαλλιέργεια και επεκτείνοντας από εκεί.
 
-## Problem
+## Πρόβλημα
 
-Field owners and producers manage agriculture with paper, spreadsheets and WhatsApp. Owners don't know what is happening on their land. Producers can't easily report or plan. Nobody has a clean history of what was done, when, by whom, and at what cost.
+Ιδιοκτήτες και παραγωγοί διαχειρίζονται τη γεωργία με χαρτί, υπολογιστικά φύλλα και WhatsApp. Οι ιδιοκτήτες δεν ξέρουν τι γίνεται στη γη τους. Οι παραγωγοί δυσκολεύονται να αναφέρουν ή να σχεδιάσουν. Κανείς δεν έχει καθαρή ιστορία του τι έγινε, πότε, από ποιον και με ποιο κόστος.
 
-See [Problem Statement](./Problem-Statement.md) for the full version.
+Δείτε το [Problem Statement](./Problem-Statement.md) για την πλήρη έκδοση.
 
-## Customer
+## Πελάτης
 
-Field owners, producers, agronomists and agricultural teams in olive cultivation initially. See [Target Customers](./Target-Customers.md) and [Customer Segments](./Customer-Segments.md).
+Ιδιοκτήτες αγροτεμαχίων, παραγωγοί, γεωπόνοι και αγροτικές ομάδες, αρχικά στην ελαιοκαλλιέργεια. Δείτε [Target Customers](./Target-Customers.md) και [Customer Segments](./Customer-Segments.md).
 
-## Solution
+## Λύση
 
-A web and mobile platform that organises fields, crop cycles, lifecycle stages, tasks, activity, costs and documents in a single shared workspace. See [Solution](./Solution.md).
+Πλατφόρμα web και mobile που οργανώνει αγροτεμάχια, κύκλους καλλιέργειας, στάδια κύκλου ζωής, εργασίες, δραστηριότητα, κόστη και έγγραφα σε ένα κοινό workspace. Δείτε [Solution](./Solution.md).
 
-## Why now
+## Γιατί τώρα
 
-- Smartphone penetration in rural areas is mainstream.
-- Mobile data is affordable enough for field use.
-- Climate variability and cost pressure make accurate records more valuable than ever.
-- Younger generations of owners expect digital tooling.
-- Existing tools are either too generic (Excel) or too heavy (farm ERP systems).
+- Η διείσδυση smartphone σε αγροτικές περιοχές είναι mainstream.
+- Τα mobile data είναι αρκετά προσιτά για χρήση στο χωράφι.
+- Η κλιματική μεταβλητότητα και η πίεση κόστους κάνουν τα ακριβή αρχεία πιο πολύτιμα από ποτέ.
+- Οι νεότερες γενιές ιδιοκτητών περιμένουν ψηφιακά εργαλεία.
+- Τα υπάρχοντα εργαλεία είναι είτε πολύ γενικά (Excel) είτε πολύ βαριά (farm ERP).
 
-## Business model
+## Επιχειρηματικό μοντέλο
 
-Subscription-based SaaS, priced per organisation and per field band. See [Business Model](./Business-Model.md) and [Pricing Strategy](./Pricing-Strategy.md).
+Συνδρομή SaaS, pricing ανά οργανισμό και ζώνες αγροτεμαχίων. Δείτε [Business Model](./Business-Model.md) και [Pricing Strategy](./Pricing-Strategy.md).
 
-## Pricing assumptions (to validate)
+## Υποθέσεις pricing (προς validation)
 
-| Tier | Target customer | Indicative price | What's included |
+| Επίπεδο | Στόχος πελάτη | Ενδεικτική τιμή | Τι περιλαμβάνει |
 |---|---|---|---|
-| Free / Trial | New owners with 1-3 fields | €0 | Basic field, crop cycle and task tracking |
-| Starter | Small owner / producer | €15-25 / month / organisation | Up to 10 fields, all core features |
-| Pro | Mid-size operations | €60-90 / month / organisation | Unlimited fields, dashboards, multi-user |
-| Custom | Co-ops, large operators | Custom | Onboarding, training, integrations |
+| Free / Trial | Νέοι ιδιοκτήτες με 1-3 αγροτεμάχια | €0 | Βασική παρακολούθηση αγροτεμαχίου, κύκλου και εργασιών |
+| Starter | Μικρός ιδιοκτήτης / παραγωγός | €15-25 / μήνα / οργανισμό | Έως 10 αγροτεμάχια, όλα τα βασικά features |
+| Pro | Μεσαίες επιχειρήσεις | €60-90 / μήνα / οργανισμό | Απεριόριστα αγροτεμάχια, dashboards, multi-user |
+| Custom | Συνεταιρισμοί, μεγάλοι χειριστές | Custom | Onboarding, εκπαίδευση, ενσωματώσεις |
 
-These prices are **hypotheses**, not promises. Validation is in [Validation Plan](./Validation-Plan.md).
+Οι τιμές είναι **υποθέσεις**, όχι δεσμεύσεις. Η validation στο [Validation Plan](./Validation-Plan.md).
 
-## Competitors
+## Ανταγωνιστές
 
-A mix of generic tools (Excel, WhatsApp), heavyweight farm ERPs, and a few modern agritech apps. See [Competitor Research](./Competitor-Research.md).
+Μίξη γενικών εργαλείων (Excel, WhatsApp), βαριών farm ERP και λίγων σύγχρονων agritech εφαρμογών. Δείτε [Competitor Research](./Competitor-Research.md).
 
-## Market
+## Αγορά
 
-Olive cultivation in Mediterranean Europe (Greece, Italy, Spain, Portugal) is our first addressable market. Expansion to other crops in years 2–3. See [Market Research](./Market-Research.md).
+Η ελαιοκαλλιέργεια στη Μεσόγειο Ευρώπη (Ελλάδα, Ιταλία, Ισπανία, Πορτογαλία) είναι η πρώτη addressable αγορά. Επέκταση σε άλλες καλλιέργειες τα έτη 2–3. Δείτε [Market Research](./Market-Research.md).
 
-## Risks
+## Κίνδυνοι
 
-Top risks captured in [Risks and Assumptions](./Risks-and-Assumptions.md) and the [Risk Register](../09-Legal-and-Compliance/Risk-Register.md).
+Κύριοι κίνδυνοι στο [Risks and Assumptions](./Risks-and-Assumptions.md) και το [Risk Register](../09-Legal-and-Compliance/Risk-Register.md).
 
 ## Validation
 
-We are in the validation phase. The plan to confirm or kill each major assumption is in [Validation Plan](./Validation-Plan.md).
+Είμαστε στη φάση validation. Το σχέδιο επιβεβαίωσης ή ανατροπής κάθε βασικής υπόθεσης στο [Validation Plan](./Validation-Plan.md).
 
-## Year-one objectives
+## Στόχοι πρώτου έτους
 
-| Objective | Measure |
+| Στόχος | Μέτρο |
 |---|---|
-| Validate problem | 10+ interviews, clear signal from 70%+ of them |
-| Lock MVP | Scope frozen, accepted by team and 3 pilot customers |
-| Build MVP | Working product used weekly by pilot users |
-| First paying customer | 1 paid contract signed |
-| First repeatable pricing | 3+ paid customers on the same pricing tier |
+| Επικύρωση προβλήματος | 10+ interview, σαφές σήμα από 70%+ |
+| Κλείδωμα MVP | Scope παγωμένο, αποδεκτό από ομάδα και 3 pilot πελάτες |
+| Κατασκευή MVP | Λειτουργικό προϊόν με εβδομαδιαία χρήση από pilots |
+| Πρώτος πληρωμένος πελάτης | 1 υπογεγραμμένη πληρωμένη σύμβαση |
+| Πρώτο επαναλαμβανόμενο pricing | 3+ πληρωμένοι στο ίδιο pricing tier |
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we sell to owners first or producers first?
-- Do we charge per field or per organisation?
-- Is olive really our beachhead or just a familiar starting point?
+- Πουλάμε πρώτα σε ιδιοκτήτες ή παραγωγούς;
+- Χρεώνουμε ανά αγροτεμάχιο ή ανά οργανισμό;
+- Η ελιά είναι πραγματικά το beachhead ή απλά οικείο σημείο εκκίνησης;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Complete the first 10 customer interviews
-- Decide buyer persona based on willingness to pay
-- Lock pricing hypothesis after first 10 interviews
+- Ολοκληρώστε τα πρώτα 10 customer interview
+- Αποφασίστε buyer persona με βάση τη διάθεση πληρωμής
+- Κλειδώστε την υπόθεση pricing μετά τα πρώτα 10 interview

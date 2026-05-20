@@ -1,75 +1,75 @@
-# MVP Definition
+# Ορισμός MVP
 
-**Status:** Draft — to be locked at next team review
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο — να κλειδωθεί στην επόμενη ανασκόπηση ομάδας
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Define exactly what the MVP includes and excludes. This is the single most important page in the Product section.
+Ορισμός ακριβώς τι περιλαμβάνει και τι αποκλείει το MVP. Αυτή είναι η πιο σημαντική σελίδα στην ενότητα Προϊόν.
 
-## MVP goal
+## Στόχος MVP
 
-Ship the smallest version of AgroTrack that a small olive owner and their producer can use weekly to plan, run and review work on at least one field.
+Παράδοση της μικρότερης έκδοσης του AgroTrack που ένας μικρός ιδιοκτήτης ελιάς και ο παραγωγός του μπορούν να χρησιμοποιούν εβδομαδιαία για να σχεδιάζουν, εκτελούν και αξιολογούν τη δουλειά σε τουλάχιστον ένα χωράφι.
 
-If, after using it for 4 weeks, they say "I don't want to go back to my old way of working" — the MVP succeeded.
+Αν, μετά από 4 εβδομάδες χρήσης, λένε «δεν θέλω να γυρίσω στον παλιό τρόπο δουλειάς» — το MVP πέτυχε.
 
-## Must have (in MVP)
+## Must have (στο MVP)
 
-| Feature | Why |
+| Feature | Γιατί |
 |---|---|
-| User registration and login | Basic access |
-| Roles: owner, producer, admin | Reflects real-world reality and access boundaries |
-| Field management | The fundamental object |
-| Crop cycle management | The lifecycle is what makes us different |
-| Lifecycle stage tracking | Visibility of where each field is right now |
-| Task management | Plan and execute the work |
-| Notes / activity history | The record of what actually happened |
-| Basic expense tracking | First step toward cost visibility |
-| Basic dashboard | One screen to see status across fields |
+| Εγγραφή και σύνδεση χρηστών | Βασική πρόσβαση |
+| Ρόλοι: owner, producer, admin | Αντικατοπτρίζει την πραγματικότητα και τα όρια πρόσβασης |
+| Διαχείριση χωραφιών | Το θεμελιώδες αντικείμενο |
+| Διαχείριση κύκλου καλλιέργειας | Ο κύκλος ζωής είναι αυτό που μας ξεχωρίζει |
+| Παρακολούθηση σταδίων κύκλου ζωής | Ορατότητα του πού βρίσκεται κάθε χωράφι τώρα |
+| Διαχείριση εργασιών | Σχεδιασμός και εκτέλεση της δουλειάς |
+| Σημειώσεις / ιστορικό δραστηριότητας | Το αρχείο του τι πραγματικά έγινε |
+| Βασική παρακολούθηση εξόδων | Πρώτο βήμα προς ορατότητα κόστους |
+| Βασικό dashboard | Μία οθόνη για κατάσταση σε όλα τα χωράφια |
 
-## Should have (close after MVP)
+## Should have (σύντομα μετά το MVP)
 
-- Multiple users per organisation with proper invitations
-- Filters and search across fields, tasks and activity
-- Simple weekly reminders / notifications
-- Mobile experience polished for producers in the field
+- Πολλοί χρήστες ανά οργανισμό με σωστές προσκλήσεις
+- Φίλτρα και αναζήτηση σε χωράφια, εργασίες και δραστηριότητα
+- Απλές εβδομαδιαίες υπενθυμίσεις / ειδοποιήσεις
+- Εκλεπτυσμένη εμπειρία κινητού για παραγωγούς στο χωράφι
 
-## Could have later (not now)
+## Could have later (όχι τώρα)
 
-- Documents and photo upload tied to fields and activity
-- Reports and exports (PDF / CSV)
-- Agronomist as a first-class user role
-- Detailed cost reporting per cycle / per hectare
-- Calendar view and seasonal planning
-- Integrations (accounting, weather)
-- Multi-crop support beyond olive
+- Έγγραφα και ανέβασμα φωτογραφιών συνδεδεμένα με χωράφια και δραστηριότητα
+- Αναφορές και εξαγωγές (PDF / CSV)
+- Γεωπόνος ως πρωτογενής ρόλος χρήστη
+- Λεπτομερείς αναφορές κόστους ανά κύκλο / ανά στρέμμα
+- Προβολή ημερολογίου και εποχιακός σχεδιασμός
+- Ενσωματώσεις (λογιστική, καιρός)
+- Υποστήριξη πολλών καλλιεργειών πέρα από την ελιά
 
-## Out of scope for MVP
+## Out of scope για το MVP
 
-- Satellite imagery, sensors, IoT
-- Native iOS / Android apps (basic mobile web is enough)
-- Offline-first sync (the demo can be online-only)
-- Marketplace, trading, supply chain
-- Heavy financial accounting
-- AI recommendations
+- Δορυφορικές εικόνες, αισθητήρες, IoT
+- Native εφαρμογές iOS / Android (αρκεί βασικό mobile web)
+- Offline-first συγχρονισμός (το demo μπορεί να είναι μόνο online)
+- Marketplace, εμπόριο, εφοδιαστική αλυσίδα
+- Βαριά οικονομική λογιστική
+- Συστάσεις AI
 
-## Acceptance criteria for "MVP complete"
+## Acceptance criteria για «MVP ολοκληρωμένο»
 
-- [ ] An owner can sign up, create an organisation, add a field, start a crop cycle, and see lifecycle stages.
-- [ ] A producer can be invited to that organisation and access the same field.
-- [ ] A task can be created, assigned, and completed by either role.
-- [ ] An activity (e.g. "irrigated 4 hours") can be logged from a phone in under 30 seconds.
-- [ ] An expense can be recorded against a field or cycle.
-- [ ] The dashboard shows fields, current stages and open tasks at a glance.
-- [ ] At least 3 pilot customers use the platform weekly for 4 weeks.
+- [ ] Ένας owner μπορεί να εγγραφεί, να δημιουργήσει οργανισμό, να προσθέσει χωράφι, να ξεκινήσει κύκλο καλλιέργειας και να δει στάδια κύκλου ζωής.
+- [ ] Ένας producer μπορεί να προσκληθεί σε αυτόν τον οργανισμό και να έχει πρόσβαση στο ίδιο χωράφι.
+- [ ] Μια εργασία μπορεί να δημιουργηθεί, να ανατεθεί και να ολοκληρωθεί από οποιονδήποτε ρόλο.
+- [ ] Μια δραστηριότητα (π.χ. «πότισα 4 ώρες») μπορεί να καταγραφεί από κινητό σε λιγότερο από 30 δευτερόλεπτα.
+- [ ] Ένα έξοδο μπορεί να καταγραφεί σε χωράφι ή κύκλο.
+- [ ] Το dashboard δείχνει χωράφια, τρέχοντα στάδια και ανοιχτές εργασίες με μια ματιά.
+- [ ] Τουλάχιστον 3 πιλοτικοί πελάτες χρησιμοποιούν την πλατφόρμα εβδομαδιαία για 4 εβδομάδες.
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Do we include simple notifications in MVP or push to "Should have"?
-- How polished must the mobile experience be for MVP?
+- Συμπεριλαμβάνουμε απλές ειδοποιήσεις στο MVP ή τις περνάμε στο «Should have»;
+- Πόσο εκλεπτυσμένη πρέπει να είναι η εμπειρία κινητού για το MVP;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Lock the must-have list at the next team review
-- Translate must-haves into Epics in Azure Boards (see [Work Item Structure](../06-Scrum-and-Delivery/Work-Item-Structure.md))
+- Κλείδωμα λίστας must-have στην επόμενη ανασκόπηση ομάδας
+- Μετάφραση must-haves σε Epics στο Azure Boards (βλ. [Δομή work items](../06-Scrum-and-Delivery/Work-Item-Structure.md))

@@ -1,59 +1,59 @@
-# Competitor Research
+# Έρευνα ανταγωνιστών
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Who else helps customers solve this problem today — directly or indirectly — and how we are different.
+Ποιος άλλος βοηθά σήμερα τους πελάτες να λύσουν αυτό το πρόβλημα — άμεσα ή έμμεσα — και πώς διαφέρουμε.
 
-Use the [Competitor Analysis Template](../11-Templates/Competitor-Analysis-Template.md) for each entry.
+Χρησιμοποιήστε το [Competitor Analysis Template](../11-Templates/Competitor-Analysis-Template.md) για κάθε καταχώρηση.
 
-## Competitive landscape (overview)
+## Ανταγωνιστικό τοπίο (επισκόπηση)
 
-| Category | Examples | Why customers use them | Where they fall short |
+| Κατηγορία | Παραδείγματα | Γιατί τους χρησιμοποιούν | Πού υστερούν |
 |---|---|---|---|
-| Status quo | Paper notebooks, memory | Free, familiar | Lost, no sharing, no reporting |
-| Spreadsheets | Excel, Google Sheets | Flexible, free, owned by user | Mess at scale, no mobile, no roles |
-| Messaging | WhatsApp groups | Already on everyone's phone | No history, no structure |
-| Generic project tools | Trello, Notion, Asana | Modern UX, easy start | No crop lifecycle, no agriculture context |
-| Farm management software | Agrivi, FieldView, FarmLogs, AgroPro, Conservis | Built for agriculture | Heavy, expensive, complex, often not olive-focused, often not owner-friendly |
-| Farm ERPs | SAP Agriculture, custom systems | Comprehensive | Out of reach for small-to-mid operators |
-| Bookkeeping tools | Local accounting software | Cost tracking | No field workflow |
-| Sensors / Hardware vendors | John Deere, Climate FieldView | Data from machinery | Hardware-centric, not workflow-centric |
+| Status quo | Χάρτινα σημειωματάρια, μνήμη | Δωρεάν, οικείο | Χάνονται, χωρίς κοινή χρήση, χωρίς αναφορές |
+| Υπολογιστικά φύλλα | Excel, Google Sheets | Ευέλικτα, δωρεάν, δικά τους | Χάος σε κλίμακα, χωρίς mobile, χωρίς ρόλους |
+| Messaging | Ομάδες WhatsApp | Ήδη στο τηλέφωνο όλων | Χωρίς ιστορία, χωρίς δομή |
+| Γενικά εργαλεία project | Trello, Notion, Asana | Σύγχρονο UX, εύκολο ξεκίνημα | Χωρίς κύκλο καλλιέργειας, χωρίς αγροτικό πλαίσιο |
+| Λογισμικό διαχείρισης φάρμας | Agrivi, FieldView, FarmLogs, AgroPro, Conservis | Φτιαγμένο για γεωργία | Βαρύ, ακριβό, σύνθετο, συχνά όχι για ελιά, συχνά όχι φιλικό σε ιδιοκτήτη |
+| Farm ERP | SAP Agriculture, custom | Ολοκληρωμένο | Εκτός εμβέλειας μικρών-μεσαίων |
+| Λογιστικά | Τοπικό λογιστικό λογισμικό | Καταγραφή κόστους | Χωρίς ροή εργασίας αγροτεμαχίου |
+| Αισθητήρες / Hardware | John Deere, Climate FieldView | Δεδομένα από μηχανήματα | Κεντρικό hardware, όχι ροή εργασίας |
 
-## Direct competitors to research deeply
+## Άμεσοι ανταγωνιστές για βαθιά έρευνα
 
-| Competitor | Status | Notes |
+| Ανταγωνιστής | Κατάσταση | Σημειώσεις |
 |---|---|---|
-| Agrivi | To research | Established farm management platform |
-| FieldView (Climate / Bayer) | To research | Strong in row crops |
-| Conservis | To research | Mid-large operations focus |
-| FarmERP | To research | India/global presence |
-| Local Greek / Italian agritech players | To research | Closest to our beachhead |
-| Smallholder-focused mobile apps | To research | E.g. FarmBook, others |
+| Agrivi | Προς έρευνα | Καθιερωμένη πλατφόρμα διαχείρισης φάρμας |
+| FieldView (Climate / Bayer) | Προς έρευνα | Ισχυρό σε σειρά καλλιεργειών |
+| Conservis | Προς έρευνα | Εστίαση σε μεσαίες-μεγάλες επιχειρήσεις |
+| FarmERP | Προς έρευνα | Παρουσία Ινδία/παγκόσμια |
+| Τοπικοί ελληνικοί / ιταλικοί agritech | Προς έρευνα | Πιο κοντά στο beachhead μας |
+| Mobile apps για μικρούς | Προς έρευνα | π.χ. FarmBook, άλλα |
 
-## How we plan to differentiate
+## Πώς σχεδιάζουμε να διαφοροποιηθούμε
 
-- **Owner + producer shared workspace** — most tools serve one role only.
-- **Olive-first lifecycle** — not a generic crop manager.
-- **Lightweight and mobile-first** — usable on a phone in the field.
-- **Practical price** — accessible to small owners, not just industrial farms.
+- **Κοινό workspace ιδιοκτήτη + παραγωγού** — τα περισσότερα εργαλεία εξυπηρετούν έναν ρόλο.
+- **Κύκλος ζωής ελιάς πρώτα** — όχι γενικός διαχειριστής καλλιέργειας.
+- **Ελαφρύ και mobile-first** — χρησιμοποιήσιμο στο τηλέφωνο στο χωράφι.
+- **Πρακτική τιμή** — προσιτή σε μικρούς ιδιοκτήτες, όχι μόνο σε βιομηχανικές φάρμες.
 
-## What we explicitly don't compete on
+## Σε τι δεν ανταγωνιζόμαστε ρητά
 
-- Hardware integration depth
-- Heavy financial accounting
-- Satellite imagery / remote sensing
-- Complex agronomy science
+- Βάθος ενσωμάτωσης hardware
+- Βαρύ λογιστικό
+- Δορυφορικές εικόνες / remote sensing
+- Σύνθετη γεωπονική επιστήμη
 
-## Open Questions
+## Ανοιχτά ερωτήματα
 
-- Who is the most painful direct competitor in our beachhead geography?
-- Are there strong regional players in Greece or Italy we are missing?
+- Ποιος είναι ο πιο επώδυνος άμεσος ανταγωνιστής στη γεωγραφία beachhead;
+- Υπάρχουν ισχυροί περιφερειακοί παίκτες στην Ελλάδα ή Ιταλία που χάνουμε;
 
-## Next Actions
+## Επόμενα βήματα
 
-- Complete a one-pager on each direct competitor using the template
-- Score each competitor on our differentiation dimensions
+- Ολοκληρώστε one-pager για κάθε άμεσο ανταγωνιστή με το template
+- Βαθμολογήστε κάθε ανταγωνιστή στις διαστάσεις διαφοροποίησής μας

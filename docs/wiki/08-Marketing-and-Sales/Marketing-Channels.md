@@ -1,61 +1,61 @@
-# Marketing Channels
+# Κανάλια marketing
 
-**Status:** Draft
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** Πρόχειρο
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## Purpose
+## Σκοπός
 
-Where we expect to find and convert customers — now and later.
+Πού περιμένουμε να βρούμε και να μετατρέψουμε πελάτες — τώρα και αργότερα.
 
-## Channels by phase
+## Κανάλια ανά φάση
 
-### Phase 1 — Validation (now)
+### Φάση 1 — Επικύρωση (τώρα)
 
-| Channel | Effort | Why |
+| Κανάλι | Προσπάθεια | Γιατί |
 |---|---|---|
-| Personal network | High | Fast access to real conversations |
-| Direct intros via agronomists | High | Trusted, high-quality leads |
-| Farmer Facebook / Telegram groups | Medium | Many real owners hang out here |
-| Olive co-op contacts | Medium | Aggregates buyers |
+| Προσωπικό δίκτυο | Υψηλή | Γρήγορη πρόσβαση σε πραγματικές συζητήσεις |
+| Άμεσες εισαγωγές μέσω γεωπόνων | Υψηλή | Αξιόπιστα, ποιοτικά leads |
+| Ομάδες αγροτών Facebook / Telegram | Μέτρια | Πολλοί πραγματικοί ιδιοκτήτες εκεί |
+| Επαφές ελαιοκομικών συνεταιρισμών | Μέτρια | Συγκεντρώνουν αγοραστές |
 
-### Phase 2 — First paying customers
+### Φάση 2 — Πρώτοι πληρωτές πελάτες
 
-| Channel | Effort | Why |
+| Κανάλι | Προσπάθεια | Γιατί |
 |---|---|---|
-| Founder content (blog, LinkedIn) | Medium | Build credibility |
-| Referrals from pilots | Low | Best signal of product fit |
-| Co-op partnerships | High | High volume per relationship |
-| Agronomist partner program | Medium | Recurring referrals |
+| Περιεχόμενο founders (blog, LinkedIn) | Μέτρια | Χτίζει αξιοπιστία |
+| Παραπομπές από πιλοτικά | Χαμηλή | Καλύτερο σήμα product-market fit |
+| Partnerships με συνεταιρισμούς | Υψηλή | Μεγάλος όγκος ανά σχέση |
+| Πρόγραμμα συνεργατών γεωπόνων | Μέτρια | Επαναλαμβανόμενες παραπομπές |
 
-### Phase 3 — Repeatable growth
+### Φάση 3 — Επαναλαμβανόμενη ανάπτυξη
 
-| Channel | Effort | Why |
+| Κανάλι | Προσπάθεια | Γιατί |
 |---|---|---|
-| SEO and content | High | Long-term, compounding |
-| YouTube tutorials | Medium | Olive content is searched |
-| Local field days and conferences | Medium | Trust through in-person |
-| Paid acquisition tests | Medium | Only when CAC is understood |
+| SEO και περιεχόμενο | Υψηλή | Μακροπρόθεσμα, αθροιστικό |
+| Tutorials YouTube | Μέτρια | Αναζητούνται περιεχόμενα για ελιά |
+| Τοπικές ημέρες αγρού και συνέδρια | Μέτρια | Εμπιστοσύνη μέσω προσωπικής επαφής |
+| Δοκιμές paid acquisition | Μέτρια | Μόνο όταν κατανοούμε το CAC |
 
-### Channels we are NOT investing in early
+### Κανάλια που ΔΕΝ επενδύουμε νωρίς
 
-- National TV / radio ads.
-- Trade booths at every conference.
-- Outbound SDR teams.
-- Influencer partnerships outside agriculture.
+- Εθνικές διαφημίσεις TV / ραδιόφωνο.
+- Περίπτερα σε κάθε συνέδριο.
+- Ομάδες outbound SDR.
+- Partnerships με influencers εκτός γεωργίας.
 
-## Channel hypothesis to test first
+## Υπόθεση καναλιού προς πρώτη δοκιμή
 
-> Olive owners and producers respond best to introductions made by trusted agronomists and co-op leaders, not cold outbound.
+> Ιδιοκτήτες και παραγωγοί ελιάς ανταποκρίνονται καλύτερα σε εισαγωγές από αξιόπιστους γεωπόνους και ηγέτες συνεταιρισμών, όχι σε κρύο outbound.
 
-If true, our growth motion centres on **partnerships**, not paid acquisition.
+Αν ισχύει, η κίνηση ανάπτυξής μας επικεντρώνεται σε **partnerships**, όχι σε paid acquisition.
 
-## Open Questions
+## Ανοιχτές ερωτήσεις
 
-- Which country has the strongest co-op culture to leverage first?
-- Do we set up a referral program now or after the first 10 paying customers?
+- Ποια χώρα έχει την ισχυρότερη κουλτούρα συνεταιρισμών για να αξιοποιήσουμε πρώτα;
+- Στήνουμε πρόγραμμα παραπομπών τώρα ή μετά τους πρώτους 10 πληρωτές πελάτες;
 
-## Next Actions
+## Επόμενες ενέργειες
 
-- Build a list of 10 agronomists to talk to
-- Identify 3 co-ops to approach for partnership conversations
+- Λίστα 10 γεωπόνων για συζήτηση
+- Εντοπισμός 3 συνεταιρισμών για συζητήσεις partnership

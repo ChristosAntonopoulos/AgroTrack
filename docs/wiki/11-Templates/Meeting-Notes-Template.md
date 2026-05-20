@@ -1,58 +1,58 @@
 # Meeting Notes Template
 
-**Status:** Template
-**Owner:** TBD
-**Last Updated:** TBD
+**Κατάσταση:** template
+**Υπεύθυνος:** TBD
+**Τελευταία ενημέρωση:** TBD
 
-## How to use
+## Πώς να χρησιμοποιείς
 
-Copy the section below into [Meeting Notes](../10-Meetings/Meeting-Notes.md) or a new meeting page, and fill in.
+Αντέγραψε την ενότητα παρακάτω στο [Meeting Notes](../10-Meetings/Meeting-Notes.md) ή σε νέα σελίδα συνάντησης και συμπλήρωσε.
 
 ---
 
-## Meeting: [Name] — [YYYY-MM-DD]
+## Συνάντηση: [Όνομα] — [YYYY-MM-DD]
 
-- **Date / time:**
-- **Duration:**
-- **Attendees:**
-- **Type:** (Planning / Review / Retro / Working session / 1:1 / Customer call)
+- **Ημερομηνία / ώρα:**
+- **Διάρκεια:**
+- **Συμμετέχοντες:**
+- **Τύπος:** (Planning / Review / Retro / Working session / 1:1 / Customer call)
 
-### Goal
+### Στόχος
 
-One sentence: what we wanted to get out of this meeting.
+Μία πρόταση: τι θέλαμε να πετύχουμε από αυτή τη συνάντηση.
 
-### Agenda
+### Ατζέντα
 
 1.
 2.
 3.
 
-### Discussion summary
+### Περίληψη συζήτησης
 
-- Bullet points of what was discussed.
+- Σημεία συζήτησης.
 
-### Decisions
+### Αποφάσεις
 
-- D-XXX — Decision title (link to [Decision Log](../01-Company/Decision-Log.md))
+- D-XXX — Τίτλος απόφασης (σύνδεσμος στο [Decision Log](../01-Company/Decision-Log.md))
 - D-YYY — ...
 
 ### Action items
 
-| Action | Owner | Due |
+| Ενέργεια | Υπεύθυνος | Προθεσμία |
 |---|---|---|
 |  |  |  |
 |  |  |  |
 
-### Risks raised
+### risk που αναδείχθηκαν
 
-(If any new risks were identified, add them to the [Risk Register](../09-Legal-and-Compliance/Risk-Register.md).)
+(Αν εντοπίστηκαν νέα risk, πρόσθεσέ τα στο [Risk Register](../09-Legal-and-Compliance/Risk-Register.md).)
 
-### Open questions
+### Ανοιχτά ερωτήματα
 
 -
 -
 
-### Next meeting
+### Επόμενη συνάντηση
 
-- Date / time: TBD
-- Topic: TBD
+- Ημερομηνία / ώρα: TBD
+- Θέμα: TBD
