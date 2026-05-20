@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getTaskService } from '../services/serviceFactory';
@@ -15,6 +16,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import './TaskFormPage.css';
 
 const TaskFormPage: React.FC = () => {
+  const { t } = useTranslation('tasks');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -171,7 +173,7 @@ const TaskFormPage: React.FC = () => {
           <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
             Back to Tasks
           </Button>
-          <h1>{isEditMode ? 'Edit Task' : 'Create New Task'}</h1>
+          <h1>{isEditMode ? t('form.editTitle') : t('form.newTitle')}</h1>
         </div>
 
         {error && <div className="error-message">{error}</div>}

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { getApiErrorMessage } from '../utils/translateApiError';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
@@ -12,6 +14,7 @@ import { CheckCircle2, Filter } from 'lucide-react';
 import './MinistryNotificationsPage.css';
 
 const MinistryNotificationsPage: React.FC = () => {
+  const { t } = useTranslation(['ministry', 'errors']);
   const { user } = useAuth();
   const role = user?.role || '';
 
@@ -30,7 +33,7 @@ const MinistryNotificationsPage: React.FC = () => {
           : await ministryNotificationService.getNotifications(role);
       setNotifications(data);
     } catch (e: any) {
-      setError(e?.message || 'Failed to load notifications');
+      setError(getApiErrorMessage(e, t) || t('ministry:failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +72,7 @@ const MinistryNotificationsPage: React.FC = () => {
 
         <div className="ministry-page-header">
           <div>
-            <h1>Ministry Notifications</h1>
+            <h1>{t('ministry:title')}</h1>
             <p className="ministry-subtitle">Role-targeted regulations, subsidies, deadlines, and alerts</p>
           </div>
 
@@ -80,7 +83,7 @@ const MinistryNotificationsPage: React.FC = () => {
               icon={<Filter />}
               onClick={() => setUrgentOnly((v) => !v)}
             >
-              {urgentOnly ? 'Urgent only' : 'All'}
+              {urgentOnly ? t('ministry:urgentOnly') : t('common:all')}
             </Button>
 
             <Button
@@ -90,7 +93,7 @@ const MinistryNotificationsPage: React.FC = () => {
               onClick={handleMarkAllAsRead}
               disabled={notifications.length === 0 || unreadCount === 0}
             >
-              Mark all read
+              {t('ministry:markAllRead')}
             </Button>
 
             <Badge variant={unreadCount > 0 ? 'warning' : 'info'} size="md">

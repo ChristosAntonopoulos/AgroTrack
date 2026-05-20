@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getFieldService } from '../services/serviceFactory';
 import { CreateFieldDto, UpdateFieldDto, Field } from '../services/fieldService';
@@ -10,6 +11,7 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import './FieldFormPage.css';
 
 const FieldFormPage: React.FC = () => {
+  const { t } = useTranslation('fields');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = !!id;
@@ -104,7 +106,7 @@ const FieldFormPage: React.FC = () => {
     <PageContainer>
       <div className="field-form-page">
         <Breadcrumbs />
-        <h1>{isEdit ? 'Edit Field' : 'Create New Field'}</h1>
+        <h1>{isEdit ? t('form.editTitle') : t('form.newTitle')}</h1>
         {error && <div className="error-message">{error}</div>}
         <Card>
           <form onSubmit={handleSubmit} className="field-form">

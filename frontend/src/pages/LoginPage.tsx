@@ -155,7 +155,7 @@ const LoginPage: React.FC = () => {
                     type="button"
                     onClick={() => handleQuickLogin(user)}
                     disabled={loading}
-                    variant={getRoleColor(user.role) as 'primary' | 'success' | 'info'}
+                    variant={getRoleColor(user.role) as any}
                     fullWidth
                     className="quick-login-btn"
                   >

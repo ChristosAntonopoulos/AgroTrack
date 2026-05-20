@@ -1,8 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications, Notification } from '../../context/NotificationContext';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { Check, X, Trash2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import './NotificationDropdown.css';
 
 interface NotificationDropdownProps {
@@ -10,6 +11,8 @@ interface NotificationDropdownProps {
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) => {
+  const { t } = useTranslation('common');
+  const { formatRelativeTime } = useLocaleFormatters();
   const { notifications, markAsRead, markAllAsRead, removeNotification, clearAll } = useNotifications();
   const navigate = useNavigate();
 
@@ -24,19 +27,23 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
   return (
     <div className="notification-dropdown">
       <div className="notification-header">
-        <h3>Notifications</h3>
+        <h3>{t('notifications.title')}</h3>
         <div className="notification-actions">
           {notifications.length > 0 && (
             <>
-              <button onClick={markAllAsRead} className="mark-all-read-btn" title="Mark all as read">
+              <button
+                onClick={markAllAsRead}
+                className="mark-all-read-btn"
+                title={t('notifications.markAllRead')}
+              >
                 <Check />
               </button>
-              <button onClick={clearAll} className="clear-all-btn" title="Clear all">
+              <button onClick={clearAll} className="clear-all-btn" title={t('notifications.clearAll')}>
                 <Trash2 />
               </button>
             </>
           )}
-          <button onClick={onClose} className="close-btn" title="Close">
+          <button onClick={onClose} className="close-btn" title={t('close')}>
             <X />
           </button>
         </div>
@@ -44,9 +51,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
 
       <div className="notification-list">
         {notifications.length === 0 ? (
-          <div className="no-notifications">No notifications</div>
+          <div className="no-notifications">{t('notifications.empty')}</div>
         ) : (
-          notifications.map(notification => (
+          notifications.map((notification) => (
             <div
               key={notification.id}
               className={`notification-item ${notification.read ? 'read' : 'unread'}`}
@@ -57,9 +64,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
                 <div className="notification-text">
                   <div className="notification-title">{notification.title}</div>
                   <div className="notification-message">{notification.message}</div>
-                  <div className="notification-time">
-                    {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
-                  </div>
+                  <div className="notification-time">{formatRelativeTime(notification.timestamp)}</div>
                 </div>
               </div>
               <button
@@ -68,7 +73,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
                   removeNotification(notification.id);
                 }}
                 className="remove-notification-btn"
-                title="Remove"
+                title={t('delete')}
               >
                 <X />
               </button>

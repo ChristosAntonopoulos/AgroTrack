@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService } from '../services/serviceFactory';
 import { getTaskService } from '../services/serviceFactory';
@@ -19,6 +20,7 @@ type ReportType = 'field-summary' | 'task-completion' | 'cost-analysis' | 'lifec
 type ExportFormat = 'pdf' | 'excel' | 'csv';
 
 const ReportsPage: React.FC = () => {
+  const { t } = useTranslation('reports');
   const { user } = useAuth();
   const [reportType, setReportType] = useState<ReportType>('field-summary');
   const [startDate, setStartDate] = useState(formatDate(subMonths(new Date(), 1), 'yyyy-MM-dd'));
@@ -129,7 +131,7 @@ const ReportsPage: React.FC = () => {
         ];
       });
 
-    const data = { headers, rows, title: 'Field Summary Report' };
+    const data = { headers, rows, title: t('fieldSummary') };
     
     if (format === 'csv') {
       exportService.exportToCSV(data, filename);
@@ -156,7 +158,7 @@ const ReportsPage: React.FC = () => {
       ];
     });
 
-    const data = { headers, rows, title: 'Task Completion Report' };
+    const data = { headers, rows, title: t('taskCompletion') };
     
     if (format === 'csv') {
       exportService.exportToCSV(data, filename);
@@ -177,7 +179,7 @@ const ReportsPage: React.FC = () => {
     const headers = ['Field', 'Total Cost'];
     const rows = costAnalysis.costByField.map(item => [item.fieldName, `$${item.cost.toFixed(2)}`]);
 
-    const data = { headers, rows, title: 'Cost Analysis Report' };
+    const data = { headers, rows, title: t('costAnalysis') };
     
     if (format === 'csv') {
       exportService.exportToCSV(data, filename);
@@ -205,7 +207,7 @@ const ReportsPage: React.FC = () => {
         <Breadcrumbs />
       
       <div className="reports-header">
-        <h1>Reports</h1>
+        <h1>{t('title')}</h1>
       </div>
 
       <Card className="report-builder">

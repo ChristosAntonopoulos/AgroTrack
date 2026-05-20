@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getTaskService } from '../services/serviceFactory';
@@ -18,6 +20,8 @@ import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle } from
 import './TaskDetailPage.css';
 
 const TaskDetailPage: React.FC = () => {
+  const { t } = useTranslation(['tasks', 'common']);
+  const { formatDateTime } = useLocaleFormatters();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -149,9 +153,9 @@ const TaskDetailPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleString();
+  const formatTaskDate = (dateString?: string) => {
+    if (!dateString) return t('tasks:notScheduled');
+    return formatDateTime(dateString);
   };
 
   const canEdit = user?.role === 'FieldOwner' || (user?.role === 'Producer' && task?.assignedTo === user?.userId);
@@ -228,7 +232,7 @@ const TaskDetailPage: React.FC = () => {
             <div className="info-item">
               <MapPin className="info-icon" />
               <div>
-                <label>Field</label>
+                <label>{t('tasks:detail.field')}</label>
                 {field ? (
                   <Link to={`/fields/${field.id}`} className="field-link">
                     {field.name}
@@ -242,7 +246,7 @@ const TaskDetailPage: React.FC = () => {
             <div className="info-item">
               <UserIcon className="info-icon" />
               <div>
-                <label>Assigned To</label>
+                <label>{t('tasks:detail.assignedTo')}</label>
                 {assignedUser ? (
                   <span>{assignedUser.firstName} {assignedUser.lastName} ({assignedUser.email})</span>
                 ) : task.assignedTo ? (
@@ -256,16 +260,16 @@ const TaskDetailPage: React.FC = () => {
             <div className="info-item">
               <Calendar className="info-icon" />
               <div>
-                <label>Scheduled Start</label>
-                <span>{formatDate(task.scheduledStart)}</span>
+                <label>{t('tasks:detail.scheduledStart')}</label>
+                <span>{formatTaskDate(task.scheduledStart)}</span>
               </div>
             </div>
 
             <div className="info-item">
               <Calendar className="info-icon" />
               <div>
-                <label>Scheduled End</label>
-                <span>{formatDate(task.scheduledEnd)}</span>
+                <label>{t('tasks:detail.scheduledEnd')}</label>
+                <span>{formatTaskDate(task.scheduledEnd)}</span>
               </div>
             </div>
 
@@ -273,8 +277,8 @@ const TaskDetailPage: React.FC = () => {
               <div className="info-item">
                 <CheckCircle className="info-icon" />
                 <div>
-                  <label>Actual Start</label>
-                  <span>{formatDate(task.actualStart)}</span>
+                  <label>{t('tasks:detail.actualStart')}</label>
+                  <span>{formatTaskDate(task.actualStart)}</span>
                 </div>
               </div>
             )}
@@ -283,22 +287,22 @@ const TaskDetailPage: React.FC = () => {
               <div className="info-item">
                 <CheckCircle className="info-icon" />
                 <div>
-                  <label>Actual End</label>
-                  <span>{formatDate(task.actualEnd)}</span>
+                  <label>{t('tasks:detail.actualEnd')}</label>
+                  <span>{formatTaskDate(task.actualEnd)}</span>
                 </div>
               </div>
             )}
 
             <div className="info-item">
               <div>
-                <label>Type</label>
+                <label>{t('tasks:detail.type')}</label>
                 <span>{task.type}</span>
               </div>
             </div>
 
             <div className="info-item">
               <div>
-                <label>Lifecycle Year</label>
+                <label>{t('tasks:detail.lifecycleYear')}</label>
                 <span className="lifecycle-year">{task.lifecycleYear}</span>
               </div>
             </div>

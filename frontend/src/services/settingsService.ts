@@ -1,3 +1,5 @@
+import { normalizeLocale } from '../i18n/config';
+
 export type Theme = 'light' | 'dark' | 'white';
 
 export interface UserPreferences {
@@ -31,7 +33,9 @@ export const settingsService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+        const parsed = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+        parsed.language = normalizeLocale(parsed.language);
+        return parsed;
       }
     } catch (error) {
       console.error('Error loading preferences:', error);

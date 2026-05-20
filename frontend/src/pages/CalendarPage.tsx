@@ -18,6 +18,7 @@ import { format, addMonths, subMonths, startOfMonth } from 'date-fns';
 import './CalendarPage.css';
 
 const CalendarPage: React.FC = () => {
+  const { t } = useTranslation('calendar');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());

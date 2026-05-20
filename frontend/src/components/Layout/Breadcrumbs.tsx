@@ -8,7 +8,7 @@ import { demoStore } from '../../services/demo/demoStore';
 import './Breadcrumbs.css';
 
 const Breadcrumbs: React.FC = () => {
-  const { t } = useTranslation('nav');
+  const { t } = useTranslation(['nav', 'common']);
   const location = useLocation();
   const { user } = useAuth();
   const role = (user?.role || '') as AppRole;
@@ -33,7 +33,7 @@ const Breadcrumbs: React.FC = () => {
         <li className="breadcrumb-item">
           <Link to={roleHomePath(role)} className="breadcrumb-link">
             <Home />
-            <span>{t('home', { ns: 'common' })}</span>
+            <span>{t('common:home')}</span>
           </Link>
         </li>
         {pathnames.map((value, index) => {

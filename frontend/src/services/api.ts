@@ -1,4 +1,6 @@
 import axios from 'axios';
+import i18n from '../i18n';
+import { translateApiError } from '../utils/translateApiError';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://localhost:7000';
 
@@ -31,6 +33,10 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    }
+    const message = error.response?.data?.message as string | undefined;
+    if (message) {
+      error.response.data.message = translateApiError(i18n.t.bind(i18n), message);
     }
     return Promise.reject(error);
   }

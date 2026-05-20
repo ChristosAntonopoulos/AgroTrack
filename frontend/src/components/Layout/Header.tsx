@@ -25,7 +25,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   const getRoleDisplayName = (userRole: string) =>
-    t(`roles.${userRole}`, { ns: 'common', defaultValue: userRole });
+    t(`common:roles.${userRole}`, { defaultValue: userRole });
 
   return (
     <header className="app-header">

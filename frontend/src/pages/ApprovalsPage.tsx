@@ -129,11 +129,11 @@ const ApprovalsPage: React.FC = () => {
             <EmptyState title={t('approvals:emptyTitle')} description={t('approvals:emptyDescription')} />
           ) : (
             <div className="approvals-list">
-              {pending.map((t) => {
-                const field = fields.find((f) => f.id === t.fieldId);
-                const preview = (t.evidence || []).find((e) => !!e.photoUrl)?.photoUrl;
+              {pending.map((task) => {
+                const field = fields.find((f) => f.id === task.fieldId);
+                const preview = (task.evidence || []).find((e) => !!e.photoUrl)?.photoUrl;
                 return (
-                  <div key={t.id} className="approvals-item">
+                  <div key={task.id} className="approvals-item">
                     <div className="approvals-item-left">
                       {preview ? (
                         <img className="approvals-preview" src={preview} alt="Evidence preview" />
@@ -141,23 +141,23 @@ const ApprovalsPage: React.FC = () => {
                         <div className="approvals-preview placeholder">No photo</div>
                       )}
                       <div className="approvals-item-main">
-                        <div className="approvals-item-title">{t.title}</div>
+                        <div className="approvals-item-title">{task.title}</div>
                         <div className="approvals-item-meta">
                           <Badge size="sm" variant="info">pending</Badge>
-                          <span><strong>Field:</strong> {field?.name || t.fieldId}</span>
-                          <span><strong>Producer:</strong> {getUserName(t.assignedTo, t('approvals:unassigned'))}</span>
-                          <span><strong>Evidence:</strong> {(t.evidence || []).length}</span>
+                          <span><strong>Field:</strong> {field?.name || task.fieldId}</span>
+                          <span><strong>Producer:</strong> {getUserName(task.assignedTo, t('approvals:unassigned'))}</span>
+                          <span><strong>Evidence:</strong> {(task.evidence || []).length}</span>
                         </div>
                       </div>
                     </div>
                     <div className="approvals-item-actions">
-                      <Button variant="success" size="sm" onClick={() => approve(t.id)}>
+                      <Button variant="success" size="sm" onClick={() => approve(task.id)}>
                         {t('approvals:approve')}
                       </Button>
-                      <Button variant="error" size="sm" onClick={() => reject(t.id)}>
+                      <Button variant="error" size="sm" onClick={() => reject(task.id)}>
                         {t('approvals:reject')}
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => (window.location.href = `/fields/${t.fieldId}`)}>
+                      <Button variant="outline" size="sm" onClick={() => (window.location.href = `/fields/${task.fieldId}`)}>
                         Open field
                       </Button>
                     </div>

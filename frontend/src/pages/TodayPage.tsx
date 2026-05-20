@@ -267,9 +267,9 @@ const TodayPage: React.FC = () => {
             )}
           </Card>
 
-          <Card title="Today’s route" subtitle="Fields ordered by distance (nearest-next)">
+          <Card title="Today’s route" subtitle={t('today:routeSubtitle')}>
             {routeFields.length === 0 ? (
-              <EmptyState title="No route yet" description="Assign tasks to see your route." />
+              <EmptyState title={t('today:noRouteTitle')} description={t('today:noRouteDescription')} />
             ) : (
               <div className="today-route">
                 <div className="today-route-list">

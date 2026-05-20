@@ -146,7 +146,7 @@ export const resolvePageTitle = (pathname: string, role: AppRole, t: TFunction<'
 
   if (pathname.includes('/new')) return t('breadcrumb.new');
   if (pathname.includes('/edit')) return t('breadcrumb.edit');
-  return t('appName', { ns: 'common', defaultValue: 'Olive Lifecycle' });
+  return t('common:appName', { defaultValue: 'Olive Lifecycle' });
 };
 
 export const resolveBreadcrumbLabel = (
