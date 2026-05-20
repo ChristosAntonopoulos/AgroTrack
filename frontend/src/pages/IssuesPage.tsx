@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -10,8 +11,8 @@ import { demoStore, DemoIssueStatus, DemoIssueSeverity, DemoIssueType } from '..
 import { getTaskService } from '../services/serviceFactory';
 import './IssuesPage.css';
 
-const getUserName = (id?: string) => {
-  if (!id) return 'Unknown';
+const getUserName = (id: string | undefined, unknownLabel: string) => {
+  if (!id) return unknownLabel;
   demoStore.ensureSeeded();
   const u = demoStore.getUsers().find((x) => x.id === id);
   if (!u) return id;
@@ -20,6 +21,7 @@ const getUserName = (id?: string) => {
 };
 
 const IssuesPage: React.FC = () => {
+  const { t } = useTranslation(['issues', 'common', 'fields']);
   const { user } = useAuth();
   const role = user?.role || '';
 
@@ -75,7 +77,10 @@ const IssuesPage: React.FC = () => {
   if (role !== 'FieldOwner' && role !== 'Administrator') {
     return (
       <PageContainer>
-        <EmptyState title="Issues are for Owners" description="Log in as a Field Owner to triage issues." />
+        <EmptyState
+          title={t('issues:roleRestrictedTitle')}
+          description={t('issues:roleRestrictedDescription')}
+        />
       </PageContainer>
     );
   }
@@ -87,20 +92,20 @@ const IssuesPage: React.FC = () => {
 
         <div className="issues-header">
           <div>
-            <h1>Issues</h1>
-            <p className="issues-subtitle">Triage incidents and create follow-up work orders</p>
+            <h1>{t('issues:title')}</h1>
+            <p className="issues-subtitle">{t('issues:subtitle')}</p>
           </div>
           <Badge variant={filtered.some((i) => i.status === 'Open') ? 'warning' : 'success'} size="md">
             {filtered.filter((i) => i.status === 'Open').length} open
           </Badge>
         </div>
 
-        <Card title="Filters" padding="md">
+        <Card title={t('issues:filters')} padding="md">
           <div className="issues-filters">
             <div className="issues-filter">
-              <label>Field</label>
+              <label>{t('fields:title')}</label>
               <select value={fieldFilter} onChange={(e) => setFieldFilter(e.target.value)}>
-                <option value="all">All fields</option>
+                <option value="all">{t('issues:allFields')}</option>
                 {fields.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
@@ -109,29 +114,29 @@ const IssuesPage: React.FC = () => {
               </select>
             </div>
             <div className="issues-filter">
-              <label>Severity</label>
-              <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value as any)}>
-                <option value="all">All</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
+              <label>{t('issues:severity')}</label>
+              <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value as DemoIssueSeverity | 'all')}>
+                <option value="all">{t('issues:allSeverities')}</option>
+                <option value="High">{t('common:severity.High')}</option>
+                <option value="Medium">{t('common:severity.Medium')}</option>
+                <option value="Low">{t('common:severity.Low')}</option>
               </select>
             </div>
             <div className="issues-filter">
-              <label>Status</label>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
-                <option value="all">All</option>
-                <option value="Open">Open</option>
-                <option value="InProgress">In progress</option>
-                <option value="Resolved">Resolved</option>
+              <label>{t('issues:status')}</label>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as DemoIssueStatus | 'all')}>
+                <option value="all">{t('issues:allStatuses')}</option>
+                <option value="Open">{t('common:issueStatus.Open')}</option>
+                <option value="InProgress">{t('common:issueStatus.InProgress')}</option>
+                <option value="Resolved">{t('common:issueStatus.Resolved')}</option>
               </select>
             </div>
           </div>
         </Card>
 
-        <Card title="Inbox" subtitle="Open issues first, then in progress" padding="md">
+        <Card title={t('issues:inboxTitle')} subtitle={t('issues:inboxSubtitle')} padding="md">
           {filtered.length === 0 ? (
-            <EmptyState title="No issues" description="Great—nothing to triage right now." />
+            <EmptyState title={t('issues:emptyTitle')} description={t('issues:emptyDescription')} />
           ) : (
             <div className="issues-list">
               {filtered.map((i) => {
@@ -152,7 +157,7 @@ const IssuesPage: React.FC = () => {
                             {i.status}
                           </Badge>
                           <span><strong>Field:</strong> {field?.name || i.fieldId}</span>
-                          <span><strong>Reported by:</strong> {getUserName(i.createdByUserId)}</span>
+                          <span><strong>Reported by:</strong> {getUserName(i.createdByUserId, t('issues:unknown'))}</span>
                         </div>
                         <div className="issues-desc">{i.description}</div>
                       </div>
@@ -165,7 +170,7 @@ const IssuesPage: React.FC = () => {
 
                       {i.status !== 'Resolved' ? (
                         <Button size="sm" variant="success" onClick={() => markResolved(i.id)}>
-                          Mark resolved
+                          {t('issues:resolve')}
                         </Button>
                       ) : null}
 
@@ -175,7 +180,7 @@ const IssuesPage: React.FC = () => {
                             <option value="" disabled>Create follow-up task…</option>
                             {producers.map((p) => (
                               <option key={p.id} value={p.id}>
-                                Assign to {getUserName(p.id)}
+                                Assign to {getUserName(p.id, t('issues:unknown'))}
                               </option>
                             ))}
                           </select>

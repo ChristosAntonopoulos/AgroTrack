@@ -1,0 +1,46 @@
+{
+  "title": "Fields",
+  "subtitleOwner": "Manage your olive fields",
+  "subtitleProducer": "Fields you work on and what's next",
+  "subtitleDefault": "Fields you own or work on",
+  "viewList": "List",
+  "viewMap": "Map",
+  "createNewField": "Create New Field",
+  "failedLoad": "Failed to load fields",
+  "failedDelete": "Failed to delete field",
+  "viewModeAria": "Fields view mode",
+  "addField": "Add Field",
+  "searchPlaceholder": "Search fields...",
+  "emptyTitle": "No fields found",
+  "emptyDescription": "Create your first field to start managing your olive grove",
+  "mapTitle": "Fields Map",
+  "mapSubtitle": "View your fields on the map (GPS coordinates required)",
+  "deleteConfirm": "Are you sure you want to delete this field?",
+  "detail": {
+    "overview": "Overview",
+    "tasks": "Tasks",
+    "lifecycle": "Lifecycle",
+    "monitoring": "Monitoring",
+    "timeline": "Timeline"
+  },
+  "card": {
+    "area": "Area",
+    "variety": "Variety",
+    "irrigation": "Irrigation",
+    "irrigationYes": "Yes",
+    "producers": "Producers",
+    "next": "Next",
+    "tasks": "{{count}} tasks",
+    "overdue": "{{count}} overdue",
+    "awaitingApproval": "{{count}} awaiting approval",
+    "view": "View"
+  },
+  "form": {
+    "newTitle": "Create New Field",
+    "editTitle": "Edit Field",
+    "name": "Field Name",
+    "area": "Area (hectares)",
+    "location": "Location",
+    "save": "Save Field"
+  }
+}

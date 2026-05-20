@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Card from '../components/Common/Card';
@@ -32,6 +34,8 @@ const numberedIcon = (n: number) =>
   });
 
 const TodayPage: React.FC = () => {
+  const { t } = useTranslation(['today', 'common']);
+  const { formatDate } = useLocaleFormatters();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -187,7 +191,10 @@ const TodayPage: React.FC = () => {
   if (role !== 'Producer') {
     return (
       <PageContainer>
-        <EmptyState title="This page is for Producers" description="Log in as a Producer to see Today’s Route." />
+        <EmptyState
+          title={t('today:producerOnlyTitle')}
+          description={t('today:producerOnlyDescription')}
+        />
       </PageContainer>
     );
   }
@@ -201,8 +208,8 @@ const TodayPage: React.FC = () => {
 
         <div className="today-header">
           <div>
-            <h1>Today</h1>
-            <p className="today-subtitle">Your next actions and the best route across fields</p>
+            <h1>{t('today:title')}</h1>
+            <p className="today-subtitle">{t('today:subtitle')}</p>
           </div>
           <div className="today-header-right">
             {locationError ? (
@@ -214,11 +221,11 @@ const TodayPage: React.FC = () => {
             {routeFields.length > 0 ? (
               routeMode ? (
                 <Button size="sm" variant="outline" onClick={stopRoute}>
-                  End route
+                  {t('today:endRoute')}
                 </Button>
               ) : (
                 <Button size="sm" variant="primary" onClick={startRoute}>
-                  Start route
+                  {t('today:startRoute')}
                 </Button>
               )
             ) : null}
@@ -226,28 +233,32 @@ const TodayPage: React.FC = () => {
         </div>
 
         <div className="today-grid">
-          <Card title="Recommended next tasks" subtitle="Start here for maximum impact">
+          <Card title={t('today:recommendedTasks')} subtitle={t('today:recommendedSubtitle')}>
             {recommended.length === 0 ? (
-              <EmptyState title="No tasks assigned" description="You’re all caught up." />
+              <EmptyState title={t('today:noTasksTitle')} description={t('today:noTasksDescription')} />
             ) : (
               <div className="today-task-list">
-                {recommended.map((t) => (
-                  <div key={t.id} className="today-task">
+                {recommended.map((task) => (
+                  <div key={task.id} className="today-task">
                     <div className="today-task-main">
-                      <div className="today-task-title">{t.title}</div>
+                      <div className="today-task-title">{task.title}</div>
                       <div className="today-task-meta">
-                        <Badge size="sm" variant={t.status === 'in_progress' ? 'info' : 'warning'}>
-                          {t.status.replace('_', ' ')}
+                        <Badge size="sm" variant={task.status === 'in_progress' ? 'info' : 'warning'}>
+                          {t(`common:taskStatus.${task.status}`)}
                         </Badge>
-                        {t.scheduledEnd ? <span>Due: {new Date(t.scheduledEnd).toLocaleDateString()}</span> : null}
+                        {task.scheduledEnd ? (
+                          <span>
+                            {t('today:due')}: {formatDate(task.scheduledEnd)}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     <div className="today-task-actions">
-                      <Button size="sm" variant="outline" onClick={() => navigate(`/fields/${t.fieldId}`)}>
-                        View field
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/fields/${task.fieldId}`)}>
+                        {t('today:viewField')}
                       </Button>
-                      <Button size="sm" variant="primary" onClick={() => navigate(`/tasks/${t.id}`)}>
-                        Open task
+                      <Button size="sm" variant="primary" onClick={() => navigate(`/tasks/${task.id}`)}>
+                        {t('today:openTask')}
                       </Button>
                     </div>
                   </div>

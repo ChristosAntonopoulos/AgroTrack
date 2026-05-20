@@ -1,0 +1,30 @@
+{
+  "title": "Fields",
+  "subtitleOwner": "Manage your olive fields and lifecycle",
+  "subtitleDefault": "Fields you own or work on",
+  "viewList": "List",
+  "viewMap": "Map",
+  "viewModeAria": "Fields view mode",
+  "addField": "Add Field",
+  "searchPlaceholder": "Search fields...",
+  "emptyTitle": "No fields found",
+  "emptyDescription": "Create your first field to get started.",
+  "mapTitle": "Fields Map",
+  "mapSubtitle": "View your fields on the map (GPS coordinates required)",
+  "deleteConfirm": "Are you sure you want to delete this field?",
+  "detail": {
+    "overview": "Overview",
+    "tasks": "Tasks",
+    "lifecycle": "Lifecycle",
+    "monitoring": "Monitoring",
+    "timeline": "Timeline"
+  },
+  "form": {
+    "newTitle": "New Field",
+    "editTitle": "Edit Field",
+    "name": "Field Name",
+    "area": "Area (hectares)",
+    "location": "Location",
+    "save": "Save Field"
+  }
+}

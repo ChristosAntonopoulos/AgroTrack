@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { testUsers } from '../services/testUsers';
 import { isMockMode } from '../services/serviceFactory';
+import { getApiErrorMessage } from '../utils/translateApiError';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import LoginIllustration from '../components/Auth/LoginIllustration';
@@ -10,6 +12,7 @@ import { User, Shield, Briefcase, UserCheck } from 'lucide-react';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
+  const { t } = useTranslation(['auth', 'common', 'errors']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,14 +28,14 @@ const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = async (testUser: typeof testUsers[0]) => {
+  const handleQuickLogin = async (testUser: (typeof testUsers)[0]) => {
     setError(null);
     setLoading(true);
     setEmail(testUser.email);
@@ -41,30 +44,30 @@ const LoginPage: React.FC = () => {
     try {
       await login(testUser.email, testUser.password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDemoLogin = async (email: string) => {
+  const handleDemoLogin = async (demoEmail: string) => {
     setError(null);
     setLoading(true);
-    setEmail(email);
+    setEmail(demoEmail);
     setPassword('password123');
     try {
-      await login(email, 'password123');
+      await login(demoEmail, 'password123');
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('auth:login.failedRetry'));
     } finally {
       setLoading(false);
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
+  const getRoleIcon = (userRole: string) => {
+    switch (userRole) {
       case 'FieldOwner':
         return <Shield />;
       case 'Producer':
@@ -76,8 +79,8 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
+  const getRoleColor = (userRole: string) => {
+    switch (userRole) {
       case 'FieldOwner':
         return 'primary';
       case 'Producer':
@@ -98,13 +101,13 @@ const LoginPage: React.FC = () => {
       </div>
       <div className="login-right">
         <Card className="login-card">
-          <h1>Welcome Back</h1>
-          <h2>Login to your account</h2>
+          <h1>{t('auth:login.title')}</h1>
+          <h2>{t('auth:login.subtitle')}</h2>
           {error && <div className="error-message">{error}</div>}
 
           {showQuickLogin && (
             <div className="quick-login-section">
-              <h3>Demo Login</h3>
+              <h3>{t('auth:login.demoTitle')}</h3>
               <div className="quick-login-buttons">
                 <Button
                   type="button"
@@ -137,14 +140,14 @@ const LoginPage: React.FC = () => {
                 </Button>
               </div>
               <div className="quick-login-divider">
-                <span>OR</span>
+                <span>{t('common:or')}</span>
               </div>
             </div>
           )}
-          
+
           {showQuickLogin && (
             <div className="quick-login-section">
-              <h3>Quick Login (Test Users)</h3>
+              <h3>{t('auth:login.quickLoginTitle')}</h3>
               <div className="quick-login-buttons">
                 {testUsers.map((user) => (
                   <Button
@@ -152,7 +155,7 @@ const LoginPage: React.FC = () => {
                     type="button"
                     onClick={() => handleQuickLogin(user)}
                     disabled={loading}
-                    variant={getRoleColor(user.role) as any}
+                    variant={getRoleColor(user.role) as 'primary' | 'success' | 'info'}
                     fullWidth
                     className="quick-login-btn"
                   >
@@ -165,14 +168,14 @@ const LoginPage: React.FC = () => {
                 ))}
               </div>
               <div className="quick-login-divider">
-                <span>OR</span>
+                <span>{t('common:or')}</span>
               </div>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t('common:email')}</label>
               <input
                 type="email"
                 id="email"
@@ -183,7 +186,7 @@ const LoginPage: React.FC = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{t('common:password')}</label>
               <input
                 type="password"
                 id="password"
@@ -194,11 +197,11 @@ const LoginPage: React.FC = () => {
               />
             </div>
             <Button type="submit" disabled={loading} loading={loading} fullWidth>
-              Login
+              {t('auth:login.button')}
             </Button>
           </form>
           <p className="register-link">
-            Don't have an account? <Link to="/register">Register here</Link>
+            {t('auth:login.noAccount')} <Link to="/register">{t('auth:login.registerLink')}</Link>
           </p>
         </Card>
       </div>

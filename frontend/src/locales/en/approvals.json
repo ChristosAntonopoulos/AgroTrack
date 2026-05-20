@@ -1,0 +1,16 @@
+{
+  "title": "Approvals Inbox",
+  "subtitle": "Review completed tasks from producers",
+  "roleRestrictedTitle": "Approvals are for Owners",
+  "roleRestrictedDescription": "Log in as a Field Owner to review approvals.",
+  "filters": "Filters",
+  "pendingTitle": "Pending approvals",
+  "pendingSubtitle": "Fast review mode",
+  "emptyTitle": "No pending approvals",
+  "emptyDescription": "You're all caught up.",
+  "approve": "Approve",
+  "reject": "Reject",
+  "allFields": "All fields",
+  "allProducers": "All producers",
+  "unassigned": "Unassigned"
+}

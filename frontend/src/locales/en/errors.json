@@ -1,0 +1,23 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "network": "Network error. Check your connection and try again.",
+  "unauthorized": "Invalid email or password.",
+  "userExists": "User with this email already exists.",
+  "fieldNotFound": "Field not found.",
+  "taskNotFound": "Task not found.",
+  "lifecycleNotFound": "Lifecycle not found for this field.",
+  "accessDenied": "You do not have access to this field.",
+  "permissionDenied": "You do not have permission to perform this action.",
+  "jwtNotConfigured": "Authentication is not configured.",
+  "registrationFailed": "An error occurred during registration.",
+  "loginFailed": "An error occurred during login.",
+  "retrieveFields": "An error occurred while retrieving fields.",
+  "retrieveField": "An error occurred while retrieving the field.",
+  "createField": "An error occurred while creating the field.",
+  "updateField": "An error occurred while updating the field.",
+  "deleteField": "An error occurred while deleting the field.",
+  "retrieveTasks": "An error occurred while retrieving tasks.",
+  "retrieveLifecycle": "An error occurred while retrieving the lifecycle.",
+  "initLifecycle": "An error occurred while initializing the lifecycle.",
+  "progressLifecycle": "An error occurred while progressing the lifecycle."
+}

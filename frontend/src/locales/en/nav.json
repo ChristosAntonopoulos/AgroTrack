@@ -1,0 +1,30 @@
+{
+  "sections": {
+    "command": "Command center",
+    "work": "Work",
+    "operations": "Operations",
+    "insights": "Insights",
+    "compliance": "Compliance",
+    "account": "Account"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "today": "Today",
+    "fields": "Fields",
+    "fieldsOwner": "My Fields",
+    "tasks": "Tasks",
+    "tasksProducer": "My Tasks",
+    "approvals": "Approvals",
+    "issues": "Issues",
+    "calendar": "Calendar",
+    "analytics": "Analytics",
+    "reports": "Reports",
+    "ministry": "Ministry",
+    "settings": "Settings"
+  },
+  "breadcrumb": {
+    "new": "New",
+    "edit": "Edit",
+    "details": "Details"
+  }
+}

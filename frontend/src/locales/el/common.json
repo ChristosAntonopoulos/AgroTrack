@@ -1,0 +1,77 @@
+{
+  "appName": "Olive Lifecycle",
+  "home": "Αρχική",
+  "loading": "Φόρτωση...",
+  "save": "Αποθήκευση",
+  "cancel": "Ακύρωση",
+  "delete": "Διαγραφή",
+  "edit": "Επεξεργασία",
+  "new": "Νέο",
+  "details": "Λεπτομέρειες",
+  "search": "Αναζήτηση",
+  "viewAll": "Προβολή όλων →",
+  "or": "Ή",
+  "yes": "Ναι",
+  "no": "Όχι",
+  "confirm": "Επιβεβαίωση",
+  "close": "Κλείσιμο",
+  "back": "Πίσω",
+  "next": "Επόμενο",
+  "submit": "Υποβολή",
+  "actions": "Ενέργειες",
+  "status": "Κατάσταση",
+  "type": "Τύπος",
+  "description": "Περιγραφή",
+  "email": "Email",
+  "password": "Κωδικός",
+  "role": "Ρόλος",
+  "assigned": "Ανατέθηκε",
+  "hectares": "{{count}} εκτάρια",
+  "hectaresUnit": "εκτ.",
+  "year": "{{year}} έτος",
+  "tasksCount": "{{completed}}/{{total}} εργασίες",
+  "noDueDate": "Χωρίς προθεσμία",
+  "due": "Προθεσμία",
+  "nextTask": "Επόμενο",
+  "toggleMenu": "Εναλλαγή μενού",
+  "logout": "Αποσύνδεση",
+  "logoutAria": "Αποσύνδεση",
+  "roles": {
+    "FieldOwner": "Ιδιοκτήτης Αγροτεμαχίου",
+    "Producer": "Παραγωγός",
+    "Agronomist": "Γεωπόνος",
+    "Administrator": "Διαχειριστής",
+    "ServiceProvider": "Πάροχος Υπηρεσιών"
+  },
+  "taskStatus": {
+    "pending": "Εκκρεμεί",
+    "in_progress": "Σε εξέλιξη",
+    "completed": "Ολοκληρώθηκε",
+    "cancelled": "Ακυρώθηκε"
+  },
+  "approvalStatus": {
+    "pending": "Εκκρεμεί έγκριση",
+    "approved": "Εγκρίθηκε",
+    "rejected": "Απορρίφθηκε"
+  },
+  "lifecycleYear": {
+    "low": "Χαμηλό",
+    "high": "Υψηλό"
+  },
+  "severity": {
+    "Low": "Χαμηλή",
+    "Medium": "Μέτρια",
+    "High": "Υψηλή"
+  },
+  "issueStatus": {
+    "Open": "Ανοιχτό",
+    "InProgress": "Σε εξέλιξη",
+    "Resolved": "Επιλύθηκε"
+  },
+  "notifications": {
+    "title": "Ειδοποιήσεις",
+    "empty": "Δεν υπάρχουν ειδοποιήσεις",
+    "markAllRead": "Σήμανση όλων ως αναγνωσμένων",
+    "clearAll": "Εκκαθάριση όλων"
+  }
+}

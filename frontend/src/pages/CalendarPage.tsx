@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getCalendarService } from '../services/serviceFactory';
@@ -100,7 +101,7 @@ const CalendarPage: React.FC = () => {
             <h1>{format(currentDate, 'MMMM yyyy')}</h1>
             <Button onClick={handleNextMonth} variant="outline" size="sm" icon={<ChevronRight />} />
             <Button onClick={handleToday} variant="outline" size="sm">
-              Today
+              {t('calendar:today')}
             </Button>
           </div>
           <div className="calendar-actions">
@@ -110,7 +111,7 @@ const CalendarPage: React.FC = () => {
               size="sm"
               icon={<Filter />}
             >
-              Filters
+              {t('calendar:filters')}
             </Button>
             {user?.role === 'FieldOwner' && (
               <Button
@@ -119,7 +120,7 @@ const CalendarPage: React.FC = () => {
                 size="sm"
                 icon={<Plus />}
               >
-                New Task
+                {t('calendar:newTask')}
               </Button>
             )}
           </div>

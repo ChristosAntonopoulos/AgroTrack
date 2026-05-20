@@ -1,0 +1,41 @@
+{
+  "title": "Tasks",
+  "subtitleProducer": "Your assigned tasks",
+  "subtitleDefault": "All tasks",
+  "addTask": "Add Task",
+  "createTask": "Create Task",
+  "failedLoad": "Failed to load tasks",
+  "notScheduled": "Not scheduled",
+  "scheduled": "Scheduled",
+  "emptyDescriptionOwner": "Create your first task to get started",
+  "emptyDescriptionFilter": "No tasks match your filters",
+  "searchPlaceholder": "Search tasks...",
+  "emptyTitle": "No tasks found",
+  "emptyDescription": "Create a task or adjust your filters.",
+  "filters": {
+    "all": "All",
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "completed": "Completed"
+  },
+  "detail": {
+    "field": "Field",
+    "assignedTo": "Assigned To",
+    "scheduledStart": "Scheduled Start",
+    "scheduledEnd": "Scheduled End",
+    "actualStart": "Actual Start",
+    "actualEnd": "Actual End",
+    "type": "Type",
+    "lifecycleYear": "Lifecycle Year",
+    "description": "Description",
+    "evidence": "Evidence",
+    "complete": "Mark Complete",
+    "start": "Start Task"
+  },
+  "form": {
+    "newTitle": "Create New Task",
+    "editTitle": "Edit Task",
+    "title": "Title",
+    "save": "Save Task"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Reports",
+  "subtitle": "Generate and export field and task reports",
+  "fieldSummary": "Field Summary Report",
+  "taskCompletion": "Task Completion Report",
+  "costAnalysis": "Cost Analysis Report",
+  "generate": "Generate Report",
+  "exportPdf": "Export PDF",
+  "exportExcel": "Export Excel",
+  "reportType": "Report type",
+  "dateRange": "Date range",
+  "fields": "Fields",
+  "startDate": "Start date",
+  "endDate": "End date",
+  "generating": "Generating..."
+}

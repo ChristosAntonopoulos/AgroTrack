@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { navItems, navSections, isNavActive, AppRole } from '../../navigation/navConfig';
+import { navItems, navSections, isNavActive, AppRole, resolveNavItemLabel } from '../../navigation/navConfig';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -9,6 +10,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = () => {
+  const { t } = useTranslation('nav');
   const { user } = useAuth();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
@@ -24,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
           if (items.length === 0) return null;
           return (
             <div key={section.id} className="nav-section">
-              <div className="nav-section-title">{section.label}</div>
+              <div className="nav-section-title">{t(section.labelKey)}</div>
               <ul className="nav-list">
                 {items.map((item) => (
                   <li key={item.path} className="nav-item">
@@ -33,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
                       className={`nav-link ${isNavActive(location.pathname, item.path) ? 'active' : ''}`}
                     >
                       <span className="nav-icon">{item.icon}</span>
-                      <span className="nav-label">{item.label(userRole)}</span>
+                      <span className="nav-label">{resolveNavItemLabel(item, userRole, t)}</span>
                     </Link>
                   </li>
                 ))}

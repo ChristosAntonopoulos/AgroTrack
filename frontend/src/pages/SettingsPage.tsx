@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLocale } from '../context/LocaleProvider';
 import { settingsService, UserPreferences, Theme } from '../services/settingsService';
 import { isMockMode } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
+import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
@@ -12,8 +15,10 @@ import { Save, User, Bell, Droplet, Globe, Sun, Moon, Circle } from 'lucide-reac
 import './SettingsPage.css';
 
 const SettingsPage: React.FC = () => {
+  const { t } = useTranslation('settings');
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { setLocale } = useLocale();
   const [preferences, setPreferences] = useState<UserPreferences>(settingsService.getPreferences());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -21,19 +26,21 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     const prefs = settingsService.getPreferences();
     setPreferences(prefs);
-    // Sync theme context with preferences
     if (prefs.theme !== theme) {
       setTheme(prefs.theme as Theme);
     }
   }, []);
 
-  const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
-    setPreferences(prev => ({ ...prev, [key]: value }));
+  const handlePreferenceChange = (key: keyof UserPreferences, value: UserPreferences[keyof UserPreferences]) => {
+    setPreferences((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
-    
-    // Apply theme immediately if changed
+
     if (key === 'theme') {
       setTheme(value as Theme);
+    }
+
+    if (key === 'language') {
+      setLocale(value as SupportedLocale);
     }
   };
 
@@ -59,7 +66,7 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleResetDemo = () => {
-    const ok = window.confirm('Reset demo data? This will restore the original demo fields, tasks, and assignments.');
+    const ok = window.confirm(t('demo.resetConfirm'));
     if (!ok) return;
     demoStore.reset();
     window.location.reload();
@@ -69,188 +76,187 @@ const SettingsPage: React.FC = () => {
     <PageContainer>
       <div className="settings-page">
         <Breadcrumbs />
-        
+
         <div className="settings-header">
-          <h1>Settings</h1>
+          <h1>{t('title')}</h1>
         </div>
 
         <div className="settings-content">
           <Card className="settings-section">
-          <div className="section-header">
-            <User />
-            <h2>Profile</h2>
-          </div>
-          <div className="section-content">
-            <div className="profile-info">
-              <div className="info-item">
-                <label>Email</label>
-                <span>{user?.email}</span>
-              </div>
-              <div className="info-item">
-                <label>Role</label>
-                <span>{user?.role}</span>
-              </div>
-              <div className="info-item">
-                <label>User ID</label>
-                <span>{user?.userId}</span>
+            <div className="section-header">
+              <User />
+              <h2>{t('profile.title')}</h2>
+            </div>
+            <div className="section-content">
+              <div className="profile-info">
+                <div className="info-item">
+                  <label>{t('profile.email')}</label>
+                  <span>{user?.email}</span>
+                </div>
+                <div className="info-item">
+                  <label>{t('profile.role')}</label>
+                  <span>{user?.role}</span>
+                </div>
+                <div className="info-item">
+                  <label>{t('profile.userId')}</label>
+                  <span>{user?.userId}</span>
+                </div>
               </div>
             </div>
-          </div>
           </Card>
 
           <Card className="settings-section">
             <div className="section-header">
               <Droplet />
-              <h2>Preferences</h2>
+              <h2>{t('preferences.title')}</h2>
             </div>
             <div className="section-content">
-            <div className="preference-item">
-              <label>Theme</label>
-              <div className="theme-selector">
-                {(['light', 'dark', 'white'] as Theme[]).map((themeOption) => (
-                  <button
-                    key={themeOption}
-                    type="button"
-                    className={`theme-option ${preferences.theme === themeOption ? 'active' : ''}`}
-                    onClick={() => handlePreferenceChange('theme', themeOption)}
-                    title={themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}
-                  >
-                    {getThemeIcon(themeOption)}
-                    <span>{themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}</span>
-                  </button>
-                ))}
+              <div className="preference-item">
+                <label>{t('preferences.theme')}</label>
+                <div className="theme-selector">
+                  {(['light', 'dark', 'white'] as Theme[]).map((themeOption) => (
+                    <button
+                      key={themeOption}
+                      type="button"
+                      className={`theme-option ${preferences.theme === themeOption ? 'active' : ''}`}
+                      onClick={() => handlePreferenceChange('theme', themeOption)}
+                      title={t(`preferences.themes.${themeOption}`)}
+                    >
+                      {getThemeIcon(themeOption)}
+                      <span>{t(`preferences.themes.${themeOption}`)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="preference-item">
+                <label>{t('preferences.dateFormat')}</label>
+                <select
+                  value={preferences.dateFormat}
+                  onChange={(e) => handlePreferenceChange('dateFormat', e.target.value)}
+                >
+                  <option value="MM/dd/yyyy">{t('preferences.dateFormats.MM/dd/yyyy')}</option>
+                  <option value="dd/MM/yyyy">{t('preferences.dateFormats.dd/MM/yyyy')}</option>
+                  <option value="yyyy-MM-dd">{t('preferences.dateFormats.yyyy-MM-dd')}</option>
+                </select>
+              </div>
+
+              <div className="preference-item">
+                <label>{t('preferences.defaultView')}</label>
+                <select
+                  value={preferences.defaultView}
+                  onChange={(e) => handlePreferenceChange('defaultView', e.target.value)}
+                >
+                  <option value="dashboard">{t('preferences.defaultViews.dashboard')}</option>
+                  <option value="fields">{t('preferences.defaultViews.fields')}</option>
+                  <option value="tasks">{t('preferences.defaultViews.tasks')}</option>
+                  <option value="calendar">{t('preferences.defaultViews.calendar')}</option>
+                </select>
+              </div>
+
+              <div className="preference-item">
+                <label>{t('preferences.language')}</label>
+                <select
+                  value={preferences.language}
+                  onChange={(e) => handlePreferenceChange('language', e.target.value)}
+                >
+                  {SUPPORTED_LOCALES.map((loc) => (
+                    <option key={loc.code} value={loc.code}>
+                      {loc.nativeLabel}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-
-            <div className="preference-item">
-              <label>Date Format</label>
-              <select
-                value={preferences.dateFormat}
-                onChange={(e) => handlePreferenceChange('dateFormat', e.target.value)}
-              >
-                <option value="MM/dd/yyyy">MM/DD/YYYY</option>
-                <option value="dd/MM/yyyy">DD/MM/YYYY</option>
-                <option value="yyyy-MM-dd">YYYY-MM-DD</option>
-              </select>
-            </div>
-
-            <div className="preference-item">
-              <label>Default View</label>
-              <select
-                value={preferences.defaultView}
-                onChange={(e) => handlePreferenceChange('defaultView', e.target.value)}
-              >
-                <option value="dashboard">Dashboard</option>
-                <option value="fields">Fields</option>
-                <option value="tasks">Tasks</option>
-                <option value="calendar">Calendar</option>
-              </select>
-            </div>
-
-            <div className="preference-item">
-              <label>Language</label>
-              <select
-                value={preferences.language}
-                onChange={(e) => handlePreferenceChange('language', e.target.value)}
-              >
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-              </select>
-            </div>
-          </div>
           </Card>
 
           <Card className="settings-section">
             <div className="section-header">
               <Bell />
-              <h2>Notifications</h2>
+              <h2>{t('notifications.title')}</h2>
             </div>
             <div className="section-content">
-            <div className="notification-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.emailNotifications}
-                  onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
-                />
-                <span>Email Notifications</span>
-              </label>
-            </div>
+              <div className="notification-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={preferences.emailNotifications}
+                    onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
+                  />
+                  <span>{t('notifications.email')}</span>
+                </label>
+              </div>
 
-            <div className="notification-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.taskAssignmentNotifications}
-                  onChange={(e) => handlePreferenceChange('taskAssignmentNotifications', e.target.checked)}
-                />
-                <span>Task Assignment Notifications</span>
-              </label>
-            </div>
+              <div className="notification-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={preferences.taskAssignmentNotifications}
+                    onChange={(e) =>
+                      handlePreferenceChange('taskAssignmentNotifications', e.target.checked)
+                    }
+                  />
+                  <span>{t('notifications.taskAssignment')}</span>
+                </label>
+              </div>
 
-            <div className="notification-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.deadlineReminders}
-                  onChange={(e) => handlePreferenceChange('deadlineReminders', e.target.checked)}
-                />
-                <span>Deadline Reminders</span>
-              </label>
-            </div>
+              <div className="notification-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={preferences.deadlineReminders}
+                    onChange={(e) => handlePreferenceChange('deadlineReminders', e.target.checked)}
+                  />
+                  <span>{t('notifications.deadline')}</span>
+                </label>
+              </div>
 
-            <div className="notification-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.lifecycleAlerts}
-                  onChange={(e) => handlePreferenceChange('lifecycleAlerts', e.target.checked)}
-                />
-                <span>Lifecycle Progression Alerts</span>
-              </label>
-            </div>
+              <div className="notification-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={preferences.lifecycleAlerts}
+                    onChange={(e) => handlePreferenceChange('lifecycleAlerts', e.target.checked)}
+                  />
+                  <span>{t('notifications.lifecycle')}</span>
+                </label>
+              </div>
 
-            <div className="notification-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={preferences.reportNotifications}
-                  onChange={(e) => handlePreferenceChange('reportNotifications', e.target.checked)}
-                />
-                <span>Report Generation Notifications</span>
-              </label>
+              <div className="notification-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={preferences.reportNotifications}
+                    onChange={(e) => handlePreferenceChange('reportNotifications', e.target.checked)}
+                  />
+                  <span>{t('notifications.report')}</span>
+                </label>
+              </div>
             </div>
-          </div>
           </Card>
 
           {isMockMode() ? (
             <Card className="settings-section">
               <div className="section-header">
                 <Globe />
-                <h2>Demo</h2>
+                <h2>{t('demo.title')}</h2>
               </div>
               <div className="section-content">
                 <p style={{ marginTop: 0, color: 'var(--color-text-secondary)' }}>
-                  Reset the demo back to the original story if things get messy.
+                  {t('demo.description')}
                 </p>
                 <Button variant="warning" onClick={handleResetDemo}>
-                  Reset Demo Data
+                  {t('demo.resetButton')}
                 </Button>
               </div>
             </Card>
           ) : null}
 
           <div className="settings-actions">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              loading={saving}
-              icon={<Save />}
-            >
-              Save Preferences
+            <Button onClick={handleSave} disabled={saving} loading={saving} icon={<Save />}>
+              {t('saveButton')}
             </Button>
-            {saved && <span className="saved-message">Preferences saved!</span>}
+            {saved && <span className="saved-message">{t('saved')}</span>}
           </div>
         </div>
       </div>

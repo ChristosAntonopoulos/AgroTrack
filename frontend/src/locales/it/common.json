@@ -1,0 +1,77 @@
+{
+  "appName": "Olive Lifecycle",
+  "home": "Home",
+  "loading": "Caricamento...",
+  "save": "Salva",
+  "cancel": "Annulla",
+  "delete": "Elimina",
+  "edit": "Modifica",
+  "new": "Nuovo",
+  "details": "Dettagli",
+  "search": "Cerca",
+  "viewAll": "Vedi tutti →",
+  "or": "OPPURE",
+  "yes": "Sì",
+  "no": "No",
+  "confirm": "Conferma",
+  "close": "Chiudi",
+  "back": "Indietro",
+  "next": "Avanti",
+  "submit": "Invia",
+  "actions": "Azioni",
+  "status": "Stato",
+  "type": "Tipo",
+  "description": "Descrizione",
+  "email": "Email",
+  "password": "Password",
+  "role": "Ruolo",
+  "assigned": "Assegnato",
+  "hectares": "{{count}} ettari",
+  "hectaresUnit": "ha",
+  "year": "Anno {{year}}",
+  "tasksCount": "{{completed}}/{{total}} attività",
+  "noDueDate": "Nessuna scadenza",
+  "due": "Scadenza",
+  "nextTask": "Prossimo",
+  "toggleMenu": "Apri/chiudi menu",
+  "logout": "Esci",
+  "logoutAria": "Esci",
+  "roles": {
+    "FieldOwner": "Proprietario campo",
+    "Producer": "Produttore",
+    "Agronomist": "Agronomo",
+    "Administrator": "Amministratore",
+    "ServiceProvider": "Fornitore di servizi"
+  },
+  "taskStatus": {
+    "pending": "In attesa",
+    "in_progress": "In corso",
+    "completed": "Completata",
+    "cancelled": "Annullata"
+  },
+  "approvalStatus": {
+    "pending": "In attesa di approvazione",
+    "approved": "Approvata",
+    "rejected": "Rifiutata"
+  },
+  "lifecycleYear": {
+    "low": "Basso",
+    "high": "Alto"
+  },
+  "severity": {
+    "Low": "Bassa",
+    "Medium": "Media",
+    "High": "Alta"
+  },
+  "issueStatus": {
+    "Open": "Aperta",
+    "InProgress": "In corso",
+    "Resolved": "Risolta"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "empty": "Nessuna notifica",
+    "markAllRead": "Segna tutte come lette",
+    "clearAll": "Cancella tutte"
+  }
+}

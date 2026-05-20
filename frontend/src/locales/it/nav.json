@@ -1,0 +1,30 @@
+{
+  "sections": {
+    "command": "Centro di comando",
+    "work": "Lavoro",
+    "operations": "Operazioni",
+    "insights": "Approfondimenti",
+    "compliance": "Conformità",
+    "account": "Account"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "today": "Oggi",
+    "fields": "Campi",
+    "fieldsOwner": "I miei campi",
+    "tasks": "Attività",
+    "tasksProducer": "Le mie attività",
+    "approvals": "Approvazioni",
+    "issues": "Problemi",
+    "calendar": "Calendario",
+    "analytics": "Analisi",
+    "reports": "Report",
+    "ministry": "Ministero",
+    "settings": "Impostazioni"
+  },
+  "breadcrumb": {
+    "new": "Nuovo",
+    "edit": "Modifica",
+    "details": "Dettagli"
+  }
+}

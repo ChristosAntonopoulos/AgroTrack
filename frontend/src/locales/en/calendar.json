@@ -1,0 +1,9 @@
+{
+  "title": "Calendar",
+  "subtitle": "View scheduled tasks and field activities",
+  "filters": "Filters",
+  "legend": "Legend",
+  "noEvents": "No events for this period",
+  "today": "Today",
+  "newTask": "New Task"
+}

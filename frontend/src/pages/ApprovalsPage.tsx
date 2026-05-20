@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -10,8 +11,8 @@ import { demoStore } from '../services/demo/demoStore';
 import { getTaskService } from '../services/serviceFactory';
 import './ApprovalsPage.css';
 
-const getUserName = (id?: string) => {
-  if (!id) return 'Unassigned';
+const getUserName = (id: string | undefined, unassignedLabel: string) => {
+  if (!id) return unassignedLabel;
   demoStore.ensureSeeded();
   const u = demoStore.getUsers().find((x) => x.id === id);
   if (!u) return id;
@@ -20,6 +21,7 @@ const getUserName = (id?: string) => {
 };
 
 const ApprovalsPage: React.FC = () => {
+  const { t } = useTranslation(['approvals', 'common', 'fields']);
   const { user } = useAuth();
   const role = user?.role || '';
   const userId = user?.userId;
@@ -72,7 +74,10 @@ const ApprovalsPage: React.FC = () => {
   if (role !== 'FieldOwner' && role !== 'Administrator') {
     return (
       <PageContainer>
-        <EmptyState title="Approvals are for Owners" description="Log in as a Field Owner to review approvals." />
+        <EmptyState
+          title={t('approvals:roleRestrictedTitle')}
+          description={t('approvals:roleRestrictedDescription')}
+        />
       </PageContainer>
     );
   }
@@ -84,20 +89,20 @@ const ApprovalsPage: React.FC = () => {
 
         <div className="approvals-header">
           <div>
-            <h1>Approvals Inbox</h1>
-            <p className="approvals-subtitle">Review completed work from producers and approve or request changes</p>
+            <h1>{t('approvals:title')}</h1>
+            <p className="approvals-subtitle">{t('approvals:subtitle')}</p>
           </div>
           <Badge variant={pending.length > 0 ? 'warning' : 'success'} size="md">
             {pending.length} pending
           </Badge>
         </div>
 
-        <Card title="Filters" padding="md">
+        <Card title={t('approvals:filters')} padding="md">
           <div className="approvals-filters">
             <div className="approvals-filter">
-              <label>Field</label>
+              <label>{t('fields:title')}</label>
               <select value={fieldFilter} onChange={(e) => setFieldFilter(e.target.value)}>
-                <option value="all">All fields</option>
+                <option value="all">{t('approvals:allFields')}</option>
                 {fields.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
@@ -106,12 +111,12 @@ const ApprovalsPage: React.FC = () => {
               </select>
             </div>
             <div className="approvals-filter">
-              <label>Producer</label>
+              <label>{t('common:roles.Producer')}</label>
               <select value={producerFilter} onChange={(e) => setProducerFilter(e.target.value)}>
-                <option value="all">All producers</option>
+                <option value="all">{t('approvals:allProducers')}</option>
                 {producers.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {getUserName(p.id)}
+                    {getUserName(p.id, t('approvals:unassigned'))}
                   </option>
                 ))}
               </select>
@@ -119,9 +124,9 @@ const ApprovalsPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card title="Pending approvals" subtitle="Fast review mode" padding="md">
+        <Card title={t('approvals:pendingTitle')} subtitle={t('approvals:pendingSubtitle')} padding="md">
           {pending.length === 0 ? (
-            <EmptyState title="No pending approvals" description="You’re all caught up." />
+            <EmptyState title={t('approvals:emptyTitle')} description={t('approvals:emptyDescription')} />
           ) : (
             <div className="approvals-list">
               {pending.map((t) => {
@@ -140,17 +145,17 @@ const ApprovalsPage: React.FC = () => {
                         <div className="approvals-item-meta">
                           <Badge size="sm" variant="info">pending</Badge>
                           <span><strong>Field:</strong> {field?.name || t.fieldId}</span>
-                          <span><strong>Producer:</strong> {getUserName(t.assignedTo)}</span>
+                          <span><strong>Producer:</strong> {getUserName(t.assignedTo, t('approvals:unassigned'))}</span>
                           <span><strong>Evidence:</strong> {(t.evidence || []).length}</span>
                         </div>
                       </div>
                     </div>
                     <div className="approvals-item-actions">
                       <Button variant="success" size="sm" onClick={() => approve(t.id)}>
-                        Approve
+                        {t('approvals:approve')}
                       </Button>
                       <Button variant="error" size="sm" onClick={() => reject(t.id)}>
-                        Reject
+                        {t('approvals:reject')}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => (window.location.href = `/fields/${t.fieldId}`)}>
                         Open field

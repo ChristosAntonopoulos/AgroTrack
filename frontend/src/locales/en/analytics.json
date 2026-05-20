@@ -1,0 +1,14 @@
+{
+  "title": "Analytics Dashboard",
+  "subtitle": "Insights across fields, tasks, and costs",
+  "loading": "Loading analytics...",
+  "noData": "No data available for the selected period",
+  "totalTasks": "Total Tasks",
+  "completionRate": "Completion Rate",
+  "totalCost": "Total Cost",
+  "avgCompletionTime": "Avg. Completion Time",
+  "statusDistribution": "Task Status Distribution",
+  "costByField": "Cost by Field",
+  "costByTaskType": "Cost by Task Type",
+  "monthlyCompletion": "Monthly Completion Rate"
+}

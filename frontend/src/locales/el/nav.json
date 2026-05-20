@@ -1,0 +1,30 @@
+{
+  "sections": {
+    "command": "Κέντρο ελέγχου",
+    "work": "Εργασία",
+    "operations": "Λειτουργίες",
+    "insights": "Αναλύσεις",
+    "compliance": "Συμμόρφωση",
+    "account": "Λογαριασμός"
+  },
+  "items": {
+    "dashboard": "Πίνακας ελέγχου",
+    "today": "Σήμερα",
+    "fields": "Αγροτεμάχια",
+    "fieldsOwner": "Τα αγροτεμάχιά μου",
+    "tasks": "Εργασίες",
+    "tasksProducer": "Οι εργασίες μου",
+    "approvals": "Εγκρίσεις",
+    "issues": "Θέματα",
+    "calendar": "Ημερολόγιο",
+    "analytics": "Αναλυτικά",
+    "reports": "Αναφορές",
+    "ministry": "Υπουργείο",
+    "settings": "Ρυθμίσεις"
+  },
+  "breadcrumb": {
+    "new": "Νέο",
+    "edit": "Επεξεργασία",
+    "details": "Λεπτομέρειες"
+  }
+}

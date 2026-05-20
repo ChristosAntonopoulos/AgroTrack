@@ -1,0 +1,34 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back, {{email}}",
+  "ownerCommand": {
+    "approvalsPending": "Approvals pending",
+    "approvalsSub": "Review completed work from producers.",
+    "issuesOpen": "Issues open",
+    "highSeverity": "<strong>{{count}}</strong> high severity need attention.",
+    "noHighSeverity": "No high severity issues.",
+    "fieldsAtRisk": "Fields at risk",
+    "fieldsAtRiskSub": "Fields with overdue work."
+  },
+  "stats": {
+    "totalFields": "Total Fields",
+    "totalArea": "Total Area",
+    "lowYearFields": "Low Year Fields",
+    "highYearFields": "High Year Fields",
+    "pendingTasks": "Pending Tasks",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "totalTasks": "Total Tasks"
+  },
+  "fieldsSection": {
+    "ownerTitle": "My Fields",
+    "workerTitle": "Fields I Work On",
+    "emptyOwner": "No fields yet. <1>Create your first field</1>",
+    "emptyWorker": "No fields assigned yet."
+  },
+  "tasksSection": {
+    "title": "Recent Tasks",
+    "emptyProducer": "No tasks assigned yet.",
+    "emptyDefault": "No tasks available yet."
+  }
+}

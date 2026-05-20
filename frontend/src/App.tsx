@@ -1,7 +1,9 @@
+import './i18n';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LocaleProvider } from './context/LocaleProvider';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
@@ -28,8 +30,9 @@ import './App.css';
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <NotificationProvider>
           <Router>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
@@ -62,8 +65,9 @@ function App() {
               </Route>
             </Routes>
           </Router>
-        </NotificationProvider>
-      </AuthProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </LocaleProvider>
     </ThemeProvider>
   );
 }

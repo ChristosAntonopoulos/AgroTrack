@@ -1,0 +1,92 @@
+import { SupportedLocale } from '../i18n/config';
+
+export interface FormatOptions {
+  locale: SupportedLocale;
+  dateFormat?: string;
+}
+
+const localeTag = (locale: SupportedLocale): string => {
+  const map: Record<SupportedLocale, string> = {
+    en: 'en-US',
+    el: 'el-GR',
+    it: 'it-IT',
+  };
+  return map[locale] ?? 'en-US';
+};
+
+const dateFormatToOptions = (
+  dateFormat: string | undefined
+): Intl.DateTimeFormatOptions => {
+  switch (dateFormat) {
+    case 'dd/MM/yyyy':
+      return { day: '2-digit', month: '2-digit', year: 'numeric' };
+    case 'yyyy-MM-dd':
+      return { year: 'numeric', month: '2-digit', day: '2-digit' };
+    case 'MM/dd/yyyy':
+    default:
+      return { month: '2-digit', day: '2-digit', year: 'numeric' };
+  }
+};
+
+export const formatDate = (
+  date: Date | string | number,
+  options: FormatOptions
+): string => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(localeTag(options.locale), dateFormatToOptions(options.dateFormat));
+};
+
+export const formatDateTime = (
+  date: Date | string | number,
+  options: FormatOptions
+): string => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(localeTag(options.locale), {
+    ...dateFormatToOptions(options.dateFormat),
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const formatTime = (
+  date: Date | string | number,
+  options: FormatOptions
+): string => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString(localeTag(options.locale), {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const formatNumber = (
+  value: number,
+  options: FormatOptions & { maximumFractionDigits?: number }
+): string => {
+  return value.toLocaleString(localeTag(options.locale), {
+    maximumFractionDigits: options.maximumFractionDigits ?? 2,
+  });
+};
+
+export const formatRelativeTime = (
+  date: Date | string | number,
+  options: FormatOptions
+): string => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const diffMs = d.getTime() - Date.now();
+  const diffSec = Math.round(diffMs / 1000);
+  const rtf = new Intl.RelativeTimeFormat(localeTag(options.locale), { numeric: 'auto' });
+
+  const absSec = Math.abs(diffSec);
+  if (absSec < 60) return rtf.format(diffSec, 'second');
+  const diffMin = Math.round(diffSec / 60);
+  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute');
+  const diffHour = Math.round(diffMin / 60);
+  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, 'hour');
+  const diffDay = Math.round(diffHour / 24);
+  return rtf.format(diffDay, 'day');
+};

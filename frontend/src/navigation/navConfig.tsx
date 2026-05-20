@@ -1,4 +1,5 @@
 import React from 'react';
+import { TFunction } from 'i18next';
 import {
   Home,
   Layers,
@@ -19,105 +20,115 @@ export type NavSectionId = 'command' | 'work' | 'operations' | 'insights' | 'com
 
 export type NavSection = {
   id: NavSectionId;
-  label: string;
+  labelKey: string;
 };
 
 export type NavItem = {
   path: string;
-  label: (role: AppRole) => string;
+  labelKey: string;
+  labelKeyOwner?: string;
+  labelKeyProducer?: string;
   icon: React.ReactNode;
   roles: AppRole[];
   section: NavSectionId;
 };
 
 export const navSections: NavSection[] = [
-  { id: 'command', label: 'Command center' },
-  { id: 'work', label: 'Work' },
-  { id: 'operations', label: 'Operations' },
-  { id: 'insights', label: 'Insights' },
-  { id: 'compliance', label: 'Compliance' },
-  { id: 'account', label: 'Account' },
+  { id: 'command', labelKey: 'sections.command' },
+  { id: 'work', labelKey: 'sections.work' },
+  { id: 'operations', labelKey: 'sections.operations' },
+  { id: 'insights', labelKey: 'sections.insights' },
+  { id: 'compliance', labelKey: 'sections.compliance' },
+  { id: 'account', labelKey: 'sections.account' },
 ];
 
 export const navItems: NavItem[] = [
   {
     path: '/dashboard',
-    label: () => 'Dashboard',
+    labelKey: 'items.dashboard',
     icon: <Home />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
     section: 'command',
   },
   {
     path: '/today',
-    label: () => 'Today',
+    labelKey: 'items.today',
     icon: <Route />,
     roles: ['Producer'],
     section: 'work',
   },
   {
     path: '/fields',
-    label: (role) => (role === 'FieldOwner' ? 'My Fields' : 'Fields'),
+    labelKey: 'items.fields',
+    labelKeyOwner: 'items.fieldsOwner',
     icon: <Layers />,
     roles: ['FieldOwner', 'Producer', 'Agronomist'],
     section: 'operations',
   },
   {
     path: '/tasks',
-    label: (role) => (role === 'Producer' ? 'My Tasks' : 'Tasks'),
+    labelKey: 'items.tasks',
+    labelKeyProducer: 'items.tasksProducer',
     icon: <CheckSquare />,
     roles: ['FieldOwner', 'Producer', 'Agronomist'],
     section: 'operations',
   },
   {
     path: '/approvals',
-    label: () => 'Approvals',
+    labelKey: 'items.approvals',
     icon: <ClipboardCheck />,
     roles: ['FieldOwner', 'Administrator'],
     section: 'operations',
   },
   {
     path: '/issues',
-    label: () => 'Issues',
+    labelKey: 'items.issues',
     icon: <AlertTriangle />,
     roles: ['FieldOwner', 'Administrator'],
     section: 'operations',
   },
   {
     path: '/calendar',
-    label: () => 'Calendar',
+    labelKey: 'items.calendar',
     icon: <Calendar />,
     roles: ['FieldOwner', 'Producer'],
     section: 'operations',
   },
   {
     path: '/analytics',
-    label: () => 'Analytics',
+    labelKey: 'items.analytics',
     icon: <BarChart2 />,
     roles: ['FieldOwner', 'Administrator'],
     section: 'insights',
   },
   {
     path: '/reports',
-    label: () => 'Reports',
+    labelKey: 'items.reports',
     icon: <FileText />,
     roles: ['FieldOwner', 'Administrator'],
     section: 'insights',
   },
   {
     path: '/ministry',
-    label: () => 'Ministry',
+    labelKey: 'items.ministry',
     icon: <Bell />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
     section: 'compliance',
   },
   {
     path: '/settings',
-    label: () => 'Settings',
+    labelKey: 'items.settings',
     icon: <Settings />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
     section: 'account',
   },
 ];
+
+export const resolveNavItemLabel = (item: NavItem, role: AppRole, t: TFunction<'nav'>): string => {
+  if (item.labelKeyOwner && role === 'FieldOwner') return t(item.labelKeyOwner);
+  if (item.labelKeyProducer && role === 'Producer') return t(item.labelKeyProducer);
+  return t(item.labelKey);
+};
 
 export const roleHomePath = (role: AppRole) => {
   if (role === 'Producer') return '/today';
@@ -129,24 +140,27 @@ export const isNavActive = (pathname: string, itemPath: string) => {
   return pathname.startsWith(itemPath);
 };
 
-export const resolvePageTitle = (pathname: string, role: AppRole) => {
+export const resolvePageTitle = (pathname: string, role: AppRole, t: TFunction<'nav'>) => {
   const matched = navItems.find((i) => isNavActive(pathname, i.path));
-  if (matched) return matched.label(role);
+  if (matched) return resolveNavItemLabel(matched, role, t);
 
-  if (pathname.includes('/new')) return 'New';
-  if (pathname.includes('/edit')) return 'Edit';
-  return 'Olive Lifecycle';
+  if (pathname.includes('/new')) return t('breadcrumb.new');
+  if (pathname.includes('/edit')) return t('breadcrumb.edit');
+  return t('appName', { ns: 'common', defaultValue: 'Olive Lifecycle' });
 };
 
-export const resolveBreadcrumbLabel = (segment: string, role: AppRole) => {
+export const resolveBreadcrumbLabel = (
+  segment: string,
+  role: AppRole,
+  t: TFunction<'nav'>
+) => {
   const nav = navItems.find((i) => i.path.replace('/', '') === segment);
-  if (nav) return nav.label(role);
+  if (nav) return resolveNavItemLabel(nav, role, t);
 
-  if (segment === 'new') return 'New';
-  if (segment === 'edit') return 'Edit';
+  if (segment === 'new') return t('breadcrumb.new');
+  if (segment === 'edit') return t('breadcrumb.edit');
 
-  if (/^[a-zA-Z0-9_-]{6,}$/.test(segment)) return 'Details';
+  if (/^[a-zA-Z0-9_-]{6,}$/.test(segment)) return t('breadcrumb.details');
 
   return segment.charAt(0).toUpperCase() + segment.slice(1);
 };
-

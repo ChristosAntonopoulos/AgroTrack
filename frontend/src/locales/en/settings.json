@@ -1,0 +1,48 @@
+{
+  "title": "Settings",
+  "profile": {
+    "title": "Profile",
+    "email": "Email",
+    "role": "Role",
+    "userId": "User ID"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "theme": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "white": "White"
+    },
+    "dateFormat": "Date Format",
+    "dateFormats": {
+      "MM/dd/yyyy": "MM/DD/YYYY",
+      "dd/MM/yyyy": "DD/MM/YYYY",
+      "yyyy-MM-dd": "YYYY-MM-DD"
+    },
+    "defaultView": "Default View",
+    "defaultViews": {
+      "dashboard": "Dashboard",
+      "fields": "Fields",
+      "tasks": "Tasks",
+      "calendar": "Calendar"
+    },
+    "language": "Language"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "email": "Email Notifications",
+    "taskAssignment": "Task Assignment Notifications",
+    "deadline": "Deadline Reminders",
+    "lifecycle": "Lifecycle Progression Alerts",
+    "report": "Report Generation Notifications"
+  },
+  "demo": {
+    "title": "Demo",
+    "description": "Reset the demo back to the original story if things get messy.",
+    "resetButton": "Reset Demo Data",
+    "resetConfirm": "Reset demo data? This will restore the original demo fields, tasks, and assignments."
+  },
+  "saveButton": "Save Preferences",
+  "saved": "Preferences saved!"
+}

@@ -1,0 +1,48 @@
+{
+  "title": "Impostazioni",
+  "profile": {
+    "title": "Profilo",
+    "email": "Email",
+    "role": "Ruolo",
+    "userId": "ID utente"
+  },
+  "preferences": {
+    "title": "Preferenze",
+    "theme": "Tema",
+    "themes": {
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "white": "Bianco"
+    },
+    "dateFormat": "Formato data",
+    "dateFormats": {
+      "MM/dd/yyyy": "MM/GG/AAAA",
+      "dd/MM/yyyy": "GG/MM/AAAA",
+      "yyyy-MM-dd": "AAAA-MM-GG"
+    },
+    "defaultView": "Vista predefinita",
+    "defaultViews": {
+      "dashboard": "Dashboard",
+      "fields": "Campi",
+      "tasks": "Attività",
+      "calendar": "Calendario"
+    },
+    "language": "Lingua"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "email": "Notifiche email",
+    "taskAssignment": "Notifiche assegnazione attività",
+    "deadline": "Promemoria scadenze",
+    "lifecycle": "Avvisi ciclo di vita",
+    "report": "Notifiche generazione report"
+  },
+  "demo": {
+    "title": "Demo",
+    "description": "Ripristina la demo allo stato originale se necessario.",
+    "resetButton": "Ripristina dati demo",
+    "resetConfirm": "Ripristinare i dati demo? Verranno ripristinati campi, attività e assegnazioni originali."
+  },
+  "saveButton": "Salva preferenze",
+  "saved": "Preferenze salvate!"
+}

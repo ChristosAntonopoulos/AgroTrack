@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getTaskService } from '../services/serviceFactory';
 import { Task } from '../services/taskService';
+import { getApiErrorMessage } from '../utils/translateApiError';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
@@ -10,10 +12,12 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import EmptyState from '../components/Common/EmptyState';
-import { Plus, Filter, Search, CheckSquare } from 'lucide-react';
+import { Plus, Search, CheckSquare } from 'lucide-react';
 import './TasksPage.css';
 
 const TasksPage: React.FC = () => {
+  const { t } = useTranslation(['tasks', 'common', 'errors']);
+  const { formatDate } = useLocaleFormatters();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +36,8 @@ const TasksPage: React.FC = () => {
       const userId = user?.role === 'Producer' ? user.userId : undefined;
       const data = await taskService.getTasks(undefined, userId);
       setTasks(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load tasks');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('tasks:failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -41,7 +45,8 @@ const TasksPage: React.FC = () => {
 
   const filteredTasks = tasks.filter((task) => {
     const matchesFilter = filter === 'all' || task.status === filter;
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch =
+      searchTerm === '' ||
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.type.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
@@ -60,11 +65,6 @@ const TasksPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not scheduled';
-    return new Date(dateString).toLocaleDateString();
-  };
-
   if (loading) {
     return <LoadingSpinner fullScreen />;
   }
@@ -75,14 +75,14 @@ const TasksPage: React.FC = () => {
         <Breadcrumbs />
         <div className="tasks-header">
           <div>
-            <h1>Tasks</h1>
+            <h1>{t('tasks:title')}</h1>
             <p className="tasks-subtitle">
-              {user?.role === 'Producer' ? 'Your assigned tasks' : 'All tasks'}
+              {user?.role === 'Producer' ? t('tasks:subtitleProducer') : t('tasks:subtitleDefault')}
             </p>
           </div>
           {user?.role === 'FieldOwner' && (
             <Button to="/tasks/new" icon={<Plus />}>
-              Create Task
+              {t('tasks:createTask')}
             </Button>
           )}
         </div>
@@ -94,7 +94,7 @@ const TasksPage: React.FC = () => {
             <Search className="search-icon" />
             <input
               type="text"
-              placeholder="Search tasks..."
+              placeholder={t('tasks:searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -106,28 +106,28 @@ const TasksPage: React.FC = () => {
               size="sm"
               onClick={() => setFilter('all')}
             >
-              All
+              {t('tasks:filters.all')}
             </Button>
             <Button
               variant={filter === 'pending' ? 'warning' : 'outline'}
               size="sm"
               onClick={() => setFilter('pending')}
             >
-              Pending
+              {t('tasks:filters.pending')}
             </Button>
             <Button
               variant={filter === 'in_progress' ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => setFilter('in_progress')}
             >
-              In Progress
+              {t('tasks:filters.in_progress')}
             </Button>
             <Button
               variant={filter === 'completed' ? 'success' : 'outline'}
               size="sm"
               onClick={() => setFilter('completed')}
             >
-              Completed
+              {t('tasks:filters.completed')}
             </Button>
           </div>
         </div>
@@ -136,12 +136,16 @@ const TasksPage: React.FC = () => {
           {filteredTasks.length === 0 ? (
             <EmptyState
               icon={<CheckSquare size={64} />}
-              title="No tasks found"
-              description={user?.role === 'FieldOwner' ? 'Create your first task to get started' : 'No tasks match your filters'}
+              title={t('tasks:emptyTitle')}
+              description={
+                user?.role === 'FieldOwner'
+                  ? t('tasks:emptyDescriptionOwner')
+                  : t('tasks:emptyDescriptionFilter')
+              }
               action={
                 user?.role === 'FieldOwner' && (
                   <Button to="/tasks/new" icon={<Plus />}>
-                    Create Task
+                    {t('tasks:createTask')}
                   </Button>
                 )
               }
@@ -151,18 +155,23 @@ const TasksPage: React.FC = () => {
               <Card key={task.id} hover to={`/tasks/${task.id}`} className="task-card">
                 <div className="task-card-header">
                   <h3>{task.title}</h3>
-                  <Badge variant={getStatusColor(task.status) as any} size="sm">
-                    {task.status.replace('_', ' ')}
+                  <Badge variant={getStatusColor(task.status) as 'warning' | 'info' | 'success' | 'primary'} size="sm">
+                    {t(`common:taskStatus.${task.status}`)}
                   </Badge>
                 </div>
                 <p className="task-type">{task.type}</p>
-                {task.description && (
-                  <p className="task-description">{task.description}</p>
-                )}
+                {task.description && <p className="task-description">{task.description}</p>}
                 <div className="task-card-footer">
                   <div className="task-meta">
-                    <span>Scheduled: {formatDate(task.scheduledStart)}</span>
-                    {task.assignedTo && <Badge variant="info" size="sm">Assigned</Badge>}
+                    <span>
+                      {t('tasks:scheduled')}:{' '}
+                      {task.scheduledStart ? formatDate(task.scheduledStart) : t('tasks:notScheduled')}
+                    </span>
+                    {task.assignedTo && (
+                      <Badge variant="info" size="sm">
+                        {t('common:assigned')}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </Card>

@@ -1,0 +1,11 @@
+{
+  "title": "Ministry Notifications",
+  "subtitle": "Official announcements and compliance updates",
+  "emptyTitle": "No notifications",
+  "emptyDescription": "Ministry notifications will appear here when available.",
+  "expires": "Expires",
+  "urgentOnly": "Urgent only",
+  "markAllRead": "Mark all as read",
+  "failedLoad": "Failed to load notifications",
+  "unread": "{{count}} unread"
+}

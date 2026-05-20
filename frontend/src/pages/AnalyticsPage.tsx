@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getAnalyticsService } from '../services/serviceFactory';
 import { getFieldService } from '../services/serviceFactory';
@@ -19,6 +20,7 @@ import './AnalyticsPage.css';
 type TimePeriod = 'week' | 'month' | 'quarter' | 'year';
 
 const AnalyticsPage: React.FC = () => {
+  const { t } = useTranslation('analytics');
   const { user } = useAuth();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('month');
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -192,13 +194,13 @@ const AnalyticsPage: React.FC = () => {
         <>
           <div className="metrics-grid">
             <StatsCard
-              title="Total Tasks"
+              title={t('totalTasks')}
               value={taskMetrics?.total || 0}
               icon={<CheckCircle />}
               color="primary"
             />
             <StatsCard
-              title="Completion Rate"
+              title={t('completionRate')}
               value={`${taskMetrics?.completionRate.toFixed(1) || 0}%`}
               icon={<TrendingUp />}
               color="success"
@@ -210,7 +212,7 @@ const AnalyticsPage: React.FC = () => {
               color="info"
             />
             <StatsCard
-              title="Avg. Completion Time"
+              title={t('avgCompletionTime')}
               value={`${taskMetrics?.averageCompletionTime.toFixed(1) || 0} days`}
               icon={<Clock />}
               color="warning"
@@ -227,7 +229,7 @@ const AnalyticsPage: React.FC = () => {
                 data={costByFieldData}
                 xAxisKey="name"
                 bars={[{ dataKey: 'cost', name: 'Cost', color: '#2d5016' }]}
-                title="Cost by Field"
+                title={t('costByField')}
               />
             </div>
 
@@ -243,7 +245,7 @@ const AnalyticsPage: React.FC = () => {
                 dataKey="rate"
                 xAxisKey="month"
                 lines={[{ dataKey: 'rate', name: 'Completion Rate (%)', color: '#28a745' }]}
-                title="Monthly Completion Rate"
+                title={t('monthlyCompletion')}
               />
             </div>
           </div>

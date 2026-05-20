@@ -1,0 +1,77 @@
+{
+  "appName": "Olive Lifecycle",
+  "home": "Home",
+  "loading": "Loading...",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "new": "New",
+  "details": "Details",
+  "search": "Search",
+  "viewAll": "View All →",
+  "or": "OR",
+  "yes": "Yes",
+  "no": "No",
+  "confirm": "Confirm",
+  "close": "Close",
+  "back": "Back",
+  "next": "Next",
+  "submit": "Submit",
+  "actions": "Actions",
+  "status": "Status",
+  "type": "Type",
+  "description": "Description",
+  "email": "Email",
+  "password": "Password",
+  "role": "Role",
+  "assigned": "Assigned",
+  "hectares": "{{count}} hectares",
+  "hectaresUnit": "ha",
+  "year": "{{year}} year",
+  "tasksCount": "{{completed}}/{{total}} tasks",
+  "noDueDate": "No due date",
+  "due": "Due",
+  "nextTask": "Next",
+  "toggleMenu": "Toggle menu",
+  "logout": "Logout",
+  "logoutAria": "Logout",
+  "roles": {
+    "FieldOwner": "Field Owner",
+    "Producer": "Producer",
+    "Agronomist": "Agronomist",
+    "Administrator": "Administrator",
+    "ServiceProvider": "Service Provider"
+  },
+  "taskStatus": {
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "approvalStatus": {
+    "pending": "Pending approval",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "lifecycleYear": {
+    "low": "Low",
+    "high": "High"
+  },
+  "severity": {
+    "Low": "Low",
+    "Medium": "Medium",
+    "High": "High"
+  },
+  "issueStatus": {
+    "Open": "Open",
+    "InProgress": "In progress",
+    "Resolved": "Resolved"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all"
+  }
+}
