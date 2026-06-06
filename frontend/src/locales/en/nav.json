@@ -14,8 +14,6 @@
     "fieldsOwner": "My Fields",
     "tasks": "Tasks",
     "tasksProducer": "My Tasks",
-    "approvals": "Approvals",
-    "issues": "Issues",
     "calendar": "Calendar",
     "analytics": "Analytics",
     "reports": "Reports",
@@ -25,6 +23,7 @@
   "breadcrumb": {
     "new": "New",
     "edit": "Edit",
-    "details": "Details"
+    "details": "Details",
+    "taskTemplates": "Task Templates"
   }
 }

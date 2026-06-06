@@ -1,5 +1,7 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService } from '../services/serviceFactory';
 import { getLifecycleService } from '../services/serviceFactory';
@@ -21,13 +23,15 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { RefreshCw, Play, Edit, ArrowLeft, CheckCircle2, XCircle, UserPlus, Navigation, Sparkles } from 'lucide-react';
+import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays } from 'lucide-react';
 import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../utils/taskRules';
 import './FieldDetailPage.css';
 
 type ControlRoomTab = 'board' | 'timeline' | 'evidence';
 
 const FieldDetailPage: React.FC = () => {
+  const { t } = useTranslation(['fields', 'common']);
+  const { formatDate, formatDateTime } = useLocaleFormatters();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,14 +47,6 @@ const FieldDetailPage: React.FC = () => {
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
   const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
-  const approvalsRef = useRef<HTMLDivElement | null>(null);
-
-  const [showIssueModal, setShowIssueModal] = useState(false);
-  const [issueType, setIssueType] = useState<'Leak' | 'Pest' | 'Damage' | 'Equipment'>('Leak');
-  const [issueSeverity, setIssueSeverity] = useState<'Low' | 'Medium' | 'High'>('Medium');
-  const [issueTitle, setIssueTitle] = useState('');
-  const [issueDescription, setIssueDescription] = useState('');
-  const [issuePhotoUrl, setIssuePhotoUrl] = useState('');
 
   const [controlRoomTab, setControlRoomTab] = useState<ControlRoomTab>('board');
   const handledInitialAction = useRef(false);
@@ -62,16 +58,6 @@ const FieldDetailPage: React.FC = () => {
       loadTasks();
     }
   }, [id]);
-
-  useEffect(() => {
-    if (!user?.userId) return;
-    if (user.role !== 'FieldOwner' && user.role !== 'Administrator') return;
-    demoStore.ensureSeeded();
-    const hasApproved = demoStore.getEvents().some((e) => e.type === 'task_approved');
-    if (hasApproved) {
-      demoStore.markDemoStep(user.userId, user.role, 'owner_view_timeline');
-    }
-  }, [user?.role, user?.userId]);
 
   useEffect(() => {
     if (!user?.userId) return;
@@ -90,7 +76,7 @@ const FieldDetailPage: React.FC = () => {
       const data = await fieldService.getField(id!);
       setField(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load field');
+      setError(err.response?.data?.message || t('fields:controlRoom.failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -118,7 +104,7 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const getProducerName = (producerId?: string) => {
-    if (!producerId) return 'Unassigned';
+    if (!producerId) return t('fields:controlRoom.unassigned');
     demoStore.ensureSeeded();
     const u = demoStore.getUsers().find((x) => x.id === producerId);
     if (!u) return producerId;
@@ -137,7 +123,6 @@ const FieldDetailPage: React.FC = () => {
     return demoStore.getUsers().filter((u) => u.role === 'Producer');
   })();
 
-  const pendingApprovals = tasks.filter((t) => t.status === 'completed' && t.approvalStatus === 'pending');
   const myTasks = tasks.filter((t) => (t.assignedTo ? t.assignedTo === user?.userId : false));
 
   const latestEvidence = useMemo(() => {
@@ -173,9 +158,8 @@ const FieldDetailPage: React.FC = () => {
     return {
       overdueCount: overdueTasks.length,
       nextDue,
-      approvalsPending: pendingApprovals.length,
     };
-  }, [tasks, pendingApprovals.length]);
+  }, [tasks]);
 
   const recommendedNextTaskId = useMemo(() => {
     const producer = user?.role === 'Producer';
@@ -193,11 +177,6 @@ const FieldDetailPage: React.FC = () => {
     const action = params.get('action');
     if (!action) return;
 
-    if (action === 'issue') {
-      handledInitialAction.current = true;
-      setShowIssueModal(true);
-      return;
-    }
     if (action === 'start') {
       if (!recommendedNextTaskId) return;
       handledInitialAction.current = true;
@@ -222,22 +201,6 @@ const FieldDetailPage: React.FC = () => {
     if (typeof fieldService.unassignProducer === 'function') {
       await fieldService.unassignProducer(id, producerId);
       await loadField();
-    }
-  };
-
-  const handleApprove = async (taskId: string) => {
-    const taskService: any = getTaskService();
-    if (typeof taskService.approveTask === 'function') {
-      await taskService.approveTask(taskId, 'Approved in demo');
-      await loadTasks();
-    }
-  };
-
-  const handleReject = async (taskId: string) => {
-    const taskService: any = getTaskService();
-    if (typeof taskService.rejectTask === 'function') {
-      await taskService.rejectTask(taskId, 'Please add more details/evidence');
-      await loadTasks();
     }
   };
 
@@ -276,42 +239,20 @@ const FieldDetailPage: React.FC = () => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleReviewApprovals = () => {
-    approvalsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const handleSelectControlRoomTab = (tab: ControlRoomTab) => {
     setControlRoomTab(tab);
     if (!user?.userId) return;
     demoStore.ensureSeeded();
     const current = demoStore.getFieldUiPrefs(user.userId);
     demoStore.setFieldUiPrefs(user.userId, { ...current, fieldDetailTab: tab });
+    if (tab === 'timeline' && (user.role === 'FieldOwner' || user.role === 'Administrator')) {
+      demoStore.markDemoStep(user.userId, user.role, 'owner_view_timeline');
+    }
   };
 
   const handleStartRecommended = async () => {
     if (!recommendedNextTaskId) return;
     await handleStartTask(recommendedNextTaskId);
-  };
-
-  const handleSubmitIssue = () => {
-    if (!field?.id || !user?.userId) return;
-    const title = issueTitle.trim() || `${issueType} reported on ${field.name}`;
-    const description = issueDescription.trim() || 'Issue reported from field.';
-    const photoUrls = issuePhotoUrl.trim() ? [issuePhotoUrl.trim()] : [];
-    demoStore.addIssue({
-      fieldId: field.id,
-      type: issueType,
-      severity: issueSeverity,
-      title,
-      description,
-      photoUrls,
-      createdByUserId: user.userId,
-      status: 'Open',
-    });
-    setShowIssueModal(false);
-    setIssueTitle('');
-    setIssueDescription('');
-    setIssuePhotoUrl('');
   };
 
   const handleInitializeLifecycle = async () => {
@@ -325,7 +266,7 @@ const FieldDetailPage: React.FC = () => {
       // Reload field to get updated lifecycle year
       await loadField();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to initialize lifecycle');
+      setError(err.response?.data?.message || t('fields:controlRoom.failedInitLifecycle'));
     } finally {
       setLifecycleLoading(false);
     }
@@ -343,16 +284,12 @@ const FieldDetailPage: React.FC = () => {
       // Reload field to get updated lifecycle year
       await loadField();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to progress lifecycle');
+      setError(err.response?.data?.message || t('fields:controlRoom.failedProgressLifecycle'));
     } finally {
       setLifecycleLoading(false);
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
-  };
 
   const isFieldOwner = user?.role === 'FieldOwner';
   const isProducer = user?.role === 'Producer';
@@ -365,9 +302,9 @@ const FieldDetailPage: React.FC = () => {
     return (
       <PageContainer>
         <div className="error-container">
-          <div className="error-message">{error || 'Field not found'}</div>
+          <div className="error-message">{error || t('fields:controlRoom.failedLoad')}</div>
           <Button to="/fields" icon={<ArrowLeft />} variant="outline">
-            Back to Fields
+            {t('fields:controlRoom.backToFields')}
           </Button>
         </div>
       </PageContainer>
@@ -378,139 +315,73 @@ const FieldDetailPage: React.FC = () => {
     <PageContainer>
       <div className="field-detail-page">
         <Breadcrumbs />
-        <div className="field-detail-header">
-          <div className="field-header-content">
+        <header className="fd-header">
+          <div className="fd-header-main">
             <h1>{field.name}</h1>
             <LifecycleIndicator year={field.currentLifecycleYear} />
           </div>
-          <div className="field-actions">
-            {(isFieldOwner || field.ownerId === user?.userId) && (
-              <Button to={`/fields/${field.id}/edit`} icon={<Edit />} variant="success">
-                Edit
+          <div className="fd-header-actions">
+            {isFieldOwner || field.ownerId === user?.userId ? (
+              <>
+                <Button
+                  to={`/fields/${field.id}/task-templates`}
+                  icon={<CalendarDays />}
+                  variant="primary"
+                  size="sm"
+                >
+                  <span className="fd-btn-label">{t('fields:controlRoom.addTaskFromTemplate')}</span>
+                </Button>
+                <Button to={`/fields/${field.id}/edit`} icon={<Edit />} variant="outline" size="sm">
+                  <span className="fd-btn-label">{t('fields:controlRoom.edit')}</span>
+                </Button>
+              </>
+            ) : null}
+            <Button to="/fields" icon={<ArrowLeft />} variant="outline" size="sm">
+              <span className="fd-btn-label">{t('fields:controlRoom.backToFields')}</span>
+            </Button>
+          </div>
+        </header>
+
+        <div className="fd-status-bar">
+          <div className="fd-status-metrics">
+            <div className={`fd-metric ${riskSummary.overdueCount > 0 ? 'fd-metric--warn' : ''}`}>
+              <span className="fd-metric-value">{riskSummary.overdueCount}</span>
+              <span className="fd-metric-label">{t('fields:controlRoom.focusOverdue')}</span>
+            </div>
+            <div className="fd-metric">
+              <span className="fd-metric-value">
+                {riskSummary.nextDue?.scheduledEnd ? formatDate(riskSummary.nextDue.scheduledEnd) : '—'}
+              </span>
+              <span className="fd-metric-label">{t('fields:controlRoom.focusNextDue')}</span>
+            </div>
+          </div>
+          <div className="fd-status-actions">
+            {isProducer ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleStartRecommended}
+                disabled={!recommendedNextTaskId}
+              >
+                {t('fields:controlRoom.startNextTask')}
               </Button>
-            )}
-            <Button to="/fields" icon={<ArrowLeft />} variant="outline">
-              Back to Fields
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Navigation />}
+              onClick={handleOpenDirections}
+              disabled={!field.latitude || !field.longitude}
+            >
+              <span className="fd-btn-label">{t('fields:controlRoom.directions')}</span>
             </Button>
           </div>
         </div>
 
-        <div className="field-detail-content">
-          <Card className="field-hero-card">
-            <div className="field-hero">
-              <div className="field-hero-left">
-                <div className="field-hero-title-row">
-                  <Sparkles className="field-hero-icon" />
-                  <div>
-                    <div className="field-hero-title">Field Control Room</div>
-                    <div className="field-hero-subtitle">
-                      What’s happening now, what’s next, and what needs attention.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="field-hero-chips">
-                  {riskSummary.overdueCount > 0 ? (
-                    <Badge variant="warning" size="sm">{riskSummary.overdueCount} overdue</Badge>
-                  ) : (
-                    <Badge variant="success" size="sm">No overdue tasks</Badge>
-                  )}
-                  {riskSummary.nextDue?.scheduledEnd ? (
-                    <Badge variant="info" size="sm">
-                      Next due: {new Date(riskSummary.nextDue.scheduledEnd).toLocaleDateString()}
-                    </Badge>
-                  ) : (
-                    <Badge variant="primary" size="sm">No upcoming due dates</Badge>
-                  )}
-                  {riskSummary.approvalsPending > 0 ? (
-                    <Badge variant="info" size="sm">{riskSummary.approvalsPending} awaiting approval</Badge>
-                  ) : (
-                    <Badge variant="primary" size="sm">No approvals pending</Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="field-hero-right">
-                <div className="field-hero-actions">
-                  {isFieldOwner ? (
-                    <Button
-                      variant="primary"
-                      onClick={handleReviewApprovals}
-                      disabled={riskSummary.approvalsPending === 0}
-                    >
-                      Review approvals
-                    </Button>
-                  ) : isProducer ? (
-                    <Button
-                      variant="primary"
-                      onClick={handleStartRecommended}
-                      disabled={!recommendedNextTaskId}
-                    >
-                      Start next task
-                    </Button>
-                  ) : null}
-
-                  <Button
-                    variant="outline"
-                    icon={<Navigation />}
-                    onClick={handleOpenDirections}
-                    disabled={!field.latitude || !field.longitude}
-                  >
-                    Directions
-                  </Button>
-
-                  {isProducer ? (
-                    <Button variant="outline" onClick={() => setShowIssueModal(true)}>
-                      Report issue
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </Card>
-
+        <div className="fd-layout">
+          <main className="fd-main">
           <Card className="field-control-room-card" padding="md">
-            <div className="fcr-focus">
-              <div className="fcr-focus-left">
-                <div className="fcr-focus-title">Today’s Focus</div>
-                <div className="fcr-focus-metrics">
-                  <span>
-                    <strong>Overdue:</strong> {riskSummary.overdueCount}
-                  </span>
-                  <span>
-                    <strong>Next due:</strong>{' '}
-                    {riskSummary.nextDue?.scheduledEnd ? new Date(riskSummary.nextDue.scheduledEnd).toLocaleDateString() : '—'}
-                  </span>
-                  <span>
-                    <strong>Approvals:</strong> {riskSummary.approvalsPending}
-                  </span>
-                </div>
-              </div>
-              <div className="fcr-focus-actions">
-                {isFieldOwner ? (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleReviewApprovals}
-                    disabled={riskSummary.approvalsPending === 0}
-                  >
-                    Review approvals
-                  </Button>
-                ) : isProducer ? (
-                  <Button variant="primary" size="sm" onClick={handleStartRecommended} disabled={!recommendedNextTaskId}>
-                    Start next task
-                  </Button>
-                ) : null}
-                <Button variant="outline" size="sm" onClick={() => handleSelectControlRoomTab('timeline')}>
-                  Timeline
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleSelectControlRoomTab('evidence')}>
-                  Evidence
-                </Button>
-              </div>
-            </div>
-
-            <div className="fcr-tabs" role="tablist" aria-label="Field control room">
+            <div className="fcr-tabs" role="tablist" aria-label={t('fields:controlRoom.tabsAria')}>
               <button
                 type="button"
                 role="tab"
@@ -518,7 +389,7 @@ const FieldDetailPage: React.FC = () => {
                 className={controlRoomTab === 'board' ? 'active' : ''}
                 onClick={() => handleSelectControlRoomTab('board')}
               >
-                Board
+                {t('fields:controlRoom.tabs.board')}
               </button>
               <button
                 type="button"
@@ -527,7 +398,7 @@ const FieldDetailPage: React.FC = () => {
                 className={controlRoomTab === 'timeline' ? 'active' : ''}
                 onClick={() => handleSelectControlRoomTab('timeline')}
               >
-                Timeline
+                {t('fields:controlRoom.tabs.timeline')}
               </button>
               <button
                 type="button"
@@ -536,7 +407,7 @@ const FieldDetailPage: React.FC = () => {
                 className={controlRoomTab === 'evidence' ? 'active' : ''}
                 onClick={() => handleSelectControlRoomTab('evidence')}
               >
-                Evidence
+                {t('fields:controlRoom.tabs.evidence')}
               </button>
             </div>
 
@@ -559,24 +430,24 @@ const FieldDetailPage: React.FC = () => {
               {controlRoomTab === 'evidence' ? (
                 <div className="fcr-evidence">
                   <div className="fcr-evidence-section">
-                    <div className="fcr-evidence-title">Latest Photos</div>
-                    <EvidenceGallery items={latestEvidence} title="" emptyText="No photos yet for this field." />
+                    <div className="fcr-evidence-title">{t('fields:controlRoom.latestPhotos')}</div>
+                    <EvidenceGallery items={latestEvidence} title="" emptyText={t('fields:controlRoom.noPhotos')} />
                   </div>
 
                   {latestBeforeAfter ? (
                     <div className="fcr-evidence-section">
-                      <div className="fcr-evidence-title">Before / After</div>
+                      <div className="fcr-evidence-title">{t('fields:controlRoom.beforeAfter')}</div>
                       <div style={{ marginBottom: 'var(--spacing-sm)', color: 'var(--color-text-secondary)' }}>
-                        Latest: <strong>{latestBeforeAfter.taskTitle}</strong>
+                        <strong>{latestBeforeAfter.taskTitle}</strong>
                       </div>
                       <div className="before-after-grid">
                         <div>
-                          <div className="before-after-label">Before</div>
-                          <EvidenceGallery items={latestBeforeAfter.before} title="" emptyText="No “before” photos yet." />
+                          <div className="before-after-label">{t('fields:controlRoom.before')}</div>
+                          <EvidenceGallery items={latestBeforeAfter.before} title="" emptyText={t('fields:controlRoom.noBeforePhotos')} />
                         </div>
                         <div>
-                          <div className="before-after-label">After</div>
-                          <EvidenceGallery items={latestBeforeAfter.after} title="" emptyText="No “after” photos yet." />
+                          <div className="before-after-label">{t('fields:controlRoom.after')}</div>
+                          <EvidenceGallery items={latestBeforeAfter.after} title="" emptyText={t('fields:controlRoom.noAfterPhotos')} />
                         </div>
                       </div>
                     </div>
@@ -586,370 +457,197 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </Card>
 
-          {showIssueModal ? (
-            <div className="issue-modal" role="dialog" aria-modal="true">
-              <div className="issue-backdrop" onClick={() => setShowIssueModal(false)} />
-              <div className="issue-content">
-                <div className="issue-header">
-                  <div>
-                    <div className="issue-title">Report an issue</div>
-                    <div className="issue-subtitle">This will appear in the Owner’s Issues inbox.</div>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setShowIssueModal(false)}>
-                    Close
-                  </Button>
-                </div>
-
-                <div className="issue-form">
-                  <div className="issue-row">
-                    <label>Type</label>
-                    <select value={issueType} onChange={(e) => setIssueType(e.target.value as any)}>
-                      <option value="Leak">Leak</option>
-                      <option value="Pest">Pest</option>
-                      <option value="Damage">Damage</option>
-                      <option value="Equipment">Equipment</option>
-                    </select>
-                  </div>
-                  <div className="issue-row">
-                    <label>Severity</label>
-                    <select value={issueSeverity} onChange={(e) => setIssueSeverity(e.target.value as any)}>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-                  </div>
-                  <div className="issue-row">
-                    <label>Title</label>
-                    <input value={issueTitle} onChange={(e) => setIssueTitle(e.target.value)} placeholder="Short summary" />
-                  </div>
-                  <div className="issue-row">
-                    <label>Description</label>
-                    <textarea value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} placeholder="What did you see?" rows={4} />
-                  </div>
-                  <div className="issue-row">
-                    <label>Photo URL (optional)</label>
-                    <input value={issuePhotoUrl} onChange={(e) => setIssuePhotoUrl(e.target.value)} placeholder="https://..." />
-                  </div>
-
-                  <div className="issue-actions">
-                    <Button variant="outline" onClick={() => setShowIssueModal(false)}>
-                      Cancel
-                    </Button>
-                    <Button variant="primary" onClick={handleSubmitIssue}>
-                      Submit issue
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          <Card className="field-detail-section">
-            <h2>Basic Information</h2>
-          <div className="detail-grid">
-            <div className="detail-item">
-              <strong>Area:</strong> {field.area} hectares
-            </div>
-            {field.variety && (
-              <div className="detail-item">
-                <strong>Variety:</strong> {field.variety}
-              </div>
-            )}
-            {field.treeAge && (
-              <div className="detail-item">
-                <strong>Tree Age:</strong> {field.treeAge} years
-              </div>
-            )}
-            {field.groundType && (
-              <div className="detail-item">
-                <strong>Ground Type:</strong> {field.groundType}
-              </div>
-            )}
-            <div className="detail-item">
-              <strong>Irrigation:</strong> {field.irrigationStatus ? 'Yes' : 'No'}
-            </div>
-          </div>
-          </Card>
-
-          <Card className="field-detail-section">
-            <h2>Location</h2>
-            {field.latitude && field.longitude ? (
-              <>
-                <div className="detail-item">
-                  <strong>Coordinates:</strong> {field.latitude}, {field.longitude}
-                </div>
-                <div className="field-mini-map">
-                  <FieldsMap fields={[field]} heightPx={260} />
-                </div>
-              </>
-            ) : (
-              <EmptyState
-                title="No GPS coordinates"
-                description="Add latitude/longitude to view this field on the map."
-              />
-            )}
-          </Card>
-
-          {isFieldOwner ? (
-            <Card className="field-detail-section">
-              <h2>Assignments</h2>
-              <div className="assignments">
-                {assignedProducerIds.length === 0 ? (
-                  <div className="assignments-empty">No producers assigned yet.</div>
-                ) : (
-                  <div className="assignments-list">
-                    {assignedProducerIds.map((pid) => (
-                      <div key={pid} className="assignment-item">
-                        <span className="assignment-name">{getProducerName(pid)}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUnassignProducer(pid)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="assignments-add">
-                  <select
-                    value={assigningProducerId}
-                    onChange={(e) => setAssigningProducerId(e.target.value)}
-                  >
-                    <option value="">Select a producer…</option>
-                    {producerUsers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {getProducerName(p.id)}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    icon={<UserPlus />}
-                    onClick={handleAssignProducer}
-                    disabled={!assigningProducerId}
-                  >
-                    Assign
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          {isFieldOwner ? (
-            <div ref={approvalsRef}>
-              <Card className="field-detail-section">
-                <h2>Approvals</h2>
-                {pendingApprovals.length === 0 ? (
+            {isProducer ? (
+              <Card className="fd-my-tasks-card">
+                <h2 className="fd-sidebar-title">{t('fields:controlRoom.myTasksTitle')}</h2>
+                {myTasks.length === 0 ? (
                   <EmptyState
-                    title="No pending approvals"
-                    description="Completed work from producers will appear here for approval."
+                    title={t('fields:controlRoom.noMyTasks')}
+                    description={t('fields:controlRoom.noMyTasksDesc')}
                   />
                 ) : (
-                  <div className="approvals-list">
-                    {pendingApprovals.map((t) => (
-                      <div key={t.id} className="approval-item">
-                        <div className="approval-main">
-                          <div className="approval-title">{t.title}</div>
-                          <div className="approval-meta">
-                            <Badge variant="info" size="sm">pending</Badge>
-                            <span>Producer: {getProducerName(t.assignedTo)}</span>
-                            <span>Evidence: {(t.evidence || []).length}</span>
+                  <div className="mytasks-list">
+                    {myTasks.map((task) => {
+                      const statusVariant = task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'info' : 'warning';
+                      const needsPair = requiresBeforeAfter(task.type);
+                      const hasPair = hasBeforeAfterEvidence(task);
+                      const completeDisabled = needsPair && !hasPair;
+                      return (
+                        <div key={task.id} className="mytask-item">
+                          <div className="mytask-main">
+                            <div className="mytask-title">{task.title}</div>
+                            <div className="mytask-meta">
+                              <Badge variant={statusVariant as any} size="sm">{t(`common:taskStatus.${task.status}`)}</Badge>
+                              {task.scheduledEnd ? <span>{t('common:due')}: {formatDate(task.scheduledEnd)}</span> : null}
+                            </div>
+                          </div>
+                          <div className="mytask-actions">
+                            {task.status === 'pending' ? (
+                              <Button size="sm" variant="secondary" onClick={() => handleStartTask(task.id)}>
+                                {t('fields:taskBoard.start')}
+                              </Button>
+                            ) : null}
+                            {task.status !== 'completed' ? (
+                              <Button size="sm" variant="success" onClick={() => handleCompleteTask(task.id)} disabled={completeDisabled}>
+                                {t('fields:taskBoard.complete')}
+                              </Button>
+                            ) : null}
+                          </div>
+
+                          <div className="mytask-evidence">
+                            <div className="evidence-form">
+                              {needsPair ? (
+                                <select value={evidenceKind} onChange={(e) => setEvidenceKind(e.target.value as any)} aria-label={t('fields:taskBoard.evidenceKind')}>
+                                  <option value="before">{t('fields:taskBoard.evidenceBefore')}</option>
+                                  <option value="after">{t('fields:taskBoard.evidenceAfter')}</option>
+                                  <option value="general">{t('fields:taskBoard.evidenceGeneral')}</option>
+                                </select>
+                              ) : null}
+                              <input
+                                type="url"
+                                placeholder={t('fields:taskBoard.photoUrlPlaceholder')}
+                                value={evidencePhotoUrl}
+                                onChange={(e) => setEvidencePhotoUrl(e.target.value)}
+                              />
+                              <input
+                                type="text"
+                                placeholder={t('fields:taskBoard.notesPlaceholder')}
+                                value={evidenceNotes}
+                                onChange={(e) => setEvidenceNotes(e.target.value)}
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAddEvidence(task.id)}
+                                disabled={!evidenceNotes.trim() && !evidencePhotoUrl.trim()}
+                              >
+                                {t('fields:taskBoard.addEvidence')}
+                              </Button>
+                            </div>
+                            {needsPair && !hasPair ? (
+                              <div className="mytask-evidence-hint">{t('fields:taskBoard.beforeAfterRequired')}</div>
+                            ) : null}
+
+                            {(task.evidence || []).length > 0 ? (
+                              <div className="evidence-gallery">
+                                {(task.evidence || []).slice().reverse().map((ev, idx) => (
+                                  <div key={`${task.id}-ev-${idx}`} className="evidence-item">
+                                    {ev.photoUrl ? (
+                                      <a href={ev.photoUrl} target="_blank" rel="noreferrer">
+                                        <img src={ev.photoUrl} alt={t('fields:controlRoom.tabs.evidence')} />
+                                      </a>
+                                    ) : null}
+                                    <div className="evidence-notes">{ev.notes}</div>
+                                    <div className="evidence-time">{formatDateTime(ev.timestamp)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
-                        <div className="approval-actions">
-                          <Button size="sm" variant="success" icon={<CheckCircle2 />} onClick={() => handleApprove(t.id)}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="error" icon={<XCircle />} onClick={() => handleReject(t.id)}>
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Card>
-            </div>
-          ) : null}
+            ) : null}
+          </main>
 
-          {isProducer ? (
-            <Card className="field-detail-section">
-              <h2>My Tasks</h2>
-              {myTasks.length === 0 ? (
-                <EmptyState
-                  title="No tasks assigned to you here"
-                  description="If you’re assigned to this field, your tasks will appear here."
-                />
+          <aside className="fd-sidebar">
+            <Card className="fd-sidebar-card">
+              <h2 className="fd-sidebar-title">{t('fields:controlRoom.basicInfo')}</h2>
+              <dl className="fd-facts">
+                <div><dt>{t('fields:controlRoom.area')}</dt><dd>{field.area} {t('fields:controlRoom.hectares')}</dd></div>
+                {field.variety && <div><dt>{t('fields:controlRoom.variety')}</dt><dd>{field.variety}</dd></div>}
+                {field.treeAge && <div><dt>{t('fields:controlRoom.treeAge')}</dt><dd>{field.treeAge} {t('fields:controlRoom.years')}</dd></div>}
+                {field.groundType && <div><dt>{t('fields:controlRoom.groundType')}</dt><dd>{field.groundType}</dd></div>}
+                <div><dt>{t('fields:controlRoom.irrigation')}</dt><dd>{field.irrigationStatus ? t('common:yes') : t('common:no')}</dd></div>
+              </dl>
+            </Card>
+
+            <Card className="fd-sidebar-card">
+              <h2 className="fd-sidebar-title">{t('fields:controlRoom.locationTitle')}</h2>
+              {field.latitude && field.longitude ? (
+                <>
+                  <p className="fd-coords">{field.latitude}, {field.longitude}</p>
+                  <div className="field-mini-map">
+                    <FieldsMap fields={[field]} heightPx={180} />
+                  </div>
+                </>
               ) : (
-                <div className="mytasks-list">
-                  {myTasks.map((t) => {
-                    const statusVariant = t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : 'warning';
-                    const needsPair = requiresBeforeAfter(t.type);
-                    const hasPair = hasBeforeAfterEvidence(t);
-                    const completeDisabled = needsPair && !hasPair;
-                    return (
-                      <div key={t.id} className="mytask-item">
-                        <div className="mytask-main">
-                          <div className="mytask-title">{t.title}</div>
-                          <div className="mytask-meta">
-                            <Badge variant={statusVariant as any} size="sm">{t.status.replace('_',' ')}</Badge>
-                            {t.scheduledEnd ? <span>Due: {new Date(t.scheduledEnd).toLocaleDateString()}</span> : null}
-                            {t.approvalStatus && t.approvalStatus !== 'not_required' ? (
-                              <span>Approval: {t.approvalStatus}</span>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="mytask-actions">
-                          {t.status === 'pending' ? (
-                            <Button size="sm" variant="secondary" onClick={() => handleStartTask(t.id)}>
-                              Start
-                            </Button>
-                          ) : null}
-                          {t.status !== 'completed' ? (
-                            <Button size="sm" variant="success" onClick={() => handleCompleteTask(t.id)} disabled={completeDisabled}>
-                              Complete
-                            </Button>
-                          ) : null}
-                        </div>
-
-                        <div className="mytask-evidence">
-                          <div className="evidence-form">
-                            {needsPair ? (
-                              <select value={evidenceKind} onChange={(e) => setEvidenceKind(e.target.value as any)} aria-label="Evidence kind">
-                                <option value="before">Before</option>
-                                <option value="after">After</option>
-                                <option value="general">General</option>
-                              </select>
-                            ) : null}
-                            <input
-                              type="url"
-                              placeholder="Photo URL (optional)"
-                              value={evidencePhotoUrl}
-                              onChange={(e) => setEvidencePhotoUrl(e.target.value)}
-                            />
-                            <input
-                              type="text"
-                              placeholder="Notes (optional)"
-                              value={evidenceNotes}
-                              onChange={(e) => setEvidenceNotes(e.target.value)}
-                            />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAddEvidence(t.id)}
-                              disabled={!evidenceNotes.trim() && !evidencePhotoUrl.trim()}
-                            >
-                              Add evidence
-                            </Button>
-                          </div>
-                          {needsPair && !hasPair ? (
-                            <div className="mytask-evidence-hint">Before/after proof required to complete.</div>
-                          ) : null}
-
-                          {(t.evidence || []).length > 0 ? (
-                            <div className="evidence-gallery">
-                              {(t.evidence || []).slice().reverse().map((ev, idx) => (
-                                <div key={`${t.id}-ev-${idx}`} className="evidence-item">
-                                  {ev.photoUrl ? (
-                                    <a href={ev.photoUrl} target="_blank" rel="noreferrer">
-                                      <img src={ev.photoUrl} alt="Evidence" />
-                                    </a>
-                                  ) : null}
-                                  <div className="evidence-notes">{ev.notes}</div>
-                                  <div className="evidence-time">{new Date(ev.timestamp).toLocaleString()}</div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <EmptyState
+                  title={t('fields:controlRoom.noGpsTitle')}
+                  description={t('fields:controlRoom.noGpsDescription')}
+                />
               )}
             </Card>
-          ) : null}
 
-          {isFieldOwner && (
-            <Card className="field-detail-section">
-              <h2>Lifecycle Management</h2>
-              <div className="lifecycle-management">
-                <div className="lifecycle-status">
-                  <strong>Current Status:</strong>
-                  <LifecycleIndicator year={field.currentLifecycleYear} />
-                </div>
-
-                {!lifecycle ? (
-                  <div className="lifecycle-action">
-                    <p>No lifecycle initialized for this field.</p>
-                    <Button
-                      onClick={handleInitializeLifecycle}
-                      disabled={lifecycleLoading}
-                      loading={lifecycleLoading}
-                      icon={<Play />}
-                      variant="primary"
-                    >
-                      Initialize Lifecycle
-                    </Button>
+            {isFieldOwner && (
+              <Card className="fd-sidebar-card">
+                <h2 className="fd-sidebar-title">{t('fields:controlRoom.lifecycleTitle')}</h2>
+                <div className="lifecycle-management lifecycle-compact">
+                  <div className="lifecycle-status">
+                    <LifecycleIndicator year={field.currentLifecycleYear} />
                   </div>
-                ) : (
-                  <div className="lifecycle-info">
-                    <div className="lifecycle-details">
-                      <div className="detail-item">
-                        <strong>Cycle Start Date:</strong> {formatDate(lifecycle.cycleStartDate)}
-                      </div>
-                      {lifecycle.lastProgressionDate && (
-                        <div className="detail-item">
-                          <strong>Last Progression:</strong> {formatDate(lifecycle.lastProgressionDate)}
+                  {!lifecycle ? (
+                    <Button onClick={handleInitializeLifecycle} disabled={lifecycleLoading} loading={lifecycleLoading} icon={<Play />} variant="primary" size="sm">
+                      {t('fields:controlRoom.initializeLifecycle')}
+                    </Button>
+                  ) : (
+                    <div className="lifecycle-info">
+                      {lifecycle.cycleStartDate && (
+                        <p className="fd-lifecycle-meta">{t('fields:controlRoom.cycleStart')} {formatDate(lifecycle.cycleStartDate)}</p>
+                      )}
+                      {!showProgressConfirm ? (
+                        <Button onClick={() => setShowProgressConfirm(true)} disabled={lifecycleLoading} icon={<RefreshCw />} variant="outline" size="sm">
+                          {t('fields:controlRoom.progressTo', { year: t(`common:lifecycleYear.${field.currentLifecycleYear === 'low' ? 'high' : 'low'}`) })}
+                        </Button>
+                      ) : (
+                        <div className="progress-confirmation">
+                          <p>{t('fields:controlRoom.progressConfirm', { from: t(`common:lifecycleYear.${field.currentLifecycleYear}`), to: t(`common:lifecycleYear.${field.currentLifecycleYear === 'low' ? 'high' : 'low'}`) })}</p>
+                          <div className="confirmation-buttons">
+                            <Button onClick={handleProgressCycle} disabled={lifecycleLoading} loading={lifecycleLoading} variant="warning" size="sm">{t('fields:controlRoom.progressYes')}</Button>
+                            <Button onClick={() => setShowProgressConfirm(false)} disabled={lifecycleLoading} variant="outline" size="sm">{t('common:cancel')}</Button>
+                          </div>
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
+              </Card>
+            )}
 
-                    {!showProgressConfirm ? (
-                      <Button
-                        onClick={() => setShowProgressConfirm(true)}
-                        disabled={lifecycleLoading}
-                        icon={<RefreshCw />}
-                        variant="secondary"
-                      >
-                        Progress to {field.currentLifecycleYear === 'low' ? 'High' : 'Low'} Year
-                      </Button>
-                    ) : (
-                      <div className="progress-confirmation">
-                        <p>
-                          Are you sure you want to progress the lifecycle? This will change the field
-                          from <strong>{field.currentLifecycleYear}</strong> year to{' '}
-                          <strong>{field.currentLifecycleYear === 'low' ? 'high' : 'low'}</strong> year.
-                          This action cannot be undone.
-                        </p>
-                        <div className="confirmation-buttons">
-                          <Button
-                            onClick={handleProgressCycle}
-                            disabled={lifecycleLoading}
-                            loading={lifecycleLoading}
-                            variant="warning"
-                          >
-                            Yes, Progress Cycle
-                          </Button>
-                          <Button
-                            onClick={() => setShowProgressConfirm(false)}
-                            disabled={lifecycleLoading}
-                            variant="outline"
-                          >
-                            Cancel
-                          </Button>
+            {isFieldOwner ? (
+              <Card className="fd-sidebar-card">
+                <h2 className="fd-sidebar-title">{t('fields:controlRoom.assignments')}</h2>
+                <div className="assignments">
+                  {assignedProducerIds.length === 0 ? (
+                    <p className="assignments-empty">{t('fields:controlRoom.noProducers')}</p>
+                  ) : (
+                    <div className="assignments-list">
+                      {assignedProducerIds.map((pid) => (
+                        <div key={pid} className="assignment-item">
+                          <span className="assignment-name">{getProducerName(pid)}</span>
+                          <Button variant="outline" size="sm" onClick={() => handleUnassignProducer(pid)}>{t('fields:controlRoom.unassign')}</Button>
                         </div>
-                      </div>
-                    )}
+                      ))}
+                    </div>
+                  )}
+                  <div className="assignments-add">
+                    <select value={assigningProducerId} onChange={(e) => setAssigningProducerId(e.target.value)}>
+                      <option value="">{t('fields:controlRoom.assignProducer')}</option>
+                      {producerUsers.map((p) => (
+                        <option key={p.id} value={p.id}>{getProducerName(p.id)}</option>
+                      ))}
+                    </select>
+                    <Button variant="primary" size="sm" icon={<UserPlus />} onClick={handleAssignProducer} disabled={!assigningProducerId}>
+                      {t('common:confirm')}
+                    </Button>
                   </div>
-                )}
-              </div>
-            </Card>
-          )}
+                </div>
+              </Card>
+            ) : null}
+          </aside>
         </div>
       </div>
     </PageContainer>

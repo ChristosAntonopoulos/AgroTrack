@@ -1,35 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService } from '../services/serviceFactory';
-import { getTaskService } from '../services/serviceFactory';
-import { getAnalyticsService } from '../services/serviceFactory';
 import { exportService } from '../services/exportService';
+import { exportReportToPDF } from '../services/reportPdfService';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { Download, FileText, File, FileMinus } from 'lucide-react';
-import { subMonths, startOfDay, endOfDay, format as formatDate } from 'date-fns';
+import {
+  ReportTypeId,
+  MOCK_FIELD_SUMMARIES,
+  MOCK_HARVEST_RECORDS,
+  MOCK_PROFIT_LOSS,
+  MOCK_FIELD_COMPARISON,
+  MOCK_COMPARISON_INSIGHTS,
+  filterByFields,
+} from '../data/mockReportData';
+import FieldSummaryReportView from '../components/Reports/FieldSummaryReportView';
+import ProductionHarvestReportView from '../components/Reports/ProductionHarvestReportView';
+import ProfitLossReportView from '../components/Reports/ProfitLossReportView';
+import FieldComparisonReportView from '../components/Reports/FieldComparisonReportView';
+import {
+  Leaf,
+  Wheat,
+  Euro,
+  BarChart3,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  Calendar,
+  CheckSquare,
+  Square,
+  Eye,
+  Sparkles,
+} from 'lucide-react';
+import { format as formatDate } from 'date-fns';
 import './ReportsPage.css';
 
-type ReportType = 'field-summary' | 'task-completion' | 'cost-analysis' | 'lifecycle-progress' | 'producer-performance' | 'annual-summary';
-type ExportFormat = 'pdf' | 'excel' | 'csv';
+const REPORT_PREVIEW_ID = 'report-preview-document';
+
+const REPORT_META: Record<
+  ReportTypeId,
+  { icon: React.ReactNode; descriptionKey: string }
+> = {
+  'field-summary': {
+    icon: <Leaf size={22} />,
+    descriptionKey: 'fieldSummaryDesc',
+  },
+  'production-harvest': {
+    icon: <Wheat size={22} />,
+    descriptionKey: 'productionHarvestDesc',
+  },
+  'profit-loss': {
+    icon: <Euro size={22} />,
+    descriptionKey: 'profitLossDesc',
+  },
+  'field-comparison': {
+    icon: <BarChart3 size={22} />,
+    descriptionKey: 'fieldComparisonDesc',
+  },
+};
 
 const ReportsPage: React.FC = () => {
   const { t } = useTranslation('reports');
   const { user } = useAuth();
-  const [reportType, setReportType] = useState<ReportType>('field-summary');
-  const [startDate, setStartDate] = useState(formatDate(subMonths(new Date(), 1), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
+  const [reportType, setReportType] = useState<ReportTypeId>('field-summary');
+  const [season, setSeason] = useState('2025');
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   useEffect(() => {
     loadFields();
@@ -41,12 +83,6 @@ const ReportsPage: React.FC = () => {
     }
   }, [fields]);
 
-  useEffect(() => {
-    if (selectedFields.length > 0) {
-      loadTasks();
-    }
-  }, [selectedFields, startDate, endDate]);
-
   const loadFields = async () => {
     try {
       const fieldService = getFieldService();
@@ -54,28 +90,6 @@ const ReportsPage: React.FC = () => {
       setFields(fieldsData);
     } catch (error) {
       console.error('Error loading fields:', error);
-    }
-  };
-
-  const loadTasks = async () => {
-    try {
-      setLoading(true);
-      const taskService = getTaskService();
-      const allTasks = await taskService.getTasks();
-      
-      const filteredTasks = allTasks.filter(task => {
-        if (!task.createdAt) return false;
-        const taskDate = new Date(task.createdAt);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        return taskDate >= start && taskDate <= end && selectedFields.includes(task.fieldId);
-      });
-      
-      setTasks(filteredTasks);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -87,106 +101,162 @@ const ReportsPage: React.FC = () => {
     );
   };
 
-  const generateReport = async (format: ExportFormat) => {
+  const selectAllFields = () => setSelectedFields(fields.map(f => f.id));
+  const clearFields = () => setSelectedFields([]);
+
+  const filteredSummaries = useMemo(
+    () => filterByFields(MOCK_FIELD_SUMMARIES, selectedFields),
+    [selectedFields]
+  );
+
+  const filteredHarvest = useMemo(
+    () => filterByFields(MOCK_HARVEST_RECORDS, selectedFields),
+    [selectedFields]
+  );
+
+  const filteredComparison = useMemo(
+    () => filterByFields(MOCK_FIELD_COMPARISON, selectedFields),
+    [selectedFields]
+  );
+
+  const filteredProfitLoss = useMemo(() => {
+    const pl = { ...MOCK_PROFIT_LOSS };
+    pl.profitByField = filterByFields(MOCK_PROFIT_LOSS.profitByField, selectedFields);
+    return pl;
+  }, [selectedFields]);
+
+  const reportTitle = t(
+    reportType === 'field-summary'
+      ? 'fieldSummary'
+      : reportType === 'production-harvest'
+        ? 'productionHarvest'
+        : reportType === 'profit-loss'
+          ? 'profitLoss'
+          : 'fieldComparison'
+  );
+
+  const filename = `${reportType}-${season}-${formatDate(new Date(), 'yyyy-MM-dd')}`;
+
+  const exportPdf = useCallback(async () => {
     try {
       setGenerating(true);
-      const filename = `${reportType}-${formatDate(new Date(), 'yyyy-MM-dd')}`;
-
-      switch (reportType) {
-        case 'field-summary':
-          await generateFieldSummaryReport(format, filename);
-          break;
-        case 'task-completion':
-          await generateTaskCompletionReport(format, filename);
-          break;
-        case 'cost-analysis':
-          await generateCostAnalysisReport(format, filename);
-          break;
-        default:
-          alert('Report type not yet implemented');
-      }
+      await exportReportToPDF(REPORT_PREVIEW_ID, filename);
     } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Failed to generate report');
+      console.error('PDF export failed:', error);
     } finally {
       setGenerating(false);
     }
-  };
+  }, [filename]);
 
-  const generateFieldSummaryReport = async (format: ExportFormat, filename: string) => {
-    const headers = ['Field Name', 'Area (ha)', 'Variety', 'Lifecycle Year', 'Total Tasks', 'Completed Tasks', 'Completion Rate'];
-    const rows = fields
-      .filter(f => selectedFields.includes(f.id))
-      .map(field => {
-        const fieldTasks = tasks.filter(t => t.fieldId === field.id);
-        const completed = fieldTasks.filter(t => t.status === 'completed').length;
-        return [
-          field.name,
-          field.area,
-          field.variety || 'N/A',
-          field.currentLifecycleYear,
-          fieldTasks.length,
-          completed,
-          fieldTasks.length > 0 ? `${((completed / fieldTasks.length) * 100).toFixed(1)}%` : '0%',
+  const exportCsv = useCallback(() => {
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+
+    switch (reportType) {
+      case 'field-summary':
+        headers = ['Field', 'Area (ha)', 'Trees', 'Olives (kg)', 'Oil (kg)', 'Oil Yield %', 'Cost', 'Revenue', 'Profit'];
+        rows = filteredSummaries.map(f => [
+          f.fieldName, f.areaHa, f.treeCount, f.totalProductionKg,
+          f.oilProducedKg ?? '', f.oilYieldPercent ?? '', f.totalCost, f.revenue, f.profit,
+        ]);
+        break;
+      case 'production-harvest':
+        headers = ['Field', 'Date', 'Olive Kg', 'Oil Kg', 'Oil Yield %', 'Kg/Tree', 'Kg/Ha', 'Mill', 'Quality'];
+        rows = filteredHarvest.map(r => [
+          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg, r.oilYieldPercent,
+          r.kgPerTree, r.kgPerHa, r.millName, r.qualityGrade,
+        ]);
+        break;
+      case 'profit-loss':
+        headers = ['Category', 'Amount (€)'];
+        rows = [
+          ['Total Income', filteredProfitLoss.totalIncome],
+          ['Total Expenses', filteredProfitLoss.totalExpenses],
+          ['Net Profit', filteredProfitLoss.netProfit],
+          ['Cost/kg olives', filteredProfitLoss.costPerKgOlives],
+          ['Cost/kg oil', filteredProfitLoss.costPerKgOil],
         ];
-      });
-
-    const data = { headers, rows, title: t('fieldSummary') };
-    
-    if (format === 'csv') {
-      exportService.exportToCSV(data, filename);
-    } else if (format === 'excel') {
-      exportService.exportToExcel(data, filename);
-    } else {
-      exportService.exportTableToPDF(data, filename);
+        break;
+      case 'field-comparison':
+        headers = ['Field', 'Olive Kg', 'Oil Kg', 'Oil %', 'Kg/Ha', 'Cost/Ha', 'Profit/Ha', 'Pest'];
+        rows = filteredComparison.map(r => [
+          r.fieldName, r.oliveKg, r.oilKg, r.oilYieldPercent,
+          r.kgPerHa, r.costPerHa, r.profitPerHa, r.pestPressure,
+        ]);
+        break;
     }
-  };
 
-  const generateTaskCompletionReport = async (format: ExportFormat, filename: string) => {
-    const headers = ['Task Title', 'Field', 'Type', 'Status', 'Assigned To', 'Scheduled Start', 'Scheduled End', 'Actual End'];
-    const rows = tasks.map(task => {
-      const field = fields.find(f => f.id === task.fieldId);
-      return [
-        task.title,
-        field?.name || 'Unknown',
-        task.type,
-        task.status,
-        task.assignedTo || 'Unassigned',
-        task.scheduledStart ? formatDate(new Date(task.scheduledStart), 'yyyy-MM-dd') : 'N/A',
-        task.scheduledEnd ? formatDate(new Date(task.scheduledEnd), 'yyyy-MM-dd') : 'N/A',
-        task.actualEnd ? formatDate(new Date(task.actualEnd), 'yyyy-MM-dd') : 'N/A',
-      ];
-    });
+    exportService.exportToCSV({ headers, rows, title: reportTitle }, filename);
+  }, [reportType, filteredSummaries, filteredHarvest, filteredProfitLoss, filteredComparison, reportTitle, filename]);
 
-    const data = { headers, rows, title: t('taskCompletion') };
-    
-    if (format === 'csv') {
-      exportService.exportToCSV(data, filename);
-    } else if (format === 'excel') {
-      exportService.exportToExcel(data, filename);
-    } else {
-      exportService.exportTableToPDF(data, filename);
+  const exportExcel = useCallback(() => {
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+
+    switch (reportType) {
+      case 'field-summary':
+        headers = ['Field', 'Area (ha)', 'Trees', 'Olives (kg)', 'Oil (kg)', 'Oil Yield %', 'Cost', 'Revenue', 'Profit'];
+        rows = filteredSummaries.map(f => [
+          f.fieldName, f.areaHa, f.treeCount, f.totalProductionKg,
+          f.oilProducedKg ?? '', f.oilYieldPercent ?? '', f.totalCost, f.revenue, f.profit,
+        ]);
+        break;
+      case 'production-harvest':
+        headers = ['Field', 'Date', 'Olive Kg', 'Oil Kg', 'Oil Yield %', 'Kg/Tree', 'Kg/Ha', 'Mill', 'Quality'];
+        rows = filteredHarvest.map(r => [
+          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg, r.oilYieldPercent,
+          r.kgPerTree, r.kgPerHa, r.millName, r.qualityGrade,
+        ]);
+        break;
+      case 'profit-loss':
+        headers = ['Category', 'Amount (€)'];
+        rows = [
+          ['Total Income', filteredProfitLoss.totalIncome],
+          ['Total Expenses', filteredProfitLoss.totalExpenses],
+          ['Net Profit', filteredProfitLoss.netProfit],
+          ...filteredProfitLoss.profitByField.map(f => [`Profit — ${f.fieldName}`, f.profit]),
+        ];
+        break;
+      case 'field-comparison':
+        headers = ['Field', 'Olive Kg', 'Oil Kg', 'Oil %', 'Kg/Ha', 'Cost/Ha', 'Profit/Ha', 'Pest'];
+        rows = filteredComparison.map(r => [
+          r.fieldName, r.oliveKg, r.oilKg, r.oilYieldPercent,
+          r.kgPerHa, r.costPerHa, r.profitPerHa, r.pestPressure,
+        ]);
+        break;
     }
-  };
 
-  const generateCostAnalysisReport = async (format: ExportFormat, filename: string) => {
-    const analyticsService = getAnalyticsService();
-    const costAnalysis = await analyticsService.getCostAnalysis({
-      start: startOfDay(new Date(startDate)),
-      end: endOfDay(new Date(endDate)),
-    });
+    exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
+  }, [reportType, filteredSummaries, filteredHarvest, filteredProfitLoss, filteredComparison, reportTitle, filename]);
 
-    const headers = ['Field', 'Total Cost'];
-    const rows = costAnalysis.costByField.map(item => [item.fieldName, `$${item.cost.toFixed(2)}`]);
+  const renderPreview = () => {
+    if (selectedFields.length === 0) {
+      return (
+        <div className="report-empty-state">
+          <Leaf size={40} strokeWidth={1.5} />
+          <h3>{t('selectFieldsPrompt')}</h3>
+          <p>{t('selectFieldsHint')}</p>
+        </div>
+      );
+    }
 
-    const data = { headers, rows, title: t('costAnalysis') };
-    
-    if (format === 'csv') {
-      exportService.exportToCSV(data, filename);
-    } else if (format === 'excel') {
-      exportService.exportToExcel(data, filename);
-    } else {
-      exportService.exportTableToPDF(data, filename);
+    switch (reportType) {
+      case 'field-summary':
+        return <FieldSummaryReportView id={REPORT_PREVIEW_ID} data={filteredSummaries} />;
+      case 'production-harvest':
+        return <ProductionHarvestReportView id={REPORT_PREVIEW_ID} data={filteredHarvest} />;
+      case 'profit-loss':
+        return <ProfitLossReportView id={REPORT_PREVIEW_ID} data={filteredProfitLoss} />;
+      case 'field-comparison':
+        return (
+          <FieldComparisonReportView
+            id={REPORT_PREVIEW_ID}
+            data={filteredComparison}
+            insights={MOCK_COMPARISON_INSIGHTS}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -195,7 +265,7 @@ const ReportsPage: React.FC = () => {
       <PageContainer>
         <div className="reports-page">
           <Breadcrumbs />
-          <div className="error-message">You do not have permission to generate reports.</div>
+          <div className="reports-error">{t('noPermission')}</div>
         </div>
       </PageContainer>
     );
@@ -205,91 +275,152 @@ const ReportsPage: React.FC = () => {
     <PageContainer>
       <div className="reports-page">
         <Breadcrumbs />
-      
-      <div className="reports-header">
-        <h1>{t('title')}</h1>
-      </div>
 
-      <Card className="report-builder">
-        <div className="report-config">
-          <div className="config-section">
-            <label>Report Type</label>
-            <select value={reportType} onChange={(e) => setReportType(e.target.value as ReportType)}>
-              <option value="field-summary">Field Summary</option>
-              <option value="task-completion">Task Completion</option>
-              <option value="cost-analysis">Cost Analysis</option>
-              <option value="lifecycle-progress">Lifecycle Progress</option>
-              <option value="producer-performance">Producer Performance</option>
-              <option value="annual-summary">Annual Summary</option>
-            </select>
+        <header className="reports-hero">
+          <div>
+            <h1>{t('title')}</h1>
+            <p className="reports-subtitle">{t('subtitle')}</p>
           </div>
+          <div className="reports-hero-badge">
+            <Sparkles size={14} />
+            <span>{t('demoData')}</span>
+          </div>
+        </header>
 
-          <div className="config-section">
-            <label>Date Range</label>
-            <div className="date-inputs">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-              <span>to</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
+        <div className="reports-layout">
+          {/* Sidebar — report type picker */}
+          <aside className="reports-sidebar">
+            <h2 className="reports-sidebar-title">{t('reportType')}</h2>
+            <div className="report-type-list">
+              {(Object.keys(REPORT_META) as ReportTypeId[]).map(type => {
+                const meta = REPORT_META[type];
+                const isActive = reportType === type;
+                const labelKey =
+                  type === 'field-summary'
+                    ? 'fieldSummary'
+                    : type === 'production-harvest'
+                      ? 'productionHarvest'
+                      : type === 'profit-loss'
+                        ? 'profitLoss'
+                        : 'fieldComparison';
+
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    className={`report-type-card ${isActive ? 'active' : ''}`}
+                    onClick={() => setReportType(type)}
+                  >
+                    <div className="report-type-icon">{meta.icon}</div>
+                    <div className="report-type-text">
+                      <span className="report-type-name">{t(labelKey)}</span>
+                      <span className="report-type-desc">{t(meta.descriptionKey)}</span>
+                    </div>
+                    {type === 'field-summary' && (
+                      <span className="report-type-default">{t('default')}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
 
-          <div className="config-section">
-            <label>Fields</label>
-            <div className="field-checkboxes">
-              {fields.map(field => (
-                <label key={field.id} className="field-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedFields.includes(field.id)}
-                    onChange={() => handleFieldToggle(field.id)}
-                  />
-                  <span>{field.name}</span>
+            <div className="reports-filters">
+              <div className="filter-group">
+                <label>
+                  <Calendar size={14} />
+                  {t('season')}
                 </label>
-              ))}
+                <select value={season} onChange={e => setSeason(e.target.value)}>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <div className="filter-group-header">
+                  <label>{t('fields')}</label>
+                  <div className="field-select-actions">
+                    <button type="button" onClick={selectAllFields}>{t('selectAll')}</button>
+                    <button type="button" onClick={clearFields}>{t('clearAll')}</button>
+                  </div>
+                </div>
+                <div className="field-select-list">
+                  {fields.map(field => {
+                    const checked = selectedFields.includes(field.id);
+                    return (
+                      <button
+                        key={field.id}
+                        type="button"
+                        className={`field-select-item ${checked ? 'selected' : ''}`}
+                        onClick={() => handleFieldToggle(field.id)}
+                      >
+                        {checked ? <CheckSquare size={16} /> : <Square size={16} />}
+                        <span>{field.name}</span>
+                        <span className="field-area">{field.area} ha</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
+          </aside>
 
-          <div className="export-buttons">
-            <Button
-              onClick={() => generateReport('pdf')}
-              disabled={generating || selectedFields.length === 0}
-              loading={generating}
-              variant="primary"
-              icon={<FileText />}
-            >
-              Export PDF
-            </Button>
-            <Button
-              onClick={() => generateReport('excel')}
-              disabled={generating || selectedFields.length === 0}
-              loading={generating}
-              variant="success"
-              icon={<File />}
-            >
-              Export Excel
-            </Button>
-            <Button
-              onClick={() => generateReport('csv')}
-              disabled={generating || selectedFields.length === 0}
-              loading={generating}
-              variant="secondary"
-              icon={<FileMinus />}
-            >
-              Export CSV
-            </Button>
-          </div>
+          {/* Main — preview + actions */}
+          <main className="reports-main">
+            <div className="reports-toolbar">
+              <div className="reports-toolbar-left">
+                <h2>{reportTitle}</h2>
+                <span className="reports-toolbar-meta">
+                  {selectedFields.length} {t('fieldsSelected')} · {t('season')} {season}
+                </span>
+              </div>
+              <div className="reports-toolbar-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Eye size={16} />}
+                  onClick={() => setShowPreview(v => !v)}
+                >
+                  {showPreview ? t('hidePreview') : t('showPreview')}
+                </Button>
+                <Button
+                  variant="primary"
+                  icon={<Download size={16} />}
+                  onClick={exportPdf}
+                  disabled={generating || selectedFields.length === 0}
+                  loading={generating}
+                >
+                  {t('exportPdf')}
+                </Button>
+                <Button
+                  variant="outline"
+                  icon={<FileSpreadsheet size={16} />}
+                  onClick={exportExcel}
+                  disabled={generating || selectedFields.length === 0}
+                >
+                  {t('exportExcel')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  icon={<FileText size={16} />}
+                  onClick={exportCsv}
+                  disabled={generating || selectedFields.length === 0}
+                >
+                  CSV
+                </Button>
+              </div>
+            </div>
+
+            {showPreview && (
+              <Card className="report-preview-card" padding="none">
+                <div className="report-preview-scroll">
+                  {renderPreview()}
+                </div>
+              </Card>
+            )}
+          </main>
         </div>
-
-        {loading && <LoadingSpinner />}
-      </Card>
       </div>
     </PageContainer>
   );

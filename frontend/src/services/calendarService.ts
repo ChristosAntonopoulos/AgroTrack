@@ -1,4 +1,5 @@
 import { getTaskService } from './serviceFactory';
+import { getTaskCategoryColor } from '../utils/calendarRecommendations';
 import { Task } from './taskService';
 import { Field } from './fieldService';
 import { Lifecycle } from './lifecycleService';
@@ -76,7 +77,7 @@ export const calendarService = {
           status: task.status,
           fieldId: task.fieldId,
           taskId: task.id,
-          color: getTaskStatusColor(task.status),
+          color: getTaskCategoryColor(task.type) || getTaskStatusColor(task.status),
         });
       });
     }

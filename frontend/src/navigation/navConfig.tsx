@@ -9,8 +9,6 @@ import {
   Calendar,
   Bell,
   Route,
-  ClipboardCheck,
-  AlertTriangle,
   Settings,
 } from 'lucide-react';
 
@@ -74,20 +72,6 @@ export const navItems: NavItem[] = [
     section: 'operations',
   },
   {
-    path: '/approvals',
-    labelKey: 'items.approvals',
-    icon: <ClipboardCheck />,
-    roles: ['FieldOwner', 'Administrator'],
-    section: 'operations',
-  },
-  {
-    path: '/issues',
-    labelKey: 'items.issues',
-    icon: <AlertTriangle />,
-    roles: ['FieldOwner', 'Administrator'],
-    section: 'operations',
-  },
-  {
     path: '/calendar',
     labelKey: 'items.calendar',
     icon: <Calendar />,
@@ -144,6 +128,7 @@ export const resolvePageTitle = (pathname: string, role: AppRole, t: TFunction<'
   const matched = navItems.find((i) => isNavActive(pathname, i.path));
   if (matched) return resolveNavItemLabel(matched, role, t);
 
+  if (pathname.includes('/task-templates')) return t('nav:breadcrumb.taskTemplates');
   if (pathname.includes('/new')) return t('breadcrumb.new');
   if (pathname.includes('/edit')) return t('breadcrumb.edit');
   return t('common:appName', { defaultValue: 'Olive Lifecycle' });
@@ -159,6 +144,7 @@ export const resolveBreadcrumbLabel = (
 
   if (segment === 'new') return t('breadcrumb.new');
   if (segment === 'edit') return t('breadcrumb.edit');
+  if (segment === 'task-templates') return t('breadcrumb.taskTemplates');
 
   if (/^[a-zA-Z0-9_-]{6,}$/.test(segment)) return t('breadcrumb.details');
 

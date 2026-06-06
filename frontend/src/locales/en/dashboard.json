@@ -1,34 +1,113 @@
 {
   "title": "Dashboard",
-  "welcome": "Welcome back, {{email}}",
+  "welcome": "Welcome, {{name}}",
+  "welcomeFallback": "Welcome back",
+  "roleOwner": "Field Owner",
+  "roleProducer": "Producer",
+  "todayDate": "{{date}}",
+  "onboarding": {
+    "title": "Quick start",
+    "subtitle": "Complete these steps one at a time to learn the app",
+    "dismiss": "Dismiss",
+    "stepOf": "Step {{current}} of {{total}}",
+    "completeTitle": "All done! Onboarding complete",
+    "completeHint": "Explore the app freely. Switch roles on the login page to see your partner's experience.",
+    "producer": {
+      "step1": {
+        "label": "Open the Today page",
+        "hint": "See your route and today's priorities.",
+        "action": "Go to Today"
+      },
+      "step2": {
+        "label": "Start a task",
+        "hint": "Open a field and start work from the task board.",
+        "action": "Open a field"
+      },
+      "step3": {
+        "label": "Add evidence",
+        "hint": "Attach a photo and note for completed work.",
+        "action": "Open a field"
+      }
+    },
+    "owner": {
+      "step1": {
+        "label": "View the seasonal calendar",
+        "hint": "Recommended olive tasks for the current month.",
+        "action": "Open calendar"
+      },
+      "step2": {
+        "label": "Schedule from a template",
+        "hint": "Create a seasonal task with a prefilled checklist.",
+        "action": "New task"
+      },
+      "step3": {
+        "label": "Check the activity timeline",
+        "hint": "Open any field and see recent activity.",
+        "action": "Open fields"
+      }
+    }
+  },
+  "quickActions": {
+    "title": "Quick actions",
+    "today": "Today",
+    "todaySub": "Route and daily tasks",
+    "calendar": "Calendar",
+    "calendarSub": "Seasonal planning",
+    "reports": "Reports",
+    "reportsSub": "Production & finances",
+    "newTask": "New task",
+    "newTaskSub": "Schedule work",
+    "fields": "Fields",
+    "fieldsSub": "View all",
+    "tasks": "Tasks",
+    "tasksSub": "All tasks"
+  },
+  "alerts": {
+    "title": "Needs attention",
+    "overdue": "Overdue tasks",
+    "overdueSub": "Work past its due date",
+    "fieldsAtRisk": "Fields at risk",
+    "fieldsAtRiskSub": "Fields with overdue work",
+    "pendingApproval": "Pending approval",
+    "pendingApprovalSub": "Completed tasks awaiting your sign-off",
+    "none": "All clear — nothing urgent"
+  },
   "ownerCommand": {
-    "approvalsPending": "Approvals pending",
-    "approvalsSub": "Review completed work from producers.",
-    "issuesOpen": "Issues open",
-    "highSeverity": "<strong>{{count}}</strong> high severity need attention.",
-    "noHighSeverity": "No high severity issues.",
+    "overdueTasks": "Overdue tasks",
+    "overdueSub": "Work past its due date across your fields.",
+    "seasonalCalendar": "Seasonal calendar",
+    "seasonalSub": "See recommended olive tasks for this month.",
     "fieldsAtRisk": "Fields at risk",
     "fieldsAtRiskSub": "Fields with overdue work."
   },
   "stats": {
-    "totalFields": "Total Fields",
-    "totalArea": "Total Area",
-    "lowYearFields": "Low Year Fields",
-    "highYearFields": "High Year Fields",
-    "pendingTasks": "Pending Tasks",
-    "inProgress": "In Progress",
+    "totalFields": "Fields",
+    "totalArea": "Total area",
+    "lowYearFields": "Low-yield year",
+    "highYearFields": "High-yield year",
+    "pendingTasks": "Pending",
+    "inProgress": "In progress",
     "completed": "Completed",
-    "totalTasks": "Total Tasks"
+    "totalTasks": "Total tasks",
+    "dueToday": "Due today",
+    "overdue": "Overdue"
   },
   "fieldsSection": {
-    "ownerTitle": "My Fields",
-    "workerTitle": "Fields I Work On",
+    "ownerTitle": "My fields",
+    "workerTitle": "Assigned fields",
     "emptyOwner": "No fields yet. <1>Create your first field</1>",
     "emptyWorker": "No fields assigned yet."
   },
   "tasksSection": {
-    "title": "Recent Tasks",
+    "title": "Priorities",
+    "recentTitle": "Recent tasks",
     "emptyProducer": "No tasks assigned yet.",
-    "emptyDefault": "No tasks available yet."
+    "emptyDefault": "No tasks available yet.",
+    "viewToday": "See all on Today"
+  },
+  "producerHero": {
+    "title": "Start with Today",
+    "subtitle": "See today's tasks and your field route.",
+    "cta": "Go to Today"
   }
 }

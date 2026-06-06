@@ -42,12 +42,16 @@ export const mockAuthService = {
     const token = `mock_token_${userId}_${Date.now()}`;
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     
+    const mockProfile = mockUsers.find(u => u.email === user.email);
+
     return {
       token,
       userId,
       email: user.email,
       role: user.role,
       expiresAt,
+      firstName: mockProfile?.firstName,
+      lastName: mockProfile?.lastName,
     };
   },
 

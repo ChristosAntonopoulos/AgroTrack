@@ -11,37 +11,16 @@ export const mockUsers: User[] = [
   {
     id: 'user1',
     email: 'owner@olivefarm.com',
-    firstName: 'John',
-    lastName: 'Smith',
+    firstName: 'Γιώργος',
+    lastName: 'Παπαδάκης',
     role: 'FieldOwner',
   },
   {
     id: 'user2',
     email: 'producer1@olivefarm.com',
-    firstName: 'Maria',
-    lastName: 'Garcia',
+    firstName: 'Κώστας',
+    lastName: 'Μανουσάκης',
     role: 'Producer',
-  },
-  {
-    id: 'user3',
-    email: 'producer2@olivefarm.com',
-    firstName: 'Ahmed',
-    lastName: 'Hassan',
-    role: 'Producer',
-  },
-  {
-    id: 'user4',
-    email: 'producer3@olivefarm.com',
-    firstName: 'Sophie',
-    lastName: 'Martin',
-    role: 'Producer',
-  },
-  {
-    id: 'user5',
-    email: 'agronomist@olivefarm.com',
-    firstName: 'Dr. James',
-    lastName: 'Wilson',
-    role: 'Agronomist',
   },
 ];
 

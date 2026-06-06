@@ -14,8 +14,6 @@
     "fieldsOwner": "Τα αγροτεμάχιά μου",
     "tasks": "Εργασίες",
     "tasksProducer": "Οι εργασίες μου",
-    "approvals": "Εγκρίσεις",
-    "issues": "Θέματα",
     "calendar": "Ημερολόγιο",
     "analytics": "Αναλυτικά",
     "reports": "Αναφορές",
@@ -25,6 +23,7 @@
   "breadcrumb": {
     "new": "Νέο",
     "edit": "Επεξεργασία",
-    "details": "Λεπτομέρειες"
+    "details": "Λεπτομέρειες",
+    "taskTemplates": "Πρότυπα εργασιών"
   }
 }

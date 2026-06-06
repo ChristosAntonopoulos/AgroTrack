@@ -35,8 +35,8 @@ export type DemoStepKey =
   | 'producer_visit_today'
   | 'producer_start_task'
   | 'producer_add_evidence'
-  | 'owner_visit_approvals'
-  | 'owner_approve_task'
+  | 'owner_visit_calendar'
+  | 'owner_schedule_template'
   | 'owner_view_timeline';
 
 export type DemoProgress = {
@@ -82,7 +82,7 @@ type DemoState = {
 };
 
 const STORAGE_KEY = 'agrotrack_demo_state_v1';
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 8;
 
 export type DemoRouteState = {
   active: boolean;
@@ -98,8 +98,8 @@ const defaultProgressForRole = (role: string): DemoProgress => {
       producer_visit_today: false,
       producer_start_task: false,
       producer_add_evidence: false,
-      owner_visit_approvals: false,
-      owner_approve_task: false,
+      owner_visit_calendar: false,
+      owner_schedule_template: false,
       owner_view_timeline: false,
     },
   };

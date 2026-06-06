@@ -5,6 +5,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { User, LogOut, Menu } from 'lucide-react';
 import NotificationBell from '../Notifications/NotificationBell';
 import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
+import { useLocale } from '../../context/LocaleProvider';
+import { SUPPORTED_LOCALES, SupportedLocale } from '../../i18n/config';
 import './Header.css';
 
 interface HeaderProps {
@@ -14,6 +16,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { t } = useTranslation(['common', 'nav']);
   const { user, logout } = useAuth();
+  const { locale, setLocale } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const role = (user?.role || '') as AppRole;
@@ -26,6 +29,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   const getRoleDisplayName = (userRole: string) =>
     t(`common:roles.${userRole}`, { defaultValue: userRole });
+
+  const bilingualLocales = SUPPORTED_LOCALES.filter((l) => l.code === 'en' || l.code === 'el');
 
   return (
     <header className="app-header">
@@ -40,6 +45,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       </div>
 
       <div className="header-right">
+        <div className="header-lang-switch" role="group" aria-label={t('common:language', { defaultValue: 'Language' })}>
+          {bilingualLocales.map((lang) => (
+            <button
+              key={lang.code}
+              type="button"
+              className={`header-lang-btn ${locale === lang.code ? 'header-lang-btn-active' : ''}`}
+              onClick={() => setLocale(lang.code as SupportedLocale)}
+              aria-pressed={locale === lang.code}
+            >
+              {lang.code.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
         <NotificationBell />
 
         <div className="user-menu">

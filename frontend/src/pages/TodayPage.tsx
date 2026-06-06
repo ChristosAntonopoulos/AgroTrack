@@ -9,6 +9,7 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import DemoTourPanel from '../components/Demo/DemoTourPanel';
 import { demoStore } from '../services/demo/demoStore';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
@@ -205,6 +206,15 @@ const TodayPage: React.FC = () => {
     <PageContainer>
       <div className="today-page">
         <Breadcrumbs />
+
+        {user?.userId && (() => {
+          const progress = demoStore.getDemoProgress(user.userId, user.role || 'Producer');
+          return !progress.dismissed ? (
+            <div className="today-onboarding">
+              <DemoTourPanel userId={user.userId} role={user.role || 'Producer'} />
+            </div>
+          ) : null;
+        })()}
 
         <div className="today-header">
           <div>

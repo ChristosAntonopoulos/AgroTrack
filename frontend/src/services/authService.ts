@@ -19,6 +19,8 @@ export interface AuthResponse {
   email: string;
   role: string;
   expiresAt: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export const authService = {

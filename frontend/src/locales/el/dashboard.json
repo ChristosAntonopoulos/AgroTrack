@@ -1,34 +1,113 @@
 {
-  "title": "Dashboard",
-  "welcome": "Welcome back, {{email}}",
+  "title": "Αρχική",
+  "welcome": "Καλώς ήρθες, {{name}}",
+  "welcomeFallback": "Καλώς ήρθες",
+  "roleOwner": "Ιδιοκτήτης",
+  "roleProducer": "Παραγωγός",
+  "todayDate": "{{date}}",
+  "onboarding": {
+    "title": "Γρήγορη εξοικείωση",
+    "subtitle": "Ολοκλήρωσε τα βήματα ένα-ένα για να γνωρίσεις την εφαρμογή",
+    "dismiss": "Απόκρυψη",
+    "stepOf": "Βήμα {{current}} από {{total}}",
+    "completeTitle": "Τέλεια! Ολοκλήρωσες την εξοικείωση",
+    "completeHint": "Μπορείς τώρα να εξερευνήσεις όλες τις λειτουργίες. Άλλαξε ρόλο στη σύνδεση για να δεις την εμπειρία του συνεργάτη σου.",
+    "producer": {
+      "step1": {
+        "label": "Άνοιξε τη σελίδα Σήμερα",
+        "hint": "Δες τη διαδρομή σου και τις προτεραιότητες της ημέρας.",
+        "action": "Μετάβαση στο Σήμερα"
+      },
+      "step2": {
+        "label": "Ξεκίνα μια εργασία",
+        "hint": "Άνοιξε ένα αγροτεμάχιο και ξεκίνα εργασία από τον πίνακα εργασιών.",
+        "action": "Άνοιξε αγροτεμάχιο"
+      },
+      "step3": {
+        "label": "Πρόσθεσε απόδειξη",
+        "hint": "Ανέβασε φωτογραφία και σημείωση για την ολοκληρωμένη εργασία.",
+        "action": "Άνοιξε αγροτεμάχιο"
+      }
+    },
+    "owner": {
+      "step1": {
+        "label": "Δες το εποχιακό ημερολόγιο",
+        "hint": "Προτεινόμενες εργασίες ελιάς για τον τρέχοντα μήνα.",
+        "action": "Άνοιξε το ημερολόγιο"
+      },
+      "step2": {
+        "label": "Πρόγραμμάτισε εργασία από πρότυπο",
+        "hint": "Δημιούργησε εποχιακή εργασία με έτοιμη λίστα ελέγχου.",
+        "action": "Νέα εργασία"
+      },
+      "step3": {
+        "label": "Δες το χρονολόγιο δραστηριότητας",
+        "hint": "Άνοιξε ένα αγροτεμάχιο και δες τι έγινε πρόσφατα.",
+        "action": "Άνοιξε αγροτεμάχια"
+      }
+    }
+  },
+  "quickActions": {
+    "title": "Γρήγορες ενέργειες",
+    "today": "Σήμερα",
+    "todaySub": "Διαδρομή και εργασίες ημέρας",
+    "calendar": "Ημερολόγιο",
+    "calendarSub": "Εποχιακός προγραμματισμός",
+    "reports": "Αναφορές",
+    "reportsSub": "Παραγωγή & οικονομικά",
+    "newTask": "Νέα εργασία",
+    "newTaskSub": "Πρόγραμματισμός εργασίας",
+    "fields": "Αγροτεμάχια",
+    "fieldsSub": "Επισκόπηση όλων",
+    "tasks": "Εργασίες",
+    "tasksSub": "Όλες οι εργασίες"
+  },
+  "alerts": {
+    "title": "Χρειάζεται προσοχή",
+    "overdue": "Εκπρόθεσμες εργασίες",
+    "overdueSub": "Εργασίες που έχουν περάσει την ημερομηνία λήξης",
+    "fieldsAtRisk": "Αγροτεμάχια σε κίνδυνο",
+    "fieldsAtRiskSub": "Αγροτεμάχια με εκπρόθεσμες εργασίες",
+    "pendingApproval": "Εκκρεμεί έγκριση",
+    "pendingApprovalSub": "Ολοκληρωμένες εργασίες που περιμένουν έγκριση",
+    "none": "Όλα καλά — καμία επείγουσα ενέργεια"
+  },
   "ownerCommand": {
-    "approvalsPending": "Approvals pending",
-    "approvalsSub": "Review completed work from producers.",
-    "issuesOpen": "Issues open",
-    "highSeverity": "<strong>{{count}}</strong> high severity need attention.",
-    "noHighSeverity": "No high severity issues.",
-    "fieldsAtRisk": "Fields at risk",
-    "fieldsAtRiskSub": "Fields with overdue work."
+    "overdueTasks": "Εκπρόθεσμες εργασίες",
+    "overdueSub": "Εργασίες που έχουν περάσει την ημερομηνία λήξης.",
+    "seasonalCalendar": "Εποχιακό ημερολόγιο",
+    "seasonalSub": "Δείτε προτεινόμενες εργασίες ελιάς για αυτόν τον μήνα.",
+    "fieldsAtRisk": "Αγροτεμάχια σε κίνδυνο",
+    "fieldsAtRiskSub": "Αγροτεμάχια με εκπρόθεσμες εργασίες."
   },
   "stats": {
-    "totalFields": "Total Fields",
-    "totalArea": "Total Area",
-    "lowYearFields": "Low Year Fields",
-    "highYearFields": "High Year Fields",
-    "pendingTasks": "Pending Tasks",
-    "inProgress": "In Progress",
-    "completed": "Completed",
-    "totalTasks": "Total Tasks"
+    "totalFields": "Αγροτεμάχια",
+    "totalArea": "Συνολική έκταση",
+    "lowYearFields": "Χρονιά χαμηλής καρποφορίας",
+    "highYearFields": "Χρονιά υψηλής καρποφορίας",
+    "pendingTasks": "Εκκρεμείς",
+    "inProgress": "Σε εξέλιξη",
+    "completed": "Ολοκληρωμένες",
+    "totalTasks": "Σύνολο εργασιών",
+    "dueToday": "Σήμερα",
+    "overdue": "Εκπρόθεσμες"
   },
   "fieldsSection": {
-    "ownerTitle": "My Fields",
-    "workerTitle": "Fields I Work On",
-    "emptyOwner": "No fields yet. <1>Create your first field</1>",
-    "emptyWorker": "No fields assigned yet."
+    "ownerTitle": "Τα αγροτεμάχια μου",
+    "workerTitle": "Αγροτεμάχια εργασίας",
+    "emptyOwner": "Δεν υπάρχουν αγροτεμάχια ακόμα. <1>Δημιούργησε το πρώτο</1>",
+    "emptyWorker": "Δεν έχουν ανατεθεί αγροτεμάχια ακόμα."
   },
   "tasksSection": {
-    "title": "Recent Tasks",
-    "emptyProducer": "No tasks assigned yet.",
-    "emptyDefault": "No tasks available yet."
+    "title": "Προτεραιότητες",
+    "recentTitle": "Πρόσφατες εργασίες",
+    "emptyProducer": "Δεν έχουν ανατεθεί εργασίες ακόμα.",
+    "emptyDefault": "Δεν υπάρχουν διαθέσιμες εργασίες.",
+    "viewToday": "Δες όλες στο Σήμερα"
+  },
+  "producerHero": {
+    "title": "Ξεκίνα από το Σήμερα",
+    "subtitle": "Δες τις εργασίες της ημέρας και τη διαδρομή σου στα αγροτεμάχια.",
+    "cta": "Μετάβαση στο Σήμερα"
   }
 }

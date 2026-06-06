@@ -2,6 +2,251 @@
   width: 100%;
 }
 
+/* Compact header + status bar */
+.fd-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.fd-header-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.fd-header-main h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.fd-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  justify-content: flex-end;
+}
+
+.fd-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  background: var(--bg-interactive);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fd-status-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+}
+
+.fd-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 72px;
+}
+
+.fd-metric-value {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--color-text-primary);
+}
+
+.fd-metric-label {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.fd-metric--warn .fd-metric-value {
+  color: var(--color-error);
+}
+
+.fd-metric--info .fd-metric-value {
+  color: var(--color-primary);
+}
+
+.fd-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  justify-content: flex-end;
+}
+
+.fd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.fd-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.fd-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.fd-sidebar-card {
+  margin-bottom: 0;
+}
+
+.fd-sidebar-title {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-primary);
+  padding-bottom: var(--spacing-xs);
+}
+
+.fd-facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.fd-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.92rem;
+}
+
+.fd-facts > div:last-child {
+  border-bottom: none;
+}
+
+.fd-facts dt {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.fd-facts dd {
+  margin: 0;
+  text-align: right;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.fd-coords {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  word-break: break-all;
+}
+
+.fd-my-tasks-card {
+  margin-top: 0;
+}
+
+.fd-my-tasks-card .fd-sidebar-title {
+  font-size: 1.1rem;
+}
+
+.lifecycle-compact .lifecycle-status {
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+}
+
+.lifecycle-compact .lifecycle-info {
+  gap: var(--spacing-sm);
+}
+
+.fd-lifecycle-meta {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+
+.approvals-list-compact .approval-item {
+  padding: var(--spacing-sm);
+}
+
+.approvals-list-compact .approval-actions {
+  flex-wrap: wrap;
+}
+
+.mytask-evidence-hint {
+  margin-top: var(--spacing-xs);
+  font-size: 0.85rem;
+  color: var(--color-warning);
+}
+
+@media (max-width: 960px) {
+  .fd-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fd-sidebar {
+    order: 2;
+  }
+
+  .fd-header-actions .fd-btn-label,
+  .fd-status-actions .fd-btn-label {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .fd-status-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fd-status-metrics {
+    justify-content: space-between;
+  }
+
+  .fd-status-actions {
+    justify-content: stretch;
+  }
+
+  .fd-status-actions .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .assignments-add {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fcr-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fcr-tabs button {
+    flex-shrink: 0;
+  }
+}
+
 .field-detail-header {
   display: flex;
   justify-content: space-between;

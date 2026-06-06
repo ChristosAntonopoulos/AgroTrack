@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../Common/Card';
 import Button from '../Common/Button';
 import Badge from '../Common/Badge';
 import { demoStore, DemoStepKey } from '../../services/demo/demoStore';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Circle, Sparkles, ChevronRight } from 'lucide-react';
 import './DemoTourPanel.css';
 
 type Props = {
@@ -14,32 +16,28 @@ type Props = {
 
 type Step = {
   key: DemoStepKey;
-  label: string;
-  hint: string;
-  actionLabel?: string;
-  action?: () => void;
+  labelKey: string;
+  hintKey: string;
+  actionLabelKey: string;
+  action: () => void;
 };
 
 const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
+  const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
-
   const progress = demoStore.getDemoProgress(userId, role);
 
-  // Auto-check steps based on events.
   useEffect(() => {
     demoStore.ensureSeeded();
     const events = demoStore.getEvents();
 
     if (role === 'Producer') {
-      const started = events.some((e) => e.type === 'task_status_changed' && e.actorUserId === userId && e.message.startsWith('Task started'));
+      const started = events.some(
+        (e) => e.type === 'task_status_changed' && e.actorUserId === userId && e.message.startsWith('Task started')
+      );
       const evidence = events.some((e) => e.type === 'evidence_added' && e.actorUserId === userId);
       if (started) demoStore.markDemoStep(userId, role, 'producer_start_task');
       if (evidence) demoStore.markDemoStep(userId, role, 'producer_add_evidence');
-    }
-
-    if (role === 'FieldOwner' || role === 'Administrator') {
-      const approved = events.some((e) => e.type === 'task_approved' && e.actorUserId === 'user1');
-      if (approved) demoStore.markDemoStep(userId, role, 'owner_approve_task');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, role]);
@@ -49,23 +47,23 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
       return [
         {
           key: 'producer_visit_today',
-          label: 'Open Today',
-          hint: 'See your route and recommended next tasks.',
-          actionLabel: 'Go to Today',
+          labelKey: 'onboarding.producer.step1.label',
+          hintKey: 'onboarding.producer.step1.hint',
+          actionLabelKey: 'onboarding.producer.step1.action',
           action: () => navigate('/today'),
         },
         {
           key: 'producer_start_task',
-          label: 'Start a task',
-          hint: 'Use the Operations Board on a field to start work.',
-          actionLabel: 'Open a field',
+          labelKey: 'onboarding.producer.step2.label',
+          hintKey: 'onboarding.producer.step2.hint',
+          actionLabelKey: 'onboarding.producer.step2.action',
           action: () => navigate('/fields'),
         },
         {
           key: 'producer_add_evidence',
-          label: 'Add evidence',
-          hint: 'Attach a photo URL and a quick note.',
-          actionLabel: 'Open a field',
+          labelKey: 'onboarding.producer.step3.label',
+          hintKey: 'onboarding.producer.step3.hint',
+          actionLabelKey: 'onboarding.producer.step3.action',
           action: () => navigate('/fields'),
         },
       ];
@@ -73,24 +71,24 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
 
     return [
       {
-        key: 'owner_visit_approvals',
-        label: 'Open Approvals Inbox',
-        hint: 'Review completed work from producers.',
-        actionLabel: 'Go to Approvals',
-        action: () => navigate('/approvals'),
+        key: 'owner_visit_calendar',
+        labelKey: 'onboarding.owner.step1.label',
+        hintKey: 'onboarding.owner.step1.hint',
+        actionLabelKey: 'onboarding.owner.step1.action',
+        action: () => navigate('/calendar'),
       },
       {
-        key: 'owner_approve_task',
-        label: 'Approve a task',
-        hint: 'Approve one item and watch the system update.',
-        actionLabel: 'Go to Approvals',
-        action: () => navigate('/approvals'),
+        key: 'owner_schedule_template',
+        labelKey: 'onboarding.owner.step2.label',
+        hintKey: 'onboarding.owner.step2.hint',
+        actionLabelKey: 'onboarding.owner.step2.action',
+        action: () => navigate('/tasks/new'),
       },
       {
         key: 'owner_view_timeline',
-        label: 'See the timeline update',
-        hint: 'Open any field and check the Activity Timeline.',
-        actionLabel: 'Open Fields',
+        labelKey: 'onboarding.owner.step3.label',
+        hintKey: 'onboarding.owner.step3.hint',
+        actionLabelKey: 'onboarding.owner.step3.action',
         action: () => navigate('/fields'),
       },
     ];
@@ -98,17 +96,25 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
 
   const completed = steps.filter((s) => progress.steps[s.key]).length;
   const total = steps.length;
+  const currentStep = steps.find((s) => !progress.steps[s.key]) ?? null;
+  const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const allDone = completed === total;
 
   return (
-    <Card className="demo-tour" padding="md">
-      <div className="demo-tour-header">
-        <div>
-          <div className="demo-tour-title">Try this next</div>
-          <div className="demo-tour-subtitle">A quick path to the best parts of the demo</div>
+    <Card className="onboarding-panel" padding="none">
+      <div className="onboarding-header">
+        <div className="onboarding-header-left">
+          <div className="onboarding-icon">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <div className="onboarding-title">{t('onboarding.title')}</div>
+            <div className="onboarding-subtitle">{t('onboarding.subtitle')}</div>
+          </div>
         </div>
-        <div className="demo-tour-right">
-          <Badge variant={completed === total ? 'success' : 'info'} size="sm">
-            {completed}/{total} done
+        <div className="onboarding-header-right">
+          <Badge variant={allDone ? 'success' : 'info'} size="sm">
+            {completed}/{total}
           </Badge>
           <Button
             variant="ghost"
@@ -118,41 +124,57 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
               onClose?.();
             }}
           >
-            Dismiss
+            {t('onboarding.dismiss')}
           </Button>
         </div>
       </div>
 
-      <div className="demo-tour-steps">
-        {steps.map((s) => {
+      <div className="onboarding-progress-bar">
+        <div className="onboarding-progress-fill" style={{ width: `${progressPct}%` }} />
+      </div>
+
+      {allDone ? (
+        <div className="onboarding-complete">
+          <CheckCircle2 size={32} className="onboarding-complete-icon" />
+          <h3>{t('onboarding.completeTitle')}</h3>
+          <p>{t('onboarding.completeHint')}</p>
+        </div>
+      ) : currentStep ? (
+        <div className="onboarding-current">
+          <div className="onboarding-step-number">
+            {t('onboarding.stepOf', { current: completed + 1, total })}
+          </div>
+          <h3 className="onboarding-current-label">{t(currentStep.labelKey)}</h3>
+          <p className="onboarding-current-hint">{t(currentStep.hintKey)}</p>
+          <Button variant="primary" icon={<ChevronRight size={16} />} onClick={currentStep.action}>
+            {t(currentStep.actionLabelKey)}
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="onboarding-checklist">
+        {steps.map((s, index) => {
           const done = progress.steps[s.key];
+          const isCurrent = !done && s.key === currentStep?.key;
           return (
-            <div key={s.key} className={`demo-tour-step ${done ? 'done' : ''}`}>
-              <div className="demo-tour-step-left">
-                <div className="demo-tour-check">{done ? '✓' : ''}</div>
-                <div>
-                  <div className="demo-tour-step-label">{s.label}</div>
-                  <div className="demo-tour-step-hint">{s.hint}</div>
-                </div>
-              </div>
-              {s.action && s.actionLabel ? (
-                <Button variant={done ? 'outline' : 'primary'} size="sm" onClick={s.action}>
-                  {s.actionLabel}
-                </Button>
-              ) : null}
+            <div
+              key={s.key}
+              className={`onboarding-check-item ${done ? 'done' : ''} ${isCurrent ? 'current' : ''}`}
+            >
+              {done ? (
+                <CheckCircle2 size={18} className="onboarding-check-icon done" />
+              ) : (
+                <Circle size={18} className="onboarding-check-icon" />
+              )}
+              <span className="onboarding-check-label">
+                {index + 1}. {t(s.labelKey)}
+              </span>
             </div>
           );
         })}
       </div>
-
-      {completed === total ? (
-        <div className="demo-tour-finish">
-          You’ve completed the core demo flow. Try switching roles on the login page to see the shared world.
-        </div>
-      ) : null}
     </Card>
   );
 };
 
 export default DemoTourPanel;
-

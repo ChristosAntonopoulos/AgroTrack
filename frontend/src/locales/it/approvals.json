@@ -1,8 +1,0 @@
-{
-  "title": "Approvals",
-  "subtitle": "Review completed tasks from producers",
-  "emptyTitle": "No pending approvals",
-  "emptyDescription": "Completed tasks awaiting your approval will appear here.",
-  "approve": "Approve",
-  "reject": "Reject"
-}

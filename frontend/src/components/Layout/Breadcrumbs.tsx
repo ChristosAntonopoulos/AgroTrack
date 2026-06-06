@@ -19,7 +19,7 @@ const Breadcrumbs: React.FC = () => {
   }
 
   const resolveDynamicLabel = (segment: string, to: string) => {
-    if (to.startsWith('/fields/') && segment !== 'fields' && segment !== 'new' && segment !== 'edit') {
+    if (to.startsWith('/fields/') && segment !== 'fields' && segment !== 'new' && segment !== 'edit' && segment !== 'task-templates') {
       demoStore.ensureSeeded();
       const f = demoStore.getFields().find((x) => x.id === segment);
       if (f?.name) return f.name;

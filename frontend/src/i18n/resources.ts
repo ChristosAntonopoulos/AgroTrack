@@ -12,9 +12,8 @@ import enCalendar from '../locales/en/calendar.json';
 import enAnalytics from '../locales/en/analytics.json';
 import enReports from '../locales/en/reports.json';
 import enMinistry from '../locales/en/ministry.json';
-import enApprovals from '../locales/en/approvals.json';
-import enIssues from '../locales/en/issues.json';
 import enToday from '../locales/en/today.json';
+import enTaskTemplates from '../locales/en/taskTemplates.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -28,9 +27,9 @@ import elCalendar from '../locales/el/calendar.json';
 import elAnalytics from '../locales/el/analytics.json';
 import elReports from '../locales/el/reports.json';
 import elMinistry from '../locales/el/ministry.json';
-import elApprovals from '../locales/el/approvals.json';
-import elIssues from '../locales/el/issues.json';
 import elToday from '../locales/el/today.json';
+import elTaskTemplates from '../locales/el/taskTemplates.json';
+import elTaskTemplateEntries from '../locales/el/taskTemplateEntries.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -44,8 +43,6 @@ import itCalendar from '../locales/it/calendar.json';
 import itAnalytics from '../locales/it/analytics.json';
 import itReports from '../locales/it/reports.json';
 import itMinistry from '../locales/it/ministry.json';
-import itApprovals from '../locales/it/approvals.json';
-import itIssues from '../locales/it/issues.json';
 import itToday from '../locales/it/today.json';
 
 const bundle = (
@@ -61,9 +58,8 @@ const bundle = (
   analytics: object,
   reports: object,
   ministry: object,
-  approvals: object,
-  issues: object,
-  today: object
+  today: object,
+  taskTemplates: object
 ) => ({
   common,
   nav,
@@ -77,9 +73,8 @@ const bundle = (
   analytics,
   reports,
   ministry,
-  approvals,
-  issues,
   today,
+  taskTemplates,
 });
 
 export const resources: Record<
@@ -99,9 +94,8 @@ export const resources: Record<
     enAnalytics,
     enReports,
     enMinistry,
-    enApprovals,
-    enIssues,
-    enToday
+    enToday,
+    enTaskTemplates
   ),
   el: bundle(
     elCommon,
@@ -116,9 +110,8 @@ export const resources: Record<
     elAnalytics,
     elReports,
     elMinistry,
-    elApprovals,
-    elIssues,
-    elToday
+    elToday,
+    { ...elTaskTemplates, templates: elTaskTemplateEntries }
   ),
   it: bundle(
     itCommon,
@@ -133,8 +126,7 @@ export const resources: Record<
     itAnalytics,
     itReports,
     itMinistry,
-    itApprovals,
-    itIssues,
-    itToday
+    itToday,
+    enTaskTemplates
   ),
 };

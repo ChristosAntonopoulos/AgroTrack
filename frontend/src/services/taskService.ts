@@ -23,7 +23,7 @@ export interface Task {
   assignedTo?: string;
   approvalStatus?: 'not_required' | 'pending' | 'approved' | 'rejected';
   approvalNote?: string;
-  priority?: 'Low' | 'Medium' | 'High';
+  priority?: 'Low' | 'Medium' | 'High' | 'Critical';
   estimatedMinutes?: number;
   materials?: string[];
   checklist?: string[];
@@ -41,6 +41,7 @@ export interface Task {
 
 export interface CreateTaskDto {
   fieldId: string;
+  templateId?: string;
   type: string;
   title: string;
   description?: string;
@@ -48,6 +49,11 @@ export interface CreateTaskDto {
   assignedTo?: string;
   scheduledStart?: string;
   scheduledEnd?: string;
+  priority?: 'Low' | 'Medium' | 'High' | 'Critical';
+  checklist?: string[];
+  repetition?: string;
+  completionFields?: string[];
+  notes?: string;
 }
 
 export const taskService = {
