@@ -1,30 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Linking, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, Linking, Alert } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
 import { Lifecycle } from '../services/lifecycleService';
 import { Activity } from '../services/activityService';
-import { getFieldService, getTaskService, getLifecycleService, getActivityService } from '../services/serviceFactory';
+import {
+  getFieldService,
+  getTaskService,
+  getLifecycleService,
+  getActivityService,
+} from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import Card from '../components/ui/Card';
-import ListItem from '../components/lists/ListItem';
+import ScreenLayout from '../components/layout/ScreenLayout';
 import Section from '../components/layout/Section';
-import StatCard from '../components/domain/StatCard';
-import StatsGrid from '../components/layout/StatsGrid';
+import OverviewMetricsStrip from '../components/layout/OverviewMetricsStrip';
+import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import LifecycleIndicator from '../components/LifecycleIndicator';
-import LoadingSpinner from '../components/LoadingSpinner';
+import QuickActionRow from '../components/ui/QuickActionRow';
+import InfoRow from '../components/ui/InfoRow';
+import AlertBanner from '../components/ui/AlertBanner';
+import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
+import AgendaTaskRow from '../components/domain/AgendaTaskRow';
 import WeatherWidget from '../components/domain/WeatherWidget';
-import StatusBadge from '../components/StatusBadge';
-import { weatherService, WeatherAlert } from '../services/weatherService';
-import { colors, typography, spacing } from '../theme';
-import { formatDate } from '../utils/formatters';
-import { toBoolean } from '../utils/booleanConverter';
+import ActivityTimeline from '../components/domain/ActivityTimeline';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import { weatherService, WeatherAlert, WeatherData } from '../services/weatherService';
+import { typography, spacing } from '../theme';
+import { createElevation } from '../theme/elevation';
+import { formatLocaleDate } from '../utils/formatters';
+import { fieldGradientColors, fieldHealthStatus, getAgendaTasks } from '../utils/dashboardUtils';
+import { normalizeStage } from '../utils/lifecycleUtils';
+import { isTaskOverdue } from '../utils/taskListUtils';
 import { RootStackParamList } from '../navigation/types';
+import { OverviewMetricCardProps } from '../components/ui/OverviewMetricCard';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
@@ -34,21 +48,20 @@ const FieldDetailScreen = () => {
   const navigation = useNavigation<Nav>();
   const { fieldId } = route.params;
   const { isFieldOwner } = useAuth();
-  const { colors: themeColors } = useTheme();
-  const { t } = useTranslation(['fields', 'common']);
+  const { colors } = useTheme();
+  const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks']);
+
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [producerIds, setProducerIds] = useState<string[]>([]);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
+  const [loading, setLoading] = useState(true);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
 
-  useEffect(() => {
-    loadFieldDetails();
-  }, [fieldId]);
-
-  const loadFieldDetails = async () => {
+  const loadFieldDetails = useCallback(async () => {
     try {
       setLoading(true);
       const [fieldData, lifecycleData, tasksData] = await Promise.all([
@@ -56,9 +69,16 @@ const FieldDetailScreen = () => {
         getLifecycleService().getLifecycle(fieldId),
         getTaskService().getTasksByField(fieldId),
       ]);
+
       setField(fieldData);
       setLifecycle(lifecycleData);
       setTasks(tasksData);
+
+      const producers =
+        fieldData.assignedProducerIds?.length
+          ? fieldData.assignedProducerIds
+          : await getFieldService().getProducers(fieldId).catch(() => []);
+      setProducerIds(producers);
 
       try {
         const acts = await getActivityService().getActivities(fieldId, 10);
@@ -67,28 +87,44 @@ const FieldDetailScreen = () => {
         setActivities([]);
       }
 
-      // Load weather alerts if field has coordinates
-      if (fieldData?.latitude && fieldData?.longitude) {
-        try {
-          const alerts = await weatherService.getWeatherAlerts(
-            fieldData.latitude,
-            fieldData.longitude
-          );
-          setWeatherAlerts(alerts);
-        } catch (error) {
-          console.error('Error loading weather alerts:', error);
-        }
+      if (fieldData.latitude != null && fieldData.longitude != null) {
+        const [wx, alerts] = await Promise.all([
+          weatherService.getCurrentWeather(fieldData.latitude, fieldData.longitude),
+          weatherService.getWeatherAlerts(fieldData.latitude, fieldData.longitude).catch(() => []),
+        ]);
+        setWeather(wx);
+        setWeatherAlerts(alerts);
+      } else {
+        setWeather(null);
+        setWeatherAlerts([]);
       }
     } catch (error) {
       console.error('Error loading field details:', error);
+      setField(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fieldId]);
 
-  const handleTaskPress = (task: Task) => {
-    navigation.navigate('TaskDetail', { taskId: task.id });
-  };
+  useEffect(() => {
+    loadFieldDetails();
+  }, [loadFieldDetails]);
+
+  const openTasks = useMemo(
+    () => tasks.filter(tk => tk.status !== 'completed'),
+    [tasks]
+  );
+  const overdueCount = useMemo(
+    () => openTasks.filter(tk => isTaskOverdue(tk)).length,
+    [openTasks]
+  );
+  const agendaTasks = useMemo(() => getAgendaTasks(tasks, 5), [tasks]);
+  const completedCount = tasks.length - openTasks.length;
+  const completionRate = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
+  const currentStage =
+    lifecycle?.currentStage ?? field?.currentLifecycleStage ?? 'dormancy';
+  const currentYear = lifecycle?.currentYear ?? field?.currentLifecycleYear ?? 'low';
 
   const handleLifecycleAction = async (action: 'advance' | 'revert' | 'progress' | 'init') => {
     try {
@@ -99,6 +135,8 @@ const FieldDetailScreen = () => {
       else if (action === 'progress') updated = await getLifecycleService().progressCycle(fieldId);
       else updated = await getLifecycleService().initializeLifecycle(fieldId);
       setLifecycle(updated);
+      const refreshed = await getFieldService().getField(fieldId);
+      setField(refreshed);
     } catch (error: any) {
       Alert.alert(t('fields:lifecycle'), error.message);
     } finally {
@@ -106,852 +144,432 @@ const FieldDetailScreen = () => {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
+  const goTab = (screen: 'Tasks' | 'Calendar') => {
+    const params = { fieldId, date: new Date().toISOString() };
+    if (screen === 'Tasks') {
+      navigation.navigate('Main', { screen: 'Tasks', params: { fieldId } });
+    } else {
+      navigation.navigate('Main', { screen: 'Calendar', params });
+    }
+  };
+
+  const openMaps = () => {
+    if (field?.latitude != null && field?.longitude != null) {
+      Linking.openURL(`https://www.google.com/maps?q=${field.latitude},${field.longitude}`);
+    }
+  };
+
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!field) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Field not found</Text>
-        <Button
-          title="Back"
-          onPress={() => navigation.goBack()}
-          variant="outline"
+      <ScreenLayout padded style={styles.centered}>
+        <EmptyState
+          icon={<Ionicons name="alert-circle-outline" size={36} color={colors.error} />}
+          title={t('fields:notFound')}
+          action={{ label: t('common:back'), onPress: () => navigation.goBack() }}
         />
-      </View>
+      </ScreenLayout>
     );
   }
 
-  const completedCount = tasks.filter(t => t.status === 'completed').length;
-  const taskStats = {
-    total: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
-    inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: completedCount,
-    completionRate: tasks.length > 0
-      ? Math.round((completedCount / tasks.length) * 100)
-      : 0,
-  };
+  const [gradStart, gradEnd] = fieldGradientColors(field.id);
+  const health = fieldHealthStatus(field, openTasks.length, overdueCount > 0);
+  const hasGps = field.latitude != null && field.longitude != null;
 
-  const fieldLocation = field.latitude && field.longitude
-    ? { lat: field.latitude, lng: field.longitude }
-    : null;
+  const glanceMetrics: OverviewMetricCardProps[] = [
+    {
+      icon: 'resize-outline',
+      value: `${field.area} ha`,
+      label: t('fields:areaShort'),
+      subtitle: field.variety ?? field.groundType ?? t('fields:hectaresUnit'),
+      accentColor: colors.primary,
+    },
+    {
+      icon: 'time-outline',
+      value: field.treeAge ?? '—',
+      label: t('fields:treeAge'),
+      subtitle: field.treeAge ? t('fields:yearsUnit') : t('fields:notSet'),
+      accentColor: colors.info,
+    },
+    {
+      icon: 'clipboard-outline',
+      value: openTasks.length,
+      label: t('fields:openTasks'),
+      subtitle:
+        overdueCount > 0
+          ? t('fields:overdueOnField', { count: overdueCount })
+          : `${completionRate}% ${t('fields:complete')}`,
+      subtitleColor: overdueCount > 0 ? colors.error : colors.textTertiary,
+      accentColor: overdueCount > 0 ? colors.error : colors.warning,
+      onPress: () => goTab('Tasks'),
+    },
+    {
+      icon: 'people-outline',
+      value: producerIds.length,
+      label: t('fields:producers'),
+      subtitle: t('fields:assigned'),
+      accentColor: colors.secondary,
+    },
+    {
+      icon: field.irrigationStatus ? 'water' : 'water-outline',
+      value: field.irrigationStatus ? t('common:yes') : t('common:no'),
+      label: t('fields:irrigation'),
+      subtitle: field.irrigationStatus ? t('fields:irrigated') : t('fields:dry'),
+      accentColor: field.irrigationStatus ? colors.info : colors.textTertiary,
+    },
+    {
+      icon: 'leaf-outline',
+      value: t(`common:lifecycleYear.${currentYear}`),
+      label: t('fields:currentStage'),
+      subtitle: t(`common:lifecycleStage.${normalizeStage(currentStage)}`),
+      accentColor: colors.success,
+    },
+  ];
 
-  const handleOpenGPS = () => {
-    if (field.latitude && field.longitude) {
-      const url = `https://www.google.com/maps?q=${field.latitude},${field.longitude}`;
-      Linking.openURL(url).catch(err => console.error('Error opening GPS:', err));
-    }
-  };
-
-  const getTaskTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      'Pruning': '✂️',
-      'Harvesting': '🌾',
-      'Fertilization': '🌱',
-      'Irrigation': '💧',
-      'Pest Control': '🐛',
-      'Soil Analysis': '🔬',
-    };
-    return icons[type] || '📋';
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return colors.error;
-      case 'high':
-        return colors.warning;
-      case 'medium':
-        return colors.info;
-      default:
-        return colors.gray400;
-    }
-  };
+  const quickActions = [
+    {
+      id: 'tasks',
+      icon: 'list-outline' as const,
+      label: t('fields:viewTasks'),
+      onPress: () => goTab('Tasks'),
+    },
+    {
+      id: 'calendar',
+      icon: 'calendar-outline' as const,
+      label: t('fields:viewCalendar'),
+      onPress: () => goTab('Calendar'),
+    },
+    ...(hasGps
+      ? [{ id: 'maps', icon: 'map-outline' as const, label: t('fields:openMaps'), onPress: openMaps }]
+      : []),
+    ...(isFieldOwner()
+      ? [
+          {
+            id: 'edit',
+            icon: 'create-outline' as const,
+            label: t('fields:editField'),
+            onPress: () => navigation.navigate('FieldForm', { fieldId }),
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Hero Header Section */}
-      <View style={styles.heroSection}>
-        <View style={styles.heroHeader}>
-          <Text style={styles.heroIcon}>🏡</Text>
-          <View style={styles.heroTitleContainer}>
-            <Text style={styles.heroTitle}>{field.name}</Text>
-            <View style={styles.lifecycleBadgeContainer}>
-              <LifecycleIndicator year={field.currentLifecycleYear} />
+    <ScreenLayout scroll contentContainerStyle={styles.content}>
+      <View
+        style={[
+          styles.hero,
+          { backgroundColor: gradStart, ...createElevation(colors, 'md') },
+        ]}
+      >
+        <View style={[styles.heroOverlay, { backgroundColor: gradEnd + '99' }]} />
+        <View style={styles.heroBody}>
+          <View style={styles.heroTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.heroName, { color: colors.textInverse }]}>{field.name}</Text>
+              {field.variety ? (
+                <Text style={[styles.heroVariety, { color: colors.textInverse + 'CC' }]}>
+                  {field.variety}
+                </Text>
+              ) : null}
             </View>
-          </View>
-        </View>
-        
-        {/* Quick Stats Row */}
-        <View style={styles.quickStatsRow}>
-          <View style={styles.quickStatCard}>
-            <Text style={styles.quickStatIcon}>📏</Text>
-            <Text style={styles.quickStatValue}>{field.area}</Text>
-            <Text style={styles.quickStatLabel}>ha</Text>
-          </View>
-          {field.variety ? (
-            <View style={styles.quickStatCard}>
-              <Text style={styles.quickStatIcon}>🌳</Text>
-              <Text style={styles.quickStatValue} numberOfLines={1}>
-                {field.variety}
+            <View
+              style={[
+                styles.healthBadge,
+                { backgroundColor: health === 'healthy' ? colors.success : colors.warning },
+              ]}
+            >
+              <Text style={[styles.healthText, { color: colors.textInverse }]}>
+                {health === 'healthy' ? t('dashboard:fieldHealthy') : t('dashboard:fieldMonitor')}
               </Text>
             </View>
-          ) : null}
-          {field.treeAge ? (
-            <View style={styles.quickStatCard}>
-              <Text style={styles.quickStatIcon}>⏳</Text>
-              <Text style={styles.quickStatValue}>{field.treeAge}</Text>
-              <Text style={styles.quickStatLabel}>years</Text>
+          </View>
+          <View style={styles.heroMeta}>
+            <View style={[styles.yearPill, { backgroundColor: colors.textInverse + '22' }]}>
+              <Text style={[styles.yearText, { color: colors.textInverse }]}>
+                {t(`common:lifecycleYear.${currentYear}`)}
+              </Text>
             </View>
-          ) : null}
+            <Text style={[styles.stageText, { color: colors.textInverse }]}>
+              {t(`common:lifecycleStage.${normalizeStage(currentStage)}`)}
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Weather & Location Section */}
-      {fieldLocation ? (
-        <Section title="Weather & Location">
-          <WeatherWidget
-            location={fieldLocation}
-            fieldName={field.name}
-            field={{
-              irrigationStatus: field.irrigationStatus,
-              currentLifecycleYear: field.currentLifecycleYear,
-            }}
-          />
-          
-          {/* Weather Alerts */}
-          {weatherAlerts.length > 0 ? (
-            <View style={styles.alertsContainer}>
-              {weatherAlerts.map((alert, index) => (
-                <Card
-                  key={index}
-                  style={[
-                    styles.alertCard,
-                    { borderLeftColor: getSeverityColor(alert.severity) },
-                  ]}
-                >
-                  <View style={styles.alertHeader}>
-                    <Text style={styles.alertIcon}>
-                      {alert.type === 'frost' ? '❄️' :
-                       alert.type === 'storm' ? '⛈️' :
-                       alert.type === 'drought' ? '🌵' :
-                       alert.type === 'wind' ? '💨' : '🌡️'}
-                    </Text>
-                    <View style={styles.alertContent}>
-                      <Text style={styles.alertTitle}>{alert.type.toUpperCase()} Alert</Text>
-                      <Text style={styles.alertMessage}>{alert.message}</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.severityBadge,
-                        { backgroundColor: getSeverityColor(alert.severity) + '20' },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.severityText,
-                          { color: getSeverityColor(alert.severity) },
-                        ]}
-                      >
-                        {alert.severity}
-                      </Text>
-                    </View>
-                  </View>
-                </Card>
-              ))}
-            </View>
-          ) : null}
+      <View style={styles.quickRow}>
+        <QuickActionRow actions={quickActions} />
+      </View>
 
-          {/* GPS Location */}
-          <Card style={styles.gpsCard}>
-            <View style={styles.gpsHeader}>
-              <Text style={styles.gpsIcon}>📍</Text>
-              <View style={styles.gpsInfo}>
-                <Text style={styles.gpsTitle}>GPS Coordinates</Text>
-                <Text style={styles.gpsCoordinates}>
-                  {field.latitude.toFixed(6)}, {field.longitude.toFixed(6)}
-                </Text>
-              </View>
-              <Button
-                title="🗺️ Maps"
-                onPress={handleOpenGPS}
-                variant="outline"
-                size="small"
-                style={styles.gpsButton}
-              />
-            </View>
-          </Card>
-        </Section>
+      <View style={styles.glanceBlock}>
+        <Text style={[styles.glanceTitle, { color: colors.textPrimary }]}>
+          {t('fields:atAGlance')}
+        </Text>
+        <OverviewMetricsStrip metrics={glanceMetrics} embedded />
+      </View>
+
+      {overdueCount > 0 ? (
+        <View style={styles.bannerWrap}>
+          <AlertBanner
+            variant="error"
+            icon="alert-circle"
+            message={t('fields:overdueOnField', { count: overdueCount })}
+            onPress={() => goTab('Tasks')}
+          />
+        </View>
       ) : null}
 
-      {/* Task Overview - Elegant Design */}
-      <Section title="Task Overview">
-        <Card style={styles.taskOverviewCard}>
-          <View style={styles.taskOverviewHeader}>
-            <View style={styles.taskOverviewTitleRow}>
-              <Text style={styles.taskOverviewIcon}>📋</Text>
-              <View style={styles.taskOverviewTitleContainer}>
-                <Text style={styles.taskOverviewTitle}>Total Tasks</Text>
-                <Text style={styles.taskOverviewSubtitle}>
-                  {taskStats.completionRate}% completed
-                </Text>
-              </View>
-              <Text style={styles.taskOverviewTotal}>{taskStats.total}</Text>
-            </View>
-            
-            {/* Overall Progress Bar */}
-            {tasks.length > 0 ? (
-              <View style={styles.taskOverviewProgressContainer}>
-                <View style={styles.taskOverviewProgressBar}>
-                  <View
-                    style={[
-                      styles.taskOverviewProgressFill,
-                      {
-                        width: `${taskStats.completionRate}%`,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-            ) : null}
-          </View>
+      {weatherAlerts.map((alert, index) => (
+        <View key={`${alert.type}-${index}`} style={styles.bannerWrap}>
+          <AlertBanner
+            variant="warning"
+            icon="warning"
+            message={alert.message}
+          />
+        </View>
+      ))}
 
-          {/* Task Status Breakdown */}
-          <View style={styles.taskBreakdown}>
-            <View style={styles.taskBreakdownItem}>
-              <View style={styles.taskBreakdownHeader}>
-                <View style={[styles.taskBreakdownDot, { backgroundColor: colors.warning }]} />
-                <Text style={styles.taskBreakdownLabel}>Pending</Text>
-              </View>
-              <Text style={styles.taskBreakdownValue}>{taskStats.pending}</Text>
-              {tasks.length > 0 ? (
-                <View style={styles.taskBreakdownBar}>
-                  <View
-                    style={[
-                      styles.taskBreakdownBarFill,
-                      {
-                        width: `${(taskStats.pending / tasks.length) * 100}%`,
-                        backgroundColor: colors.warning,
-                      },
-                    ]}
-                  />
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.taskBreakdownItem}>
-              <View style={styles.taskBreakdownHeader}>
-                <View style={[styles.taskBreakdownDot, { backgroundColor: colors.info }]} />
-                <Text style={styles.taskBreakdownLabel}>In Progress</Text>
-              </View>
-              <Text style={styles.taskBreakdownValue}>{taskStats.inProgress}</Text>
-              {tasks.length > 0 ? (
-                <View style={styles.taskBreakdownBar}>
-                  <View
-                    style={[
-                      styles.taskBreakdownBarFill,
-                      {
-                        width: `${(taskStats.inProgress / tasks.length) * 100}%`,
-                        backgroundColor: colors.info,
-                      },
-                    ]}
-                  />
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.taskBreakdownItem}>
-              <View style={styles.taskBreakdownHeader}>
-                <View style={[styles.taskBreakdownDot, { backgroundColor: colors.success }]} />
-                <Text style={styles.taskBreakdownLabel}>Completed</Text>
-              </View>
-              <Text style={styles.taskBreakdownValue}>{taskStats.completed}</Text>
-              {tasks.length > 0 ? (
-                <View style={styles.taskBreakdownBar}>
-                  <View
-                    style={[
-                      styles.taskBreakdownBarFill,
-                      {
-                        width: `${(taskStats.completed / tasks.length) * 100}%`,
-                        backgroundColor: colors.success,
-                      },
-                    ]}
-                  />
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </Card>
-      </Section>
-
-      {/* Field Information */}
-      <Section title="Field Details">
-        <Card>
-          <View style={styles.infoGroup}>
-            <Text style={styles.infoGroupTitle}>Basic Information</Text>
-            <ListItem
-              title="Area"
-              leftIcon={<Text style={styles.listIcon}>📏</Text>}
-              rightContent={<Text style={styles.value}>{field.area} hectares</Text>}
-              showDivider={true}
-            />
-            {field.variety ? (
-              <ListItem
-                title="Variety"
-                leftIcon={<Text style={styles.listIcon}>🌳</Text>}
-                rightContent={<Text style={styles.value}>{field.variety}</Text>}
-                showDivider={true}
-              />
-            ) : null}
-            {field.treeAge ? (
-              <ListItem
-                title="Tree Age"
-                leftIcon={<Text style={styles.listIcon}>⏳</Text>}
-                rightContent={<Text style={styles.value}>{field.treeAge} years</Text>}
-                showDivider={false}
-              />
-            ) : null}
-          </View>
-
-          <View style={styles.infoGroup}>
-            <Text style={styles.infoGroupTitle}>Soil & Infrastructure</Text>
-            {field.groundType ? (
-              <ListItem
-                title="Ground Type"
-                leftIcon={<Text style={styles.listIcon}>🌍</Text>}
-                rightContent={<Text style={styles.value}>{field.groundType}</Text>}
-                showDivider={true}
-              />
-            ) : null}
-            <ListItem
-              title="Irrigation"
-              leftIcon={<Text style={styles.listIcon}>💧</Text>}
-              rightContent={
-                <View style={styles.irrigationStatus}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      {
-                        backgroundColor: toBoolean(field.irrigationStatus)
-                          ? colors.success
-                          : colors.gray400,
-                      },
-                    ]}
-                  />
-                  <Text style={styles.value}>
-                    {toBoolean(field.irrigationStatus) ? 'Yes' : 'No'}
-                  </Text>
-                </View>
-              }
+      {hasGps ? (
+        <Section title={t('fields:weatherLocation')}>
+          <WeatherWidget weather={weather} />
+          <Card variant="outlined" style={styles.gpsCard}>
+            <InfoRow
+              icon="location-outline"
+              label={t('fields:coordinates')}
+              value={`${field.latitude!.toFixed(4)}, ${field.longitude!.toFixed(4)}`}
               showDivider={false}
             />
-          </View>
-        </Card>
-      </Section>
-
-      {/* Lifecycle Information */}
-      {lifecycle ? (
-        <Section title="Lifecycle">
-          <Card>
-            <View style={styles.lifecycleHeader}>
-              <View style={styles.lifecycleIndicatorContainer}>
-                <Text style={styles.lifecycleLabel}>Current Year</Text>
-                <LifecycleIndicator year={lifecycle.currentYear} />
-              </View>
-            </View>
-            <View style={styles.lifecycleDates}>
-              <View style={styles.dateCard}>
-                <Text style={styles.dateLabel}>Cycle Start</Text>
-                <Text style={styles.dateValue}>
-                  {formatDate(lifecycle.cycleStartDate)}
-                </Text>
-              </View>
-              {lifecycle.lastProgressionDate ? (
-                <View style={styles.dateCard}>
-                  <Text style={styles.dateLabel}>Last Progression</Text>
-                  <Text style={styles.dateValue}>
-                    {formatDate(lifecycle.lastProgressionDate)}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            <Button
+              title={t('fields:openMaps')}
+              onPress={openMaps}
+              variant="outline"
+              size="small"
+              style={styles.mapsBtn}
+            />
           </Card>
         </Section>
       ) : null}
 
-      {/* Tasks Section */}
-      {tasks.length > 0 ? (
-        <Section title="Tasks">
-          {tasks.slice(0, 5).map((task) => (
-            <Card
-              key={task.id}
-              onPress={() => handleTaskPress(task)}
-              style={styles.taskCard}
-            >
-              <View style={styles.taskHeader}>
-                <View style={styles.taskTitleRow}>
-                  <Text style={styles.taskTypeIcon}>
-                    {getTaskTypeIcon(task.type)}
-                  </Text>
-                  <View style={styles.taskInfo}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <Text style={styles.taskType}>{task.type}</Text>
-                  </View>
-                </View>
-                <StatusBadge status={task.status} showIcon={true} />
-              </View>
-              {task.description ? (
-                <Text style={styles.taskDescription} numberOfLines={2}>
-                  {task.description}
-                </Text>
+      <Section title={t('fields:lifecycle')}>
+        <Card>
+          <View style={styles.lifecycleHeader}>
+            <Text style={[styles.lifecycleTitle, { color: colors.textPrimary }]}>
+              {t(`common:lifecycleYear.${currentYear}`)}
+            </Text>
+            <Text style={[styles.lifecycleSub, { color: colors.textSecondary }]}>
+              {t('fields:currentStage')}: {t(`common:lifecycleStage.${normalizeStage(currentStage)}`)}
+            </Text>
+          </View>
+          <LifecycleStageStepper currentStage={currentStage} />
+          {lifecycle ? (
+            <View style={[styles.dateRow, { borderTopColor: colors.borderLight }]}>
+              <DateBlock
+                label={t('fields:cycleStart')}
+                value={formatLocaleDate(new Date(lifecycle.cycleStartDate), i18n.language)}
+                colors={colors}
+              />
+              {lifecycle.lastProgressionDate ? (
+                <DateBlock
+                  label={t('fields:lastProgression')}
+                  value={formatLocaleDate(new Date(lifecycle.lastProgressionDate), i18n.language)}
+                  colors={colors}
+                />
               ) : null}
-              <View style={styles.taskFooter}>
-                {task.scheduledStart ? (
-                  <View style={styles.taskDate}>
-                    <Text style={styles.taskDateIcon}>📅</Text>
-                    <Text style={styles.taskDateText}>
-                      {formatDate(task.scheduledStart)}
-                    </Text>
-                  </View>
-                ) : null}
-                {task.scheduledEnd && task.scheduledStart ? (
-                  <Text style={styles.taskDateSeparator}>→</Text>
-                ) : null}
-                {task.scheduledEnd ? (
-                  <View style={styles.taskDate}>
-                    <Text style={styles.taskDateText}>
-                      {formatDate(task.scheduledEnd)}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </Card>
-          ))}
-          {tasks.length > 5 ? (
-            <Button
-              title={`View All ${tasks.length} Tasks`}
-              onPress={() => navigation.navigate('Tasks', { fieldId: field.id })}
-              variant="outline"
-              style={styles.viewAllButton}
+            </View>
+          ) : (
+            <Text style={[styles.noLifecycle, { color: colors.textSecondary }]}>
+              {t('fields:noLifecycleYet')}
+            </Text>
+          )}
+        </Card>
+      </Section>
+
+      <Section title={t('fields:fieldDetails')}>
+        <Card>
+          <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={field.name} />
+          {field.variety ? (
+            <InfoRow icon="nutrition-outline" label={t('fields:variety')} value={field.variety} />
+          ) : null}
+          <InfoRow
+            icon="resize-outline"
+            label={t('fields:area')}
+            value={`${field.area} ${t('fields:hectaresUnit')}`}
+          />
+          {field.groundType ? (
+            <InfoRow icon="earth-outline" label={t('fields:groundType')} value={field.groundType} />
+          ) : null}
+          <InfoRow
+            icon="water-outline"
+            label={t('fields:irrigation')}
+            value={field.irrigationStatus ? t('fields:irrigated') : t('fields:dry')}
+          />
+          {field.treeAge ? (
+            <InfoRow
+              icon="time-outline"
+              label={t('fields:treeAge')}
+              value={`${field.treeAge} ${t('fields:yearsUnit')}`}
             />
           ) : null}
+          <InfoRow
+            icon="calendar-outline"
+            label={t('fields:created')}
+            value={formatLocaleDate(new Date(field.createdAt), i18n.language)}
+          />
+          <InfoRow
+            icon="refresh-outline"
+            label={t('fields:lastUpdated')}
+            value={formatLocaleDate(new Date(field.updatedAt), i18n.language)}
+            showDivider={false}
+          />
+        </Card>
+      </Section>
+
+      <Section
+        title={t('fields:upcomingTasks')}
+        actionLabel={tasks.length > 0 ? t('fields:viewAllTasks', { count: tasks.length }) : undefined}
+        onActionPress={tasks.length > 0 ? () => goTab('Tasks') : undefined}
+      >
+        {agendaTasks.length > 0 ? (
+          agendaTasks.map(task => (
+            <AgendaTaskRow
+              key={task.id}
+              task={task}
+              onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
+            />
+          ))
+        ) : (
+          <EmptyState
+            icon={<Ionicons name="clipboard-outline" size={32} color={colors.textTertiary} />}
+            title={t('fields:noOpenTasks')}
+            description={t('fields:noOpenTasksHint')}
+            action={
+              isFieldOwner()
+                ? {
+                    label: t('tasks:createTask'),
+                    onPress: () => navigation.navigate('CreateTask', { fieldId }),
+                  }
+                : undefined
+            }
+          />
+        )}
+      </Section>
+
+      {activities.length > 0 ? (
+        <Section title={t('fields:activity')}>
+          <ActivityTimeline activities={activities} fieldNames={{ [field.id]: field.name }} />
         </Section>
       ) : null}
 
       {isFieldOwner() ? (
-        <Section title={t('common:actions')}>
-          <View style={localStyles.ownerActions}>
-            <Button title={t('fields:editField')} variant="outline" onPress={() => navigation.navigate('FieldForm', { fieldId })} />
+        <Section title={t('fields:manageField')}>
+          <View style={styles.ownerActions}>
             {!lifecycle ? (
-              <Button title={t('fields:initializeLifecycle')} onPress={() => handleLifecycleAction('init')} loading={lifecycleLoading} />
+              <Button
+                title={t('fields:initializeLifecycle')}
+                onPress={() => handleLifecycleAction('init')}
+                loading={lifecycleLoading}
+              />
             ) : (
               <>
-                <Button title={t('fields:advanceStage')} onPress={() => handleLifecycleAction('advance')} loading={lifecycleLoading} />
-                <Button title={t('fields:revertStage')} variant="outline" onPress={() => handleLifecycleAction('revert')} loading={lifecycleLoading} />
-                <Button title={t('fields:toggleYear')} variant="outline" onPress={() => handleLifecycleAction('progress')} loading={lifecycleLoading} />
+                <Button
+                  title={t('fields:advanceStage')}
+                  onPress={() => handleLifecycleAction('advance')}
+                  loading={lifecycleLoading}
+                />
+                <Button
+                  title={t('fields:revertStage')}
+                  variant="outline"
+                  onPress={() => handleLifecycleAction('revert')}
+                  loading={lifecycleLoading}
+                />
+                <Button
+                  title={t('fields:toggleYear')}
+                  variant="outline"
+                  onPress={() => handleLifecycleAction('progress')}
+                  loading={lifecycleLoading}
+                />
               </>
             )}
-            <Button title={t('tasks:createTask')} variant="outline" onPress={() => navigation.navigate('CreateTask', { fieldId })} />
+            <Button
+              title={t('tasks:createTask')}
+              variant="outline"
+              onPress={() => navigation.navigate('CreateTask', { fieldId })}
+            />
           </View>
         </Section>
       ) : null}
-
-      {activities.length > 0 ? (
-        <Section title={t('fields:activity')}>
-          <Card>
-            {activities.map((act, index) => (
-              <View key={act.id || `${act.timestamp}-${index}`} style={[localStyles.activityItem, { borderBottomColor: themeColors.border }]}>
-                <Text style={[localStyles.activityMessage, { color: themeColors.textPrimary }]}>{act.message}</Text>
-                <Text style={[localStyles.activityTime, { color: themeColors.textTertiary }]}>{formatDate(act.timestamp)}</Text>
-              </View>
-            ))}
-          </Card>
-        </Section>
-      ) : null}
-
-      <View style={styles.bottomSpacing} />
-    </ScrollView>
+    </ScreenLayout>
   );
 };
 
+const DateBlock = ({
+  label,
+  value,
+  colors,
+}: {
+  label: string;
+  value: string;
+  colors: ReturnType<typeof useTheme>['colors'];
+}) => (
+  <View style={styles.dateBlock}>
+    <Text style={[styles.dateLabel, { color: colors.textTertiary }]}>{label}</Text>
+    <Text style={[styles.dateValue, { color: colors.textPrimary }]}>{value}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.base,
-    paddingBottom: spacing.xl,
-  },
-  heroSection: {
-    backgroundColor: colors.primary + '08',
-    borderRadius: 16,
-    padding: spacing.base,
-    marginBottom: spacing.base,
-    borderWidth: 1,
-    borderColor: colors.primary + '20',
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  heroIcon: {
-    fontSize: 32,
-    marginRight: spacing.sm,
-  },
-  heroTitleContainer: {
-    flex: 1,
-  },
-  heroTitle: {
-    ...typography.styles.h1,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.bold,
-    fontSize: 28,
-    marginBottom: spacing.xs,
-    letterSpacing: -0.5,
-  },
-  lifecycleBadgeContainer: {
-    alignSelf: 'flex-start',
-  },
-  quickStatsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  quickStatCard: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: spacing.sm,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  quickStatIcon: {
-    fontSize: 20,
-    marginBottom: spacing.xs,
-  },
-  quickStatValue: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  quickStatLabel: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  alertsContainer: {
+  content: { paddingBottom: spacing['3xl'] },
+  centered: { flex: 1, justifyContent: 'center' },
+  hero: {
+    marginHorizontal: spacing.base,
     marginTop: spacing.sm,
-    gap: spacing.sm,
+    borderRadius: 16,
+    overflow: 'hidden',
+    minHeight: 120,
   },
-  alertCard: {
-    borderLeftWidth: 4,
-    padding: spacing.sm,
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  alertIcon: {
-    fontSize: 24,
-  },
-  alertContent: {
-    flex: 1,
-  },
-  alertTitle: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs / 2,
-  },
-  alertMessage: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-  },
-  severityBadge: {
-    paddingHorizontal: spacing.xs,
+  heroOverlay: { ...StyleSheet.absoluteFillObject },
+  heroBody: { padding: spacing.base, zIndex: 1 },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm },
+  heroName: { ...typography.styles.h2, fontWeight: '700', fontSize: 22 },
+  heroVariety: { ...typography.styles.bodySmall, marginTop: 2 },
+  healthBadge: {
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  severityText: {
-    ...typography.styles.caption,
-    fontWeight: typography.fontWeight.semibold,
-    fontSize: 10,
-    textTransform: 'uppercase',
-  },
-  gpsCard: {
-    marginTop: spacing.sm,
-  },
-  gpsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  gpsIcon: {
-    fontSize: 24,
-  },
-  gpsInfo: {
-    flex: 1,
-  },
-  gpsTitle: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs / 2,
-  },
-  gpsCoordinates: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-    fontFamily: 'monospace',
-    fontSize: 12,
-  },
-  gpsButton: {
-    marginLeft: 'auto',
-  },
-  taskOverviewCard: {
-    padding: spacing.md,
-  },
-  taskOverviewHeader: {
-    marginBottom: spacing.md,
-  },
-  taskOverviewTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  healthText: { ...typography.styles.caption, fontWeight: '700', fontSize: 10 },
+  heroMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  yearPill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: 8 },
+  yearText: { ...typography.styles.caption, fontWeight: '700', fontSize: 10 },
+  stageText: { ...typography.styles.caption, fontWeight: '600' },
+  "quickRow": { marginTop: spacing.md },
+  glanceBlock: { marginTop: spacing.md, marginBottom: spacing.sm },
+  glanceTitle: {
+    ...typography.styles.h4,
+    fontWeight: '700',
+    fontSize: 18,
+    paddingHorizontal: spacing.base,
     marginBottom: spacing.sm,
   },
-  taskOverviewIcon: {
-    fontSize: 28,
-    marginRight: spacing.sm,
-  },
-  taskOverviewTitleContainer: {
-    flex: 1,
-  },
-  taskOverviewTitle: {
-    ...typography.styles.h4,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  taskOverviewSubtitle: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  taskOverviewTotal: {
-    ...typography.styles.h2,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-    fontSize: 32,
-    letterSpacing: -1,
-  },
-  taskOverviewProgressContainer: {
-    marginTop: spacing.sm,
-  },
-  taskOverviewProgressBar: {
-    height: 6,
-    backgroundColor: colors.gray200,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  taskOverviewProgressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  taskBreakdown: {
+  bannerWrap: { paddingHorizontal: spacing.base, marginBottom: spacing.xs },
+  gpsCard: { marginTop: spacing.md },
+  mapsBtn: { marginTop: spacing.sm, alignSelf: 'flex-start' },
+  lifecycleHeader: { marginBottom: spacing.sm },
+  lifecycleTitle: { ...typography.styles.body, fontWeight: '700' },
+  lifecycleSub: { ...typography.styles.caption, marginTop: 2 },
+  dateRow: {
+    flexDirection: 'row',
     gap: spacing.md,
+    marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
-  taskBreakdownItem: {
-    gap: spacing.xs,
-  },
-  taskBreakdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs / 2,
-  },
-  taskBreakdownDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  taskBreakdownLabel: {
-    ...typography.styles.body,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.medium,
-    flex: 1,
-  },
-  taskBreakdownValue: {
-    ...typography.styles.h4,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-    fontSize: 20,
-  },
-  taskBreakdownBar: {
-    height: 4,
-    backgroundColor: colors.gray200,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginTop: spacing.xs / 2,
-  },
-  taskBreakdownBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  infoGroup: {
-    marginBottom: spacing.md,
-  },
-  infoGroupTitle: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    fontSize: 14,
-  },
-  listIcon: {
-    fontSize: 20,
-  },
-  value: {
-    ...typography.styles.body,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.medium,
-  },
-  irrigationStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  lifecycleHeader: {
-    marginBottom: spacing.md,
-  },
-  lifecycleIndicatorContainer: {
-    alignItems: 'flex-start',
-  },
-  lifecycleLabel: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  lifecycleDates: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  dateCard: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  dateLabel: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs / 2,
-    fontSize: 11,
-  },
-  dateValue: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.textPrimary,
-  },
-  taskCard: {
-    marginBottom: spacing.sm,
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
-  },
-  taskTitleRow: {
-    flexDirection: 'row',
-    flex: 1,
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  taskTypeIcon: {
-    fontSize: 24,
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskTitle: {
-    ...typography.styles.body,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs / 2,
-  },
-  taskType: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    textTransform: 'capitalize',
-  },
-  taskDescription: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
-    lineHeight: 18,
-  },
-  taskFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  taskDate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  taskDateIcon: {
-    fontSize: 14,
-  },
-  taskDateText: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  taskDateSeparator: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-  },
-  viewAllButton: {
-    marginTop: spacing.sm,
-  },
-  bottomSpacing: {
-    height: spacing.xl,
-  },
-  errorText: {
-    ...typography.styles.body,
-    color: colors.error,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
+  dateBlock: { flex: 1 },
+  dateLabel: { ...typography.styles.caption, fontSize: 10 },
+  dateValue: { ...typography.styles.bodySmall, fontWeight: '600', marginTop: 2 },
+  noLifecycle: { ...typography.styles.caption, marginTop: spacing.sm },
+  ownerActions: { gap: spacing.sm },
 });
 
 export default FieldDetailScreen;
-
-const localStyles = StyleSheet.create({
-  ownerActions: { gap: spacing.sm, marginBottom: spacing.lg },
-  activityItem: { paddingVertical: spacing.sm, borderBottomWidth: 1 },
-  activityMessage: { ...typography.styles.bodySmall },
-  activityTime: { ...typography.styles.caption, marginTop: 2 },
-});

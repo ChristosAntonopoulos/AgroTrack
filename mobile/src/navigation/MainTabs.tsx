@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
 import TodayScreen from '../screens/TodayScreen';
 import CalendarScreen from '../screens/CalendarScreen';
@@ -11,8 +13,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useTasks } from '../hooks/useTasks';
 import { typography, spacing } from '../theme';
-import { createElevation } from '../theme/elevation';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -22,41 +24,62 @@ const TabIcon = ({
   name,
   focused,
   color,
+  pillColor,
 }: {
   name: IconName;
   focused: boolean;
   color: string;
+  pillColor: string;
 }) => (
-  <Ionicons name={name} size={22} color={color} style={{ opacity: focused ? 1 : 0.55 }} />
+  <View
+    style={[
+      styles.iconWrap,
+      focused && { backgroundColor: pillColor, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
+    ]}
+  >
+    <Ionicons name={name} size={22} color={color} />
+  </View>
 );
 
 const MainTabs = () => {
   const { colors } = useTheme();
   const { t } = useTranslation('nav');
   const { isFieldOwner } = useAuth();
+  const { tasks } = useTasks();
+  const insets = useSafeAreaInsets();
   const owner = isFieldOwner();
+
+  const openTaskCount = useMemo(
+    () => tasks.filter(tk => tk.status !== 'completed').length,
+    [tasks]
+  );
+
+  const tabBarHeight = 58 + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
 
   return (
     <Tab.Navigator
       initialRouteName={owner ? 'Dashboard' : 'Today'}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primaryDark,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: colors.textInverse,
+        tabBarInactiveTintColor: colors.textInverse + '99',
         tabBarStyle: {
-          backgroundColor: colors.surfaceElevated,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
+          backgroundColor: colors.tabBarBackground,
+          borderTopWidth: 0,
           paddingTop: spacing.xs,
-          paddingBottom: spacing.xs,
-          height: 62,
-          ...createElevation(colors, 'lg'),
+          paddingBottom: Math.max(insets.bottom, spacing.xs),
+          height: tabBarHeight,
+          elevation: 12,
+          shadowColor: colors.shadowDark,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
           ...typography.styles.caption,
           fontSize: 10,
-          fontWeight: '600',
-          marginTop: -2,
+          fontWeight: '700',
+          marginTop: 0,
         },
       }}
     >
@@ -67,7 +90,12 @@ const MainTabs = () => {
           options={{
             tabBarLabel: t('dashboard'),
             tabBarIcon: ({ focused, color }) => (
-              <TabIcon name={focused ? 'grid' : 'grid-outline'} focused={focused} color={color} />
+              <TabIcon
+                name={focused ? 'grid' : 'grid-outline'}
+                focused={focused}
+                color={color}
+                pillColor={colors.tabBarActivePill}
+              />
             ),
           }}
         />
@@ -78,7 +106,12 @@ const MainTabs = () => {
           options={{
             tabBarLabel: t('today'),
             tabBarIcon: ({ focused, color }) => (
-              <TabIcon name={focused ? 'sunny' : 'sunny-outline'} focused={focused} color={color} />
+              <TabIcon
+                name={focused ? 'sunny' : 'sunny-outline'}
+                focused={focused}
+                color={color}
+                pillColor={colors.tabBarActivePill}
+              />
             ),
           }}
         />
@@ -89,7 +122,12 @@ const MainTabs = () => {
         options={{
           tabBarLabel: t('calendar'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'calendar' : 'calendar-outline'} focused={focused} color={color} />
+            <TabIcon
+              name={focused ? 'calendar' : 'calendar-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+            />
           ),
         }}
       />
@@ -99,7 +137,12 @@ const MainTabs = () => {
         options={{
           tabBarLabel: owner ? t('fieldsOwner') : t('fields'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'leaf' : 'leaf-outline'} focused={focused} color={color} />
+            <TabIcon
+              name={focused ? 'leaf' : 'leaf-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+            />
           ),
         }}
       />
@@ -108,8 +151,23 @@ const MainTabs = () => {
         component={TaskListScreen}
         options={{
           tabBarLabel: owner ? t('tasks') : t('tasksProducer'),
+          tabBarBadge: openTaskCount > 0 ? (openTaskCount > 99 ? '99+' : openTaskCount) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.error,
+            color: colors.textInverse,
+            fontSize: 10,
+            fontWeight: '700',
+            minWidth: 18,
+            height: 18,
+            lineHeight: 18,
+          },
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'list' : 'list-outline'} focused={focused} color={color} />
+            <TabIcon
+              name={focused ? 'list' : 'list-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+            />
           ),
         }}
       />
@@ -119,12 +177,24 @@ const MainTabs = () => {
         options={{
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'settings' : 'settings-outline'} focused={focused} color={color} />
+            <TabIcon
+              name={focused ? 'settings' : 'settings-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+            />
           ),
         }}
       />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 export default MainTabs;

@@ -1,21 +1,22 @@
-import React from 'react';
-import { FlatList, StyleSheet, RefreshControl, View, Text, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { FlatList, StyleSheet, RefreshControl, View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
 import { useFields } from '../hooks/useFields';
 import { useRefresh } from '../hooks/useRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
-import FieldCard from '../components/domain/FieldCard';
+import OverviewMetricsStrip from '../components/layout/OverviewMetricsStrip';
+import DashboardFieldCard from '../components/domain/DashboardFieldCard';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { typography, spacing } from '../theme';
+import { spacing } from '../theme';
+import { createElevation } from '../theme/elevation';
 import { RootStackParamList } from '../navigation/types';
+import { countFieldLocations } from '../utils/dashboardUtils';
+import { OverviewMetricCardProps } from '../components/ui/OverviewMetricCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,77 +25,118 @@ const FieldsListScreen = () => {
   const { isFieldOwner } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation(['fields', 'common', 'nav']);
-  const { fields, loading, fieldTaskCounts, refresh } = useFields();
+  const {
+    fields,
+    loading,
+    fieldOpenTaskCounts,
+    fieldHasOverdue,
+    refresh,
+  } = useFields();
   const { refreshing, onRefresh } = useRefresh(refresh);
 
   const totalArea = useMemo(
     () => fields.reduce((sum, f) => sum + (f.area || 0), 0),
     [fields]
   );
-  const totalTasks = useMemo(
-    () => Object.values(fieldTaskCounts).reduce((sum, n) => sum + n, 0),
-    [fieldTaskCounts]
+  const totalOpenTasks = useMemo(
+    () => Object.values(fieldOpenTaskCounts).reduce((sum, n) => sum + n, 0),
+    [fieldOpenTaskCounts]
+  );
+  const irrigatedCount = useMemo(
+    () => fields.filter(f => f.irrigationStatus).length,
+    [fields]
+  );
+  const highYearCount = useMemo(
+    () => fields.filter(f => f.currentLifecycleYear === 'high').length,
+    [fields]
+  );
+  const locationCount = useMemo(() => countFieldLocations(fields), [fields]);
+  const overdueFields = useMemo(
+    () => Object.values(fieldHasOverdue).filter(Boolean).length,
+    [fieldHasOverdue]
   );
 
+  const overviewMetrics = useMemo((): OverviewMetricCardProps[] => {
+    if (fields.length === 0) return [];
+    return [
+      {
+        icon: 'leaf',
+        value: fields.length,
+        label: t('fields:summaryFields'),
+        subtitle: t('fields:acrossLocations', { count: locationCount }),
+        accentColor: colors.success,
+        onPress: undefined,
+      },
+      {
+        icon: 'resize-outline',
+        value: `${totalArea.toFixed(1)} ha`,
+        label: t('fields:summaryArea'),
+        subtitle: t('fields:hectaresTotal'),
+        accentColor: colors.primary,
+      },
+      {
+        icon: 'clipboard-outline',
+        value: totalOpenTasks,
+        label: t('fields:openTasks'),
+        subtitle:
+          overdueFields > 0
+            ? t('fields:fieldsWithOverdue', { count: overdueFields })
+            : t('fields:allOnTrack'),
+        subtitleColor: overdueFields > 0 ? colors.error : colors.textTertiary,
+        accentColor: colors.warning,
+        onPress: () => navigation.navigate('Main', { screen: 'Tasks' }),
+      },
+      {
+        icon: 'water-outline',
+        value: irrigatedCount,
+        label: t('fields:irrigatedFields'),
+        subtitle: t('fields:highYearCount', { count: highYearCount }),
+        accentColor: colors.info,
+      },
+    ];
+  }, [fields.length, locationCount, totalArea, totalOpenTasks, overdueFields, irrigatedCount, highYearCount, colors, t, navigation]);
+
   const goTab = (screen: 'Tasks' | 'Calendar', fieldId: string) => {
-    navigation.navigate('Main', {
-      screen,
-      params: { fieldId, date: new Date().toISOString() },
-    });
+    if (screen === 'Tasks') {
+      navigation.navigate('Main', { screen: 'Tasks', params: { fieldId } });
+    } else {
+      navigation.navigate('Main', {
+        screen: 'Calendar',
+        params: { fieldId, date: new Date().toISOString() },
+      });
+    }
   };
 
   if (loading && fields.length === 0) return <LoadingSpinner fullScreen />;
 
-  return (
-    <ScreenLayout style={styles.screen}>
-      <FlatList
-        data={fields}
-        ListHeaderComponent={
-          <View style={styles.headerBlock}>
-            <ScreenHeader
-              title={isFieldOwner() ? t('fields:titleOwner') : t('fields:title')}
-              subtitle={t('fields:subtitle', { count: fields.length, area: totalArea.toFixed(1) })}
-            />
+  const listTitle = isFieldOwner() ? t('fields:titleOwner') : t('fields:title');
+  const listSubtitle = t('fields:subtitle', { count: fields.length, area: totalArea.toFixed(1) });
 
-            {fields.length > 0 ? (
-              <View
-                style={[
-                  styles.summaryRow,
-                  { backgroundColor: colors.surface, borderColor: colors.borderLight },
-                ]}
-              >
-                <SummaryItem
-                  icon="leaf-outline"
-                  value={fields.length}
-                  label={t('fields:summaryFields')}
-                  colors={colors}
-                />
-                <Divider colors={colors} />
-                <SummaryItem
-                  icon="resize-outline"
-                  value={totalArea.toFixed(1)}
-                  label={t('fields:summaryArea')}
-                  colors={colors}
-                />
-                <Divider colors={colors} />
-                <SummaryItem
-                  icon="clipboard-outline"
-                  value={totalTasks}
-                  label={t('fields:summaryTasks')}
-                  colors={colors}
-                />
-              </View>
-            ) : null}
-          </View>
-        }
+  return (
+    <View style={styles.root}>
+      {fields.length > 0 ? (
+        <OverviewMetricsStrip
+          greeting={listTitle}
+          dateLabel={listSubtitle}
+          metrics={overviewMetrics}
+        />
+      ) : null}
+
+      <FlatList
+        style={styles.list}
+        data={fields}
         renderItem={({ item }) => (
-          <FieldCard
-            field={item}
-            taskCount={fieldTaskCounts[item.id]}
-            onPress={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
-            onViewTasks={() => goTab('Tasks', item.id)}
-            onViewCalendar={() => goTab('Calendar', item.id)}
-          />
+          <View style={styles.cardWrap}>
+            <DashboardFieldCard
+              field={item}
+              openTaskCount={fieldOpenTaskCounts[item.id] ?? 0}
+              hasOverdue={fieldHasOverdue[item.id]}
+              onPress={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
+              onViewTasks={() => goTab('Tasks', item.id)}
+              onViewCalendar={() => goTab('Calendar', item.id)}
+              onViewDetails={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
+            />
+          </View>
         )}
         keyExtractor={item => item.id}
         contentContainerStyle={fields.length === 0 ? styles.emptyContainer : styles.listContent}
@@ -118,68 +160,35 @@ const FieldsListScreen = () => {
 
       {isFieldOwner() ? (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primaryDark }]}
+          style={[
+            styles.fab,
+            { backgroundColor: colors.primaryDark, ...createElevation(colors, 'lg') },
+          ]}
           onPress={() => navigation.navigate('FieldForm', {})}
           accessibilityLabel={t('fields:addField')}
         >
           <Ionicons name="add" size={28} color={colors.textInverse} />
         </TouchableOpacity>
       ) : null}
-    </ScreenLayout>
+    </View>
   );
 };
 
-const SummaryItem = ({
-  icon,
-  value,
-  label,
-  colors,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  value: string | number;
-  label: string;
-  colors: ReturnType<typeof useTheme>['colors'];
-}) => (
-  <View style={styles.summaryItem}>
-    <Ionicons name={icon} size={16} color={colors.primaryDark} />
-    <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{value}</Text>
-    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]} numberOfLines={1}>
-      {label}
-    </Text>
-  </View>
-);
-
-const Divider = ({ colors }: { colors: ReturnType<typeof useTheme>['colors'] }) => (
-  <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-);
-
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  headerBlock: { paddingBottom: spacing.xs },
-  summaryRow: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.base,
-    marginBottom: spacing.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingVertical: spacing.md,
-  },
-  summaryItem: { flex: 1, alignItems: 'center', gap: 2 },
-  summaryValue: { ...typography.styles.h3, fontWeight: '700', fontSize: 18 },
-  summaryLabel: { ...typography.styles.caption, fontSize: 10, textAlign: 'center' },
-  divider: { width: 1, alignSelf: 'stretch', marginVertical: spacing.xs },
-  listContent: { paddingHorizontal: spacing.base, paddingBottom: 100 },
-  emptyContainer: { flexGrow: 1 },
+  root: { flex: 1 },
+  list: { flex: 1 },
+  cardWrap: { paddingHorizontal: spacing.base },
+  listContent: { paddingTop: spacing.sm, paddingBottom: spacing['3xl'] },
+  emptyContainer: { flexGrow: 1, paddingHorizontal: spacing.base, paddingTop: spacing.xl },
   fab: {
     position: 'absolute',
     right: spacing.base,
-    bottom: spacing.lg,
+    bottom: spacing.base,
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 6,
   },
 });
 

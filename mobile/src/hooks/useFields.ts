@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
+import { Task } from '../services/taskService';
 import { sanitizeFields } from '../utils/dataSanitizer';
+import { isTaskOverdue } from '../utils/taskListUtils';
 
 export interface UseFieldsResult {
   fields: Field[];
@@ -10,6 +12,8 @@ export interface UseFieldsResult {
   error: string | null;
   refresh: () => Promise<void>;
   fieldTaskCounts: Record<string, number>;
+  fieldOpenTaskCounts: Record<string, number>;
+  fieldHasOverdue: Record<string, boolean>;
 }
 
 export const useFields = (): UseFieldsResult => {
@@ -18,6 +22,26 @@ export const useFields = (): UseFieldsResult => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fieldTaskCounts, setFieldTaskCounts] = useState<Record<string, number>>({});
+  const [fieldOpenTaskCounts, setFieldOpenTaskCounts] = useState<Record<string, number>>({});
+  const [fieldHasOverdue, setFieldHasOverdue] = useState<Record<string, boolean>>({});
+
+  const buildTaskMaps = (sanitizedFields: Field[], tasks: Task[]) => {
+    const counts: Record<string, number> = {};
+    const openCounts: Record<string, number> = {};
+    const overdue: Record<string, boolean> = {};
+
+    for (const field of sanitizedFields) {
+      const fieldTasks = tasks.filter(t => t.fieldId === field.id);
+      counts[field.id] = fieldTasks.length;
+      const open = fieldTasks.filter(t => t.status !== 'completed');
+      openCounts[field.id] = open.length;
+      overdue[field.id] = open.some(t => isTaskOverdue(t));
+    }
+
+    setFieldTaskCounts(counts);
+    setFieldOpenTaskCounts(openCounts);
+    setFieldHasOverdue(overdue);
+  };
 
   const loadFields = async () => {
     if (!user) return;
@@ -25,34 +49,14 @@ export const useFields = (): UseFieldsResult => {
     try {
       setLoading(true);
       setError(null);
-      const fieldsData = await getFieldService().getFields(user.id, user.role);
-      
-      // Double-check sanitization in hook (defensive)
-      const sanitizedFields = sanitizeFields(fieldsData);
-      
-      if (__DEV__) {
-        console.log(`[useFields] Loaded ${sanitizedFields.length} fields`);
-        // Check for string booleans
-        sanitizedFields.forEach((field, index) => {
-          if (field.irrigationStatus !== undefined && typeof field.irrigationStatus !== 'boolean') {
-            console.warn(`[useFields] Field ${index} (${field.id}) has non-boolean irrigationStatus: ${typeof field.irrigationStatus}`);
-          }
-        });
-      }
-      
-      setFields(sanitizedFields);
+      const [fieldsData, tasksData] = await Promise.all([
+        getFieldService().getFields(user.id, user.role),
+        getTaskService().getAssignedTasks(user.id, user.role).catch(() => [] as Task[]),
+      ]);
 
-      // Load task counts for each field
-      const counts: Record<string, number> = {};
-      for (const field of sanitizedFields) {
-        try {
-          const tasks = await getTaskService().getTasksByField(field.id);
-          counts[field.id] = tasks.length;
-        } catch (err) {
-          counts[field.id] = 0;
-        }
-      }
-      setFieldTaskCounts(counts);
+      const sanitizedFields = sanitizeFields(fieldsData);
+      setFields(sanitizedFields);
+      buildTaskMaps(sanitizedFields, tasksData);
     } catch (err: any) {
       setError(err.message || 'Failed to load fields');
       console.error('Error loading fields:', err);
@@ -71,5 +75,7 @@ export const useFields = (): UseFieldsResult => {
     error,
     refresh: loadFields,
     fieldTaskCounts,
+    fieldOpenTaskCounts,
+    fieldHasOverdue,
   };
 };

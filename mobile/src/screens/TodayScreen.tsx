@@ -138,7 +138,7 @@ const TodayScreen = () => {
             <Text style={{ color: colors.textSecondary }}>{t('noTasksDescription')}</Text>
           </Card>
         ) : (
-          {recommended.filter(tk => tk.id !== nextTask?.id).map(task => (
+          recommended.filter(tk => tk.id !== nextTask?.id).map(task => (
             <TaskCard
               key={task.id}
               task={task}

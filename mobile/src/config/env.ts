@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 /** Kubernetes NodePort backend — must match azure-pipelines.yml `backendApiUrl`. */
-export const PRODUCTION_API_ORIGIN = 'http://185.193.66.50:31247';
+export const PRODUCTION_API_ORIGIN = 'http://185.193.66.50:31847';
 
 const DEV_API_PORT = 5149;
 

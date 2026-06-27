@@ -70,6 +70,16 @@ export const colors = {
   taskPending: '#C4923A',
   taskInProgress: '#5A8A6A',
   taskCompleted: '#6B9E3A',
+
+  // Tab bar
+  tabBarBackground: '#3D5214',
+  tabBarActivePill: 'rgba(255, 252, 246, 0.22)',
+
+  // Alert banners
+  bannerErrorBg: '#F0D4CC',
+  bannerErrorBorder: '#B84A32',
+  bannerWarningBg: '#F5E6C8',
+  bannerWarningBorder: '#C4923A',
 };
 
 export const gradients = {

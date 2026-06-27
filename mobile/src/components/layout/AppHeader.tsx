@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import BrandLogo from '../ui/BrandLogo';
@@ -36,7 +37,7 @@ const AppHeader = () => {
           <View>
             <Text style={[styles.title, { color: colors.textInverse }]}>OliveCycle</Text>
             <Text style={[styles.tagline, { color: colors.textInverse + 'BB' }]}>
-              {t('appName')}
+              {t('tagline')}
             </Text>
           </View>
         </View>
@@ -50,6 +51,7 @@ const AppHeader = () => {
               },
             ]}
           >
+            <Ionicons name="person-circle-outline" size={14} color={colors.textInverse} />
             <Text style={[styles.badgeText, { color: colors.textInverse }]}>{roleLabel}</Text>
           </View>
         ) : null}
@@ -92,6 +94,9 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,

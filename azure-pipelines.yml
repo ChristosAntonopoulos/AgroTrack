@@ -34,8 +34,10 @@ variables:
     value: 'agrotrack-backend'
   - name: frontendNamespace
     value: 'agrotrack-frontend'
+  - name: backendNodePort
+    value: '31847'
   - name: backendApiUrl
-    value: 'http://185.193.66.50:31247'
+    value: 'http://185.193.66.50:31847'
   - name: kubernetesNodeIp
     value: '185.193.66.50'
   - name: frontendImageName
@@ -392,8 +394,9 @@ stages:
             displayName: 'Apply/Update backend deployment'
 
           - script: |
-              echo "Recreating backend service as NodePort 31247..."
+              echo "Recreating backend service as NodePort $(backendNodePort)..."
               kubectl delete service backend-service -n $(backendNamespace) --ignore-not-found=true
+              sed -i "s|nodePort: [0-9]*|nodePort: $(backendNodePort)|" backend/k8s/service.yaml
               kubectl apply -f backend/k8s/service.yaml
             displayName: 'Apply backend service'
 
@@ -478,7 +481,7 @@ stages:
               kubectl get service frontend-service -n $(frontendNamespace)
               echo ""
               NODE_PORT=$(kubectl get service frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
-              echo "Backend API:  http://$(kubernetesNodeIp):31247"
+              echo "Backend API:  http://$(kubernetesNodeIp):$(backendNodePort)"
               if [ -n "$NODE_PORT" ]; then
                 echo "Frontend:     http://$(kubernetesNodeIp):$NODE_PORT"
                 echo "APK download: http://$(kubernetesNodeIp):$NODE_PORT/downloads/$(apkFilename)"
@@ -524,8 +527,8 @@ stages:
 
     - script: |
         echo "Testing backend health endpoint..."
-        echo "Health URL: http://$(kubernetesNodeIp):31247/health"
-        curl -f http://$(kubernetesNodeIp):31247/health || echo "Backend health check failed, but continuing..."
+        echo "Health URL: http://$(kubernetesNodeIp):$(backendNodePort)/health"
+        curl -f http://$(kubernetesNodeIp):$(backendNodePort)/health || echo "Backend health check failed, but continuing..."
       displayName: 'Check Backend Health'
       continueOnError: true
 
@@ -561,7 +564,7 @@ stages:
     - script: |
         NODE_PORT=$(kubectl get service frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
         echo "=== Deployment Summary ==="
-        echo "Backend API:  http://$(kubernetesNodeIp):31247"
+        echo "Backend API:  http://$(kubernetesNodeIp):$(backendNodePort)"
         echo "EXPO_PUBLIC_API_URL=$(backendApiUrl)"
         if [ -n "$NODE_PORT" ]; then
           echo "Frontend:     http://$(kubernetesNodeIp):$NODE_PORT"

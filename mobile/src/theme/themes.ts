@@ -36,6 +36,12 @@ export const darkColors: AppColors = {
   gray900: '#EFF4E8',
   shadow: 'rgba(0, 0, 0, 0.35)',
   shadowDark: 'rgba(0, 0, 0, 0.55)',
+  tabBarBackground: '#283020',
+  tabBarActivePill: 'rgba(255, 252, 246, 0.15)',
+  bannerErrorBg: '#3D2820',
+  bannerErrorBorder: '#B84A32',
+  bannerWarningBg: '#3D3420',
+  bannerWarningBorder: '#C4923A',
 };
 
 export { lightColors };

@@ -22,6 +22,8 @@ export interface Field {
   groundType?: string;
   irrigationStatus: boolean;
   currentLifecycleYear: string;
+  currentLifecycleStage?: string;
+  assignedProducerIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
