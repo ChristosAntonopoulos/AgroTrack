@@ -27,7 +27,7 @@ import { typography, spacing, spacingPatterns } from '../theme';
 import { loginTheme } from '../theme/loginTheme';
 import { AuthStackParamList } from '../navigation/types';
 
-const loginBg = require('../../assets/images/login-bg.png');
+const loginBg = require('../../assets/images/login-bg.jpg');
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
