@@ -2,7 +2,9 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { isMockMode } from '../../services/serviceFactory';
 import { navItems, navSections, isNavActive, AppRole, resolveNavItemLabel } from '../../navigation/navConfig';
+import BrandLogo from '../Common/BrandLogo';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -10,16 +12,22 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = () => {
-  const { t } = useTranslation('nav');
+  const { t } = useTranslation(['nav', 'common']);
   const { user } = useAuth();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
-  const filteredItems = navItems.filter((item) => item.roles.includes(userRole));
+  const filteredItems = navItems.filter(
+    (item) => item.roles.includes(userRole) && (!item.mockOnly || isMockMode())
+  );
   const visibleSections = navSections.filter((s) => filteredItems.some((i) => i.section === s.id));
 
   return (
     <aside className="sidebar">
+      <div className="sidebar-brand">
+        <BrandLogo size="sm" />
+        <span className="sidebar-brand-name">{t('common:appName')}</span>
+      </div>
       <nav className="sidebar-nav">
         {visibleSections.map((section) => {
           const items = filteredItems.filter((i) => i.section === section.id);

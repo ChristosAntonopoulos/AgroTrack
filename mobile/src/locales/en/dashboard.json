@@ -1,0 +1,21 @@
+{
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "overview": "Overview",
+  "needsAttention": "Needs attention",
+  "todayTasks": "Today's tasks",
+  "pendingApproval": "Awaiting approval",
+  "stats": {
+    "fields": "Fields",
+    "hectares": "Hectares",
+    "pending": "Pending",
+    "complete": "Complete",
+    "total": "Total",
+    "inProgress": "In progress",
+    "completed": "Completed"
+  },
+  "dueToday": "Due today",
+  "noUrgent": "All clear — nothing urgent",
+  "viewTasks": "View tasks"
+}

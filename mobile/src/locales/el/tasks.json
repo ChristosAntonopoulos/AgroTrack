@@ -1,0 +1,28 @@
+{
+  "title": "Εργασίες",
+  "titleProducer": "Οι εργασίες μου",
+  "createTask": "Νέα εργασία",
+  "addEvidence": "Πρόσθεσε απόδειξη",
+  "takePhoto": "Λήψη φωτογραφίας",
+  "choosePhoto": "Επιλογή από gallery",
+  "notes": "Σημειώσεις",
+  "startTask": "Έναρξη εργασίας",
+  "completeTask": "Ολοκλήρωση",
+  "reopenTask": "Επανάνοιγμα",
+  "approve": "Έγκριση",
+  "reject": "Απόρριψη",
+  "assign": "Ανάθεση",
+  "filters": {
+    "all": "Όλες",
+    "pending": "Εκκρεμείς",
+    "in_progress": "Σε εξέλιξη",
+    "completed": "Ολοκληρωμένες",
+    "approval": "Εκκρεμεί έγκριση"
+  },
+  "emptyProducer": "Δεν έχουν ανατεθεί εργασίες.",
+  "emptyOwner": "Δεν υπάρχουν εργασίες. Δημιούργησε μία.",
+  "confirmStatus": "Ενημέρωση κατάστασης;",
+  "statusUpdated": "Η κατάσταση ενημερώθηκε",
+  "evidenceAdded": "Η απόδειξη προστέθηκε",
+  "approvalNote": "Σημείωση έγκρισης (προαιρετικό)"
+}

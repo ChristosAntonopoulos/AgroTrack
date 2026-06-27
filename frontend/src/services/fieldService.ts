@@ -29,6 +29,8 @@ export interface Field {
   groundType?: string;
   irrigationStatus: boolean;
   currentLifecycleYear: string;
+  currentLifecycleStage?: string;
+  assignedProducerIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -133,5 +135,18 @@ export const fieldService = {
       }
       throw err;
     }
+  },
+
+  getAssignedProducers: async (fieldId: string): Promise<string[]> => {
+    const response = await api.get<string[]>(`/api/v1/fields/${fieldId}/producers`);
+    return response.data;
+  },
+
+  assignProducer: async (fieldId: string, producerId: string): Promise<void> => {
+    await api.put(`/api/v1/fields/${fieldId}/producers/${producerId}`);
+  },
+
+  unassignProducer: async (fieldId: string, producerId: string): Promise<void> => {
+    await api.delete(`/api/v1/fields/${fieldId}/producers/${producerId}`);
   },
 };

@@ -1,5 +1,5 @@
 {
-  "appName": "Olive Lifecycle",
+  "appName": "AgroTrack",
   "home": "Home",
   "loading": "Loading...",
   "save": "Save",
@@ -58,6 +58,14 @@
   "lifecycleYear": {
     "low": "Low",
     "high": "High"
+  },
+  "lifecycleStage": {
+    "dormancy": "Dormancy",
+    "bud_break": "Bud break",
+    "flowering": "Flowering",
+    "fruit_set": "Fruit set",
+    "fruit_growth": "Fruit growth",
+    "harvest": "Harvest"
   },
   "severity": {
     "Low": "Low",

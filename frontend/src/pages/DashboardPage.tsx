@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { getFieldService, getTaskService } from '../services/serviceFactory';
+import { getFieldService, getTaskService, isMockMode } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
 import { demoStore } from '../services/demo/demoStore';
@@ -45,8 +45,8 @@ const DashboardPage: React.FC = () => {
   const isFieldOwner = user?.role === 'FieldOwner' || user?.role === 'Administrator';
   const isProducer = user?.role === 'Producer';
 
-  const demoProgress = user?.userId ? demoStore.getDemoProgress(user.userId, user.role) : null;
-  const showOnboarding = demoProgress && !demoProgress.dismissed;
+  const demoProgress = isMockMode() && user?.userId ? demoStore.getDemoProgress(user.userId, user.role) : null;
+  const showOnboarding = isMockMode() && demoProgress && !demoProgress.dismissed;
 
   const displayName =
     user?.firstName ||
@@ -66,7 +66,10 @@ const DashboardPage: React.FC = () => {
       const taskService = getTaskService();
       const [fieldsData, tasksData] = await Promise.all([
         fieldService.getFields().catch(() => []),
-        taskService.getTasks(undefined, user?.userId).catch(() => []),
+        (isProducer
+          ? taskService.getTasks(undefined, user?.userId)
+          : taskService.getTasks()
+        ).catch(() => []),
       ]);
       setFields(fieldsData);
       setTasks(tasksData);
@@ -83,8 +86,10 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const taskInsights = useMemo(() => {
-    demoStore.ensureSeeded();
-    const allTasks = isFieldOwner ? demoStore.getTasks() : tasks;
+    if (isFieldOwner && isMockMode()) {
+      demoStore.ensureSeeded();
+    }
+    const allTasks = isFieldOwner && isMockMode() ? demoStore.getTasks() : tasks;
     const overdue = allTasks.filter(
       (task) =>
         task.status !== 'completed' &&
@@ -97,9 +102,13 @@ const DashboardPage: React.FC = () => {
       const end = new Date(task.scheduledEnd);
       return end >= today && end < new Date(today.getTime() + 86400000);
     });
-    const pendingApproval = demoStore.getTasks().filter(
-      (task) => task.status === 'completed' && (task as { approvalStatus?: string }).approvalStatus === 'pending'
-    );
+    const pendingApproval = isMockMode()
+      ? demoStore.getTasks().filter(
+          (task) => task.status === 'completed' && (task as { approvalStatus?: string }).approvalStatus === 'pending'
+        )
+      : allTasks.filter(
+          (task) => task.status === 'completed' && task.approvalStatus === 'pending'
+        );
     const overdueFieldIds = new Set(overdue.map((task) => task.fieldId));
 
     const priorityTasks = [...tasks]

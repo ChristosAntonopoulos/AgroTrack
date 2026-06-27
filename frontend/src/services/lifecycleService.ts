@@ -4,6 +4,7 @@ export interface Lifecycle {
   id: string;
   fieldId: string;
   currentYear: string;
+  currentStage?: string;
   cycleStartDate: string;
   lastProgressionDate?: string;
   createdAt?: string;
@@ -27,6 +28,16 @@ export const lifecycleService = {
 
   progressCycle: async (fieldId: string): Promise<Lifecycle> => {
     const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/progress`);
+    return response.data;
+  },
+
+  advanceStage: async (fieldId: string): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/advance-stage`);
+    return response.data;
+  },
+
+  revertStage: async (fieldId: string): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/revert-stage`);
     return response.data;
   },
 };

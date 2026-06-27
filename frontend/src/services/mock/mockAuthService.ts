@@ -1,5 +1,5 @@
 import { LoginDto, RegisterDto, AuthResponse } from '../authService';
-import { testUsers } from '../testUsers';
+import { demoAccounts } from '../testUsers';
 import { mockUsers } from './mockData';
 import { simulateDelay } from './mockData';
 
@@ -8,7 +8,7 @@ export const mockAuthService = {
     await simulateDelay();
     
     // Find user by email
-    const testUser = testUsers.find(u => u.email === data.email);
+    const testUser = demoAccounts.find(u => u.email === data.email);
     const mockUser = mockUsers.find(u => u.email === data.email);
     
     if (!testUser && !mockUser) {

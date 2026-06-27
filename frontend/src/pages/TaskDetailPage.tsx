@@ -9,6 +9,7 @@ import { getUserService } from '../services/serviceFactory';
 import { Task } from '../services/taskService';
 import { Field } from '../services/fieldService';
 import { User } from '../services/userService';
+import { getApiErrorMessage } from '../utils/translateApiError';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import EvidenceUpload from '../components/Task/EvidenceUpload';
 import PageContainer from '../components/Common/PageContainer';
@@ -20,7 +21,7 @@ import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle } from
 import './TaskDetailPage.css';
 
 const TaskDetailPage: React.FC = () => {
-  const { t } = useTranslation(['tasks', 'common']);
+  const { t } = useTranslation(['tasks', 'common', 'errors']);
   const { formatDateTime } = useLocaleFormatters();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const TaskDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [selectedProducerId, setSelectedProducerId] = useState<string>('');
 
   useEffect(() => {
@@ -70,8 +72,8 @@ const TaskDetailPage: React.FC = () => {
           console.error('Error loading field:', err);
         }
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load task');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || 'Failed to load task');
     } finally {
       setLoading(false);
     }
@@ -105,8 +107,8 @@ const TaskDetailPage: React.FC = () => {
       const taskService = getTaskService();
       const updatedTask = await taskService.updateTaskStatus(id, newStatus);
       setTask(updatedTask);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update task status');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || 'Failed to update task status');
     } finally {
       setUpdatingStatus(false);
     }
@@ -122,10 +124,38 @@ const TaskDetailPage: React.FC = () => {
       setTask(updatedTask);
       setSelectedProducerId('');
       await loadAssignedUser(selectedProducerId);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to assign task');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || 'Failed to assign task');
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!task || !id) return;
+    try {
+      setApproving(true);
+      const updatedTask = await getTaskService().approveTask(id);
+      setTask(updatedTask);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || 'Failed to approve task');
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!task || !id) return;
+    const note = window.prompt(t('tasks:detail.rejectNotePrompt', { defaultValue: 'Reason for rejection (optional)' }));
+    if (note === null) return;
+    try {
+      setApproving(true);
+      const updatedTask = await getTaskService().rejectTask(id, note || undefined);
+      setTask(updatedTask);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || 'Failed to reject task');
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -217,9 +247,25 @@ const TaskDetailPage: React.FC = () => {
           <Card className="task-main">
             <div className="task-title-section">
               <h1>{task.title}</h1>
-              <Badge variant={getStatusColor(task.status) as any} size="md">
-                {task.status.replace('_', ' ')}
-              </Badge>
+              <div className="task-badges">
+                <Badge variant={getStatusColor(task.status) as any} size="md">
+                  {task.status.replace('_', ' ')}
+                </Badge>
+                {task.approvalStatus && task.approvalStatus !== 'not_required' && (
+                  <Badge
+                    variant={
+                      task.approvalStatus === 'approved'
+                        ? 'success'
+                        : task.approvalStatus === 'rejected'
+                          ? 'error'
+                          : 'warning'
+                    }
+                    size="md"
+                  >
+                    {t(`common:approvalStatus.${task.approvalStatus}`)}
+                  </Badge>
+                )}
+              </div>
             </div>
 
           {task.description && (
@@ -310,6 +356,24 @@ const TaskDetailPage: React.FC = () => {
 
             {canEdit && (
               <div className="task-actions">
+                {isFieldOwner &&
+                  task.status === 'completed' &&
+                  task.approvalStatus === 'pending' && (
+                    <>
+                      <Button onClick={handleApprove} disabled={approving} loading={approving} variant="success">
+                        {t('tasks:detail.approve', { defaultValue: 'Approve' })}
+                      </Button>
+                      <Button
+                        onClick={handleReject}
+                        disabled={approving}
+                        loading={approving}
+                        variant="error"
+                      >
+                        {t('tasks:detail.reject', { defaultValue: 'Reject' })}
+                      </Button>
+                    </>
+                  )}
+
                 {nextStatus && (
                   <Button
                     onClick={() => handleStatusUpdate(nextStatus)}

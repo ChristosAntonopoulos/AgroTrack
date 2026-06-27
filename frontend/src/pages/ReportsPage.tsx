@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { getFieldService } from '../services/serviceFactory';
+import { getFieldService, getReportsService, isMockMode } from '../services/serviceFactory';
 import { exportService } from '../services/exportService';
 import { exportReportToPDF } from '../services/reportPdfService';
 import { Field } from '../services/fieldService';
@@ -11,6 +11,11 @@ import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import {
   ReportTypeId,
+  FieldSummaryData,
+  HarvestRecord,
+  ProfitLossData,
+  FieldComparisonRow,
+  ComparisonInsights,
   MOCK_FIELD_SUMMARIES,
   MOCK_HARVEST_RECORDS,
   MOCK_PROFIT_LOSS,
@@ -72,10 +77,42 @@ const ReportsPage: React.FC = () => {
   const [fields, setFields] = useState<Field[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const [apiSummaries, setApiSummaries] = useState<FieldSummaryData[]>([]);
+  const [apiHarvest, setApiHarvest] = useState<HarvestRecord[]>([]);
+  const [apiProfitLoss, setApiProfitLoss] = useState<ProfitLossData | null>(null);
+  const [apiComparison, setApiComparison] = useState<FieldComparisonRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   useEffect(() => {
     loadFields();
   }, []);
+
+  useEffect(() => {
+    if (!isMockMode()) {
+      loadReportData();
+    }
+  }, []);
+
+  const loadReportData = async () => {
+    try {
+      setReportsLoading(true);
+      const reports = getReportsService();
+      const [summaries, harvest, profitLoss, comparison] = await Promise.all([
+        reports.getFieldSummaries(),
+        reports.getHarvestRecords(),
+        reports.getProfitLoss(),
+        reports.getFieldComparison(),
+      ]);
+      setApiSummaries(summaries);
+      setApiHarvest(harvest);
+      setApiProfitLoss(profitLoss);
+      setApiComparison(comparison);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (fields.length > 0) {
@@ -104,26 +141,56 @@ const ReportsPage: React.FC = () => {
   const selectAllFields = () => setSelectedFields(fields.map(f => f.id));
   const clearFields = () => setSelectedFields([]);
 
+  const sourceSummaries = isMockMode() ? MOCK_FIELD_SUMMARIES : apiSummaries;
+  const sourceHarvest = isMockMode() ? MOCK_HARVEST_RECORDS : apiHarvest;
+  const sourceComparison = isMockMode() ? MOCK_FIELD_COMPARISON : apiComparison;
+
   const filteredSummaries = useMemo(
-    () => filterByFields(MOCK_FIELD_SUMMARIES, selectedFields),
-    [selectedFields]
+    () => filterByFields(sourceSummaries, selectedFields),
+    [sourceSummaries, selectedFields]
   );
 
   const filteredHarvest = useMemo(
-    () => filterByFields(MOCK_HARVEST_RECORDS, selectedFields),
-    [selectedFields]
+    () => filterByFields(sourceHarvest, selectedFields),
+    [sourceHarvest, selectedFields]
   );
 
   const filteredComparison = useMemo(
-    () => filterByFields(MOCK_FIELD_COMPARISON, selectedFields),
-    [selectedFields]
+    () => filterByFields(sourceComparison, selectedFields),
+    [sourceComparison, selectedFields]
   );
 
   const filteredProfitLoss = useMemo(() => {
-    const pl = { ...MOCK_PROFIT_LOSS };
-    pl.profitByField = filterByFields(MOCK_PROFIT_LOSS.profitByField, selectedFields);
+    if (isMockMode()) {
+      const pl = { ...MOCK_PROFIT_LOSS };
+      pl.profitByField = filterByFields(MOCK_PROFIT_LOSS.profitByField, selectedFields);
+      return pl;
+    }
+    if (!apiProfitLoss) {
+      return MOCK_PROFIT_LOSS;
+    }
+    const pl = { ...apiProfitLoss };
+    pl.profitByField = filterByFields(apiProfitLoss.profitByField, selectedFields);
     return pl;
-  }, [selectedFields]);
+  }, [apiProfitLoss, selectedFields]);
+
+  const comparisonInsights = useMemo((): ComparisonInsights => {
+    if (isMockMode() || filteredComparison.length === 0) {
+      return MOCK_COMPARISON_INSIGHTS;
+    }
+    const bestYield = filteredComparison.reduce((a, b) => (a.kgPerHa >= b.kgPerHa ? a : b));
+    const bestOil = filteredComparison.reduce((a, b) => (a.oilYieldPercent >= b.oilYieldPercent ? a : b));
+    const mostProfitable = filteredComparison.reduce((a, b) => (a.profitPerHa >= b.profitPerHa ? a : b));
+    const mostExpensive = filteredComparison.reduce((a, b) => (a.costPerHa >= b.costPerHa ? a : b));
+    return {
+      bestYieldField: bestYield.fieldName,
+      bestOilYieldField: bestOil.fieldName,
+      mostProfitableField: mostProfitable.fieldName,
+      mostExpensiveField: mostExpensive.fieldName,
+      mostOverdueTasksField: filteredComparison[0]?.fieldName ?? '',
+      highestPestField: filteredComparison[0]?.fieldName ?? '',
+    };
+  }, [filteredComparison]);
 
   const reportTitle = t(
     reportType === 'field-summary'
@@ -252,7 +319,7 @@ const ReportsPage: React.FC = () => {
           <FieldComparisonReportView
             id={REPORT_PREVIEW_ID}
             data={filteredComparison}
-            insights={MOCK_COMPARISON_INSIGHTS}
+            insights={comparisonInsights}
           />
         );
       default:

@@ -1,0 +1,54 @@
+{
+  "appName": "AgroTrack",
+  "loading": "Loading...",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "back": "Back",
+  "confirm": "Confirm",
+  "yes": "Yes",
+  "no": "No",
+  "logout": "Logout",
+  "language": "Language",
+  "english": "English",
+  "greek": "Ελληνικά",
+  "roles": {
+    "FieldOwner": "Field Owner",
+    "Producer": "Producer",
+    "Agronomist": "Agronomist",
+    "Administrator": "Administrator",
+    "ServiceProvider": "Service Provider"
+  },
+  "taskStatus": {
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "approvalStatus": {
+    "not_required": "Not required",
+    "pending": "Pending approval",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "lifecycleYear": {
+    "low": "Low year",
+    "high": "High year"
+  },
+  "lifecycleStage": {
+    "dormancy": "Dormancy",
+    "bud_break": "Bud break",
+    "flowering": "Flowering",
+    "fruit_set": "Fruit set",
+    "fruit_growth": "Fruit growth",
+    "harvest": "Harvest"
+  },
+  "empty": {
+    "noData": "Nothing here yet",
+    "noTasks": "No tasks found",
+    "noFields": "No fields found"
+  },
+  "version": "Version",
+  "or": "or"
+}

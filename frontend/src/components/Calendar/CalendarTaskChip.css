@@ -1,0 +1,77 @@
+.cal-task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--chip-color, var(--color-border));
+  border-left-width: 3px;
+  background: color-mix(in srgb, var(--chip-color) 12%, var(--bg-surface));
+  color: var(--color-text-primary);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+button.cal-task-chip {
+  border-style: solid;
+}
+
+.cal-task-chip:hover {
+  background: color-mix(in srgb, var(--chip-color) 20%, var(--bg-surface));
+}
+
+.cal-task-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.cal-task-chip-icon {
+  flex-shrink: 0;
+  color: var(--chip-color);
+}
+
+.cal-task-chip--recommended {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--chip-color) 8%, transparent);
+}
+
+.cal-task-chip--overdue {
+  border-color: var(--color-error);
+  border-left-color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, var(--bg-surface));
+}
+
+.cal-task-chip--overdue .cal-task-chip-icon {
+  color: var(--color-error);
+}
+
+.cal-task-chip--completed {
+  opacity: 0.75;
+  border-left-color: var(--color-success);
+}
+
+.cal-task-chip--completed .cal-task-chip-icon {
+  color: var(--color-success);
+}
+
+.cal-task-chip--deadline {
+  border-left-color: var(--color-warning);
+}
+
+.cal-task-chip--critical:not(.cal-task-chip--completed)::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  flex-shrink: 0;
+  margin-left: auto;
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fieldService, Field } from '../services/fieldService';
-import { taskService } from '../services/taskService';
+import { getFieldService, getTaskService } from '../services/serviceFactory';
+import { Field } from '../services/fieldService';
 import { sanitizeFields } from '../utils/dataSanitizer';
 
 export interface UseFieldsResult {
@@ -25,7 +25,7 @@ export const useFields = (): UseFieldsResult => {
     try {
       setLoading(true);
       setError(null);
-      const fieldsData = await fieldService.getFields(user.id, user.role);
+      const fieldsData = await getFieldService().getFields(user.id, user.role);
       
       // Double-check sanitization in hook (defensive)
       const sanitizedFields = sanitizeFields(fieldsData);
@@ -46,7 +46,7 @@ export const useFields = (): UseFieldsResult => {
       const counts: Record<string, number> = {};
       for (const field of sanitizedFields) {
         try {
-          const tasks = await taskService.getTasksByField(field.id);
+          const tasks = await getTaskService().getTasksByField(field.id);
           counts[field.id] = tasks.length;
         } catch (err) {
           counts[field.id] = 0;

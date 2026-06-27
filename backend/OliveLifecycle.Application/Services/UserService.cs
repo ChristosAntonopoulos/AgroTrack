@@ -1,5 +1,9 @@
+using Microsoft.Extensions.Logging;
+using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.DTOs.User;
-using OliveLifecycle.Infrastructure.Repositories;
+using OliveLifecycle.Application.Mappings;
+using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core.Exceptions;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -14,43 +18,46 @@ public class UserService : IUserService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<UserDto>> GetUsersByRoleAsync(string? role)
+    public async Task<IEnumerable<UserDto>> GetUsersByRoleAsync(
+        string? role,
+        string callerId,
+        string callerRole,
+        CancellationToken cancellationToken = default)
     {
+        if (callerRole != Roles.FieldOwner && callerRole != Roles.Administrator)
+        {
+            throw new ForbiddenException("You do not have permission to list users.");
+        }
+
         IEnumerable<Core.Entities.User> users;
-        
+
         if (!string.IsNullOrEmpty(role))
         {
-            users = await _userRepository.GetByRoleAsync(role);
+            users = await _userRepository.GetByRoleAsync(role, cancellationToken);
         }
         else
         {
-            // If no role specified, get common roles (Producer and FieldOwner)
-            var allUsers = new List<Core.Entities.User>();
-            var producers = await _userRepository.GetByRoleAsync("Producer");
-            var fieldOwners = await _userRepository.GetByRoleAsync("FieldOwner");
-            allUsers.AddRange(producers);
-            allUsers.AddRange(fieldOwners);
-            users = allUsers;
+            var producers = await _userRepository.GetByRoleAsync(Roles.Producer, cancellationToken);
+            var fieldOwners = await _userRepository.GetByRoleAsync(Roles.FieldOwner, cancellationToken);
+            users = producers.Concat(fieldOwners);
         }
-        
-        return users.Select(MapToDto);
+
+        _logger.LogDebug("User {CallerId} listed users with role filter {Role}", callerId, role ?? "all");
+        return users.Select(UserMapper.ToDto);
     }
 
-    public async Task<UserDto?> GetUserByIdAsync(string id)
+    public async Task<UserDto?> GetUserByIdAsync(
+        string id,
+        string callerId,
+        string callerRole,
+        CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-        return user != null ? MapToDto(user) : null;
-    }
-
-    private static UserDto MapToDto(Core.Entities.User user)
-    {
-        return new UserDto
+        if (callerId != id && callerRole != Roles.Administrator && callerRole != Roles.FieldOwner)
         {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role
-        };
+            throw new ForbiddenException("You do not have permission to view this user.");
+        }
+
+        var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+        return user == null ? null : UserMapper.ToDto(user);
     }
 }

@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Olive Lifecycle",
+    "name": "AgroTrack",
     "slug": "olive-lifecycle",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#63622a"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,7 +23,7 @@
       "package": "com.agrotrack.olivelifecycle",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#63622a"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -53,10 +53,18 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#6B8E23",
+          "color": "#63622a",
           "sounds": []
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AgroTrack to access your photos for task evidence.",
+          "cameraPermission": "Allow AgroTrack to use your camera for task evidence."
+        }
+      ],
+      "expo-localization"
     ],
     "extra": {
       "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE",

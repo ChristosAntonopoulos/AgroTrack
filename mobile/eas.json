@@ -18,7 +18,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://185.193.66.50:31247/api"
+        "EXPO_PUBLIC_API_URL": "http://185.193.66.50:31247"
       },
       "credentialsSource": "remote"
     }

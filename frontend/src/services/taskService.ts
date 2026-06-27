@@ -176,4 +176,14 @@ export const taskService = {
       throw err;
     }
   },
+
+  approveTask: async (id: string, note?: string): Promise<Task> => {
+    const response = await api.post<Task>(`/api/v1/tasks/${id}/approve`, { note });
+    return response.data;
+  },
+
+  rejectTask: async (id: string, note?: string): Promise<Task> => {
+    const response = await api.post<Task>(`/api/v1/tasks/${id}/reject`, { note });
+    return response.data;
+  },
 };

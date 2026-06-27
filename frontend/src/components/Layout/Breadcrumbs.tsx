@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { resolveBreadcrumbLabel, roleHomePath, AppRole } from '../../navigation/navConfig';
 import { demoStore } from '../../services/demo/demoStore';
+import { isMockMode } from '../../services/serviceFactory';
+import { useFieldName } from '../../hooks/useFieldName';
 import './Breadcrumbs.css';
 
 const Breadcrumbs: React.FC = () => {
@@ -14,15 +16,27 @@ const Breadcrumbs: React.FC = () => {
   const role = (user?.role || '') as AppRole;
   const pathnames = location.pathname.split('/').filter((x) => x);
 
+  const fieldIdFromPath = useMemo(() => {
+    const fieldsIndex = pathnames.indexOf('fields');
+    const candidate = fieldsIndex >= 0 ? pathnames[fieldsIndex + 1] : undefined;
+    if (!candidate || candidate === 'new' || candidate === 'edit') return undefined;
+    return candidate;
+  }, [pathnames]);
+
+  const apiFieldName = useFieldName(fieldIdFromPath);
+
   if (pathnames.length === 0) {
     return null;
   }
 
   const resolveDynamicLabel = (segment: string, to: string) => {
     if (to.startsWith('/fields/') && segment !== 'fields' && segment !== 'new' && segment !== 'edit' && segment !== 'task-templates') {
-      demoStore.ensureSeeded();
-      const f = demoStore.getFields().find((x) => x.id === segment);
-      if (f?.name) return f.name;
+      if (segment === fieldIdFromPath && apiFieldName) return apiFieldName;
+      if (isMockMode()) {
+        demoStore.ensureSeeded();
+        const f = demoStore.getFields().find((x) => x.id === segment);
+        if (f?.name) return f.name;
+      }
     }
     return resolveBreadcrumbLabel(segment, role, t);
   };

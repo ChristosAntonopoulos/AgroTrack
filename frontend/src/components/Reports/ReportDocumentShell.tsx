@@ -1,5 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
+import BrandLogo from '../Common/BrandLogo';
 import './ReportDocument.css';
 
 interface ReportDocumentShellProps {
@@ -21,7 +22,7 @@ const ReportDocumentShell: React.FC<ReportDocumentShellProps> = ({
     <div className="report-document-inner">
       <header className="report-doc-header">
         <div className="report-doc-brand">
-          <div className="report-doc-logo">AT</div>
+          <BrandLogo size="sm" className="report-doc-logo" rounded />
           <div className="report-doc-brand-text">
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}

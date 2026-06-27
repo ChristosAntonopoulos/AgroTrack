@@ -82,3 +82,8 @@ export const getTestUsersByRole = (role?: string): TestUser[] => {
 export const getUserByEmail = (email: string): TestUser | undefined => {
   return testUsers.find(user => user.email === email);
 };
+
+/** Owner + primary producer — shown on mobile demo login */
+export const mobileDemoUsers: TestUser[] = testUsers.filter(
+  u => u.role === 'FieldOwner' || u.email === 'producer1@olivefarm.com'
+);

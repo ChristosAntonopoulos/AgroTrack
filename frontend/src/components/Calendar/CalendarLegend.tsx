@@ -1,30 +1,44 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { TaskTemplateCategory } from '../../types/oliveTaskTemplate';
+import { CATEGORY_STYLES, TASK_CATEGORIES } from '../../utils/taskTemplateUtils';
 import './CalendarLegend.css';
 
 const CalendarLegend: React.FC = () => {
+  const { t } = useTranslation('calendar');
+
+  const categories = TASK_CATEGORIES.filter(
+    (c): c is TaskTemplateCategory => c !== 'All'
+  ).slice(0, 6);
+
   return (
-    <div className="calendar-legend">
-      <h4>Legend</h4>
-      <div className="legend-items">
-        <div className="legend-item">
-          <div className="legend-color" style={{ borderLeftColor: '#ffc107' }}></div>
-          <span>Pending Tasks</span>
+    <div className="calendar-legend" aria-label={t('legend')}>
+      <span className="calendar-legend-title">{t('legend')}</span>
+      <div className="calendar-legend-items">
+        {categories.map((category) => {
+          const style = CATEGORY_STYLES[category];
+          return (
+            <div key={category} className="calendar-legend-item">
+              <span
+                className="calendar-legend-swatch calendar-legend-swatch--solid"
+                style={{ borderColor: style.border, background: style.chipBg }}
+                aria-hidden
+              />
+              <span>{category}</span>
+            </div>
+          );
+        })}
+        <div className="calendar-legend-item">
+          <span className="calendar-legend-swatch calendar-legend-swatch--dashed" aria-hidden />
+          <span>{t('legendRecommended')}</span>
         </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{ borderLeftColor: '#17a2b8' }}></div>
-          <span>In Progress Tasks</span>
+        <div className="calendar-legend-item">
+          <span className="calendar-legend-swatch calendar-legend-swatch--overdue" aria-hidden />
+          <span>{t('legendOverdue')}</span>
         </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{ borderLeftColor: '#28a745' }}></div>
-          <span>Completed Tasks</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{ borderLeftColor: '#dc3545' }}></div>
-          <span>Urgent Deadlines (≤3 days)</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{ borderLeftColor: '#ffc107' }}></div>
-          <span>Upcoming Deadlines (4-7 days)</span>
+        <div className="calendar-legend-item">
+          <span className="calendar-legend-swatch calendar-legend-swatch--done" aria-hidden />
+          <span>{t('legendCompleted')}</span>
         </div>
       </div>
     </div>

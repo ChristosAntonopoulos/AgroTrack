@@ -11,6 +11,8 @@ export interface CalendarEvent {
   end: Date;
   type: 'task' | 'lifecycle' | 'deadline';
   status?: string;
+  priority?: 'Low' | 'Medium' | 'High' | 'Critical';
+  taskType?: string;
   fieldId?: string;
   fieldName?: string;
   taskId?: string;
@@ -21,6 +23,8 @@ export interface CalendarFilters {
   fieldIds?: string[];
   taskTypes?: string[];
   statuses?: string[];
+  priorities?: string[];
+  categories?: string[];
   showTasks?: boolean;
   showLifecycles?: boolean;
   showDeadlines?: boolean;
@@ -61,6 +65,14 @@ export const calendarService = {
       if (filters?.statuses && filters.statuses.length > 0) {
         if (!filters.statuses.includes(task.status)) return false;
       }
+
+      if (filters?.priorities && filters.priorities.length > 0) {
+        if (!task.priority || !filters.priorities.includes(task.priority)) return false;
+      }
+
+      if (filters?.categories && filters.categories.length > 0) {
+        if (!filters.categories.includes(task.type)) return false;
+      }
       
       return true;
     });
@@ -75,6 +87,8 @@ export const calendarService = {
           end: task.scheduledEnd ? new Date(task.scheduledEnd) : new Date(task.scheduledStart!),
           type: 'task',
           status: task.status,
+          priority: task.priority,
+          taskType: task.type,
           fieldId: task.fieldId,
           taskId: task.id,
           color: getTaskCategoryColor(task.type) || getTaskStatusColor(task.status),

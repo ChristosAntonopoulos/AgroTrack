@@ -7,15 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" Version="8.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.22" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OliveLifecycle.Application\OliveLifecycle.Application.csproj" />
     <ProjectReference Include="..\OliveLifecycle.Infrastructure\OliveLifecycle.Infrastructure.csproj" />
+    <ProjectReference Include="..\OliveLifecycle.Common\OliveLifecycle.Common.csproj" />
   </ItemGroup>
 
 </Project>

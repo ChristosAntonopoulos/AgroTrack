@@ -1,23 +1,55 @@
-import {
-  Lifecycle,
-  mockLifecycles,
-  getLifecyclesByRole,
-  simulateDelay,
-} from './mockDataService';
+import api from './api';
 
-export { Lifecycle } from './mockDataService';
+export interface Lifecycle {
+  id: string;
+  fieldId: string;
+  currentYear: string;
+  currentStage?: string;
+  cycleStartDate: string;
+  lastProgressionDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export const lifecycleService = {
   getLifecycle: async (fieldId: string): Promise<Lifecycle | null> => {
-    await simulateDelay();
-    const lifecycle = mockLifecycles.find(l => l.fieldId === fieldId);
-    return lifecycle ? { ...lifecycle } : null;
+    try {
+      const response = await api.get<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle`);
+      return response.data;
+    } catch {
+      return null;
+    }
   },
 
-  getLifecycles: async (userId: string, userRole: string): Promise<Lifecycle[]> => {
-    await simulateDelay();
-    return getLifecyclesByRole(userId, userRole);
+  getLifecycles: async (_userId: string, _userRole: string): Promise<Lifecycle[]> => {
+    const fieldsResponse = await api.get<{ id: string }[]>('/api/v1/fields');
+    const lifecycles: Lifecycle[] = [];
+    for (const field of fieldsResponse.data) {
+      const lifecycle = await lifecycleService.getLifecycle(field.id);
+      if (lifecycle) {
+        lifecycles.push(lifecycle);
+      }
+    }
+    return lifecycles;
   },
 
-  // Read-only - no update methods
+  initializeLifecycle: async (fieldId: string): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/initialize`);
+    return response.data;
+  },
+
+  advanceStage: async (fieldId: string): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/advance-stage`);
+    return response.data;
+  },
+
+  revertStage: async (fieldId: string): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/revert-stage`);
+    return response.data;
+  },
+
+  progressCycle: async (fieldId: string): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/progress`);
+    return response.data;
+  },
 };

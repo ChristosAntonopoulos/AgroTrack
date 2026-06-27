@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { getTaskService } from '../../services/serviceFactory';
+import { getTaskService, isMockMode } from '../../services/serviceFactory';
+import { fileUploadService } from '../../services/fileUploadService';
 import { Evidence } from '../../services/taskService';
+import { getApiErrorMessage } from '../../utils/translateApiError';
+import { useTranslation } from 'react-i18next';
 import { Upload, X, Image } from 'lucide-react';
 import './EvidenceUpload.css';
 
@@ -15,6 +18,7 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
   existingEvidence,
   onEvidenceAdded,
 }) => {
+  const { t } = useTranslation('errors');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -74,8 +78,9 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
       let photoUrl: string | undefined;
       if (photoFile) {
-        // Convert to base64 for MVP
-        photoUrl = await convertFileToBase64(photoFile);
+        photoUrl = isMockMode()
+          ? await convertFileToBase64(photoFile)
+          : await fileUploadService.uploadFile(photoFile);
       }
 
       const taskService = getTaskService();
@@ -90,8 +95,8 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
       }
       
       onEvidenceAdded();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload evidence');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || 'Failed to upload evidence');
     } finally {
       setUploading(false);
     }

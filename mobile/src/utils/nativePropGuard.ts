@@ -85,7 +85,7 @@ export const withNativePropErrorHandling = <P extends object>(
         });
       }
       
-      return <Component {...props} />;
+      return React.createElement(Component, props);
     } catch (error: any) {
       const isBooleanError = error?.message?.includes('cannot be cast') ||
                            error?.message?.includes('Boolean') ||

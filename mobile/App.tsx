@@ -1,59 +1,57 @@
 import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { I18nextProvider } from 'react-i18next';
 import { StatusBar } from 'expo-status-bar';
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import LoginScreen from './src/screens/LoginScreen';
-import AppNavigator from './src/navigation/AppNavigator';
-import LoadingSpinner from './src/components/LoadingSpinner';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PreferencesProvider } from './src/context/PreferencesContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { AuthProvider } from './src/context/AuthContext';
+import RootNavigator from './src/navigation/RootNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
-import { cleanupStorage } from './src/utils/storageCleanup';
-import { toBoolean } from './src/utils/booleanConverter';
-import DashboardScreen from './src/screens/DashboardScreen';
+import i18n, { changeAppLanguage } from './src/i18n';
+import { usePreferences } from './src/context/PreferencesContext';
+import LoadingSpinner from './src/components/LoadingSpinner';
+import { useOfflineSync } from './src/hooks/useOfflineSync';
 
-const AppContent = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const safeIsLoading = toBoolean(isLoading, 'AppContent.isLoading');
-  const safeIsAuthenticated = toBoolean(isAuthenticated, 'AppContent.isAuthenticated');
-
-  if (safeIsLoading) {
-    return <LoadingSpinner fullScreen />;
-  }
-
-  if (!safeIsAuthenticated) {
-    return (
-      <>
-        <LoginScreen onLoginSuccess={() => {}} />
-        <StatusBar style="auto" />
-      </>
-    );
-  }
-
+const AppInner = () => {
+  useOfflineSync();
+  const { isDark } = useTheme();
   return (
     <>
-      <AppNavigator />
-      <StatusBar style="auto" />
+      <RootNavigator />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
     </>
   );
 };
 
-export default function App() {
-  // Run cleanup on app startup - but AuthContext will also run it,
-  // so this is just a backup. The AuthContext cleanup happens first
-  // and is more important since it runs before reading auth data.
-  useEffect(() => {
-    // Small delay to let AuthContext cleanup run first
-    const timer = setTimeout(() => {
-      cleanupStorage().catch((error) => {
-        console.error('Error during app-level storage cleanup:', error);
-      });
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
+const I18nSync = ({ children }: { children: React.ReactNode }) => {
+  const { language, isReady } = usePreferences();
 
+  useEffect(() => {
+    if (isReady) {
+      changeAppLanguage(language);
+    }
+  }, [language, isReady]);
+
+  if (!isReady) return <LoadingSpinner fullScreen />;
+  return <>{children}</>;
+};
+
+export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <I18nextProvider i18n={i18n}>
+          <PreferencesProvider>
+            <ThemeProvider>
+              <I18nSync>
+                <AuthProvider>
+                  <AppInner />
+                </AuthProvider>
+              </I18nSync>
+            </ThemeProvider>
+          </PreferencesProvider>
+        </I18nextProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

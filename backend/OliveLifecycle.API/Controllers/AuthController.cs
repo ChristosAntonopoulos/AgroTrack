@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
 using OliveLifecycle.Application.Services;
 
@@ -9,53 +11,25 @@ namespace OliveLifecycle.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService)
     {
         _authService = authService;
-        _logger = logger;
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto registerDto)
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto registerDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _authService.RegisterAsync(registerDto);
-            _logger.LogInformation("User registered: {Email}", registerDto.Email);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Registration failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during registration");
-            return StatusCode(500, new { message = "An error occurred during registration." });
-        }
+        var response = await _authService.RegisterAsync(registerDto, cancellationToken);
+        return Ok(response);
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _authService.LoginAsync(loginDto);
-            _logger.LogInformation("User logged in: {Email}", loginDto.Email);
-            return Ok(result);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogWarning("Login failed: {Message}", ex.Message);
-            return Unauthorized(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login");
-            return StatusCode(500, new { message = "An error occurred during login." });
-        }
+        var response = await _authService.LoginAsync(loginDto, cancellationToken);
+        return Ok(response);
     }
 }

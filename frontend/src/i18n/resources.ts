@@ -14,6 +14,7 @@ import enReports from '../locales/en/reports.json';
 import enMinistry from '../locales/en/ministry.json';
 import enToday from '../locales/en/today.json';
 import enTaskTemplates from '../locales/en/taskTemplates.json';
+import enLanding from '../locales/en/landing.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -30,6 +31,7 @@ import elMinistry from '../locales/el/ministry.json';
 import elToday from '../locales/el/today.json';
 import elTaskTemplates from '../locales/el/taskTemplates.json';
 import elTaskTemplateEntries from '../locales/el/taskTemplateEntries.json';
+import elLanding from '../locales/el/landing.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -59,7 +61,8 @@ const bundle = (
   reports: object,
   ministry: object,
   today: object,
-  taskTemplates: object
+  taskTemplates: object,
+  landing: object
 ) => ({
   common,
   nav,
@@ -75,6 +78,7 @@ const bundle = (
   ministry,
   today,
   taskTemplates,
+  landing,
 });
 
 export const resources: Record<
@@ -95,7 +99,8 @@ export const resources: Record<
     enReports,
     enMinistry,
     enToday,
-    enTaskTemplates
+    enTaskTemplates,
+    enLanding
   ),
   el: bundle(
     elCommon,
@@ -111,7 +116,8 @@ export const resources: Record<
     elReports,
     elMinistry,
     elToday,
-    { ...elTaskTemplates, templates: elTaskTemplateEntries }
+    { ...elTaskTemplates, templates: elTaskTemplateEntries },
+    elLanding
   ),
   it: bundle(
     itCommon,
@@ -127,6 +133,7 @@ export const resources: Record<
     itReports,
     itMinistry,
     itToday,
-    enTaskTemplates
+    enTaskTemplates,
+    enLanding
   ),
 };

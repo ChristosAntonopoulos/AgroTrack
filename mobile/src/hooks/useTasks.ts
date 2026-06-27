@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { taskService, Task } from '../services/taskService';
-import { fieldService, Field } from '../services/fieldService';
-
+import { getTaskService, getFieldService } from '../services/serviceFactory';
+import { Task } from '../services/taskService';
+import { Field } from '../services/fieldService';
 export interface UseTasksOptions {
   fieldId?: string;
-  filter?: 'all' | 'pending' | 'in_progress' | 'completed';
+  filter?: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval';
 }
 
 export interface UseTasksResult {
@@ -15,7 +15,7 @@ export interface UseTasksResult {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  setFilter: (filter: 'all' | 'pending' | 'in_progress' | 'completed') => void;
+  setFilter: (filter: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval') => void;
 }
 
 export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
@@ -25,7 +25,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
   const [fields, setFields] = useState<Record<string, Field>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed' | 'approval'>('all');
 
   const loadTasks = async () => {
     if (!user) return;
@@ -37,9 +37,9 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
       // taskService already returns correct types
       let tasksData: Task[];
       if (fieldId) {
-        tasksData = await taskService.getTasksByField(fieldId);
+        tasksData = await getTaskService().getTasksByField(fieldId);
       } else {
-        tasksData = await taskService.getAssignedTasks(user.id, user.role);
+        tasksData = await getTaskService().getAssignedTasks(user.id, user.role);
       }
 
       setTasks(tasksData);
@@ -49,7 +49,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
       const fieldsMap: Record<string, Field> = {};
       for (const id of fieldIds) {
         try {
-          const field = await fieldService.getField(id);
+          const field = await getFieldService().getField(id);
           fieldsMap[id] = field;
         } catch (err) {
           console.error(`Error loading field ${id}:`, err);
@@ -70,6 +70,11 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
 
   const filteredTasks = useMemo(() => {
     if (filter === 'all') return tasks;
+    if (filter === 'approval') {
+      return tasks.filter(
+        t => (t as Task & { approvalStatus?: string }).approvalStatus === 'pending'
+      );
+    }
     return tasks.filter(task => task.status === filter);
   }, [tasks, filter]);
 

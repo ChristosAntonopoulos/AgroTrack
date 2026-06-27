@@ -1,5 +1,4 @@
 // Service Factory - Toggles between mock and real services based on environment variable
-// Currently always using mock mode
 
 // Field Service
 import { fieldService } from './fieldService';
@@ -25,7 +24,15 @@ import { mockCalendarService } from './mock/mockCalendarService';
 import { analyticsService } from './analyticsService';
 import { mockAnalyticsService } from './mock/mockAnalyticsService';
 
-const useMockData = true; // Always use mock mode for now
+// Ministry Notifications
+import { ministryNotificationService } from './ministryNotificationService';
+import { ministryApiService } from './ministryApiService';
+
+// Reports
+import { reportsService } from './reportsService';
+import { isMockDataEnabled } from '../config/apiConfig';
+
+const useMockData = isMockDataEnabled();
 
 export const getFieldService = () => useMockData ? mockFieldService : fieldService;
 export const getTaskService = () => useMockData ? mockTaskService : taskService;
@@ -33,6 +40,9 @@ export const getUserService = () => useMockData ? mockUserService : userService;
 export const getLifecycleService = () => useMockData ? mockLifecycleService : lifecycleService;
 export const getCalendarService = () => useMockData ? mockCalendarService : calendarService;
 export const getAnalyticsService = () => useMockData ? mockAnalyticsService : analyticsService;
+export const getMinistryNotificationService = () =>
+  useMockData ? ministryNotificationService : ministryApiService;
+export const getReportsService = () => reportsService;
 
 // Export a helper to check if mock mode is active
 export const isMockMode = () => useMockData;

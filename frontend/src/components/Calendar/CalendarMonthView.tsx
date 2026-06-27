@@ -13,8 +13,14 @@ import {
 } from 'date-fns';
 import { el, enUS } from 'date-fns/locale';
 import { CalendarEvent } from '../../services/calendarService';
-import { RecommendedTemplateEntry, getCategoryColorsForMonth, getEventsForDay } from '../../utils/calendarRecommendations';
-import CalendarEventComponent from './CalendarEvent';
+import { RecommendedTemplateEntry, getEventsForDay } from '../../utils/calendarRecommendations';
+import {
+  countCritical,
+  getEventCategoryColor,
+  getEventChipVariant,
+  shortenLabel,
+} from '../../utils/calendarViewUtils';
+import CalendarTaskChip from './CalendarTaskChip';
 import './CalendarMonthView.css';
 
 type Props = {
@@ -26,6 +32,8 @@ type Props = {
   onDateSelect: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
 };
+
+const MAX_VISIBLE_CHIPS = 2;
 
 const CalendarMonthView: React.FC<Props> = ({
   currentDate,
@@ -49,23 +57,10 @@ const CalendarMonthView: React.FC<Props> = ({
     format(new Date(2024, 0, d), 'EEE', { locale: dateLocale })
   );
 
-  const categoryColors = getCategoryColorsForMonth(recommended);
-  const hasSeasonal = recommended.length > 0;
+  const todayRecommended = recommended.filter((r) => r.recommended);
 
   return (
-    <div className={`cal-month${hasSeasonal ? ' cal-month--seasonal' : ''}`}>
-      {hasSeasonal && (
-        <div
-          className="cal-month-season-glow"
-          style={{
-            background: categoryColors.length
-              ? `linear-gradient(90deg, ${categoryColors.map((c) => `${c}22`).join(', ')})`
-              : undefined,
-          }}
-          aria-hidden
-        />
-      )}
-
+    <div className="cal-month">
       <div className="cal-month-header">
         {weekDays.map((day) => (
           <div key={day} className="cal-month-weekday">
@@ -74,62 +69,80 @@ const CalendarMonthView: React.FC<Props> = ({
         ))}
       </div>
 
-      <div className="cal-month-grid">
+      <div className="cal-month-grid" role="grid" aria-label={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}>
         {days.map((day) => {
           const dayEvents = getEventsForDay(events, day);
           const inMonth = isSameMonth(day, currentDate);
           const isSelected = isSameDay(day, selectedDate);
           const isCurrentDay = isToday(day);
+          const criticalCount = countCritical(dayEvents);
+          const showTodayRec = isCurrentDay && todayRecommended.length > 0;
+          const recSlots = showTodayRec ? 1 : 0;
+          const eventSlots = MAX_VISIBLE_CHIPS - recSlots;
+          const visibleEvents = dayEvents.slice(0, eventSlots);
+          const hiddenCount =
+            dayEvents.length - visibleEvents.length + (showTodayRec ? Math.max(0, todayRecommended.length - 1) : 0);
 
           return (
             <button
               key={day.toISOString()}
               type="button"
+              role="gridcell"
               className={[
                 'cal-month-day',
                 !inMonth && 'cal-month-day--outside',
                 isCurrentDay && 'cal-month-day--today',
                 isSelected && 'cal-month-day--selected',
-                hasSeasonal && inMonth && 'cal-month-day--recommended',
               ]
                 .filter(Boolean)
                 .join(' ')}
               onClick={() => onDateSelect(day)}
+              aria-current={isSelected ? 'date' : undefined}
+              aria-label={format(day, 'EEEE d MMMM', { locale: dateLocale })}
             >
-              {hasSeasonal && inMonth && categoryColors.length > 0 && (
-                <div className="cal-month-day-strip" aria-hidden>
-                  {categoryColors.slice(0, 4).map((color) => (
-                    <span key={color} style={{ background: color }} />
-                  ))}
-                </div>
-              )}
-
-              <span className="cal-month-day-num">{format(day, 'd')}</span>
+              <div className="cal-month-day-head">
+                <span className="cal-month-day-num">{format(day, 'd')}</span>
+                {criticalCount > 0 && (
+                  <span className="cal-month-critical" title={t('criticalCount', { count: criticalCount })}>
+                    {t('criticalShort', { count: criticalCount })}
+                  </span>
+                )}
+              </div>
 
               <div className="cal-month-day-events">
-                {dayEvents.slice(0, 3).map((event) => (
-                  <CalendarEventComponent
+                {visibleEvents.map((event) => (
+                  <CalendarTaskChip
                     key={event.id}
-                    event={event}
-                    onClick={() => onEventClick(event)}
+                    label={shortenLabel(event.title)}
+                    categoryColor={getEventCategoryColor(event)}
+                    variant={getEventChipVariant(event)}
+                    priority={event.priority}
+                    title={`${event.title}${event.fieldName ? ` · ${event.fieldName}` : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(event);
+                    }}
                   />
                 ))}
-                {dayEvents.length > 3 && (
-                  <span className="cal-month-more">
-                    {t('calendar:moreEvents', { count: dayEvents.length - 3 })}
-                  </span>
+
+                {showTodayRec && todayRecommended[0] && (
+                  <CalendarTaskChip
+                    label={shortenLabel(todayRecommended[0].template.title)}
+                    categoryColor={todayRecommended[0].categoryBorder}
+                    variant="recommended"
+                    priority={todayRecommended[0].template.priority}
+                    title={todayRecommended[0].template.title}
+                  />
+                )}
+
+                {hiddenCount > 0 && (
+                  <span className="cal-month-more">{t('moreEvents', { count: hiddenCount })}</span>
                 )}
               </div>
             </button>
           );
         })}
       </div>
-
-      {hasSeasonal && (
-        <p className="cal-month-season-hint">
-          {t('calendar:seasonHint', { month: format(currentDate, 'MMMM', { locale: dateLocale }) })}
-        </p>
-      )}
     </div>
   );
 };

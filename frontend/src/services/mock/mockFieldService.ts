@@ -1,6 +1,7 @@
 import { Field, CreateFieldDto, UpdateFieldDto } from '../fieldService';
 import { simulateDelay } from './mockData';
 import { demoStore } from '../demo/demoStore';
+import { DEMO_OWNER_ID } from '../demo/demoSeedGenerator';
 
 // Helper to get current user from localStorage (mimicking auth context)
 const getCurrentUser = () => {
@@ -79,7 +80,7 @@ export const mockFieldService = {
     await simulateDelay();
     demoStore.ensureSeeded();
     const user = getCurrentUser();
-    const userId = user?.userId || user?.id || 'user1';
+    const userId = user?.userId || user?.id || DEMO_OWNER_ID;
     
     const newField: Field = {
       id: `field${Date.now()}`,
@@ -127,7 +128,7 @@ export const mockFieldService = {
       type: 'producer_assigned',
       timestamp: new Date().toISOString(),
       fieldId,
-      actorUserId: 'user1',
+      actorUserId: DEMO_OWNER_ID,
       message: `Producer assigned to field: ${producerId}`,
     });
   },
@@ -140,7 +141,7 @@ export const mockFieldService = {
       type: 'producer_unassigned',
       timestamp: new Date().toISOString(),
       fieldId,
-      actorUserId: 'user1',
+      actorUserId: DEMO_OWNER_ID,
       message: `Producer removed from field: ${producerId}`,
     });
   },

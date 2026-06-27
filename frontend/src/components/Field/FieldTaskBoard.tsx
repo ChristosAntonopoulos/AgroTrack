@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { Task } from '../../services/taskService';
@@ -6,8 +6,9 @@ import Button from '../Common/Button';
 import Badge from '../Common/Badge';
 import Card from '../Common/Card';
 import EmptyState from '../Common/EmptyState';
+import { getFieldService, getTaskService, getUserService, isMockMode } from '../../services/serviceFactory';
 import { demoStore } from '../../services/demo/demoStore';
-import { getTaskService } from '../../services/serviceFactory';
+import { User } from '../../services/userService';
 import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../../utils/taskRules';
 import { CheckCircle2, Play, Plus, UserCog } from 'lucide-react';
 import './FieldTaskBoard.css';
@@ -32,13 +33,41 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
   const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
   const [reassignTarget, setReassignTarget] = useState<Record<string, string>>({});
 
+  const [producerUsers, setProducerUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    if (role !== 'FieldOwner' && role !== 'Administrator') return;
+    const load = async () => {
+      if (isMockMode()) {
+        demoStore.ensureSeeded();
+        setProducerUsers(demoStore.getUsers().filter((u) => u.role === 'Producer'));
+      } else {
+        try {
+          setProducerUsers(await getUserService().getUsers('Producer'));
+        } catch {
+          setProducerUsers([]);
+        }
+      }
+    };
+    void load();
+  }, [role]);
+
   const getProducerName = (producerId?: string) => {
     if (!producerId) return t('fields:taskBoard.unassigned');
-    demoStore.ensureSeeded();
-    const u = demoStore.getUsers().find((x) => x.id === producerId);
-    if (!u) return producerId;
-    const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
-    return name || u.email;
+    const u = producerUsers.find((x) => x.id === producerId);
+    if (u) {
+      const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+      return name || u.email;
+    }
+    if (isMockMode()) {
+      demoStore.ensureSeeded();
+      const mockU = demoStore.getUsers().find((x) => x.id === producerId);
+      if (mockU) {
+        const name = `${mockU.firstName || ''} ${mockU.lastName || ''}`.trim();
+        return name || mockU.email;
+      }
+    }
+    return producerId;
   };
 
   const now = new Date();
@@ -88,11 +117,6 @@ const FieldTaskBoard: React.FC<Props> = ({ fieldId, tasks, currentUserId, role, 
 
     return cols;
   }, [fieldId, tasks, today.getTime(), weekEnd.getTime()]);
-
-  const producerUsers = useMemo(() => {
-    demoStore.ensureSeeded();
-    return demoStore.getUsers().filter((u) => u.role === 'Producer');
-  }, []);
 
   const updateStatus = async (taskId: string, status: string) => {
     const service = getTaskService();

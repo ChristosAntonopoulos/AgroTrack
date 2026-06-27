@@ -1,0 +1,9 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "network": "Network error. Check your connection.",
+  "unauthorized": "Invalid email or password.",
+  "sessionExpired": "Your session has expired.",
+  "loadFailed": "Failed to load data.",
+  "saveFailed": "Failed to save.",
+  "uploadFailed": "Failed to upload photo."
+}

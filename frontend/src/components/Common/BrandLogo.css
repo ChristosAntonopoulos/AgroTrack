@@ -1,0 +1,9 @@
+.brand-logo {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-logo--rounded {
+  border-radius: var(--radius-md);
+}

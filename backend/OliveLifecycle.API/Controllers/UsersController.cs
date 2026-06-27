@@ -1,66 +1,41 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.User;
 using OliveLifecycle.Application.Services;
+using OliveLifecycle.Common.Constants;
 
 namespace OliveLifecycle.API.Controllers;
 
-[ApiController]
-[Route("api/v1/users")]
 [Authorize]
-public class UsersController : ControllerBase
+[Route("api/v1/users")]
+public class UsersController : BaseApiController
 {
     private readonly IUserService _userService;
-    private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    public UsersController(IUserService userService, ICurrentUserContext currentUser)
+        : base(currentUser)
     {
         _userService = userService;
-        _logger = logger;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] string? role)
+    [Authorize(Policy = PolicyNames.CanManageUsers)]
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] string? role, CancellationToken cancellationToken)
     {
-        try
-        {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            
-            // Only FieldOwner and Administrator can list users
-            if (currentUserRole != "FieldOwner" && currentUserRole != "Administrator")
-            {
-                return Forbid("You do not have permission to list users.");
-            }
-
-            var users = await _userService.GetUsersByRoleAsync(role);
-            return Ok(users);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving users");
-            return StatusCode(500, new { message = "An error occurred while retrieving users." });
-        }
+        var users = await _userService.GetUsersByRoleAsync(role, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(users);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<UserDto>> GetUser(string id)
+    public async Task<ActionResult<UserDto>> GetUser(string id, CancellationToken cancellationToken)
     {
-        try
+        var user = await _userService.GetUserByIdAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
+        if (user == null)
         {
-            var user = await _userService.GetUserByIdAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            return NotFound();
+        }
 
-            return Ok(user);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving user {UserId}", id);
-            return StatusCode(500, new { message = "An error occurred while retrieving the user." });
-        }
+        return OkResult(user);
     }
 }

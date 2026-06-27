@@ -10,6 +10,7 @@ import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DemoTourPanel from '../components/Demo/DemoTourPanel';
+import { getFieldService, getTaskService, isMockMode } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
@@ -44,10 +45,29 @@ const TodayPage: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  const [apiFields, setApiFields] = useState<Field[]>([]);
+  const [apiTasks, setApiTasks] = useState<Task[]>([]);
+
   useEffect(() => {
-    demoStore.ensureSeeded();
-    if (user?.userId) {
-      demoStore.markDemoStep(user.userId, user.role || 'Producer', 'producer_visit_today');
+    if (isMockMode()) {
+      demoStore.ensureSeeded();
+      if (user?.userId) {
+        demoStore.markDemoStep(user.userId, user.role || 'Producer', 'producer_visit_today');
+      }
+    } else if (user?.userId) {
+      void (async () => {
+        try {
+          const [fieldsData, tasksData] = await Promise.all([
+            getFieldService().getFields(),
+            getTaskService().getTasks(undefined, user.userId),
+          ]);
+          setApiFields(fieldsData);
+          setApiTasks(tasksData);
+        } catch {
+          setApiFields([]);
+          setApiTasks([]);
+        }
+      })();
     }
     (async () => {
       try {
@@ -69,9 +89,12 @@ const TodayPage: React.FC = () => {
   const [completedStops, setCompletedStops] = useState<string[]>([]);
 
   const { fields, tasks } = useMemo(() => {
-    demoStore.ensureSeeded();
-    return { fields: demoStore.getFields(), tasks: demoStore.getTasks() };
-  }, []);
+    if (isMockMode()) {
+      demoStore.ensureSeeded();
+      return { fields: demoStore.getFields(), tasks: demoStore.getTasks() };
+    }
+    return { fields: apiFields, tasks: apiTasks };
+  }, [apiFields, apiTasks]);
 
   const myOpenTasks = useMemo(() => {
     if (!producerId) return [];
@@ -124,7 +147,7 @@ const TodayPage: React.FC = () => {
   }, [fields, myOpenTasks, recommended, currentLocation]);
 
   useEffect(() => {
-    if (!producerId) return;
+    if (!producerId || !isMockMode()) return;
     demoStore.ensureSeeded();
     const state = demoStore.getRouteState(producerId);
     setRouteMode(state.active);
@@ -133,7 +156,7 @@ const TodayPage: React.FC = () => {
   }, [producerId]);
 
   const persistRoute = (patch: Partial<{ active: boolean; currentIndex: number; completedFieldIds: string[] }>) => {
-    if (!producerId) return;
+    if (!producerId || !isMockMode()) return;
     const current = demoStore.getRouteState(producerId);
     const next = {
       ...current,
@@ -148,7 +171,7 @@ const TodayPage: React.FC = () => {
     setCurrentStopIndex(0);
     setCompletedStops([]);
     persistRoute({ active: true, currentIndex: 0, completedFieldIds: [] });
-    if (routeFields[0]) {
+    if (isMockMode() && routeFields[0]) {
       demoStore.addEvent({
         type: 'task_status_changed',
         timestamp: new Date().toISOString(),
@@ -168,13 +191,15 @@ const TodayPage: React.FC = () => {
     const next = Array.from(new Set([...completedStops, fieldId]));
     setCompletedStops(next);
     persistRoute({ completedFieldIds: next });
-    demoStore.addEvent({
-      type: 'task_status_changed',
-      timestamp: new Date().toISOString(),
-      fieldId,
-      actorUserId: producerId,
-      message: `Route stop completed: ${fieldName}`,
-    });
+    if (isMockMode()) {
+      demoStore.addEvent({
+        type: 'task_status_changed',
+        timestamp: new Date().toISOString(),
+        fieldId,
+        actorUserId: producerId,
+        message: `Route stop completed: ${fieldName}`,
+      });
+    }
   };
 
   const goToStop = (idx: number) => {
@@ -207,7 +232,7 @@ const TodayPage: React.FC = () => {
       <div className="today-page">
         <Breadcrumbs />
 
-        {user?.userId && (() => {
+        {isMockMode() && user?.userId && (() => {
           const progress = demoStore.getDemoProgress(user.userId, user.role || 'Producer');
           return !progress.dismissed ? (
             <div className="today-onboarding">

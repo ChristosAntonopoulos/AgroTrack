@@ -1,165 +1,106 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Task;
 using OliveLifecycle.Application.Services;
+using OliveLifecycle.Common.Constants;
 
 namespace OliveLifecycle.API.Controllers;
 
-[ApiController]
-[Route("api/v1/tasks")]
 [Authorize]
-public class TasksController : ControllerBase
+[Route("api/v1/tasks")]
+public class TasksController : BaseApiController
 {
     private readonly ITaskService _taskService;
-    private readonly ILogger<TasksController> _logger;
 
-    public TasksController(ITaskService taskService, ILogger<TasksController> logger)
+    public TasksController(ITaskService taskService, ICurrentUserContext currentUser)
+        : base(currentUser)
     {
         _taskService = taskService;
-        _logger = logger;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks([FromQuery] string? fieldId, [FromQuery] string? assignedTo)
+    public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks(
+        [FromQuery] string? fieldId,
+        [FromQuery] string? assignedTo,
+        CancellationToken cancellationToken)
     {
-        try
+        IEnumerable<TaskDto> tasks;
+
+        if (!string.IsNullOrEmpty(assignedTo))
         {
-            IEnumerable<TaskDto> tasks;
-            
-            if (!string.IsNullOrEmpty(assignedTo))
+            if (assignedTo != UserContext.UserId &&
+                UserContext.Role != Roles.FieldOwner &&
+                UserContext.Role != Roles.Administrator)
             {
-                tasks = await _taskService.GetTasksByAssignedToAsync(assignedTo);
-            }
-            else if (!string.IsNullOrEmpty(fieldId))
-            {
-                tasks = await _taskService.GetTasksByFieldIdAsync(fieldId);
-            }
-            else
-            {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized();
-                }
-                tasks = await _taskService.GetTasksByAssignedToAsync(userId);
+                return Forbid();
             }
 
-            return Ok(tasks);
+            tasks = await _taskService.GetTasksByAssignedToAsync(assignedTo, cancellationToken);
         }
-        catch (Exception ex)
+        else if (!string.IsNullOrEmpty(fieldId))
         {
-            _logger.LogError(ex, "Error retrieving tasks");
-            return StatusCode(500, new { message = "An error occurred while retrieving tasks." });
+            tasks = await _taskService.GetTasksByFieldIdAsync(fieldId, UserContext.UserId, UserContext.Role, cancellationToken);
         }
+        else
+        {
+            tasks = await _taskService.GetTasksForUserAsync(UserContext.UserId, UserContext.Role, cancellationToken);
+        }
+
+        return OkResult(tasks);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TaskDto>> GetTask(string id)
+    public async Task<ActionResult<TaskDto>> GetTask(string id, CancellationToken cancellationToken)
     {
-        try
+        var task = await _taskService.GetTaskByIdAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
+        if (task == null)
         {
-            var task = await _taskService.GetTaskByIdAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
+            return NotFound();
+        }
 
-            return Ok(task);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving task {TaskId}", id);
-            return StatusCode(500, new { message = "An error occurred while retrieving the task." });
-        }
+        return OkResult(task);
     }
 
     [HttpPost]
-    public async Task<ActionResult<TaskDto>> CreateTask([FromBody] CreateTaskDto createTaskDto)
+    public async Task<ActionResult<TaskDto>> CreateTask([FromBody] CreateTaskDto createTaskDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var task = await _taskService.CreateTaskAsync(createTaskDto);
-            _logger.LogInformation("Task created: {TaskId}", task.Id);
-            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating task");
-            return StatusCode(500, new { message = "An error occurred while creating the task." });
-        }
+        var task = await _taskService.CreateTaskAsync(createTaskDto, UserContext.UserId, UserContext.Role, cancellationToken);
+        return CreatedResult(nameof(GetTask), new { id = task.Id }, task);
     }
 
     [HttpPut("{id}/status")]
-    public async Task<ActionResult<TaskDto>> UpdateTaskStatus(string id, [FromBody] UpdateTaskStatusDto updateDto)
+    public async Task<ActionResult<TaskDto>> UpdateTaskStatus(string id, [FromBody] UpdateTaskStatusDto updateDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var task = await _taskService.UpdateTaskStatusAsync(id, updateDto.Status);
-            _logger.LogInformation("Task {TaskId} status updated to {Status}", id, updateDto.Status);
-            return Ok(task);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating task status {TaskId}", id);
-            return StatusCode(500, new { message = "An error occurred while updating the task status." });
-        }
+        var task = await _taskService.UpdateTaskStatusAsync(id, updateDto.Status, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(task);
     }
 
     [HttpPost("{id}/evidence")]
-    public async Task<ActionResult<TaskDto>> AddEvidence(string id, [FromBody] AddEvidenceDto evidenceDto)
+    public async Task<ActionResult<TaskDto>> AddEvidence(string id, [FromBody] AddEvidenceDto evidenceDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var task = await _taskService.AddEvidenceAsync(id, evidenceDto);
-            _logger.LogInformation("Evidence added to task {TaskId}", id);
-            return Ok(task);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error adding evidence to task {TaskId}", id);
-            return StatusCode(500, new { message = "An error occurred while adding evidence." });
-        }
+        var task = await _taskService.AddEvidenceAsync(id, evidenceDto, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(task);
     }
 
     [HttpPut("{id}/assign")]
-    public async Task<ActionResult<TaskDto>> AssignTask(string id, [FromBody] AssignTaskDto assignDto)
+    public async Task<ActionResult<TaskDto>> AssignTask(string id, [FromBody] AssignTaskDto assignDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var task = await _taskService.AssignTaskAsync(id, assignDto.AssignedTo);
-            _logger.LogInformation("Task {TaskId} assigned to {AssignedTo}", id, assignDto.AssignedTo);
-            return Ok(task);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error assigning task {TaskId}", id);
-            return StatusCode(500, new { message = "An error occurred while assigning the task." });
-        }
+        var task = await _taskService.AssignTaskAsync(id, assignDto.AssignedTo, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(task);
     }
-}
 
-public class AssignTaskDto
-{
-    public string AssignedTo { get; set; } = string.Empty;
+    [HttpPost("{id}/approve")]
+    public async Task<ActionResult<TaskDto>> ApproveTask(string id, [FromBody] TaskApprovalDto dto, CancellationToken cancellationToken)
+    {
+        var task = await _taskService.ApproveTaskAsync(id, dto.Note, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/reject")]
+    public async Task<ActionResult<TaskDto>> RejectTask(string id, [FromBody] TaskApprovalDto dto, CancellationToken cancellationToken)
+    {
+        var task = await _taskService.RejectTaskAsync(id, dto.Note, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(task);
+    }
 }

@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Image, Alert } from 'react-native';
-import { taskService, Task } from '../services/taskService';
-import { fieldService, Field } from '../services/fieldService';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
+import { Task } from '../services/taskService';
+import { Field } from '../services/fieldService';
+import { getTaskService, getFieldService } from '../services/serviceFactory';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import Card from '../components/ui/Card';
 import ListItem from '../components/lists/ListItem';
 import Section from '../components/layout/Section';
@@ -9,20 +15,25 @@ import StatusBadge from '../components/StatusBadge';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EvidenceForm, { EvidenceFormData } from '../components/forms/EvidenceForm';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing } from '../theme';
 import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters';
 import { toBoolean } from '../utils/booleanConverter';
+import { RootStackParamList } from '../navigation/types';
+import { API_BASE_URL } from '../services/fileService';
 
-interface TaskDetailScreenProps {
-  route: { params: { taskId: string } };
-  navigation: any;
-}
+type Route = RouteProp<RootStackParamList, 'TaskDetail'>;
+type Nav = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
 
-const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
-  route,
-  navigation,
-}) => {
+const resolveImageUrl = (url: string) =>
+  url.startsWith('http') ? url : `${API_BASE_URL.replace(/\/$/, '')}${url}`;
+
+const TaskDetailScreen = () => {
+  const route = useRoute<Route>();
+  const navigation = useNavigation<Nav>();
   const { taskId } = route.params;
+  const { isFieldOwner } = useAuth();
+  const { colors } = useTheme();
+  const { t } = useTranslation(['tasks', 'common']);
   const [task, setTask] = useState<Task | null>(null);
   const [field, setField] = useState<Field | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,11 +52,11 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
   const loadTaskDetails = async () => {
     try {
       setLoading(true);
-      const taskData = await taskService.getTask(taskId);
+      const taskData = await getTaskService().getTask(taskId);
       setTask(taskData);
       
       try {
-        const fieldData = await fieldService.getField(taskData.fieldId);
+        const fieldData = await getFieldService().getField(taskData.fieldId);
         setField(fieldData);
       } catch (fieldError) {
         console.error('Error loading field:', fieldError);
@@ -87,7 +98,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
             onPress: async () => {
               try {
                 setUpdating(true);
-                const updatedTask = await taskService.updateTaskStatus(taskId, newStatus);
+                const updatedTask = await getTaskService().updateTaskStatus(taskId, newStatus);
                 setTask(updatedTask);
                 Alert.alert('Success', `Task status updated to ${newStatus.replace('_', ' ')}`);
               } catch (error: any) {
@@ -110,7 +121,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
 
     try {
       setAddingEvidence(true);
-      const updatedTask = await taskService.addEvidence(
+      const updatedTask = await getTaskService().addEvidence(
         taskId,
         data.photoUrl,
         data.notes
@@ -125,63 +136,65 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
     }
   };
 
+  const handleApprove = async (approve: boolean) => {
+    if (!task) return;
+    try {
+      setUpdating(true);
+      const updated = approve
+        ? await getTaskService().approveTask(taskId)
+        : await getTaskService().rejectTask(taskId);
+      setTask(updated);
+    } catch (error: any) {
+      Alert.alert(t('common:confirm'), error.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const getStatusActionButtons = () => {
     if (!task) return null;
-
     const buttons = [];
 
-    if (task.status === 'pending') {
-      buttons.push(
-        <Button
-          key="start"
-          title="Start Task"
-          onPress={() => handleStatusUpdate('in_progress')}
-          disabled={isUpdating}
-          loading={isUpdating}
-          style={styles.actionButton}
-        />
-      );
-    } else if (task.status === 'in_progress') {
-      buttons.push(
-        <Button
-          key="complete"
-          title="Complete Task"
-          onPress={() => handleStatusUpdate('completed')}
-          disabled={isUpdating}
-          loading={isUpdating}
-          variant="success"
-          style={styles.actionButton}
-        />
-      );
-    } else if (task.status === 'completed') {
-      buttons.push(
-        <Button
-          key="reopen"
-          title="Reopen Task"
-          onPress={() => handleStatusUpdate('in_progress')}
-          disabled={isUpdating}
-          loading={isUpdating}
-          variant="outline"
-          style={styles.actionButton}
-        />
-      );
+    if (!isFieldOwner()) {
+      if (task.status === 'pending') {
+        buttons.push(
+          <Button key="start" title={t('tasks:startTask')} onPress={() => handleStatusUpdate('in_progress')} disabled={isUpdating} loading={isUpdating} style={styles.actionButton} />
+        );
+      } else if (task.status === 'in_progress') {
+        buttons.push(
+          <Button key="complete" title={t('tasks:completeTask')} onPress={() => handleStatusUpdate('completed')} disabled={isUpdating} loading={isUpdating} style={styles.actionButton} />
+        );
+      }
+      if (task.status === 'in_progress' || task.status === 'completed') {
+        buttons.push(
+          <Button key="evidence" title={t('tasks:addEvidence')} onPress={() => setShowEvidenceForm(true)} variant="outline" style={styles.actionButton} />
+        );
+      }
     }
 
-    // Add evidence button for in_progress or completed tasks
-    if (task.status === 'in_progress' || task.status === 'completed') {
+    if (isFieldOwner() && task.approvalStatus === 'pending') {
       buttons.push(
-        <Button
-          key="evidence"
-          title="Add Evidence"
-          onPress={() => setShowEvidenceForm(true)}
-          variant="outline"
-          style={styles.actionButton}
-        />
+        <Button key="approve" title={t('tasks:approve')} onPress={() => handleApprove(true)} disabled={isUpdating} style={styles.actionButton} />,
+        <Button key="reject" title={t('tasks:reject')} onPress={() => handleApprove(false)} variant="outline" disabled={isUpdating} style={styles.actionButton} />
       );
     }
 
     return buttons;
   };
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: spacing.base },
+    header: { marginBottom: spacing.xl, paddingTop: spacing.base, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    taskTitle: { ...typography.styles.h2, color: colors.textPrimary, fontWeight: typography.fontWeight.bold, flex: 1, marginRight: spacing.sm },
+    value: { ...typography.styles.body, color: colors.textPrimary, fontWeight: typography.fontWeight.medium },
+    linkText: { color: colors.primary },
+    evidenceImage: { width: '100%', height: 200, borderRadius: 8, marginBottom: spacing.sm },
+    backButton: { marginTop: spacing.base, marginBottom: spacing.xl },
+    errorText: { ...typography.styles.body, color: colors.error, textAlign: 'center', marginTop: spacing.xl },
+    actionsContainer: { gap: spacing.md },
+    actionButton: { marginBottom: spacing.sm },
+  });
 
   if (loading) {
     return <LoadingSpinner fullScreen />;
@@ -320,7 +333,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
             <Card key={index}>
               {evidence.photoUrl ? (
                 <Image
-                  source={{ uri: evidence.photoUrl }}
+                  source={{ uri: resolveImageUrl(evidence.photoUrl) }}
                   style={styles.evidenceImage}
                   resizeMode="cover"
                 />
@@ -368,7 +381,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
       ) : null}
 
       <Button
-        title="Back to Tasks"
+        title={t('common:back')}
         onPress={() => navigation.goBack()}
         variant="outline"
         style={styles.backButton}
@@ -383,59 +396,5 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.base,
-  },
-  header: {
-    marginBottom: spacing.xl,
-    paddingTop: spacing.base,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  taskTitle: {
-    ...typography.styles.h2,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.bold,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  value: {
-    ...typography.styles.body,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.medium,
-  },
-  linkText: {
-    color: colors.primary,
-  },
-  evidenceImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: spacing.sm,
-  },
-  backButton: {
-    marginTop: spacing.base,
-    marginBottom: spacing.xl,
-  },
-  errorText: {
-    ...typography.styles.body,
-    color: colors.error,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
-  actionsContainer: {
-    gap: spacing.md,
-  },
-  actionButton: {
-    marginBottom: spacing.sm,
-  },
-});
 
 export default TaskDetailScreen;

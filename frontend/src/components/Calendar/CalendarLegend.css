@@ -1,37 +1,55 @@
 .calendar-legend {
-  background: var(--color-surface);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-}
-
-.calendar-legend h4 {
-  margin: 0 0 var(--spacing-md) 0;
-  color: var(--color-text-primary);
-  font-size: 1rem;
-}
-
-.legend-items {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.legend-item {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.legend-color {
-  width: 20px;
-  height: 16px;
-  border-left: 3px solid;
-  background: var(--color-background);
-  border-radius: var(--radius-sm);
-}
-
-.legend-item span {
-  font-size: 0.875rem;
+  gap: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-section);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  font-size: 0.72rem;
   color: var(--color-text-secondary);
+}
+
+.calendar-legend-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-right: var(--spacing-xs);
+}
+
+.calendar-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+
+.calendar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-legend-swatch {
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  flex-shrink: 0;
+}
+
+.calendar-legend-swatch--dashed {
+  border-style: dashed;
+  border-left-color: var(--color-warning);
+  background: transparent;
+}
+
+.calendar-legend-swatch--overdue {
+  border-left-color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 15%, transparent);
+}
+
+.calendar-legend-swatch--done {
+  border-left-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
 }

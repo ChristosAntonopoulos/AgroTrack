@@ -97,4 +97,41 @@ export const toBooleanNot = (value: any): boolean => {
   return !toBoolean(value) as boolean;
 };
 
+/** Boolean props accepted by React Native TextInput on the native bridge */
+export const TEXT_INPUT_BOOLEAN_KEYS = [
+  'allowFontScaling',
+  'autoCorrect',
+  'autoFocus',
+  'blurOnSubmit',
+  'caretHidden',
+  'contextMenuHidden',
+  'editable',
+  'enablesReturnKeyAutomatically',
+  'focusable',
+  'multiline',
+  'readOnly',
+  'rejectResponderTermination',
+  'scrollEnabled',
+  'secureTextEntry',
+  'selectTextOnFocus',
+  'showSoftInputOnFocus',
+  'spellCheck',
+] as const;
+
+/**
+ * Coerce known native boolean props so Android never receives string "true"/"false".
+ */
+export const sanitizeNativeBooleans = <T extends Record<string, unknown>>(
+  props: T,
+  keys: readonly string[] = TEXT_INPUT_BOOLEAN_KEYS
+): T => {
+  const result = { ...props };
+  for (const key of keys) {
+    if (key in result && result[key] !== undefined) {
+      (result as Record<string, unknown>)[key] = toBoolean(result[key], key);
+    }
+  }
+  return result;
+};
+
 export default toBoolean;

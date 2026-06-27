@@ -13,18 +13,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = colors.primary,
   fullScreen = false,
 }) => {
-  // Log fullScreen prop to catch any non-boolean values
-  if (__DEV__) {
-    console.log('[LoadingSpinner] Rendering');
-    console.log('[LoadingSpinner] fullScreen prop - type:', typeof fullScreen, 'value:', fullScreen);
-    
-    if (typeof fullScreen !== 'boolean') {
-      console.error('[LoadingSpinner] ⚠️ fullScreen is NOT boolean! Type:', typeof fullScreen, 'Value:', fullScreen);
-    }
-  }
-  
-  // Prop is already correct type, use directly
-  const containerStyle = fullScreen ? styles.fullScreen : styles.container;
+  const isFullScreen = Boolean(fullScreen);
+  const containerStyle = isFullScreen ? styles.fullScreen : styles.container;
 
   return (
     <View style={containerStyle}>

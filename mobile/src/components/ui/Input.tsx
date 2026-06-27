@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TouchableOpacity, ViewStyle, TextInputProps } from 'react-native';
+import {
+  View,
+  TextInput,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ViewStyle,
+  TextInputProps,
+} from 'react-native';
 import { colors, typography, spacing, spacingPatterns } from '../../theme';
-import { toBoolean } from '../../utils/booleanConverter';
+import { sanitizeNativeBooleans, toBoolean } from '../../utils/booleanConverter';
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -23,41 +31,31 @@ const Input: React.FC<InputProps> = ({
   showPasswordToggle = false,
   secureTextEntry,
   style,
-  ...textInputProps
+  editable,
+  autoCorrect,
+  multiline,
+  ...restProps
 }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Convert boolean props to strict booleans for native TextInput component
   const hasError = !!error;
-  
-  if (__DEV__ && typeof secureTextEntry !== 'boolean' && secureTextEntry !== undefined && secureTextEntry !== null) {
-    console.warn(`[Input] Received non-boolean secureTextEntry prop: ${typeof secureTextEntry} (${secureTextEntry})`);
-  }
-  const isSecureTextEntry: boolean = toBoolean(secureTextEntry, 'Input.secureTextEntry');
-  const displaySecureTextEntry = showPasswordToggle && isSecureTextEntry && !isPasswordVisible;
-  
-  // Convert editable and autoCorrect for TextInput (native component)
-  if (__DEV__ && textInputProps.editable !== undefined && typeof textInputProps.editable !== 'boolean' && textInputProps.editable !== null) {
-    console.warn(`[Input] Received non-boolean editable prop: ${typeof textInputProps.editable} (${textInputProps.editable})`);
-  }
-  if (__DEV__ && textInputProps.autoCorrect !== undefined && typeof textInputProps.autoCorrect !== 'boolean' && textInputProps.autoCorrect !== null) {
-    console.warn(`[Input] Received non-boolean autoCorrect prop: ${typeof textInputProps.autoCorrect} (${textInputProps.autoCorrect})`);
-  }
-  const editable = textInputProps.editable !== undefined ? toBoolean(textInputProps.editable, 'Input.editable') : textInputProps.editable;
-  const autoCorrect = textInputProps.autoCorrect !== undefined ? toBoolean(textInputProps.autoCorrect, 'Input.autoCorrect') : textInputProps.autoCorrect;
-  
-  // Create sanitized textInputProps with converted booleans
-  const sanitizedTextInputProps = {
-    ...textInputProps,
-    editable,
-    autoCorrect,
-  };
+  const isSecure = toBoolean(secureTextEntry);
+  const showToggle = toBoolean(showPasswordToggle);
+  const displaySecureTextEntry = showToggle && isSecure && !isPasswordVisible;
+
+  const textInputProps = sanitizeNativeBooleans({
+    ...restProps,
+    editable: editable !== undefined ? toBoolean(editable) : true,
+    autoCorrect: autoCorrect !== undefined ? toBoolean(autoCorrect) : undefined,
+    multiline: multiline !== undefined ? toBoolean(multiline) : undefined,
+    secureTextEntry: toBoolean(displaySecureTextEntry),
+  });
 
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      
+
       <View
         style={[
           styles.inputContainer,
@@ -66,30 +64,40 @@ const Input: React.FC<InputProps> = ({
         ]}
       >
         {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
-        
+
         <TextInput
-          style={[styles.input, leftIcon && styles.inputWithLeftIcon, (rightIcon || showPasswordToggle) && styles.inputWithRightIcon, style]}
+          {...textInputProps}
+          style={[
+            styles.input,
+            leftIcon ? styles.inputWithLeftIcon : null,
+            rightIcon || showToggle ? styles.inputWithRightIcon : null,
+            style,
+          ]}
           placeholderTextColor={colors.gray400}
-          secureTextEntry={toBoolean(displaySecureTextEntry)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          {...sanitizedTextInputProps}
+          onFocus={(e) => {
+            setIsFocused(true);
+            restProps.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            restProps.onBlur?.(e);
+          }}
         />
-        
-        {showPasswordToggle && isSecureTextEntry ? (
+
+        {showToggle && isSecure ? (
           <TouchableOpacity
             style={styles.rightIcon}
-            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            onPress={() => setIsPasswordVisible(v => !v)}
           >
             <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
           </TouchableOpacity>
         ) : null}
-        
-        {rightIcon && !showPasswordToggle ? (
+
+        {rightIcon && !showToggle ? (
           <View style={styles.rightIcon}>{rightIcon}</View>
         ) : null}
       </View>
-      
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {helperText && !error ? <Text style={styles.helperText}>{helperText}</Text> : null}
     </View>

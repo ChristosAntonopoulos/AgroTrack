@@ -99,8 +99,6 @@ const RegisterPage: React.FC = () => {
               >
                 <option value="Producer">{t('common:roles.Producer')}</option>
                 <option value="FieldOwner">{t('common:roles.FieldOwner')}</option>
-                <option value="Agronomist">{t('common:roles.Agronomist')}</option>
-                <option value="Administrator">{t('common:roles.Administrator')}</option>
               </select>
             </div>
             <Button type="submit" disabled={loading} loading={loading} fullWidth>

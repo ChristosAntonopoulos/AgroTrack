@@ -1,0 +1,35 @@
+using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
+using OliveLifecycle.Infrastructure.Persistence.Documents;
+
+namespace OliveLifecycle.Infrastructure.Persistence.Mappers;
+
+public static class UserMapper
+{
+    public static User ToEntity(UserDocument document) => new()
+    {
+        Id = document.Id,
+        Email = document.Email,
+        PasswordHash = document.PasswordHash,
+        Role = ParseRole(document.Role),
+        FirstName = document.FirstName,
+        LastName = document.LastName,
+        CreatedAt = document.CreatedAt,
+        UpdatedAt = document.UpdatedAt
+    };
+
+    public static UserDocument ToDocument(User entity) => new()
+    {
+        Id = entity.Id,
+        Email = entity.Email,
+        PasswordHash = entity.PasswordHash,
+        Role = entity.Role.ToString(),
+        FirstName = entity.FirstName,
+        LastName = entity.LastName,
+        CreatedAt = entity.CreatedAt,
+        UpdatedAt = entity.UpdatedAt
+    };
+
+    private static UserRole ParseRole(string role) =>
+        Enum.TryParse<UserRole>(role, out var parsed) ? parsed : UserRole.Producer;
+}

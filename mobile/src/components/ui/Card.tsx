@@ -52,8 +52,6 @@ const Card: React.FC<CardProps> = ({
         return 0;
       case 'small':
         return spacing.sm;
-      case 'medium':
-        return spacing.base;
       case 'large':
         return spacing.lg;
       default:
@@ -61,38 +59,30 @@ const Card: React.FC<CardProps> = ({
     }
   };
 
-  const variantStyles = getVariantStyles();
-  const cardPadding = getPadding();
+  const cardStyle = [
+    styles.card,
+    getVariantStyles(),
+    { padding: getPadding() },
+    style,
+  ];
 
-  const CardComponent = onPress ? TouchableOpacity : View;
-  const isPressable: boolean = !!onPress;
-
-  // Ensure activeOpacity is only spread if isPressable is a strict boolean true
-  const touchableProps = isPressable ? { activeOpacity: 0.7 } : {};
-
-  if (__DEV__ && isPressable) {
-    // Only log if there's a potential issue
-    if (typeof activeOpacity !== 'undefined' && typeof (touchableProps as any).activeOpacity !== 'number') {
-      console.warn('[Card] ⚠️ activeOpacity is not a number! Type:', typeof (touchableProps as any).activeOpacity);
-    }
-  }
-
-  return (
-    <CardComponent
-      style={[
-        styles.card,
-        variantStyles,
-        { padding: cardPadding },
-        style,
-      ]}
-      onPress={onPress}
-      {...touchableProps}
-    >
+  const content = (
+    <>
       {header ? <View style={styles.header}>{header}</View> : null}
       <View style={styles.body}>{children}</View>
       {footer ? <View style={styles.footer}>{footer}</View> : null}
-    </CardComponent>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={cardStyle}>{content}</View>;
 };
 
 const styles = StyleSheet.create({

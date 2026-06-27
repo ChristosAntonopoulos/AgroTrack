@@ -1,16 +1,26 @@
 using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using OliveLifecycle.Application.Services;
+using OliveLifecycle.API.Infrastructure;
+using OliveLifecycle.API.Middleware;
+using OliveLifecycle.Application;
+using OliveLifecycle.Application.Abstractions.Services;
+using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Infrastructure;
-using OliveLifecycle.Infrastructure.Repositories;
+using OliveLifecycle.Infrastructure.MongoDB;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration));
+
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -19,17 +29,16 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "API for managing olive cultivation lifecycle"
     });
-    
-    // Add JWT authentication to Swagger
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token",
+        Description = "JWT Authorization header using the Bearer scheme.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -46,30 +55,38 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Add MongoDB
-builder.Services.AddMongoDb(builder.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
-// Register repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IFieldRepository, FieldRepository>();
-builder.Services.AddScoped<ILifecycleRepository, LifecycleRepository>();
-builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod();
+        }
+        else
+        {
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        }
+    });
+});
 
-// Register services
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IFieldService, FieldService>();
-builder.Services.AddScoped<ILifecycleService, LifecycleService>();
-builder.Services.AddScoped<ITaskService, TaskService>();
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddHealthChecks()
+    .AddMongoDb(
+        builder.Configuration["MongoDB:ConnectionString"] ?? "mongodb://localhost:27017",
+        name: "mongodb");
 
-// Configure JWT Authentication
 var jwtSecretKey = builder.Configuration["JWT:SecretKey"];
 var jwtIssuer = builder.Configuration["JWT:Issuer"];
 var jwtAudience = builder.Configuration["JWT:Audience"];
 
 if (string.IsNullOrEmpty(jwtSecretKey))
 {
-    throw new InvalidOperationException("JWT secret key is not configured.");
+    throw new InvalidOperationException("JWT secret key is not configured. Set JWT__SecretKey environment variable.");
 }
 
 builder.Services.AddAuthentication(options =>
@@ -91,11 +108,22 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(PolicyNames.RequireFieldOwner, policy =>
+        policy.RequireRole(Roles.FieldOwner, Roles.Administrator));
+
+    options.AddPolicy(PolicyNames.RequireAdministrator, policy =>
+        policy.RequireRole(Roles.Administrator));
+
+    options.AddPolicy(PolicyNames.CanManageUsers, policy =>
+        policy.RequireRole(Roles.FieldOwner, Roles.Administrator));
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -103,8 +131,25 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+var uploadPathSetting = builder.Configuration["Storage:LocalPath"] ?? "uploads";
+var uploadPath = Path.IsPathRooted(uploadPathSetting)
+    ? uploadPathSetting
+    : Path.Combine(app.Environment.ContentRootPath, uploadPathSetting);
+Directory.CreateDirectory(uploadPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadPath),
+    RequestPath = builder.Configuration["Storage:PublicBasePath"] ?? "/uploads"
+});
+
+app.UseCors("Frontend");
 app.UseAuthentication();
+app.UseMiddleware<AnonymousAuthBypassMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program;

@@ -30,16 +30,7 @@
 }
 
 .report-doc-logo {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #2d5016 0%, #4a7c2a 100%);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 800;
-  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .report-doc-brand-text h2 {

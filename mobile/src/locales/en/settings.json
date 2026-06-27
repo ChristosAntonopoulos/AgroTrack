@@ -1,0 +1,15 @@
+{
+  "title": "Settings",
+  "profile": "Profile",
+  "preferences": "Preferences",
+  "theme": "Theme",
+  "themes": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "language": "Language",
+  "logout": "Sign out",
+  "logoutConfirm": "Are you sure you want to sign out?",
+  "saved": "Preferences saved"
+}

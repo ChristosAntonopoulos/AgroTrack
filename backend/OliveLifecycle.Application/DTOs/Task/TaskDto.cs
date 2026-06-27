@@ -16,6 +16,8 @@ public class TaskDto
     public DateTime? ActualStart { get; set; }
     public DateTime? ActualEnd { get; set; }
     public decimal? Cost { get; set; }
+    public string ApprovalStatus { get; set; } = "not_required";
+    public string? ApprovalNote { get; set; }
     public List<EvidenceDto> Evidence { get; set; } = new();
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -26,5 +28,6 @@ public class EvidenceDto
 {
     public string? PhotoUrl { get; set; }
     public string? Notes { get; set; }
+    public string? Kind { get; set; }
     public DateTime Timestamp { get; set; }
 }

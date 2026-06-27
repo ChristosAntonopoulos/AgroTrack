@@ -1,22 +1,24 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TestUser, getUserByEmail } from '../services/mockUsers';
-import { mockUsers, User } from '../services/mockDataService';
+import { mockUsers } from '../services/mockDataService';
+import { getAuthService, isMockMode } from '../services/serviceFactory';
+import { AuthResponse, authService } from '../services/authService';
 import { cleanupStorage } from '../utils/storageCleanup';
-import { toBoolean } from '../utils/booleanConverter';
+import { User } from '../types/user';
 
-export interface AuthResponse {
-  token: string;
-  userId: string;
-  email: string;
-  role: string;
-  expiresAt: string;
-}
+export type { AuthResponse };
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
+  register: (data: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    role: string;
+  }) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   isLoading: boolean;
   isFieldOwner: () => boolean;
@@ -37,6 +39,14 @@ export const useAuth = () => {
   return context;
 };
 
+const authResponseToUser = (auth: AuthResponse): User => ({
+  id: auth.userId,
+  email: auth.email,
+  role: auth.role,
+  firstName: auth.firstName,
+  lastName: auth.lastName,
+});
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -51,38 +61,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      // Cleanup and validate storage data before reading
       await cleanupStorage();
-      
-      const userStr = await AsyncStorage.getItem('user');
-      const token = await AsyncStorage.getItem('token');
-      
-      if (userStr && token) {
-        try {
-          const userData = JSON.parse(userStr);
-          // Validate that userData is an object and has required fields
-          if (userData && typeof userData === 'object' && userData.userId) {
-            // Find user in mock data
-            const foundUser = mockUsers.find(u => u.id === userData.userId);
-            if (foundUser) {
-              setUser(foundUser);
-            }
-          } else {
-            // Invalid data, clear it
-            console.error('Invalid user data structure, clearing AsyncStorage');
-            await AsyncStorage.removeItem('user');
-            await AsyncStorage.removeItem('token');
-          }
-        } catch (parseError) {
-          // Invalid JSON, clear corrupted data
-          console.error('Error parsing user data:', parseError);
-          await AsyncStorage.removeItem('user');
-          await AsyncStorage.removeItem('token');
+      const service = getAuthService();
+      const storedUser = await service.getStoredUser();
+      const token = await service.getStoredToken();
+
+      if (storedUser && token) {
+        if (!isMockMode() && authService.isSessionExpired(storedUser)) {
+          await service.logout();
+          return;
+        }
+
+        if (isMockMode()) {
+          const foundUser = mockUsers.find(u => u.id === storedUser.userId);
+          if (foundUser) setUser(foundUser);
+        } else {
+          setUser(authResponseToUser(storedUser));
         }
       }
     } catch (error) {
       console.error('Error checking auth:', error);
-      // Clear potentially corrupted data
       try {
         await AsyncStorage.removeItem('user');
         await AsyncStorage.removeItem('token');
@@ -95,44 +93,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (email: string, password: string): Promise<AuthResponse> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const testUser = getUserByEmail(email);
-    
-    if (!testUser || testUser.password !== password) {
-      throw new Error('Invalid credentials');
-    }
-    
-    const mockUser = mockUsers.find(u => u.id === testUser.userId);
-    if (!mockUser) {
-      throw new Error('User not found');
-    }
-    
-    // Create mock token
-    const token = `mock_token_${Date.now()}`;
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    
-    const authResponse: AuthResponse = {
-      token,
-      userId: mockUser.id,
-      email: mockUser.email,
-      role: mockUser.role,
-      expiresAt,
-    };
-    
-    // Store in AsyncStorage
-    await AsyncStorage.setItem('token', token);
-    await AsyncStorage.setItem('user', JSON.stringify(authResponse));
-    
-    setUser(mockUser);
-    
+    const service = getAuthService();
+    const authResponse = await service.login({ email, password });
+    await applyAuthState(authResponse);
     return authResponse;
   };
 
+  const register = async (data: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    role: string;
+  }): Promise<AuthResponse> => {
+    const service = getAuthService();
+    const authResponse = await service.register(data);
+    await applyAuthState(authResponse);
+    return authResponse;
+  };
+
+  const applyAuthState = async (authResponse: AuthResponse) => {
+    if (isMockMode()) {
+      const mockUser = mockUsers.find(u => u.id === authResponse.userId);
+      if (mockUser) setUser(mockUser);
+    } else {
+      setUser(authResponseToUser(authResponse));
+    }
+  };
+
   const logout = async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    await getAuthService().logout();
     setUser(null);
   };
 
@@ -143,27 +133,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isServiceProvider = () => user?.role === 'ServiceProvider';
   const hasRole = (role: string) => user?.role === role;
 
-  // Ensure all boolean values are strict booleans to prevent serialization issues
-  // React Context might serialize/deserialize values, converting booleans to strings
-  const safeIsAuthenticated = toBoolean(!!user, 'AuthContext.isAuthenticated');
-  const safeIsLoading = toBoolean(isLoading, 'AuthContext.isLoading');
-  
-  if (__DEV__) {
-    if (typeof safeIsAuthenticated !== 'boolean') {
-      console.error('[AuthContext] ⚠️ isAuthenticated is NOT boolean! Type:', typeof safeIsAuthenticated, 'Value:', safeIsAuthenticated);
-    }
-    if (typeof safeIsLoading !== 'boolean') {
-      console.error('[AuthContext] ⚠️ isLoading is NOT boolean! Type:', typeof safeIsLoading, 'Value:', safeIsLoading);
-    }
-    console.log('[AuthContext] Providing context - isAuthenticated:', safeIsAuthenticated, 'isLoading:', safeIsLoading);
-  }
-
   const value: AuthContextType = {
     user,
-    isAuthenticated: safeIsAuthenticated,
+    isAuthenticated: Boolean(user),
     login,
+    register,
     logout,
-    isLoading: safeIsLoading,
+    isLoading: Boolean(isLoading),
     isFieldOwner,
     isProducer,
     isAgronomist,

@@ -1,0 +1,28 @@
+{
+  "title": "Tasks",
+  "titleProducer": "My Tasks",
+  "createTask": "Create task",
+  "addEvidence": "Add evidence",
+  "takePhoto": "Take photo",
+  "choosePhoto": "Choose from gallery",
+  "notes": "Notes",
+  "startTask": "Start task",
+  "completeTask": "Complete task",
+  "reopenTask": "Reopen task",
+  "approve": "Approve",
+  "reject": "Reject",
+  "assign": "Assign",
+  "filters": {
+    "all": "All",
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "approval": "Awaiting approval"
+  },
+  "emptyProducer": "No tasks assigned yet.",
+  "emptyOwner": "No tasks yet. Create one for your fields.",
+  "confirmStatus": "Update task status?",
+  "statusUpdated": "Task status updated",
+  "evidenceAdded": "Evidence added",
+  "approvalNote": "Approval note (optional)"
+}

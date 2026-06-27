@@ -8,7 +8,8 @@ import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { ministryNotificationService, MinistryNotification } from '../services/ministryNotificationService';
+import { getMinistryNotificationService } from '../services/serviceFactory';
+import { MinistryNotification } from '../services/ministryNotificationService';
 import MinistryNotificationList from '../components/Ministry/MinistryNotificationList';
 import { CheckCircle2, Filter } from 'lucide-react';
 import './MinistryNotificationsPage.css';
@@ -23,14 +24,16 @@ const MinistryNotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<MinistryNotification[]>([]);
   const [urgentOnly, setUrgentOnly] = useState(false);
 
+  const ministryService = getMinistryNotificationService();
+
   const load = async (mode: 'all' | 'urgent' = urgentOnly ? 'urgent' : 'all') => {
     try {
       setError(null);
       setLoading(true);
       const data =
         mode === 'urgent'
-          ? await ministryNotificationService.getUrgentNotifications(role)
-          : await ministryNotificationService.getNotifications(role);
+          ? await ministryService.getUrgentNotifications(role)
+          : await ministryService.getNotifications(role);
       setNotifications(data);
     } catch (e: any) {
       setError(getApiErrorMessage(e, t) || t('ministry:failedLoad'));
@@ -47,18 +50,18 @@ const MinistryNotificationsPage: React.FC = () => {
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 
   const handleMarkAsRead = async (id: string) => {
-    await ministryNotificationService.markAsRead(id);
+    await ministryService.markAsRead(id);
     await load();
   };
 
   const handleMarkAllAsRead = async () => {
-    await ministryNotificationService.markAllAsRead(role);
+    await ministryService.markAllAsRead(role);
     await load();
   };
 
   const handleOpen = async (n: MinistryNotification) => {
     if (!n.read) {
-      await ministryNotificationService.markAsRead(n.id);
+      await ministryService.markAsRead(n.id);
       await load();
     }
   };

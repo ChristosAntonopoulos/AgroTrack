@@ -1,4 +1,19 @@
 /**
+ * Format a date with explicit locale
+ */
+export const formatLocaleDate = (
+  date: Date,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions
+): string => {
+  try {
+    return date.toLocaleDateString(locale === 'el' ? 'el-GR' : 'en-US', options);
+  } catch {
+    return date.toLocaleDateString();
+  }
+};
+
+/**
  * Format a date string to a localized date string
  */
 export const formatDate = (dateString: string): string => {

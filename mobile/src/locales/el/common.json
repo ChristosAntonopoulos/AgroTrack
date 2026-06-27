@@ -1,0 +1,54 @@
+{
+  "appName": "AgroTrack",
+  "loading": "Φόρτωση...",
+  "save": "Αποθήκευση",
+  "cancel": "Ακύρωση",
+  "delete": "Διαγραφή",
+  "edit": "Επεξεργασία",
+  "back": "Πίσω",
+  "confirm": "Επιβεβαίωση",
+  "yes": "Ναι",
+  "no": "Όχι",
+  "logout": "Αποσύνδεση",
+  "language": "Γλώσσα",
+  "english": "English",
+  "greek": "Ελληνικά",
+  "roles": {
+    "FieldOwner": "Ιδιοκτήτης",
+    "Producer": "Παραγωγός",
+    "Agronomist": "Αγρονόμος",
+    "Administrator": "Διαχειριστής",
+    "ServiceProvider": "Πάροχος υπηρεσιών"
+  },
+  "taskStatus": {
+    "pending": "Εκκρεμεί",
+    "in_progress": "Σε εξέλιξη",
+    "completed": "Ολοκληρωμένη",
+    "cancelled": "Ακυρωμένη"
+  },
+  "approvalStatus": {
+    "not_required": "Δεν απαιτείται",
+    "pending": "Εκκρεμεί έγκριση",
+    "approved": "Εγκρίθηκε",
+    "rejected": "Απορρίφθηκε"
+  },
+  "lifecycleYear": {
+    "low": "Χρονιά χαμηλής",
+    "high": "Χρονιά υψηλής"
+  },
+  "lifecycleStage": {
+    "dormancy": "Χειμερία νάρκη",
+    "bud_break": "Έκρηξη οφθαλμών",
+    "flowering": "Ανθοφορία",
+    "fruit_set": "Δέσιμο καρπών",
+    "fruit_growth": "Ανάπτυξη καρπών",
+    "harvest": "Συγκομιδή"
+  },
+  "empty": {
+    "noData": "Δεν υπάρχουν δεδομένα",
+    "noTasks": "Δεν βρέθηκαν εργασίες",
+    "noFields": "Δεν βρέθηκαν αγροτεμάχια"
+  },
+  "version": "Έκδοση",
+  "or": "ή"
+}

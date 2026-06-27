@@ -24,78 +24,64 @@ const ListItem: React.FC<ListItemProps> = ({
   variant = 'default',
   showDivider = true,
 }) => {
-  // Validate variant prop
   const validVariants = ['default', 'selected', 'disabled'];
   if (!validVariants.includes(variant)) {
     console.warn(`Invalid variant prop in ListItem. Received: ${variant}. Using default.`);
     variant = 'default';
   }
 
-  // Props are already correct types, use directly
   const getVariantStyles = () => {
     switch (variant) {
       case 'selected':
-        return {
-          backgroundColor: colors.primaryLight + '10',
-        };
+        return { backgroundColor: colors.primaryLight + '10' };
       case 'disabled':
-        return {
-          opacity: 0.5,
-        };
+        return { opacity: 0.5 };
       default:
         return {};
     }
   };
 
-  const Component = onPress && variant !== 'disabled' ? TouchableOpacity : View;
   const isPressable = !!onPress && variant !== 'disabled';
-  const isDisabled: boolean = variant === 'disabled';
-  
-  // Ensure disabled is a strict boolean for native TouchableOpacity component
-  const safeDisabled = toBoolean(isDisabled, 'ListItem.disabled');
+  const safeDisabled = toBoolean(variant === 'disabled');
+
+  const content = (
+    <>
+      {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
+      <View style={styles.content}>
+        <Text
+          style={[styles.title, variant === 'disabled' && styles.titleDisabled]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text
+            style={[styles.subtitle, variant === 'disabled' && styles.subtitleDisabled]}
+            numberOfLines={2}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {rightContent ? <View style={styles.rightContent}>{rightContent}</View> : null}
+      {rightIcon && !rightContent ? <View style={styles.rightIcon}>{rightIcon}</View> : null}
+    </>
+  );
 
   return (
     <>
-      <Component
-        style={[
-          styles.container,
-          getVariantStyles(),
-          isPressable && styles.pressable,
-        ]}
-        onPress={onPress}
-        disabled={safeDisabled}
-        {...(isPressable && { activeOpacity: 0.7 })}
-      >
-        {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
-        
-        <View style={styles.content}>
-          <Text
-            style={[
-              styles.title,
-              variant === 'disabled' && styles.titleDisabled,
-            ]}
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text
-              style={[
-                styles.subtitle,
-                variant === 'disabled' && styles.subtitleDisabled,
-              ]}
-              numberOfLines={2}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-
-        {rightContent ? <View style={styles.rightContent}>{rightContent}</View> : null}
-        {rightIcon && !rightContent ? (
-          <View style={styles.rightIcon}>{rightIcon}</View>
-        ) : null}
-      </Component>
+      {isPressable ? (
+        <TouchableOpacity
+          style={[styles.container, getVariantStyles(), styles.pressable]}
+          onPress={onPress}
+          disabled={safeDisabled}
+          activeOpacity={0.7}
+        >
+          {content}
+        </TouchableOpacity>
+      ) : (
+        <View style={[styles.container, getVariantStyles()]}>{content}</View>
+      )}
       {showDivider ? <View style={styles.divider} /> : null}
     </>
   );
@@ -109,9 +95,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     minHeight: 56,
   },
-  pressable: {
-    // TouchableOpacity styles
-  },
+  pressable: {},
   leftIcon: {
     marginRight: spacing.base,
     justifyContent: 'center',

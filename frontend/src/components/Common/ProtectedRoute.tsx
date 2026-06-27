@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { isAuthDisabled } from '../../config/apiConfig';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +9,10 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+
+  if (isAuthDisabled()) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return <div>Loading...</div>;

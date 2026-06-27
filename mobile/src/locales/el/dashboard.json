@@ -1,0 +1,21 @@
+{
+  "greetingMorning": "Καλημέρα",
+  "greetingAfternoon": "Καλησπέρα",
+  "greetingEvening": "Καλησπέρα",
+  "overview": "Επισκόπηση",
+  "needsAttention": "Χρειάζεται προσοχή",
+  "todayTasks": "Εργασίες σήμερα",
+  "pendingApproval": "Εκκρεμεί έγκριση",
+  "stats": {
+    "fields": "Αγροτεμάχια",
+    "hectares": "Εκτάρια",
+    "pending": "Εκκρεμείς",
+    "complete": "Ολοκλήρωση",
+    "total": "Σύνολο",
+    "inProgress": "Σε εξέλιξη",
+    "completed": "Ολοκληρωμένες"
+  },
+  "dueToday": "Σήμερα",
+  "noUrgent": "Όλα καλά — καμία επείγουσα ενέργεια",
+  "viewTasks": "Δες εργασίες"
+}

@@ -4,6 +4,6 @@ namespace OliveLifecycle.Application.Services;
 
 public interface IUserService
 {
-    Task<IEnumerable<UserDto>> GetUsersByRoleAsync(string? role);
-    Task<UserDto?> GetUserByIdAsync(string id);
+    Task<IEnumerable<UserDto>> GetUsersByRoleAsync(string? role, string callerId, string callerRole, CancellationToken cancellationToken = default);
+    Task<UserDto?> GetUserByIdAsync(string id, string callerId, string callerRole, CancellationToken cancellationToken = default);
 }

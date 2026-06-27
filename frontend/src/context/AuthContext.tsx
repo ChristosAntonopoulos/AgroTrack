@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, AuthResponse } from '../services/authService';
 import { mockAuthService } from '../services/mock/mockAuthService';
+import { isMockDataEnabled } from '../config/apiConfig';
 
 interface AuthContextType {
   user: AuthResponse | null;
@@ -20,7 +21,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const storedUser = authService.getStoredUser();
     const storedToken = authService.getStoredToken();
-    
+
     if (storedUser && storedToken) {
       setUser(storedUser);
     }
@@ -28,8 +29,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Always use mock auth service for now
-    const response = await mockAuthService.login({ email, password });
+    const service = isMockDataEnabled() ? mockAuthService : authService;
+    const response = await service.login({ email, password });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response));
     setUser(response);
@@ -42,8 +43,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     lastName?: string,
     role: string = 'Producer'
   ) => {
-    // Always use mock auth service for now
-    const response = await mockAuthService.register({ email, password, firstName, lastName, role });
+    const service = isMockDataEnabled() ? mockAuthService : authService;
+    const response = await service.register({ email, password, firstName, lastName, role });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response));
     setUser(response);

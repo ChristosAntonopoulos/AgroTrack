@@ -1,79 +1,63 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTasks } from '../hooks/useTasks';
 import { useRefresh } from '../hooks/useRefresh';
 import { useAuth } from '../context/AuthContext';
-import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useTheme } from '../context/ThemeContext';
 import TaskCard from '../components/domain/TaskCard';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import TodaysSchedule from '../components/domain/TodaysSchedule';
-import MinistryNotificationList from '../components/domain/MinistryNotificationList';
-import { colors, spacing } from '../theme';
-import { toBoolean } from '../utils/booleanConverter';
+import { spacing } from '../theme';
+import { MainTabParamList, RootStackParamList } from '../navigation/types';
 
-interface TaskListScreenProps {
-  navigation: any;
-  route?: { params?: { fieldId?: string } };
-}
+type Route = RouteProp<MainTabParamList, 'Tasks'>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const TaskListScreen: React.FC<TaskListScreenProps> = ({ navigation, route }) => {
-  const { user } = useAuth();
-  const fieldId = route?.params?.fieldId;
+const TaskListScreen = () => {
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const { isFieldOwner } = useAuth();
+  const { colors } = useTheme();
+  const { t } = useTranslation(['tasks', 'common']);
+  const fieldId = route.params?.fieldId;
+  const initialFilter = route.params?.filter as 'approval' | undefined;
+
   const { filteredTasks, fields, loading, setFilter, refresh, tasks } = useTasks({ fieldId });
-  const { stats } = useDashboardStats();
   const { refreshing, onRefresh } = useRefresh(refresh);
-  const isRefreshing: boolean = toBoolean(refreshing);
 
-  const handleTaskPress = (taskId: string) => {
-    if (navigation?.navigate) {
-      navigation.navigate('TaskDetail', { taskId });
-    }
-  };
+  useEffect(() => {
+    if (initialFilter === 'approval') setFilter('approval');
+  }, [initialFilter]);
 
-  const handleRefresh = async () => {
-    try {
-      await onRefresh();
-    } catch (error) {
-      console.error('Refresh error:', error);
-    }
-  };
+  const filters = isFieldOwner()
+    ? (['all', 'pending', 'in_progress', 'completed', 'approval'] as const)
+    : (['all', 'pending', 'in_progress', 'completed'] as const);
 
-  if (loading && filteredTasks.length === 0) {
-    return <LoadingSpinner fullScreen />;
-  }
+  if (loading && filteredTasks.length === 0) return <LoadingSpinner fullScreen />;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         ListHeaderComponent={
           <>
-            {tasks && tasks.length > 0 ? (
-              <View style={styles.scheduleContainer}>
-                <TodaysSchedule
-                  tasks={tasks}
-                  onTaskPress={handleTaskPress}
-                  weatherWorkable={stats?.workableDaysThisWeek ? stats.workableDaysThisWeek > 0 : true}
+            {isFieldOwner() ? (
+              <View style={styles.headerActions}>
+                <Button
+                  title={t('tasks:createTask')}
+                  onPress={() => navigation.navigate('CreateTask', { fieldId })}
+                  fullWidth
                 />
               </View>
             ) : null}
-            {user?.role ? (
-              <View style={styles.notificationsContainer}>
-                <MinistryNotificationList userRole={user.role} maxItems={2} />
-              </View>
-            ) : null}
             <View style={styles.filterContainer}>
-              {(['all', 'pending', 'in_progress', 'completed'] as const).map((filterOption) => (
+              {filters.map(filterOption => (
                 <Button
                   key={filterOption}
-                  title={
-                    filterOption === 'all'
-                      ? 'All'
-                      : filterOption === 'in_progress'
-                      ? 'In Progress'
-                      : filterOption.charAt(0).toUpperCase() + filterOption.slice(1)
-                  }
+                  title={t(`tasks:filters.${filterOption}`)}
                   onPress={() => setFilter(filterOption)}
                   variant="outline"
                   size="small"
@@ -88,23 +72,16 @@ const TaskListScreen: React.FC<TaskListScreenProps> = ({ navigation, route }) =>
           <TaskCard
             task={item}
             fieldName={fields[item.fieldId]?.name}
-            onPress={() => handleTaskPress(item.id)}
+            onPress={() => navigation.navigate('TaskDetail', { taskId: item.id })}
           />
         )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={
-          filteredTasks.length === 0 ? styles.emptyContainer : styles.listContent
-        }
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-        }
+        keyExtractor={item => item.id}
+        contentContainerStyle={filteredTasks.length === 0 ? styles.emptyContainer : styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <EmptyState
-            icon={<Text style={styles.emptyIcon}>📋</Text>}
-            title="No tasks found"
-            description={
-              'There are no tasks available for your role'
-            }
+            title={t('common:empty.noTasks')}
+            description={isFieldOwner() ? t('tasks:emptyOwner') : t('tasks:emptyProducer')}
           />
         }
       />
@@ -113,39 +90,17 @@ const TaskListScreen: React.FC<TaskListScreenProps> = ({ navigation, route }) =>
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scheduleContainer: {
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.base,
-  },
-  notificationsContainer: {
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.sm,
-  },
+  container: { flex: 1 },
+  headerActions: { padding: spacing.base, paddingBottom: 0 },
   filterContainer: {
     flexDirection: 'row',
-    padding: spacing.sm,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  filterButton: {
-    flex: 1,
-  },
-  listContent: {
+    flexWrap: 'wrap',
     padding: spacing.base,
+    gap: spacing.xs,
   },
-  emptyContainer: {
-    flex: 1,
-  },
-  emptyIcon: {
-    fontSize: 64,
-  },
+  filterButton: { marginRight: 0 },
+  listContent: { padding: spacing.base, paddingTop: 0, paddingBottom: spacing['2xl'] },
+  emptyContainer: { flex: 1 },
 });
 
 export default TaskListScreen;

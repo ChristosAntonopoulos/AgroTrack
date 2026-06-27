@@ -29,6 +29,7 @@ export type NavItem = {
   icon: React.ReactNode;
   roles: AppRole[];
   section: NavSectionId;
+  mockOnly?: boolean;
 };
 
 export const navSections: NavSection[] = [

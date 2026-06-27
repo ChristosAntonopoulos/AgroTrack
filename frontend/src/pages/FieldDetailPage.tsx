@@ -6,9 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import { getFieldService } from '../services/serviceFactory';
 import { getLifecycleService } from '../services/serviceFactory';
 import { getTaskService } from '../services/serviceFactory';
+import { getUserService, isMockMode } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Lifecycle } from '../services/lifecycleService';
 import { Task } from '../services/taskService';
+import { User } from '../services/userService';
 import { demoStore } from '../services/demo/demoStore';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import LifecycleIndicator from '../components/Field/LifecycleIndicator';
@@ -44,6 +46,7 @@ const FieldDetailPage: React.FC = () => {
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
   const [showProgressConfirm, setShowProgressConfirm] = useState(false);
   const [assigningProducerId, setAssigningProducerId] = useState<string>('');
+  const [producerUsers, setProducerUsers] = useState<User[]>([]);
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
   const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
@@ -61,13 +64,33 @@ const FieldDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!user?.userId) return;
-    demoStore.ensureSeeded();
-    const prefs = demoStore.getFieldUiPrefs(user.userId);
-    const next = prefs.fieldDetailTab;
-    if (next === 'board' || next === 'timeline' || next === 'evidence') {
-      setControlRoomTab(next);
+    if (isMockMode()) {
+      demoStore.ensureSeeded();
+      const prefs = demoStore.getFieldUiPrefs(user.userId);
+      const next = prefs.fieldDetailTab;
+      if (next === 'board' || next === 'timeline' || next === 'evidence') {
+        setControlRoomTab(next);
+      }
     }
   }, [user?.userId]);
+
+  useEffect(() => {
+    if (user?.role !== 'FieldOwner' && user?.role !== 'Administrator') return;
+    const loadProducers = async () => {
+      try {
+        if (isMockMode()) {
+          demoStore.ensureSeeded();
+          setProducerUsers(demoStore.getUsers().filter((u) => u.role === 'Producer'));
+        } else {
+          const users = await getUserService().getUsers('Producer');
+          setProducerUsers(users);
+        }
+      } catch {
+        setProducerUsers([]);
+      }
+    };
+    void loadProducers();
+  }, [user?.role]);
 
   const loadField = async () => {
     try {
@@ -105,23 +128,31 @@ const FieldDetailPage: React.FC = () => {
 
   const getProducerName = (producerId?: string) => {
     if (!producerId) return t('fields:controlRoom.unassigned');
-    demoStore.ensureSeeded();
-    const u = demoStore.getUsers().find((x) => x.id === producerId);
-    if (!u) return producerId;
-    const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
-    return name || u.email;
+    const fromUsers = producerUsers.find((x) => x.id === producerId);
+    if (fromUsers) {
+      const name = `${fromUsers.firstName || ''} ${fromUsers.lastName || ''}`.trim();
+      return name || fromUsers.email;
+    }
+    if (isMockMode()) {
+      demoStore.ensureSeeded();
+      const u = demoStore.getUsers().find((x) => x.id === producerId);
+      if (u) {
+        const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+        return name || u.email;
+      }
+    }
+    return producerId;
   };
 
-  const assignedProducerIds = (() => {
-    demoStore.ensureSeeded();
-    const assignments = demoStore.getAssignments();
-    return assignments[id!] || [];
-  })();
-
-  const producerUsers = (() => {
-    demoStore.ensureSeeded();
-    return demoStore.getUsers().filter((u) => u.role === 'Producer');
-  })();
+  const assignedProducerIds = !isMockMode() && field
+    ? (field.assignedProducerIds ?? [])
+    : isMockMode() && id
+      ? (() => {
+          demoStore.ensureSeeded();
+          const assignments = demoStore.getAssignments();
+          return assignments[id] || [];
+        })()
+      : [];
 
   const myTasks = tasks.filter((t) => (t.assignedTo ? t.assignedTo === user?.userId : false));
 
@@ -187,21 +218,15 @@ const FieldDetailPage: React.FC = () => {
 
   const handleAssignProducer = async () => {
     if (!id || !assigningProducerId) return;
-    const fieldService: any = getFieldService();
-    if (typeof fieldService.assignProducer === 'function') {
-      await fieldService.assignProducer(id, assigningProducerId);
-      setAssigningProducerId('');
-      await loadField();
-    }
+    await getFieldService().assignProducer(id, assigningProducerId);
+    setAssigningProducerId('');
+    await loadField();
   };
 
   const handleUnassignProducer = async (producerId: string) => {
     if (!id) return;
-    const fieldService: any = getFieldService();
-    if (typeof fieldService.unassignProducer === 'function') {
-      await fieldService.unassignProducer(id, producerId);
-      await loadField();
-    }
+    await getFieldService().unassignProducer(id, producerId);
+    await loadField();
   };
 
   const handleStartTask = async (taskId: string) => {
@@ -241,12 +266,40 @@ const FieldDetailPage: React.FC = () => {
 
   const handleSelectControlRoomTab = (tab: ControlRoomTab) => {
     setControlRoomTab(tab);
-    if (!user?.userId) return;
+    if (!user?.userId || !isMockMode()) return;
     demoStore.ensureSeeded();
     const current = demoStore.getFieldUiPrefs(user.userId);
     demoStore.setFieldUiPrefs(user.userId, { ...current, fieldDetailTab: tab });
     if (tab === 'timeline' && (user.role === 'FieldOwner' || user.role === 'Administrator')) {
       demoStore.markDemoStep(user.userId, user.role, 'owner_view_timeline');
+    }
+  };
+
+  const handleAdvanceStage = async () => {
+    if (!id) return;
+    try {
+      setLifecycleLoading(true);
+      const updated = await getLifecycleService().advanceStage(id);
+      setLifecycle(updated);
+      await loadField();
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('fields:controlRoom.failedProgressLifecycle'));
+    } finally {
+      setLifecycleLoading(false);
+    }
+  };
+
+  const handleRevertStage = async () => {
+    if (!id) return;
+    try {
+      setLifecycleLoading(true);
+      const updated = await getLifecycleService().revertStage(id);
+      setLifecycle(updated);
+      await loadField();
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('fields:controlRoom.failedProgressLifecycle'));
+    } finally {
+      setLifecycleLoading(false);
     }
   };
 
@@ -318,7 +371,7 @@ const FieldDetailPage: React.FC = () => {
         <header className="fd-header">
           <div className="fd-header-main">
             <h1>{field.name}</h1>
-            <LifecycleIndicator year={field.currentLifecycleYear} />
+            <LifecycleIndicator year={field.currentLifecycleYear} stage={field.currentLifecycleStage || lifecycle?.currentStage} />
           </div>
           <div className="fd-header-actions">
             {isFieldOwner || field.ownerId === user?.userId ? (
@@ -587,7 +640,7 @@ const FieldDetailPage: React.FC = () => {
                 <h2 className="fd-sidebar-title">{t('fields:controlRoom.lifecycleTitle')}</h2>
                 <div className="lifecycle-management lifecycle-compact">
                   <div className="lifecycle-status">
-                    <LifecycleIndicator year={field.currentLifecycleYear} />
+                    <LifecycleIndicator year={field.currentLifecycleYear} stage={lifecycle?.currentStage || field.currentLifecycleStage} />
                   </div>
                   {!lifecycle ? (
                     <Button onClick={handleInitializeLifecycle} disabled={lifecycleLoading} loading={lifecycleLoading} icon={<Play />} variant="primary" size="sm">
@@ -598,6 +651,14 @@ const FieldDetailPage: React.FC = () => {
                       {lifecycle.cycleStartDate && (
                         <p className="fd-lifecycle-meta">{t('fields:controlRoom.cycleStart')} {formatDate(lifecycle.cycleStartDate)}</p>
                       )}
+                      <div className="confirmation-buttons" style={{ marginBottom: '0.5rem' }}>
+                        <Button onClick={handleAdvanceStage} disabled={lifecycleLoading} icon={<RefreshCw />} variant="outline" size="sm">
+                          {t('fields:controlRoom.advanceStage')}
+                        </Button>
+                        <Button onClick={handleRevertStage} disabled={lifecycleLoading} variant="outline" size="sm">
+                          {t('fields:controlRoom.revertStage')}
+                        </Button>
+                      </div>
                       {!showProgressConfirm ? (
                         <Button onClick={() => setShowProgressConfirm(true)} disabled={lifecycleLoading} icon={<RefreshCw />} variant="outline" size="sm">
                           {t('fields:controlRoom.progressTo', { year: t(`common:lifecycleYear.${field.currentLifecycleYear === 'low' ? 'high' : 'low'}`) })}

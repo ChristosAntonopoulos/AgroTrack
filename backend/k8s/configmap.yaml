@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: agrotrack-backend
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  MongoDB__DatabaseName: "OliveLifecycle"
+  JWT__Issuer: "OliveLifecycleAPI"
+  JWT__Audience: "OliveLifecycleClients"
+  JWT__ExpirationMinutes: "60"
+  Storage__LocalPath: "uploads"
+  Storage__PublicBasePath: "/uploads"
+  Auth__AllowAnonymous: "false"

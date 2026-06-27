@@ -7,6 +7,7 @@ import { LocaleProvider } from './context/LocaleProvider';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -23,7 +24,6 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import TodayPage from './pages/TodayPage';
-import RoleHomeRedirect from './components/Common/RoleHomeRedirect';
 import './App.css';
 
 function App() {
@@ -34,16 +34,10 @@ function App() {
           <NotificationProvider>
           <Router>
             <Routes>
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout />
-                  </ProtectedRoute>
-                }
-              >
+              <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="fields" element={<FieldsPage />} />
                 <Route path="fields/new" element={<FieldFormPage />} />
@@ -59,7 +53,6 @@ function App() {
                 <Route path="today" element={<TodayPage />} />
                 <Route path="ministry" element={<MinistryNotificationsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
-                <Route path="" element={<RoleHomeRedirect />} />
               </Route>
             </Routes>
           </Router>

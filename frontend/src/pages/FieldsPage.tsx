@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getFieldService } from '../services/serviceFactory';
-import { getTaskService } from '../services/serviceFactory';
+import { getFieldService, getTaskService, getUserService, isMockMode } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
+import { User } from '../services/userService';
 import { demoStore } from '../services/demo/demoStore';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -41,10 +41,20 @@ const FieldsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [producersById, setProducersById] = useState<Map<string, User>>(new Map());
 
   useEffect(() => {
     loadFields();
   }, []);
+
+  useEffect(() => {
+    if (!isMockMode() && user?.role === 'FieldOwner') {
+      getUserService()
+        .getUsers('Producer')
+        .then((users) => setProducersById(new Map(users.map((u) => [u.id, u]))))
+        .catch(() => undefined);
+    }
+  }, [user?.role]);
 
   useEffect(() => {
     if (fields.length > 0) loadFieldTasks();
@@ -100,12 +110,19 @@ const FieldsPage: React.FC = () => {
       .sort((a, b) => new Date(a.scheduledEnd!).getTime() - new Date(b.scheduledEnd!).getTime())[0];
   };
 
-  const getAssignedProducerNames = (fieldId: string) => {
-    demoStore.ensureSeeded();
-    const assignments = demoStore.getAssignments();
-    const users = demoStore.getUsers();
-    return (assignments[fieldId] || [])
-      .map((id) => users.find((u) => u.id === id))
+  const getAssignedProducerNames = (field: Field) => {
+    if (isMockMode()) {
+      demoStore.ensureSeeded();
+      const assignments = demoStore.getAssignments();
+      const users = demoStore.getUsers();
+      return (assignments[field.id] || [])
+        .map((id) => users.find((u) => u.id === id))
+        .filter(Boolean)
+        .map((u) => `${u!.firstName || ''} ${u!.lastName || ''}`.trim() || u!.email);
+    }
+
+    return (field.assignedProducerIds || [])
+      .map((id) => producersById.get(id))
       .filter(Boolean)
       .map((u) => `${u!.firstName || ''} ${u!.lastName || ''}`.trim() || u!.email);
   };
@@ -291,7 +308,7 @@ const FieldsPage: React.FC = () => {
                     stats={getFieldTaskStats(field.id)}
                     isOwner={field.ownerId === user?.userId}
                     showProducerInfo={user?.role !== 'Producer'}
-                    assignedProducers={getAssignedProducerNames(field.id)}
+                    assignedProducers={getAssignedProducerNames(field)}
                     nextTask={
                       user?.role === 'Producer' ? getNextRecommendedTask(field.id) : undefined
                     }

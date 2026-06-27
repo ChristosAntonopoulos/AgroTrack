@@ -79,7 +79,7 @@ dotnet restore
 dotnet run --project OliveLifecycle.API
 ```
 
-The API will be available at `https://localhost:7000` (or the port configured in `launchSettings.json`).
+The API will be available at `http://localhost:5149` (HTTP) or `https://localhost:7261` (HTTPS). Swagger UI is at `/swagger` in Development.
 
 ### Frontend Setup
 
@@ -93,14 +93,30 @@ cd frontend
 npm install
 ```
 
-3. Create a `.env` file:
-```
-REACT_APP_API_URL=http://localhost:7000
+3. Ensure MongoDB is running, then start the backend (separate terminal):
+```bash
+cd backend
+dotnet run --project OliveLifecycle.API
 ```
 
-4. Start the development server:
+4. Start the frontend connected to the API:
 ```bash
+cd frontend
 npm start
+```
+
+The committed `frontend/.env` sets `REACT_APP_USE_MOCK_DATA=false`. Requests go through the CRA dev proxy (`setupProxy.js`) to `http://localhost:5149`.
+
+| Script | Mode |
+|--------|------|
+| `npm start` | API mode (uses `.env`) |
+| `npm run start:api` | API mode (explicit) |
+| `npm run start:mock` | Demo mode, no backend required |
+
+For staging/production builds, set `REACT_APP_API_URL` to your API origin (no trailing slash):
+```
+REACT_APP_USE_MOCK_DATA=false
+REACT_APP_API_URL=https://your-api.example.com
 ```
 
 ### Mobile Setup

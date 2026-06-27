@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Linking, TouchableOpacity } from 'react-native';
-import { fieldService, Field } from '../services/fieldService';
-import { taskService, Task } from '../services/taskService';
-import { lifecycleService, Lifecycle } from '../services/lifecycleService';
+import { View, Text, ScrollView, StyleSheet, Linking, Alert } from 'react-native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
+import { Field } from '../services/fieldService';
+import { Task } from '../services/taskService';
+import { Lifecycle } from '../services/lifecycleService';
+import { Activity } from '../services/activityService';
+import { getFieldService, getTaskService, getLifecycleService, getActivityService } from '../services/serviceFactory';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import Card from '../components/ui/Card';
 import ListItem from '../components/lists/ListItem';
 import Section from '../components/layout/Section';
@@ -17,22 +24,25 @@ import { weatherService, WeatherAlert } from '../services/weatherService';
 import { colors, typography, spacing } from '../theme';
 import { formatDate } from '../utils/formatters';
 import { toBoolean } from '../utils/booleanConverter';
+import { RootStackParamList } from '../navigation/types';
 
-interface FieldDetailScreenProps {
-  route: { params: { fieldId: string } };
-  navigation: any;
-}
+type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
+type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
 
-const FieldDetailScreen: React.FC<FieldDetailScreenProps> = ({
-  route,
-  navigation,
-}) => {
+const FieldDetailScreen = () => {
+  const route = useRoute<Route>();
+  const navigation = useNavigation<Nav>();
   const { fieldId } = route.params;
+  const { isFieldOwner } = useAuth();
+  const { colors: themeColors } = useTheme();
+  const { t } = useTranslation(['fields', 'common']);
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
+  const [lifecycleLoading, setLifecycleLoading] = useState(false);
 
   useEffect(() => {
     loadFieldDetails();
@@ -42,13 +52,20 @@ const FieldDetailScreen: React.FC<FieldDetailScreenProps> = ({
     try {
       setLoading(true);
       const [fieldData, lifecycleData, tasksData] = await Promise.all([
-        fieldService.getField(fieldId),
-        lifecycleService.getLifecycle(fieldId),
-        taskService.getTasksByField(fieldId),
+        getFieldService().getField(fieldId),
+        getLifecycleService().getLifecycle(fieldId),
+        getTaskService().getTasksByField(fieldId),
       ]);
       setField(fieldData);
       setLifecycle(lifecycleData);
       setTasks(tasksData);
+
+      try {
+        const acts = await getActivityService().getActivities(fieldId, 10);
+        setActivities(acts);
+      } catch {
+        setActivities([]);
+      }
 
       // Load weather alerts if field has coordinates
       if (fieldData?.latitude && fieldData?.longitude) {
@@ -71,6 +88,22 @@ const FieldDetailScreen: React.FC<FieldDetailScreenProps> = ({
 
   const handleTaskPress = (task: Task) => {
     navigation.navigate('TaskDetail', { taskId: task.id });
+  };
+
+  const handleLifecycleAction = async (action: 'advance' | 'revert' | 'progress' | 'init') => {
+    try {
+      setLifecycleLoading(true);
+      let updated: Lifecycle | null = null;
+      if (action === 'advance') updated = await getLifecycleService().advanceStage(fieldId);
+      else if (action === 'revert') updated = await getLifecycleService().revertStage(fieldId);
+      else if (action === 'progress') updated = await getLifecycleService().progressCycle(fieldId);
+      else updated = await getLifecycleService().initializeLifecycle(fieldId);
+      setLifecycle(updated);
+    } catch (error: any) {
+      Alert.alert(t('fields:lifecycle'), error.message);
+    } finally {
+      setLifecycleLoading(false);
+    }
   };
 
   if (loading) {
@@ -507,6 +540,37 @@ const FieldDetailScreen: React.FC<FieldDetailScreenProps> = ({
         </Section>
       ) : null}
 
+      {isFieldOwner() ? (
+        <Section title={t('common:actions')}>
+          <View style={localStyles.ownerActions}>
+            <Button title={t('fields:editField')} variant="outline" onPress={() => navigation.navigate('FieldForm', { fieldId })} />
+            {!lifecycle ? (
+              <Button title={t('fields:initializeLifecycle')} onPress={() => handleLifecycleAction('init')} loading={lifecycleLoading} />
+            ) : (
+              <>
+                <Button title={t('fields:advanceStage')} onPress={() => handleLifecycleAction('advance')} loading={lifecycleLoading} />
+                <Button title={t('fields:revertStage')} variant="outline" onPress={() => handleLifecycleAction('revert')} loading={lifecycleLoading} />
+                <Button title={t('fields:toggleYear')} variant="outline" onPress={() => handleLifecycleAction('progress')} loading={lifecycleLoading} />
+              </>
+            )}
+            <Button title={t('tasks:createTask')} variant="outline" onPress={() => navigation.navigate('CreateTask', { fieldId })} />
+          </View>
+        </Section>
+      ) : null}
+
+      {activities.length > 0 ? (
+        <Section title={t('fields:activity')}>
+          <Card>
+            {activities.map((act, index) => (
+              <View key={act.id || `${act.timestamp}-${index}`} style={[localStyles.activityItem, { borderBottomColor: themeColors.border }]}>
+                <Text style={[localStyles.activityMessage, { color: themeColors.textPrimary }]}>{act.message}</Text>
+                <Text style={[localStyles.activityTime, { color: themeColors.textTertiary }]}>{formatDate(act.timestamp)}</Text>
+              </View>
+            ))}
+          </Card>
+        </Section>
+      ) : null}
+
       <View style={styles.bottomSpacing} />
     </ScrollView>
   );
@@ -884,3 +948,10 @@ const styles = StyleSheet.create({
 });
 
 export default FieldDetailScreen;
+
+const localStyles = StyleSheet.create({
+  ownerActions: { gap: spacing.sm, marginBottom: spacing.lg },
+  activityItem: { paddingVertical: spacing.sm, borderBottomWidth: 1 },
+  activityMessage: { ...typography.styles.bodySmall },
+  activityTime: { ...typography.styles.caption, marginTop: 2 },
+});

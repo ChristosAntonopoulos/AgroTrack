@@ -5,6 +5,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from '../components/ui/BrandLogo';
 import { colors, typography, spacing } from '../theme';
 
 // Import detail screens for navigation
@@ -70,8 +71,8 @@ const AppNavigator = () => {
       <SafeAreaView edges={['top']} style={styles.headerContainer}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerIcon}>🫒</Text>
-            <Text style={styles.headerTitle}>Olive Lifecycle</Text>
+            <BrandLogo size={30} style={styles.headerLogo} />
+            <Text style={styles.headerTitle}>AgroTrack</Text>
           </View>
           {user?.role ? (
             <View style={styles.roleBadge}>
@@ -142,8 +143,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  headerIcon: {
-    fontSize: 24,
+  headerLogo: {
+    marginRight: 2,
   },
   headerTitle: {
     ...typography.styles.h3,

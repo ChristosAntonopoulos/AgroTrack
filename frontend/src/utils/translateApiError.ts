@@ -30,9 +30,15 @@ export const translateApiError = (t: TFunction, message: string | undefined): st
   return message;
 };
 
+export const extractApiErrorMessage = (data: unknown): string | undefined => {
+  if (!data || typeof data !== 'object') return undefined;
+  const payload = data as { message?: string; error?: { message?: string } };
+  return payload.error?.message ?? payload.message;
+};
+
 export const getApiErrorMessage = (err: unknown, t: TFunction): string => {
-  const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data
-    ?.message;
+  const responseData = (err as { response?: { data?: unknown } })?.response?.data;
+  const axiosMsg = extractApiErrorMessage(responseData);
   if (axiosMsg) return translateApiError(t, axiosMsg);
   if (err instanceof Error && err.message) return translateApiError(t, err.message);
   return t('errors:generic');

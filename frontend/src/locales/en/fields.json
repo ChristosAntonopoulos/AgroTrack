@@ -168,6 +168,8 @@
     "progressTo": "Progress to {{year}} Year",
     "progressConfirm": "Are you sure you want to progress the lifecycle? This will change the field from {{from}} year to {{to}} year. This action cannot be undone.",
     "progressYes": "Yes, Progress Cycle",
+    "advanceStage": "Advance stage",
+    "revertStage": "Revert stage",
     "pendingApprovalsTitle": "Pending approvals",
     "noPendingApprovals": "No pending approvals",
     "noPendingApprovalsDesc": "Completed work from producers will appear here for approval.",

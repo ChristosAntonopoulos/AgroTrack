@@ -2,21 +2,38 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { testUsers } from '../services/testUsers';
-import { isMockMode } from '../services/serviceFactory';
-import { roleHomePath } from '../navigation/navConfig';
-import { AppRole } from '../navigation/navConfig';
+import { useLocale } from '../context/LocaleProvider';
+import { useTheme } from '../context/ThemeContext';
+import { authService } from '../services/authService';
+import { demoAccounts } from '../services/demoAccounts';
+import { showDemoLogin } from '../config/apiConfig';
+import { roleHomePath, AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
-import Card from '../components/Common/Card';
+import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
+import LoginHero from '../components/Auth/LoginHero';
+import BrandLogo from '../components/Common/BrandLogo';
 import Button from '../components/Common/Button';
-import LoginIllustration from '../components/Auth/LoginIllustration';
-import { Shield, Briefcase } from 'lucide-react';
+import {
+  Shield,
+  Briefcase,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Globe,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
-  const { t } = useTranslation(['auth', 'common', 'errors']);
+  const { t } = useTranslation(['auth', 'common', 'errors', 'settings']);
+  const { locale, setLocale } = useLocale();
+  const { theme, setTheme } = useTheme();
+  const isDarkTheme = theme === 'dark';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -33,8 +50,8 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
-      const matched = testUsers.find(u => u.email === email);
-      navigateAfterLogin(matched?.role || 'FieldOwner');
+      const stored = authService.getStoredUser();
+      navigateAfterLogin(stored?.role || 'FieldOwner');
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
     } finally {
@@ -42,15 +59,16 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = async (testUser: (typeof testUsers)[0]) => {
+  const handleQuickLogin = async (demoUser: (typeof demoAccounts)[0]) => {
     setError(null);
     setLoading(true);
-    setEmail(testUser.email);
-    setPassword(testUser.password);
+    setEmail(demoUser.email);
+    setPassword(demoUser.password);
 
     try {
-      await login(testUser.email, testUser.password);
-      navigateAfterLogin(testUser.role);
+      await login(demoUser.email, demoUser.password);
+      const stored = authService.getStoredUser();
+      navigateAfterLogin(stored?.role || demoUser.role);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
     } finally {
@@ -61,22 +79,11 @@ const LoginPage: React.FC = () => {
   const getRoleIcon = (userRole: string) => {
     switch (userRole) {
       case 'FieldOwner':
-        return <Shield />;
+        return <Shield size={16} />;
       case 'Producer':
-        return <Briefcase />;
+        return <Briefcase size={16} />;
       default:
-        return <Shield />;
-    }
-  };
-
-  const getRoleColor = (userRole: string) => {
-    switch (userRole) {
-      case 'FieldOwner':
-        return 'primary';
-      case 'Producer':
-        return 'success';
-      default:
-        return 'primary';
+        return <Shield size={16} />;
     }
   };
 
@@ -86,79 +93,167 @@ const LoginPage: React.FC = () => {
     return userRole;
   };
 
-  const showQuickLogin = isMockMode() || process.env.NODE_ENV === 'development';
+  const showQuickLogin = showDemoLogin();
+  const bilingualLocales = SUPPORTED_LOCALES.filter((l) => l.code === 'en' || l.code === 'el');
+
+  const handleThemeToggle = () => {
+    setTheme(isDarkTheme ? 'light' : 'dark');
+  };
 
   return (
-    <div className="login-container">
-      <div className="login-left">
-        <LoginIllustration />
-      </div>
-      <div className="login-right">
-        <Card className="login-card">
-          <h1>{t('auth:login.title')}</h1>
-          <h2>{t('auth:login.subtitle')}</h2>
-          {error && <div className="error-message">{error}</div>}
+    <div className={`login-page${isDarkTheme ? ' login-page--dark' : ' login-page--light'}`}>
+      <div className="login-page-bg" aria-hidden="true" />
 
-          {showQuickLogin && (
-            <div className="quick-login-section">
-              <h3>{t('auth:login.demoTitle')}</h3>
-              <p className="quick-login-hint">{t('auth:login.demoHint')}</p>
-              <div className="quick-login-buttons">
-                {testUsers.map((user) => (
-                  <Button
-                    key={user.email}
-                    type="button"
-                    onClick={() => handleQuickLogin(user)}
+      <div className="login-page-layout">
+        <section className="login-page-hero" aria-label={t('auth:login.platformTagline')}>
+          <LoginHero />
+        </section>
+
+        <section className="login-page-panel">
+          <div className="login-panel-top">
+            <button
+              type="button"
+              className="login-theme-toggle"
+              onClick={handleThemeToggle}
+              aria-label={
+                isDarkTheme
+                  ? t('settings:preferences.themes.light')
+                  : t('settings:preferences.themes.dark')
+              }
+              title={
+                isDarkTheme
+                  ? t('settings:preferences.themes.light')
+                  : t('settings:preferences.themes.dark')
+              }
+            >
+              {isDarkTheme ? <Sun size={16} /> : <Moon size={16} />}
+              <span>
+                {isDarkTheme
+                  ? t('settings:preferences.themes.light')
+                  : t('settings:preferences.themes.dark')}
+              </span>
+            </button>
+
+            <div className="login-lang-switch" role="group" aria-label={t('common:language', { defaultValue: 'Language' })}>
+              <Globe size={14} aria-hidden />
+              {bilingualLocales.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  className={locale === lang.code ? 'active' : ''}
+                  onClick={() => setLocale(lang.code as SupportedLocale)}
+                  aria-pressed={locale === lang.code}
+                >
+                  {lang.nativeLabel}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="login-card">
+            <div className="login-card-brand">
+              <BrandLogo size="lg" className="login-card-logo" />
+              <h1>{t('auth:login.title')}</h1>
+              <p className="login-card-subtitle">{t('auth:login.subtitle')}</p>
+            </div>
+
+            {error && (
+              <div className="login-error" role="alert">
+                {error}
+              </div>
+            )}
+
+            {showQuickLogin && (
+              <div className="login-demo">
+                <h2>{t('auth:login.demoTitle')}</h2>
+                <p>{t('auth:login.demoHint')}</p>
+                <div className="login-demo-buttons">
+                  {demoAccounts.map((user) => (
+                    <button
+                      key={user.email}
+                      type="button"
+                      className="login-demo-btn"
+                      onClick={() => handleQuickLogin(user)}
+                      disabled={loading}
+                    >
+                      <span className="login-demo-icon">{getRoleIcon(user.role)}</span>
+                      <span className="login-demo-text">
+                        <strong>{user.displayName}</strong>
+                        <small>{getRoleLabel(user.role)}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="login-divider">
+                  <span>{t('common:or')}</span>
+                </div>
+              </div>
+            )}
+
+            <form className="login-form" onSubmit={handleSubmit}>
+              <div className="login-field">
+                <label htmlFor="email">{t('common:email')}</label>
+                <div className="login-input-wrap">
+                  <Mail size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth:login.emailPlaceholder')}
+                    autoComplete="email"
+                    required
                     disabled={loading}
-                    variant={getRoleColor(user.role) as 'primary' | 'success'}
-                    fullWidth
-                    className="quick-login-btn"
-                  >
-                    <span className="quick-login-icon">{getRoleIcon(user.role)}</span>
-                    <div className="quick-login-info">
-                      <span className="quick-login-name">{user.displayName}</span>
-                      <span className="quick-login-role">{getRoleLabel(user.role)}</span>
-                    </div>
-                  </Button>
-                ))}
+                  />
+                </div>
               </div>
-              <div className="quick-login-divider">
-                <span>{t('common:or')}</span>
-              </div>
-            </div>
-          )}
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">{t('common:email')}</label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="password">{t('common:password')}</label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" disabled={loading} loading={loading} fullWidth>
-              {t('auth:login.button')}
-            </Button>
-          </form>
-          <p className="register-link">
-            {t('auth:login.noAccount')} <Link to="/register">{t('auth:login.registerLink')}</Link>
+              <div className="login-field">
+                <div className="login-field-row">
+                  <label htmlFor="password">{t('common:password')}</label>
+                  <Link to="/forgot-password" className="login-forgot">
+                    {t('auth:login.forgotPassword')}
+                  </Link>
+                </div>
+                <div className="login-input-wrap">
+                  <Lock size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('auth:login.passwordPlaceholder')}
+                    autoComplete="current-password"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
+                {t('auth:login.button')}
+              </Button>
+            </form>
+
+            <p className="login-register">
+              {t('auth:login.noAccount')}{' '}
+              <Link to="/register">{t('auth:login.registerLink')}</Link>
+            </p>
+          </div>
+
+          <p className="login-security">
+            <Shield size={14} aria-hidden />
+            {t('auth:login.securityNote')}
           </p>
-        </Card>
+        </section>
       </div>
     </div>
   );

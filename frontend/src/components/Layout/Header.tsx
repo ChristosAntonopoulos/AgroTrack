@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { User, LogOut, Menu } from 'lucide-react';
+import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
 import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useLocale } from '../../context/LocaleProvider';
@@ -39,7 +40,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <Menu />
         </button>
         <div className="header-titles">
-          <div className="app-title">{t('appName')}</div>
+          <div className="header-brand-row">
+            <BrandLogo size="xs" />
+            <div className="app-title">{t('appName')}</div>
+          </div>
           <div className="page-title">{pageTitle}</div>
         </div>
       </div>

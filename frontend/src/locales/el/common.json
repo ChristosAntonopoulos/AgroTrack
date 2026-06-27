@@ -1,5 +1,5 @@
 {
-  "appName": "Olive Lifecycle",
+  "appName": "AgroTrack",
   "home": "Αρχική",
   "loading": "Φόρτωση...",
   "save": "Αποθήκευση",
@@ -58,6 +58,14 @@
   "lifecycleYear": {
     "low": "Χαμηλό",
     "high": "Υψηλό"
+  },
+  "lifecycleStage": {
+    "dormancy": "Αδράνεια",
+    "bud_break": "Έκρηξη οφθαλμού",
+    "flowering": "Άνθηση",
+    "fruit_set": "Δέσμευση καρπού",
+    "fruit_growth": "Ανάπτυξη καρπού",
+    "harvest": "Τρύγος"
   },
   "severity": {
     "Low": "Χαμηλή",

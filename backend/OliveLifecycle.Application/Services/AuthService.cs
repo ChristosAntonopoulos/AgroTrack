@@ -3,9 +3,14 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using OliveLifecycle.Application.Abstractions.Persistence;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
+using OliveLifecycle.Application.Extensions;
+using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Entities;
-using OliveLifecycle.Infrastructure.Repositories;
+using OliveLifecycle.Core.Enums;
+using OliveLifecycle.Core.Exceptions;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -13,53 +18,61 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public AuthService(IUserRepository userRepository, IConfiguration configuration)
+    public AuthService(
+        IUserRepository userRepository,
+        IConfiguration configuration,
+        IDateTimeProvider dateTimeProvider)
     {
         _userRepository = userRepository;
         _configuration = configuration;
+        _dateTimeProvider = dateTimeProvider;
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
+    public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
     {
-        if (await _userRepository.ExistsByEmailAsync(registerDto.Email))
+        registerDto.Email = NormalizeEmail(registerDto.Email);
+
+        if (!Roles.IsPublicRegistrationRole(registerDto.Role))
         {
-            throw new InvalidOperationException("User with this email already exists.");
+            throw new ValidationException("Registration is only allowed for FieldOwner or Producer roles.");
         }
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+        if (await _userRepository.ExistsByEmailAsync(registerDto.Email, cancellationToken))
+        {
+            throw new ConflictException("User with this email already exists.");
+        }
 
+        var now = _dateTimeProvider.UtcNow;
         var user = new User
         {
             Email = registerDto.Email,
-            PasswordHash = passwordHash,
-            Role = registerDto.Role,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+            Role = UserRoleExtensions.FromRoleName(registerDto.Role),
             FirstName = registerDto.FirstName,
             LastName = registerDto.LastName,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
-        await _userRepository.CreateAsync(user);
-
+        await _userRepository.CreateAsync(user, cancellationToken);
         return GenerateAuthResponse(user);
     }
 
-    public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
+    public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByEmailAsync(loginDto.Email);
-        if (user == null)
+        var email = NormalizeEmail(loginDto.Email);
+        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
         {
-            throw new UnauthorizedAccessException("Invalid email or password.");
-        }
-
-        if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
-        {
-            throw new UnauthorizedAccessException("Invalid email or password.");
+            throw new ForbiddenException("Invalid email or password.");
         }
 
         return GenerateAuthResponse(user);
     }
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
     private AuthResponseDto GenerateAuthResponse(User user)
     {
@@ -75,12 +88,13 @@ public class AuthService : IAuthService
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expiresAt = _dateTimeProvider.UtcNow.AddMinutes(expirationMinutes);
 
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role),
+            new Claim(ClaimTypes.Role, user.Role.ToRoleName()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -88,19 +102,16 @@ public class AuthService : IAuthService
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
-            signingCredentials: credentials
-        );
-
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            expires: expiresAt,
+            signingCredentials: credentials);
 
         return new AuthResponseDto
         {
-            Token = tokenString,
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
             UserId = user.Id,
             Email = user.Email,
-            Role = user.Role,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+            Role = user.Role.ToRoleName(),
+            ExpiresAt = expiresAt
         };
     }
 }

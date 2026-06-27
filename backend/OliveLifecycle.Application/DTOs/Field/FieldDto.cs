@@ -13,6 +13,8 @@ public class FieldDto
     public string? GroundType { get; set; }
     public bool IrrigationStatus { get; set; }
     public string CurrentLifecycleYear { get; set; } = "low";
+    public string CurrentLifecycleStage { get; set; } = "dormancy";
+    public List<string> AssignedProducerIds { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

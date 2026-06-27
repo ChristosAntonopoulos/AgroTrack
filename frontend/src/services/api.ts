@@ -1,11 +1,10 @@
 import axios from 'axios';
 import i18n from '../i18n';
-import { translateApiError } from '../utils/translateApiError';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://localhost:7000';
+import { getApiBaseUrl, isAuthDisabled } from '../config/apiConfig';
+import { extractApiErrorMessage, translateApiError } from '../utils/translateApiError';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -29,14 +28,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isAuthDisabled()) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    const message = error.response?.data?.message as string | undefined;
-    if (message) {
-      error.response.data.message = translateApiError(i18n.t.bind(i18n), message);
+    const message = extractApiErrorMessage(error.response?.data);
+    if (message && error.response?.data) {
+      const translated = translateApiError(i18n.t.bind(i18n), message);
+      if (typeof error.response.data === 'object' && error.response.data !== null) {
+        const data = error.response.data as { message?: string; error?: { message?: string } };
+        if (data.error?.message) {
+          data.error.message = translated;
+        } else {
+          data.message = translated;
+        }
+      }
     }
     return Promise.reject(error);
   }

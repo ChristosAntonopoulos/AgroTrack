@@ -35,6 +35,12 @@
   background-color: var(--bg-hover);
 }
 
+.header-brand-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
 .app-title {
   margin: 0;
   font-size: 0.9rem;

@@ -1,7 +1,7 @@
 import { Field } from '../fieldService';
 import { Task } from '../taskService';
 import { User } from '../userService';
-import { mockFields, mockTasks, mockUsers } from '../mock/mockData';
+import { generateDemoDataset, buildDemoTasks } from './demoSeedGenerator';
 
 export type DemoAssignmentMap = Record<string, string[]>; // fieldId -> producer userIds
 
@@ -82,7 +82,7 @@ type DemoState = {
 };
 
 const STORAGE_KEY = 'agrotrack_demo_state_v1';
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 export type DemoRouteState = {
   active: boolean;
@@ -117,136 +117,27 @@ const safeParse = <T,>(raw: string | null): T | null => {
   }
 };
 
-const computeDefaultAssignments = (tasks: Task[]): DemoAssignmentMap => {
-  const map: DemoAssignmentMap = {};
-  for (const t of tasks) {
-    if (!t.assignedTo) continue;
-    if (!map[t.fieldId]) map[t.fieldId] = [];
-    if (!map[t.fieldId].includes(t.assignedTo)) map[t.fieldId].push(t.assignedTo);
-  }
-  return map;
-};
 
 const seedState = (): DemoState => {
   const seededAt = new Date().toISOString();
-  const assignments = computeDefaultAssignments(mockTasks);
-
-  // Ensure tasks have deterministic approval defaults.
-  const tasksWithApprovals: DemoTask[] = mockTasks.map((t) => {
-    const needsApproval = t.status === 'completed' && !!t.assignedTo;
-    return {
-      ...t,
-      approvalStatus: needsApproval ? 'pending' : 'not_required',
-    };
-  });
-
-  const events: DemoEvent[] = [];
-  const pushEvent = (e: Omit<DemoEvent, 'id'>) => {
-    events.push({ id: `ev-${events.length + 1}`, ...e });
-  };
-
-  // Seed events for demo realism.
-  for (const t of tasksWithApprovals) {
-    if (t.status === 'completed') {
-      pushEvent({
-        type: 'task_status_changed',
-        timestamp: t.actualEnd || t.updatedAt,
-        fieldId: t.fieldId,
-        taskId: t.id,
-        actorUserId: t.assignedTo,
-        message: `Task completed: ${t.title}`,
-      });
-      if (t.approvalStatus === 'pending') {
-        pushEvent({
-          type: 'task_status_changed',
-          timestamp: t.updatedAt,
-          fieldId: t.fieldId,
-          taskId: t.id,
-          actorUserId: t.assignedTo,
-          message: `Awaiting owner approval: ${t.title}`,
-        });
-      }
-    } else if (t.status === 'in_progress') {
-      pushEvent({
-        type: 'task_status_changed',
-        timestamp: t.actualStart || t.updatedAt,
-        fieldId: t.fieldId,
-        taskId: t.id,
-        actorUserId: t.assignedTo,
-        message: `Task started: ${t.title}`,
-      });
-    }
-    if ((t.evidence || []).length > 0) {
-      pushEvent({
-        type: 'evidence_added',
-        timestamp: t.evidence[t.evidence.length - 1].timestamp,
-        fieldId: t.fieldId,
-        taskId: t.id,
-        actorUserId: t.assignedTo,
-        message: `Evidence added for: ${t.title}`,
-      });
-    }
-  }
-
-  Object.entries(assignments).forEach(([fieldId, producerIds]) => {
-    producerIds.forEach((pid) => {
-      pushEvent({
-        type: 'producer_assigned',
-        timestamp: seededAt,
-        fieldId,
-        actorUserId: 'user1',
-        message: `Producer assigned to field: ${pid}`,
-      });
-    });
-  });
-
-  const issues: DemoIssue[] = [
-    {
-      id: 'issue-1',
-      fieldId: 'field2',
-      type: 'Leak',
-      severity: 'High',
-      title: 'Main irrigation line leak near valve box',
-      description: 'Standing water observed and pressure drop across zones. Needs inspection today.',
-      photoUrls: ['/demo-images/olive-harvest.jpg'],
-      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      createdByUserId: 'user2',
-      status: 'Open',
-    },
-    {
-      id: 'issue-2',
-      fieldId: 'field1',
-      type: 'Pest',
-      severity: 'Medium',
-      title: 'Possible olive fruit fly hotspots',
-      description: 'Noticed damaged fruit on north edge; recommend targeted scouting and traps.',
-      photoUrls: ['/demo-images/olive-branch.jpg'],
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      createdByUserId: 'user2',
-      status: 'InProgress',
-    },
-  ];
-
-  issues.forEach((iss) => {
-    pushEvent({
-      type: 'task_status_changed',
-      timestamp: iss.createdAt,
-      fieldId: iss.fieldId,
-      actorUserId: iss.createdByUserId,
-      message: `Issue reported (${iss.severity} ${iss.type}): ${iss.title}`,
-    });
-  });
+  const dataset = generateDemoDataset();
+  const tasksWithApprovals: DemoTask[] = buildDemoTasks().map((t) => ({
+    ...t,
+    approvalStatus:
+      t.approvalStatus ??
+      (t.status === 'completed' && t.assignedTo ? 'pending' : 'not_required'),
+  }));
 
   return {
     schemaVersion: SCHEMA_VERSION,
     seededAt,
-    users: [...mockUsers],
-    fields: [...mockFields],
+    users: [...dataset.users],
+    fields: [...dataset.fields],
     tasks: tasksWithApprovals,
-    assignments,
-    events,
+    assignments: { ...dataset.assignments },
+    events: [...dataset.events],
     demoProgressByUserId: {},
-    issues,
+    issues: [...dataset.issues],
     routeStateByUserId: {},
     fieldUiPrefsByUserId: {},
   };
