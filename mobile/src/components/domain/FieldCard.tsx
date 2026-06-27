@@ -1,88 +1,204 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Card from '../ui/Card';
+import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import LifecycleIndicator from '../LifecycleIndicator';
-import { colors, typography, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing } from '../../theme';
+import { createElevation } from '../../theme/elevation';
 import { Field } from '../../services/fieldService';
 import { WeatherData } from '../../services/weatherService';
 
 export interface FieldCardProps {
   field: Field;
   onPress?: () => void;
+  onViewTasks?: () => void;
+  onViewCalendar?: () => void;
   taskCount?: number;
+  openTaskCount?: number;
   weather?: WeatherData;
 }
 
-const FieldCard: React.FC<FieldCardProps> = ({ field, onPress, taskCount, weather }) => {
-  // fieldService already returns correct types, use directly
-  const hasIrrigation: boolean = field.irrigationStatus ?? false;
-  
-  return (
-    <Card onPress={onPress} variant="elevated" style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.fieldName} numberOfLines={1}>
-          {field.name}
-        </Text>
-        <LifecycleIndicator year={field.currentLifecycleYear} />
-      </View>
+const FieldCard: React.FC<FieldCardProps> = ({
+  field,
+  onPress,
+  onViewTasks,
+  onViewCalendar,
+  taskCount,
+  openTaskCount,
+  weather,
+}) => {
+  const { colors } = useTheme();
+  const { t } = useTranslation(['fields', 'common']);
+  const hasIrrigation = field.irrigationStatus ?? false;
+  const lifecycleAccent =
+    field.currentLifecycleYear === 'high' ? colors.success : colors.info;
 
-      {weather ? (
-        <View style={styles.weatherRow}>
-          <Text style={styles.weatherIcon}>{weather.icon}</Text>
-          <Text style={styles.weatherTemp}>{weather.temperature}°C</Text>
-          <Text style={styles.weatherCondition}>{weather.condition}</Text>
-          {weather.precipitation > 0 ? (
-            <Text style={styles.weatherPrecip}>🌧️ {weather.precipitation}mm</Text>
+  return (
+    <View
+      style={[
+        styles.wrapper,
+        {
+          backgroundColor: colors.surfaceElevated,
+          borderColor: colors.borderLight,
+          ...createElevation(colors, 'sm'),
+        },
+      ]}
+    >
+      <View style={[styles.accentBar, { backgroundColor: lifecycleAccent }]} />
+
+      <View style={styles.body}>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.72}>
+          <View style={styles.header}>
+          <View style={[styles.iconWrap, { backgroundColor: colors.primary + '18' }]}>
+            <Ionicons name="leaf" size={20} color={colors.primaryDark} />
+          </View>
+          <View style={styles.titleBlock}>
+            <Text style={[styles.fieldName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {field.name}
+            </Text>
+            {field.variety ? (
+              <Text style={[styles.variety, { color: colors.textSecondary }]} numberOfLines={1}>
+                {field.variety}
+              </Text>
+            ) : null}
+          </View>
+          <LifecycleIndicator year={field.currentLifecycleYear} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+        </View>
+
+        {weather ? (
+          <View style={[styles.weatherRow, { backgroundColor: colors.surfaceMuted }]}>
+            <Text style={styles.weatherIcon}>{weather.icon}</Text>
+            <Text style={[styles.weatherTemp, { color: colors.textPrimary }]}>
+              {weather.temperature}°C
+            </Text>
+            <Text style={[styles.weatherCondition, { color: colors.textSecondary }]}>
+              {weather.condition}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.statsRow}>
+          <StatPill icon="resize-outline" label={`${field.area} ha`} colors={colors} />
+          <StatPill
+            icon="water-outline"
+            label={hasIrrigation ? t('fields:irrigated') : t('fields:dry')}
+            colors={colors}
+          />
+          {taskCount !== undefined ? (
+            <StatPill
+              icon="clipboard-outline"
+              label={`${openTaskCount ?? taskCount} ${t('fields:tasksCount').toLowerCase()}`}
+              colors={colors}
+              highlight={(openTaskCount ?? taskCount) > 0}
+            />
           ) : null}
         </View>
-      ) : null}
+        </TouchableOpacity>
 
-      <View style={styles.details}>
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Area:</Text>
-          <Text style={styles.value}>{field.area} hectares</Text>
-        </View>
-
-        {field.variety && (
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Variety:</Text>
-            <Text style={styles.value}>{field.variety}</Text>
+        {(onViewTasks || onViewCalendar) ? (
+          <View style={[styles.actions, { borderTopColor: colors.borderLight }]}>
+            {onViewTasks ? (
+              <ActionChip
+                icon="list-outline"
+                label={t('fields:viewTasks')}
+                onPress={onViewTasks}
+                colors={colors}
+              />
+            ) : null}
+            {onViewCalendar ? (
+              <ActionChip
+                icon="calendar-outline"
+                label={t('fields:viewCalendar')}
+                onPress={onViewCalendar}
+                colors={colors}
+              />
+            ) : null}
           </View>
-        )}
-
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Irrigation:</Text>
-          <Text style={styles.value}>{hasIrrigation ? 'Yes' : 'No'}</Text>
-        </View>
-
-        {taskCount !== undefined && (
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Tasks:</Text>
-            <Text style={styles.value}>{taskCount}</Text>
-          </View>
-        )}
+        ) : null}
       </View>
-    </Card>
+    </View>
   );
 };
 
+const StatPill = ({
+  icon,
+  label,
+  colors,
+  highlight = false,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  colors: ReturnType<typeof useTheme>['colors'];
+  highlight?: boolean;
+}) => (
+  <View style={[styles.statPill, { backgroundColor: colors.surfaceMuted }]}>
+    <Ionicons name={icon} size={13} color={highlight ? colors.primaryDark : colors.textTertiary} />
+    <Text
+      style={[
+        styles.statText,
+        { color: highlight ? colors.primaryDark : colors.textSecondary },
+      ]}
+      numberOfLines={1}
+    >
+      {label}
+    </Text>
+  </View>
+);
+
+const ActionChip = ({
+  icon,
+  label,
+  onPress,
+  colors,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  onPress: () => void;
+  colors: ReturnType<typeof useTheme>['colors'];
+}) => (
+  <TouchableOpacity
+    style={[styles.actionChip, { borderColor: colors.border }]}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
+    <Ionicons name={icon} size={14} color={colors.primaryDark} />
+    <Text style={[styles.actionText, { color: colors.primaryDark }]}>{label}</Text>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: spacing.base,
+  wrapper: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+    minHeight: 88,
+  },
+  accentBar: { width: 5 },
+  body: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  fieldName: {
-    ...typography.styles.h4,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.bold,
-    flex: 1,
-    marginRight: spacing.sm,
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  titleBlock: { flex: 1 },
+  fieldName: { ...typography.styles.body, fontWeight: '700', fontSize: 16 },
+  variety: { ...typography.styles.caption, marginTop: 1 },
   weatherRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -90,43 +206,42 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
-    backgroundColor: colors.background,
     borderRadius: 8,
   },
-  weatherIcon: {
-    fontSize: 20,
-  },
-  weatherTemp: {
-    ...typography.styles.bodySmall,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-  },
-  weatherCondition: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-    textTransform: 'capitalize',
-    flex: 1,
-  },
-  weatherPrecip: {
-    ...typography.styles.bodySmall,
-    color: colors.info,
-  },
-  details: {
+  weatherIcon: { fontSize: 18 },
+  weatherTemp: { ...typography.styles.bodySmall, fontWeight: '700' },
+  weatherCondition: { ...typography.styles.bodySmall, flex: 1, textTransform: 'capitalize' },
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
-  detailRow: {
+  statPill: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
-  label: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
+  statText: { fontSize: 11, fontWeight: '600' },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
   },
-  value: {
-    ...typography.styles.bodySmall,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.medium,
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
   },
+  actionText: { fontSize: 11, fontWeight: '700' },
 });
 
 export default FieldCard;

@@ -1,5 +1,8 @@
 {
   "home": "Home",
+  "dashboard": "Dashboard",
+  "today": "Today",
+  "calendar": "Calendar",
   "fields": "Fields",
   "tasks": "Tasks",
   "more": "More",

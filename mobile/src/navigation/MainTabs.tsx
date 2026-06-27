@@ -1,53 +1,95 @@
 import React from 'react';
-import { Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DashboardScreen from '../screens/DashboardScreen';
+import TodayScreen from '../screens/TodayScreen';
+import CalendarScreen from '../screens/CalendarScreen';
 import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { typography } from '../theme';
+import { typography, spacing } from '../theme';
+import { createElevation } from '../theme/elevation';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const TabIcon = ({ emoji, focused, color }: { emoji: string; focused: boolean; color: string }) => (
-  <Text style={[styles.tabIcon, { opacity: focused ? 1 : 0.6, color }]}>{emoji}</Text>
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TabIcon = ({
+  name,
+  focused,
+  color,
+}: {
+  name: IconName;
+  focused: boolean;
+  color: string;
+}) => (
+  <Ionicons name={name} size={22} color={color} style={{ opacity: focused ? 1 : 0.55 }} />
 );
 
 const MainTabs = () => {
   const { colors } = useTheme();
   const { t } = useTranslation('nav');
   const { isFieldOwner } = useAuth();
+  const owner = isFieldOwner();
 
   return (
     <Tab.Navigator
+      initialRouteName={owner ? 'Dashboard' : 'Today'}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: colors.primaryDark,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: colors.white,
+          backgroundColor: colors.surfaceElevated,
           borderTopColor: colors.border,
-          paddingTop: 4,
-          height: 60,
+          borderTopWidth: 1,
+          paddingTop: spacing.xs,
+          paddingBottom: spacing.xs,
+          height: 62,
+          ...createElevation(colors, 'lg'),
         },
         tabBarLabelStyle: {
           ...typography.styles.caption,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
+          marginTop: -2,
         },
       }}
     >
+      {owner ? (
+        <Tab.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={{
+            tabBarLabel: t('dashboard'),
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon name={focused ? 'grid' : 'grid-outline'} focused={focused} color={color} />
+            ),
+          }}
+        />
+      ) : (
+        <Tab.Screen
+          name="Today"
+          component={TodayScreen}
+          options={{
+            tabBarLabel: t('today'),
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon name={focused ? 'sunny' : 'sunny-outline'} focused={focused} color={color} />
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
-        name="Home"
-        component={DashboardScreen}
+        name="Calendar"
+        component={CalendarScreen}
         options={{
-          tabBarLabel: t('home'),
+          tabBarLabel: t('calendar'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="🏠" focused={focused} color={color} />
+            <TabIcon name={focused ? 'calendar' : 'calendar-outline'} focused={focused} color={color} />
           ),
         }}
       />
@@ -55,9 +97,9 @@ const MainTabs = () => {
         name="Fields"
         component={FieldsListScreen}
         options={{
-          tabBarLabel: isFieldOwner() ? t('fieldsOwner') : t('fields'),
+          tabBarLabel: owner ? t('fieldsOwner') : t('fields'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="🫒" focused={focused} color={color} />
+            <TabIcon name={focused ? 'leaf' : 'leaf-outline'} focused={focused} color={color} />
           ),
         }}
       />
@@ -65,9 +107,9 @@ const MainTabs = () => {
         name="Tasks"
         component={TaskListScreen}
         options={{
-          tabBarLabel: isFieldOwner() ? t('tasks') : t('tasksProducer'),
+          tabBarLabel: owner ? t('tasks') : t('tasksProducer'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="📋" focused={focused} color={color} />
+            <TabIcon name={focused ? 'list' : 'list-outline'} focused={focused} color={color} />
           ),
         }}
       />
@@ -77,16 +119,12 @@ const MainTabs = () => {
         options={{
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="⚙️" focused={focused} color={color} />
+            <TabIcon name={focused ? 'settings' : 'settings-outline'} focused={focused} color={color} />
           ),
         }}
       />
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  tabIcon: { fontSize: 22 },
-});
 
 export default MainTabs;

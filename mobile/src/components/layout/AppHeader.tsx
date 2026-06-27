@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import BrandLogo from '../ui/BrandLogo';
 import { typography, spacing } from '../../theme';
+import { createElevation } from '../../theme/elevation';
 
 const AppHeader = () => {
   const { user } = useAuth();
@@ -17,15 +18,39 @@ const AppHeader = () => {
     : '';
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.white, borderBottomColor: colors.border }]}>
+    <SafeAreaView
+      edges={['top']}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.primaryDark,
+          ...createElevation(colors, 'md'),
+        },
+      ]}
+    >
       <View style={styles.inner}>
         <View style={styles.left}>
-          <BrandLogo size={28} />
-          <Text style={[styles.title, { color: colors.primary }]}>AgroTrack</Text>
+          <View style={[styles.logoWrap, { backgroundColor: colors.textInverse + '20' }]}>
+            <BrandLogo size={24} />
+          </View>
+          <View>
+            <Text style={[styles.title, { color: colors.textInverse }]}>OliveCycle</Text>
+            <Text style={[styles.tagline, { color: colors.textInverse + 'BB' }]}>
+              {t('appName')}
+            </Text>
+          </View>
         </View>
         {roleLabel ? (
-          <View style={[styles.badge, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' }]}>
-            <Text style={[styles.badgeText, { color: colors.primary }]}>{roleLabel}</Text>
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: colors.textInverse + '18',
+                borderColor: colors.textInverse + '40',
+              },
+            ]}
+          >
+            <Text style={[styles.badgeText, { color: colors.textInverse }]}>{roleLabel}</Text>
           </View>
         ) : null}
       </View>
@@ -34,37 +59,47 @@ const AppHeader = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    borderBottomWidth: 1,
-  },
+  container: {},
   inner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
-    minHeight: 48,
+    minHeight: 52,
   },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  icon: { fontSize: 22 },
+  logoWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     ...typography.styles.h3,
-    fontWeight: typography.fontWeight.bold,
-    fontSize: 18,
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: -0.3,
+  },
+  tagline: {
+    ...typography.styles.caption,
+    fontSize: 10,
+    marginTop: -2,
   },
   badge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
   },
   badgeText: {
     ...typography.styles.caption,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: '600',
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.6,

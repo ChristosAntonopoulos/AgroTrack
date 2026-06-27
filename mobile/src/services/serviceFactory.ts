@@ -16,6 +16,7 @@ import { taskTemplateService } from './taskTemplateService';
 import { mockTaskTemplateService } from './mockTaskTemplateService';
 import { fileService } from './fileService';
 import { mockFileService } from './mockFileService';
+import { calendarService } from './calendarService';
 import { isMockDataEnabled } from '../config/env';
 
 const useMock = () => isMockDataEnabled();
@@ -29,5 +30,6 @@ export const getActivityService = () => (useMock() ? mockActivityService : activ
 export const getMinistryService = () => (useMock() ? mockMinistryService : ministryApiService);
 export const getTaskTemplateService = () => (useMock() ? mockTaskTemplateService : taskTemplateService);
 export const getFileService = () => (useMock() ? mockFileService : fileService);
+export const getCalendarService = () => calendarService;
 
 export const isMockMode = () => isMockDataEnabled();

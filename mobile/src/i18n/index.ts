@@ -10,6 +10,8 @@ import enFields from '../locales/en/fields.json';
 import enTasks from '../locales/en/tasks.json';
 import enSettings from '../locales/en/settings.json';
 import enErrors from '../locales/en/errors.json';
+import enCalendar from '../locales/en/calendar.json';
+import enToday from '../locales/en/today.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -19,6 +21,8 @@ import elFields from '../locales/el/fields.json';
 import elTasks from '../locales/el/tasks.json';
 import elSettings from '../locales/el/settings.json';
 import elErrors from '../locales/el/errors.json';
+import elCalendar from '../locales/el/calendar.json';
+import elToday from '../locales/el/today.json';
 
 const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
 const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
@@ -35,6 +39,8 @@ i18n.use(initReactI18next).init({
       tasks: enTasks,
       settings: enSettings,
       errors: enErrors,
+      calendar: enCalendar,
+      today: enToday,
     },
     el: {
       auth: elAuth,
@@ -45,6 +51,8 @@ i18n.use(initReactI18next).init({
       tasks: elTasks,
       settings: elSettings,
       errors: elErrors,
+      calendar: elCalendar,
+      today: elToday,
     },
   },
   lng: defaultLng,

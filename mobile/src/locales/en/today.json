@@ -1,0 +1,20 @@
+{
+  "title": "Today",
+  "subtitle": "Your next actions and the best route across fields",
+  "producerOnlyTitle": "This page is for Producers",
+  "producerOnlyDescription": "Log in as a Producer to see Today's Route.",
+  "recommendedTasks": "Recommended next tasks",
+  "recommendedSubtitle": "Start here for maximum impact",
+  "noTasksTitle": "No tasks assigned",
+  "noTasksDescription": "You're all caught up.",
+  "routeTitle": "Today's route",
+  "routeSubtitle": "Fields with open tasks",
+  "noRouteTitle": "No route yet",
+  "noRouteDescription": "Assign tasks to see your route.",
+  "viewField": "View field",
+  "openTask": "Open tasks",
+  "due": "Due",
+  "startNext": "Start next task",
+  "startNextHint": "Your highest-priority open task",
+  "viewCalendar": "View calendar"
+}

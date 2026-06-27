@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, typography, spacing } from '../theme';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
+import { typography, spacing } from '../theme';
 
 interface StatusBadgeProps {
   status: 'pending' | 'in_progress' | 'completed' | string;
@@ -8,31 +10,33 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, showIcon = false }) => {
-  // Props are already correct types, use directly
+  const { colors } = useTheme();
+  const { t } = useTranslation('common');
+
   const getStatusConfig = () => {
     switch (status.toLowerCase()) {
       case 'pending':
         return {
           color: colors.taskPending,
-          backgroundColor: '#fef3c7',
-          label: 'Pending',
+          backgroundColor: colors.warningLight,
+          label: t('taskStatus.pending'),
         };
       case 'in_progress':
         return {
           color: colors.taskInProgress,
-          backgroundColor: '#dbeafe',
-          label: 'In Progress',
+          backgroundColor: colors.infoLight,
+          label: t('taskStatus.in_progress'),
         };
       case 'completed':
         return {
           color: colors.taskCompleted,
-          backgroundColor: '#d1fae5',
-          label: 'Completed',
+          backgroundColor: colors.successLight,
+          label: t('taskStatus.completed'),
         };
       default:
         return {
-          color: colors.gray600,
-          backgroundColor: colors.gray200,
+          color: colors.textSecondary,
+          backgroundColor: colors.surfaceMuted,
           label: status,
         };
     }
@@ -54,7 +58,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: spacing.md,
+    borderRadius: 20,
     alignSelf: 'flex-start',
   },
   dot: {
@@ -65,8 +69,8 @@ const styles = StyleSheet.create({
   },
   text: {
     ...typography.styles.caption,
-    fontWeight: typography.fontWeight.medium,
-    textTransform: 'capitalize',
+    fontWeight: '600',
+    fontSize: 11,
   },
 });
 

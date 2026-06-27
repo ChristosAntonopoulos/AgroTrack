@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, typography, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing } from '../../theme';
 import Button from '../ui/Button';
 
 export interface SectionProps {
@@ -18,23 +19,19 @@ const Section: React.FC<SectionProps> = ({
   onActionPress,
   children,
 }) => {
-  if (__DEV__) {
-    console.log('[Section] Rendering - title:', title);
-  }
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.primary + '25' }]}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+          ) : null}
         </View>
         {actionLabel && onActionPress ? (
-          <Button
-            title={actionLabel}
-            onPress={onActionPress}
-            variant="text"
-            size="small"
-          />
+          <Button title={actionLabel} onPress={onActionPress} variant="text" size="small" />
         ) : null}
       </View>
       <View style={styles.content}>{children}</View>
@@ -45,36 +42,29 @@ const Section: React.FC<SectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
+    paddingHorizontal: spacing.base,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary + '20',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
   },
-  titleContainer: {
-    flex: 1,
-  },
+  titleContainer: { flex: 1 },
   title: {
     ...typography.styles.h4,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.bold,
-    marginBottom: spacing.xs / 2,
-    fontSize: 20,
-    letterSpacing: -0.4,
+    fontWeight: '700',
+    fontSize: 18,
+    letterSpacing: -0.3,
   },
   subtitle: {
     ...typography.styles.bodySmall,
-    color: colors.textSecondary,
     fontSize: 13,
-    marginTop: spacing.xs / 2,
+    marginTop: 2,
   },
-  content: {
-    // Content styles
-  },
+  content: {},
 });
 
 export default Section;

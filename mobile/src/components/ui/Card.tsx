@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { colors, spacing, spacingPatterns } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { spacing, spacingPatterns } from '../../theme';
+import { createElevation } from '../../theme/elevation';
 
 export interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
-  variant?: 'default' | 'elevated' | 'outlined';
+  variant?: 'default' | 'elevated' | 'outlined' | 'muted';
   header?: React.ReactNode;
   footer?: React.ReactNode;
   style?: ViewStyle;
@@ -21,27 +23,35 @@ const Card: React.FC<CardProps> = ({
   style,
   padding = 'medium',
 }) => {
-  const getVariantStyles = () => {
+  const { colors } = useTheme();
+
+  const getVariantStyles = (): ViewStyle => {
     switch (variant) {
       case 'elevated':
         return {
-          backgroundColor: colors.white,
+          backgroundColor: colors.surfaceElevated,
           borderWidth: 0,
-          ...spacingPatterns.shadow.lg,
+          ...createElevation(colors, 'md'),
         };
       case 'outlined':
         return {
-          backgroundColor: colors.white,
+          backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: colors.border,
-          ...spacingPatterns.shadow.sm,
+          ...createElevation(colors, 'sm'),
+        };
+      case 'muted':
+        return {
+          backgroundColor: colors.surfaceMuted,
+          borderWidth: 1,
+          borderColor: colors.borderLight,
         };
       default:
         return {
-          backgroundColor: colors.white,
+          backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: colors.border,
-          ...spacingPatterns.shadow.md,
+          borderColor: colors.borderLight,
+          ...createElevation(colors, 'sm'),
         };
     }
   };
@@ -76,7 +86,7 @@ const Card: React.FC<CardProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.72}>
         {content}
       </TouchableOpacity>
     );

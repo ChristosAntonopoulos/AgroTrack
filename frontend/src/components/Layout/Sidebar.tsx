@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { isMockMode } from '../../services/serviceFactory';
 import { navItems, navSections, isNavActive, AppRole, resolveNavItemLabel } from '../../navigation/navConfig';
-import BrandLogo from '../Common/BrandLogo';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -24,10 +23,6 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
-        <BrandLogo size="sm" />
-        <span className="sidebar-brand-name">{t('common:appName')}</span>
-      </div>
       <nav className="sidebar-nav">
         {visibleSections.map((section) => {
           const items = filteredItems.filter((i) => i.section === section.id);

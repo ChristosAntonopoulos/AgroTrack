@@ -2,10 +2,19 @@
   "greetingMorning": "Καλημέρα",
   "greetingAfternoon": "Καλησπέρα",
   "greetingEvening": "Καλησπέρα",
+  "quickActions": "Γρήγορες ενέργειες",
+  "quickCreateTask": "Νέα εργασία",
   "overview": "Επισκόπηση",
   "needsAttention": "Χρειάζεται προσοχή",
   "todayTasks": "Εργασίες σήμερα",
   "pendingApproval": "Εκκρεμεί έγκριση",
+  "overdue": "Εκπρόθεσμες",
+  "overdueTasks": "{{count}} εκπρόθεσμες εργασίες",
+  "yourFields": "Τα αγροτεμάχια σου",
+  "seeAllFields": "Δες όλα",
+  "seeCalendar": "Δες όλες τις {{count}} στο ημερολόγιο",
+  "viewAllTasks": "Όλες οι εργασίες",
+  "allClearHint": "Έλεγξε το ημερολόγιο για επερχόμενες εργασίες.",
   "stats": {
     "fields": "Αγροτεμάχια",
     "hectares": "Εκτάρια",
@@ -16,6 +25,6 @@
     "completed": "Ολοκληρωμένες"
   },
   "dueToday": "Σήμερα",
-  "noUrgent": "Όλα καλά — καμία επείγουσα ενέργεια",
-  "viewTasks": "Δες εργασίες"
+  "noUrgent": "Όλα ενημερωμένα",
+  "viewTasks": "προς έγκριση"
 }

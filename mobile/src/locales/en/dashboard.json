@@ -2,10 +2,19 @@
   "greetingMorning": "Good morning",
   "greetingAfternoon": "Good afternoon",
   "greetingEvening": "Good evening",
+  "quickActions": "Quick actions",
+  "quickCreateTask": "New task",
   "overview": "Overview",
   "needsAttention": "Needs attention",
   "todayTasks": "Today's tasks",
   "pendingApproval": "Awaiting approval",
+  "overdue": "Overdue",
+  "overdueTasks": "{{count}} overdue tasks",
+  "yourFields": "Your fields",
+  "seeAllFields": "See all",
+  "seeCalendar": "View all {{count}} on calendar",
+  "viewAllTasks": "View all",
+  "allClearHint": "Check the calendar for upcoming seasonal work.",
   "stats": {
     "fields": "Fields",
     "hectares": "Hectares",
@@ -16,6 +25,6 @@
     "completed": "Completed"
   },
   "dueToday": "Due today",
-  "noUrgent": "All clear — nothing urgent",
-  "viewTasks": "View tasks"
+  "noUrgent": "All clear",
+  "viewTasks": "tasks to review"
 }

@@ -7,7 +7,9 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  Home: undefined;
+  Dashboard: undefined;
+  Today: undefined;
+  Calendar: { date?: string; fieldId?: string } | undefined;
   Fields: undefined;
   Tasks: { fieldId?: string; filter?: string } | undefined;
   More: undefined;
@@ -19,7 +21,7 @@ export type RootStackParamList = {
   FieldDetail: { fieldId: string };
   TaskDetail: { taskId: string };
   FieldForm: { fieldId?: string };
-  CreateTask: { fieldId?: string };
+  CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string };
   Notifications: undefined;
 };
 

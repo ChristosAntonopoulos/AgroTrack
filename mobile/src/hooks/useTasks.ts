@@ -14,6 +14,7 @@ export interface UseTasksResult {
   fields: Record<string, Field>;
   loading: boolean;
   error: string | null;
+  filter: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval';
   refresh: () => Promise<void>;
   setFilter: (filter: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval') => void;
 }
@@ -84,6 +85,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
     fields,
     loading,
     error,
+    filter,
     refresh: loadTasks,
     setFilter,
   };

@@ -1,0 +1,33 @@
+{
+  "title": "Ημερολόγιο",
+  "subtitle": "Σχεδιάστε και παρακολουθήστε τις εποχιακές εργασίες.",
+  "subtitleShort": "{{count}} γεγονότα",
+  "filters": "Φίλτρα",
+  "noEventsDay": "Δεν έχουν προγραμματιστεί εργασίες",
+  "emptyOwnerHint": "Πάτησε + για να προγραμματίσεις εργασία.",
+  "today": "Σήμερα",
+  "newTask": "Νέα εργασία",
+  "viewAgenda": "Ατζέντα",
+  "viewWeek": "Εβδομάδα",
+  "viewField": "Ανά αγροτεμάχιο",
+  "filterField": "Αγροτεμάχιο",
+  "filterStatus": "Κατάσταση",
+  "clearFilters": "Καθαρισμός φίλτρων",
+  "summaryToday": "Σήμερα",
+  "summaryOverdue": "Εκπρόθεσμες",
+  "summaryTotal": "Σύνολο",
+  "status": {
+    "pending": "Προγραμματισμένη",
+    "in_progress": "Σε εξέλιξη",
+    "completed": "Ολοκληρωμένη",
+    "overdue": "Εκπρόθεσμη"
+  },
+  "overdueTitle": "Εκπρόθεσμες",
+  "agendaToday": "Σήμερα",
+  "agendaTomorrow": "Αύριο",
+  "agendaThisWeek": "Αυτή την εβδομάδα",
+  "agendaLater": "Αργότερα",
+  "agendaEmpty": "Δεν υπάρχουν επερχόμενες εργασίες.",
+  "weekOf": "Εβδομάδα {{date}}",
+  "closePanel": "Κλείσιμο"
+}

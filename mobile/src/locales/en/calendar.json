@@ -1,0 +1,33 @@
+{
+  "title": "Calendar",
+  "subtitle": "Plan and monitor seasonal olive work.",
+  "subtitleShort": "{{count}} events in view",
+  "filters": "Filters",
+  "noEventsDay": "No work scheduled",
+  "emptyOwnerHint": "Tap + to schedule work for your fields.",
+  "today": "Today",
+  "newTask": "Add task",
+  "viewAgenda": "Agenda",
+  "viewWeek": "Week",
+  "viewField": "By field",
+  "filterField": "Field",
+  "filterStatus": "Status",
+  "clearFilters": "Clear filters",
+  "summaryToday": "Today",
+  "summaryOverdue": "Overdue",
+  "summaryTotal": "Total",
+  "status": {
+    "pending": "Scheduled",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "overdue": "Overdue"
+  },
+  "overdueTitle": "Overdue",
+  "agendaToday": "Today",
+  "agendaTomorrow": "Tomorrow",
+  "agendaThisWeek": "This week",
+  "agendaLater": "Later",
+  "agendaEmpty": "No upcoming work in the next few weeks.",
+  "weekOf": "Week of {{date}}",
+  "closePanel": "Close"
+}

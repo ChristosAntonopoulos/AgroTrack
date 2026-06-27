@@ -99,6 +99,8 @@ export const mockTaskService = {
     type: string;
     title: string;
     description?: string;
+    scheduledStart?: string;
+    scheduledEnd?: string;
   }): Promise<Task> => {
     await simulateDelay();
     const allTasks = await getTasks();
@@ -109,6 +111,8 @@ export const mockTaskService = {
       title: data.title,
       description: data.description,
       status: 'pending',
+      scheduledStart: data.scheduledStart,
+      scheduledEnd: data.scheduledEnd,
       lifecycleYear: 'low',
       evidence: [],
       createdAt: new Date().toISOString(),

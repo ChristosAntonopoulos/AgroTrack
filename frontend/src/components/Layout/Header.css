@@ -3,9 +3,7 @@
   background: var(--bg-header);
   border-bottom: 1px solid var(--color-border);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--spacing-lg);
+  align-items: stretch;
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
@@ -13,10 +11,31 @@
   transition: background var(--transition-base);
 }
 
-.header-left {
+.header-brand-slot {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  padding: 0 var(--spacing-lg);
+  border-right: 1px solid var(--color-border-light);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.header-brand-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-button {
@@ -29,41 +48,38 @@
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .menu-button:hover {
   background-color: var(--bg-hover);
 }
 
-.header-brand-row {
+.header-main {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.app-title {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.header-titles {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-lg);
+  min-width: 0;
 }
 
 .page-title {
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .icon-button {
@@ -95,12 +111,6 @@
   border-radius: var(--radius-full);
   min-width: 18px;
   text-align: center;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
 }
 
 .header-lang-switch {
@@ -189,15 +199,25 @@
 }
 
 @media (max-width: 768px) {
+  .header-brand-slot {
+    width: auto;
+    border-right: none;
+    padding: 0 var(--spacing-sm) 0 var(--spacing-md);
+  }
+
   .menu-button {
     display: block;
   }
-  
+
   .user-details {
     display: none;
   }
-  
+
   .page-title {
     font-size: 1rem;
+  }
+
+  .header-main {
+    padding: 0 var(--spacing-md) 0 0;
   }
 }

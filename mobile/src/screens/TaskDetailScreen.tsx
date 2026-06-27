@@ -1,23 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, Alert } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Image,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { Task } from '../services/taskService';
 import { Field } from '../services/fieldService';
 import { getTaskService, getFieldService } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Card from '../components/ui/Card';
-import ListItem from '../components/lists/ListItem';
 import Section from '../components/layout/Section';
 import StatusBadge from '../components/StatusBadge';
+import TaskStatusStepper from '../components/domain/TaskStatusStepper';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EvidenceForm, { EvidenceFormData } from '../components/forms/EvidenceForm';
 import { typography, spacing } from '../theme';
+import { createElevation } from '../theme/elevation';
 import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters';
 import { toBoolean } from '../utils/booleanConverter';
+import { isTaskOverdue } from '../utils/taskListUtils';
 import { RootStackParamList } from '../navigation/types';
 import { API_BASE_URL } from '../services/fileService';
 
@@ -26,6 +37,21 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
 
 const resolveImageUrl = (url: string) =>
   url.startsWith('http') ? url : `${API_BASE_URL.replace(/\/$/, '')}${url}`;
+
+const DetailRow = ({
+  label,
+  value,
+  colors,
+}: {
+  label: string;
+  value: string;
+  colors: ReturnType<typeof useTheme>['colors'];
+}) => (
+  <View style={styles.detailRow}>
+    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
+    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{value}</Text>
+  </View>
+);
 
 const TaskDetailScreen = () => {
   const route = useRoute<Route>();
@@ -40,10 +66,9 @@ const TaskDetailScreen = () => {
   const [updating, setUpdating] = useState(false);
   const [showEvidenceForm, setShowEvidenceForm] = useState(false);
   const [addingEvidence, setAddingEvidence] = useState(false);
-  
-  // Convert boolean states for native components (Button, Modal)
-  const isUpdating: boolean = toBoolean(updating);
-  const isAddingEvidence: boolean = toBoolean(addingEvidence);
+
+  const isUpdating = toBoolean(updating);
+  const isAddingEvidence = toBoolean(addingEvidence);
 
   useEffect(() => {
     loadTaskDetails();
@@ -54,83 +79,52 @@ const TaskDetailScreen = () => {
       setLoading(true);
       const taskData = await getTaskService().getTask(taskId);
       setTask(taskData);
-      
       try {
         const fieldData = await getFieldService().getField(taskData.fieldId);
         setField(fieldData);
-      } catch (fieldError) {
-        console.error('Error loading field:', fieldError);
+      } catch {
+        /* field optional */
       }
-    } catch (error) {
-      console.error('Error loading task details:', error);
-      Alert.alert('Error', 'Failed to load task details. Please try again.');
+    } catch {
+      Alert.alert(t('common:confirm'), t('tasks:loadError'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFieldPress = () => {
-    if (field) {
-      navigation.navigate('FieldDetail', { fieldId: field.id });
-    }
-  };
-
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = (newStatus: string) => {
     if (!task) return;
-
-    try {
-      const statusLabels: Record<string, string> = {
-        'pending': 'Start',
-        'in_progress': 'Complete',
-        'completed': 'Reopen',
-      };
-
-      const actionLabel = statusLabels[newStatus] || 'Update';
-      const confirmMessage = `Are you sure you want to ${actionLabel.toLowerCase()} this task?`;
-
-      Alert.alert(
-        'Confirm Status Update',
-        confirmMessage,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: actionLabel,
-            onPress: async () => {
-              try {
-                setUpdating(true);
-                const updatedTask = await getTaskService().updateTaskStatus(taskId, newStatus);
-                setTask(updatedTask);
-                Alert.alert('Success', `Task status updated to ${newStatus.replace('_', ' ')}`);
-              } catch (error: any) {
-                console.error('Error updating task status:', error);
-                Alert.alert('Error', error.message || 'Failed to update task status');
-              } finally {
-                setUpdating(false);
-              }
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error in handleStatusUpdate:', error);
-    }
+    const messages: Record<string, string> = {
+      in_progress: t('tasks:startTask'),
+      completed: t('tasks:completeTask'),
+      pending: t('tasks:reopenTask'),
+    };
+    Alert.alert(t('tasks:confirmStatus'), messages[newStatus] ?? t('tasks:confirmStatus'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('common:confirm'),
+        onPress: async () => {
+          try {
+            setUpdating(true);
+            const updated = await getTaskService().updateTaskStatus(taskId, newStatus);
+            setTask(updated);
+          } catch (err: unknown) {
+            Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
+          } finally {
+            setUpdating(false);
+          }
+        },
+      },
+    ]);
   };
 
   const handleAddEvidence = async (data: EvidenceFormData) => {
     if (!task) return;
-
     try {
       setAddingEvidence(true);
-      const updatedTask = await getTaskService().addEvidence(
-        taskId,
-        data.photoUrl,
-        data.notes
-      );
-      setTask(updatedTask);
-      Alert.alert('Success', 'Evidence added successfully');
-    } catch (error: any) {
-      console.error('Error adding evidence:', error);
-      throw error; // Let EvidenceForm handle the error display
+      const updated = await getTaskService().addEvidence(taskId, data.photoUrl, data.notes);
+      setTask(updated);
+      Alert.alert(t('tasks:evidenceAdded'));
     } finally {
       setAddingEvidence(false);
     }
@@ -144,248 +138,152 @@ const TaskDetailScreen = () => {
         ? await getTaskService().approveTask(taskId)
         : await getTaskService().rejectTask(taskId);
       setTask(updated);
-    } catch (error: any) {
-      Alert.alert(t('common:confirm'), error.message);
+    } catch (err: unknown) {
+      Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
     } finally {
       setUpdating(false);
     }
   };
 
-  const getStatusActionButtons = () => {
+  const primaryAction = useMemo(() => {
     if (!task) return null;
-    const buttons = [];
-
     if (!isFieldOwner()) {
       if (task.status === 'pending') {
-        buttons.push(
-          <Button key="start" title={t('tasks:startTask')} onPress={() => handleStatusUpdate('in_progress')} disabled={isUpdating} loading={isUpdating} style={styles.actionButton} />
-        );
-      } else if (task.status === 'in_progress') {
-        buttons.push(
-          <Button key="complete" title={t('tasks:completeTask')} onPress={() => handleStatusUpdate('completed')} disabled={isUpdating} loading={isUpdating} style={styles.actionButton} />
-        );
+        return { label: t('tasks:startTask'), onPress: () => handleStatusUpdate('in_progress') };
       }
-      if (task.status === 'in_progress' || task.status === 'completed') {
-        buttons.push(
-          <Button key="evidence" title={t('tasks:addEvidence')} onPress={() => setShowEvidenceForm(true)} variant="outline" style={styles.actionButton} />
-        );
+      if (task.status === 'in_progress') {
+        return { label: t('tasks:completeTask'), onPress: () => handleStatusUpdate('completed') };
       }
     }
-
     if (isFieldOwner() && task.approvalStatus === 'pending') {
-      buttons.push(
-        <Button key="approve" title={t('tasks:approve')} onPress={() => handleApprove(true)} disabled={isUpdating} style={styles.actionButton} />,
-        <Button key="reject" title={t('tasks:reject')} onPress={() => handleApprove(false)} variant="outline" disabled={isUpdating} style={styles.actionButton} />
-      );
+      return { label: t('tasks:approve'), onPress: () => handleApprove(true) };
     }
+    return null;
+  }, [task, isFieldOwner, t]);
 
-    return buttons;
-  };
+  const secondaryAction = useMemo(() => {
+    if (!task) return null;
+    if (!isFieldOwner() && (task.status === 'in_progress' || task.status === 'completed')) {
+      return { label: t('tasks:addEvidence'), onPress: () => setShowEvidenceForm(true) };
+    }
+    if (isFieldOwner() && task.approvalStatus === 'pending') {
+      return { label: t('tasks:reject'), onPress: () => handleApprove(false) };
+    }
+    return null;
+  }, [task, isFieldOwner, t]);
 
-  const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    content: { padding: spacing.base },
-    header: { marginBottom: spacing.xl, paddingTop: spacing.base, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    taskTitle: { ...typography.styles.h2, color: colors.textPrimary, fontWeight: typography.fontWeight.bold, flex: 1, marginRight: spacing.sm },
-    value: { ...typography.styles.body, color: colors.textPrimary, fontWeight: typography.fontWeight.medium },
-    linkText: { color: colors.primary },
-    evidenceImage: { width: '100%', height: 200, borderRadius: 8, marginBottom: spacing.sm },
-    backButton: { marginTop: spacing.base, marginBottom: spacing.xl },
-    errorText: { ...typography.styles.body, color: colors.error, textAlign: 'center', marginTop: spacing.xl },
-    actionsContainer: { gap: spacing.md },
-    actionButton: { marginBottom: spacing.sm },
-  });
-
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!task) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Task not found</Text>
-        <Button
-          title="Back"
-          onPress={() => navigation.goBack()}
-          variant="outline"
-        />
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.error }}>{t('tasks:notFound')}</Text>
+        <Button title={t('common:back')} onPress={() => navigation.goBack()} variant="outline" />
       </View>
     );
   }
 
+  const overdue = isTaskOverdue(task);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.taskTitle}>{task.title}</Text>
-        <StatusBadge status={task.status} showIcon={true} />
-      </View>
-
-      <Section title="Task Information">
-        <Card>
-          <ListItem
-            title="Type"
-            rightContent={<Text style={styles.value}>{task.type}</Text>}
-            showDivider={false}
-          />
-          {task.description ? (
-            <ListItem
-              title="Description"
-              rightContent={<Text style={styles.value}>{task.description}</Text>}
-              showDivider={false}
-            />
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.hero, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+          <Text style={[styles.taskTitle, { color: colors.textPrimary }]}>{task.title}</Text>
+          <View style={styles.heroMeta}>
+            <StatusBadge status={task.status} showIcon />
+            {overdue ? (
+              <View style={[styles.overduePill, { backgroundColor: colors.errorLight }]}>
+                <Text style={{ color: colors.error, fontSize: 10, fontWeight: '700' }}>
+                  {t('tasks:overdue')}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {field ? (
+            <TouchableOpacity style={styles.fieldLink} onPress={() => navigation.navigate('FieldDetail', { fieldId: field.id })}>
+              <Ionicons name="leaf-outline" size={14} color={colors.primaryDark} />
+              <Text style={{ color: colors.primaryDark, fontWeight: '600' }}>{field.name}</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+            </TouchableOpacity>
           ) : null}
-          <ListItem
-            title="Status"
-            rightContent={<StatusBadge status={task.status} />}
-            showDivider={false}
-          />
-          {task.assignedTo ? (
-            <ListItem
-              title="Assigned To"
-              rightContent={<Text style={styles.value}>User {task.assignedTo}</Text>}
-              showDivider={false}
-            />
-          ) : null}
-        </Card>
-      </Section>
+          <TaskStatusStepper status={task.status} />
+        </View>
 
-      {field ? (
-        <Section title="Field Information">
-          <Card onPress={handleFieldPress}>
-            <ListItem
-              title="Field Name"
-              rightContent={<Text style={[styles.value, styles.linkText]}>→</Text>}
-              subtitle={field.name}
-              showDivider={false}
-            />
-            <ListItem
-              title="Area"
-              rightContent={<Text style={styles.value}>{field.area} hectares</Text>}
-              showDivider={false}
-            />
-            {field.variety ? (
-              <ListItem
-                title="Variety"
-                rightContent={<Text style={styles.value}>{field.variety}</Text>}
-                showDivider={false}
-              />
+        <Section title={t('tasks:detailInfo')}>
+          <Card variant="outlined">
+            <DetailRow label={t('tasks:type')} value={task.type} colors={colors} />
+            {task.description ? (
+              <DetailRow label={t('tasks:notes')} value={task.description} colors={colors} />
             ) : null}
           </Card>
         </Section>
-      ) : null}
 
-      <Section title="Schedule">
-        <Card>
-          {task.scheduledStart ? (
-            <ListItem
-              title="Scheduled Start"
-              rightContent={
-                <Text style={styles.value}>{formatDate(task.scheduledStart)}</Text>
-              }
-              showDivider={false}
-            />
-          ) : null}
-          {task.scheduledEnd ? (
-            <ListItem
-              title="Scheduled End"
-              rightContent={
-                <Text style={styles.value}>{formatDate(task.scheduledEnd)}</Text>
-              }
-              showDivider={false}
-            />
-          ) : null}
-          {task.actualStart ? (
-            <ListItem
-              title="Actual Start"
-              rightContent={
-                <Text style={styles.value}>{formatDate(task.actualStart)}</Text>
-              }
-              showDivider={false}
-            />
-          ) : null}
-          {task.actualEnd ? (
-            <ListItem
-              title="Actual End"
-              rightContent={
-                <Text style={styles.value}>{formatDate(task.actualEnd)}</Text>
-              }
-              showDivider={false}
-            />
-          ) : null}
-          <ListItem
-            title="Lifecycle Year"
-            rightContent={<Text style={styles.value}>{task.lifecycleYear}</Text>}
-            showDivider={false}
-          />
-          {task.cost !== undefined ? (
-            <ListItem
-              title="Cost"
-              rightContent={<Text style={styles.value}>{formatCurrency(task.cost)}</Text>}
-              showDivider={false}
-            />
-          ) : null}
-        </Card>
-      </Section>
-
-      {task.evidence && task.evidence.length > 0 ? (
-        <Section title="Evidence">
-          {task.evidence.map((evidence, index) => (
-            <Card key={index}>
-              {evidence.photoUrl ? (
-                <Image
-                  source={{ uri: resolveImageUrl(evidence.photoUrl) }}
-                  style={styles.evidenceImage}
-                  resizeMode="cover"
-                />
-              ) : null}
-              {evidence.notes ? (
-                <ListItem
-                  title="Notes"
-                  rightContent={<Text style={styles.value}>{evidence.notes}</Text>}
-                  showDivider={false}
-                />
-              ) : null}
-              <ListItem
-                title="Timestamp"
-                rightContent={
-                  <Text style={styles.value}>{formatDateTime(evidence.timestamp)}</Text>
-                }
-                showDivider={false}
-              />
-            </Card>
-          ))}
+        <Section title={t('tasks:detailSchedule')}>
+          <Card variant="outlined">
+            {task.scheduledStart ? (
+              <DetailRow label={t('tasks:scheduled')} value={formatDate(task.scheduledStart)} colors={colors} />
+            ) : null}
+            {task.scheduledEnd ? (
+              <DetailRow label={t('tasks:due')} value={formatDate(task.scheduledEnd)} colors={colors} />
+            ) : null}
+            {task.cost !== undefined ? (
+              <DetailRow label={t('tasks:cost')} value={formatCurrency(task.cost)} colors={colors} />
+            ) : null}
+          </Card>
         </Section>
+
+        {task.evidence?.length > 0 ? (
+          <Section title={t('tasks:addEvidence')}>
+            {task.evidence.map((evidence, index) => (
+              <Card key={index} variant="elevated" style={{ marginBottom: spacing.sm }}>
+                {evidence.photoUrl ? (
+                  <Image
+                    source={{ uri: resolveImageUrl(evidence.photoUrl) }}
+                    style={styles.evidenceImage}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                {evidence.notes ? (
+                  <Text style={{ color: colors.textSecondary, marginTop: spacing.sm }}>{evidence.notes}</Text>
+                ) : null}
+                <Text style={[styles.timestamp, { color: colors.textTertiary }]}>
+                  {formatDateTime(evidence.timestamp)}
+                </Text>
+              </Card>
+            ))}
+          </Section>
+        ) : null}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {(primaryAction || secondaryAction) ? (
+        <View
+          style={[
+            styles.footer,
+            { backgroundColor: colors.surfaceElevated, borderTopColor: colors.border, ...createElevation(colors, 'lg') },
+          ]}
+        >
+          {secondaryAction ? (
+            <Button
+              title={secondaryAction.label}
+              onPress={secondaryAction.onPress}
+              variant="outline"
+              style={styles.footerBtn}
+              disabled={isUpdating}
+            />
+          ) : null}
+          {primaryAction ? (
+            <Button
+              title={primaryAction.label}
+              onPress={primaryAction.onPress}
+              loading={isUpdating}
+              style={[styles.footerBtn, { flex: 1 }]}
+            />
+          ) : null}
+        </View>
       ) : null}
-
-      <Section title="Metadata">
-        <Card>
-          <ListItem
-            title="Created"
-            rightContent={<Text style={styles.value}>{formatDate(task.createdAt)}</Text>}
-            showDivider={false}
-          />
-          <ListItem
-            title="Last Updated"
-            rightContent={<Text style={styles.value}>{formatDate(task.updatedAt)}</Text>}
-            showDivider={false}
-          />
-        </Card>
-      </Section>
-
-      {getStatusActionButtons() && getStatusActionButtons()!.length > 0 ? (
-        <Section title="Actions">
-          <View style={styles.actionsContainer}>
-            {getStatusActionButtons()}
-          </View>
-        </Section>
-      ) : null}
-
-      <Button
-        title={t('common:back')}
-        onPress={() => navigation.goBack()}
-        variant="outline"
-        style={styles.backButton}
-      />
 
       <EvidenceForm
         visible={showEvidenceForm}
@@ -393,8 +291,42 @@ const TaskDetailScreen = () => {
         onSubmit={handleAddEvidence}
         loading={isAddingEvidence}
       />
-    </ScrollView>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
+  content: { padding: spacing.base },
+  hero: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: spacing.base,
+    marginBottom: spacing.md,
+  },
+  taskTitle: { ...typography.styles.h2, fontWeight: '700', marginBottom: spacing.sm },
+  heroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
+  overduePill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: 10 },
+  fieldLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.sm },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    gap: spacing.md,
+  },
+  detailLabel: { ...typography.styles.bodySmall, flex: 1 },
+  detailValue: { ...typography.styles.bodySmall, fontWeight: '600', flex: 1, textAlign: 'right' },
+  evidenceImage: { width: '100%', height: 200, borderRadius: 12 },
+  timestamp: { ...typography.styles.caption, marginTop: spacing.xs },
+  footer: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.base,
+    paddingBottom: spacing.lg,
+    borderTopWidth: 1,
+  },
+  footerBtn: { minWidth: 120 },
+});
 
 export default TaskDetailScreen;

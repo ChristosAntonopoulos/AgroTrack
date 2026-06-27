@@ -56,7 +56,13 @@ const NotificationsScreen = () => {
       ListEmptyComponent={<EmptyState title={t('empty.noData')} />}
       renderItem={({ item }) => (
         <TouchableOpacity onPress={() => handleMarkRead(item.id)} activeOpacity={0.8}>
-          <Card style={[styles.card, !item.read && { borderLeftWidth: 3, borderLeftColor: colors.primary }]}>
+          <Card
+            variant="elevated"
+            style={{
+              marginBottom: spacing.sm,
+              ...( !item.read ? { borderLeftWidth: 4, borderLeftColor: colors.primaryDark } : {}),
+            }}
+          >
             <View style={styles.row}>
               <Text style={[styles.title, { color: colors.textPrimary }]}>{item.title}</Text>
               <View style={[styles.badge, { backgroundColor: priorityColor(item.priority) + '25' }]}>

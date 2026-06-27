@@ -5,13 +5,16 @@ import {
   StyleSheet,
   ActivityIndicator,
   ViewStyle,
+  View,
 } from 'react-native';
-import { colors, typography, spacing, spacingPatterns } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing, spacingPatterns } from '../../theme';
+import { createElevation } from '../../theme/elevation';
 
 export interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'text';
+  variant?: 'primary' | 'secondary' | 'outline' | 'text' | 'ghost';
   size?: 'small' | 'medium' | 'large';
   loading?: boolean;
   disabled?: boolean;
@@ -33,41 +36,46 @@ const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   style,
 }) => {
-  const isLoading = Boolean(loading);
-  const isDisabled = Boolean(disabled);
-  const touchableDisabled = isDisabled || isLoading;
+  const { colors } = useTheme();
+  const touchableDisabled = disabled || loading;
 
   const getVariantStyles = () => {
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: touchableDisabled ? colors.gray300 : colors.primary,
+          backgroundColor: touchableDisabled ? colors.gray300 : colors.primaryDark,
           borderColor: 'transparent',
-          textColor: colors.white,
+          textColor: colors.textInverse,
         };
       case 'secondary':
         return {
           backgroundColor: touchableDisabled ? colors.gray300 : colors.secondary,
           borderColor: 'transparent',
-          textColor: colors.white,
+          textColor: colors.textInverse,
         };
       case 'outline':
         return {
-          backgroundColor: 'transparent',
-          borderColor: touchableDisabled ? colors.gray300 : colors.primary,
-          textColor: touchableDisabled ? colors.gray400 : colors.primary,
+          backgroundColor: colors.surface,
+          borderColor: touchableDisabled ? colors.gray300 : colors.primaryDark,
+          textColor: touchableDisabled ? colors.gray400 : colors.primaryDark,
+        };
+      case 'ghost':
+        return {
+          backgroundColor: colors.surfaceMuted,
+          borderColor: colors.border,
+          textColor: touchableDisabled ? colors.gray400 : colors.textPrimary,
         };
       case 'text':
         return {
           backgroundColor: 'transparent',
           borderColor: 'transparent',
-          textColor: touchableDisabled ? colors.gray400 : colors.primary,
+          textColor: touchableDisabled ? colors.gray400 : colors.primaryDark,
         };
       default:
         return {
-          backgroundColor: colors.primary,
+          backgroundColor: colors.primaryDark,
           borderColor: 'transparent',
-          textColor: colors.white,
+          textColor: colors.textInverse,
         };
     }
   };
@@ -75,28 +83,17 @@ const Button: React.FC<ButtonProps> = ({
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
-        return {
-          paddingVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
-          fontSize: typography.fontSize.sm,
-        };
+        return { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, fontSize: typography.fontSize.sm };
       case 'large':
-        return {
-          paddingVertical: spacing.lg,
-          paddingHorizontal: spacing.xl,
-          fontSize: typography.fontSize.lg,
-        };
+        return { paddingVertical: spacing.lg, paddingHorizontal: spacing.xl, fontSize: typography.fontSize.lg };
       default:
-        return {
-          paddingVertical: spacing.base,
-          paddingHorizontal: spacing.lg,
-          fontSize: typography.fontSize.base,
-        };
+        return { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, fontSize: typography.fontSize.base };
     }
   };
 
   const variantStyles = getVariantStyles();
   const sizeStyles = getSizeStyles();
+  const bordered = variant === 'outline' || variant === 'ghost';
 
   return (
     <TouchableOpacity
@@ -105,40 +102,34 @@ const Button: React.FC<ButtonProps> = ({
         {
           backgroundColor: variantStyles.backgroundColor,
           borderColor: variantStyles.borderColor,
-          borderWidth: variant === 'outline' ? 1 : 0,
+          borderWidth: bordered ? 1 : 0,
           paddingVertical: sizeStyles.paddingVertical,
           paddingHorizontal: sizeStyles.paddingHorizontal,
           width: fullWidth ? '100%' : 'auto',
-          opacity: touchableDisabled ? 0.6 : 1,
+          opacity: touchableDisabled ? 0.55 : 1,
         },
+        variant === 'primary' && !touchableDisabled ? createElevation(colors, 'sm') : null,
         style,
       ]}
       onPress={onPress}
       disabled={touchableDisabled}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
-      {isLoading ? (
+      {loading ? (
         <ActivityIndicator color={variantStyles.textColor} size="small" />
       ) : (
-        <>
-          {icon && iconPosition === 'left' ? (
-            <Text style={styles.iconLeft}>{icon}</Text>
-          ) : null}
+        <View style={styles.inner}>
+          {icon && iconPosition === 'left' ? <View style={styles.iconLeft}>{icon}</View> : null}
           <Text
             style={[
               styles.text,
-              {
-                color: variantStyles.textColor,
-                fontSize: sizeStyles.fontSize,
-              },
+              { color: variantStyles.textColor, fontSize: sizeStyles.fontSize },
             ]}
           >
             {title}
           </Text>
-          {icon && iconPosition === 'right' ? (
-            <Text style={styles.iconRight}>{icon}</Text>
-          ) : null}
-        </>
+          {icon && iconPosition === 'right' ? <View style={styles.iconRight}>{icon}</View> : null}
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -150,22 +141,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: spacingPatterns.borderRadius.md,
-    ...spacingPatterns.shadow.sm,
+  },
+  inner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
-    fontSize: typography.styles.button.fontSize,
     fontWeight: typography.fontWeight.semibold,
-    lineHeight: typography.styles.button.lineHeight,
     textAlign: 'center',
   },
-  iconLeft: {
-    marginRight: spacing.xs,
-    fontSize: 18,
-  },
-  iconRight: {
-    marginLeft: spacing.xs,
-    fontSize: 18,
-  },
+  iconLeft: { marginRight: spacing.xs },
+  iconRight: { marginLeft: spacing.xs },
 });
 
 export default Button;

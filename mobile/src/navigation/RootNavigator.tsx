@@ -37,9 +37,9 @@ const RootNavigator = () => {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {
       ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-      primary: colors.primary,
+      primary: colors.primaryDark,
       background: colors.background,
-      card: colors.white,
+      card: colors.surfaceElevated,
       text: colors.textPrimary,
       border: colors.border,
     },
@@ -53,9 +53,10 @@ const RootNavigator = () => {
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
-          headerStyle: { backgroundColor: colors.white },
-          headerTintColor: colors.primary,
-          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
+          headerStyle: { backgroundColor: colors.surfaceElevated },
+          headerTintColor: colors.primaryDark,
+          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700', fontSize: 17 },
+          headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.background },
         }}
       >

@@ -15,7 +15,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
-  const { t } = useTranslation(['common', 'nav']);
+  const { t } = useTranslation('nav');
+  const { t: tCommon } = useTranslation('common');
   const { user, logout } = useAuth();
   const { locale, setLocale } = useLocale();
   const navigate = useNavigate();
@@ -29,53 +30,54 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   const getRoleDisplayName = (userRole: string) =>
-    t(`common:roles.${userRole}`, { defaultValue: userRole });
+    tCommon(`roles.${userRole}`, { defaultValue: userRole });
 
   const bilingualLocales = SUPPORTED_LOCALES.filter((l) => l.code === 'en' || l.code === 'el');
 
   return (
     <header className="app-header">
-      <div className="header-left">
-        <button className="menu-button" onClick={onMenuClick} aria-label={t('toggleMenu')}>
+      <div className="header-brand-slot">
+        <button className="menu-button" onClick={onMenuClick} aria-label={tCommon('toggleMenu')}>
           <Menu />
         </button>
-        <div className="header-titles">
-          <div className="header-brand-row">
-            <BrandLogo size="xs" />
-            <div className="app-title">{t('appName')}</div>
-          </div>
-          <div className="page-title">{pageTitle}</div>
+        <div className="header-brand">
+          <BrandLogo size="xs" />
+          <span className="header-brand-name">{tCommon('appName')}</span>
         </div>
       </div>
 
-      <div className="header-right">
-        <div className="header-lang-switch" role="group" aria-label={t('common:language', { defaultValue: 'Language' })}>
-          {bilingualLocales.map((lang) => (
-            <button
-              key={lang.code}
-              type="button"
-              className={`header-lang-btn ${locale === lang.code ? 'header-lang-btn-active' : ''}`}
-              onClick={() => setLocale(lang.code as SupportedLocale)}
-              aria-pressed={locale === lang.code}
-            >
-              {lang.code.toUpperCase()}
-            </button>
-          ))}
-        </div>
+      <div className="header-main">
+        <h1 className="page-title">{pageTitle}</h1>
 
-        <NotificationBell />
-
-        <div className="user-menu">
-          <div className="user-info">
-            <User className="user-icon" />
-            <div className="user-details">
-              <span className="user-name">{user?.email}</span>
-              <span className="user-role">{getRoleDisplayName(user?.role || '')}</span>
-            </div>
+        <div className="header-right">
+          <div className="header-lang-switch" role="group" aria-label={tCommon('language', { defaultValue: 'Language' })}>
+            {bilingualLocales.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                className={`header-lang-btn ${locale === lang.code ? 'header-lang-btn-active' : ''}`}
+                onClick={() => setLocale(lang.code as SupportedLocale)}
+                aria-pressed={locale === lang.code}
+              >
+                {lang.code.toUpperCase()}
+              </button>
+            ))}
           </div>
-          <button className="logout-button" onClick={handleLogout} aria-label={t('logoutAria')}>
-            <LogOut />
-          </button>
+
+          <NotificationBell />
+
+          <div className="user-menu">
+            <div className="user-info">
+              <User className="user-icon" />
+              <div className="user-details">
+                <span className="user-name">{user?.email}</span>
+                <span className="user-role">{getRoleDisplayName(user?.role || '')}</span>
+              </div>
+            </div>
+            <button className="logout-button" onClick={handleLogout} aria-label={tCommon('logoutAria')}>
+              <LogOut />
+            </button>
+          </div>
         </div>
       </div>
     </header>
