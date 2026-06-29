@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service
+  name: olive-lifecycle-api-service
   namespace: agrotrack-backend
   labels:
     app: olive-lifecycle-api

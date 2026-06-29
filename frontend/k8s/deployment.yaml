@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend-deployment
+  name: olive-lifecycle-frontend
   namespace: agrotrack-frontend
   labels:
     app: olive-lifecycle-frontend
@@ -16,7 +16,7 @@ spec:
         app: olive-lifecycle-frontend
     spec:
       containers:
-      - name: frontend
+      - name: web
         image: PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG
         imagePullPolicy: Always
         ports:
@@ -27,7 +27,7 @@ spec:
         - name: REACT_APP_API_URL
           valueFrom:
             configMapKeyRef:
-              name: frontend-config
+              name: olive-lifecycle-frontend-config
               key: REACT_APP_API_URL
         resources:
           requests:

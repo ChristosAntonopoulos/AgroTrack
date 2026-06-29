@@ -60,17 +60,35 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+var corsAllowedHost = builder.Configuration["Cors:AllowedHost"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        if (corsOrigins.Length > 0)
+        policy.AllowAnyHeader().AllowAnyMethod();
+
+        if (corsOrigins.Length > 0 || !string.IsNullOrWhiteSpace(corsAllowedHost))
         {
-            policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod();
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return false;
+                }
+
+                if (corsOrigins.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+
+                return !string.IsNullOrWhiteSpace(corsAllowedHost)
+                    && string.Equals(uri.Host, corsAllowedHost, StringComparison.OrdinalIgnoreCase);
+            });
         }
         else
         {
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            policy.AllowAnyOrigin();
         }
     });
 });
@@ -123,6 +141,8 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+app.UseCors("Frontend");
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -147,7 +167,6 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = builder.Configuration["Storage:PublicBasePath"] ?? "/uploads"
 });
 
-app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseMiddleware<AnonymousAuthBypassMiddleware>();
 app.UseAuthorization();

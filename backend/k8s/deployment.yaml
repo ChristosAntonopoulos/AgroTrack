@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-deployment
+  name: olive-lifecycle-api
   namespace: agrotrack-backend
   labels:
     app: olive-lifecycle-api
@@ -16,7 +16,7 @@ spec:
         app: olive-lifecycle-api
     spec:
       containers:
-      - name: backend
+      - name: api
         image: PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG
         imagePullPolicy: Always
         ports:
@@ -25,7 +25,7 @@ spec:
           protocol: TCP
         envFrom:
         - configMapRef:
-            name: backend-config
+            name: olive-lifecycle-api-config
         env:
         - name: MongoDB__ConnectionString
           valueFrom:

@@ -354,6 +354,17 @@ stages:
               kubectl create namespace $(frontendNamespace) --dry-run=client -o yaml | kubectl apply -f -
             displayName: 'Ensure namespaces exist'
 
+          - script: |
+              echo "Removing legacy deployment and service names..."
+              kubectl delete deployment backend-deployment -n $(backendNamespace) --ignore-not-found=true
+              kubectl delete deployment frontend-deployment -n $(frontendNamespace) --ignore-not-found=true
+              kubectl delete service backend-service -n $(backendNamespace) --ignore-not-found=true
+              kubectl delete service frontend-service -n $(frontendNamespace) --ignore-not-found=true
+              kubectl delete configmap backend-config -n $(backendNamespace) --ignore-not-found=true
+              kubectl delete configmap frontend-config -n $(frontendNamespace) --ignore-not-found=true
+            displayName: 'Clean up legacy Kubernetes resource names'
+            continueOnError: true
+
           - script: 'kubectl apply -f backend/k8s/namespace.yaml'
             displayName: 'Apply backend namespace configuration'
             condition: eq('${{ parameters.deployBackend }}', true)
@@ -416,7 +427,7 @@ stages:
 
           - script: |
               echo "Recreating backend service as NodePort $(backendNodePort)..."
-              kubectl delete service backend-service -n $(backendNamespace) --ignore-not-found=true
+              kubectl delete service olive-lifecycle-api-service -n $(backendNamespace) --ignore-not-found=true
               sed -i "s|nodePort: [0-9]*|nodePort: $(backendNodePort)|" backend/k8s/service.yaml
               kubectl apply -f backend/k8s/service.yaml
             displayName: 'Apply backend service'
@@ -432,7 +443,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                kubectl create configmap frontend-config \
+                kubectl create configmap olive-lifecycle-frontend-config \
                   --from-literal=REACT_APP_API_URL="$(backendApiUrl)" \
                   --namespace=$(frontendNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
@@ -456,21 +467,21 @@ stages:
           - script: |
               set -euo pipefail
               echo "=== Backend deployment (before rollout) ==="
-              kubectl get deployment backend-deployment -n $(backendNamespace) -o wide || true
+              kubectl get deployment olive-lifecycle-api -n $(backendNamespace) -o wide || true
               kubectl get pods -n $(backendNamespace) -o wide || true
               echo ""
               echo "=== Frontend deployment (before rollout) ==="
-              kubectl get deployment frontend-deployment -n $(frontendNamespace) -o wide || true
+              kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace) -o wide || true
               kubectl get pods -n $(frontendNamespace) -o wide || true
             displayName: 'Pre-rollout cluster diagnostics'
             continueOnError: true
 
-          - script: 'kubectl rollout status deployment/backend-deployment -n $(backendNamespace) --timeout=600s'
+          - script: 'kubectl rollout status deployment/olive-lifecycle-api -n $(backendNamespace) --timeout=600s'
             displayName: 'Wait for backend deployment rollout'
             condition: eq('${{ parameters.deployBackend }}', true)
             continueOnError: true
 
-          - script: 'kubectl rollout status deployment/frontend-deployment -n $(frontendNamespace) --timeout=300s'
+          - script: 'kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=300s'
             displayName: 'Wait for frontend deployment rollout'
             condition: eq('${{ parameters.deployFrontend }}', true)
             continueOnError: true
@@ -478,21 +489,21 @@ stages:
           - script: |
               set -euo pipefail
               echo "=== Post-rollout recovery (if controller lagged) ==="
-              BACKEND_GEN=$(kubectl get deployment backend-deployment -n $(backendNamespace) -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "")
-              BACKEND_OBS=$(kubectl get deployment backend-deployment -n $(backendNamespace) -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
-              FRONTEND_GEN=$(kubectl get deployment frontend-deployment -n $(frontendNamespace) -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "")
-              FRONTEND_OBS=$(kubectl get deployment frontend-deployment -n $(frontendNamespace) -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
+              BACKEND_GEN=$(kubectl get deployment olive-lifecycle-api -n $(backendNamespace) -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "")
+              BACKEND_OBS=$(kubectl get deployment olive-lifecycle-api -n $(backendNamespace) -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
+              FRONTEND_GEN=$(kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace) -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "")
+              FRONTEND_OBS=$(kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace) -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
 
               if [ -n "$BACKEND_GEN" ] && [ "$BACKEND_GEN" != "$BACKEND_OBS" ]; then
                 echo "Backend observedGeneration lagging; forcing rollout restart..."
-                kubectl rollout restart deployment/backend-deployment -n $(backendNamespace)
-                kubectl rollout status deployment/backend-deployment -n $(backendNamespace) --timeout=600s || true
+                kubectl rollout restart deployment/olive-lifecycle-api -n $(backendNamespace)
+                kubectl rollout status deployment/olive-lifecycle-api -n $(backendNamespace) --timeout=600s || true
               fi
 
               if [ -n "$FRONTEND_GEN" ] && [ "$FRONTEND_GEN" != "$FRONTEND_OBS" ]; then
                 echo "Frontend observedGeneration lagging; forcing rollout restart..."
-                kubectl rollout restart deployment/frontend-deployment -n $(frontendNamespace)
-                kubectl rollout status deployment/frontend-deployment -n $(frontendNamespace) --timeout=300s || true
+                kubectl rollout restart deployment/olive-lifecycle-frontend -n $(frontendNamespace)
+                kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=300s || true
               fi
             displayName: 'Recover stuck deployment rollouts'
             continueOnError: true
@@ -500,16 +511,16 @@ stages:
           - script: |
               echo "=== Deployment Status ==="
               echo ""
-              kubectl get deployment backend-deployment -n $(backendNamespace)
-              kubectl get deployment frontend-deployment -n $(frontendNamespace)
+              kubectl get deployment olive-lifecycle-api -n $(backendNamespace)
+              kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace)
               echo ""
               kubectl get pods -n $(backendNamespace) -l app=olive-lifecycle-api
               kubectl get pods -n $(frontendNamespace) -l app=olive-lifecycle-frontend
               echo ""
-              kubectl get service backend-service -n $(backendNamespace)
-              kubectl get service frontend-service -n $(frontendNamespace)
+              kubectl get service olive-lifecycle-api-service -n $(backendNamespace)
+              kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace)
               echo ""
-              NODE_PORT=$(kubectl get service frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
+              NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
               echo "Backend API:  http://$(kubernetesNodeIp):$(backendNodePort)"
               if [ -n "$NODE_PORT" ]; then
                 echo "Frontend:     http://$(kubernetesNodeIp):$NODE_PORT"
@@ -563,7 +574,7 @@ stages:
       continueOnError: true
 
     - script: |
-        NODE_PORT=$(kubectl get service frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
+        NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
         if [ -z "$NODE_PORT" ]; then
           echo "Could not determine frontend NodePort"
           exit 0
@@ -576,7 +587,7 @@ stages:
       continueOnError: true
 
     - script: |
-        NODE_PORT=$(kubectl get service frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
+        NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
         if [ -z "$NODE_PORT" ]; then
           echo "Could not determine frontend NodePort"
           exit 0
@@ -593,7 +604,7 @@ stages:
       continueOnError: true
 
     - script: |
-        NODE_PORT=$(kubectl get service frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
+        NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
         echo "=== Deployment Summary ==="
         echo "Backend API:  http://$(kubernetesNodeIp):$(backendNodePort)"
         echo "EXPO_PUBLIC_API_URL=$(backendApiUrl)"

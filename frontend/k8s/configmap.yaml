@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: frontend-config
+  name: olive-lifecycle-frontend-config
   namespace: agrotrack-frontend
 data:
   REACT_APP_API_URL: "http://185.193.66.50:31847"

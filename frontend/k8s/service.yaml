@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-service
+  name: olive-lifecycle-frontend-service
   namespace: agrotrack-frontend
   labels:
     app: olive-lifecycle-frontend
