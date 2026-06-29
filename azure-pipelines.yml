@@ -10,16 +10,7 @@ parameters:
   - name: buildMobileApk
     displayName: 'Build Android APK and attach to landing page /downloads'
     type: boolean
-    default: true
-
-  - name: mobileBuildStrategy
-    displayName: 'Mobile build strategy (cloud-then-local avoids EAS free-tier quota)'
-    type: string
-    default: local
-    values:
-      - cloud-then-local
-      - cloud
-      - local
+    default: false
 
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'
@@ -147,7 +138,7 @@ stages:
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
   - job: BuildMobile
-    displayName: 'Build Android APK'
+    displayName: 'Build Android APK (Gradle on agent)'
     pool:
       name: 'Default'
     steps:
@@ -163,60 +154,15 @@ stages:
         jdkArchitectureOption: 'x64'
         jdkSourceOption: 'AzureStorage'
 
-    - script: 'npm install -g eas-cli@20.4.0'
-      displayName: 'Install EAS CLI'
-
-    - script: |
-        if [ -z "${EXPO_TOKEN:-}" ]; then
-          echo "ERROR: EXPO_TOKEN is not set!"
-          echo ""
-          echo "Please add EXPO_TOKEN to the AgroTrack-Secrets variable group:"
-          echo "  1. Go to Azure DevOps -> Pipelines -> Library"
-          echo "  2. Open AgroTrack-Secrets variable group"
-          echo "  3. Add variable: EXPO_TOKEN (mark as secret)"
-          echo "  4. Get token from: https://expo.dev/accounts/[username]/settings/access-tokens"
-          exit 1
-        fi
-        echo "EXPO_TOKEN is set (length: ${#EXPO_TOKEN} characters)"
-      displayName: 'Verify EXPO_TOKEN is set'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-
     - script: 'cd mobile && npm install'
       displayName: 'Install mobile dependencies'
 
     - script: |
-        cd mobile
-        echo "Verifying EAS project is configured..."
-        if [ -f "eas.json" ]; then
-          echo "eas.json found"
-        else
-          echo "WARNING: eas.json not found - project may not be initialized"
-        fi
-
-        EXPO_USERNAME=$(eas whoami 2>/dev/null | head -1 || echo "")
-        if [ -n "$EXPO_USERNAME" ]; then
-          echo "Authenticated as: $EXPO_USERNAME"
-        else
-          echo "Could not verify authentication"
-        fi
-      displayName: 'Verify EAS Project Configuration'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-      continueOnError: true
-
-    - script: |
         chmod +x mobile/scripts/setup-java.sh mobile/scripts/setup-android-sdk.sh mobile/scripts/build-android-apk.sh
-        source mobile/scripts/setup-java.sh
-        source mobile/scripts/setup-android-sdk.sh
-        echo "##vso[task.setvariable variable=JAVA_HOME]${JAVA_HOME}"
-        echo "##vso[task.setvariable variable=ANDROID_HOME]${ANDROID_HOME}"
         mobile/scripts/build-android-apk.sh
-      displayName: 'Build Android APK (EAS cloud or local fallback)'
+      displayName: 'Build Android APK with Gradle'
       env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
         BACKEND_API_URL: $(backendApiUrl)
-        BUILD_STRATEGY: ${{ parameters.mobileBuildStrategy }}
       continueOnError: false
       timeoutInMinutes: 90
 
