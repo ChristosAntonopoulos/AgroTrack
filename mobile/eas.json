@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.2.0"
+    "version": ">= 5.2.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -14,10 +15,12 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "android": {
         "buildType": "apk"
       },
       "env": {
+        "NODE_ENV": "production",
         "EXPO_PUBLIC_API_URL": "http://185.193.66.50:31847",
         "EXPO_PUBLIC_SHOW_DEMO_LOGIN": "true"
       },

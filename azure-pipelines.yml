@@ -147,7 +147,7 @@ stages:
       inputs:
         versionSpec: '20.x'
 
-    - script: 'npm install -g eas-cli@20.1.0'
+    - script: 'npm install -g eas-cli@20.4.0'
       displayName: 'Install EAS CLI'
 
     - script: |
@@ -196,20 +196,43 @@ stages:
         echo "Build profile: production"
         echo "API URL: $(backendApiUrl)"
         echo ""
-        echo "This will start a cloud build. It may take 10-15 minutes."
+        echo "This will start a cloud build. It may take 10-20 minutes."
 
-        EXPO_PUBLIC_API_URL="$(backendApiUrl)" \
-        EXPO_PUBLIC_SHOW_DEMO_LOGIN="true" \
-          eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json
+        export NODE_ENV=production
+        export EAS_BUILD_NO_EXPO_GO_WARNING=true
+
+        if ! EXPO_PUBLIC_API_URL="$(backendApiUrl)" \
+          EXPO_PUBLIC_SHOW_DEMO_LOGIN="true" \
+          eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json 2>eas-build-stderr.log; then
+          echo "EAS CLI exited with an error. Last lines of stderr:"
+          tail -80 eas-build-stderr.log || true
+          echo ""
+          echo "Last lines of stdout:"
+          tail -40 eas-build-output.json || true
+          exit 1
+        fi
 
         node <<'NODE'
         const fs = require('fs');
         const raw = fs.readFileSync('eas-build-output.json', 'utf8').trim();
-        const parsed = JSON.parse(raw);
+        const jsonStart = raw.search(/[\[{]/);
+        if (jsonStart < 0) {
+          console.error('ERROR: No JSON found in EAS build output');
+          console.error(raw.slice(0, 800));
+          process.exit(1);
+        }
+        let parsed;
+        try {
+          parsed = JSON.parse(raw.slice(jsonStart));
+        } catch (error) {
+          console.error('ERROR: Failed to parse EAS JSON output');
+          console.error(raw.slice(jsonStart, jsonStart + 800));
+          process.exit(1);
+        }
         const build = Array.isArray(parsed) ? parsed[0] : parsed;
         if (!build?.id) {
           console.error('ERROR: Could not read build id from EAS output');
-          console.error(raw.slice(0, 500));
+          console.error(raw.slice(0, 800));
           process.exit(1);
         }
         const status = String(build.status || '').toUpperCase();
@@ -259,7 +282,7 @@ stages:
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
       continueOnError: false
-      timeoutInMinutes: 25
+      timeoutInMinutes: 45
 
     - script: |
         set -euo pipefail
