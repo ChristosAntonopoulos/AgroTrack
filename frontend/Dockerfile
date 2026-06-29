@@ -15,7 +15,9 @@ COPY . .
 
 # Build arguments for environment variables
 ARG REACT_APP_API_URL
+ARG REACT_APP_SHOW_DEMO_LOGIN=true
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_SHOW_DEMO_LOGIN=$REACT_APP_SHOW_DEMO_LOGIN
 
 # Build the React app
 RUN npm run build

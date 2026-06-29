@@ -18,7 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://185.193.66.50:31847"
+        "EXPO_PUBLIC_API_URL": "http://185.193.66.50:31847",
+        "EXPO_PUBLIC_SHOW_DEMO_LOGIN": "true"
       },
       "credentialsSource": "remote"
     }

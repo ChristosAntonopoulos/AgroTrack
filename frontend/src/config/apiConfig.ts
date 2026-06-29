@@ -16,5 +16,9 @@ export const isMockDataEnabled = (): boolean =>
 export const isAuthDisabled = (): boolean =>
   process.env.REACT_APP_DISABLE_AUTH === 'true';
 
-export const showDemoLogin = (): boolean =>
-  process.env.REACT_APP_SHOW_DEMO_LOGIN === 'true' || isMockDataEnabled();
+export const showDemoLogin = (): boolean => {
+  const flag = process.env.REACT_APP_SHOW_DEMO_LOGIN;
+  if (flag === 'true') return true;
+  if (flag === 'false') return false;
+  return isMockDataEnabled();
+};

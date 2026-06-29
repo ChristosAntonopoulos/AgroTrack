@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { mobileDemoUsers, TestUser } from '../services/mockUsers';
 import { getApiConnectionInfo } from '../services/api';
-import { isMockMode } from '../services/serviceFactory';
+import { showDemoLogin, isMockDataEnabled } from '../config/env';
 import BrandLogo from '../components/ui/BrandLogo';
 import AuthTextField from '../components/auth/AuthTextField';
 import UserCard from '../components/domain/UserCard';
@@ -42,7 +42,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const isLoading = Boolean(loading);
-  const apiInfo = __DEV__ ? getApiConnectionInfo() : null;
+  const apiInfo = showDemoLogin() ? getApiConnectionInfo() : null;
 
   const handleDemoLogin = async (user: TestUser) => {
     try {
@@ -177,11 +177,11 @@ const LoginScreen = () => {
                 </TouchableOpacity>
               </View>
 
-              {__DEV__ ? (
+              {showDemoLogin() ? (
                 <View style={styles.demoSection}>
                   <Text style={styles.demoTitle}>{t('auth:login.demoTitle')}</Text>
                   <Text style={styles.demoHint}>
-                    {isMockMode()
+                    {isMockDataEnabled()
                       ? t('auth:login.demoHint')
                       : t('auth:login.demoHintBackend', { url: apiInfo?.url ?? '' })}
                   </Text>

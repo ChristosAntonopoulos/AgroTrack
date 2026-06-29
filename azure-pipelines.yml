@@ -119,6 +119,7 @@ stages:
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
+          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
           -f $(frontendDockerfilePath) $(frontendDockerContext)
       displayName: 'Build frontend Docker image'
       condition: ne('${{ parameters.buildMobileApk }}', true)
@@ -198,6 +199,7 @@ stages:
         echo "This will start a cloud build. It may take 10-15 minutes."
 
         EXPO_PUBLIC_API_URL="$(backendApiUrl)" \
+        EXPO_PUBLIC_SHOW_DEMO_LOGIN="true" \
           eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json
 
         node <<'NODE'
@@ -297,6 +299,7 @@ stages:
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
+          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
           -f $(frontendDockerfilePath) $(frontendDockerContext)
       displayName: 'Rebuild frontend image with APK'
 

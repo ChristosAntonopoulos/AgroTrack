@@ -5,4 +5,4 @@ metadata:
   namespace: agrotrack-frontend
 data:
   REACT_APP_API_URL: "http://185.193.66.50:31847"
-  # This will be overridden by pipeline variables if needed
+  REACT_APP_SHOW_DEMO_LOGIN: "true"
