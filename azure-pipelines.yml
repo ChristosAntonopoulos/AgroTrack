@@ -12,6 +12,15 @@ parameters:
     type: boolean
     default: true
 
+  - name: mobileBuildStrategy
+    displayName: 'Mobile build strategy (cloud-then-local avoids EAS free-tier quota)'
+    type: string
+    default: cloud-then-local
+    values:
+      - cloud-then-local
+      - cloud
+      - local
+
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'
     type: boolean
@@ -138,7 +147,7 @@ stages:
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
   - job: BuildMobile
-    displayName: 'Build Android APK with EAS'
+    displayName: 'Build Android APK'
     pool:
       name: 'Default'
     steps:
@@ -190,99 +199,15 @@ stages:
       continueOnError: true
 
     - script: |
-        set -euo pipefail
-        cd mobile
-        echo "Starting EAS build for Android APK..."
-        echo "Build profile: production"
-        echo "API URL: $(backendApiUrl)"
-        echo ""
-        echo "This will start a cloud build. It may take 10-20 minutes."
-
-        export NODE_ENV=production
-        export EAS_BUILD_NO_EXPO_GO_WARNING=true
-
-        if ! EXPO_PUBLIC_API_URL="$(backendApiUrl)" \
-          EXPO_PUBLIC_SHOW_DEMO_LOGIN="true" \
-          eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json 2>eas-build-stderr.log; then
-          echo "EAS CLI exited with an error. Last lines of stderr:"
-          tail -80 eas-build-stderr.log || true
-          echo ""
-          echo "Last lines of stdout:"
-          tail -40 eas-build-output.json || true
-          exit 1
-        fi
-
-        node <<'NODE'
-        const fs = require('fs');
-        const raw = fs.readFileSync('eas-build-output.json', 'utf8').trim();
-        const jsonStart = raw.search(/[\[{]/);
-        if (jsonStart < 0) {
-          console.error('ERROR: No JSON found in EAS build output');
-          console.error(raw.slice(0, 800));
-          process.exit(1);
-        }
-        let parsed;
-        try {
-          parsed = JSON.parse(raw.slice(jsonStart));
-        } catch (error) {
-          console.error('ERROR: Failed to parse EAS JSON output');
-          console.error(raw.slice(jsonStart, jsonStart + 800));
-          process.exit(1);
-        }
-        const build = Array.isArray(parsed) ? parsed[0] : parsed;
-        if (!build?.id) {
-          console.error('ERROR: Could not read build id from EAS output');
-          console.error(raw.slice(0, 800));
-          process.exit(1);
-        }
-        const status = String(build.status || '').toUpperCase();
-        if (status !== 'FINISHED') {
-          console.error(`ERROR: Build finished with status ${build.status}`);
-          if (build.error?.message) {
-            console.error(`EAS error: ${build.error.message}`);
-          }
-          process.exit(1);
-        }
-        const artifactUrl =
-          build.artifacts?.buildUrl ||
-          build.artifacts?.applicationArchiveUrl ||
-          null;
-        fs.writeFileSync('eas-build-id.txt', build.id);
-        if (artifactUrl) {
-          fs.writeFileSync('eas-artifact-url.txt', artifactUrl);
-        }
-        console.log(`Build ID: ${build.id}`);
-        console.log(`Build status: ${build.status}`);
-        NODE
-
-        if [ -f eas-artifact-url.txt ]; then
-          echo "Downloading APK from EAS artifact URL..."
-          curl -fsSL "$(cat eas-artifact-url.txt)" -o ./agrotrack-mobile.apk
-        else
-          echo "Artifact URL not in build output; using eas build:download --build-id..."
-          BUILD_ID="$(cat eas-build-id.txt)"
-          eas build:download --build-id "$BUILD_ID" --non-interactive
-          APK_FILE="$(find . -maxdepth 1 -name '*.apk' -type f | head -1)"
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: eas build:download did not produce an APK file"
-            exit 1
-          fi
-          mv "$APK_FILE" ./agrotrack-mobile.apk
-        fi
-
-        if [ ! -f "./agrotrack-mobile.apk" ]; then
-          echo "ERROR: APK file not found after download"
-          exit 1
-        fi
-
-        APK_SIZE=$(du -h ./agrotrack-mobile.apk | cut -f1)
-        echo "APK downloaded successfully! Size: $APK_SIZE"
-        ls -lh ./agrotrack-mobile.apk
-      displayName: 'Build and download Android APK with EAS'
+        chmod +x mobile/scripts/setup-android-sdk.sh mobile/scripts/build-android-apk.sh
+        mobile/scripts/build-android-apk.sh
+      displayName: 'Build Android APK (EAS cloud or local fallback)'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
+        BACKEND_API_URL: $(backendApiUrl)
+        BUILD_STRATEGY: ${{ parameters.mobileBuildStrategy }}
       continueOnError: false
-      timeoutInMinutes: 45
+      timeoutInMinutes: 90
 
     - script: |
         set -euo pipefail

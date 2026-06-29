@@ -21,7 +21,6 @@
     },
     "android": {
       "package": "com.agrotrack.olivelifecycle",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#63622a"
