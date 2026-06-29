@@ -6,15 +6,86 @@
 const fs = require('fs');
 const path = require('path');
 
-const repoRoot = path.resolve(__dirname, '../..');
+function findNewestApk(searchRoot) {
+  if (!fs.existsSync(searchRoot)) {
+    return null;
+  }
+
+  const matches = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.isFile() && entry.name.endsWith('.apk')) {
+        matches.push(full);
+      }
+    }
+  };
+  walk(searchRoot);
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  matches.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  return matches[0];
+}
+
+function listDirSummary(dir) {
+  if (!fs.existsSync(dir)) {
+    return `(missing: ${dir})`;
+  }
+  try {
+    return fs
+      .readdirSync(dir)
+      .map((name) => {
+        const full = path.join(dir, name);
+        const stat = fs.statSync(full);
+        return stat.isDirectory() ? `${name}/` : `${name} (${stat.size} bytes)`;
+      })
+      .join('\n  ');
+  } catch (error) {
+    return `(cannot read ${dir}: ${error.message})`;
+  }
+}
+
+const repoRoot = process.env.BUILD_SOURCESDIRECTORY
+  ? path.resolve(process.env.BUILD_SOURCESDIRECTORY)
+  : path.resolve(__dirname, '../..');
+const mobileDir = path.join(repoRoot, 'mobile');
 const downloadsDir = path.join(repoRoot, 'frontend', 'public', 'downloads');
-const apkSource = path.join(repoRoot, 'mobile', 'agrotrack-mobile.apk');
-const buildInfoPath = path.join(repoRoot, 'mobile', 'build-info.json');
+const defaultApk = path.join(mobileDir, 'agrotrack-mobile.apk');
+const gradleApkRoot = path.join(mobileDir, 'android', 'app', 'build', 'outputs', 'apk');
+const buildInfoPath = path.join(mobileDir, 'build-info.json');
 const latestFilename = process.env.APK_FILENAME || 'olivecycle-alpha.apk';
 const pipelineBuildId = process.env.BUILD_ID || '';
 
+let apkSource = process.env.APK_SOURCE ? path.resolve(process.env.APK_SOURCE) : defaultApk;
+
 if (!fs.existsSync(apkSource)) {
-  console.error('ERROR: APK not found at', apkSource);
+  const fallback = findNewestApk(gradleApkRoot);
+  if (fallback) {
+    console.warn(`APK not at ${apkSource}; using Gradle output: ${fallback}`);
+    apkSource = fallback;
+    if (!fs.existsSync(defaultApk)) {
+      fs.copyFileSync(fallback, defaultApk);
+      console.log(`Copied to canonical path: ${defaultApk}`);
+    }
+  }
+}
+
+if (!fs.existsSync(apkSource)) {
+  console.error('ERROR: APK not found.');
+  console.error('  Expected:', defaultApk);
+  console.error('  APK_SOURCE:', process.env.APK_SOURCE || '(unset)');
+  console.error('  Repo root:', repoRoot);
+  console.error('  mobile/ contents:\n  ', listDirSummary(mobileDir));
+  console.error('  Gradle outputs:', listDirSummary(gradleApkRoot));
+  const anyApk = findNewestApk(mobileDir);
+  if (anyApk) {
+    console.error('  Newest .apk under mobile/:', anyApk);
+  }
   process.exit(1);
 }
 
@@ -51,5 +122,8 @@ fs.writeFileSync(
   `${JSON.stringify(manifest, null, 2)}\n`,
 );
 
+console.log('Staged APK for frontend:');
+console.log(`  source: ${apkSource}`);
+console.log(`  latest: ${path.join(downloadsDir, latestFilename)}`);
 console.log('Landing page download manifest:');
 console.log(JSON.stringify(manifest, null, 2));

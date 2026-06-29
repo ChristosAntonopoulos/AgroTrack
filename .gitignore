@@ -60,6 +60,7 @@ coverage/
 # Mobile CI artifacts (APK served via frontend Docker image)
 mobile/agrotrack-mobile.apk
 mobile/build-info.json
+mobile/gradle-build.log
 mobile/android/
 frontend/public/downloads/*.apk
 frontend/public/downloads/latest.json
