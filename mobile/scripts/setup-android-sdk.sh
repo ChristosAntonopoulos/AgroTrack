@@ -25,12 +25,12 @@ PY
     return 0
   fi
   echo "ERROR: need unzip or python3 to extract ${archive}"
-  exit 1
+  return 1
 }
 
 if [ -x "${ANDROID_HOME}/platform-tools/adb" ] && [ -d "${ANDROID_HOME}/platforms/android-36" ]; then
   echo "Android SDK ready at ${ANDROID_HOME}"
-  exit 0
+  return 0 2>/dev/null || exit 0
 fi
 
 echo "Setting up Android SDK at ${ANDROID_HOME}..."
