@@ -1,6 +1,6 @@
 # Azure DevOps Build and Deploy Pipeline for AgroTrack (Olive Lifecycle Platform)
-# Builds Docker images, pushes to Docker Hub, and deploys to Kubernetes
-# Optional mobile APK build attaches to frontend at /downloads/olivecycle-alpha.apk
+# Builds Docker images, pushes to Docker Hub, deploys to Kubernetes.
+# Optional mobile APK: Gradle on the agent (no EAS) -> frontend /downloads/olivecycle-alpha.apk
 
 trigger:
   - master
@@ -8,9 +8,9 @@ trigger:
 
 parameters:
   - name: buildMobileApk
-    displayName: 'Build Android APK and attach to landing page /downloads'
+    displayName: 'Build Android APK on agent (no EAS) and serve from /downloads'
     type: boolean
-    default: false
+    default: true
 
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'
@@ -133,7 +133,7 @@ stages:
       condition: ne('${{ parameters.buildMobileApk }}', true)
 
 - stage: MobileBuild
-  displayName: 'Build Mobile APK'
+  displayName: 'Build Mobile APK (Gradle, no EAS)'
   dependsOn: Package
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
@@ -160,35 +160,15 @@ stages:
     - script: |
         chmod +x mobile/scripts/setup-java.sh mobile/scripts/setup-android-sdk.sh mobile/scripts/build-android-apk.sh
         mobile/scripts/build-android-apk.sh
-      displayName: 'Build Android APK with Gradle'
+      displayName: 'Build Android APK with Gradle (no EAS)'
       env:
         BACKEND_API_URL: $(backendApiUrl)
+        BUILD_BUILDID: $(Build.BuildId)
       continueOnError: false
       timeoutInMinutes: 90
 
-    - script: |
-        set -euo pipefail
-        node <<'NODE'
-        const fs = require('fs');
-        const path = require('path');
-        const dir = path.join('frontend', 'public', 'downloads');
-        fs.mkdirSync(dir, { recursive: true });
-        fs.copyFileSync(
-          path.join('mobile', 'agrotrack-mobile.apk'),
-          path.join(dir, process.env.APK_FILENAME),
-        );
-        const manifest = {
-          available: true,
-          buildId: process.env.BUILD_ID,
-          builtAt: new Date().toISOString(),
-          filename: process.env.APK_FILENAME,
-          url: `/downloads/${process.env.APK_FILENAME}`,
-        };
-        fs.writeFileSync(path.join(dir, 'latest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-        console.log('Landing page download manifest:');
-        console.log(JSON.stringify(manifest, null, 2));
-        NODE
-      displayName: 'Stage APK for landing page download'
+    - script: 'node mobile/scripts/stage-apk-for-frontend.js'
+      displayName: 'Stage APK for frontend /downloads'
       env:
         BUILD_ID: $(Build.BuildId)
         APK_FILENAME: $(apkFilename)
@@ -224,9 +204,10 @@ stages:
     - script: |
         echo "=== Mobile Build Summary ==="
         echo ""
-        echo "APK built successfully!"
+        echo "APK built on agent (Gradle, no EAS)."
         echo ""
-        echo "Public download path: /downloads/$(apkFilename)"
+        echo "Latest:  /downloads/$(apkFilename)"
+        echo "Manifest: /downloads/latest.json"
         echo "Landing page section: /#alpha-apk"
         echo ""
         echo "Azure DevOps artifact: Pipelines -> Latest run -> Artifacts -> mobile-apk"

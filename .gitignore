@@ -57,6 +57,9 @@ coverage/
 # Docker
 *.dockerignore
 
-# Kubernetes secrets
-*-secret.yaml
-*secrets*.yaml
+# Mobile CI artifacts (APK served via frontend Docker image)
+mobile/agrotrack-mobile.apk
+mobile/build-info.json
+mobile/android/
+frontend/public/downloads/*.apk
+frontend/public/downloads/latest.json
