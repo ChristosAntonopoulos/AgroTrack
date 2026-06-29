@@ -10,7 +10,7 @@ parameters:
   - name: buildMobileApk
     displayName: 'Build Android APK on agent (no EAS) and serve from /downloads'
     type: boolean
-    default: false
+    default: true
 
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'
