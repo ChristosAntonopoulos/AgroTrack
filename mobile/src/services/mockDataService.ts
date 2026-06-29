@@ -69,17 +69,17 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Mock Users
 export const mockUsers: User[] = [
   {
-    id: 'user1',
+    id: '675555555555555555555501',
     email: 'owner@olivefarm.com',
-    firstName: 'John',
-    lastName: 'Smith',
+    firstName: 'Giorgos',
+    lastName: 'Papadakis',
     role: 'FieldOwner',
   },
   {
-    id: 'user2',
+    id: '675555555555555555555502',
     email: 'producer1@olivefarm.com',
-    firstName: 'Maria',
-    lastName: 'Garcia',
+    firstName: 'Kostas',
+    lastName: 'Manousakis',
     role: 'Producer',
   },
   {
@@ -126,7 +126,7 @@ const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()
 export const mockFields: Field[] = [
   {
     id: 'field1',
-    ownerId: 'user1',
+    ownerId: '675555555555555555555501',
     name: 'North Olive Grove',
     latitude: 37.7749,
     longitude: -122.4194,
@@ -141,7 +141,7 @@ export const mockFields: Field[] = [
   },
   {
     id: 'field2',
-    ownerId: 'user1',
+    ownerId: '675555555555555555555501',
     name: 'South Valley Fields',
     latitude: 37.7849,
     longitude: -122.4094,
@@ -156,7 +156,7 @@ export const mockFields: Field[] = [
   },
   {
     id: 'field3',
-    ownerId: 'user1',
+    ownerId: '675555555555555555555501',
     name: 'East Hill Plantation',
     latitude: 37.7649,
     longitude: -122.4294,
@@ -171,7 +171,7 @@ export const mockFields: Field[] = [
   },
   {
     id: 'field4',
-    ownerId: 'user1',
+    ownerId: '675555555555555555555501',
     name: 'West Slope Orchard',
     latitude: 37.7549,
     longitude: -122.4394,
@@ -186,7 +186,7 @@ export const mockFields: Field[] = [
   },
   {
     id: 'field5',
-    ownerId: 'user1',
+    ownerId: '675555555555555555555501',
     name: 'Central Meadow',
     latitude: 37.7949,
     longitude: -122.3994,

@@ -29,7 +29,10 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed' | 'approval'>('all');
 
   const loadTasks = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);

@@ -55,6 +55,18 @@ export const colors = {
   textTertiary: '#8A9A7E',
   textInverse: '#FFFCF6',
 
+  // Chrome — header & tab bar (semantic; overridden in dark theme)
+  headerBackground: '#3D5214',
+  headerForeground: '#FFFCF6',
+  headerForegroundMuted: 'rgba(255, 252, 246, 0.72)',
+  headerAccent: '#A8C46E',
+  headerBorder: 'rgba(255, 252, 246, 0.14)',
+  tabBarBackground: '#3D5214',
+  tabBarForeground: '#FFFCF6',
+  tabBarForegroundInactive: 'rgba(255, 252, 246, 0.55)',
+  tabBarBorder: 'rgba(255, 252, 246, 0.12)',
+  tabBarActivePill: 'rgba(255, 252, 246, 0.22)',
+
   // Borders
   border: '#CDD8BE',
   borderLight: '#E0E8D4',
@@ -71,10 +83,6 @@ export const colors = {
   taskInProgress: '#5A8A6A',
   taskCompleted: '#6B9E3A',
 
-  // Tab bar
-  tabBarBackground: '#3D5214',
-  tabBarActivePill: 'rgba(255, 252, 246, 0.22)',
-
   // Alert banners
   bannerErrorBg: '#F0D4CC',
   bannerErrorBorder: '#B84A32',
@@ -84,7 +92,8 @@ export const colors = {
 
 export const gradients = {
   primary: ['#3D5214', '#5C7A1F'],
-  header: ['#3D5214', '#4A6318', '#5C7A1F'],
+  header: ['#2A3810', '#3D5214', '#5C7A1F'],
+  headerDark: ['#121810', '#1A2016', '#283020'],
   secondary: ['#7A6B4F', '#5C5040'],
   success: ['#6B9E3A', '#4A7028'],
   warm: ['#E4EBD8', '#EFF4E8'],

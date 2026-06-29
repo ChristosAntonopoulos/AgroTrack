@@ -11,7 +11,7 @@ import { createElevation } from '../../theme/elevation';
 
 const AppHeader = () => {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation('common');
 
   const roleLabel = user?.role
@@ -24,19 +24,37 @@ const AppHeader = () => {
       style={[
         styles.container,
         {
-          backgroundColor: colors.primaryDark,
-          ...createElevation(colors, 'md'),
+          backgroundColor: colors.headerBackground,
+          borderBottomColor: colors.headerBorder,
+          ...createElevation(colors, isDark ? 'lg' : 'md'),
         },
       ]}
     >
+      {isDark ? (
+        <View
+          style={[styles.accentLine, { backgroundColor: colors.headerAccent }]}
+          pointerEvents="none"
+        />
+      ) : null}
+
       <View style={styles.inner}>
         <View style={styles.left}>
-          <View style={[styles.logoWrap, { backgroundColor: colors.textInverse + '20' }]}>
+          <View
+            style={[
+              styles.logoWrap,
+              {
+                backgroundColor: isDark
+                  ? colors.headerAccent + '28'
+                  : colors.headerForeground + '20',
+                borderColor: isDark ? colors.headerAccent + '50' : 'transparent',
+              },
+            ]}
+          >
             <BrandLogo size={24} />
           </View>
           <View>
-            <Text style={[styles.title, { color: colors.textInverse }]}>OliveCycle</Text>
-            <Text style={[styles.tagline, { color: colors.textInverse + 'BB' }]}>
+            <Text style={[styles.title, { color: colors.headerForeground }]}>OliveCycle</Text>
+            <Text style={[styles.tagline, { color: colors.headerForegroundMuted }]}>
               {t('tagline')}
             </Text>
           </View>
@@ -46,13 +64,15 @@ const AppHeader = () => {
             style={[
               styles.badge,
               {
-                backgroundColor: colors.textInverse + '18',
-                borderColor: colors.textInverse + '40',
+                backgroundColor: isDark
+                  ? colors.headerAccent + '22'
+                  : colors.headerForeground + '18',
+                borderColor: isDark ? colors.headerAccent + '55' : colors.headerForeground + '40',
               },
             ]}
           >
-            <Ionicons name="person-circle-outline" size={14} color={colors.textInverse} />
-            <Text style={[styles.badgeText, { color: colors.textInverse }]}>{roleLabel}</Text>
+            <Ionicons name="person-circle-outline" size={14} color={colors.headerAccent} />
+            <Text style={[styles.badgeText, { color: colors.headerForeground }]}>{roleLabel}</Text>
           </View>
         ) : null}
       </View>
@@ -61,7 +81,18 @@ const AppHeader = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {},
+  container: {
+    borderBottomWidth: 1,
+  },
+  accentLine: {
+    position: 'absolute',
+    bottom: 0,
+    left: spacing.base,
+    right: spacing.base,
+    height: 2,
+    borderRadius: 1,
+    opacity: 0.85,
+  },
   inner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -76,11 +107,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   logoWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   title: {
     ...typography.styles.h3,
@@ -98,7 +130,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
   },

@@ -25,16 +25,25 @@ const TabIcon = ({
   focused,
   color,
   pillColor,
+  accentColor,
 }: {
   name: IconName;
   focused: boolean;
   color: string;
   pillColor: string;
+  accentColor: string;
 }) => (
   <View
     style={[
       styles.iconWrap,
-      focused && { backgroundColor: pillColor, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
+      focused && {
+        backgroundColor: pillColor,
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 5,
+        borderWidth: 1,
+        borderColor: accentColor + '40',
+      },
     ]}
   >
     <Ionicons name={name} size={22} color={color} />
@@ -42,7 +51,7 @@ const TabIcon = ({
 );
 
 const MainTabs = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation('nav');
   const { isFieldOwner } = useAuth();
   const { tasks } = useTasks();
@@ -56,23 +65,26 @@ const MainTabs = () => {
 
   const tabBarHeight = 58 + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
 
+  const tabAccent = colors.headerAccent;
+
   return (
     <Tab.Navigator
       initialRouteName={owner ? 'Dashboard' : 'Today'}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.textInverse,
-        tabBarInactiveTintColor: colors.textInverse + '99',
+        tabBarActiveTintColor: colors.tabBarForeground,
+        tabBarInactiveTintColor: colors.tabBarForegroundInactive,
         tabBarStyle: {
           backgroundColor: colors.tabBarBackground,
-          borderTopWidth: 0,
+          borderTopWidth: 1,
+          borderTopColor: colors.tabBarBorder,
           paddingTop: spacing.xs,
           paddingBottom: Math.max(insets.bottom, spacing.xs),
           height: tabBarHeight,
-          elevation: 12,
+          elevation: isDark ? 16 : 12,
           shadowColor: colors.shadowDark,
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.2,
+          shadowOpacity: isDark ? 0.35 : 0.2,
           shadowRadius: 8,
         },
         tabBarLabelStyle: {
@@ -95,6 +107,7 @@ const MainTabs = () => {
                 focused={focused}
                 color={color}
                 pillColor={colors.tabBarActivePill}
+                accentColor={tabAccent}
               />
             ),
           }}
@@ -111,6 +124,7 @@ const MainTabs = () => {
                 focused={focused}
                 color={color}
                 pillColor={colors.tabBarActivePill}
+                accentColor={tabAccent}
               />
             ),
           }}
@@ -127,6 +141,7 @@ const MainTabs = () => {
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
+              accentColor={tabAccent}
             />
           ),
         }}
@@ -142,6 +157,7 @@ const MainTabs = () => {
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
+              accentColor={tabAccent}
             />
           ),
         }}
@@ -151,10 +167,11 @@ const MainTabs = () => {
         component={TaskListScreen}
         options={{
           tabBarLabel: owner ? t('tasks') : t('tasksProducer'),
-          tabBarBadge: openTaskCount > 0 ? (openTaskCount > 99 ? '99+' : openTaskCount) : undefined,
+          tabBarBadge:
+            openTaskCount > 0 ? (openTaskCount > 99 ? '99+' : String(openTaskCount)) : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.error,
-            color: colors.textInverse,
+            color: '#FFFCF6',
             fontSize: 10,
             fontWeight: '700',
             minWidth: 18,
@@ -167,6 +184,7 @@ const MainTabs = () => {
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
+              accentColor={tabAccent}
             />
           ),
         }}
@@ -182,6 +200,7 @@ const MainTabs = () => {
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
+              accentColor={tabAccent}
             />
           ),
         }}
