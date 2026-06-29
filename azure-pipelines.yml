@@ -15,7 +15,7 @@ parameters:
   - name: mobileBuildStrategy
     displayName: 'Mobile build strategy (cloud-then-local avoids EAS free-tier quota)'
     type: string
-    default: cloud-then-local
+    default: local
     values:
       - cloud-then-local
       - cloud
@@ -156,6 +156,13 @@ stages:
       inputs:
         versionSpec: '20.x'
 
+    - task: JavaToolInstaller@0
+      displayName: 'Install JDK 17'
+      inputs:
+        versionSpec: '17'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'AzureStorage'
+
     - script: 'npm install -g eas-cli@20.4.0'
       displayName: 'Install EAS CLI'
 
@@ -199,7 +206,11 @@ stages:
       continueOnError: true
 
     - script: |
-        chmod +x mobile/scripts/setup-android-sdk.sh mobile/scripts/build-android-apk.sh
+        chmod +x mobile/scripts/setup-java.sh mobile/scripts/setup-android-sdk.sh mobile/scripts/build-android-apk.sh
+        source mobile/scripts/setup-java.sh
+        source mobile/scripts/setup-android-sdk.sh
+        echo "##vso[task.setvariable variable=JAVA_HOME]${JAVA_HOME}"
+        echo "##vso[task.setvariable variable=ANDROID_HOME]${ANDROID_HOME}"
         mobile/scripts/build-android-apk.sh
       displayName: 'Build Android APK (EAS cloud or local fallback)'
       env:

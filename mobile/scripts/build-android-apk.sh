@@ -74,6 +74,10 @@ try_eas_local() {
   # Local EAS builds do not consume cloud build quota.
   source "${SCRIPT_DIR}/setup-android-sdk.sh"
 
+  JAVA_HOME="${JAVA_HOME}" \
+  ANDROID_HOME="${ANDROID_HOME}" \
+  ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT}" \
+  PATH="${PATH}" \
   EXPO_PUBLIC_API_URL="${API_URL}" \
   EXPO_PUBLIC_SHOW_DEMO_LOGIN="${EXPO_PUBLIC_SHOW_DEMO_LOGIN}" \
     eas build --platform android --profile production --local --non-interactive
