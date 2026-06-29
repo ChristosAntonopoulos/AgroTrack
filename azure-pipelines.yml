@@ -10,7 +10,7 @@ parameters:
   - name: buildMobileApk
     displayName: 'Build Android APK and attach to landing page /downloads'
     type: boolean
-    default: false
+    default: true
 
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'
