@@ -10,6 +10,16 @@ parameters:
   - name: buildMobileApk
     displayName: 'Build Android APK and attach to landing page /downloads'
     type: boolean
+    default: false
+
+  - name: deployBackend
+    displayName: 'Deploy backend to Kubernetes'
+    type: boolean
+    default: true
+
+  - name: deployFrontend
+    displayName: 'Deploy frontend to Kubernetes'
+    type: boolean
     default: true
 
 variables:
@@ -321,7 +331,14 @@ stages:
   dependsOn:
     - Package
     - MobileBuild
-  condition: and(succeeded('Package'), in(dependencies.MobileBuild.result, 'Succeeded', 'Skipped'))
+  condition: and(
+      succeeded('Package'),
+      in(dependencies.MobileBuild.result, 'Succeeded', 'Skipped'),
+      or(
+        eq('${{ parameters.deployBackend }}', true),
+        eq('${{ parameters.deployFrontend }}', true)
+      )
+    )
   jobs:
   - deployment: Deploy
     displayName: 'Deploy to Kubernetes'
@@ -339,12 +356,15 @@ stages:
 
           - script: 'kubectl apply -f backend/k8s/namespace.yaml'
             displayName: 'Apply backend namespace configuration'
+            condition: eq('${{ parameters.deployBackend }}', true)
 
           - script: 'kubectl apply -f backend/k8s/configmap.yaml'
             displayName: 'Apply backend ConfigMap'
+            condition: eq('${{ parameters.deployBackend }}', true)
 
           - task: Bash@3
             displayName: 'Create backend Kubernetes Secrets'
+            condition: eq('${{ parameters.deployBackend }}', true)
             inputs:
               targetType: 'inline'
               script: |
@@ -392,6 +412,7 @@ stages:
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullImageName):$(imageTag)|g" backend/k8s/deployment.yaml
               kubectl apply -f backend/k8s/deployment.yaml
             displayName: 'Apply/Update backend deployment'
+            condition: eq('${{ parameters.deployBackend }}', true)
 
           - script: |
               echo "Recreating backend service as NodePort $(backendNodePort)..."
@@ -399,12 +420,15 @@ stages:
               sed -i "s|nodePort: [0-9]*|nodePort: $(backendNodePort)|" backend/k8s/service.yaml
               kubectl apply -f backend/k8s/service.yaml
             displayName: 'Apply backend service'
+            condition: eq('${{ parameters.deployBackend }}', true)
 
           - script: 'kubectl apply -f frontend/k8s/namespace.yaml'
             displayName: 'Apply frontend namespace configuration'
+            condition: eq('${{ parameters.deployFrontend }}', true)
 
           - task: Bash@3
             displayName: 'Update frontend ConfigMap with API URL'
+            condition: eq('${{ parameters.deployFrontend }}', true)
             inputs:
               targetType: 'inline'
               script: |
@@ -416,15 +440,18 @@ stages:
 
           - script: 'kubectl apply -f frontend/k8s/configmap.yaml'
             displayName: 'Apply frontend ConfigMap'
+            condition: eq('${{ parameters.deployFrontend }}', true)
             continueOnError: true
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullFrontendImageName):$(imageTag)|g" frontend/k8s/deployment.yaml
               kubectl apply -f frontend/k8s/deployment.yaml
             displayName: 'Apply/Update frontend deployment'
+            condition: eq('${{ parameters.deployFrontend }}', true)
 
           - script: 'kubectl apply -f frontend/k8s/service.yaml'
             displayName: 'Apply frontend service'
+            condition: eq('${{ parameters.deployFrontend }}', true)
 
           - script: |
               set -euo pipefail
@@ -440,10 +467,12 @@ stages:
 
           - script: 'kubectl rollout status deployment/backend-deployment -n $(backendNamespace) --timeout=600s'
             displayName: 'Wait for backend deployment rollout'
+            condition: eq('${{ parameters.deployBackend }}', true)
             continueOnError: true
 
           - script: 'kubectl rollout status deployment/frontend-deployment -n $(frontendNamespace) --timeout=300s'
             displayName: 'Wait for frontend deployment rollout'
+            condition: eq('${{ parameters.deployFrontend }}', true)
             continueOnError: true
 
           - script: |
@@ -530,6 +559,7 @@ stages:
         echo "Health URL: http://$(kubernetesNodeIp):$(backendNodePort)/health"
         curl -f http://$(kubernetesNodeIp):$(backendNodePort)/health || echo "Backend health check failed, but continuing..."
       displayName: 'Check Backend Health'
+      condition: eq('${{ parameters.deployBackend }}', true)
       continueOnError: true
 
     - script: |
@@ -542,6 +572,7 @@ stages:
         echo "Testing frontend health endpoint..."
         curl -f "$FRONTEND_URL/health" || echo "Frontend health check failed, but continuing..."
       displayName: 'Check Frontend Health'
+      condition: eq('${{ parameters.deployFrontend }}', true)
       continueOnError: true
 
     - script: |

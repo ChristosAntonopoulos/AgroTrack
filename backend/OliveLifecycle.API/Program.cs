@@ -75,9 +75,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+var mongoDatabaseName = builder.Configuration["MongoDB:DatabaseName"] ?? "OliveLifecycle";
 builder.Services.AddHealthChecks()
     .AddMongoDb(
-        builder.Configuration["MongoDB:ConnectionString"] ?? "mongodb://localhost:27017",
+        databaseNameFactory: _ => mongoDatabaseName,
         name: "mongodb");
 
 var jwtSecretKey = builder.Configuration["JWT:SecretKey"];
@@ -130,7 +131,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 var uploadPathSetting = builder.Configuration["Storage:LocalPath"] ?? "uploads";
 var uploadPath = Path.IsPathRooted(uploadPathSetting)
