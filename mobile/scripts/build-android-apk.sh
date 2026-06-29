@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Android APK on the CI agent — no EAS. Served from frontend /downloads/.
+# Build Android APK on the CI agent — no EAS. JS bundle embedded (release, no Metro).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,6 +15,8 @@ export EXPO_PUBLIC_API_URL="${API_URL}"
 export EXPO_PUBLIC_SHOW_DEMO_LOGIN="${EXPO_PUBLIC_SHOW_DEMO_LOGIN:-true}"
 export BUILD_ID
 export API_URL
+export NODE_ENV=production
+export CI=1
 
 echo "Applying Android versionCode from pipeline build id: ${BUILD_ID}"
 node <<'NODE'
@@ -32,18 +34,19 @@ source "${SCRIPT_DIR}/setup-android-sdk.sh"
 
 echo "JAVA_HOME=${JAVA_HOME}"
 echo "ANDROID_HOME=${ANDROID_HOME}"
-echo "Building APK with Gradle (agent build, no EAS)..."
+echo "Building release APK with embedded JS bundle (no Metro, no EAS)..."
 
 rm -f "${OUTPUT_APK}" "${BUILD_INFO}"
 npx expo prebuild --platform android --clean --no-install
+node "${SCRIPT_DIR}/patch-android-alpha-signing.js"
 
 cd android
 chmod +x gradlew
-./gradlew assembleDebug --no-daemon -x lint -x test
+./gradlew assembleRelease --no-daemon -x lint -x test
 
-APK="$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -1)"
+APK="$(find app/build/outputs/apk/release -name '*.apk' -type f | head -1)"
 if [ -z "${APK}" ]; then
-  echo "ERROR: Gradle did not produce a debug APK"
+  echo "ERROR: Gradle did not produce a release APK"
   exit 1
 fi
 
@@ -58,7 +61,7 @@ const info = {
   versionCode: app.expo.android.versionCode,
   buildId: String(process.env.BUILD_ID || ''),
   builtAt: new Date().toISOString(),
-  builder: 'gradle-agent',
+  builder: 'gradle-agent-release',
   apiUrl: process.env.API_URL,
 };
 fs.writeFileSync('build-info.json', JSON.stringify(info, null, 2) + '\n');

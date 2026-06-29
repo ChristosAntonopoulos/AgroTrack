@@ -8,7 +8,7 @@
 ## How CI builds it (no EAS)
 
 1. Azure pipeline **MobileBuild** stage runs on the agent:
-   - `mobile/scripts/build-android-apk.sh` — JDK + Android SDK + `expo prebuild` + Gradle `assembleDebug`
+   - `expo prebuild` + Gradle `assembleRelease` (JS bundle embedded — works without Metro)
 2. `mobile/scripts/stage-apk-for-frontend.js` copies APK into `frontend/public/downloads/`
 3. Frontend Docker image is rebuilt and deployed
 

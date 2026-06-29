@@ -1,6 +1,6 @@
 # Mobile — Olive Lifecycle (Expo)
 
-Production APKs are built on the **Azure CI agent with Gradle** (no EAS) and served from the web frontend at `/downloads/olivecycle-alpha.apk`.
+Production APKs are built as **release** on the agent (JS bundle embedded). Debug builds expect Metro and will show "Unable to load script" when installed standalone.
 
 ## Run locally (Expo Go)
 
