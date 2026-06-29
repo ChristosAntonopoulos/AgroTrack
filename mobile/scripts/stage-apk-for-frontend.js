@@ -57,6 +57,11 @@ const mobileDir = path.join(repoRoot, 'mobile');
 const downloadsDir = path.join(repoRoot, 'frontend', 'public', 'downloads');
 const defaultApk = path.join(mobileDir, 'agrotrack-mobile.apk');
 const gradleApkRoot = path.join(mobileDir, 'android', 'app', 'build', 'outputs', 'apk');
+const gradleApkCandidates = [
+  path.join(gradleApkRoot, 'release', 'app-release.apk'),
+  path.join(gradleApkRoot, 'release', 'app-release-unsigned.apk'),
+  path.join(gradleApkRoot, 'debug', 'app-debug.apk'),
+];
 const buildInfoPath = path.join(mobileDir, 'build-info.json');
 const latestFilename = process.env.APK_FILENAME || 'olivecycle-alpha.apk';
 const pipelineBuildId = process.env.BUILD_ID || '';
@@ -64,7 +69,8 @@ const pipelineBuildId = process.env.BUILD_ID || '';
 let apkSource = process.env.APK_SOURCE ? path.resolve(process.env.APK_SOURCE) : defaultApk;
 
 if (!fs.existsSync(apkSource)) {
-  const fallback = findNewestApk(gradleApkRoot);
+  const explicitGradleApk = gradleApkCandidates.find((candidate) => fs.existsSync(candidate));
+  const fallback = explicitGradleApk || findNewestApk(gradleApkRoot);
   if (fallback) {
     console.warn(`APK not at ${apkSource}; using Gradle output: ${fallback}`);
     apkSource = fallback;
