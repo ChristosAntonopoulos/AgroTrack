@@ -1,0 +1,25 @@
+# In-cluster Ingress for control panel URL discovery. TLS termination is on host Caddy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agrotrack-frontend-ingress
+  namespace: agrotrack-frontend
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - agrotrack.conceptatlas.eu
+      secretName: agrotrack-web-tls
+  rules:
+    - host: agrotrack.conceptatlas.eu
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: olive-lifecycle-frontend-service
+                port:
+                  number: 80

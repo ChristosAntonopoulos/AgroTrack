@@ -12,7 +12,7 @@ data:
   JWT__ExpirationMinutes: "60"
   Storage__LocalPath: "uploads"
   Storage__PublicBasePath: "/uploads"
-  Cors__AllowedHost: "185.193.66.50"
+  Cors__AllowedHost: "agrotrack.conceptatlas.eu"
   Auth__AllowAnonymous: "false"
   DemoAccounts__Seed: "true"
   DemoAccounts__ReseedFarmData: "false"

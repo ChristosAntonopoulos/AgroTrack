@@ -5,6 +5,9 @@ metadata:
   namespace: agrotrack-backend
   labels:
     app: olive-lifecycle-api
+    app.kubernetes.io/part-of: agrotrack
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: api.agrotrack.conceptatlas.eu
 spec:
   type: NodePort
   selector:

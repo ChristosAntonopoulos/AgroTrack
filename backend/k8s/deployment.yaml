@@ -5,6 +5,9 @@ metadata:
   namespace: agrotrack-backend
   labels:
     app: olive-lifecycle-api
+    app.kubernetes.io/part-of: agrotrack
+    app.kubernetes.io/instance: agrotrack-prod
+    app.kubernetes.io/component: api
 spec:
   replicas: 1
   selector:
@@ -14,6 +17,9 @@ spec:
     metadata:
       labels:
         app: olive-lifecycle-api
+        app.kubernetes.io/part-of: agrotrack
+        app.kubernetes.io/instance: agrotrack-prod
+        app.kubernetes.io/component: api
     spec:
       containers:
       - name: api

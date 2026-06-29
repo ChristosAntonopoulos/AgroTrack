@@ -5,6 +5,17 @@ metadata:
   namespace: agrotrack-frontend
   labels:
     app: olive-lifecycle-frontend
+    app.kubernetes.io/part-of: agrotrack
+    app.kubernetes.io/instance: agrotrack-prod
+    app.kubernetes.io/component: frontend
+  annotations:
+    control-panel.kubernetes.io/display-name: "AgroTrack"
+    control-panel.kubernetes.io/description: "Olive lifecycle management for olive farms — field maps, harvests, and farm operations."
+    control-panel.kubernetes.io/environment: "Production"
+    control-panel.kubernetes.io/icon: "🫒"
+    control-panel.kubernetes.io/accent-color: "#63622a"
+    control-panel.kubernetes.io/tags: "frontend, react, agriculture, olive"
+    control-panel.kubernetes.io/owner: "CaptainBot"
 spec:
   replicas: 1
   selector:
@@ -14,6 +25,9 @@ spec:
     metadata:
       labels:
         app: olive-lifecycle-frontend
+        app.kubernetes.io/part-of: agrotrack
+        app.kubernetes.io/instance: agrotrack-prod
+        app.kubernetes.io/component: frontend
     spec:
       containers:
       - name: web
@@ -23,12 +37,6 @@ spec:
         - containerPort: 80
           name: http
           protocol: TCP
-        env:
-        - name: REACT_APP_API_URL
-          valueFrom:
-            configMapKeyRef:
-              name: olive-lifecycle-frontend-config
-              key: REACT_APP_API_URL
         resources:
           requests:
             memory: "64Mi"

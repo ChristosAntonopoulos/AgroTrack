@@ -10,7 +10,7 @@ parameters:
   - name: buildMobileApk
     displayName: 'Build Android APK on agent (no EAS) and serve from /downloads'
     type: boolean
-    default: true
+    default: false
 
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'
@@ -46,8 +46,12 @@ variables:
     value: 'agrotrack-frontend'
   - name: backendNodePort
     value: '31847'
+  - name: frontendNodePort
+    value: '31848'
   - name: backendApiUrl
-    value: 'http://185.193.66.50:31847'
+    value: 'https://api.agrotrack.conceptatlas.eu'
+  - name: frontendBaseUrl
+    value: 'https://agrotrack.conceptatlas.eu'
   - name: kubernetesNodeIp
     value: '185.193.66.50'
   - name: frontendImageName
@@ -350,6 +354,14 @@ stages:
             displayName: 'Apply frontend service'
             condition: eq('${{ parameters.deployFrontend }}', true)
 
+          - script: 'kubectl apply -f frontend/k8s/ingress.yaml'
+            displayName: 'Apply frontend ingress (control panel discovery)'
+            condition: eq('${{ parameters.deployFrontend }}', true)
+
+          - script: 'kubectl apply -f backend/k8s/ingress.yaml'
+            displayName: 'Apply backend ingress (control panel discovery)'
+            condition: eq('${{ parameters.deployBackend }}', true)
+
           - script: |
               set -euo pipefail
               echo "=== Backend deployment (before rollout) ==="
@@ -407,9 +419,10 @@ stages:
               kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace)
               echo ""
               NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
-              echo "Backend API:  http://$(kubernetesNodeIp):$(backendNodePort)"
+              echo "Backend API:  $(backendApiUrl)"
+              echo "Frontend:     $(frontendBaseUrl)"
               if [ -n "$NODE_PORT" ]; then
-                echo "Frontend:     http://$(kubernetesNodeIp):$NODE_PORT"
+                echo "Frontend NodePort: http://$(kubernetesNodeIp):$NODE_PORT"
                 echo "APK download: http://$(kubernetesNodeIp):$NODE_PORT/downloads/$(apkFilename)"
               fi
             displayName: 'Display deployment status and URLs'
