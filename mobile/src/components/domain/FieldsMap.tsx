@@ -18,9 +18,10 @@ import {
   MapLayerType,
   FIELD_POLYGON_FILL,
   FIELD_POLYGON_STROKE,
-  mapLayerToMapType,
 } from '../../utils/mapLayers';
 import MapLayerToggle from './MapLayerToggle';
+import AppMapView from '../maps/AppMapView';
+import MapSetupBanner from '../maps/MapSetupBanner';
 import EmptyState from '../EmptyState';
 import { typography, spacing, spacingPatterns } from '../../theme';
 
@@ -176,13 +177,13 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
       ) : (
         <>
-          <MapView
+          <AppMapView
             ref={mapRef}
             style={styles.map}
             initialRegion={initialRegion}
+            mapLayer={mapLayer}
             showsUserLocation={!!currentLocation}
             showsMyLocationButton={false}
-            mapType={mapLayerToMapType(mapLayer)}
             scrollEnabled
             zoomEnabled
             zoomTapEnabled
@@ -223,7 +224,8 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
                 </Marker>
               );
             })}
-          </MapView>
+          </AppMapView>
+          <MapSetupBanner />
           <View style={styles.toggleOverlay}>
             <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
           </View>
