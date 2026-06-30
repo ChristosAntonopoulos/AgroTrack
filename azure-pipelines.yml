@@ -2,7 +2,7 @@
 # Builds Docker images, pushes to Docker Hub, deploys to Kubernetes.
 # Mobile APK: built from mobile/ (Gradle on agent, no EAS), staged into frontend/public/downloads,
 # then baked into the frontend Docker image for nginx to serve at /downloads/olivecycle-alpha.apk.
-# The frontend image does NOT build the APK — it only hosts the file produced by mobile/.
+# Maps use MapLibre Native + free Esri/OSM tiles (no Google API key).
 
 trigger:
   - master
@@ -172,7 +172,6 @@ stages:
         BUILD_ID: $(Build.BuildId)
         BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)
         APK_FILENAME: $(apkFilename)
-        GOOGLE_MAPS_API_KEY: $(GOOGLE_MAPS_API_KEY)
       continueOnError: false
       timeoutInMinutes: 90
 

@@ -1,6 +1,10 @@
 import { getTaskCategoryColor } from '../utils/calendarCategoryColors';
-import { getTaskService } from './serviceFactory';
+import { isMockDataEnabled } from '../config/env';
+import { taskService } from './taskService';
+import { mockTaskService } from './mockTaskService';
 import { Task } from './taskService';
+
+const getTaskService = () => (isMockDataEnabled() ? mockTaskService : taskService);
 
 export interface CalendarEvent {
   id: string;

@@ -1,20 +1,17 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { Marker, Polygon, MapPressEvent } from 'react-native-maps';
 import AppMapView from '../components/maps/AppMapView';
+import MapPolygonLayer from '../components/maps/MapPolygonLayer';
+import MapPointLayer from '../components/maps/MapPointLayer';
 import { useTranslation } from 'react-i18next';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { fieldService, GeoJsonPolygon } from '../services/fieldService';
 import { useTheme } from '../context/ThemeContext';
 import MapLayerToggle from '../components/domain/MapLayerToggle';
-import {
-  DEFAULT_MAP_LAYER,
-  MapLayerType,
-  FIELD_POLYGON_FILL,
-  FIELD_POLYGON_STROKE,
-} from '../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MapLayerType } from '../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon, regionForCenter, regionForPolygon } from '../utils/fieldGeo';
+import type { MapRegion } from '../utils/maplibreGeo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FieldMapBoundary'>;
 
@@ -26,7 +23,7 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
-  const [initialRegion, setInitialRegion] = useState({
+  const [region, setRegion] = useState<MapRegion>({
     latitude: 37.05,
     longitude: 21.85,
     latitudeDelta: 0.01,
@@ -40,30 +37,34 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
         const existing = resolveFieldPolygon(field);
         if (existing?.length) {
           setPoints(existing);
-          setInitialRegion(regionForPolygon(existing));
+          setRegion(regionForPolygon(existing));
           return;
         }
         const center = resolveFieldCenter(field);
         if (center) {
-          setInitialRegion(regionForCenter(center));
+          setRegion(regionForCenter(center));
         }
       })
       .catch(() => {});
   }, [fieldId]);
 
-  const region = useMemo(() => {
-    if (points.length > 0) {
-      if (points.length >= 3) return regionForPolygon(points);
-      return regionForCenter(points[0], 0.008);
+  useEffect(() => {
+    if (points.length >= 3) {
+      setRegion(regionForPolygon(points));
+    } else if (points.length === 1) {
+      setRegion(regionForCenter(points[0], 0.008));
     }
-    return initialRegion;
-  }, [points, initialRegion]);
+  }, [points]);
 
-  const onMapPress = (e: MapPressEvent) => {
-    setPoints((prev) => [...prev, e.nativeEvent.coordinate]);
-  };
-
-  const clearPoints = () => setPoints([]);
+  const vertexPoints = useMemo(
+    () =>
+      points.map((p, i) => ({
+        id: `vertex-${i}`,
+        coordinate: p,
+        color: colors.primaryDark,
+      })),
+    [points, colors.primaryDark]
+  );
 
   const saveBoundary = async () => {
     if (points.length < 3) {
@@ -93,19 +94,12 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
         <AppMapView
           style={styles.map}
           region={region}
-          onPress={onMapPress}
           mapLayer={mapLayer}
+          onPress={({ coordinate }) => setPoints((prev) => [...prev, coordinate])}
         >
-          {points.map((p, i) => (
-            <Marker key={`${p.latitude}-${p.longitude}-${i}`} coordinate={p} />
-          ))}
+          <MapPointLayer sourceId="boundary-vertices" points={vertexPoints} radius={8} />
           {points.length >= 3 ? (
-            <Polygon
-              coordinates={points}
-              strokeColor={FIELD_POLYGON_STROKE}
-              fillColor={FIELD_POLYGON_FILL}
-              strokeWidth={2}
-            />
+            <MapPolygonLayer id="draft-boundary" ring={points} />
           ) : null}
         </AppMapView>
         <View style={styles.toggleOverlay}>
@@ -116,7 +110,7 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.actions}>
         <Pressable
           style={[styles.btnOutline, { borderColor: colors.borderLight }]}
-          onPress={clearPoints}
+          onPress={() => setPoints([])}
         >
           <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
         </Pressable>

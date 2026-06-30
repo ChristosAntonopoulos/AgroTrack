@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,33 +9,16 @@ import {
   regionForCenter,
   regionForPolygon,
 } from '../../utils/fieldGeo';
-import {
-  DEFAULT_MAP_LAYER,
-  MapLayerType,
-  FIELD_POLYGON_FILL,
-  FIELD_POLYGON_STROKE,
-} from '../../utils/mapLayers';
-import AppMapView from '../maps/AppMapView';
+import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
+import MapPolygonLayer from '../maps/MapPolygonLayer';
+import MapPointLayer from '../maps/MapPointLayer';
 import MapLayerToggle from './MapLayerToggle';
 import { typography, spacing } from '../../theme';
-
-let MapView: any = null;
-let Polygon: any = null;
-let Marker: any = null;
-
-try {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Polygon = maps.Polygon;
-  Marker = maps.Marker;
-} catch {
-  // react-native-maps unavailable in this environment
-}
 
 export interface FieldDetailMapProps {
   field: Field;
   height?: number;
-  /** Pause parent ScrollView while the user pans/zooms the map. */
   onGestureActiveChange?: (active: boolean) => void;
 }
 
@@ -48,6 +31,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   const { t } = useTranslation('fields');
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef = useRef<AppMapViewRef>(null);
 
   const setGestureActive = useCallback(
     (active: boolean) => {
@@ -59,7 +43,6 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         onGestureActiveChange?.(true);
         return;
       }
-      // Brief delay so pinch gestures aren't interrupted by parent scroll re-enabling.
       releaseTimer.current = setTimeout(() => {
         onGestureActiveChange?.(false);
         releaseTimer.current = null;
@@ -70,7 +53,6 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
 
   const center = useMemo(() => resolveFieldCenter(field), [field]);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
-  const mapRef = useRef<any>(null);
 
   const region = useMemo(() => {
     if (polygon?.length) return regionForPolygon(polygon, 1.02, 0.00022);
@@ -79,15 +61,11 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   }, [polygon, center]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (!center) return;
     if (polygon && polygon.length >= 3) {
-      map.fitToCoordinates(polygon, {
-        edgePadding: { top: 16, right: 16, bottom: 16, left: 16 },
-        animated: false,
-      });
-    } else if (center) {
-      map.animateToRegion(regionForCenter(center, 0.00028), 0);
+      mapRef.current?.fitCoordinates(polygon, 16);
+    } else {
+      mapRef.current?.animateToRegion(regionForCenter(center, 0.00028));
     }
   }, [field.id, polygon, center]);
 
@@ -106,21 +84,6 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     );
   }
 
-  if (!MapView) {
-    return (
-      <View
-        style={[
-          styles.empty,
-          { height, backgroundColor: colors.surface, borderColor: colors.borderLight },
-        ]}
-      >
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-          {t('mapUnavailable')}
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View
       style={[styles.wrap, { height, borderColor: colors.borderLight }]}
@@ -130,28 +93,23 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     >
       <AppMapView
         ref={mapRef}
-        key={`field-map-${field.id}`}
+        key={`field-map-${field.id}-${mapLayer}`}
         style={styles.map}
         initialRegion={region}
         mapLayer={mapLayer}
         scrollEnabled
         zoomEnabled
-        zoomTapEnabled
-        zoomControlEnabled={Platform.OS === 'android'}
         rotateEnabled={false}
         pitchEnabled={false}
-        toolbarEnabled={false}
-        moveOnMarkerPress={false}
       >
         {polygon && polygon.length >= 3 ? (
-          <Polygon
-            coordinates={polygon}
-            strokeColor={FIELD_POLYGON_STROKE}
-            fillColor={FIELD_POLYGON_FILL}
-            strokeWidth={2}
-          />
+          <MapPolygonLayer id={field.id} ring={polygon} />
         ) : (
-          <Marker coordinate={center} />
+          <MapPointLayer
+            sourceId="field-center"
+            points={[{ id: field.id, coordinate: center, color: colors.primaryDark }]}
+            radius={10}
+          />
         )}
       </AppMapView>
       <View style={styles.toggle} pointerEvents="box-none">

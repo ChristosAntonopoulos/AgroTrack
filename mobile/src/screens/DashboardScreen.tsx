@@ -14,7 +14,7 @@ import { useDashboardWeather } from '../hooks/useDashboardWeather';
 import { useRecentActivities } from '../hooks/useRecentActivities';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Section from '../components/layout/Section';
-import OverviewMetricsStrip from '../components/layout/OverviewMetricsStrip';
+import DashboardQuickNav, { DashboardNavItem } from '../components/dashboard/DashboardQuickNav';
 import LoadingSpinner from '../components/LoadingSpinner';
 import AlertBanner from '../components/ui/AlertBanner';
 import AgendaTaskRow from '../components/domain/AgendaTaskRow';
@@ -32,7 +32,6 @@ import {
   countHighPriorityDueWeek,
   getAgendaTasks,
 } from '../utils/dashboardUtils';
-import { FieldsSummaryChipProps } from '../components/fields/FieldsSummaryHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -105,61 +104,105 @@ const DashboardScreen = () => {
 
   const owner = isFieldOwner();
 
-  const overviewMetrics = useMemo((): FieldsSummaryChipProps[] => {
+  const openTaskCount = useMemo(
+    () => tasks.filter(tk => tk.status !== 'completed').length,
+    [tasks]
+  );
+
+  const statusLine = useMemo(() => {
+    if (overdueCount > 0) {
+      return t('dashboard:quickNav.overdueHint', { count: overdueCount });
+    }
+    if (needsAttentionCount > 0 && owner) {
+      return t('dashboard:quickNav.attentionHint', { count: needsAttentionCount });
+    }
+    if (tasksDueWeek > 0) {
+      return t('dashboard:quickNav.weekHint', { count: tasksDueWeek });
+    }
+    return t('dashboard:quickNav.allClear');
+  }, [overdueCount, needsAttentionCount, tasksDueWeek, owner, t]);
+
+  const quickNavItems = useMemo((): DashboardNavItem[] => {
     if (!stats) return [];
     if (owner) {
-      const areaHa = (stats.totalArea || 0).toFixed(1);
+      const fieldCount = stats.totalFields || fields.length;
       return [
         {
+          id: 'fields',
           icon: 'leaf',
-          value: stats.totalFields || 0,
-          label: t('dashboard:summaryFieldsLabel', { area: areaHa }),
-          accentColor: colors.success,
+          label: t('dashboard:quickNav.fields'),
+          hint: fieldCount > 0 ? t('dashboard:quickNav.fieldsHint', { count: fieldCount }) : t('dashboard:quickNav.addField'),
           onPress: () => goTab('Fields'),
         },
         {
-          icon: 'calendar-outline',
-          value: tasksDueWeek,
-          label: t('dashboard:stats.tasksDueWeek'),
-          accentColor: colors.warning,
-          badge: highPriorityWeek > 0 ? highPriorityWeek : undefined,
+          id: 'calendar',
+          icon: 'calendar',
+          label: t('dashboard:quickNav.calendar'),
+          hint:
+            tasksDueWeek > 0
+              ? t('dashboard:quickNav.scheduledHint', { count: tasksDueWeek })
+              : t('dashboard:quickNav.nothingScheduled'),
+          badge: highPriorityWeek > 0 ? highPriorityWeek : tasksDueWeek > 0 ? tasksDueWeek : undefined,
           onPress: () => goTab('Calendar', { date: new Date().toISOString() }),
         },
         {
-          icon: 'alert-circle-outline',
-          value: needsAttentionCount,
-          label: t('dashboard:stats.needsAttention'),
-          accentColor: needsAttentionCount > 0 ? colors.error : colors.textTertiary,
-          badge: needsAttentionCount > 0 ? needsAttentionCount : undefined,
+          id: 'tasks',
+          icon: 'checkbox-outline',
+          label: t('dashboard:quickNav.tasks'),
+          hint:
+            openTaskCount > 0
+              ? t('dashboard:quickNav.openHint', { count: openTaskCount })
+              : t('dashboard:quickNav.noOpenTasks'),
+          badge: needsAttentionCount > 0 ? needsAttentionCount : openTaskCount > 0 ? openTaskCount : undefined,
+          urgent: needsAttentionCount > 0,
           onPress: () => goTab('Tasks'),
         },
       ];
     }
     return [
       {
-        icon: 'sync-outline',
-        value: stats.inProgressTasks || 0,
-        label: t('dashboard:stats.inProgress'),
-        accentColor: colors.info,
+        id: 'active',
+        icon: 'sync',
+        label: t('dashboard:quickNav.active'),
+        hint: t('dashboard:quickNav.inProgressHint', { count: stats.inProgressTasks || 0 }),
+        badge: stats.inProgressTasks || undefined,
         onPress: () => goTab('Tasks', { filter: 'in_progress' }),
       },
       {
-        icon: 'calendar-outline',
-        value: tasksDueWeek,
-        label: t('dashboard:stats.tasksDueWeek'),
-        accentColor: colors.warning,
+        id: 'calendar',
+        icon: 'calendar',
+        label: t('dashboard:quickNav.calendar'),
+        hint:
+          tasksDueWeek > 0
+            ? t('dashboard:quickNav.scheduledHint', { count: tasksDueWeek })
+            : t('dashboard:quickNav.nothingScheduled'),
+        badge: tasksDueWeek > 0 ? tasksDueWeek : undefined,
         onPress: () => goTab('Calendar', { date: new Date().toISOString() }),
       },
       {
-        icon: 'alert-circle-outline',
-        value: overdueCount,
-        label: t('dashboard:overdue'),
-        accentColor: overdueCount > 0 ? colors.error : colors.textTertiary,
+        id: 'overdue',
+        icon: 'alert-circle',
+        label: t('dashboard:quickNav.overdue'),
+        hint:
+          overdueCount > 0
+            ? t('dashboard:quickNav.overdueTileHint', { count: overdueCount })
+            : t('dashboard:quickNav.onTrack'),
         badge: overdueCount > 0 ? overdueCount : undefined,
+        urgent: overdueCount > 0,
         onPress: () => goTab('Tasks'),
       },
     ];
-  }, [stats, owner, tasksDueWeek, highPriorityWeek, needsAttentionCount, overdueCount, colors, t]);
+  }, [
+    stats,
+    owner,
+    fields.length,
+    tasksDueWeek,
+    highPriorityWeek,
+    openTaskCount,
+    needsAttentionCount,
+    overdueCount,
+    t,
+  ]);
 
   if (loading && !stats) return <LoadingSpinner fullScreen />;
   if (!user || !stats) return null;
@@ -174,7 +217,12 @@ const DashboardScreen = () => {
 
   return (
     <View style={styles.root}>
-      <OverviewMetricsStrip greeting={greeting} dateLabel={dateLabel} metrics={overviewMetrics} />
+      <DashboardQuickNav
+        greeting={greeting}
+        dateLabel={dateLabel}
+        statusLine={statusLine}
+        items={quickNavItems}
+      />
 
       <ScreenLayout
         scroll

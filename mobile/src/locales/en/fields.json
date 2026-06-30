@@ -78,7 +78,7 @@
   "mapEmptyTitle": "No fields to show on the map",
   "mapEmptyDescription": "Add a field boundary on the map or set GPS coordinates to see fields here.",
   "mapUnavailable": "Map view is not available on this device.",
-  "mapKeyMissing": "Map tiles need a Google Maps API key in the Android build. Contact your administrator.",
+  "mapRequiresNativeBuild": "Maps need a custom app build — not Expo Go. Run npx expo run:android locally, or install the AgroTrack APK from the pipeline.",
   "mapLocationHint": "Location enabled",
   "mapLayerSatellite": "Satellite",
   "mapLayerStreet": "Street",

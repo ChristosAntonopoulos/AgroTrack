@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Card from '../ui/Card';
 import { Field } from '../../services/fieldService';
@@ -13,32 +13,13 @@ import {
   regionForCenter,
   LatLng,
 } from '../../utils/fieldGeo';
-import {
-  DEFAULT_MAP_LAYER,
-  MapLayerType,
-  FIELD_POLYGON_FILL,
-  FIELD_POLYGON_STROKE,
-} from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
 import MapLayerToggle from './MapLayerToggle';
-import AppMapView from '../maps/AppMapView';
-import MapSetupBanner from '../maps/MapSetupBanner';
+import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
+import MapPolygonLayer from '../maps/MapPolygonLayer';
+import MapPointLayer from '../maps/MapPointLayer';
 import EmptyState from '../EmptyState';
 import { typography, spacing, spacingPatterns } from '../../theme';
-
-let MapView: any = null;
-let Marker: any = null;
-let Polygon: any = null;
-
-try {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-  Polygon = maps.Polygon;
-} catch {
-  if (__DEV__) {
-    console.log('[FieldsMap] react-native-maps not available');
-  }
-}
 
 const collectFitPoints = (fields: Field[]): LatLng[] => {
   const points: LatLng[] = [];
@@ -60,7 +41,6 @@ export interface FieldsMapProps {
   compact?: boolean;
   height?: number;
   embedded?: boolean;
-  /** Use all available vertical space (fields list map mode). */
   fillScreen?: boolean;
 }
 
@@ -74,15 +54,15 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('fields');
-  const mapRef = useRef<any>(null);
-  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const mapRef = useRef<AppMapViewRef>(null);
+  const [hasLocation, setHasLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
 
   useEffect(() => {
     locationService
       .getCurrentLocation()
-      .then((loc) => setCurrentLocation(loc))
+      .then(() => setHasLocation(true))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -112,22 +92,29 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
   }, [fitPoints]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || fitPoints.length === 0) return;
-    if (fitPoints.length === 1) {
-      map.animateToRegion(regionForCenter(fitPoints[0], 0.003), 0);
-      return;
-    }
-    map.fitToCoordinates(fitPoints, {
-      edgePadding: { top: 48, right: 32, bottom: 48, left: 32 },
-      animated: false,
-    });
+    if (fitPoints.length === 0) return;
+    mapRef.current?.fitCoordinates(fitPoints);
   }, [fitPoints, fields.length]);
 
   const safeCompact = toBoolean(compact, 'FieldsMap.compact');
 
   const getLifecycleColor = (lifecycleYear: string) =>
     lifecycleYear === 'high' ? colors.lifecycleHigh : colors.lifecycleLow;
+
+  const markerPoints = useMemo(
+    () =>
+      mappableFields
+        .filter((field) => {
+          const polygon = resolveFieldPolygon(field);
+          return !polygon || polygon.length < 3;
+        })
+        .map((field) => ({
+          id: field.id,
+          coordinate: resolveFieldCenter(field)!,
+          color: getLifecycleColor(field.currentLifecycleYear),
+        })),
+    [mappableFields, colors.lifecycleHigh, colors.lifecycleLow]
+  );
 
   const mapHeightStyle = fillScreen ? styles.mapFill : { height };
 
@@ -144,33 +131,6 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
     );
   }
 
-  if (!MapView || !initialRegion) {
-    return (
-      <Card variant="elevated" style={!embedded ? styles.container : undefined}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>
-          {t('mapTitle')} ({mappableFields.length})
-        </Text>
-        <View style={styles.fallbackList}>
-          {mappableFields.map((field) => {
-            const center = resolveFieldCenter(field)!;
-            return (
-              <TouchableOpacity
-                key={field.id}
-                style={[styles.fieldItem, { backgroundColor: colors.surface }]}
-                onPress={() => onFieldPress?.(field.id)}
-              >
-                <Text style={[styles.fieldName, { color: colors.textPrimary }]}>{field.name}</Text>
-                <Text style={[styles.fieldMeta, { color: colors.textSecondary }]}>
-                  {formatFieldArea(field)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Card>
-    );
-  }
-
   const mapContent = (
     <View style={[styles.mapContainer, mapHeightStyle, { backgroundColor: colors.gray200 }]}>
       {loading ? (
@@ -182,50 +142,29 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
             style={styles.map}
             initialRegion={initialRegion}
             mapLayer={mapLayer}
-            showsUserLocation={!!currentLocation}
-            showsMyLocationButton={false}
+            showUserLocation={hasLocation}
             scrollEnabled
             zoomEnabled
-            zoomTapEnabled
-            zoomControlEnabled={Platform.OS === 'android'}
-            rotateEnabled={false}
-            pitchEnabled={false}
           >
             {mappableFields.map((field) => {
-              const center = resolveFieldCenter(field)!;
               const polygon = resolveFieldPolygon(field);
-              const lifecycleColor = getLifecycleColor(field.currentLifecycleYear);
-
-              if (polygon && polygon.length >= 3) {
-                return (
-                  <Polygon
-                    key={field.id}
-                    coordinates={polygon}
-                    strokeColor={FIELD_POLYGON_STROKE}
-                    fillColor={FIELD_POLYGON_FILL}
-                    strokeWidth={2}
-                    tappable
-                    onPress={() => onFieldPress?.(field.id)}
-                  />
-                );
-              }
-
+              if (!polygon || polygon.length < 3) return null;
               return (
-                <Marker
+                <MapPolygonLayer
                   key={field.id}
-                  coordinate={center}
-                  title={field.name}
-                  description={formatFieldArea(field)}
-                  onPress={() => onFieldPress?.(field.id)}
-                >
-                  <View style={[styles.markerContainer, { backgroundColor: lifecycleColor, borderColor: colors.white }]}>
-                    <Text style={styles.markerText}>🏡</Text>
-                  </View>
-                </Marker>
+                  id={field.id}
+                  ring={polygon}
+                  onPress={onFieldPress}
+                />
               );
             })}
+            <MapPointLayer
+              sourceId="field-markers"
+              points={markerPoints}
+              radius={12}
+              onPress={onFieldPress}
+            />
           </AppMapView>
-          <MapSetupBanner />
           <View style={styles.toggleOverlay}>
             <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
           </View>
@@ -302,16 +241,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   countText: { ...typography.styles.caption, fontWeight: '600', fontSize: 11 },
-  markerContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    ...spacingPatterns.shadow.md,
-  },
-  markerText: { fontSize: 16 },
   legend: {
     flexDirection: 'row',
     marginTop: spacing.sm,
@@ -325,16 +254,6 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
   },
   legendText: { ...typography.styles.caption, fontSize: 11 },
-  fallbackList: { gap: spacing.sm },
-  fieldItem: {
-    padding: spacing.sm,
-    borderRadius: spacingPatterns.borderRadius.md,
-  },
-  fieldName: {
-    ...typography.styles.bodySmall,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  fieldMeta: { ...typography.styles.caption, fontSize: 11, marginTop: 2 },
 });
 
 export default FieldsMap;

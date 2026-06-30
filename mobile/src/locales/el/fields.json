@@ -78,7 +78,7 @@
   "mapEmptyTitle": "Δεν υπάρχουν αγροτεμάχια στον χάρτη",
   "mapEmptyDescription": "Προσθέστε όριο στον χάρτη ή ορίστε GPS για να εμφανιστούν εδώ.",
   "mapUnavailable": "Η προβολή χάρτη δεν είναι διαθέσιμη σε αυτή τη συσκευή.",
-  "mapKeyMissing": "Οι πλακίδια χάρτη απαιτούν κλειδί Google Maps API στο Android build. Επικοινωνήστε με τον διαχειριστή.",
+  "mapRequiresNativeBuild": "Οι χάρτες απαιτούν custom build — όχι Expo Go. Εκτελέστε npx expo run:android τοπικά ή εγκαταστήστε το APK AgroTrack από το pipeline.",
   "mapLocationHint": "Ενεργή τοποθεσία",
   "mapLayerSatellite": "Δορυφόρος",
   "mapLayerStreet": "Οδός",

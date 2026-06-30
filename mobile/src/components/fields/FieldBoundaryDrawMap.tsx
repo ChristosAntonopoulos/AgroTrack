@@ -1,20 +1,17 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { Marker, Polygon, MapPressEvent, Region } from 'react-native-maps';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import AppMapView from '../maps/AppMapView';
+import MapPolygonLayer from '../maps/MapPolygonLayer';
+import MapPointLayer from '../maps/MapPointLayer';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import MapLayerToggle from '../domain/MapLayerToggle';
-import {
-  DEFAULT_MAP_LAYER,
-  MapLayerType,
-  FIELD_POLYGON_FILL,
-  FIELD_POLYGON_STROKE,
-} from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
 import { regionForCenter, regionForPolygon } from '../../utils/fieldGeo';
 import { estimatePolygonAreaSqm } from '../../utils/polygonArea';
 import { locationService } from '../../services/locationService';
 import { typography, spacing } from '../../theme';
+import type { MapRegion } from '../../utils/maplibreGeo';
 
 export type BoundaryPoint = { latitude: number; longitude: number };
 
@@ -36,7 +33,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
   const { colors } = useTheme();
   const { t } = useTranslation('fields');
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
-  const [region, setRegion] = useState<Region>({
+  const [region, setRegion] = useState<MapRegion>({
     latitude: 37.05,
     longitude: 21.85,
     latitudeDelta: 0.01,
@@ -72,12 +69,15 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
     return Math.round(estimatePolygonAreaSqm(ring));
   }, [points]);
 
-  const onMapPress = (e: MapPressEvent) => {
-    onPointsChange([...points, e.nativeEvent.coordinate]);
-  };
-
-  const undoLast = () => onPointsChange(points.slice(0, -1));
-  const clearAll = () => onPointsChange([]);
+  const vertexPoints = useMemo(
+    () =>
+      points.map((p, i) => ({
+        id: `vertex-${i}`,
+        coordinate: p,
+        color: colors.primaryDark,
+      })),
+    [points, colors.primaryDark]
+  );
 
   const centerOnUser = async () => {
     try {
@@ -106,26 +106,16 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
         <AppMapView
           style={styles.map}
           region={region}
-          onRegionChangeComplete={setRegion}
-          onPress={onMapPress}
           mapLayer={mapLayer}
           scrollEnabled
           zoomEnabled
-          zoomTapEnabled
-          zoomControlEnabled={Platform.OS === 'android'}
           rotateEnabled={false}
           pitchEnabled={false}
+          onPress={({ coordinate }) => onPointsChange([...points, coordinate])}
         >
-          {points.map((p, i) => (
-            <Marker key={`${p.latitude}-${p.longitude}-${i}`} coordinate={p} />
-          ))}
+          <MapPointLayer sourceId="boundary-vertices" points={vertexPoints} radius={8} />
           {points.length >= 3 ? (
-            <Polygon
-              coordinates={points}
-              strokeColor={FIELD_POLYGON_STROKE}
-              fillColor={FIELD_POLYGON_FILL}
-              strokeWidth={2}
-            />
+            <MapPolygonLayer id="draft-boundary" ring={points} />
           ) : null}
         </AppMapView>
         <View style={styles.toggle} pointerEvents="box-none">
@@ -134,10 +124,10 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
       </View>
 
       <View style={styles.toolbar}>
-        <Pressable style={[styles.toolBtn, { borderColor: colors.borderLight }]} onPress={undoLast}>
+        <Pressable style={[styles.toolBtn, { borderColor: colors.borderLight }]} onPress={() => onPointsChange(points.slice(0, -1))}>
           <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.undoPoint')}</Text>
         </Pressable>
-        <Pressable style={[styles.toolBtn, { borderColor: colors.borderLight }]} onPress={clearAll}>
+        <Pressable style={[styles.toolBtn, { borderColor: colors.borderLight }]} onPress={() => onPointsChange([])}>
           <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
         </Pressable>
         <Pressable
