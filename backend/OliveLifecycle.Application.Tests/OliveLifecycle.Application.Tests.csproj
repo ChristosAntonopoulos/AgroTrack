@@ -22,4 +22,8 @@
     <ProjectReference Include="..\OliveLifecycle.Common\OliveLifecycle.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Fixtures\Cadastre\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

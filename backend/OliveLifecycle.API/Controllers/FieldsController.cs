@@ -63,6 +63,82 @@ public class FieldsController : BaseApiController
         return NoContent();
     }
 
+    [HttpPost("import/greek-cadastre")]
+    [RequestSizeLimit(20_000_000)]
+    public async Task<ActionResult<ImportGreekCadastreFieldResponse>> ImportGreekCadastre(
+        [FromForm] IFormFile kdFile,
+        [FromForm] IFormFile kfFile,
+        CancellationToken cancellationToken)
+    {
+        if (kdFile == null || kfFile == null)
+        {
+            return BadRequest(new { message = "Both kdFile and kfFile PDF uploads are required." });
+        }
+
+        await using var kdStream = kdFile.OpenReadStream();
+        await using var kfStream = kfFile.OpenReadStream();
+        var response = await _fieldService.ImportGreekCadastreAsync(
+            UserContext.UserId,
+            kdStream,
+            kdFile.FileName,
+            kfStream,
+            kfFile.FileName,
+            cancellationToken);
+        return OkResult(response);
+    }
+
+    [HttpPut("{id}/boundary")]
+    public async Task<ActionResult<FieldDto>> UpdateBoundary(
+        string id,
+        [FromBody] UpdateFieldBoundaryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var field = await _fieldService.UpdateBoundaryAsync(id, UserContext.UserId, request, cancellationToken);
+        return OkResult(field);
+    }
+
+    [HttpPost("{id}/validate-area")]
+    public async Task<ActionResult<FieldAreaValidationResponse>> ValidateArea(string id, CancellationToken cancellationToken)
+    {
+        var response = await _fieldService.ValidateAreaAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(response);
+    }
+
+    [HttpPost("{id}/activate")]
+    public async Task<ActionResult<ActivateFieldResponse>> ActivateField(
+        string id,
+        [FromBody] ActivateFieldRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _fieldService.ActivateFieldAsync(id, UserContext.UserId, UserContext.Role, request, cancellationToken);
+        return OkResult(response);
+    }
+
+    [HttpPost("{id}/documents")]
+    [RequestSizeLimit(20_000_000)]
+    public async Task<ActionResult<FieldDto>> UploadDocument(
+        string id,
+        [FromForm] IFormFile file,
+        [FromForm] string? type,
+        CancellationToken cancellationToken)
+    {
+        if (file == null)
+        {
+            return BadRequest(new { message = "No file uploaded." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var field = await _fieldService.UploadDocumentAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            stream,
+            file.FileName,
+            type ?? "Other",
+            cancellationToken);
+        return OkResult(field);
+    }
+
     [HttpGet("{id}/producers")]
     public async Task<ActionResult<IEnumerable<string>>> GetAssignedProducers(string id, CancellationToken cancellationToken)
     {

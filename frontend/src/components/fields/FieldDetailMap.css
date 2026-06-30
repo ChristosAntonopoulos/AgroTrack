@@ -1,0 +1,71 @@
+.field-detail-map {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--bg-hover);
+}
+
+.field-detail-map--empty {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.field-detail-map-leaflet {
+  height: 100%;
+  width: 100%;
+}
+
+.field-detail-map-layer-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1000;
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+.field-detail-map-layer-toggle button {
+  padding: 0.3rem 0.65rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.field-detail-map-layer-toggle button + button {
+  border-left: 1px solid var(--color-border);
+}
+
+.field-detail-map-layer-toggle button.active {
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-elevated));
+  color: var(--color-primary-light);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .field-detail-map-layer-toggle button.active {
+  color: var(--color-primary-lighter);
+}
+
+.field-detail-map .leaflet-bar a {
+  background-color: var(--bg-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom-color: var(--color-border) !important;
+}
+
+.field-detail-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg-page) 80%, transparent) !important;
+  color: var(--color-text-muted) !important;
+  font-size: 0.6rem;
+}

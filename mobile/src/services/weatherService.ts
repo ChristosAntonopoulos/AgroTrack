@@ -1,15 +1,14 @@
-// Weather Service - Provides weather data for fields
-// Currently uses mock data, structured for future API integration (OpenWeatherMap)
-
 export interface WeatherData {
-  temperature: number; // Celsius
-  condition: string; // 'sunny', 'cloudy', 'rainy', 'stormy', etc.
-  humidity: number; // 0-100
-  windSpeed: number; // km/h
-  precipitation: number; // mm
-  pressure: number; // hPa
-  icon: string; // Emoji or icon identifier
+  temperature: number;
+  condition: string;
+  humidity: number;
+  windSpeed: number;
+  precipitation: number;
+  pressure?: number;
+  icon: string;
   description: string;
+  high: number;
+  low: number;
   timestamp: Date;
 }
 
@@ -33,82 +32,57 @@ export interface WeatherAlert {
 export interface IrrigationRecommendation {
   recommended: boolean;
   reason: string;
-  amount?: number; // mm of water
+  amount?: number;
   urgency: 'low' | 'medium' | 'high';
 }
 
-// Mock weather data generator
-const generateMockWeather = (lat: number, lng: number): WeatherData => {
-  // Simple variation based on coordinates for realism
-  const seed = Math.floor((lat + lng) * 100) % 100;
-  const baseTemp = 20 + (seed % 15); // 20-35°C
-  
-  const conditions = ['sunny', 'cloudy', 'partly_cloudy', 'rainy'];
-  const condition = conditions[seed % conditions.length];
-  
-  return {
-    temperature: baseTemp,
-    condition,
-    humidity: 40 + (seed % 40), // 40-80%
-    windSpeed: 5 + (seed % 20), // 5-25 km/h
-    precipitation: condition === 'rainy' ? 5 + (seed % 15) : 0,
-    pressure: 1010 + (seed % 20), // 1010-1030 hPa
-    icon: condition === 'sunny' ? '☀️' : condition === 'cloudy' ? '☁️' : condition === 'rainy' ? '🌧️' : '⛅',
-    description: `Partly ${condition}`,
-    timestamp: new Date(),
-  };
+const weatherCodeLabel = (code: number): { condition: string; icon: string; description: string } => {
+  if (code === 0) return { condition: 'clear', icon: '☀️', description: 'Clear sky' };
+  if (code <= 3) return { condition: 'partly_cloudy', icon: '⛅', description: 'Partly cloudy' };
+  if (code <= 48) return { condition: 'cloudy', icon: '☁️', description: 'Cloudy' };
+  if (code <= 67) return { condition: 'rainy', icon: '🌧️', description: 'Rain' };
+  if (code <= 77) return { condition: 'snowy', icon: '❄️', description: 'Snow' };
+  if (code <= 82) return { condition: 'rainy', icon: '🌦️', description: 'Rain showers' };
+  if (code <= 86) return { condition: 'snowy', icon: '🌨️', description: 'Snow showers' };
+  if (code >= 95) return { condition: 'stormy', icon: '⛈️', description: 'Thunderstorm' };
+  return { condition: 'cloudy', icon: '☁️', description: 'Cloudy' };
 };
 
-const generateMockForecast = (days: number = 7): ForecastData[] => {
-  const forecast: ForecastData[] = [];
-  const today = new Date();
-  
-  for (let i = 0; i < days; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + i);
-    
-    const seed = (i * 13) % 100;
-    const baseTemp = 20 + (seed % 15);
-    
-    forecast.push({
-      date,
-      high: baseTemp + 5,
-      low: baseTemp - 5,
-      condition: i % 3 === 0 ? 'sunny' : i % 3 === 1 ? 'cloudy' : 'partly_cloudy',
-      precipitation: i % 4 === 0 ? 2 + (seed % 5) : 0,
-      icon: i % 3 === 0 ? '☀️' : i % 3 === 1 ? '☁️' : '⛅',
-    });
-  }
-  
-  return forecast;
-};
-
-const generateMockAlerts = (lat: number, lng: number): WeatherAlert[] => {
+const deriveAlerts = (weather: WeatherData): WeatherAlert[] => {
   const alerts: WeatherAlert[] = [];
-  const seed = Math.floor((lat + lng) * 100) % 100;
-  
-  // 30% chance of frost alert
-  if (seed % 10 < 3) {
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  if (weather.low <= 2) {
     alerts.push({
       type: 'frost',
-      severity: seed % 3 === 0 ? 'high' : 'medium',
-      message: 'Frost warning: Temperatures may drop below freezing tonight',
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      severity: weather.low <= 0 ? 'high' : 'medium',
+      message: 'Frost risk: overnight temperatures may drop near freezing.',
+      startDate: now,
+      endDate: tomorrow,
     });
   }
-  
-  // 20% chance of storm alert
-  if (seed % 10 < 2) {
+
+  if (weather.condition === 'stormy' || weather.windSpeed >= 40) {
     alerts.push({
       type: 'storm',
-      severity: 'medium',
-      message: 'Thunderstorm expected in the next 6 hours',
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 6 * 60 * 60 * 1000),
+      severity: weather.windSpeed >= 50 ? 'high' : 'medium',
+      message: 'Strong wind or storm conditions — field work may be unsafe.',
+      startDate: now,
+      endDate: tomorrow,
     });
   }
-  
+
+  if (weather.temperature >= 35) {
+    alerts.push({
+      type: 'heat',
+      severity: weather.temperature >= 38 ? 'high' : 'medium',
+      message: 'High heat — plan irrigation and avoid midday field work.',
+      startDate: now,
+      endDate: tomorrow,
+    });
+  }
+
   return alerts;
 };
 
@@ -116,93 +90,138 @@ export interface WeatherService {
   getCurrentWeather(lat: number, lng: number): Promise<WeatherData>;
   getForecast(lat: number, lng: number, days?: number): Promise<ForecastData[]>;
   getWeatherAlerts(lat: number, lng: number): Promise<WeatherAlert[]>;
-  getIrrigationRecommendation(field: { irrigationStatus: boolean; currentLifecycleYear: string }, weather: WeatherData): IrrigationRecommendation;
+  getIrrigationRecommendation(
+    field: { irrigationStatus: boolean; currentLifecycleYear: string },
+    weather: WeatherData
+  ): IrrigationRecommendation;
   isWorkable(weather: WeatherData): boolean;
 }
 
 class WeatherServiceImpl implements WeatherService {
-  private cache: Map<string, { data: WeatherData; timestamp: Date }> = new Map();
-  private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+  private cache = new Map<string, { data: WeatherData; timestamp: number }>();
+  private readonly CACHE_DURATION = 15 * 60 * 1000;
 
   async getCurrentWeather(lat: number, lng: number): Promise<WeatherData> {
-    const cacheKey = `${lat.toFixed(2)}_${lng.toFixed(2)}`;
+    const cacheKey = `${lat.toFixed(3)}_${lng.toFixed(3)}`;
     const cached = this.cache.get(cacheKey);
-    
-    if (cached && (Date.now() - cached.timestamp.getTime()) < this.CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       return cached.data;
     }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const weather = generateMockWeather(lat, lng);
-    this.cache.set(cacheKey, { data: weather, timestamp: new Date() });
-    
+
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', String(lat));
+    url.searchParams.set('longitude', String(lng));
+    url.searchParams.set(
+      'current',
+      'temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code'
+    );
+    url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum');
+    url.searchParams.set('timezone', 'auto');
+    url.searchParams.set('forecast_days', '7');
+
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      throw new Error('Weather unavailable');
+    }
+
+    const data = await res.json();
+    const code = data.current?.weather_code ?? 0;
+    const meta = weatherCodeLabel(code);
+
+    const weather: WeatherData = {
+      temperature: Math.round(data.current.temperature_2m),
+      condition: meta.condition,
+      humidity: Math.round(data.current.relative_humidity_2m),
+      windSpeed: Math.round(data.current.wind_speed_10m),
+      precipitation: data.current.precipitation ?? 0,
+      icon: meta.icon,
+      description: meta.description,
+      high: Math.round(data.daily?.temperature_2m_max?.[0] ?? data.current.temperature_2m),
+      low: Math.round(data.daily?.temperature_2m_min?.[0] ?? data.current.temperature_2m),
+      timestamp: new Date(),
+    };
+
+    this.cache.set(cacheKey, { data: weather, timestamp: Date.now() });
     return weather;
   }
 
-  async getForecast(lat: number, lng: number, days: number = 7): Promise<ForecastData[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return generateMockForecast(days);
+  async getForecast(lat: number, lng: number, days = 7): Promise<ForecastData[]> {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', String(lat));
+    url.searchParams.set('longitude', String(lng));
+    url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum');
+    url.searchParams.set('timezone', 'auto');
+    url.searchParams.set('forecast_days', String(days));
+
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = await res.json();
+    const times: string[] = data.daily?.time ?? [];
+    return times.map((time, i) => {
+      const code = data.daily?.weather_code?.[i] ?? 0;
+      const meta = weatherCodeLabel(code);
+      return {
+        date: new Date(time),
+        high: Math.round(data.daily.temperature_2m_max[i]),
+        low: Math.round(data.daily.temperature_2m_min[i]),
+        condition: meta.condition,
+        precipitation: data.daily.precipitation_sum?.[i] ?? 0,
+        icon: meta.icon,
+      };
+    });
   }
 
   async getWeatherAlerts(lat: number, lng: number): Promise<WeatherAlert[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return generateMockAlerts(lat, lng);
+    try {
+      const weather = await this.getCurrentWeather(lat, lng);
+      return deriveAlerts(weather);
+    } catch {
+      return [];
+    }
   }
 
   getIrrigationRecommendation(
     field: { irrigationStatus: boolean; currentLifecycleYear: string },
     weather: WeatherData
   ): IrrigationRecommendation {
-    // Simple logic: recommend irrigation if:
-    // - No rain in last 24h (precipitation = 0)
-    // - Low humidity (< 50%)
-    // - High year (needs more water)
-    // - Temperature > 25°C
-    
-    const needsWater = weather.precipitation === 0 && 
-                      weather.humidity < 50 && 
-                      (field.currentLifecycleYear === 'high' || weather.temperature > 25);
-    
+    const needsWater =
+      weather.precipitation === 0 &&
+      weather.humidity < 50 &&
+      (field.currentLifecycleYear === 'high' || weather.temperature > 25);
+
     if (needsWater) {
-      const amount = field.currentLifecycleYear === 'high' ? 15 : 10; // mm
-      const urgency = weather.temperature > 30 || weather.humidity < 30 ? 'high' : 
-                     weather.temperature > 25 ? 'medium' : 'low';
-      
+      const amount = field.currentLifecycleYear === 'high' ? 15 : 10;
+      const urgency =
+        weather.temperature > 30 || weather.humidity < 30
+          ? 'high'
+          : weather.temperature > 25
+            ? 'medium'
+            : 'low';
+
       return {
         recommended: true,
-        reason: `Low humidity (${weather.humidity}%) and no precipitation. ${field.currentLifecycleYear === 'high' ? 'High year requires more water.' : ''}`,
+        reason: `Low humidity (${weather.humidity}%) and no precipitation.`,
         amount,
         urgency,
       };
     }
-    
+
     return {
       recommended: false,
-      reason: weather.precipitation > 0 
-        ? `Recent precipitation (${weather.precipitation}mm)` 
-        : `Adequate humidity (${weather.humidity}%)`,
+      reason:
+        weather.precipitation > 0
+          ? `Recent precipitation (${weather.precipitation}mm)`
+          : `Adequate humidity (${weather.humidity}%)`,
       urgency: 'low',
     };
   }
 
   isWorkable(weather: WeatherData): boolean {
-    // Not workable if:
-    // - Heavy rain (precipitation > 10mm)
-    // - Storm conditions
-    // - Very high wind (> 30 km/h)
-    
-    return weather.precipitation < 10 && 
-           weather.condition !== 'stormy' && 
-           weather.windSpeed < 30;
+    return weather.precipitation < 10 && weather.condition !== 'stormy' && weather.windSpeed < 30;
   }
 }
 
-// Export singleton instance
 export const weatherService: WeatherService = new WeatherServiceImpl();
-
-// Future: Replace with real API implementation
-// export const weatherService: WeatherService = new OpenWeatherMapService(API_KEY);

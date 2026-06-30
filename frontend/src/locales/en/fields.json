@@ -14,8 +14,12 @@
   "emptyTitle": "No fields found",
   "emptyDescription": "Create your first field to start managing your olive grove",
   "mapTitle": "Fields Map",
-  "mapSubtitle": "View your fields on the map (GPS coordinates required)",
+  "mapSubtitle": "Satellite view of your fields — boundaries, GPS points, or map centers",
+  "mapEmptyTitle": "No fields to show on the map",
+  "mapEmptyDescription": "Add a field boundary on the map or set GPS coordinates to see fields here.",
+  "mapLocationHint": "Enable location permissions to see distances from you.",
   "deleteConfirm": "Are you sure you want to delete this field?",
+  "deleteField": "Delete field",
   "sortLabel": "Sort fields",
   "sortName": "Name",
   "sortArea": "Area",
@@ -71,6 +75,7 @@
     "update": "Update field",
     "back": "Back",
     "next": "Next",
+    "saveDraft": "Save as draft",
     "failedLoad": "Failed to load field",
     "failedSave": "Failed to save field",
     "stepsAria": "Field form steps",
@@ -84,12 +89,20 @@
     "locationDesc": "Optional GPS coordinates for map and navigation.",
     "detailsDesc": "Soil type and irrigation setup.",
     "reviewDesc": "Confirm everything before saving.",
+    "selectOption": "Select…",
     "errors": {
       "nameRequired": "Field name is required.",
       "areaRequired": "Area must be greater than zero.",
       "latInvalid": "Latitude must be between -90 and 90.",
       "lngInvalid": "Longitude must be between -180 and 180."
     }
+  },
+  "mapLocationHint": "Enable location permissions to see distances from you.",
+  "weather": {
+    "today": "Weather today",
+    "live": "Live",
+    "unavailable": "Weather data unavailable for this location.",
+    "highLow": "H {{high}}° · L {{low}}°"
   },
   "controlRoom": {
     "title": "Field Control Room",
@@ -208,5 +221,94 @@
     "notesPlaceholder": "Notes (optional)",
     "beforeAfterRequired": "Before/after proof required to complete.",
     "unassigned": "Unassigned"
+  },
+  "addField": {
+    "title": "Add Field",
+    "subtitle": "Set up your operational field with map boundary and optional cadastre reference.",
+    "activate": "Activate field",
+    "cropType": "Crop type",
+    "locationText": "Location",
+    "locationPlaceholder": "Vatolaka Agrili, Filiatra, Messinia",
+    "kaek": "KAEK (optional)",
+    "kaekHint": "Official parcel ID for reference only. No data is fetched from gov.gr.",
+    "officialArea": "Official cadastre area",
+    "measuredArea": "Measured area",
+    "notDrawn": "Not drawn yet",
+    "difference": "Difference",
+    "areaComparison": "Area comparison",
+    "coordinateSystem": "Coordinate system",
+    "mapScale": "Map scale",
+    "printDate": "Print date",
+    "status": "Status",
+    "municipality": "Municipality",
+    "postalCode": "Postal code",
+    "prefecture": "Prefecture",
+    "cadastralOffice": "Cadastral office",
+    "boundary": "Boundary",
+    "boundaryDrawn": "Polygon drawn",
+    "treeCount": "Tree count",
+    "oliveVariety": "Olive variety",
+    "irrigationType": "Irrigation",
+    "soilType": "Soil type",
+    "slope": "Slope",
+    "accessNotes": "Access notes",
+    "searchLocation": "Search location…",
+    "search": "Search",
+    "useCurrentLocation": "Use my location",
+    "mapLayerSatellite": "Satellite",
+    "mapLayerStreet": "Street map",
+    "confirmBoundary": "I confirm that the boundary drawn represents the field I want to manage in AgroTrack.",
+    "confirmCadastre": "I understand the cadastre extract is reference data only and not legal proof inside AgroTrack.",
+    "basicsDesc": "Name, crop, and location for this field.",
+    "boundaryDesc": "Draw the real working boundary. This may differ from the legal parcel.",
+    "cropDesc": "Optional crop profile for planning and reports.",
+    "reviewDesc": "Review and activate when ready.",
+    "methods": {
+      "title": "How do you want to add this field?",
+      "subtitle": "Choose the method that fits your situation.",
+      "draw": { "title": "Draw manually", "desc": "Best if you know your field boundary on the map." },
+      "cadastre": { "title": "Import from Κτηματολόγιο PDF", "desc": "Upload KD/KF extracts and we prepare a draft field." },
+      "kaek": { "title": "Enter KAEK manually", "desc": "Use the official parcel ID as a reference." }
+    },
+    "cadastre": {
+      "title": "Cadastre PDF import",
+      "helper": "Upload the two PDF extracts from Ελληνικό Κτηματολόγιο. We read only parcel and location data needed to create the field.",
+      "disclaimer": "The cadastre extract is used only as a reference for field setup. It is not treated as a legal ownership certificate.",
+      "kdLabel": "KD — spatial extract",
+      "kfLabel": "KF — descriptive extract",
+      "upload": "Parse PDFs and create draft",
+      "bothRequired": "Both KD and KF PDF files are required.",
+      "uploadFailed": "Failed to parse cadastre PDFs.",
+      "referenceTitle": "Cadastre reference",
+      "referenceDisclaimer": "Reference data only — not legal ownership proof."
+    },
+    "steps": {
+      "method": "Method",
+      "cadastre": "Cadastre",
+      "basics": "Details",
+      "boundary": "Map",
+      "crop": "Crop",
+      "review": "Review"
+    },
+    "statuses": {
+      "Draft": "Draft",
+      "NeedsBoundaryConfirmation": "Needs boundary",
+      "NeedsAreaReview": "Needs area review",
+      "Active": "Active",
+      "Archived": "Archived"
+    },
+    "verificationStatuses": {
+      "NeedsUserConfirmation": "Needs your confirmation",
+      "Confirmed": "Confirmed"
+    },
+    "errors": {
+      "methodRequired": "Please choose how to add this field.",
+      "kaekInvalid": "KAEK format is invalid.",
+      "boundaryRequired": "Please draw a field boundary on the map.",
+      "confirmBoundary": "Please confirm the boundary checkbox.",
+      "confirmCadastre": "Please acknowledge the cadastre reference disclaimer."
+    },
+    "completeBoundary": "Complete boundary",
+    "selectOption": "Select…"
   }
 }

@@ -1,4 +1,13 @@
-import { Field, CreateFieldDto, UpdateFieldDto } from '../fieldService';
+import {
+  Field,
+  CreateFieldDto,
+  UpdateFieldDto,
+  GeoJsonPolygon,
+  ImportGreekCadastreFieldResponse,
+  FieldAreaValidationResponse,
+  ActivateFieldRequest,
+  ActivateFieldResponse,
+} from '../fieldService';
 import { simulateDelay } from './mockData';
 import { demoStore } from '../demo/demoStore';
 import { DEMO_OWNER_ID } from '../demo/demoSeedGenerator';
@@ -84,8 +93,10 @@ export const mockFieldService = {
     
     const newField: Field = {
       id: `field${Date.now()}`,
-      ownerId: userId, // Use current user as owner
+      ownerId: userId,
       ...data,
+      cropType: data.cropType || 'Olive',
+      status: data.status || 'Draft',
       currentLifecycleYear: 'low',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -144,5 +155,54 @@ export const mockFieldService = {
       actorUserId: DEMO_OWNER_ID,
       message: `Producer removed from field: ${producerId}`,
     });
+  },
+
+  importGreekCadastre: async (kdFile: File, kfFile: File): Promise<ImportGreekCadastreFieldResponse> => {
+    await simulateDelay();
+    const created = await mockFieldService.createField({
+      name: 'Olive Field - Mock Import',
+      area: 127,
+      cropType: 'Olive',
+      irrigationStatus: false,
+      status: 'NeedsBoundaryConfirmation',
+      locationText: 'Mock cadastre location',
+    });
+    return {
+      draftFieldId: created.id,
+      suggestedName: created.name,
+      greekCadastre: {
+        kaek: '362621142088/0/0',
+        normalizedKaek: '362621142088/0/0',
+        officialAreaSqm: 127,
+        source: 'UserUploadedPdf',
+        verificationStatus: 'NeedsUserConfirmation',
+      },
+      warnings: ['Mock import — boundary must be drawn manually.'],
+      missingRequiredConfirmation: ['Boundary', 'Crop details', 'User confirmation'],
+      duplicateKaekFieldIds: [],
+    };
+  },
+
+  updateBoundary: async (id: string, boundary: GeoJsonPolygon): Promise<Field> => {
+    await simulateDelay();
+    return mockFieldService.updateField(id, { boundary, area: 500 } as UpdateFieldDto);
+  },
+
+  validateArea: async (id: string): Promise<FieldAreaValidationResponse> => {
+    await simulateDelay();
+    const field = await mockFieldService.getField(id);
+    return {
+      officialAreaSqm: field.greekCadastre?.officialAreaSqm,
+      appMeasuredAreaSqm: field.appMeasuredAreaSqm ?? field.area,
+      severity: 'Ok',
+      message: 'Mock area validation',
+      warnings: [],
+    };
+  },
+
+  activateField: async (id: string, _request: ActivateFieldRequest): Promise<ActivateFieldResponse> => {
+    await simulateDelay();
+    const field = await mockFieldService.updateField(id, { status: 'Active' } as UpdateFieldDto);
+    return { field: { ...field, status: 'Active' }, suggestLifecyclePlan: true, lifecycleInitialized: false };
   },
 };

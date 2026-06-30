@@ -17,4 +17,19 @@ public class FieldDto
     public List<string> AssignedProducerIds { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    public string Status { get; set; } = "Active";
+    public string CropType { get; set; } = "Olive";
+    public string? LocationText { get; set; }
+    public GeoJsonPolygonDto? Boundary { get; set; }
+    public GeoJsonPointDto? CenterPoint { get; set; }
+    public double? AppMeasuredAreaSqm { get; set; }
+    public int? TreeCount { get; set; }
+    public string? OliveVariety { get; set; }
+    public string? IrrigationType { get; set; }
+    public string? SoilType { get; set; }
+    public string? Slope { get; set; }
+    public string? AccessNotes { get; set; }
+    public GreekCadastreInfoDto? GreekCadastre { get; set; }
+    public List<FieldDocumentAttachmentDto> Documents { get; set; } = new();
 }

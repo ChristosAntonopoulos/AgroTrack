@@ -2,12 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getFieldService } from '../services/serviceFactory';
-import { CreateFieldDto, UpdateFieldDto } from '../services/fieldService';
+import {
+  AddFieldMethod,
+  CreateFieldDto,
+  FieldAreaValidationResponse,
+  GeoJsonPolygon,
+  GreekCadastreInfo,
+  ImportGreekCadastreFieldResponse,
+  UpdateFieldDto,
+} from '../services/fieldService';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import AddFieldMethodStep from '../components/fields/AddFieldMethodStep';
+import BasicFieldDetailsStep from '../components/fields/BasicFieldDetailsStep';
+import CadastreUploadStep from '../components/fields/CadastreUploadStep';
+import FieldBoundaryMapStep from '../components/fields/FieldBoundaryMapStep';
+import CropDetailsStep from '../components/fields/CropDetailsStep';
+import ReviewFieldStep from '../components/fields/ReviewFieldStep';
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,16 +29,16 @@ import {
   ClipboardList,
   MapPin,
   Sprout,
-  Droplets,
+  Layers,
 } from 'lucide-react';
+import { getApiErrorMessage } from '../utils/translateApiError';
 import './FieldFormPage.css';
+import '../components/fields/AddFieldWizard.css';
 
-type FormStep = 'basics' | 'location' | 'details' | 'review';
+type WizardStep = 'method' | 'basics' | 'cadastre' | 'boundary' | 'crop' | 'review';
+const WIZARD_STEPS: WizardStep[] = ['method', 'basics', 'boundary', 'crop', 'review'];
 
-const STEPS: FormStep[] = ['basics', 'location', 'details', 'review'];
-
-const VARIETY_PRESETS = ['Kalamata', 'Koroneiki', 'Arbequina', 'Picual', 'Frantoio', 'Megaritiki', 'Other'];
-const GROUND_PRESETS = ['Clay Loam', 'Sandy Loam', 'Loam', 'Rocky', 'Calcareous', 'Other'];
+const KAEK_REGEX = /^(?:\d{12}|\d{2}\s*\d{3}\s*\d{2}\s*\d{2}\s*\d{3})\s*\/\s*\d+\s*\/\s*\d+$/;
 
 const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
@@ -32,19 +46,24 @@ const FieldFormPage: React.FC = () => {
   const navigate = useNavigate();
   const isEdit = !!id;
 
-  const [step, setStep] = useState<FormStep>('basics');
+  const [step, setStep] = useState<WizardStep | 'basics-edit'>('method');
+  const [method, setMethod] = useState<AddFieldMethod | null>(null);
+  const [draftFieldId, setDraftFieldId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateFieldDto>({
     name: '',
-    latitude: undefined,
-    longitude: undefined,
+    cropType: 'Olive',
+    locationText: '',
     area: 0,
     variety: '',
-    treeAge: undefined,
-    groundType: '',
     irrigationStatus: false,
+    status: 'Draft',
   });
-  const [varietyPreset, setVarietyPreset] = useState('');
-  const [groundPreset, setGroundPreset] = useState('');
+  const [kaekInput, setKaekInput] = useState('');
+  const [cadastre, setCadastre] = useState<GreekCadastreInfo | undefined>();
+  const [boundary, setBoundary] = useState<GeoJsonPolygon | undefined>();
+  const [areaValidation, setAreaValidation] = useState<FieldAreaValidationResponse | null>(null);
+  const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
+  const [cadastreAcknowledged, setCadastreAcknowledged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,83 +77,47 @@ const FieldFormPage: React.FC = () => {
       const field = await getFieldService().getField(id!);
       setFormData({
         name: field.name,
+        cropType: field.cropType || 'Olive',
+        locationText: field.locationText,
         latitude: field.latitude,
         longitude: field.longitude,
-        area: field.area,
-        variety: field.variety || '',
+        area: field.appMeasuredAreaSqm ?? field.area,
+        variety: field.oliveVariety || field.variety || '',
         treeAge: field.treeAge,
-        groundType: field.groundType || '',
+        treeCount: field.treeCount,
+        groundType: field.soilType || field.groundType || '',
+        soilType: field.soilType,
         irrigationStatus: field.irrigationStatus,
+        irrigationType: field.irrigationType,
+        slope: field.slope,
+        accessNotes: field.accessNotes,
+        status: field.status,
       });
-      const vMatch = VARIETY_PRESETS.find((v) => v === field.variety) || (field.variety ? 'Other' : '');
-      setVarietyPreset(vMatch);
-      const gMatch = GROUND_PRESETS.find((g) => g === field.groundType) || (field.groundType ? 'Other' : '');
-      setGroundPreset(gMatch);
-    } catch (err: unknown) {
+      setCadastre(field.greekCadastre);
+      setBoundary(field.boundary);
+      setKaekInput(field.greekCadastre?.kaek || '');
+      setDraftFieldId(field.id);
+      setStep('basics-edit' as WizardStep);
+    } catch {
       setError(t('fields:form.failedLoad'));
     } finally {
       setLoading(false);
     }
   };
 
-  const stepIndex = STEPS.indexOf(step);
-  const isFirst = stepIndex === 0;
-  const isLast = stepIndex === STEPS.length - 1;
+  const activeSteps = isEdit
+    ? (['basics-edit', 'boundary', 'crop', 'review'] as const)
+    : method === 'cadastre'
+      ? (['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'] as const)
+      : WIZARD_STEPS;
 
-  const validateStep = (s: FormStep): string | null => {
-    if (s === 'basics') {
-      if (!formData.name.trim()) return t('fields:form.errors.nameRequired');
-      if (!formData.area || formData.area <= 0) return t('fields:form.errors.areaRequired');
-    }
-    if (s === 'location' && formData.latitude != null && formData.longitude != null) {
-      if (formData.latitude < -90 || formData.latitude > 90) return t('fields:form.errors.latInvalid');
-      if (formData.longitude < -180 || formData.longitude > 180) return t('fields:form.errors.lngInvalid');
-    }
-    return null;
-  };
+  const stepIndex = activeSteps.indexOf(step as never);
+  const isFirst = stepIndex <= 0;
+  const isLast = stepIndex === activeSteps.length - 1;
 
-  const goNext = () => {
-    const err = validateStep(step);
-    if (err) {
-      setError(err);
-      return;
-    }
-    setError(null);
-    if (!isLast) setStep(STEPS[stepIndex + 1]);
-  };
-
-  const goBack = () => {
-    setError(null);
-    if (!isFirst) setStep(STEPS[stepIndex - 1]);
-  };
-
-  const handleSubmit = async () => {
-    const err = validateStep('basics');
-    if (err) {
-      setError(err);
-      setStep('basics');
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      const fieldService = getFieldService();
-      if (isEdit && id) {
-        const updateData: UpdateFieldDto = { ...formData };
-        await fieldService.updateField(id, updateData);
-        navigate(`/fields/${id}`);
-      } else {
-        const created = await fieldService.createField(formData);
-        navigate(`/fields/${created.id}`);
-      }
-    } catch {
-      setError(t('fields:form.failedSave'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     setFormData((prev) => ({
@@ -150,28 +133,189 @@ const FieldFormPage: React.FC = () => {
     }));
   };
 
-  const handleVarietyPreset = (preset: string) => {
-    setVarietyPreset(preset);
-    if (preset !== 'Other') setFormData((prev) => ({ ...prev, variety: preset }));
-    else setFormData((prev) => ({ ...prev, variety: '' }));
+  const ensureDraftField = async (): Promise<string> => {
+    if (draftFieldId) return draftFieldId;
+    const created = await getFieldService().createField({
+      ...formData,
+      area: formData.area || 0,
+      status: 'Draft',
+      greekCadastre: cadastre
+        ? { ...cadastre, kaek: kaekInput || cadastre.kaek, normalizedKaek: kaekInput || cadastre.normalizedKaek }
+        : kaekInput
+          ? { kaek: kaekInput, source: 'Manual' }
+          : undefined,
+    });
+    setDraftFieldId(created.id);
+    return created.id;
   };
 
-  const handleGroundPreset = (preset: string) => {
-    setGroundPreset(preset);
-    if (preset !== 'Other') setFormData((prev) => ({ ...prev, groundType: preset }));
-    else setFormData((prev) => ({ ...prev, groundType: '' }));
+  const handleCadastreImported = (response: ImportGreekCadastreFieldResponse) => {
+    setDraftFieldId(response.draftFieldId);
+    setCadastre(response.greekCadastre);
+    setFormData((prev) => ({
+      ...prev,
+      name: response.suggestedName || prev.name,
+      locationText: response.greekCadastre.locationFromCadastre || prev.locationText,
+      area: response.greekCadastre.officialAreaSqm || prev.area,
+      status: 'NeedsBoundaryConfirmation',
+    }));
+    setKaekInput(response.greekCadastre.normalizedKaek || response.greekCadastre.kaek || '');
   };
 
-  const stepIcon = (s: FormStep) => {
+  const handleBoundaryChange = async (geo?: GeoJsonPolygon, areaSqm?: number) => {
+    setBoundary(geo);
+    if (areaSqm != null) setFormData((prev) => ({ ...prev, area: areaSqm }));
+    if (geo && draftFieldId) {
+      try {
+        await getFieldService().updateBoundary(draftFieldId, geo);
+        const validation = await getFieldService().validateArea(draftFieldId);
+        setAreaValidation(validation);
+      } catch {
+        /* best effort */
+      }
+    }
+  };
+
+  const validateStep = (): string | null => {
+    if (step === 'method' && !method) return t('fields:addField.errors.methodRequired');
+    if (step === 'basics' || step === ('basics-edit' as WizardStep)) {
+      if (!formData.name.trim() || formData.name.length < 2) return t('fields:form.errors.nameRequired');
+      if (method === 'kaek' && kaekInput && !KAEK_REGEX.test(kaekInput.replace(/\s/g, ' ').trim())) {
+        return t('fields:addField.errors.kaekInvalid');
+      }
+    }
+    if (step === 'boundary' && !boundary) return t('fields:addField.errors.boundaryRequired');
+    if (step === 'review') {
+      if (!boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (cadastre && !cadastreAcknowledged) return t('fields:addField.errors.confirmCadastre');
+    }
+    return null;
+  };
+
+  const goNext = async () => {
+    const err = validateStep();
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+
+    if (step === 'basics' && method !== 'cadastre') {
+      await ensureDraftField();
+    }
+
+    if (!isLast) setStep(activeSteps[stepIndex + 1] as WizardStep);
+  };
+
+  const goBack = () => {
+    setError(null);
+    if (!isFirst) setStep(activeSteps[stepIndex - 1] as WizardStep);
+  };
+
+  const handleSaveDraft = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const fieldId = draftFieldId || (await ensureDraftField());
+      await getFieldService().updateField(fieldId, {
+        name: formData.name,
+        cropType: formData.cropType,
+        locationText: formData.locationText,
+        variety: formData.variety,
+        treeCount: formData.treeCount,
+        soilType: formData.soilType,
+        irrigationType: formData.irrigationType,
+        slope: formData.slope,
+        accessNotes: formData.accessNotes,
+        greekCadastre: cadastre,
+      } as UpdateFieldDto);
+
+      if (boundary) {
+        await getFieldService().updateBoundary(fieldId, boundary);
+      }
+
+      navigate(`/fields/${fieldId}`);
+    } catch {
+      setError(t('fields:form.failedSave'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!window.confirm(t('fields:deleteConfirm'))) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await getFieldService().deleteField(id);
+      navigate('/fields');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fields:failedDelete'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleActivate = async () => {
+    const err = validateStep();
+    if (err) {
+      setError(err);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const fieldId = draftFieldId || (await ensureDraftField());
+      await getFieldService().updateField(fieldId, {
+        name: formData.name,
+        cropType: formData.cropType,
+        locationText: formData.locationText,
+        variety: formData.variety,
+        treeCount: formData.treeCount,
+        soilType: formData.soilType,
+        irrigationType: formData.irrigationType,
+        slope: formData.slope,
+        accessNotes: formData.accessNotes,
+        greekCadastre: cadastre,
+      } as UpdateFieldDto);
+
+      if (boundary) {
+        await getFieldService().updateBoundary(fieldId, boundary);
+      }
+
+      const result = await getFieldService().activateField(fieldId, {
+        boundaryConfirmed,
+        cadastreReferenceAcknowledged: cadastre ? cadastreAcknowledged : true,
+      });
+
+      navigate(`/fields/${result.field.id}`, {
+        state: result.suggestLifecyclePlan ? { suggestLifecyclePlan: true } : undefined,
+      });
+    } catch {
+      setError(t('fields:form.failedSave'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stepIcon = (s: string) => {
     switch (s) {
-      case 'basics':
-        return <Sprout size={16} />;
-      case 'location':
-        return <MapPin size={16} />;
-      case 'details':
-        return <Droplets size={16} />;
-      case 'review':
+      case 'method':
+        return <Layers size={16} />;
+      case 'cadastre':
         return <ClipboardList size={16} />;
+      case 'basics':
+      case 'basics-edit':
+        return <Sprout size={16} />;
+      case 'boundary':
+        return <MapPin size={16} />;
+      case 'crop':
+        return <Sprout size={16} />;
+      case 'review':
+        return <Check size={16} />;
+      default:
+        return null;
     }
   };
 
@@ -183,36 +327,30 @@ const FieldFormPage: React.FC = () => {
     <PageContainer>
       <div className="field-form-page">
         <Breadcrumbs />
-
         <header className="field-form-header">
           <Button to="/fields" variant="outline" size="sm" icon={<ArrowLeft />}>
             {t('fields:controlRoom.backToFields')}
           </Button>
           <div>
-            <h1>{isEdit ? t('fields:form.editTitle') : t('fields:form.newTitle')}</h1>
-            <p className="field-form-subtitle">{t('fields:form.subtitle')}</p>
+            <h1>{isEdit ? t('fields:form.editTitle') : t('fields:addField.title')}</h1>
+            <p className="field-form-subtitle">{t('fields:addField.subtitle')}</p>
           </div>
         </header>
 
         <nav className="field-form-steps" aria-label={t('fields:form.stepsAria')}>
-          {STEPS.map((s, idx) => (
+          {activeSteps.map((s, idx) => (
             <button
               key={s}
               type="button"
               className={`field-form-step ${step === s ? 'active' : ''} ${idx < stepIndex ? 'done' : ''}`}
-              onClick={() => {
-                if (idx <= stepIndex) {
-                  setError(null);
-                  setStep(s);
-                }
-              }}
+              onClick={() => idx <= stepIndex && setStep(s as WizardStep)}
               disabled={idx > stepIndex}
             >
-              <span className="field-form-step-num">
-                {idx < stepIndex ? <Check size={14} /> : idx + 1}
-              </span>
+              <span className="field-form-step-num">{idx < stepIndex ? <Check size={14} /> : idx + 1}</span>
               {stepIcon(s)}
-              <span className="field-form-step-label">{t(`fields:form.steps.${s}`)}</span>
+              <span className="field-form-step-label">
+                {t(`fields:addField.steps.${s === 'basics-edit' ? 'basics' : s}`)}
+              </span>
             </button>
           ))}
         </nav>
@@ -220,219 +358,52 @@ const FieldFormPage: React.FC = () => {
         {error && <div className="field-form-error">{error}</div>}
 
         <Card className="field-form-card">
-          {step === 'basics' && (
-            <div className="field-form-panel">
-              <h2>{t('fields:form.steps.basics')}</h2>
-              <p className="field-form-panel-desc">{t('fields:form.basicsDesc')}</p>
-
-              <div className="form-group">
-                <label htmlFor="name">{t('fields:form.name')} *</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder={t('fields:form.namePlaceholder')}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="area">{t('fields:form.area')} *</label>
-                  <input
-                    type="number"
-                    id="area"
-                    name="area"
-                    step="0.01"
-                    min="0"
-                    value={formData.area || ''}
-                    onChange={handleChange}
-                    placeholder="12.5"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="treeAge">{t('fields:form.treeAge')}</label>
-                  <input
-                    type="number"
-                    id="treeAge"
-                    name="treeAge"
-                    min="0"
-                    value={formData.treeAge ?? ''}
-                    onChange={handleChange}
-                    placeholder="15"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>{t('fields:form.variety')}</label>
-                <div className="preset-chips">
-                  {VARIETY_PRESETS.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={`preset-chip ${varietyPreset === v ? 'active' : ''}`}
-                      onClick={() => handleVarietyPreset(v)}
-                    >
-                      {v === 'Other' ? t('fields:form.other') : v}
-                    </button>
-                  ))}
-                </div>
-                {varietyPreset === 'Other' && (
-                  <input
-                    type="text"
-                    name="variety"
-                    value={formData.variety}
-                    onChange={handleChange}
-                    placeholder={t('fields:form.varietyCustom')}
-                    className="preset-custom-input"
-                  />
-                )}
-              </div>
-            </div>
+          {step === 'method' && (
+            <AddFieldMethodStep
+              method={method}
+              onSelect={(m) => {
+                setMethod(m);
+                if (m === 'cadastre') setStep('cadastre');
+              }}
+            />
           )}
 
-          {step === 'location' && (
-            <div className="field-form-panel">
-              <h2>{t('fields:form.steps.location')}</h2>
-              <p className="field-form-panel-desc">{t('fields:form.locationDesc')}</p>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="latitude">{t('fields:form.latitude')}</label>
-                  <input
-                    type="number"
-                    id="latitude"
-                    name="latitude"
-                    step="any"
-                    value={formData.latitude ?? ''}
-                    onChange={handleChange}
-                    placeholder="37.9838"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="longitude">{t('fields:form.longitude')}</label>
-                  <input
-                    type="number"
-                    id="longitude"
-                    name="longitude"
-                    step="any"
-                    value={formData.longitude ?? ''}
-                    onChange={handleChange}
-                    placeholder="23.7275"
-                  />
-                </div>
-              </div>
-
-              <div className="field-form-tip">
-                <MapPin size={18} />
-                <p>{t('fields:form.locationTip')}</p>
-              </div>
-            </div>
+          {step === 'cadastre' && (
+            <CadastreUploadStep onImported={handleCadastreImported} parsedCadastre={cadastre} />
           )}
 
-          {step === 'details' && (
-            <div className="field-form-panel">
-              <h2>{t('fields:form.steps.details')}</h2>
-              <p className="field-form-panel-desc">{t('fields:form.detailsDesc')}</p>
-
-              <div className="form-group">
-                <label>{t('fields:form.groundType')}</label>
-                <div className="preset-chips">
-                  {GROUND_PRESETS.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      className={`preset-chip ${groundPreset === g ? 'active' : ''}`}
-                      onClick={() => handleGroundPreset(g)}
-                    >
-                      {g === 'Other' ? t('fields:form.other') : g}
-                    </button>
-                  ))}
-                </div>
-                {groundPreset === 'Other' && (
-                  <input
-                    type="text"
-                    name="groundType"
-                    value={formData.groundType}
-                    onChange={handleChange}
-                    placeholder={t('fields:form.groundCustom')}
-                    className="preset-custom-input"
-                  />
-                )}
-              </div>
-
-              <div className="irrigation-toggle">
-                <div className="irrigation-toggle-text">
-                  <Droplets size={20} />
-                  <div>
-                    <strong>{t('fields:form.irrigationLabel')}</strong>
-                    <p>{t('fields:form.irrigationDesc')}</p>
-                  </div>
-                </div>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    name="irrigationStatus"
-                    checked={formData.irrigationStatus}
-                    onChange={handleChange}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </div>
-            </div>
+          {(step === 'basics' || step === ('basics-edit' as WizardStep)) && (
+            <BasicFieldDetailsStep
+              formData={formData}
+              kaekInput={kaekInput}
+              onChange={handleChange}
+              onKaekChange={setKaekInput}
+            />
           )}
+
+          {step === 'boundary' && (
+            <FieldBoundaryMapStep
+              boundary={boundary}
+              cadastre={cadastre}
+              officialAreaSqm={cadastre?.officialAreaSqm}
+              measuredAreaSqm={formData.area}
+              onBoundaryChange={handleBoundaryChange}
+            />
+          )}
+
+          {step === 'crop' && <CropDetailsStep formData={formData} onChange={handleChange} />}
 
           {step === 'review' && (
-            <div className="field-form-panel">
-              <h2>{t('fields:form.steps.review')}</h2>
-              <p className="field-form-panel-desc">{t('fields:form.reviewDesc')}</p>
-
-              <dl className="field-review-list">
-                <div>
-                  <dt>{t('fields:form.name')}</dt>
-                  <dd>{formData.name}</dd>
-                </div>
-                <div>
-                  <dt>{t('fields:form.area')}</dt>
-                  <dd>{formData.area} {t('fields:controlRoom.hectares')}</dd>
-                </div>
-                {formData.variety && (
-                  <div>
-                    <dt>{t('fields:form.variety')}</dt>
-                    <dd>{formData.variety}</dd>
-                  </div>
-                )}
-                {formData.treeAge != null && (
-                  <div>
-                    <dt>{t('fields:form.treeAge')}</dt>
-                    <dd>{formData.treeAge} {t('fields:controlRoom.years')}</dd>
-                  </div>
-                )}
-                {(formData.latitude != null || formData.longitude != null) && (
-                  <div>
-                    <dt>{t('fields:form.location')}</dt>
-                    <dd>
-                      {formData.latitude ?? '—'}, {formData.longitude ?? '—'}
-                    </dd>
-                  </div>
-                )}
-                {formData.groundType && (
-                  <div>
-                    <dt>{t('fields:form.groundType')}</dt>
-                    <dd>{formData.groundType}</dd>
-                  </div>
-                )}
-                <div>
-                  <dt>{t('fields:form.irrigationLabel')}</dt>
-                  <dd>{formData.irrigationStatus ? t('common:yes') : t('common:no')}</dd>
-                </div>
-              </dl>
-            </div>
+            <ReviewFieldStep
+              formData={formData}
+              boundary={boundary}
+              cadastre={cadastre}
+              areaValidation={areaValidation}
+              boundaryConfirmed={boundaryConfirmed}
+              cadastreAcknowledged={cadastreAcknowledged}
+              onBoundaryConfirmedChange={setBoundaryConfirmed}
+              onCadastreAcknowledgedChange={setCadastreAcknowledged}
+            />
           )}
 
           <div className="field-form-nav">
@@ -448,18 +419,38 @@ const FieldFormPage: React.FC = () => {
                 {t('fields:form.next')}
               </Button>
             ) : (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleSubmit}
-                loading={loading}
-                icon={<Check />}
-              >
-                {isEdit ? t('fields:form.update') : t('fields:form.create')}
+              <Button type="button" variant="primary" onClick={handleActivate} loading={loading} icon={<Check />}>
+                {t('fields:addField.activate')}
               </Button>
             )}
           </div>
         </Card>
+
+        {!isLast && step !== 'method' ? (
+          <Button
+            type="button"
+            variant="ghost"
+            fullWidth
+            onClick={handleSaveDraft}
+            loading={loading}
+            className="field-form-draft-btn"
+          >
+            {t('fields:form.saveDraft')}
+          </Button>
+        ) : null}
+
+        {isEdit && id ? (
+          <Button
+            type="button"
+            variant="error"
+            fullWidth
+            onClick={handleDelete}
+            loading={loading}
+            className="field-form-delete-btn"
+          >
+            {t('fields:deleteField')}
+          </Button>
+        ) : null}
       </div>
     </PageContainer>
   );

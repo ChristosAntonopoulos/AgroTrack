@@ -1,192 +1,263 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Card from '../ui/Card';
-import { Field } from '../../services/mockDataService';
+import { Field } from '../../services/fieldService';
 import { locationService } from '../../services/locationService';
-import { colors, typography, spacing, spacingPatterns } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { toBoolean } from '../../utils/booleanConverter';
+import {
+  resolveFieldCenter,
+  resolveFieldPolygon,
+  formatFieldArea,
+  regionForCenter,
+  LatLng,
+} from '../../utils/fieldGeo';
+import {
+  DEFAULT_MAP_LAYER,
+  MapLayerType,
+  FIELD_POLYGON_FILL,
+  FIELD_POLYGON_STROKE,
+  mapLayerToMapType,
+} from '../../utils/mapLayers';
+import MapLayerToggle from './MapLayerToggle';
 import EmptyState from '../EmptyState';
+import { typography, spacing, spacingPatterns } from '../../theme';
 
-export interface FieldsMapProps {
-  fields: Field[];
-  onFieldPress?: (fieldId: string) => void;
-  showWeather?: boolean;
-  compact?: boolean;
-  height?: number;
-}
-
-// Try to import MapView, but handle gracefully if not available
 let MapView: any = null;
 let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
+let Polygon: any = null;
 
 try {
   const maps = require('react-native-maps');
   MapView = maps.default;
   Marker = maps.Marker;
-  PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-} catch (error) {
+  Polygon = maps.Polygon;
+} catch {
   if (__DEV__) {
-    console.log('[FieldsMap] react-native-maps not available, using fallback view');
+    console.log('[FieldsMap] react-native-maps not available');
   }
+}
+
+const collectFitPoints = (fields: Field[]): LatLng[] => {
+  const points: LatLng[] = [];
+  for (const field of fields) {
+    const polygon = resolveFieldPolygon(field);
+    if (polygon && polygon.length >= 3) {
+      points.push(...polygon);
+      continue;
+    }
+    const center = resolveFieldCenter(field);
+    if (center) points.push(center);
+  }
+  return points;
+};
+
+export interface FieldsMapProps {
+  fields: Field[];
+  onFieldPress?: (fieldId: string) => void;
+  compact?: boolean;
+  height?: number;
+  embedded?: boolean;
+  /** Use all available vertical space (fields list map mode). */
+  fillScreen?: boolean;
 }
 
 const FieldsMap: React.FC<FieldsMapProps> = ({
   fields,
   onFieldPress,
-  showWeather = false,
   compact = false,
   height = 250,
+  embedded = false,
+  fillScreen = false,
 }) => {
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const { colors } = useTheme();
+  const { t } = useTranslation('fields');
+  const mapRef = useRef<any>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
 
   useEffect(() => {
-    loadCurrentLocation();
+    locationService
+      .getCurrentLocation()
+      .then((loc) => setCurrentLocation(loc))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const loadCurrentLocation = async () => {
-    try {
-      const location = await locationService.getCurrentLocation();
-      setCurrentLocation(location);
-    } catch (error) {
-      console.error('Error loading current location:', error);
-    } finally {
-      setLoading(false);
+  const mappableFields = useMemo(
+    () => fields.filter((f) => resolveFieldCenter(f) != null),
+    [fields]
+  );
+
+  const fitPoints = useMemo(() => collectFitPoints(mappableFields), [mappableFields]);
+
+  const initialRegion = useMemo(() => {
+    if (fitPoints.length === 0) return null;
+    if (fitPoints.length === 1) return regionForCenter(fitPoints[0], 0.003);
+    const lats = fitPoints.map((p) => p.latitude);
+    const lngs = fitPoints.map((p) => p.longitude);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: Math.max((maxLat - minLat) * 1.12, 0.002),
+      longitudeDelta: Math.max((maxLng - minLng) * 1.12, 0.002),
+    };
+  }, [fitPoints]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || fitPoints.length === 0) return;
+    if (fitPoints.length === 1) {
+      map.animateToRegion(regionForCenter(fitPoints[0], 0.003), 0);
+      return;
     }
-  };
+    map.fitToCoordinates(fitPoints, {
+      edgePadding: { top: 48, right: 32, bottom: 48, left: 32 },
+      animated: false,
+    });
+  }, [fitPoints, fields.length]);
 
-  const fieldsWithGPS = fields.filter(f => f.latitude && f.longitude);
+  const safeCompact = toBoolean(compact, 'FieldsMap.compact');
 
-  if (fieldsWithGPS.length === 0) {
+  const getLifecycleColor = (lifecycleYear: string) =>
+    lifecycleYear === 'high' ? colors.lifecycleHigh : colors.lifecycleLow;
+
+  const mapHeightStyle = fillScreen ? styles.mapFill : { height };
+
+  if (mappableFields.length === 0) {
     return (
-      <Card variant="elevated" style={styles.container}>
-        <Text style={styles.title}>My Fields</Text>
+      <Card variant="elevated" style={!embedded ? styles.container : undefined}>
+        {!embedded ? <Text style={[styles.title, { color: colors.textPrimary }]}>{t('mapTitle')}</Text> : null}
         <EmptyState
           icon="🗺️"
-          title="No Fields with GPS"
-          description="Add GPS coordinates to your fields to see them on the map."
+          title={t('mapEmptyTitle')}
+          description={t('mapEmptyDescription')}
         />
       </Card>
     );
   }
 
-  const safeCompact = toBoolean(compact, 'FieldsMap.compact');
-
-  // Calculate map region to show all fields
-  const latitudes = fieldsWithGPS.map(f => f.latitude!);
-  const longitudes = fieldsWithGPS.map(f => f.longitude!);
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLng = Math.min(...longitudes);
-  const maxLng = Math.max(...longitudes);
-
-  const region = {
-    latitude: (minLat + maxLat) / 2,
-    longitude: (minLng + maxLng) / 2,
-    latitudeDelta: Math.max((maxLat - minLat) * 1.5, 0.01),
-    longitudeDelta: Math.max((maxLng - minLng) * 1.5, 0.01),
-  };
-
-  // Fallback view if MapView is not available
-  if (!MapView) {
+  if (!MapView || !initialRegion) {
     return (
-      <Card variant="elevated" style={styles.container}>
-        <Text style={styles.title}>My Fields ({fieldsWithGPS.length})</Text>
-        <View style={styles.fallbackContainer}>
-          <Text style={styles.fallbackText}>🗺️</Text>
-          <Text style={styles.fallbackMessage}>
-            Map view requires react-native-maps. Install it to see fields on a map.
-          </Text>
-          <View style={styles.fieldsList}>
-            {fieldsWithGPS.map((field) => (
+      <Card variant="elevated" style={!embedded ? styles.container : undefined}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          {t('mapTitle')} ({mappableFields.length})
+        </Text>
+        <View style={styles.fallbackList}>
+          {mappableFields.map((field) => {
+            const center = resolveFieldCenter(field)!;
+            return (
               <TouchableOpacity
                 key={field.id}
-                style={styles.fieldItem}
+                style={[styles.fieldItem, { backgroundColor: colors.surface }]}
                 onPress={() => onFieldPress?.(field.id)}
               >
-                <Text style={styles.fieldName}>{field.name}</Text>
-                <Text style={styles.fieldCoordinates}>
-                  {field.latitude?.toFixed(4)}, {field.longitude?.toFixed(4)}
+                <Text style={[styles.fieldName, { color: colors.textPrimary }]}>{field.name}</Text>
+                <Text style={[styles.fieldMeta, { color: colors.textSecondary }]}>
+                  {formatFieldArea(field)}
                 </Text>
-                {currentLocation ? (
-                  <Text style={styles.fieldDistance}>
-                    {Math.round(locationService.calculateDistance(
-                      currentLocation.lat,
-                      currentLocation.lng,
-                      field.latitude!,
-                      field.longitude!
-                    ) * 10) / 10} km away
-                  </Text>
-                ) : null}
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
         </View>
       </Card>
     );
   }
 
-  const getLifecycleColor = (lifecycleYear: string) => {
-    return lifecycleYear === 'high' ? colors.lifecycleHigh : colors.lifecycleLow;
-  };
-
-  return (
-    <Card variant="elevated" style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Fields ({fieldsWithGPS.length})</Text>
-        {currentLocation ? (
-          <Text style={styles.locationText}>📍 Current Location</Text>
-        ) : null}
-      </View>
-
+  const mapContent = (
+    <View style={[styles.mapContainer, mapHeightStyle, { backgroundColor: colors.gray200 }]}>
       {loading ? (
-        <View style={[styles.mapContainer, { height }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
       ) : (
-        <View style={[styles.mapContainer, { height }]}>
+        <>
           <MapView
+            ref={mapRef}
             style={styles.map}
-            // Use default provider (OpenStreetMap) - no API key needed, completely free
-            // To use Google Maps, set provider={PROVIDER_GOOGLE} and add API key in app.json
-            initialRegion={region}
+            initialRegion={initialRegion}
             showsUserLocation={!!currentLocation}
             showsMyLocationButton={false}
-            mapType="standard"
+            mapType={mapLayerToMapType(mapLayer)}
+            scrollEnabled
+            zoomEnabled
+            zoomTapEnabled
+            zoomControlEnabled={Platform.OS === 'android'}
+            rotateEnabled={false}
+            pitchEnabled={false}
           >
-            {fieldsWithGPS.map((field) => {
+            {mappableFields.map((field) => {
+              const center = resolveFieldCenter(field)!;
+              const polygon = resolveFieldPolygon(field);
               const lifecycleColor = getLifecycleColor(field.currentLifecycleYear);
+
+              if (polygon && polygon.length >= 3) {
+                return (
+                  <Polygon
+                    key={field.id}
+                    coordinates={polygon}
+                    strokeColor={FIELD_POLYGON_STROKE}
+                    fillColor={FIELD_POLYGON_FILL}
+                    strokeWidth={2}
+                    tappable
+                    onPress={() => onFieldPress?.(field.id)}
+                  />
+                );
+              }
+
               return (
                 <Marker
                   key={field.id}
-                  coordinate={{
-                    latitude: field.latitude!,
-                    longitude: field.longitude!,
-                  }}
+                  coordinate={center}
                   title={field.name}
-                  description={`${field.area} ha - ${field.currentLifecycleYear} year`}
+                  description={formatFieldArea(field)}
                   onPress={() => onFieldPress?.(field.id)}
                 >
-                  <View style={[styles.markerContainer, { backgroundColor: lifecycleColor }]}>
+                  <View style={[styles.markerContainer, { backgroundColor: lifecycleColor, borderColor: colors.white }]}>
                     <Text style={styles.markerText}>🏡</Text>
                   </View>
                 </Marker>
               );
             })}
           </MapView>
-        </View>
+          <View style={styles.toggleOverlay}>
+            <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+          </View>
+          <View style={[styles.countPill, { backgroundColor: colors.surfaceElevated + 'E8' }]}>
+            <Text style={[styles.countText, { color: colors.textPrimary }]}>
+              {mappableFields.length} {t('summaryFields').toLowerCase()}
+            </Text>
+          </View>
+        </>
       )}
+    </View>
+  );
 
+  if (embedded || fillScreen) {
+    return mapContent;
+  }
+
+  return (
+    <Card variant="elevated" style={styles.container}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          {t('mapTitle')} ({mappableFields.length})
+        </Text>
+      </View>
+      {mapContent}
       {!safeCompact ? (
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: colors.lifecycleHigh }]} />
-            <Text style={styles.legendText}>High Year</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('highYear')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: colors.lifecycleLow }]} />
-            <Text style={styles.legendText}>Low Year</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('lowYear')}</Text>
           </View>
         </View>
       ) : null}
@@ -195,106 +266,73 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.base,
-  },
+  container: { marginBottom: spacing.base },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   title: {
     ...typography.styles.h5,
-    color: colors.textPrimary,
     fontWeight: typography.fontWeight.bold,
-  },
-  locationText: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    fontSize: 11,
+    flex: 1,
   },
   mapContainer: {
     borderRadius: spacingPatterns.borderRadius.md,
     overflow: 'hidden',
-    backgroundColor: colors.gray200,
   },
-  map: {
-    flex: 1,
+  mapFill: { flex: 1, minHeight: 280 },
+  map: { flex: 1 },
+  loader: { flex: 1, justifyContent: 'center' },
+  toggleOverlay: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
   },
+  countPill: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    left: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  countText: { ...typography.styles.caption, fontWeight: '600', fontSize: 11 },
   markerContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.white,
     ...spacingPatterns.shadow.md,
   },
-  markerText: {
-    fontSize: 20,
-  },
+  markerText: { fontSize: 16 },
   legend: {
     flexDirection: 'row',
     marginTop: spacing.sm,
     gap: spacing.md,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  legendItem: { flexDirection: 'row', alignItems: 'center' },
   legendDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
     marginRight: spacing.xs,
   },
-  legendText: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  fallbackContainer: {
-    alignItems: 'center',
-    padding: spacing.base,
-  },
-  fallbackText: {
-    fontSize: 48,
-    marginBottom: spacing.sm,
-  },
-  fallbackMessage: {
-    ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.base,
-  },
-  fieldsList: {
-    width: '100%',
-    gap: spacing.sm,
-  },
+  legendText: { ...typography.styles.caption, fontSize: 11 },
+  fallbackList: { gap: spacing.sm },
   fieldItem: {
     padding: spacing.sm,
-    backgroundColor: colors.gray100,
     borderRadius: spacingPatterns.borderRadius.md,
   },
   fieldName: {
     ...typography.styles.bodySmall,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs / 2,
   },
-  fieldCoordinates: {
-    ...typography.styles.caption,
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  fieldDistance: {
-    ...typography.styles.caption,
-    color: colors.primary,
-    fontSize: 11,
-    marginTop: spacing.xs / 2,
-  },
+  fieldMeta: { ...typography.styles.caption, fontSize: 11, marginTop: 2 },
 });
 
 export default FieldsMap;

@@ -13,4 +13,22 @@ public interface IFieldService
     Task AssignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default);
     Task UnassignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default);
     Task<IEnumerable<string>> GetAssignedProducerIdsAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
+    Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreAsync(
+        string ownerId,
+        Stream kdFile,
+        string kdFileName,
+        Stream kfFile,
+        string kfFileName,
+        CancellationToken cancellationToken = default);
+    Task<FieldDto> UpdateBoundaryAsync(string id, string userId, UpdateFieldBoundaryRequest request, CancellationToken cancellationToken = default);
+    Task<FieldAreaValidationResponse> ValidateAreaAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default);
+    Task<ActivateFieldResponse> ActivateFieldAsync(string id, string userId, string userRole, ActivateFieldRequest request, CancellationToken cancellationToken = default);
+    Task<FieldDto> UploadDocumentAsync(
+        string id,
+        string userId,
+        string userRole,
+        Stream file,
+        string fileName,
+        string documentType,
+        CancellationToken cancellationToken = default);
 }

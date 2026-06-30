@@ -7,7 +7,9 @@ public class CreateFieldDtoValidator : AbstractValidator<CreateFieldDto>
 {
     public CreateFieldDtoValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Area).GreaterThan(0);
+        RuleFor(x => x.Name).NotEmpty().MinimumLength(2).MaximumLength(80);
+        RuleFor(x => x.Area).GreaterThanOrEqualTo(0)
+            .When(x => x.Boundary == null);
+        RuleFor(x => x.TreeCount).GreaterThanOrEqualTo(0).When(x => x.TreeCount.HasValue);
     }
 }

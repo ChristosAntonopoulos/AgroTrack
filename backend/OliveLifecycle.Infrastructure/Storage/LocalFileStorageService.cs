@@ -14,6 +14,11 @@ public class LocalFileStorageService : IFileStorageService
         ".jpg", ".jpeg", ".png", ".webp", ".gif"
     };
 
+    private static readonly HashSet<string> AllowedFieldDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf"
+    };
+
     public LocalFileStorageService(IConfiguration configuration, ILogger<LocalFileStorageService> logger)
     {
         _rootPath = configuration["Storage:LocalPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads");
@@ -39,6 +44,33 @@ public class LocalFileStorageService : IFileStorageService
         var url = $"{_publicBasePath.TrimEnd('/')}/{storedName}";
         _logger.LogInformation("Stored file at {Path} as {Url}", fullPath, url);
         return url;
+    }
+
+    public async Task<string> SaveFieldDocumentAsync(
+        Stream content,
+        string fieldId,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        var extension = Path.GetExtension(fileName);
+        if (string.IsNullOrEmpty(extension) || !AllowedFieldDocumentExtensions.Contains(extension))
+        {
+            throw new InvalidOperationException("Only PDF field documents are allowed.");
+        }
+
+        var folder = Path.Combine(_rootPath, "fields", fieldId, "cadastre");
+        Directory.CreateDirectory(folder);
+
+        var storedName = $"{Guid.NewGuid():N}{extension}";
+        var fullPath = Path.Combine(folder, storedName);
+
+        await using var fileStream = File.Create(fullPath);
+        await content.CopyToAsync(fileStream, cancellationToken);
+
+        var relativePath = $"{_publicBasePath.TrimEnd('/')}/fields/{fieldId}/cadastre/{storedName}";
+        _logger.LogInformation("Stored field document at {Path} as {Url}", fullPath, relativePath);
+        return relativePath;
     }
 
     public Task DeleteAsync(string relativeUrl, CancellationToken cancellationToken = default)

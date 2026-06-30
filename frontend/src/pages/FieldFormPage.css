@@ -321,6 +321,14 @@
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
+.field-form-draft-btn {
+  margin-top: calc(-1 * var(--spacing-sm));
+}
+
+.field-form-delete-btn {
+  margin-top: var(--spacing-xs);
+}
+
 @media (max-width: 480px) {
   .form-row {
     grid-template-columns: 1fr;

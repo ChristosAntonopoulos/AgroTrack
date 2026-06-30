@@ -32,6 +32,16 @@ public class MongoIndexInitializer : IHostedService
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.OwnerId)));
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.AssignedProducerIds)));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Ascending(f => f.Status)));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Ascending(f => f.CropType)));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Ascending("greekCadastre.normalizedKaek")));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Descending(f => f.CreatedAt)));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Geo2DSphere("centerPoint")));
 
             var tasks = _context.GetCollection<TaskDocument>("tasks");
             tasks.Indexes.CreateOne(new CreateIndexModel<TaskDocument>(

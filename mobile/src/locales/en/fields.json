@@ -2,6 +2,7 @@
   "title": "Fields",
   "titleOwner": "My Fields",
   "subtitle": "{{count}} fields · {{area}} ha total",
+  "summarySubtitle": "{{count}} fields · {{locations}} locations · {{area}} cultivated",
   "summaryFields": "Fields",
   "summaryArea": "Hectares",
   "summaryTasks": "Tasks",
@@ -12,7 +13,7 @@
   "highYear": "High year",
   "lowYear": "Low year",
   "fieldLabel": "Olive grove",
-  "addField": "Add field",
+  "addFieldLabel": "Add field",
   "editField": "Edit field",
   "createField": "Create field",
   "fieldName": "Field name",
@@ -34,6 +35,7 @@
   "emptyOwner": "No fields yet. Create your first olive grove.",
   "emptyWorker": "No fields assigned yet.",
   "deleteConfirm": "Delete this field?",
+  "deleteField": "Delete field",
   "saved": "Field saved",
   "acrossLocations": "Across {{count}} locations",
   "hectaresTotal": "Total cultivated",
@@ -68,5 +70,118 @@
   "viewAllTasks": "View all {{count}} tasks",
   "noOpenTasks": "No open tasks",
   "noOpenTasksHint": "Create a task to plan work on this field.",
-  "manageField": "Manage field"
+  "manageField": "Manage field",
+  "viewList": "List",
+  "viewMap": "Map",
+  "mapTitle": "Fields Map",
+  "mapSubtitle": "Satellite view of your fields",
+  "mapEmptyTitle": "No fields to show on the map",
+  "mapEmptyDescription": "Add a field boundary on the map or set GPS coordinates to see fields here.",
+  "mapUnavailable": "Map view is not available on this device.",
+  "mapLocationHint": "Location enabled",
+  "mapLayerSatellite": "Satellite",
+  "mapLayerStreet": "Street",
+  "weather": {
+    "today": "Weather today",
+    "live": "Live",
+    "unavailable": "Weather data unavailable for this location."
+  },
+  "cropType": "Crop type",
+  "locationText": "Location",
+  "treeCount": "Tree count",
+  "drawBoundary": "Draw boundary",
+  "status": "Status",
+  "officialArea": "Official area",
+  "measuredArea": "Measured area",
+  "addField": {
+    "title": "Add field",
+    "subtitle": "Draw your field boundary and enter details step by step.",
+    "activate": "Activate field",
+    "saveDraft": "Save as draft",
+    "useCurrentLocation": "My location",
+    "cropType": "Crop type",
+    "locationText": "Location",
+    "locationPlaceholder": "e.g. Filiatra, Messinia",
+    "oliveVariety": "Olive variety",
+    "treeCount": "Tree count",
+    "irrigationType": "Irrigation",
+    "soilType": "Soil type",
+    "slope": "Slope",
+    "accessNotes": "Access notes",
+    "boundary": "Boundary",
+    "boundaryDrawn": "Polygon drawn",
+    "basicsDesc": "Name, crop, and location for this field.",
+    "cropDesc": "Optional crop profile for planning.",
+    "reviewDesc": "Review and activate when ready.",
+    "confirmBoundary": "I confirm the boundary represents the field I want to manage.",
+    "selectOption": "Select…",
+    "methods": {
+      "title": "How do you want to add this field?",
+      "subtitle": "Choose the method that fits your situation.",
+      "webOnly": "Available on web",
+      "draw": {
+        "title": "Draw manually",
+        "desc": "Best if you know your field boundary on the map."
+      },
+      "cadastre": {
+        "title": "Import cadastre PDF",
+        "desc": "Upload KD/KF extracts from the Greek cadastre."
+      },
+      "kaek": {
+        "title": "Enter KAEK manually",
+        "desc": "Use the official parcel ID as reference."
+      }
+    },
+    "steps": {
+      "method": "Method",
+      "basics": "Details",
+      "boundary": "Map",
+      "crop": "Crop",
+      "review": "Review"
+    },
+    "errors": {
+      "methodRequired": "Please choose how to add this field.",
+      "confirmBoundary": "Please confirm the boundary before activating."
+    },
+    "officialArea": "Official cadastre area",
+    "measuredArea": "Measured area",
+    "notDrawn": "Not drawn yet",
+    "difference": "Difference",
+    "areaComparison": "Area comparison",
+    "coordinateSystem": "Coordinate system",
+    "mapScale": "Map scale",
+    "printDate": "Print date",
+    "status": "Status",
+    "municipality": "Municipality",
+    "postalCode": "Postal code",
+    "prefecture": "Prefecture",
+    "cadastralOffice": "Cadastral office",
+    "locationText": "Location",
+    "cadastre": {
+      "referenceTitle": "Cadastre reference",
+      "referenceDisclaimer": "Reference data only — not legal ownership proof."
+    },
+    "verificationStatuses": {
+      "NeedsUserConfirmation": "Needs your confirmation",
+      "Confirmed": "Confirmed"
+    }
+  },
+  "form": {
+    "failedSave": "Failed to save field",
+    "failedDelete": "Failed to delete field",
+    "back": "Back",
+    "next": "Next",
+    "errors": {
+      "nameRequired": "Field name is required (at least 2 characters)."
+    }
+  },
+  "addFieldWizard": {
+    "steps": { "boundary": "Map boundary" },
+    "boundaryDesc": "Tap the map to outline your working field area. Pinch to zoom.",
+    "tapToAddPoint": "Tap to add points — at least 3 required.",
+    "undoPoint": "Undo",
+    "clearBoundary": "Clear",
+    "saveBoundary": "Save boundary",
+    "errors": { "boundaryRequired": "Draw at least 3 boundary points." }
+  }
 }

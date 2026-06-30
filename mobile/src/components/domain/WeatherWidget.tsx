@@ -13,11 +13,18 @@ export interface WeatherWidgetProps {
   loading?: boolean;
   high?: number;
   low?: number;
+  namespace?: 'dashboard' | 'fields';
 }
 
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather, loading, high, low }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({
+  weather,
+  loading,
+  high,
+  low,
+  namespace = 'dashboard',
+}) => {
   const { colors } = useTheme();
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(namespace);
 
   if (loading) {
     return (
@@ -30,13 +37,16 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather, loading, high, l
   if (!weather) {
     return (
       <View style={[styles.card, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
-        <Text style={[styles.title, { color: colors.textSecondary }]}>{t('weatherUnavailable')}</Text>
+        <Text style={[styles.title, { color: colors.textSecondary }]}>
+          {namespace === 'fields' ? t('weather.unavailable') : t('weatherUnavailable')}
+        </Text>
       </View>
     );
   }
 
-  const displayHigh = high ?? Math.round(weather.temperature + 4);
-  const displayLow = low ?? Math.round(weather.temperature - 4);
+  const displayHigh = high ?? weather.high ?? Math.round(weather.temperature + 4);
+  const displayLow = low ?? weather.low ?? Math.round(weather.temperature - 4);
+  const titleKey = namespace === 'fields' ? 'weather.today' : 'weatherToday';
 
   return (
     <View
@@ -51,7 +61,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather, loading, high, l
     >
       <View style={styles.header}>
         <Ionicons name="partly-sunny-outline" size={16} color={colors.primaryDark} />
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('weatherToday')}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(titleKey)}</Text>
       </View>
       <View style={styles.main}>
         <Text style={styles.emoji}>{weather.icon}</Text>

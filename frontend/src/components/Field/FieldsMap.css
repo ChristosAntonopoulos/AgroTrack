@@ -1,13 +1,80 @@
 .fields-map {
+  position: relative;
   width: 100%;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #f3f4f6;
+  background: var(--bg-hover);
+  border: 1px solid var(--color-border);
 }
 
 .fields-map-leaflet {
   height: 100%;
   width: 100%;
+  z-index: 0;
+}
+
+.fields-map-layer-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.fields-map-layer-btn {
+  padding: 0.45rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.fields-map-layer-btn + .fields-map-layer-btn {
+  border-left: 1px solid var(--color-border);
+}
+
+.fields-map-layer-btn:hover {
+  background: var(--bg-hover);
+  color: var(--color-text-primary);
+}
+
+.fields-map-layer-btn.active {
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-elevated));
+  color: var(--color-primary-light);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .fields-map-layer-btn.active {
+  background: color-mix(in srgb, var(--color-primary-light) 28%, var(--bg-elevated));
+  color: var(--color-primary-lighter);
+}
+
+.fields-map .leaflet-bar a {
+  background-color: var(--bg-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom-color: var(--color-border) !important;
+}
+
+.fields-map .leaflet-bar a:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+.fields-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg-page) 82%, transparent) !important;
+  color: var(--color-text-muted) !important;
+  font-size: 0.65rem;
+}
+
+.fields-map .leaflet-control-attribution a {
+  color: var(--color-text-secondary) !important;
 }
 
 .fields-map-empty {
@@ -15,9 +82,9 @@
   place-items: center;
   padding: 40px 16px;
   text-align: center;
-  border: 1px dashed #d1d5db;
-  border-radius: 12px;
-  background: #fafafa;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
 }
 
 .fields-map-empty-icon {
@@ -27,27 +94,31 @@
 
 .fields-map-empty-title {
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin-bottom: 6px;
 }
 
 .fields-map-empty-subtitle {
-  color: #6b7280;
+  color: var(--color-text-secondary);
   max-width: 520px;
+  line-height: 1.5;
 }
 
 .fields-map-popup-title {
   font-weight: 700;
   margin-bottom: 8px;
+  color: var(--color-text-primary);
 }
 
 .fields-map-popup-row {
   margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
 }
 
 .fields-map-popup-hint {
   margin-top: 8px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -59,16 +130,22 @@
 }
 
 .fields-map-popup-actions button {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #111827;
+  border: 1px solid var(--color-border);
+  background: var(--bg-card);
+  color: var(--color-text-primary);
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   font-size: 12px;
+  transition: background var(--transition-fast);
 }
 
 .fields-map-popup-actions button:hover {
-  background: #f9fafb;
+  background: var(--bg-hover);
 }
 
+[data-theme='dark'] .leaflet-popup-content-wrapper,
+[data-theme='dark'] .leaflet-popup-tip {
+  background: var(--bg-elevated);
+  color: var(--color-text-primary);
+}

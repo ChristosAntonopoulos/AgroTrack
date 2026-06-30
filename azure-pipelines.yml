@@ -1,6 +1,8 @@
 # Azure DevOps Build and Deploy Pipeline for AgroTrack (Olive Lifecycle Platform)
 # Builds Docker images, pushes to Docker Hub, deploys to Kubernetes.
-# Optional mobile APK: Gradle on the agent (no EAS) -> frontend /downloads/olivecycle-alpha.apk
+# Mobile APK: built from mobile/ (Gradle on agent, no EAS), staged into frontend/public/downloads,
+# then baked into the frontend Docker image for nginx to serve at /downloads/olivecycle-alpha.apk.
+# The frontend image does NOT build the APK — it only hosts the file produced by mobile/.
 
 trigger:
   - master
@@ -8,9 +10,9 @@ trigger:
 
 parameters:
   - name: buildMobileApk
-    displayName: 'Build Android APK on agent (no EAS) and serve from /downloads'
+    displayName: 'Build Android APK from mobile/ (Gradle, no EAS) and serve from /downloads'
     type: boolean
-    default: false
+    default: true
 
   - name: deployBackend
     displayName: 'Deploy backend to Kubernetes'

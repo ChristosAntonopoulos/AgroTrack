@@ -2,6 +2,8 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Services;
+using OliveLifecycle.Application.Services.Cadastre;
+using OliveLifecycle.Application.Services.Fields;
 using OliveLifecycle.Application.Validators;
 
 namespace OliveLifecycle.Application;
@@ -17,6 +19,10 @@ public static class DependencyInjection
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFieldService, FieldService>();
+        services.AddScoped<IKaekNormalizer, KaekNormalizer>();
+        services.AddScoped<IFieldAreaCalculator, FieldAreaCalculator>();
+        services.AddScoped<IFieldAreaValidationService, FieldAreaValidationService>();
+        services.AddScoped<IGreekCadastrePdfParser, GreekCadastrePdfParser>();
         services.AddScoped<ILifecycleService, LifecycleService>();
         services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IUserService, UserService>();

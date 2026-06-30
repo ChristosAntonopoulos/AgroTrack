@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, Linking, Alert, Pressable } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -18,27 +18,29 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Section from '../components/layout/Section';
-import OverviewMetricsStrip from '../components/layout/OverviewMetricsStrip';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import QuickActionRow from '../components/ui/QuickActionRow';
 import InfoRow from '../components/ui/InfoRow';
+import FieldDetailHeader from '../components/domain/FieldDetailHeader';
+import FieldDetailToolbar from '../components/domain/FieldDetailToolbar';
 import AlertBanner from '../components/ui/AlertBanner';
 import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
 import AgendaTaskRow from '../components/domain/AgendaTaskRow';
 import WeatherWidget from '../components/domain/WeatherWidget';
+import FieldDetailMap from '../components/domain/FieldDetailMap';
+import AreaComparisonCard from '../components/domain/AreaComparisonCard';
+import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
 import ActivityTimeline from '../components/domain/ActivityTimeline';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { weatherService, WeatherAlert, WeatherData } from '../services/weatherService';
 import { typography, spacing } from '../theme';
-import { createElevation } from '../theme/elevation';
 import { formatLocaleDate } from '../utils/formatters';
-import { fieldGradientColors, fieldHealthStatus, getAgendaTasks } from '../utils/dashboardUtils';
+import { fieldHealthStatus, getAgendaTasks } from '../utils/dashboardUtils';
+import { resolveFieldCenter, formatFieldArea, formatFieldAreaSqm } from '../utils/fieldGeo';
 import { normalizeStage } from '../utils/lifecycleUtils';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import { RootStackParamList } from '../navigation/types';
-import { OverviewMetricCardProps } from '../components/ui/OverviewMetricCard';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
@@ -55,9 +57,11 @@ const FieldDetailScreen = () => {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [producerIds, setProducerIds] = useState<string[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [cadastreExpanded, setCadastreExpanded] = useState(false);
+  const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
 
@@ -74,12 +78,6 @@ const FieldDetailScreen = () => {
       setLifecycle(lifecycleData);
       setTasks(tasksData);
 
-      const producers =
-        fieldData.assignedProducerIds?.length
-          ? fieldData.assignedProducerIds
-          : await getFieldService().getProducers(fieldId).catch(() => []);
-      setProducerIds(producers);
-
       try {
         const acts = await getActivityService().getActivities(fieldId, 10);
         setActivities(acts);
@@ -87,16 +85,26 @@ const FieldDetailScreen = () => {
         setActivities([]);
       }
 
-      if (fieldData.latitude != null && fieldData.longitude != null) {
-        const [wx, alerts] = await Promise.all([
-          weatherService.getCurrentWeather(fieldData.latitude, fieldData.longitude),
-          weatherService.getWeatherAlerts(fieldData.latitude, fieldData.longitude).catch(() => []),
-        ]);
-        setWeather(wx);
-        setWeatherAlerts(alerts);
+      const center = resolveFieldCenter(fieldData);
+      if (center) {
+        setWeatherLoading(true);
+        try {
+          const [wx, alerts] = await Promise.all([
+            weatherService.getCurrentWeather(center.latitude, center.longitude),
+            weatherService.getWeatherAlerts(center.latitude, center.longitude).catch(() => []),
+          ]);
+          setWeather(wx);
+          setWeatherAlerts(alerts);
+        } catch {
+          setWeather(null);
+          setWeatherAlerts([]);
+        } finally {
+          setWeatherLoading(false);
+        }
       } else {
         setWeather(null);
         setWeatherAlerts([]);
+        setWeatherLoading(false);
       }
     } catch (error) {
       console.error('Error loading field details:', error);
@@ -119,8 +127,6 @@ const FieldDetailScreen = () => {
     [openTasks]
   );
   const agendaTasks = useMemo(() => getAgendaTasks(tasks, 5), [tasks]);
-  const completedCount = tasks.length - openTasks.length;
-  const completionRate = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
   const currentStage =
     lifecycle?.currentStage ?? field?.currentLifecycleStage ?? 'dormancy';
@@ -154,8 +160,9 @@ const FieldDetailScreen = () => {
   };
 
   const openMaps = () => {
-    if (field?.latitude != null && field?.longitude != null) {
-      Linking.openURL(`https://www.google.com/maps?q=${field.latitude},${field.longitude}`);
+    const center = field ? resolveFieldCenter(field) : null;
+    if (center) {
+      Linking.openURL(`https://www.google.com/maps?q=${center.latitude},${center.longitude}`);
     }
   };
 
@@ -173,66 +180,18 @@ const FieldDetailScreen = () => {
     );
   }
 
-  const [gradStart, gradEnd] = fieldGradientColors(field.id);
   const health = fieldHealthStatus(field, openTasks.length, overdueCount > 0);
-  const hasGps = field.latitude != null && field.longitude != null;
+  const fieldCenter = resolveFieldCenter(field);
+  const hasMappableLocation = fieldCenter != null;
+  const hasCadastre = Boolean(field.greekCadastre?.kaek || field.greekCadastre?.normalizedKaek);
 
-  const glanceMetrics: OverviewMetricCardProps[] = [
-    {
-      icon: 'resize-outline',
-      value: `${field.area} ha`,
-      label: t('fields:areaShort'),
-      subtitle: field.variety ?? field.groundType ?? t('fields:hectaresUnit'),
-      accentColor: colors.primary,
-    },
-    {
-      icon: 'time-outline',
-      value: field.treeAge ?? '—',
-      label: t('fields:treeAge'),
-      subtitle: field.treeAge ? t('fields:yearsUnit') : t('fields:notSet'),
-      accentColor: colors.info,
-    },
-    {
-      icon: 'clipboard-outline',
-      value: openTasks.length,
-      label: t('fields:openTasks'),
-      subtitle:
-        overdueCount > 0
-          ? t('fields:overdueOnField', { count: overdueCount })
-          : `${completionRate}% ${t('fields:complete')}`,
-      subtitleColor: overdueCount > 0 ? colors.error : colors.textTertiary,
-      accentColor: overdueCount > 0 ? colors.error : colors.warning,
-      onPress: () => goTab('Tasks'),
-    },
-    {
-      icon: 'people-outline',
-      value: producerIds.length,
-      label: t('fields:producers'),
-      subtitle: t('fields:assigned'),
-      accentColor: colors.secondary,
-    },
-    {
-      icon: field.irrigationStatus ? 'water' : 'water-outline',
-      value: field.irrigationStatus ? t('common:yes') : t('common:no'),
-      label: t('fields:irrigation'),
-      subtitle: field.irrigationStatus ? t('fields:irrigated') : t('fields:dry'),
-      accentColor: field.irrigationStatus ? colors.info : colors.textTertiary,
-    },
-    {
-      icon: 'leaf-outline',
-      value: t(`common:lifecycleYear.${currentYear}`),
-      label: t('fields:currentStage'),
-      subtitle: t(`common:lifecycleStage.${normalizeStage(currentStage)}`),
-      accentColor: colors.success,
-    },
-  ];
-
-  const quickActions = [
+  const toolbarActions = [
     {
       id: 'tasks',
       icon: 'list-outline' as const,
       label: t('fields:viewTasks'),
       onPress: () => goTab('Tasks'),
+      badge: overdueCount > 0 ? overdueCount : openTasks.length > 0 ? openTasks.length : undefined,
     },
     {
       id: 'calendar',
@@ -240,9 +199,13 @@ const FieldDetailScreen = () => {
       label: t('fields:viewCalendar'),
       onPress: () => goTab('Calendar'),
     },
-    ...(hasGps
-      ? [{ id: 'maps', icon: 'map-outline' as const, label: t('fields:openMaps'), onPress: openMaps }]
-      : []),
+    {
+      id: 'maps',
+      icon: 'navigate-outline' as const,
+      label: t('fields:openMaps'),
+      onPress: openMaps,
+      disabled: !hasMappableLocation,
+    },
     ...(isFieldOwner()
       ? [
           {
@@ -256,57 +219,43 @@ const FieldDetailScreen = () => {
   ];
 
   return (
-    <ScreenLayout scroll contentContainerStyle={styles.content}>
-      <View
-        style={[
-          styles.hero,
-          { backgroundColor: gradStart, ...createElevation(colors, 'md') },
-        ]}
-      >
-        <View style={[styles.heroOverlay, { backgroundColor: gradEnd + '99' }]} />
-        <View style={styles.heroBody}>
-          <View style={styles.heroTop}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.heroName, { color: colors.textInverse }]}>{field.name}</Text>
-              {field.variety ? (
-                <Text style={[styles.heroVariety, { color: colors.textInverse + 'CC' }]}>
-                  {field.variety}
-                </Text>
-              ) : null}
-            </View>
-            <View
-              style={[
-                styles.healthBadge,
-                { backgroundColor: health === 'healthy' ? colors.success : colors.warning },
-              ]}
-            >
-              <Text style={[styles.healthText, { color: colors.textInverse }]}>
-                {health === 'healthy' ? t('dashboard:fieldHealthy') : t('dashboard:fieldMonitor')}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.heroMeta}>
-            <View style={[styles.yearPill, { backgroundColor: colors.textInverse + '22' }]}>
-              <Text style={[styles.yearText, { color: colors.textInverse }]}>
-                {t(`common:lifecycleYear.${currentYear}`)}
-              </Text>
-            </View>
-            <Text style={[styles.stageText, { color: colors.textInverse }]}>
-              {t(`common:lifecycleStage.${normalizeStage(currentStage)}`)}
-            </Text>
-          </View>
-        </View>
+    <ScreenLayout scroll scrollEnabled={parentScrollEnabled} contentContainerStyle={styles.content}>
+      <FieldDetailHeader
+        field={field}
+        currentYear={currentYear}
+        currentStage={currentStage}
+        openTaskCount={openTasks.length}
+        overdueCount={overdueCount}
+        health={health}
+      />
+
+      <View style={styles.heroMapBlock}>
+        <FieldDetailMap
+          field={field}
+          height={240}
+          onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
+        />
       </View>
 
-      <View style={styles.quickRow}>
-        <QuickActionRow actions={quickActions} />
+      <View style={styles.toolbarWrap}>
+        <FieldDetailToolbar actions={toolbarActions} />
       </View>
 
-      <View style={styles.glanceBlock}>
-        <Text style={[styles.glanceTitle, { color: colors.textPrimary }]}>
-          {t('fields:atAGlance')}
-        </Text>
-        <OverviewMetricsStrip metrics={glanceMetrics} embedded />
+      <View style={styles.contextBlock}>
+        <WeatherWidget
+          weather={weather}
+          loading={weatherLoading}
+          high={weather?.high}
+          low={weather?.low}
+          namespace="fields"
+        />
+        {(field.greekCadastre?.officialAreaSqm != null || field.appMeasuredAreaSqm != null) ? (
+          <AreaComparisonCard
+            officialAreaSqm={field.greekCadastre?.officialAreaSqm}
+            measuredAreaSqm={formatFieldAreaSqm(field)}
+            differencePercent={field.greekCadastre?.areaDifferencePercent}
+          />
+        ) : null}
       </View>
 
       {overdueCount > 0 ? (
@@ -329,27 +278,6 @@ const FieldDetailScreen = () => {
           />
         </View>
       ))}
-
-      {hasGps ? (
-        <Section title={t('fields:weatherLocation')}>
-          <WeatherWidget weather={weather} />
-          <Card variant="outlined" style={styles.gpsCard}>
-            <InfoRow
-              icon="location-outline"
-              label={t('fields:coordinates')}
-              value={`${field.latitude!.toFixed(4)}, ${field.longitude!.toFixed(4)}`}
-              showDivider={false}
-            />
-            <Button
-              title={t('fields:openMaps')}
-              onPress={openMaps}
-              variant="outline"
-              size="small"
-              style={styles.mapsBtn}
-            />
-          </Card>
-        </Section>
-      ) : null}
 
       <Section title={t('fields:lifecycle')}>
         <Card>
@@ -385,46 +313,6 @@ const FieldDetailScreen = () => {
         </Card>
       </Section>
 
-      <Section title={t('fields:fieldDetails')}>
-        <Card>
-          <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={field.name} />
-          {field.variety ? (
-            <InfoRow icon="nutrition-outline" label={t('fields:variety')} value={field.variety} />
-          ) : null}
-          <InfoRow
-            icon="resize-outline"
-            label={t('fields:area')}
-            value={`${field.area} ${t('fields:hectaresUnit')}`}
-          />
-          {field.groundType ? (
-            <InfoRow icon="earth-outline" label={t('fields:groundType')} value={field.groundType} />
-          ) : null}
-          <InfoRow
-            icon="water-outline"
-            label={t('fields:irrigation')}
-            value={field.irrigationStatus ? t('fields:irrigated') : t('fields:dry')}
-          />
-          {field.treeAge ? (
-            <InfoRow
-              icon="time-outline"
-              label={t('fields:treeAge')}
-              value={`${field.treeAge} ${t('fields:yearsUnit')}`}
-            />
-          ) : null}
-          <InfoRow
-            icon="calendar-outline"
-            label={t('fields:created')}
-            value={formatLocaleDate(new Date(field.createdAt), i18n.language)}
-          />
-          <InfoRow
-            icon="refresh-outline"
-            label={t('fields:lastUpdated')}
-            value={formatLocaleDate(new Date(field.updatedAt), i18n.language)}
-            showDivider={false}
-          />
-        </Card>
-      </Section>
-
       <Section
         title={t('fields:upcomingTasks')}
         actionLabel={tasks.length > 0 ? t('fields:viewAllTasks', { count: tasks.length }) : undefined}
@@ -453,6 +341,73 @@ const FieldDetailScreen = () => {
             }
           />
         )}
+      </Section>
+
+      {hasCadastre ? (
+        <View style={styles.cadastreSection}>
+          <Pressable
+            onPress={() => setCadastreExpanded((v) => !v)}
+            style={[styles.cadastreHeader, { borderColor: colors.borderLight }]}
+          >
+            <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary }]}>
+              {t('fields:addField.cadastre.referenceTitle')}
+            </Text>
+            <Ionicons
+              name={cadastreExpanded ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+          {cadastreExpanded && field.greekCadastre ? (
+            <GreekCadastreInfoCard cadastre={field.greekCadastre} hideTitle />
+          ) : null}
+        </View>
+      ) : null}
+
+      <Section title={t('fields:fieldDetails')}>
+        <Card>
+          <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={field.name} />
+          {field.status ? (
+            <InfoRow icon="flag-outline" label={t('fields:status')} value={field.status} />
+          ) : null}
+          {field.variety ? (
+            <InfoRow icon="nutrition-outline" label={t('fields:variety')} value={field.variety} />
+          ) : null}
+          <InfoRow icon="resize-outline" label={t('fields:area')} value={formatFieldArea(field)} />
+          {field.groundType ? (
+            <InfoRow icon="earth-outline" label={t('fields:groundType')} value={field.groundType} />
+          ) : null}
+          <InfoRow
+            icon="water-outline"
+            label={t('fields:irrigation')}
+            value={field.irrigationStatus ? t('fields:irrigated') : t('fields:dry')}
+          />
+          {field.treeAge ? (
+            <InfoRow
+              icon="time-outline"
+              label={t('fields:treeAge')}
+              value={`${field.treeAge} ${t('fields:yearsUnit')}`}
+            />
+          ) : null}
+          {fieldCenter ? (
+            <InfoRow
+              icon="location-outline"
+              label={t('fields:coordinates')}
+              value={`${fieldCenter.latitude.toFixed(4)}, ${fieldCenter.longitude.toFixed(4)}`}
+            />
+          ) : null}
+          <InfoRow
+            icon="calendar-outline"
+            label={t('fields:created')}
+            value={formatLocaleDate(new Date(field.createdAt), i18n.language)}
+          />
+          <InfoRow
+            icon="refresh-outline"
+            label={t('fields:lastUpdated')}
+            value={formatLocaleDate(new Date(field.updatedAt), i18n.language)}
+            showDivider={false}
+          />
+        </Card>
       </Section>
 
       {activities.length > 0 ? (
@@ -521,40 +476,36 @@ const DateBlock = ({
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing['3xl'] },
   centered: { flex: 1, justifyContent: 'center' },
-  hero: {
-    marginHorizontal: spacing.base,
-    marginTop: spacing.sm,
-    borderRadius: 16,
-    overflow: 'hidden',
-    minHeight: 120,
-  },
-  heroOverlay: { ...StyleSheet.absoluteFillObject },
-  heroBody: { padding: spacing.base, zIndex: 1 },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm },
-  heroName: { ...typography.styles.h2, fontWeight: '700', fontSize: 22 },
-  heroVariety: { ...typography.styles.bodySmall, marginTop: 2 },
-  healthBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  healthText: { ...typography.styles.caption, fontWeight: '700', fontSize: 10 },
-  heroMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  yearPill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: 8 },
-  yearText: { ...typography.styles.caption, fontWeight: '700', fontSize: 10 },
-  stageText: { ...typography.styles.caption, fontWeight: '600' },
-  "quickRow": { marginTop: spacing.md },
-  glanceBlock: { marginTop: spacing.md, marginBottom: spacing.sm },
-  glanceTitle: {
-    ...typography.styles.h4,
-    fontWeight: '700',
-    fontSize: 18,
+  bannerWrap: { paddingHorizontal: spacing.base, marginBottom: spacing.xs },
+  heroMapBlock: {
     paddingHorizontal: spacing.base,
     marginBottom: spacing.sm,
   },
-  bannerWrap: { paddingHorizontal: spacing.base, marginBottom: spacing.xs },
-  gpsCard: { marginTop: spacing.md },
-  mapsBtn: { marginTop: spacing.sm, alignSelf: 'flex-start' },
+  toolbarWrap: {
+    paddingHorizontal: spacing.base,
+    marginBottom: spacing.md,
+  },
+  contextBlock: {
+    paddingHorizontal: spacing.base,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  cadastreSection: {
+    paddingHorizontal: spacing.base,
+    marginBottom: spacing.md,
+  },
+  cadastreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  cadastreHeaderText: {
+    ...typography.styles.body,
+    fontWeight: '700',
+  },
   lifecycleHeader: { marginBottom: spacing.sm },
   lifecycleTitle: { ...typography.styles.body, fontWeight: '700' },
   lifecycleSub: { ...typography.styles.caption, marginTop: 2 },

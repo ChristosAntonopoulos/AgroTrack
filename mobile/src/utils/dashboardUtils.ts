@@ -1,6 +1,7 @@
 import { ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../services/fieldService';
+import { resolveFieldCenter } from './fieldGeo';
 import { Task } from '../services/taskService';
 import { isTaskOverdue, sortTasksForList } from './taskListUtils';
 
@@ -8,8 +9,9 @@ export function countFieldLocations(fields: Field[]): number {
   if (fields.length === 0) return 0;
   const keys = new Set<string>();
   for (const f of fields) {
-    if (f.latitude != null && f.longitude != null) {
-      keys.add(`${f.latitude.toFixed(1)}_${f.longitude.toFixed(1)}`);
+    const center = resolveFieldCenter(f);
+    if (center) {
+      keys.add(`${center.latitude.toFixed(1)}_${center.longitude.toFixed(1)}`);
     }
   }
   return keys.size > 0 ? keys.size : 1;

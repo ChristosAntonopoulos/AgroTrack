@@ -54,4 +54,19 @@ public class FieldAccessService : IFieldAccessService
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
         return field != null && field.OwnerId == userId;
     }
+
+    public async Task<bool> CanUserAccessFieldDocumentsAsync(
+        string fieldId,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
+        if (field == null)
+        {
+            return false;
+        }
+
+        return field.OwnerId == userId || userRole == Roles.Administrator;
+    }
 }

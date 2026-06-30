@@ -7,6 +7,7 @@ import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
 import { Field } from '../../services/fieldService';
 import { fieldGradientColors, fieldHealthStatus } from '../../utils/dashboardUtils';
+import { formatFieldArea, fieldHasGeo } from '../../utils/fieldGeo';
 import { normalizeStage } from '../../utils/lifecycleUtils';
 
 export interface DashboardFieldCardProps {
@@ -34,7 +35,12 @@ const DashboardFieldCard: React.FC<DashboardFieldCardProps> = ({
   const health = fieldHealthStatus(field, openTaskCount, hasOverdue);
   const isHealthy = health === 'healthy';
   const producerCount = field.assignedProducerIds?.length ?? 0;
-  const hasGps = field.latitude != null && field.longitude != null;
+  const hasGps = fieldHasGeo(field);
+  const locationLabel =
+    field.locationText?.trim() ||
+    field.greekCadastre?.locationFromCadastre?.trim() ||
+    field.variety ||
+    t('fields:fieldLabel');
   const stageKey = field.currentLifecycleStage;
 
   return (
@@ -75,9 +81,9 @@ const DashboardFieldCard: React.FC<DashboardFieldCardProps> = ({
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
             <Text style={[styles.location, { color: colors.textSecondary }]} numberOfLines={1}>
-              {field.variety || t('fields:fieldLabel')}
+              {locationLabel}
             </Text>
-            <Text style={[styles.area, { color: colors.textPrimary }]}>{field.area} ha</Text>
+            <Text style={[styles.area, { color: colors.textPrimary }]}>{formatFieldArea(field)}</Text>
           </View>
           <View style={styles.chips}>
             {stageKey ? (

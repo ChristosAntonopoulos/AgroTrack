@@ -9,6 +9,7 @@ import MainLayout from './MainLayout';
 import FieldDetailScreen from '../screens/FieldDetailScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import FieldFormScreen from '../screens/FieldFormScreen';
+import FieldMapBoundaryScreen from '../screens/FieldMapBoundaryScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -93,6 +94,11 @@ const RootNavigator = () => {
                   : t('fields'),
                 presentation: 'modal',
               })}
+            />
+            <Stack.Screen
+              name="FieldMapBoundary"
+              component={FieldMapBoundaryScreen}
+              options={{ title: t('fields'), presentation: 'modal' }}
             />
             <Stack.Screen
               name="CreateTask"

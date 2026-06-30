@@ -6,6 +6,7 @@ import {
   ViewStyle,
   RefreshControlProps,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing } from '../../theme';
@@ -13,6 +14,7 @@ import { spacing } from '../../theme';
 interface ScreenLayoutProps {
   children: React.ReactNode;
   scroll?: boolean;
+  scrollEnabled?: boolean;
   refreshControl?: RefreshControlProps;
   contentContainerStyle?: ViewStyle;
   style?: ViewStyle;
@@ -23,6 +25,7 @@ interface ScreenLayoutProps {
 const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   children,
   scroll = false,
+  scrollEnabled = true,
   refreshControl,
   contentContainerStyle,
   style,
@@ -39,6 +42,8 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
           styles.scrollContent,
           contentContainerStyle,
         ]}
+        scrollEnabled={scrollEnabled}
+        nestedScrollEnabled={Platform.OS === 'android'}
         refreshControl={
           refreshControl ? <RefreshControl {...refreshControl} tintColor={colors.primary} /> : undefined
         }

@@ -21,6 +21,7 @@ export type RootStackParamList = {
   FieldDetail: { fieldId: string };
   TaskDetail: { taskId: string };
   FieldForm: { fieldId?: string };
+  FieldMapBoundary: { fieldId: string };
   CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string };
   Notifications: undefined;
 };

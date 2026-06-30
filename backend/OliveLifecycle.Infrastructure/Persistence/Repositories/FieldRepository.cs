@@ -38,6 +38,18 @@ public class FieldRepository : MongoRepositoryBase<FieldDocument, Field>, IField
         return documents.Select(ToEntity);
     }
 
+    public async Task<IEnumerable<Field>> GetByOwnerAndNormalizedKaekAsync(
+        string ownerId,
+        string normalizedKaek,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<FieldDocument>.Filter.And(
+            Builders<FieldDocument>.Filter.Eq(f => f.OwnerId, ownerId),
+            Builders<FieldDocument>.Filter.Eq("greekCadastre.normalizedKaek", normalizedKaek));
+        var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
+        return documents.Select(ToEntity);
+    }
+
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
     {
         var count = await Collection.CountDocumentsAsync(BuildIdFilter(id), cancellationToken: cancellationToken);

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService } from '../services/serviceFactory';
@@ -15,7 +15,6 @@ import { demoStore } from '../services/demo/demoStore';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import LifecycleIndicator from '../components/Field/LifecycleIndicator';
 import FieldMonitoring from '../components/Field/FieldMonitoring';
-import FieldsMap from '../components/Field/FieldsMap';
 import FieldTaskBoard from '../components/Field/FieldTaskBoard';
 import FieldTimeline from '../components/Field/FieldTimeline';
 import EvidenceGallery from '../components/Task/EvidenceGallery';
@@ -25,10 +24,15 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays } from 'lucide-react';
+import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin } from 'lucide-react';
 import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../utils/taskRules';
+import FieldStatusBadge from '../components/fields/FieldStatusBadge';
+import GreekCadastreInfoCard from '../components/fields/GreekCadastreInfoCard';
+import AreaComparisonCard from '../components/fields/AreaComparisonCard';
+import FieldDetailMap from '../components/fields/FieldDetailMap';
+import FieldWeatherCard from '../components/fields/FieldWeatherCard';
+import { formatFieldArea, formatFieldAreaSqm, resolveFieldCenter } from '../utils/fieldGeo';
 import './FieldDetailPage.css';
-
 type ControlRoomTab = 'board' | 'timeline' | 'evidence';
 
 const FieldDetailPage: React.FC = () => {
@@ -257,13 +261,11 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const handleOpenDirections = () => {
-    if (!field?.latitude || !field?.longitude) return;
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      `${field.latitude},${field.longitude}`
-    )}`;
+    const center = field ? resolveFieldCenter(field) : null;
+    if (!center) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${center[0]},${center[1]}`)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
-
   const handleSelectControlRoomTab = (tab: ControlRoomTab) => {
     setControlRoomTab(tab);
     if (!user?.userId || !isMockMode()) return;
@@ -346,9 +348,10 @@ const FieldDetailPage: React.FC = () => {
 
   const isFieldOwner = user?.role === 'FieldOwner';
   const isProducer = user?.role === 'Producer';
+  const fieldCenter = field ? resolveFieldCenter(field) : null;
+  const measuredAreaSqm = field ? formatFieldAreaSqm(field) : undefined;
 
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
+  if (loading) {    return <LoadingSpinner fullScreen />;
   }
 
   if (error || !field) {
@@ -371,7 +374,10 @@ const FieldDetailPage: React.FC = () => {
         <header className="fd-header">
           <div className="fd-header-main">
             <h1>{field.name}</h1>
-            <LifecycleIndicator year={field.currentLifecycleYear} stage={field.currentLifecycleStage || lifecycle?.currentStage} />
+            <div className="fd-header-badges">
+              {field.status && <FieldStatusBadge status={field.status} />}
+              <LifecycleIndicator year={field.currentLifecycleYear} stage={field.currentLifecycleStage || lifecycle?.currentStage} />
+            </div>
           </div>
           <div className="fd-header-actions">
             {isFieldOwner || field.ownerId === user?.userId ? (
@@ -424,15 +430,53 @@ const FieldDetailPage: React.FC = () => {
               size="sm"
               icon={<Navigation />}
               onClick={handleOpenDirections}
-              disabled={!field.latitude || !field.longitude}
+              disabled={!fieldCenter}
             >
               <span className="fd-btn-label">{t('fields:controlRoom.directions')}</span>
             </Button>
           </div>
         </div>
 
-        <div className="fd-layout">
-          <main className="fd-main">
+        <section className="fd-hero">
+          <div className="fd-hero-map">
+            <FieldDetailMap field={field} heightPx={260} />
+          </div>
+          <div className="fd-hero-panel">
+            {fieldCenter ? (
+              <FieldWeatherCard latitude={fieldCenter[0]} longitude={fieldCenter[1]} />
+            ) : null}
+
+            <div className="fd-hero-facts">
+              <div className="fd-hero-fact">
+                <span className="fd-hero-fact-label">{t('fields:controlRoom.area')}</span>
+                <span className="fd-hero-fact-value">{formatFieldArea(field)}</span>
+              </div>
+              {field.variety && (
+                <div className="fd-hero-fact">
+                  <span className="fd-hero-fact-label">{t('fields:controlRoom.variety')}</span>
+                  <span className="fd-hero-fact-value">{field.variety}</span>
+                </div>
+              )}
+              {field.locationText && (
+                <div className="fd-hero-fact fd-hero-fact--wide">
+                  <span className="fd-hero-fact-label">
+                    <MapPin size={12} aria-hidden /> {t('fields:addField.locationText')}
+                  </span>
+                  <span className="fd-hero-fact-value">{field.locationText}</span>
+                </div>
+              )}
+            </div>
+
+            {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && (
+              <AreaComparisonCard
+                officialAreaSqm={field.greekCadastre?.officialAreaSqm}
+                measuredAreaSqm={measuredAreaSqm}
+              />
+            )}
+          </div>
+        </section>
+
+        <div className="fd-layout">          <main className="fd-main">
           <Card className="field-control-room-card" padding="md">
             <div className="fcr-tabs" role="tablist" aria-label={t('fields:controlRoom.tabsAria')}>
               <button
@@ -607,36 +651,62 @@ const FieldDetailPage: React.FC = () => {
           </main>
 
           <aside className="fd-sidebar">
+            {field.greekCadastre && (
+              <Card className="fd-sidebar-card fd-collapsible-card" padding="none">
+                <details className="fd-collapsible" open>
+                  <summary className="fd-collapsible-summary">
+                    {t('fields:addField.cadastre.referenceTitle')}
+                  </summary>
+                  <div className="fd-collapsible-body">
+                    <GreekCadastreInfoCard cadastre={field.greekCadastre} hideTitle />
+                  </div>
+                </details>
+              </Card>
+            )}
+
+            {(field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation') && isFieldOwner && (
+              <Card className="fd-sidebar-card">
+                <Button to={`/fields/${field.id}/edit`} variant="primary" size="sm">
+                  {t('fields:addField.completeBoundary')}
+                </Button>
+              </Card>
+            )}
+
             <Card className="fd-sidebar-card">
               <h2 className="fd-sidebar-title">{t('fields:controlRoom.basicInfo')}</h2>
               <dl className="fd-facts">
-                <div><dt>{t('fields:controlRoom.area')}</dt><dd>{field.area} {t('fields:controlRoom.hectares')}</dd></div>
-                {field.variety && <div><dt>{t('fields:controlRoom.variety')}</dt><dd>{field.variety}</dd></div>}
-                {field.treeAge && <div><dt>{t('fields:controlRoom.treeAge')}</dt><dd>{field.treeAge} {t('fields:controlRoom.years')}</dd></div>}
-                {field.groundType && <div><dt>{t('fields:controlRoom.groundType')}</dt><dd>{field.groundType}</dd></div>}
-                <div><dt>{t('fields:controlRoom.irrigation')}</dt><dd>{field.irrigationStatus ? t('common:yes') : t('common:no')}</dd></div>
+                <div>
+                  <dt>{t('fields:controlRoom.area')}</dt>
+                  <dd>{formatFieldArea(field)}</dd>
+                </div>
+                {field.variety && (
+                  <div>
+                    <dt>{t('fields:controlRoom.variety')}</dt>
+                    <dd>{field.variety}</dd>
+                  </div>
+                )}
+                {field.treeAge && (
+                  <div>
+                    <dt>{t('fields:controlRoom.treeAge')}</dt>
+                    <dd>
+                      {field.treeAge} {t('fields:controlRoom.years')}
+                    </dd>
+                  </div>
+                )}
+                {field.groundType && (
+                  <div>
+                    <dt>{t('fields:controlRoom.groundType')}</dt>
+                    <dd>{field.groundType}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>{t('fields:controlRoom.irrigation')}</dt>
+                  <dd>{field.irrigationStatus ? t('common:yes') : t('common:no')}</dd>
+                </div>
               </dl>
             </Card>
 
-            <Card className="fd-sidebar-card">
-              <h2 className="fd-sidebar-title">{t('fields:controlRoom.locationTitle')}</h2>
-              {field.latitude && field.longitude ? (
-                <>
-                  <p className="fd-coords">{field.latitude}, {field.longitude}</p>
-                  <div className="field-mini-map">
-                    <FieldsMap fields={[field]} heightPx={180} />
-                  </div>
-                </>
-              ) : (
-                <EmptyState
-                  title={t('fields:controlRoom.noGpsTitle')}
-                  description={t('fields:controlRoom.noGpsDescription')}
-                />
-              )}
-            </Card>
-
-            {isFieldOwner && (
-              <Card className="fd-sidebar-card">
+            {isFieldOwner && (              <Card className="fd-sidebar-card">
                 <h2 className="fd-sidebar-title">{t('fields:controlRoom.lifecycleTitle')}</h2>
                 <div className="lifecycle-management lifecycle-compact">
                   <div className="lifecycle-status">
