@@ -14,6 +14,7 @@
   "seeAllFields": "View all fields",
   "viewAllTasks": "View all tasks",
   "allClearHint": "Check the calendar for upcoming seasonal work.",
+  "summaryFieldsLabel": "{{area}} ha total",
   "stats": {
     "fields": "Total fields",
     "hectares": "Total area",

@@ -1,22 +1,19 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, spacing } from '../../theme';
-import OverviewMetricCard, {
-  OverviewMetricCardProps,
-  OVERVIEW_METRIC_CARD_WIDTH,
-  OVERVIEW_METRIC_CARD_GAP,
-} from '../ui/OverviewMetricCard';
+import {
+  SummaryChip,
+  FieldsSummaryChipProps,
+} from '../fields/FieldsSummaryHeader';
 
 export interface OverviewMetricsStripProps {
-  metrics: OverviewMetricCardProps[];
+  metrics: FieldsSummaryChipProps[];
   greeting?: string;
   dateLabel?: string;
   /** Lighter styling when nested inside another screen (e.g. field detail). */
   embedded?: boolean;
 }
-
-const NARROW_BREAKPOINT = 380;
 
 const OverviewMetricsStrip: React.FC<OverviewMetricsStripProps> = ({
   metrics,
@@ -25,20 +22,6 @@ const OverviewMetricsStrip: React.FC<OverviewMetricsStripProps> = ({
   embedded = false,
 }) => {
   const { colors } = useTheme();
-  const { width: screenWidth } = useWindowDimensions();
-
-  const useGrid = screenWidth < NARROW_BREAKPOINT;
-  const gridCardWidth = useMemo(() => {
-    const horizontalPad = spacing.base * 2;
-    const gap = OVERVIEW_METRIC_CARD_GAP;
-    return (screenWidth - horizontalPad - gap) / 2;
-  }, [screenWidth]);
-
-  const snapOffsets = useMemo(
-    () =>
-      metrics.map((_, index) => index * (OVERVIEW_METRIC_CARD_WIDTH + OVERVIEW_METRIC_CARD_GAP)),
-    [metrics.length]
-  );
 
   if (metrics.length === 0) return null;
 
@@ -47,10 +30,7 @@ const OverviewMetricsStrip: React.FC<OverviewMetricsStripProps> = ({
       style={[
         styles.panel,
         embedded && styles.panelEmbedded,
-        {
-          backgroundColor: embedded ? 'transparent' : colors.background,
-          borderBottomColor: colors.borderLight,
-        },
+        { borderBottomColor: colors.borderLight },
       ]}
     >
       {greeting || dateLabel ? (
@@ -68,26 +48,15 @@ const OverviewMetricsStrip: React.FC<OverviewMetricsStripProps> = ({
         </View>
       ) : null}
 
-      {useGrid ? (
-        <View style={styles.grid}>
-          {metrics.map((metric, index) => (
-            <OverviewMetricCard key={`${metric.label}-${index}`} {...metric} width={gridCardWidth} />
-          ))}
-        </View>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          decelerationRate="fast"
-          snapToAlignment="start"
-          snapToOffsets={snapOffsets}
-        >
-          {metrics.map((metric, index) => (
-            <OverviewMetricCard key={`${metric.label}-${index}`} {...metric} />
-          ))}
-        </ScrollView>
-      )}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}
+      >
+        {metrics.map((metric) => (
+          <SummaryChip key={metric.label} {...metric} />
+        ))}
+      </ScrollView>
     </View>
   );
 };
@@ -97,12 +66,12 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
     paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   panelEmbedded: {
     paddingTop: 0,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
     borderBottomWidth: 0,
   },
   greetingRow: {
@@ -112,24 +81,17 @@ const styles = StyleSheet.create({
   greeting: {
     ...typography.styles.h3,
     fontWeight: '700',
-    fontSize: 17,
+    fontSize: 20,
   },
   date: {
     ...typography.styles.caption,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 18,
   },
-  scrollContent: {
-    flexDirection: 'row',
+  chipsRow: {
     paddingHorizontal: spacing.base,
-    paddingVertical: spacing.xs,
-    gap: OVERVIEW_METRIC_CARD_GAP,
-  },
-  grid: {
+    gap: spacing.xs,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.xs,
-    gap: OVERVIEW_METRIC_CARD_GAP,
   },
 });
 

@@ -28,12 +28,11 @@ import { RootStackParamList, MainTabParamList } from '../navigation/types';
 import { formatLocaleDate } from '../utils/formatters';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import {
-  countFieldLocations,
   countTasksDueThisWeek,
   countHighPriorityDueWeek,
   getAgendaTasks,
 } from '../utils/dashboardUtils';
-import { OverviewMetricCardProps } from '../components/ui/OverviewMetricCard';
+import { FieldsSummaryChipProps } from '../components/fields/FieldsSummaryHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -81,7 +80,6 @@ const DashboardScreen = () => {
 
   const tasksDueWeek = useMemo(() => countTasksDueThisWeek(tasks), [tasks]);
   const highPriorityWeek = useMemo(() => countHighPriorityDueWeek(tasks), [tasks]);
-  const locationCount = useMemo(() => countFieldLocations(fields), [fields]);
   const agendaTasks = useMemo(() => getAgendaTasks(tasks, 5), [tasks]);
   const topFields = useMemo(() => fields.slice(0, 3), [fields]);
   const needsAttentionCount = overdueCount + pendingApproval.length;
@@ -107,54 +105,37 @@ const DashboardScreen = () => {
 
   const owner = isFieldOwner();
 
-  const overviewMetrics = useMemo((): OverviewMetricCardProps[] => {
+  const overviewMetrics = useMemo((): FieldsSummaryChipProps[] => {
     if (!stats) return [];
     if (owner) {
+      const areaHa = (stats.totalArea || 0).toFixed(1);
       return [
         {
           icon: 'leaf',
           value: stats.totalFields || 0,
-          label: t('dashboard:stats.fields'),
-          subtitle: t('dashboard:stats.acrossLocations', { count: locationCount }),
+          label: t('dashboard:summaryFieldsLabel', { area: areaHa }),
           accentColor: colors.success,
           onPress: () => goTab('Fields'),
         },
         {
-          icon: 'resize-outline',
-          value: `${(stats.totalArea || 0).toFixed(1)} ha`,
-          label: t('dashboard:stats.hectares'),
-          subtitle: t('dashboard:stats.cultivated'),
-          accentColor: colors.primary,
-          onPress: () => goTab('Fields'),
-        },
-        {
-          icon: 'clipboard-outline',
+          icon: 'calendar-outline',
           value: tasksDueWeek,
           label: t('dashboard:stats.tasksDueWeek'),
-          subtitle: t('dashboard:stats.highPriority'),
-          subtitleColor: highPriorityWeek > 0 ? colors.warning : colors.textTertiary,
           accentColor: colors.warning,
-          onPress: () => goTab('Tasks'),
+          badge: highPriorityWeek > 0 ? highPriorityWeek : undefined,
+          onPress: () => goTab('Calendar', { date: new Date().toISOString() }),
         },
         {
           icon: 'alert-circle-outline',
           value: needsAttentionCount,
           label: t('dashboard:stats.needsAttention'),
-          subtitle: t('dashboard:stats.actionRequired'),
-          subtitleColor: needsAttentionCount > 0 ? colors.error : colors.textTertiary,
-          accentColor: colors.error,
+          accentColor: needsAttentionCount > 0 ? colors.error : colors.textTertiary,
+          badge: needsAttentionCount > 0 ? needsAttentionCount : undefined,
           onPress: () => goTab('Tasks'),
         },
       ];
     }
     return [
-      {
-        icon: 'clipboard-outline',
-        value: stats.totalTasks || 0,
-        label: t('dashboard:stats.total'),
-        accentColor: colors.primary,
-        onPress: () => goTab('Tasks'),
-      },
       {
         icon: 'sync-outline',
         value: stats.inProgressTasks || 0,
@@ -163,23 +144,22 @@ const DashboardScreen = () => {
         onPress: () => goTab('Tasks', { filter: 'in_progress' }),
       },
       {
-        icon: 'alert-circle-outline',
-        value: overdueCount,
-        label: t('dashboard:overdue'),
-        subtitle: t('dashboard:stats.actionRequired'),
-        subtitleColor: overdueCount > 0 ? colors.error : colors.textTertiary,
-        accentColor: colors.error,
-        onPress: () => goTab('Tasks'),
-      },
-      {
         icon: 'calendar-outline',
         value: tasksDueWeek,
         label: t('dashboard:stats.tasksDueWeek'),
         accentColor: colors.warning,
         onPress: () => goTab('Calendar', { date: new Date().toISOString() }),
       },
+      {
+        icon: 'alert-circle-outline',
+        value: overdueCount,
+        label: t('dashboard:overdue'),
+        accentColor: overdueCount > 0 ? colors.error : colors.textTertiary,
+        badge: overdueCount > 0 ? overdueCount : undefined,
+        onPress: () => goTab('Tasks'),
+      },
     ];
-  }, [stats, owner, locationCount, tasksDueWeek, highPriorityWeek, needsAttentionCount, overdueCount, colors, t]);
+  }, [stats, owner, tasksDueWeek, highPriorityWeek, needsAttentionCount, overdueCount, colors, t]);
 
   if (loading && !stats) return <LoadingSpinner fullScreen />;
   if (!user || !stats) return null;

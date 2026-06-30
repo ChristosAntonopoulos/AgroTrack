@@ -23,7 +23,7 @@ interface FieldsSummaryHeaderProps {
   addLabel?: string;
 }
 
-const SummaryChip: React.FC<FieldsSummaryChipProps> = ({
+export const SummaryChip: React.FC<FieldsSummaryChipProps> = ({
   icon,
   value,
   label,

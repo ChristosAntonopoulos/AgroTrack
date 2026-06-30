@@ -14,6 +14,7 @@
   "seeAllFields": "Όλα τα αγροτεμάχια",
   "viewAllTasks": "Όλες οι εργασίες",
   "allClearHint": "Έλεγξε το ημερολόγιο για επερχόμενες εργασίες.",
+  "summaryFieldsLabel": "{{area}} ha σύνολο",
   "stats": {
     "fields": "Σύνολο αγροτεμαχίων",
     "hectares": "Συνολική έκταση",
