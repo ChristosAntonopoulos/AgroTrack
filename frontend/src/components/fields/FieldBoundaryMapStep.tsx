@@ -13,6 +13,7 @@ import {
   FIELD_POLYGON_STYLE,
   MapLayerType,
   SATELLITE_LABELS_TILE,
+  SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
   STREET_TILE,
 } from '../../utils/mapLayers';
@@ -242,6 +243,11 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
               <TileLayer
                 attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
                 url={SATELLITE_TILE}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_PLACES_TILE}
+                opacity={0.92}
               />
               <TileLayer
                 attribution=""

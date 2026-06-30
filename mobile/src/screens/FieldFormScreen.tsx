@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Alert, Switch, Pressable } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,11 +11,13 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import InfoRow from '../components/ui/InfoRow';
 import LoadingSpinner from '../components/LoadingSpinner';
+import FieldPreviewHero from '../components/domain/FieldPreviewHero';
 import AddFieldMethodStep, { AddFieldMethod } from '../components/fields/AddFieldMethodStep';
 import WizardStepIndicator, { WizardStepKey } from '../components/fields/WizardStepIndicator';
 import FieldBoundaryDrawMap, { BoundaryPoint } from '../components/fields/FieldBoundaryDrawMap';
-import { CreateFieldDto, GeoJsonPolygon } from '../services/fieldService';
+import { CreateFieldDto, Field, GeoJsonPolygon } from '../services/fieldService';
 import { geoJsonToPoints, pointsToGeoJsonPolygon } from '../utils/polygonArea';
+import { resolveFieldCenter } from '../utils/fieldGeo';
 import {
   CROP_TYPE_OPTIONS,
   VARIETY_OPTIONS,
@@ -60,6 +62,7 @@ const FieldFormScreen = () => {
   const [measuredAreaSqm, setMeasuredAreaSqm] = useState(0);
   const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
   const [draftFieldId, setDraftFieldId] = useState<string | undefined>(fieldId);
+  const [loadedField, setLoadedField] = useState<Field | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -79,11 +82,54 @@ const FieldFormScreen = () => {
   const isLast = stepIndex === activeSteps.length - 1;
   const currentStepKey = (step === 'basics-edit' ? 'basics' : step) as WizardStepKey;
 
+  const previewField = useMemo((): Field | null => {
+    if (!isEdit || !loadedField) return null;
+    const boundary: GeoJsonPolygon | undefined =
+      boundaryPoints.length >= 3
+        ? pointsToGeoJsonPolygon(boundaryPoints)
+        : loadedField.boundary;
+    return {
+      ...loadedField,
+      name: formData.name || loadedField.name,
+      locationText: formData.locationText ?? loadedField.locationText,
+      variety: formData.variety ?? loadedField.oliveVariety ?? loadedField.variety,
+      oliveVariety: formData.variety ?? loadedField.oliveVariety,
+      boundary,
+      appMeasuredAreaSqm:
+        measuredAreaSqm > 0 ? measuredAreaSqm : loadedField.appMeasuredAreaSqm,
+    };
+  }, [isEdit, loadedField, formData.name, formData.locationText, formData.variety, boundaryPoints, measuredAreaSqm]);
+
+  const boundaryChanged = useMemo(() => {
+    if (!loadedField?.boundary || boundaryPoints.length < 3) {
+      return boundaryPoints.length >= 3 && !loadedField?.boundary;
+    }
+    const original = geoJsonToPoints(loadedField.boundary);
+    if (original.length !== boundaryPoints.length) return true;
+    return original.some(
+      (p, i) =>
+        p.latitude !== boundaryPoints[i]?.latitude ||
+        p.longitude !== boundaryPoints[i]?.longitude
+    );
+  }, [loadedField?.boundary, boundaryPoints]);
+
+  const goToBoundaryStep = useCallback(() => {
+    setError(null);
+    setStep('boundary');
+  }, []);
+
+  const showEditHero =
+    isEdit &&
+    previewField != null &&
+    resolveFieldCenter(previewField) != null &&
+    step !== 'boundary';
+
   useEffect(() => {
     if (!fieldId) return;
     getFieldService()
       .getField(fieldId)
       .then((f) => {
+        setLoadedField(f);
         setFormData({
           name: f.name,
           cropType: f.cropType || 'Olive',
@@ -103,6 +149,7 @@ const FieldFormScreen = () => {
         setDraftFieldId(f.id);
         if (f.boundary) {
           setBoundaryPoints(geoJsonToPoints(f.boundary));
+          setBoundaryConfirmed(true);
         }
         if (f.appMeasuredAreaSqm) setMeasuredAreaSqm(f.appMeasuredAreaSqm);
         setStep('basics');
@@ -138,7 +185,10 @@ const FieldFormScreen = () => {
       if (boundaryPoints.length < 3) return t('fields:addFieldWizard.errors.boundaryRequired');
     }
     if (step === 'review') {
-      if (!boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (!isEdit && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (isEdit && boundaryChanged && !boundaryConfirmed) {
+        return t('fields:addField.errors.confirmBoundary');
+      }
     }
     return null;
   };
@@ -180,6 +230,44 @@ const FieldFormScreen = () => {
     setError(null);
     if (!isFirst) setStep(activeSteps[stepIndex - 1] as WizardStep);
     else navigation.goBack();
+  };
+
+  const handleSaveEdit = async () => {
+    const err = validateStep();
+    if (err) {
+      setError(err);
+      return;
+    }
+    if (!draftFieldId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await getFieldService().updateField(draftFieldId, {
+        name: formData.name.trim(),
+        cropType: formData.cropType,
+        locationText: formData.locationText,
+        variety: formData.variety,
+        treeCount: formData.treeCount,
+        treeAge: formData.treeAge,
+        groundType: formData.soilType || formData.groundType,
+        soilType: formData.soilType,
+        irrigationType: formData.irrigationType,
+        irrigationStatus:
+          formData.irrigationStatus ||
+          Boolean(formData.irrigationType && formData.irrigationType !== 'Rainfed'),
+        slope: formData.slope,
+        accessNotes: formData.accessNotes,
+        area: measuredAreaSqm || formData.area,
+      });
+      if (boundaryPoints.length >= 3) {
+        await persistBoundary(draftFieldId);
+      }
+      navigation.replace('FieldDetail', { fieldId: draftFieldId });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleActivate = async () => {
@@ -290,6 +378,17 @@ const FieldFormScreen = () => {
         currentIndex={stepIndex}
       />
 
+      {showEditHero && previewField ? (
+        <View style={styles.heroBlock}>
+          <FieldPreviewHero
+            field={previewField}
+            mapHeight={220}
+            onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
+            onEditMapPress={goToBoundaryStep}
+          />
+        </View>
+      ) : null}
+
       {error ? (
         <View style={[styles.errorBox, { backgroundColor: colors.error + '18' }]}>
           <Text style={{ color: colors.error }}>{error}</Text>
@@ -343,11 +442,18 @@ const FieldFormScreen = () => {
             <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
               {t('fields:addField.steps.boundary')}
             </Text>
+            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+              {t('fields:addFieldWizard.boundaryDesc')}
+            </Text>
             <FieldBoundaryDrawMap
               points={boundaryPoints}
-              onPointsChange={setBoundaryPoints}
+              onPointsChange={(pts) => {
+                setBoundaryPoints(pts);
+                setBoundaryConfirmed(false);
+              }}
               onMeasuredAreaChange={setMeasuredAreaSqm}
               onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
+              height={isEdit ? 380 : 320}
             />
           </View>
         ) : null}
@@ -427,7 +533,7 @@ const FieldFormScreen = () => {
               {t('fields:addField.steps.review')}
             </Text>
             <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('fields:addField.reviewDesc')}
+              {isEdit ? t('fields:editReviewDesc') : t('fields:addField.reviewDesc')}
             </Text>
             <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={formData.name} />
             <InfoRow
@@ -449,16 +555,18 @@ const FieldFormScreen = () => {
                 value={formData.variety}
               />
             ) : null}
-            <View style={[styles.confirmRow, { borderTopColor: colors.borderLight }]}>
-              <Text style={[styles.confirmLabel, { color: colors.textPrimary }]}>
-                {t('fields:addField.confirmBoundary')}
-              </Text>
-              <Switch
-                value={boundaryConfirmed}
-                onValueChange={setBoundaryConfirmed}
-                trackColor={{ true: colors.primary }}
-              />
-            </View>
+            {(boundaryChanged || !isEdit) ? (
+              <View style={[styles.confirmRow, { borderTopColor: colors.borderLight }]}>
+                <Text style={[styles.confirmLabel, { color: colors.textPrimary }]}>
+                  {t('fields:addField.confirmBoundary')}
+                </Text>
+                <Switch
+                  value={boundaryConfirmed}
+                  onValueChange={setBoundaryConfirmed}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -479,8 +587,8 @@ const FieldFormScreen = () => {
             />
           ) : (
             <Button
-              title={t('fields:addField.activate')}
-              onPress={handleActivate}
+              title={isEdit ? t('fields:saveChanges') : t('fields:addField.activate')}
+              onPress={isEdit ? handleSaveEdit : handleActivate}
               loading={saving}
               style={styles.navBtn}
             />
@@ -490,9 +598,9 @@ const FieldFormScreen = () => {
 
       {!isLast && step !== 'method' ? (
         <Button
-          title={t('fields:addField.saveDraft')}
+          title={isEdit ? t('fields:saveChanges') : t('fields:addField.saveDraft')}
           variant="ghost"
-          onPress={handleSaveDraft}
+          onPress={isEdit ? handleSaveEdit : handleSaveDraft}
           loading={saving}
           fullWidth
           style={styles.draftBtn}
@@ -520,6 +628,7 @@ const FieldFormScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
+  heroBlock: { marginBottom: spacing.md },
   title: { ...typography.styles.h3, fontWeight: '700' },
   subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.sm },
   panel: { padding: spacing.base, marginBottom: spacing.md },

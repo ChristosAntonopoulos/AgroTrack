@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
-import { FIELD_POLYGON_STYLE, MapLayerType, SATELLITE_LABELS_TILE, SATELLITE_TILE, STREET_TILE } from '../../utils/mapLayers';
+import { FIELD_POLYGON_STYLE, MapLayerType, SATELLITE_LABELS_TILE, SATELLITE_PLACES_TILE, SATELLITE_TILE, STREET_TILE } from '../../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon } from '../../utils/fieldGeo';
 import './FieldDetailMap.css';
 
@@ -66,6 +66,7 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240 }) => {
               attribution="Tiles &copy; Esri"
               url={SATELLITE_TILE}
             />
+            <TileLayer url={SATELLITE_PLACES_TILE} opacity={0.92} />
             <TileLayer url={SATELLITE_LABELS_TILE} opacity={0.55} />
           </>
         ) : (

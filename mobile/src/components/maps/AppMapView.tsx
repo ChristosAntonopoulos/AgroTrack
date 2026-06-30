@@ -7,8 +7,15 @@ import { isMapLibreNativeAvailable } from '../../utils/maplibreNative';
 import MapUnavailableView from './MapUnavailableView';
 
 export type AppMapViewRef = {
-  fitCoordinates: (points: LatLng[], padding?: number) => void;
-  animateToRegion: (region: MapRegion, padding?: number) => void;
+  fitCoordinates: (
+    points: LatLng[],
+    padding?: number,
+    singlePointZoom?: number,
+    maxZoom?: number
+  ) => void;
+  animateToRegion: (region: MapRegion, maxZoom?: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 };
 
 export type AppMapPressEvent = {
@@ -20,12 +27,15 @@ export type AppMapViewProps = {
   mapLayer?: MapLayerType;
   initialRegion?: MapRegion | null;
   region?: MapRegion;
+  /** Cap initial / programmatic zoom so raster tiles load reliably (e.g. field detail hero). */
+  maxZoom?: number;
   showUserLocation?: boolean;
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
   rotateEnabled?: boolean;
   pitchEnabled?: boolean;
   onPress?: (event: AppMapPressEvent) => void;
+  onMapReady?: () => void;
   children?: React.ReactNode;
 };
 

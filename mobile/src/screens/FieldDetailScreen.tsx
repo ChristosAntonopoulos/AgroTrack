@@ -23,21 +23,19 @@ import Button from '../components/ui/Button';
 import InfoRow from '../components/ui/InfoRow';
 import FieldDetailHeader from '../components/domain/FieldDetailHeader';
 import FieldDetailToolbar from '../components/domain/FieldDetailToolbar';
+import FieldPreviewHero from '../components/domain/FieldPreviewHero';
 import AlertBanner from '../components/ui/AlertBanner';
 import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
 import AgendaTaskRow from '../components/domain/AgendaTaskRow';
-import WeatherWidget from '../components/domain/WeatherWidget';
-import FieldDetailMap from '../components/domain/FieldDetailMap';
-import AreaComparisonCard from '../components/domain/AreaComparisonCard';
 import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
 import ActivityTimeline from '../components/domain/ActivityTimeline';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
-import { weatherService, WeatherAlert, WeatherData } from '../services/weatherService';
+import { weatherService, WeatherAlert } from '../services/weatherService';
 import { typography, spacing } from '../theme';
 import { formatLocaleDate } from '../utils/formatters';
 import { fieldHealthStatus, getAgendaTasks } from '../utils/dashboardUtils';
-import { resolveFieldCenter, formatFieldArea, formatFieldAreaSqm } from '../utils/fieldGeo';
+import { resolveFieldCenter, formatFieldArea } from '../utils/fieldGeo';
 import { normalizeStage } from '../utils/lifecycleUtils';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import { RootStackParamList } from '../navigation/types';
@@ -57,9 +55,7 @@ const FieldDetailScreen = () => {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
-  const [weatherLoading, setWeatherLoading] = useState(false);
   const [cadastreExpanded, setCadastreExpanded] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -87,24 +83,16 @@ const FieldDetailScreen = () => {
 
       const center = resolveFieldCenter(fieldData);
       if (center) {
-        setWeatherLoading(true);
         try {
-          const [wx, alerts] = await Promise.all([
-            weatherService.getCurrentWeather(center.latitude, center.longitude),
-            weatherService.getWeatherAlerts(center.latitude, center.longitude).catch(() => []),
-          ]);
-          setWeather(wx);
+          const alerts = await weatherService
+            .getWeatherAlerts(center.latitude, center.longitude)
+            .catch(() => []);
           setWeatherAlerts(alerts);
         } catch {
-          setWeather(null);
           setWeatherAlerts([]);
-        } finally {
-          setWeatherLoading(false);
         }
       } else {
-        setWeather(null);
         setWeatherAlerts([]);
-        setWeatherLoading(false);
       }
     } catch (error) {
       console.error('Error loading field details:', error);
@@ -230,32 +218,14 @@ const FieldDetailScreen = () => {
       />
 
       <View style={styles.heroMapBlock}>
-        <FieldDetailMap
+        <FieldPreviewHero
           field={field}
-          height={240}
           onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
         />
       </View>
 
       <View style={styles.toolbarWrap}>
         <FieldDetailToolbar actions={toolbarActions} />
-      </View>
-
-      <View style={styles.contextBlock}>
-        <WeatherWidget
-          weather={weather}
-          loading={weatherLoading}
-          high={weather?.high}
-          low={weather?.low}
-          namespace="fields"
-        />
-        {(field.greekCadastre?.officialAreaSqm != null || field.appMeasuredAreaSqm != null) ? (
-          <AreaComparisonCard
-            officialAreaSqm={field.greekCadastre?.officialAreaSqm}
-            measuredAreaSqm={formatFieldAreaSqm(field)}
-            differencePercent={field.greekCadastre?.areaDifferencePercent}
-          />
-        ) : null}
       </View>
 
       {overdueCount > 0 ? (
@@ -484,11 +454,6 @@ const styles = StyleSheet.create({
   toolbarWrap: {
     paddingHorizontal: spacing.base,
     marginBottom: spacing.md,
-  },
-  contextBlock: {
-    paddingHorizontal: spacing.base,
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
   cadastreSection: {
     paddingHorizontal: spacing.base,

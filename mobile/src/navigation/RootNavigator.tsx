@@ -21,7 +21,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation('nav');
+  const { t } = useTranslation(['nav', 'fields']);
   const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
@@ -78,7 +78,17 @@ const RootNavigator = () => {
             <Stack.Screen
               name="FieldDetail"
               component={FieldDetailScreen}
-              options={{ title: t('fields'), headerBackTitle: t('home') }}
+              options={{
+                title: t('fields'),
+                headerBackTitle: t('home'),
+                headerStyle: { backgroundColor: colors.headerBackground },
+                headerTintColor: colors.headerForeground,
+                headerTitleStyle: {
+                  color: colors.headerForeground,
+                  fontWeight: '700',
+                  fontSize: 17,
+                },
+              }}
             />
             <Stack.Screen
               name="TaskDetail"
@@ -90,9 +100,16 @@ const RootNavigator = () => {
               component={FieldFormScreen}
               options={({ route }) => ({
                 title: route.params?.fieldId
-                  ? t('fields')
-                  : t('fields'),
+                  ? t('fields:editField')
+                  : t('fields:addField.title'),
                 presentation: 'modal',
+                headerStyle: { backgroundColor: colors.headerBackground },
+                headerTintColor: colors.headerForeground,
+                headerTitleStyle: {
+                  color: colors.headerForeground,
+                  fontWeight: '700',
+                  fontSize: 17,
+                },
               })}
             />
             <Stack.Screen

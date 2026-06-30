@@ -5,6 +5,9 @@ export type MapLayerType = 'satellite' | 'street';
 export const SATELLITE_TILE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
+export const SATELLITE_PLACES_TILE =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+
 export const SATELLITE_LABELS_TILE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}';
 

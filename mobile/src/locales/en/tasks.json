@@ -43,5 +43,46 @@
   "confirmStatus": "Update task status?",
   "statusUpdated": "Task status updated",
   "evidenceAdded": "Evidence added",
-  "approvalNote": "Approval note (optional)"
+  "approvalNote": "Approval note (optional)",
+  "createWizard": {
+    "subtitle": "Set up a task in a few quick steps",
+    "steps": {
+      "field": "Choose field",
+      "template": "Pick template",
+      "details": "Details & schedule",
+      "review": "Review"
+    },
+    "fieldTitle": "Which field?",
+    "fieldDesc": "Select the field this task applies to.",
+    "searchFields": "Search fields…",
+    "templateTitle": "Task template",
+    "templateDesc": "Start from a common olive task or create your own.",
+    "customTask": "Custom task",
+    "customTaskDesc": "Enter your own title and type.",
+    "detailsTitle": "Task details",
+    "taskTitle": "Title",
+    "taskTitlePlaceholder": "e.g. Winter pruning – north grove",
+    "typePlaceholder": "e.g. Pruning, Harvesting",
+    "notesPlaceholder": "Optional instructions for the producer",
+    "scheduleTitle": "When should it happen?",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "reviewTitle": "Ready to create?",
+    "reviewDesc": "Check everything looks right before saving.",
+    "presets": {
+      "today": "Today",
+      "threeDays": "3 days",
+      "week": "This week"
+    },
+    "errors": {
+      "fieldRequired": "Please select a field.",
+      "templateRequired": "Pick a template or choose custom task.",
+      "titleRequired": "Enter a task title.",
+      "typeRequired": "Enter a task type.",
+      "invalidStart": "Start date must be YYYY-MM-DD.",
+      "invalidEnd": "End date must be YYYY-MM-DD.",
+      "endBeforeStart": "End date cannot be before start date.",
+      "required": "Fill in all required fields."
+    }
+  }
 }

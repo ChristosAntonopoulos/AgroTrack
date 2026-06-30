@@ -70,7 +70,8 @@
       "expo-localization",
       "expo-font",
       "expo-dev-client",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

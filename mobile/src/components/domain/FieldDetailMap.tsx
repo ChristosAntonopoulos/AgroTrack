@@ -9,11 +9,19 @@ import {
   regionForCenter,
   regionForPolygon,
 } from '../../utils/fieldGeo';
+import { capRegionZoom } from '../../utils/maplibreGeo';
+import {
+  FIELD_HERO_MAX_ZOOM,
+  FIELD_HERO_MIN_DELTA,
+  FIELD_HERO_POLYGON_FACTOR,
+  FIELD_HERO_POLYGON_PADDING,
+} from '../../utils/fieldMapFraming';
 import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
 import MapPointLayer from '../maps/MapPointLayer';
 import MapLayerToggle from './MapLayerToggle';
+import MapZoomControls from '../maps/MapZoomControls';
 import { typography, spacing } from '../../theme';
 
 export interface FieldDetailMapProps {
@@ -32,6 +40,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<AppMapViewRef>(null);
+  const mapReadyRef = useRef(false);
 
   const setGestureActive = useCallback(
     (active: boolean) => {
@@ -55,19 +64,49 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
 
   const region = useMemo(() => {
-    if (polygon?.length) return regionForPolygon(polygon, 1.02, 0.00022);
-    if (center) return regionForCenter(center, 0.00028);
-    return null;
+    const raw = polygon?.length
+      ? regionForPolygon(polygon, FIELD_HERO_POLYGON_FACTOR, FIELD_HERO_MIN_DELTA)
+      : center
+        ? regionForCenter(center, FIELD_HERO_MIN_DELTA)
+        : null;
+    return raw ? capRegionZoom(raw, FIELD_HERO_MAX_ZOOM) : null;
   }, [polygon, center]);
 
-  useEffect(() => {
-    if (!center) return;
+  const focusMap = useCallback(() => {
+    if (!center || !region) return;
     if (polygon && polygon.length >= 3) {
-      mapRef.current?.fitCoordinates(polygon, 16);
-    } else {
-      mapRef.current?.animateToRegion(regionForCenter(center, 0.00028));
+      mapRef.current?.fitCoordinates(
+        polygon,
+        FIELD_HERO_POLYGON_PADDING,
+        FIELD_HERO_MAX_ZOOM,
+        FIELD_HERO_MAX_ZOOM
+      );
+      return;
     }
-  }, [field.id, polygon, center]);
+    mapRef.current?.animateToRegion(region, FIELD_HERO_MAX_ZOOM);
+  }, [center, polygon, region]);
+
+  const handleZoomIn = useCallback(() => {
+    mapRef.current?.zoomIn();
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    mapRef.current?.zoomOut();
+  }, []);
+
+  const handleMapReady = useCallback(() => {
+    mapReadyRef.current = true;
+    focusMap();
+  }, [focusMap]);
+
+  useEffect(() => {
+    mapReadyRef.current = false;
+  }, [field.id, mapLayer]);
+
+  useEffect(() => {
+    if (!mapReadyRef.current) return;
+    focusMap();
+  }, [field.id, field.boundary, field.centerPoint, field.latitude, field.longitude, mapLayer, focusMap]);
 
   if (!center || !region) {
     return (
@@ -96,11 +135,13 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         key={`field-map-${field.id}-${mapLayer}`}
         style={styles.map}
         initialRegion={region}
+        maxZoom={FIELD_HERO_MAX_ZOOM}
         mapLayer={mapLayer}
         scrollEnabled
         zoomEnabled
         rotateEnabled={false}
         pitchEnabled={false}
+        onMapReady={handleMapReady}
       >
         {polygon && polygon.length >= 3 ? (
           <MapPolygonLayer id={field.id} ring={polygon} />
@@ -114,6 +155,9 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
       </AppMapView>
       <View style={styles.toggle} pointerEvents="box-none">
         <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+      </View>
+      <View style={styles.zoom} pointerEvents="box-none">
+        <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
       </View>
     </View>
   );
@@ -129,6 +173,11 @@ const styles = StyleSheet.create({
   toggle: {
     position: 'absolute',
     top: spacing.sm,
+    right: spacing.sm,
+  },
+  zoom: {
+    position: 'absolute',
+    bottom: spacing.sm,
     right: spacing.sm,
   },
   empty: {

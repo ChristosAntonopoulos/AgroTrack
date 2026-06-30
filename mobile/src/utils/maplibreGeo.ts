@@ -32,11 +32,44 @@ export const deltaToZoom = (latitudeDelta: number): number => {
   return Math.min(Math.max(Math.log2(360 / delta) - 8.2, 4), 19);
 };
 
-export const regionToCameraStop = (region: MapRegion) => ({
-  centerCoordinate: [region.longitude, region.latitude] as Position,
-  zoomLevel: deltaToZoom(region.latitudeDelta),
-  animationDuration: 0,
-});
+/** Inverse of deltaToZoom — minimum lat span for a given zoom ceiling. */
+export const zoomToLatitudeDelta = (zoom: number): number =>
+  360 / Math.pow(2, zoom + 8.2);
+
+export const capRegionZoom = (region: MapRegion, maxZoom: number): MapRegion => {
+  const minDelta = zoomToLatitudeDelta(maxZoom);
+  return {
+    ...region,
+    latitudeDelta: Math.max(region.latitudeDelta, minDelta),
+    longitudeDelta: Math.max(region.longitudeDelta, minDelta),
+  };
+};
+
+export const expandBoundsForMaxZoom = (
+  bounds: { ne: Position; sw: Position },
+  maxZoom: number
+): { ne: Position; sw: Position } => {
+  const minDelta = zoomToLatitudeDelta(maxZoom);
+  const [neLng, neLat] = bounds.ne;
+  const [swLng, swLat] = bounds.sw;
+  const centerLat = (neLat + swLat) / 2;
+  const centerLng = (neLng + swLng) / 2;
+  const halfLat = Math.max((neLat - swLat) / 2, minDelta / 2);
+  const halfLng = Math.max((neLng - swLng) / 2, minDelta / 2);
+  return {
+    ne: [centerLng + halfLng, centerLat + halfLat],
+    sw: [centerLng - halfLng, centerLat - halfLat],
+  };
+};
+
+export const regionToCameraStop = (region: MapRegion, maxZoom?: number) => {
+  const capped = maxZoom != null ? capRegionZoom(region, maxZoom) : region;
+  return {
+    centerCoordinate: [capped.longitude, capped.latitude] as Position,
+    zoomLevel: deltaToZoom(capped.latitudeDelta),
+    animationDuration: 0,
+  };
+};
 
 export const ringToPolygonFeature = (
   id: string,
