@@ -14,8 +14,8 @@ import {
   MapLayerType,
   FIELD_POLYGON_FILL,
   FIELD_POLYGON_STROKE,
-  mapLayerToMapType,
 } from '../../utils/mapLayers';
+import AppMapView from '../maps/AppMapView';
 import MapLayerToggle from './MapLayerToggle';
 import { typography, spacing } from '../../theme';
 
@@ -128,12 +128,12 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
       onTouchEnd={() => setGestureActive(false)}
       onTouchCancel={() => setGestureActive(false)}
     >
-      <MapView
+      <AppMapView
         ref={mapRef}
         key={`field-map-${field.id}`}
         style={styles.map}
         initialRegion={region}
-        mapType={mapLayerToMapType(mapLayer)}
+        mapLayer={mapLayer}
         scrollEnabled
         zoomEnabled
         zoomTapEnabled
@@ -153,7 +153,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         ) : (
           <Marker coordinate={center} />
         )}
-      </MapView>
+      </AppMapView>
       <View style={styles.toggle} pointerEvents="box-none">
         <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
       </View>

@@ -172,6 +172,7 @@ stages:
         BUILD_ID: $(Build.BuildId)
         BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)
         APK_FILENAME: $(apkFilename)
+        GOOGLE_MAPS_API_KEY: $(GOOGLE_MAPS_API_KEY)
       continueOnError: false
       timeoutInMinutes: 90
 

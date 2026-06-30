@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import MapView, { Marker, Polygon, MapPressEvent, Region } from 'react-native-maps';
+import { Marker, Polygon, MapPressEvent, Region } from 'react-native-maps';
+import AppMapView from '../maps/AppMapView';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import MapLayerToggle from '../domain/MapLayerToggle';
@@ -9,7 +10,6 @@ import {
   MapLayerType,
   FIELD_POLYGON_FILL,
   FIELD_POLYGON_STROKE,
-  mapLayerToMapType,
 } from '../../utils/mapLayers';
 import { regionForCenter, regionForPolygon } from '../../utils/fieldGeo';
 import { estimatePolygonAreaSqm } from '../../utils/polygonArea';
@@ -103,12 +103,12 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
         onTouchEnd={() => setGestureActive(false)}
         onTouchCancel={() => setGestureActive(false)}
       >
-        <MapView
+        <AppMapView
           style={styles.map}
           region={region}
           onRegionChangeComplete={setRegion}
           onPress={onMapPress}
-          mapType={mapLayerToMapType(mapLayer)}
+          mapLayer={mapLayer}
           scrollEnabled
           zoomEnabled
           zoomTapEnabled
@@ -127,7 +127,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
               strokeWidth={2}
             />
           ) : null}
-        </MapView>
+        </AppMapView>
         <View style={styles.toggle} pointerEvents="box-none">
           <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
         </View>
