@@ -23,6 +23,7 @@ import {
   ClipboardList,
   LogIn,
   X,
+  Menu,
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleProvider';
 import { SupportedLocale } from '../i18n/config';
@@ -45,6 +46,7 @@ const LandingPage: React.FC = () => {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [installOpen, setInstallOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoForm, setDemoForm] = useState({ name: '', email: '', org: '', message: '' });
 
   useEffect(() => {
@@ -54,8 +56,16 @@ const LandingPage: React.FC = () => {
   }, []);
 
   const scrollTo = useCallback((id: string) => {
+    setMobileMenuOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const faqKeys = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
@@ -97,7 +107,7 @@ const LandingPage: React.FC = () => {
           </nav>
 
           <div className="landing-header-actions">
-            <div className="landing-lang" role="group" aria-label="Language">
+            <div className="landing-lang landing-lang--desktop" role="group" aria-label="Language">
               {(['en', 'el'] as SupportedLocale[]).map((code) => (
                 <button
                   key={code}
@@ -110,16 +120,70 @@ const LandingPage: React.FC = () => {
                 </button>
               ))}
             </div>
-            <Link to="/login" className="landing-btn landing-btn--primary landing-btn--sm">
+            <Link to="/login" className="landing-btn landing-btn--primary landing-btn--sm landing-header-signin">
               <LogIn size={16} aria-hidden />
-              {t('header.signIn')}
+              <span>{t('header.signIn')}</span>
             </Link>
-            <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--outline landing-btn--sm landing-btn--on-hero">
+            <a
+              href={ALPHA_APK_URL}
+              download={ALPHA_APK_FILENAME}
+              className="landing-btn landing-btn--outline landing-btn--sm landing-btn--on-hero landing-header-download"
+            >
               <Download size={16} aria-hidden />
-              {t('header.downloadAlpha')}
+              <span>{t('header.downloadAlpha')}</span>
             </a>
+            <button
+              type="button"
+              className="landing-menu-btn"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="landing-mobile-menu"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              {mobileMenuOpen ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
+            </button>
           </div>
         </div>
+
+        {mobileMenuOpen ? (
+          <div id="landing-mobile-menu" className="landing-mobile-menu" role="dialog" aria-modal="true">
+            <nav className="landing-mobile-nav" aria-label="Mobile">
+              {LANDING_NAV.map(({ id, key }) => (
+                <button key={id} type="button" onClick={() => scrollTo(id)}>
+                  {t(`header.${key}`)}
+                </button>
+              ))}
+            </nav>
+            <div className="landing-mobile-menu-actions">
+              <div className="landing-lang" role="group" aria-label="Language">
+                {(['en', 'el'] as SupportedLocale[]).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    className={locale === code ? 'active' : ''}
+                    onClick={() => setLocale(code)}
+                    aria-pressed={locale === code}
+                  >
+                    {code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <Link to="/login" className="landing-btn landing-btn--primary landing-btn--block" onClick={() => setMobileMenuOpen(false)}>
+                <LogIn size={18} aria-hidden />
+                {t('header.signIn')}
+              </Link>
+              <a
+                href={ALPHA_APK_URL}
+                download={ALPHA_APK_FILENAME}
+                className="landing-btn landing-btn--outline landing-btn--block"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Download size={18} aria-hidden />
+                {t('header.downloadAlpha')}
+              </a>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <main id="top">
