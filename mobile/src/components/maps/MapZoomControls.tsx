@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { createElevation } from '../../theme/elevation';
 
@@ -11,6 +12,7 @@ type MapZoomControlsProps = {
 
 const MapZoomControls: React.FC<MapZoomControlsProps> = ({ onZoomIn, onZoomOut }) => {
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
 
   return (
     <View
@@ -27,7 +29,7 @@ const MapZoomControls: React.FC<MapZoomControlsProps> = ({ onZoomIn, onZoomOut }
         onPress={onZoomIn}
         style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
         accessibilityRole="button"
-        accessibilityLabel="Zoom in"
+        accessibilityLabel={t('mapZoomIn')}
       >
         <Ionicons name="add" size={20} color={colors.textPrimary} />
       </Pressable>
@@ -36,7 +38,7 @@ const MapZoomControls: React.FC<MapZoomControlsProps> = ({ onZoomIn, onZoomOut }
         onPress={onZoomOut}
         style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
         accessibilityRole="button"
-        accessibilityLabel="Zoom out"
+        accessibilityLabel={t('mapZoomOut')}
       >
         <Ionicons name="remove" size={20} color={colors.textPrimary} />
       </Pressable>

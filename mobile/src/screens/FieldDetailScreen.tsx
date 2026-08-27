@@ -31,6 +31,7 @@ import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
 import ActivityTimeline from '../components/domain/ActivityTimeline';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import OfflineBanner from '../components/OfflineBanner';
 import { weatherService, WeatherAlert } from '../services/weatherService';
 import { typography, spacing } from '../theme';
 import { formatLocaleDate } from '../utils/formatters';
@@ -208,6 +209,7 @@ const FieldDetailScreen = () => {
 
   return (
     <ScreenLayout scroll scrollEnabled={parentScrollEnabled} contentContainerStyle={styles.content}>
+      <OfflineBanner />
       <FieldDetailHeader
         field={field}
         currentYear={currentYear}

@@ -279,19 +279,11 @@ export const cleanupStorage = async (): Promise<void> => {
   
   try {
     console.log('Starting AsyncStorage cleanup...');
-    
-    // Always clear user and token data on startup to prevent boolean casting errors
-    // This forces a fresh login and ensures no corrupted data persists
-    console.log('  → Clearing user and token data for fresh start...');
-    try {
-      await clearUserData();
-      console.log('  ✓ User and token data cleared');
-    } catch (clearError) {
-      console.error('  ✗ Error clearing user data:', clearError);
-    }
-    
-    // Validate all storage keys sequentially to ensure proper order
-    // (tasks and sync queue validation)
+
+    // Validate session + local data — do NOT wipe token/user/cache on startup.
+    // Offline mode depends on persisted session + last-fetched entity cache surviving app restarts.
+    await validateToken();
+    await validateUser();
     await validateTasks();
     await validateSyncQueue();
     
@@ -321,11 +313,15 @@ export const resetCleanup = (): void => {
  */
 export const clearAllStorage = async (): Promise<void> => {
   try {
+    const { EntityCache } = await import('./entityCache');
+    const { OfflineQueue } = await import('./offlineQueue');
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEYS.TOKEN),
       AsyncStorage.removeItem(STORAGE_KEYS.USER),
       AsyncStorage.removeItem(STORAGE_KEYS.TASKS),
       AsyncStorage.removeItem(STORAGE_KEYS.SYNC_QUEUE),
+      EntityCache.clearAll(),
+      OfflineQueue.clearQueue(),
     ]);
     console.log('All AsyncStorage data cleared');
   } catch (error) {

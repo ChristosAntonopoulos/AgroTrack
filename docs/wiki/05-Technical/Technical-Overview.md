@@ -30,8 +30,8 @@
 
 ## Τι δεν κάνει (ακόμα)
 
-- Όχι native mobile apps (αργότερα — προς το παρόν αρκεί το mobile web)
-- Όχι offline mode (αργότερα)
+- Όχι native mobile apps (αργότερα — προς το παρόν αρκεί το mobile web / Expo)
+- Όχι full offline-first με τοπική βάση (WatermelonDB/SQLite) — υπάρχει όμως **mobile pragmatic outbox**: τελευταία cached fields/tasks στο AsyncStorage, ουρά JSON mutations, sync στο reconnect
 - Όχι συνδέσεις με αισθητήρες, δορυφόρους ή εξωτερικό εξοπλισμό αγρού
 - Όχι χαρακτηριστικά AI / machine learning
 

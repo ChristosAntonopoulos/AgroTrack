@@ -24,6 +24,7 @@ import TaskStatusStepper from '../components/domain/TaskStatusStepper';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EvidenceForm, { EvidenceFormData } from '../components/forms/EvidenceForm';
+import OfflineBanner from '../components/OfflineBanner';
 import { typography, spacing } from '../theme';
 import { createElevation } from '../theme/elevation';
 import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters';
@@ -187,6 +188,7 @@ const TaskDetailScreen = () => {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <OfflineBanner />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
           <Text style={[styles.taskTitle, { color: colors.textPrimary }]}>{task.title}</Text>

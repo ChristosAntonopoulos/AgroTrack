@@ -5,15 +5,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PreferencesProvider } from './src/context/PreferencesContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { OfflineProvider } from './src/context/OfflineContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import i18n, { changeAppLanguage } from './src/i18n';
 import { usePreferences } from './src/context/PreferencesContext';
 import LoadingSpinner from './src/components/LoadingSpinner';
-import { useOfflineSync } from './src/hooks/useOfflineSync';
 
 const AppInner = () => {
-  useOfflineSync();
   const { isDark } = useTheme();
   return (
     <>
@@ -45,7 +44,9 @@ export default function App() {
             <ThemeProvider>
               <I18nSync>
                 <AuthProvider>
-                  <AppInner />
+                  <OfflineProvider>
+                    <AppInner />
+                  </OfflineProvider>
                 </AuthProvider>
               </I18nSync>
             </ThemeProvider>

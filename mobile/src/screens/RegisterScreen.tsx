@@ -77,7 +77,7 @@ const RegisterScreen = () => {
             <FormField label={t('register.firstName')} value={firstName} onChangeText={setFirstName} editable={!loading} />
             <FormField label={t('register.lastName')} value={lastName} onChangeText={setLastName} editable={!loading} />
             <FormField
-              label="Email"
+              label={t('register.emailLabel')}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -85,14 +85,14 @@ const RegisterScreen = () => {
               editable={!loading}
             />
             <FormField
-              label="Password"
+              label={t('register.passwordLabel')}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               editable={!loading}
             />
 
-            <Text style={[styles.roleLabel, { color: colors.textPrimary }]}>Role</Text>
+            <Text style={[styles.roleLabel, { color: colors.textPrimary }]}>{t('register.roleLabel')}</Text>
             <View style={styles.roleRow}>
               <RoleOption value="FieldOwner" label={t('register.roleOwner')} />
               <RoleOption value="Producer" label={t('register.roleProducer')} />

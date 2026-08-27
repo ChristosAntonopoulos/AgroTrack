@@ -53,5 +53,15 @@
     "noFields": "No fields found"
   },
   "version": "Version",
-  "or": "or"
+  "or": "or",
+  "mapZoomIn": "Zoom in",
+  "mapZoomOut": "Zoom out",
+  "offline": {
+    "offline": "You are offline. Changes will sync when you reconnect.",
+    "offlineCached": "You are offline. Showing last saved fields and tasks.",
+    "offlineWithPending": "You are offline. {{count}} change(s) waiting to sync.",
+    "pending": "{{count}} change(s) waiting to sync. Tap to retry.",
+    "syncing": "Syncing {{count}} change(s)…",
+    "photosRequireConnection": "Photos require a connection. You can still add notes offline."
+  }
 }

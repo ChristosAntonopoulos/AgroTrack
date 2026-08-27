@@ -1,9 +1,7 @@
-import { useNetworkStatus } from '../hooks/useNetworkStatus';
-
 /**
- * Initializes network listener and offline queue sync.
- * Mount once at app root.
+ * Initializes offline sync via OfflineProvider.
+ * Kept for App.tsx compatibility; provider owns NetInfo + flush.
  */
 export const useOfflineSync = () => {
-  useNetworkStatus();
+  // no-op: OfflineProvider handles network + queue sync
 };

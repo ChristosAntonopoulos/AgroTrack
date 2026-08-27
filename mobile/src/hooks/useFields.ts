@@ -5,6 +5,9 @@ import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
 import { sanitizeFields } from '../utils/dataSanitizer';
 import { isTaskOverdue } from '../utils/taskListUtils';
+import { EntityCache } from '../utils/entityCache';
+import { isDeviceOnline } from '../utils/networkStatus';
+import { useOfflineMode } from '../context/OfflineContext';
 
 export interface UseFieldsResult {
   fields: Field[];
@@ -14,13 +17,16 @@ export interface UseFieldsResult {
   fieldTaskCounts: Record<string, number>;
   fieldOpenTaskCounts: Record<string, number>;
   fieldHasOverdue: Record<string, boolean>;
+  fromCache: boolean;
 }
 
 export const useFields = (): UseFieldsResult => {
   const { user } = useAuth();
+  const { setShowingCachedData, syncGeneration } = useOfflineMode();
   const [fields, setFields] = useState<Field[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
   const [fieldTaskCounts, setFieldTaskCounts] = useState<Record<string, number>>({});
   const [fieldOpenTaskCounts, setFieldOpenTaskCounts] = useState<Record<string, number>>({});
   const [fieldHasOverdue, setFieldHasOverdue] = useState<Record<string, boolean>>({});
@@ -31,11 +37,11 @@ export const useFields = (): UseFieldsResult => {
     const overdue: Record<string, boolean> = {};
 
     for (const field of sanitizedFields) {
-      const fieldTasks = tasks.filter(t => t.fieldId === field.id);
+      const fieldTasks = tasks.filter((t) => t.fieldId === field.id);
       counts[field.id] = fieldTasks.length;
-      const open = fieldTasks.filter(t => t.status !== 'completed');
+      const open = fieldTasks.filter((t) => t.status !== 'completed');
       openCounts[field.id] = open.length;
-      overdue[field.id] = open.some(t => isTaskOverdue(t));
+      overdue[field.id] = open.some((t) => isTaskOverdue(t));
     }
 
     setFieldTaskCounts(counts);
@@ -49,6 +55,7 @@ export const useFields = (): UseFieldsResult => {
     try {
       setLoading(true);
       setError(null);
+      const online = await isDeviceOnline();
       const [fieldsData, tasksData] = await Promise.all([
         getFieldService().getFields(user.id, user.role),
         getTaskService().getAssignedTasks(user.id, user.role).catch(() => [] as Task[]),
@@ -57,9 +64,26 @@ export const useFields = (): UseFieldsResult => {
       const sanitizedFields = sanitizeFields(fieldsData);
       setFields(sanitizedFields);
       buildTaskMaps(sanitizedFields, tasksData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load fields');
-      console.error('Error loading fields:', err);
+
+      const cached = !online;
+      setFromCache(cached);
+      setShowingCachedData(cached);
+    } catch (err: unknown) {
+      const cached = await EntityCache.getFields(user.id);
+      if (cached) {
+        const sanitizedFields = sanitizeFields(cached.data);
+        setFields(sanitizedFields);
+        const tasksCached = await EntityCache.getTasks(user.id);
+        buildTaskMaps(sanitizedFields, tasksCached?.data ?? []);
+        setFromCache(true);
+        setShowingCachedData(true);
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load fields');
+        setFromCache(false);
+        setShowingCachedData(false);
+        console.error('Error loading fields:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -67,7 +91,7 @@ export const useFields = (): UseFieldsResult => {
 
   useEffect(() => {
     loadFields();
-  }, [user]);
+  }, [user, syncGeneration]);
 
   return {
     fields,
@@ -77,5 +101,6 @@ export const useFields = (): UseFieldsResult => {
     fieldTaskCounts,
     fieldOpenTaskCounts,
     fieldHasOverdue,
+    fromCache,
   };
 };

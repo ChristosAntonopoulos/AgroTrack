@@ -6,13 +6,13 @@ import {
   Modal,
   Alert,
   Image,
-  TouchableOpacity,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import FormField from './FormField';
 import Button from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
+import { useOfflineMode } from '../../context/OfflineContext';
 import { getFileService } from '../../services/serviceFactory';
 import { typography, spacing } from '../../theme';
 
@@ -35,12 +35,18 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
   loading = false,
 }) => {
   const { colors } = useTheme();
+  const { isOnline } = useOfflineMode();
   const { t } = useTranslation(['tasks', 'common', 'errors']);
   const [notes, setNotes] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const pickImage = async (useCamera: boolean) => {
+    if (!isOnline) {
+      Alert.alert(t('common:offline.photosRequireConnection'));
+      return;
+    }
+
     const permission = useCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -62,6 +68,11 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
   const handleSubmit = async () => {
     if (!notes.trim() && !photoUri) {
       Alert.alert(t('tasks:addEvidence'));
+      return;
+    }
+
+    if (photoUri && !isOnline) {
+      Alert.alert(t('common:offline.photosRequireConnection'));
       return;
     }
 
@@ -96,6 +107,12 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
         <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('tasks:addEvidence')}</Text>
 
+          {!isOnline ? (
+            <Text style={[styles.offlineHint, { color: colors.textSecondary }]}>
+              {t('common:offline.photosRequireConnection')}
+            </Text>
+          ) : null}
+
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={styles.preview} resizeMode="cover" />
           ) : null}
@@ -106,7 +123,7 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
               onPress={() => pickImage(true)}
               variant="outline"
               size="small"
-              disabled={isBusy}
+              disabled={isBusy || !isOnline}
               style={styles.photoBtn}
             />
             <Button
@@ -114,7 +131,7 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
               onPress={() => pickImage(false)}
               variant="outline"
               size="small"
-              disabled={isBusy}
+              disabled={isBusy || !isOnline}
               style={styles.photoBtn}
             />
           </View>
@@ -168,6 +185,10 @@ const styles = StyleSheet.create({
     ...typography.styles.h3,
     fontWeight: typography.fontWeight.bold,
     marginBottom: spacing.lg,
+  },
+  offlineHint: {
+    ...typography.styles.bodySmall,
+    marginBottom: spacing.md,
   },
   preview: {
     width: '100%',

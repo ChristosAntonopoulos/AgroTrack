@@ -123,6 +123,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     await getAuthService().logout();
+    try {
+      const { EntityCache } = await import('../utils/entityCache');
+      const { OfflineQueue } = await import('../utils/offlineQueue');
+      await EntityCache.clearAll();
+      await OfflineQueue.clearQueue();
+    } catch (error) {
+      console.error('Error clearing offline cache on logout:', error);
+    }
     setUser(null);
   };
 

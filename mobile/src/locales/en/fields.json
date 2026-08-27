@@ -171,6 +171,7 @@
     }
   },
   "form": {
+    "failedLoad": "Failed to load field",
     "failedSave": "Failed to save field",
     "failedDelete": "Failed to delete field",
     "back": "Back",
