@@ -19,6 +19,7 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
   FieldDetail: { fieldId: string };
+  FieldHistory: { fieldId: string };
   TaskDetail: { taskId: string };
   FieldForm: { fieldId?: string };
   FieldMapBoundary: { fieldId: string };

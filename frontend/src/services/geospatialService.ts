@@ -352,6 +352,14 @@ export const geospatialService = {
     return response.data.snapshots ?? [];
   },
 
+  requestHistoryBackfill: async (fieldId: string): Promise<void> => {
+    try {
+      await api.post(`/api/v1/fields/${fieldId}/history/backfill`);
+    } catch {
+      await api.post(`/api/v1/fields/${fieldId}/intelligence/refresh`);
+    }
+  },
+
   getSpatialProfile: async (fieldId: string): Promise<FieldSpatialProfile> => {
     const response = await api.get<FieldSpatialProfile>(`/api/v1/fields/${fieldId}/spatial-profile`);
     return response.data;
