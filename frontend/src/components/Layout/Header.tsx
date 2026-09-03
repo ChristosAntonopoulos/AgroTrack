@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { User, LogOut, Menu } from 'lucide-react';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
+import ExperienceModeToggle from '../Experience/ExperienceModeToggle';
 import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useLocale } from '../../context/LocaleProvider';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../../i18n/config';
@@ -50,6 +51,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <h1 className="page-title">{pageTitle}</h1>
 
         <div className="header-right">
+          <ExperienceModeToggle compact />
+
           <div className="header-lang-switch" role="group" aria-label={tCommon('language', { defaultValue: 'Language' })}>
             {bilingualLocales.map((lang) => (
               <button

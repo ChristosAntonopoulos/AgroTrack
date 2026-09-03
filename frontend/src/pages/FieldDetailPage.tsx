@@ -33,21 +33,25 @@ import FieldDetailMap from '../components/fields/FieldDetailMap';
 import FieldWeatherCard from '../components/fields/FieldWeatherCard';
 import FieldIntelligencePanel from '../components/fields/FieldIntelligencePanel';
 import FieldAlertList from '../components/fields/FieldAlertList';
+import FullPictureOnramp from '../components/Experience/FullPictureOnramp';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { formatFieldArea, formatFieldAreaSqm, resolveFieldCenter } from '../utils/fieldGeo';
 import './FieldDetailPage.css';
 type ControlRoomTab = 'board' | 'timeline' | 'evidence';
 
 const FieldDetailPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common']);
+  const { t } = useTranslation(['fields', 'common', 'settings']);
   const { formatDate, formatDateTime } = useLocaleFormatters();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { isEveryday, showWidget, recordIntelligenceOpen, setExperienceMode } = useExperienceMode();
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
   const [showProgressConfirm, setShowProgressConfirm] = useState(false);
@@ -370,7 +374,7 @@ const FieldDetailPage: React.FC = () => {
   }
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth="full" padding="sm">
       <div className="field-detail-page">
         <Breadcrumbs />
         <header className="fd-header">
@@ -443,9 +447,10 @@ const FieldDetailPage: React.FC = () => {
 
         <section className="fd-hero">
           <div className="fd-hero-map">
-            <FieldDetailMap field={field} heightPx={420} />
+            <FieldDetailMap field={field} heightPx={440} />
           </div>
           <div className="fd-hero-panel">
+            <div className="fd-glance">
             {fieldCenter ? <FieldWeatherCard fieldId={field.id} /> : null}
 
             <div className="fd-hero-facts">
@@ -468,17 +473,50 @@ const FieldDetailPage: React.FC = () => {
                 </div>
               )}
             </div>
+            </div>
 
-            {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && (
+            {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && showWidget('cadastreDetails') && (
               <AreaComparisonCard
                 officialAreaSqm={field.greekCadastre?.officialAreaSqm}
                 measuredAreaSqm={measuredAreaSqm}
               />
             )}
-
-            {field.boundary ? <FieldIntelligencePanel fieldId={field.id} /> : null}
           </div>
         </section>
+
+        <FullPictureOnramp />
+
+        {field.boundary && showWidget('fieldIntelligence') ? (
+          <FieldIntelligencePanel fieldId={field.id} />
+        ) : null}
+
+        {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+          <div className="fd-everyday-peek">
+            {!everydayFieldPeek ? (
+              <button
+                type="button"
+                className="fd-everyday-peek-btn"
+                onClick={() => {
+                  setEverydayFieldPeek(true);
+                  recordIntelligenceOpen();
+                }}
+              >
+                {t('settings:experience.peekMoreAboutField')}
+              </button>
+            ) : (
+              <>
+                <FieldIntelligencePanel fieldId={field.id} />
+                <button
+                  type="button"
+                  className="fd-everyday-peek-link"
+                  onClick={() => setExperienceMode('full')}
+                >
+                  {t('settings:experience.switchForDetails')}
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
 
         <div className="fd-layout">          <main className="fd-main">
           <Card className="field-control-room-card" padding="md">
@@ -655,9 +693,9 @@ const FieldDetailPage: React.FC = () => {
           </main>
 
           <aside className="fd-sidebar">
-            {field.greekCadastre && (
+            {field.greekCadastre && showWidget('cadastreDetails') && (
               <Card className="fd-sidebar-card fd-collapsible-card" padding="none">
-                <details className="fd-collapsible" open>
+                <details className="fd-collapsible" open={!isEveryday}>
                   <summary className="fd-collapsible-summary">
                     {t('fields:addField.cadastre.referenceTitle')}
                   </summary>
@@ -667,6 +705,18 @@ const FieldDetailPage: React.FC = () => {
                 </details>
               </Card>
             )}
+
+            {field.greekCadastre && isEveryday && !showWidget('cadastreDetails') ? (
+              <Card className="fd-sidebar-card">
+                <button
+                  type="button"
+                  className="fd-everyday-peek-btn"
+                  onClick={() => setExperienceMode('full')}
+                >
+                  {t('settings:experience.peekMoreAboutField')}
+                </button>
+              </Card>
+            ) : null}
 
             {(field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation') && isFieldOwner && (
               <Card className="fd-sidebar-card">

@@ -54,7 +54,7 @@ export const navItems: NavItem[] = [
     path: '/today',
     labelKey: 'items.today',
     icon: <Route />,
-    roles: ['Producer'],
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
     section: 'work',
   },
   {
@@ -123,7 +123,8 @@ export const resolveNavItemLabel = (item: NavItem, role: AppRole, t: TFunction<'
   return t(item.labelKey);
 };
 
-export const roleHomePath = (role: AppRole) => {
+export const roleHomePath = (role: AppRole, experienceMode?: 'everyday' | 'full') => {
+  if (experienceMode === 'everyday') return '/today';
   if (role === 'Producer') return '/today';
   return '/dashboard';
 };

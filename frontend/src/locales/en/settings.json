@@ -25,9 +25,39 @@
       "dashboard": "Dashboard",
       "fields": "Fields",
       "tasks": "Tasks",
-      "calendar": "Calendar"
+      "calendar": "Calendar",
+      "today": "Today"
     },
-    "language": "Language"
+    "language": "Language",
+    "fontScale": "Text size",
+    "fontScales": {
+      "default": "Default",
+      "large": "Large",
+      "xl": "Extra large"
+    },
+    "largeControls": "Large buttons and tap targets"
+  },
+  "experience": {
+    "label": "How OliveCycle looks",
+    "everyday": "Everyday",
+    "everydayShort": "Everyday",
+    "everydayDesc": "What to do now — large actions, fewer numbers.",
+    "everydayHint": "Recommended for most people",
+    "full": "Full picture",
+    "fullShort": "Full",
+    "fullDesc": "Maps, numbers, satellite, and history for deeper review.",
+    "fullHint": "For experienced users",
+    "chooserTitle": "How should OliveCycle look?",
+    "chooserSubtitle": "You can change this anytime in Settings. Same fields and tasks either way.",
+    "chooserFooter": "Neither choice is wrong — pick what feels clearer today.",
+    "onrampTitle": "Want the full picture?",
+    "onrampBody": "You’ve opened field details a few times. Switch to Full picture to see satellite, soil, and maps without digging.",
+    "onrampSwitch": "Switch to Full picture",
+    "onrampDismiss": "Keep Everyday",
+    "peekMoreAboutField": "More about this field",
+    "peekSoilSlope": "Show soil and slope",
+    "peekSatellite": "Show satellite and vegetation",
+    "switchForDetails": "Switch to Full picture to see satellite and soil"
   },
   "notifications": {
     "title": "Notifications",

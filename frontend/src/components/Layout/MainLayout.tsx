@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
 import './MainLayout.css';
 
 const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { experienceModeChosen } = useExperienceMode();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -14,6 +16,10 @@ const MainLayout: React.FC = () => {
   const closeSidebar = () => {
     setSidebarOpen(false);
   };
+
+  if (!experienceModeChosen) {
+    return <Navigate to="/experience" replace />;
+  }
 
   return (
     <div className="main-layout">

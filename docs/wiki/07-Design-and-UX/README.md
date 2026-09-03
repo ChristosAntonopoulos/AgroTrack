@@ -11,6 +11,7 @@
 ## Σελίδες σε αυτή την ενότητα
 
 - [Αρχές σχεδιασμού](./Design-Principles.md) — κανόνες που τηρούμε σε κάθε σχεδιασμό
+- [Experience Modes](./Experience-Modes.md) — Everyday / Full picture (μία εφαρμογή, δύο εμφανίσεις)
 - [User Flows](./User-Flows.md) — κύριες ροές σε επίπεδο οθόνης
 - [Wireframes](./Wireframes.md) — πού κρατάμε συνδέσμους wireframe
 - [Branding](./Branding.md) — φωνή, ταυτότητα, οπτική κατεύθυνση

@@ -207,7 +207,11 @@
     "wind": "Wind {{speed}} km/h",
     "rainNext24h": "{{mm}} mm of rain expected in the next 24 hours",
     "rainNone": "No rain expected in the next 24 hours",
-    "frostRisk": "Frost risk: {{level}}"
+    "frostRisk": "Frost risk: {{level}}",
+    "adviceFrost": "Frost risk tonight — protect young trees.",
+    "adviceRain": "Do not spray — rain expected today.",
+    "adviceOk": "Conditions look workable for field tasks today.",
+    "showDetails": "Show temperature and wind"
   },
   "cropType": "Crop type",
   "locationText": "Location",

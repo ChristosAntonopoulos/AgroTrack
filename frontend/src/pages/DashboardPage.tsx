@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { getFieldService, getTaskService, isMockMode } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
@@ -36,6 +37,7 @@ import './DashboardPage.css';
 const DashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation(['dashboard', 'common']);
   const { user } = useAuth();
+  const { isEveryday } = useExperienceMode();
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -134,6 +136,10 @@ const DashboardPage: React.FC = () => {
   const pendingTasks = tasks.filter((task) => task.status === 'pending').length;
   const inProgressTasks = tasks.filter((task) => task.status === 'in_progress').length;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
+
+  if (isEveryday) {
+    return <Navigate to="/today" replace />;
+  }
 
   if (loading) {
     return <LoadingSpinner fullScreen />;

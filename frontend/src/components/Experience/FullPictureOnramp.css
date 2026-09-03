@@ -1,0 +1,58 @@
+.full-picture-onramp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary-lighter, #6b9a3f);
+  background: var(--color-success-light, #d4edda);
+}
+
+.full-picture-onramp-body {
+  flex: 1;
+  min-width: 200px;
+}
+
+.full-picture-onramp-body strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--color-primary);
+  font-size: calc(1rem * var(--font-scale, 1));
+}
+
+.full-picture-onramp-body p {
+  margin: 0;
+  color: var(--text-secondary, #5a5a5a);
+  font-size: calc(0.9rem * var(--font-scale, 1));
+}
+
+.full-picture-onramp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.full-picture-onramp-primary,
+.full-picture-onramp-secondary {
+  min-height: var(--tap-min, 44px);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: calc(0.9rem * var(--font-scale, 1));
+}
+
+.full-picture-onramp-primary {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.full-picture-onramp-secondary {
+  border: 1px solid var(--border-color, #ccc);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #1a1a1a);
+}

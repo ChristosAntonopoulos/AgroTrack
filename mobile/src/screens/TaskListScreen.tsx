@@ -15,6 +15,7 @@ import { useTasks } from '../hooks/useTasks';
 import { useRefresh } from '../hooks/useRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import TaskCard from '../components/domain/TaskCard';
@@ -39,6 +40,7 @@ const TaskListScreen = () => {
   const route = useRoute<Route>();
   const { isFieldOwner } = useAuth();
   const { colors } = useTheme();
+  const { isEveryday } = usePreferences();
   const { t } = useTranslation(['tasks', 'common', 'fields']);
   const fieldId = route.params?.fieldId;
   const initialFilter = route.params?.filter as TaskFilter | undefined;
@@ -95,6 +97,7 @@ const TaskListScreen = () => {
           <TaskCard
             task={item}
             fieldName={fields[item.fieldId]?.name}
+            compact={!isEveryday}
             onPress={() => navigation.navigate('TaskDetail', { taskId: item.id })}
           />
         )}

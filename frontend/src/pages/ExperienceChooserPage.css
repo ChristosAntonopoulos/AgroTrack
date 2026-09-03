@@ -1,0 +1,98 @@
+.experience-chooser {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: var(--bg-page-gradient, var(--bg-page));
+}
+
+.experience-chooser-card {
+  width: min(720px, 100%);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  align-items: stretch;
+}
+
+.experience-chooser-card h1 {
+  margin: 0;
+  font-size: calc(1.75rem * var(--font-scale, 1));
+  color: var(--text-primary, #1a1a1a);
+}
+
+.experience-chooser-subtitle {
+  margin: 0;
+  color: var(--text-secondary, #5a5a5a);
+  font-size: calc(1rem * var(--font-scale, 1));
+  line-height: 1.5;
+}
+
+.experience-chooser-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.experience-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  text-align: left;
+  padding: var(--spacing-lg);
+  min-height: calc(var(--tap-min, 44px) * 4);
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated, #fafbfc);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.experience-option:hover,
+.experience-option:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.15);
+  outline: none;
+}
+
+.experience-option-title {
+  font-size: calc(1.25rem * var(--font-scale, 1));
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.experience-option-desc {
+  font-size: calc(0.95rem * var(--font-scale, 1));
+  color: var(--text-secondary, #5a5a5a);
+  line-height: 1.45;
+}
+
+.experience-option-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: auto;
+  font-size: calc(0.85rem * var(--font-scale, 1));
+  color: var(--color-primary-light);
+  font-weight: 600;
+}
+
+.experience-chooser-footer {
+  margin: var(--spacing-sm) 0 0;
+  font-size: calc(0.85rem * var(--font-scale, 1));
+  color: var(--text-tertiary, #888);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .experience-chooser-options {
+    grid-template-columns: 1fr;
+  }
+}

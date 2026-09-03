@@ -4,31 +4,49 @@
 
 .fd-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.9fr);
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1rem;
+  margin: 0 0 1rem;
   align-items: stretch;
 }
 
+.field-detail-page > .field-intel {
+  margin-bottom: 1rem;
+}
+
 .fd-hero-map {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+.fd-hero-map .field-detail-map-wrap,
+.fd-hero-map .field-detail-map {
+  flex: 1;
+  min-height: 26rem;
 }
 
 .fd-hero-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 0.75rem;
   min-width: 0;
+}
+
+.fd-glance {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  overflow: hidden;
 }
 
 .fd-hero-facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-xs) var(--spacing-md);
-  padding: var(--spacing-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
+  gap: 0.65rem 1rem;
+  padding: 0.85rem 1.05rem 1rem;
+  border-top: 1px solid var(--color-border);
 }
 
 .fd-hero-fact {
@@ -43,10 +61,8 @@
 }
 
 .fd-hero-fact-label {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   color: var(--color-text-secondary);
   display: inline-flex;
   align-items: center;
@@ -54,8 +70,8 @@
 }
 
 .fd-hero-fact-value {
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--color-text-primary);
   word-break: break-word;
 }
@@ -138,12 +154,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-  background: var(--bg-interactive);
+  gap: var(--spacing-sm) var(--spacing-md);
+  padding: 0.65rem 0.9rem;
+  margin-bottom: var(--spacing-md);
+  background: var(--bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
 }
 
 .fd-status-metrics {
@@ -187,8 +203,8 @@
 
 .fd-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
-  gap: var(--spacing-lg);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 1rem;
   align-items: start;
 }
 
@@ -852,5 +868,36 @@
   .before-after-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.fd-everyday-peek {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0 0 var(--spacing-md);
+}
+
+.fd-everyday-peek-btn,
+.fd-everyday-peek-link {
+  min-height: var(--tap-min, 44px);
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 650;
+  font-size: calc(0.95rem * var(--font-scale, 1));
+  cursor: pointer;
+  text-align: left;
+}
+
+.fd-everyday-peek-btn {
+  border: 1px solid var(--color-primary-lighter, #6b9a3f);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--bg-surface));
+  color: var(--color-primary);
+}
+
+.fd-everyday-peek-link {
+  border: none;
+  background: transparent;
+  color: var(--color-primary-light);
+  text-decoration: underline;
 }
 

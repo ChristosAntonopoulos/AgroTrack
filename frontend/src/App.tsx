@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LocaleProvider } from './context/LocaleProvider';
 import { NotificationProvider } from './context/NotificationContext';
+import { ExperienceModeProvider } from './context/ExperienceModeContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import LandingPage from './pages/LandingPage';
@@ -25,6 +26,7 @@ import SettingsPage from './pages/SettingsPage';
 import DataSourcesPage from './pages/DataSourcesPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import TodayPage from './pages/TodayPage';
+import ExperienceChooserPage from './pages/ExperienceChooserPage';
 import './App.css';
 
 function App() {
@@ -32,33 +34,36 @@ function App() {
     <ThemeProvider>
       <LocaleProvider>
         <AuthProvider>
-          <NotificationProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="fields" element={<FieldsPage />} />
-                <Route path="fields/new" element={<FieldFormPage />} />
-                <Route path="fields/:id/task-templates" element={<FieldTaskTemplatesPage />} />
-                <Route path="fields/:id/edit" element={<FieldFormPage />} />
-                <Route path="fields/:id" element={<FieldDetailPage />} />
-                <Route path="tasks" element={<TasksPage />} />
-                <Route path="tasks/new" element={<TaskFormPage />} />
-                <Route path="tasks/:id" element={<TaskDetailPage />} />
-                <Route path="calendar" element={<CalendarPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="today" element={<TodayPage />} />
-                <Route path="ministry" element={<MinistryNotificationsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="data-sources" element={<DataSourcesPage />} />
-              </Route>
-            </Routes>
-          </Router>
-          </NotificationProvider>
+          <ExperienceModeProvider>
+            <NotificationProvider>
+            <Router>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/experience" element={<ProtectedRoute><ExperienceChooserPage /></ProtectedRoute>} />
+                <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="fields" element={<FieldsPage />} />
+                  <Route path="fields/new" element={<FieldFormPage />} />
+                  <Route path="fields/:id/task-templates" element={<FieldTaskTemplatesPage />} />
+                  <Route path="fields/:id/edit" element={<FieldFormPage />} />
+                  <Route path="fields/:id" element={<FieldDetailPage />} />
+                  <Route path="tasks" element={<TasksPage />} />
+                  <Route path="tasks/new" element={<TaskFormPage />} />
+                  <Route path="tasks/:id" element={<TaskDetailPage />} />
+                  <Route path="calendar" element={<CalendarPage />} />
+                  <Route path="analytics" element={<AnalyticsPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="today" element={<TodayPage />} />
+                  <Route path="ministry" element={<MinistryNotificationsPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="data-sources" element={<DataSourcesPage />} />
+                </Route>
+              </Routes>
+            </Router>
+            </NotificationProvider>
+          </ExperienceModeProvider>
         </AuthProvider>
       </LocaleProvider>
     </ThemeProvider>

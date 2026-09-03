@@ -2,48 +2,18 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap: 0.4rem;
-}
-
-.field-detail-map-overlays-wrap {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.field-detail-map-overlays-hint {
-  margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: var(--color-text-muted);
-}
-
-.field-detail-map-overlays {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.field-detail-map-overlays button {
-  padding: 0.22rem 0.55rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  color: var(--color-text-secondary);
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.field-detail-map-overlays button.active {
-  border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 16%, var(--bg-elevated));
-  color: var(--color-primary-light);
+  height: 100%;
+  min-height: 0;
 }
 
 .field-detail-map {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  border-radius: var(--radius-md);
+  height: 100%;
+  min-height: 28rem;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);
   background: var(--bg-hover);
@@ -58,9 +28,54 @@
   font-size: 0.875rem;
 }
 
+.field-detail-map-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 18rem;
+}
+
 .field-detail-map-leaflet {
   height: 100%;
   width: 100%;
+}
+
+.field-detail-map-dock {
+  position: relative;
+  z-index: 500;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem 0.6rem;
+  background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+  border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(10px);
+}
+
+.field-detail-map-overlays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.field-detail-map-overlays button {
+  min-height: 1.85rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.field-detail-map-overlays button.active {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.field-detail-map-dock .satellite-dates {
+  padding: 0;
 }
 
 .field-detail-map-layer-toggle {
@@ -110,4 +125,13 @@
   background: color-mix(in srgb, var(--bg-page) 80%, transparent) !important;
   color: var(--color-text-muted) !important;
   font-size: 0.6rem;
+}
+
+.field-detail-map-full-hint {
+  flex: 1 1 100%;
+  border-left: none !important;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-elevated)) !important;
+  color: var(--color-primary) !important;
+  font-weight: 650 !important;
+  text-align: left;
 }

@@ -158,13 +158,20 @@ const FieldMapOverlay: React.FC<Props> = ({
 
   return (
     <>
-      <ImageOverlay ref={primaryRef} url={imageUrl} bounds={bounds} opacity={opacity} />
+      <ImageOverlay
+        ref={primaryRef}
+        url={imageUrl}
+        bounds={bounds}
+        opacity={opacity}
+        pane="field-overlay"
+      />
       {compareImageUrl ? (
         <ImageOverlay
           ref={compareRef}
           url={compareImageUrl}
           bounds={effectiveCompareBounds}
           opacity={opacity}
+          pane="field-overlay"
         />
       ) : null}
       {seam}

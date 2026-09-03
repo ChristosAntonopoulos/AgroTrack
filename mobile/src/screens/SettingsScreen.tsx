@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences, AppLanguage } from '../context/PreferencesContext';
 import { ThemeMode } from '../theme/themes';
+import type { ExperienceMode, FontScale } from '../experience/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import Card from '../components/ui/Card';
@@ -22,7 +23,20 @@ const SettingsScreen = () => {
   const { user, logout, isFieldOwner } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation(['settings', 'common', 'nav']);
-  const { language, themeMode, setLanguage, setThemeMode } = usePreferences();
+  const {
+    language,
+    themeMode,
+    experienceMode,
+    fontScale,
+    largeControls,
+    setLanguage,
+    setThemeMode,
+    setExperienceMode,
+    setFontScale,
+    setLargeControls,
+    fontScaleMultiplier,
+    tapMin,
+  } = usePreferences();
   const navigation = useNavigation<Nav>();
 
   const handleLogout = () => {
@@ -57,13 +71,19 @@ const SettingsScreen = () => {
         {
           backgroundColor: selected ? colors.primaryDark : colors.surfaceMuted,
           borderColor: selected ? colors.primaryDark : colors.border,
+          minHeight: tapMin,
         },
       ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
     >
       <Text
         style={[
           styles.optionText,
-          { color: selected ? colors.textInverse : colors.textPrimary },
+          {
+            color: selected ? colors.textInverse : colors.textPrimary,
+            fontSize: 14 * fontScaleMultiplier,
+          },
         ]}
       >
         {label}
@@ -83,11 +103,62 @@ const SettingsScreen = () => {
             <Ionicons name="person" size={24} color={colors.primaryDark} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { color: colors.textPrimary }]}>
+            <Text style={[styles.profileName, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
               {user?.firstName} {user?.lastName}
             </Text>
-            <Text style={[styles.profileRole, { color: colors.primaryDark }]}>{roleLabel}</Text>
+            <Text style={[styles.profileRole, { color: colors.primaryDark, fontSize: 14 * fontScaleMultiplier }]}>
+              {roleLabel}
+            </Text>
           </View>
+        </View>
+      </Card>
+
+      <Card variant="outlined" style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          {t('settings:experience.label')}
+        </Text>
+        <View style={styles.optionRow}>
+          <OptionRow
+            label={t('settings:experience.everyday')}
+            selected={experienceMode === 'everyday'}
+            onPress={() => setExperienceMode('everyday' as ExperienceMode)}
+          />
+          <OptionRow
+            label={t('settings:experience.full')}
+            selected={experienceMode === 'full'}
+            onPress={() => setExperienceMode('full' as ExperienceMode)}
+          />
+        </View>
+        <Text style={[styles.help, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>
+          {experienceMode === 'everyday'
+            ? t('settings:experience.everydayDesc')
+            : t('settings:experience.fullDesc')}
+        </Text>
+      </Card>
+
+      <Card variant="outlined" style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          {t('settings:fontScale')}
+        </Text>
+        <View style={styles.optionRow}>
+          {(['default', 'large', 'xl'] as FontScale[]).map((scale) => (
+            <OptionRow
+              key={scale}
+              label={t(`settings:fontScales.${scale}`)}
+              selected={fontScale === scale}
+              onPress={() => setFontScale(scale)}
+            />
+          ))}
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={[styles.switchLabel, { color: colors.textPrimary, fontSize: 15 * fontScaleMultiplier }]}>
+            {t('settings:largeControls')}
+          </Text>
+          <Switch
+            value={largeControls}
+            onValueChange={(v) => setLargeControls(v)}
+            trackColor={{ true: colors.primaryDark, false: colors.border }}
+          />
         </View>
       </Card>
 
@@ -166,8 +237,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: 20,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   optionText: { ...typography.styles.bodySmall, fontWeight: '600' },
+  help: { marginTop: spacing.sm, lineHeight: 20 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    gap: spacing.md,
+  },
+  switchLabel: { flex: 1, fontWeight: '500' },
   actionBtn: { marginTop: spacing.sm },
   version: { ...typography.styles.caption, textAlign: 'center', marginTop: spacing.xl },
 });

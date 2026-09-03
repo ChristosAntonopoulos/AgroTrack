@@ -13,6 +13,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { usePreferences } from '../context/PreferencesContext';
 import { useTasks } from '../hooks/useTasks';
 import { typography, spacing } from '../theme';
 
@@ -54,9 +55,11 @@ const MainTabs = () => {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation('nav');
   const { isFieldOwner } = useAuth();
+  const { isEveryday } = usePreferences();
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
   const owner = isFieldOwner();
+  const showDashboard = owner && !isEveryday;
 
   const openTaskCount = useMemo(
     () => tasks.filter(tk => tk.status !== 'completed').length,
@@ -69,7 +72,7 @@ const MainTabs = () => {
 
   return (
     <Tab.Navigator
-      initialRouteName={owner ? 'Dashboard' : 'Today'}
+      initialRouteName={showDashboard ? 'Dashboard' : 'Today'}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.tabBarForeground,
@@ -95,7 +98,7 @@ const MainTabs = () => {
         },
       }}
     >
-      {owner ? (
+      {showDashboard ? (
         <Tab.Screen
           name="Dashboard"
           component={DashboardScreen}

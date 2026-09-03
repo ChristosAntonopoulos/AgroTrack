@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Droplets, Wind, Info } from 'lucide-react';
 import { weatherService, WeatherData } from '../../services/weatherService';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
 import DataSourceInfoModal, { DataSourceInfo } from '../Common/DataSourceInfoModal';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import './FieldWeatherCard.css';
@@ -19,12 +20,20 @@ const formatAge = (updatedAt?: Date): string | null => {
   return `${hours} h ago`;
 };
 
+const resolveAdviceKey = (weather: WeatherData): 'adviceFrost' | 'adviceRain' | 'adviceOk' => {
+  if (weather.frostLevel && weather.frostLevel !== 'None') return 'adviceFrost';
+  if (weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5) return 'adviceRain';
+  return 'adviceOk';
+};
+
 const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
   const { t } = useTranslation('fields');
+  const { isEveryday } = useExperienceMode();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [sourceInfo, setSourceInfo] = useState<DataSourceInfo | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +58,10 @@ const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
     };
   }, [fieldId]);
 
+  useEffect(() => {
+    setShowDetails(false);
+  }, [isEveryday, fieldId]);
+
   if (loading) {
     return (
       <div className="field-weather-card field-weather-card--loading">
@@ -66,62 +79,89 @@ const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
   }
 
   const age = formatAge(weather.lastUpdatedAt);
+  const adviceKey = resolveAdviceKey(weather);
+  const showNumbers = !isEveryday || showDetails;
 
   return (
-    <div className="field-weather-card">
+    <div className={`field-weather-card ${isEveryday ? 'field-weather-card--everyday' : ''}`}>
       <div className="field-weather-header">
         <span className="field-weather-title">{t('weather.today')}</span>
-        <span className="field-weather-actions">
-          <span className={weather.stale ? 'field-weather-stale' : 'field-weather-updated'}>
-            {weather.stale && age ? `Last updated ${age}` : t('weather.live')}
+        {!isEveryday ? (
+          <span className="field-weather-actions">
+            <span className={weather.stale ? 'field-weather-stale' : 'field-weather-updated'}>
+              {weather.stale && age ? `Last updated ${age}` : t('weather.live')}
+            </span>
+            <button
+              type="button"
+              className="field-weather-info"
+              aria-label="Weather data source"
+              onClick={() =>
+                setSourceInfo({
+                  title: 'Temperature',
+                  source: weather.source,
+                  spatialResolution: weather.sourceResolution,
+                  temporalResolution: 'hourly',
+                  valueType: 'modelled',
+                  lastUpdatedAt: weather.lastUpdatedAt?.toISOString(),
+                })
+              }
+            >
+              <Info size={14} aria-hidden />
+            </button>
           </span>
-          <button
-            type="button"
-            className="field-weather-info"
-            aria-label="Weather data source"
-            onClick={() =>
-              setSourceInfo({
-                title: 'Temperature',
-                source: weather.source,
-                spatialResolution: weather.sourceResolution,
-                temporalResolution: 'hourly',
-                valueType: 'modelled',
-                lastUpdatedAt: weather.lastUpdatedAt?.toISOString(),
-              })
-            }
-          >
-            <Info size={14} aria-hidden />
-          </button>
-        </span>
+        ) : null}
       </div>
-      <div className="field-weather-main">
-        <span className="field-weather-icon" aria-hidden>
-          {weather.icon}
+
+      <p className="field-weather-advice">{t(`weather.${adviceKey}`)}</p>
+
+      <div className="field-weather-chips">
+        <span className={`field-weather-chip${weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5 ? ' field-weather-chip--rain' : ''}`}>
+          {weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5
+            ? t('weather.rainNext24h', { mm: weather.rainForecast24hMm.toFixed(1) })
+            : t('weather.rainNone')}
         </span>
-        <div>
-          <div className="field-weather-temp">{weather.temperature}°C</div>
-          <div className="field-weather-desc">{weather.description}</div>
-        </div>
+        {weather.frostLevel && weather.frostLevel !== 'None' ? (
+          <span className="field-weather-chip field-weather-chip--frost">
+            {t('weather.frostRisk', { level: weather.frostLevel })}
+          </span>
+        ) : null}
       </div>
-      <div className="field-weather-meta">
-        <span>{t('weather.highLow', { high: weather.high, low: weather.low })}</span>
-        <span className="field-weather-meta-item">
-          <Droplets size={14} aria-hidden />
-          {t('weather.humidity', { percent: weather.humidity })}
-        </span>
-        <span className="field-weather-meta-item">
-          <Wind size={14} aria-hidden />
-          {t('weather.wind', { speed: weather.windSpeed })}
-        </span>
-      </div>
-      <p className="field-weather-outlook">
-        {weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5
-          ? t('weather.rainNext24h', { mm: weather.rainForecast24hMm.toFixed(1) })
-          : t('weather.rainNone')}
-      </p>
-      {weather.frostLevel && weather.frostLevel !== 'None' ? (
-        <p className="field-weather-frost">{t('weather.frostRisk', { level: weather.frostLevel })}</p>
+
+      {isEveryday && !showDetails ? (
+        <button
+          type="button"
+          className="field-weather-peek"
+          onClick={() => setShowDetails(true)}
+        >
+          {t('weather.showDetails')}
+        </button>
       ) : null}
+
+      {showNumbers ? (
+        <>
+          <div className="field-weather-main">
+            <span className="field-weather-icon" aria-hidden>
+              {weather.icon}
+            </span>
+            <div>
+              <div className="field-weather-temp">{weather.temperature}°C</div>
+              <div className="field-weather-desc">{weather.description}</div>
+            </div>
+          </div>
+          <div className="field-weather-meta">
+            <span>{t('weather.highLow', { high: weather.high, low: weather.low })}</span>
+            <span className="field-weather-meta-item">
+              <Droplets size={14} aria-hidden />
+              {t('weather.humidity', { percent: weather.humidity })}
+            </span>
+            <span className="field-weather-meta-item">
+              <Wind size={14} aria-hidden />
+              {t('weather.wind', { speed: weather.windSpeed })}
+            </span>
+          </div>
+        </>
+      ) : null}
+
       {sourceInfo && <DataSourceInfoModal info={sourceInfo} onClose={() => setSourceInfo(null)} />}
     </div>
   );

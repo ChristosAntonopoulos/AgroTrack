@@ -16,6 +16,7 @@ import { useFields } from '../hooks/useFields';
 import { useRefresh } from '../hooks/useRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import FieldsSummaryHeader from '../components/fields/FieldsSummaryHeader';
 import DashboardFieldCard from '../components/domain/DashboardFieldCard';
 import FieldsMap from '../components/domain/FieldsMap';
@@ -34,6 +35,7 @@ const FieldsListScreen = () => {
   const navigation = useNavigation<Nav>();
   const { isFieldOwner } = useAuth();
   const { colors } = useTheme();
+  const { isEveryday } = usePreferences();
   const { t } = useTranslation(['fields', 'common', 'nav']);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const {
@@ -204,7 +206,7 @@ const FieldsListScreen = () => {
             <FieldsMap
               fields={fields}
               fillScreen
-              compact
+              compact={isEveryday}
               onFieldPress={(id) => navigation.navigate('FieldDetail', { fieldId: id })}
             />
           </View>

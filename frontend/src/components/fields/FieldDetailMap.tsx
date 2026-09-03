@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
-import { FIELD_POLYGON_STYLE, MapLayerType, SATELLITE_LABELS_TILE, SATELLITE_PLACES_TILE, SATELLITE_TILE, STREET_TILE } from '../../utils/mapLayers';
+import { FIELD_BOUNDARY_OUTLINE, FIELD_POLYGON_STYLE, MapLayerType, SATELLITE_LABELS_TILE, SATELLITE_PLACES_TILE, SATELLITE_TILE, STREET_TILE } from '../../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon } from '../../utils/fieldGeo';
 import { MapLayerData, MapLayerDefinition } from '../../services/geospatialService';
 import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
@@ -11,6 +11,7 @@ import FieldMapOverlay, { OverlayBounds } from './FieldMapOverlay';
 import MapLayerPanel from './MapLayerPanel';
 import MapLayerLegend from './MapLayerLegend';
 import SatelliteDateSelector from './SatelliteDateSelector';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
 import './FieldDetailMap.css';
 
 interface Props {
@@ -19,6 +20,20 @@ interface Props {
   /** Set to false for contexts where only the boundary matters, such as previews. */
   showDataLayers?: boolean;
 }
+
+const EnsureMapPanes: React.FC = () => {
+  const map = useMap();
+  if (!map.getPane('field-overlay')) {
+    const overlayPane = map.createPane('field-overlay');
+    overlayPane.style.zIndex = '450';
+  }
+  if (!map.getPane('field-boundary')) {
+    const boundaryPane = map.createPane('field-boundary');
+    boundaryPane.style.zIndex = '650';
+    boundaryPane.style.pointerEvents = 'none';
+  }
+  return null;
+};
 
 const FitFieldBounds: React.FC<{ polygon?: [number, number][]; center: [number, number] }> = ({
   polygon,
@@ -44,15 +59,18 @@ const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
   ];
 };
 
-const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers = true }) => {
-  const { t } = useTranslation(['fields', 'common']);
+const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers }) => {
+  const { t } = useTranslation(['fields', 'common', 'settings']);
+  const { showWidget, isEveryday, setExperienceMode } = useExperienceMode();
+  const allowDataLayers =
+    showDataLayers ?? showWidget('mapLayerPanel');
   const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
-  const [opacity, setOpacity] = useState(0.75);
+  const [opacity, setOpacity] = useState(0.5);
   const [layerInfo, setLayerInfo] = useState<DataSourceInfo>();
   const center = useMemo(() => resolveFieldCenter(field), [field]);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
 
-  const mapLayers = useFieldMapLayers(showDataLayers ? field.id : undefined);
+  const mapLayers = useFieldMapLayers(allowDataLayers ? field.id : undefined);
   const {
     definitions,
     activeLayer,
@@ -95,8 +113,8 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
 
   return (
     <div className="field-detail-map-wrap">
-      <div className="field-detail-map" style={{ height: heightPx }}>
-        {showDataLayers ? (
+      <div className="field-detail-map" style={{ minHeight: heightPx }}>
+        {allowDataLayers ? (
           <MapLayerPanel
             baseLayer={baseLayer}
             onBaseLayerChange={setBaseLayer}
@@ -125,10 +143,21 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             >
               {t('fields:addField.mapLayerStreet')}
             </button>
+            {isEveryday ? (
+              <button
+                type="button"
+                className="field-detail-map-full-hint"
+                onClick={() => setExperienceMode('full')}
+              >
+                {t('settings:experience.switchForDetails')}
+              </button>
+            ) : null}
           </div>
         )}
 
+        <div className="field-detail-map-canvas">
         <MapContainer center={center} zoom={16} scrollWheelZoom className="field-detail-map-leaflet">
+          <EnsureMapPanes />
           {baseLayer === 'satellite' ? (
             <>
               <TileLayer attribution="Tiles &copy; Esri" url={SATELLITE_TILE} />
@@ -157,13 +186,19 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
               url={activeLayer.tileUrlTemplate}
               opacity={opacity}
               attribution={activeLayer.attribution}
+              pane="field-overlay"
             />
           ) : null}
 
           <FitFieldBounds polygon={polygon} center={center} />
-          {polygon?.length ? <Polygon positions={polygon} pathOptions={FIELD_POLYGON_STYLE} /> : null}
+          {polygon?.length ? (
+            <Polygon
+              positions={polygon}
+              pane="field-boundary"
+              pathOptions={activeLayerId ? FIELD_BOUNDARY_OUTLINE : FIELD_POLYGON_STYLE}
+            />
+          ) : null}
         </MapContainer>
-
         {activeLayer?.legend && activeDefinition ? (
           <MapLayerLegend
             legend={activeLayer.legend}
@@ -171,42 +206,41 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             attribution={activeLayer.attribution}
           />
         ) : null}
-      </div>
+        </div>
 
-      {showDataLayers && definitions.length > 0 ? (
-        <div className="field-detail-map-overlays-wrap">
-          <p className="field-detail-map-overlays-hint">{t('fields:mapLayers.overlayHint')}</p>
-          <div className="field-detail-map-overlays" role="group" aria-label={t('fields:mapLayers.dataOverlay')}>
-            <button
-              type="button"
-              className={!activeLayerId ? 'active' : ''}
-              onClick={() => selectLayer(undefined)}
-            >
-              {t('fields:mapLayers.none')}
-            </button>
-            {definitions.map((definition) => (
+        {allowDataLayers && definitions.length > 0 ? (
+          <div className="field-detail-map-dock">
+            <div className="field-detail-map-overlays" role="group" aria-label={t('fields:mapLayers.dataOverlay')}>
               <button
                 type="button"
-                key={definition.id}
-                className={activeLayerId === definition.id ? 'active' : ''}
-                onClick={() => selectLayer(definition.id)}
+                className={!activeLayerId ? 'active' : ''}
+                onClick={() => selectLayer(undefined)}
               >
-                {t(`fields:mapLayers.names.${definition.id}`, definition.name)}
+                {t('fields:mapLayers.none')}
               </button>
-            ))}
+              {definitions.map((definition) => (
+                <button
+                  type="button"
+                  key={definition.id}
+                  className={activeLayerId === definition.id ? 'active' : ''}
+                  onClick={() => selectLayer(definition.id)}
+                >
+                  {t(`fields:mapLayers.names.${definition.id}`, definition.name)}
+                </button>
+              ))}
+            </div>
+            {satelliteLayerActive ? (
+              <SatelliteDateSelector
+                dates={dates}
+                selectedId={selectedDateId}
+                onSelect={selectDate}
+                compareId={compareDateId}
+                onCompareSelect={selectCompareDate}
+              />
+            ) : null}
           </div>
-        </div>
-      ) : null}
-
-      {showDataLayers && satelliteLayerActive ? (
-        <SatelliteDateSelector
-          dates={dates}
-          selectedId={selectedDateId}
-          onSelect={selectDate}
-          compareId={compareDateId}
-          onCompareSelect={selectCompareDate}
-        />
-      ) : null}
+        ) : null}
+      </div>
 
       {layerInfo ? <DataSourceInfoModal info={layerInfo} onClose={() => setLayerInfo(undefined)} /> : null}
     </div>

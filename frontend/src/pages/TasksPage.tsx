@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Task } from '../services/taskService';
 import { Field } from '../services/fieldService';
@@ -42,6 +43,7 @@ type ViewMode = 'list' | 'board';
 const TasksPage: React.FC = () => {
   const { t } = useTranslation(['tasks', 'common', 'errors', 'taskTemplates']);
   const { user } = useAuth();
+  const { isEveryday, showWidget } = useExperienceMode();
   const labels = useTaskTemplateLabels();
   const localizedTemplates = useAllLocalizedTemplates();
 
@@ -296,6 +298,7 @@ const TasksPage: React.FC = () => {
                     <option value="recent">{t('tasks:sortRecent')}</option>
                   </select>
 
+                  {!isEveryday && showWidget('taskBoardView') ? (
                   <div className="tasks-view-toggle" role="group" aria-label={t('tasks:viewModeAria')}>
                     <button
                       type="button"
@@ -314,6 +317,7 @@ const TasksPage: React.FC = () => {
                       <span>{t('tasks:viewBoard')}</span>
                     </button>
                   </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -339,7 +343,7 @@ const TasksPage: React.FC = () => {
                 title={t('tasks:emptySearchTitle')}
                 description={t('tasks:emptySearchDescription')}
               />
-            ) : viewMode === 'board' ? (
+            ) : !isEveryday && viewMode === 'board' ? (
               <TasksBoardView tasks={filteredTasks} fieldNames={fieldNames} />
             ) : (
               <div className="tasks-grid">

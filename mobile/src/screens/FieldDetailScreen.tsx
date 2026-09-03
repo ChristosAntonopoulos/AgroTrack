@@ -16,6 +16,7 @@ import {
 } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Section from '../components/layout/Section';
 import Card from '../components/ui/Card';
@@ -25,6 +26,7 @@ import FieldDetailHeader from '../components/domain/FieldDetailHeader';
 import FieldDetailToolbar from '../components/domain/FieldDetailToolbar';
 import FieldPreviewHero from '../components/domain/FieldPreviewHero';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
+import FullPictureOnrampBanner from '../components/Experience/FullPictureOnrampBanner';
 import AlertBanner from '../components/ui/AlertBanner';
 import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
 import AgendaTaskRow from '../components/domain/AgendaTaskRow';
@@ -61,7 +63,15 @@ const FieldDetailScreen = () => {
   const { fieldId } = route.params;
   const { isFieldOwner } = useAuth();
   const { colors } = useTheme();
-  const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks']);
+  const {
+    isEveryday,
+    showWidget,
+    recordIntelligenceOpen,
+    setExperienceMode,
+    tapMin,
+    fontScaleMultiplier,
+  } = usePreferences();
+  const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks', 'settings']);
 
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
@@ -69,6 +79,7 @@ const FieldDetailScreen = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [alerts, setAlerts] = useState<FieldEnvironmentalAlert[]>([]);
   const [cadastreExpanded, setCadastreExpanded] = useState(false);
+  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
@@ -253,9 +264,39 @@ const FieldDetailScreen = () => {
         </View>
       ))}
 
-      {field.boundary ? (
+      <FullPictureOnrampBanner />
+
+      {field.boundary && showWidget('fieldIntelligence') ? (
         <Section title={t('fields:intelligence.title')}>
           <FieldIntelligenceCard fieldId={field.id} />
+        </Section>
+      ) : null}
+
+      {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+        <Section title={t('fields:intelligence.title')}>
+          {!everydayFieldPeek ? (
+            <Button
+              title={t('settings:experience.peekMoreAboutField')}
+              variant="outline"
+              onPress={() => {
+                setEverydayFieldPeek(true);
+                void recordIntelligenceOpen();
+              }}
+              fullWidth
+              style={{ minHeight: tapMin }}
+            />
+          ) : (
+            <>
+              <FieldIntelligenceCard fieldId={field.id} />
+              <Button
+                title={t('settings:experience.switchForDetails')}
+                variant="ghost"
+                onPress={() => setExperienceMode('full')}
+                fullWidth
+                style={{ marginTop: spacing.sm, minHeight: tapMin }}
+              />
+            </>
+          )}
         </Section>
       ) : null}
 
@@ -323,13 +364,13 @@ const FieldDetailScreen = () => {
         )}
       </Section>
 
-      {hasCadastre ? (
+      {hasCadastre && showWidget('cadastreDetails') ? (
         <View style={styles.cadastreSection}>
           <Pressable
             onPress={() => setCadastreExpanded((v) => !v)}
-            style={[styles.cadastreHeader, { borderColor: colors.borderLight }]}
+            style={[styles.cadastreHeader, { borderColor: colors.borderLight, minHeight: tapMin }]}
           >
-            <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary }]}>
+            <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
               {t('fields:addField.cadastre.referenceTitle')}
             </Text>
             <Ionicons
@@ -341,6 +382,18 @@ const FieldDetailScreen = () => {
           {cadastreExpanded && field.greekCadastre ? (
             <GreekCadastreInfoCard cadastre={field.greekCadastre} hideTitle />
           ) : null}
+        </View>
+      ) : null}
+
+      {hasCadastre && isEveryday && !showWidget('cadastreDetails') ? (
+        <View style={styles.cadastreSection}>
+          <Button
+            title={t('settings:experience.peekMoreAboutField')}
+            variant="outline"
+            onPress={() => setExperienceMode('full')}
+            fullWidth
+            style={{ minHeight: tapMin }}
+          />
         </View>
       ) : null}
 

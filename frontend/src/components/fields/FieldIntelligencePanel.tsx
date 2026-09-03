@@ -15,9 +15,12 @@ interface Props {
 }
 
 interface Metric {
+  id: string;
   label: string;
   value: string;
   hint?: string;
+  featured?: boolean;
+  tone?: 'good' | 'ok' | 'warn';
 }
 
 const formatNumber = (value: number | undefined, digits = 1, suffix = ''): string | undefined =>
@@ -105,13 +108,29 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     const metrics: Metric[] = [];
 
     if (vegetation.ndviMean != null) {
-      metrics.push({ label: t('fields:intelligence.ndviMean'), value: vegetation.ndviMean.toFixed(2) });
+      const tone = vegetationMeaningKey(vegetation.ndviMean);
+      metrics.push({
+        id: 'ndvi',
+        label: t('fields:intelligence.ndviMean'),
+        value: vegetation.ndviMean.toFixed(2),
+        featured: true,
+        tone: tone === 'high' ? 'good' : tone === 'medium' ? 'ok' : 'warn',
+      });
+    }
+    if (vegetation.ndmiMean != null) {
+      metrics.push({
+        id: 'ndmi',
+        label: t('fields:intelligence.ndmiMean'),
+        value: vegetation.ndmiMean.toFixed(2),
+        featured: true,
+      });
     }
     if (vegetation.ndviTrendLabel) {
-      metrics.push({ label: t('fields:intelligence.ndviTrend'), value: vegetation.ndviTrendLabel });
+      metrics.push({ id: 'trend', label: t('fields:intelligence.ndviTrend'), value: vegetation.ndviTrendLabel });
     }
     if (vegetation.ndviChangePercent != null) {
       metrics.push({
+        id: 'change',
         label: t('fields:intelligence.ndviChange'),
         value: `${vegetation.ndviChangePercent > 0 ? '+' : ''}${vegetation.ndviChangePercent.toFixed(1)}%`,
         hint: vegetation.comparedToObservationDate
@@ -121,21 +140,19 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     }
     if (vegetation.areaBelowBaselinePercent != null) {
       metrics.push({
+        id: 'declining',
         label: t('fields:intelligence.areaDeclining'),
         value: `${vegetation.areaBelowBaselinePercent.toFixed(0)}%`,
       });
     }
-    if (vegetation.ndmiMean != null) {
-      metrics.push({ label: t('fields:intelligence.ndmiMean'), value: vegetation.ndmiMean.toFixed(2) });
-    }
     if (vegetation.ndreMean != null) {
-      metrics.push({ label: t('fields:intelligence.ndreMean'), value: vegetation.ndreMean.toFixed(2) });
+      metrics.push({ id: 'ndre', label: t('fields:intelligence.ndreMean'), value: vegetation.ndreMean.toFixed(2) });
     }
     if (vegetation.ndwiMean != null) {
-      metrics.push({ label: t('fields:intelligence.ndwiMean'), value: vegetation.ndwiMean.toFixed(2) });
+      metrics.push({ id: 'ndwi', label: t('fields:intelligence.ndwiMean'), value: vegetation.ndwiMean.toFixed(2) });
     }
     if (vegetation.saviMean != null) {
-      metrics.push({ label: t('fields:intelligence.saviMean'), value: vegetation.saviMean.toFixed(2) });
+      metrics.push({ id: 'savi', label: t('fields:intelligence.saviMean'), value: vegetation.saviMean.toFixed(2) });
     }
     return metrics;
   }, [summary?.vegetation, t, i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -148,6 +165,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     const elevation = formatNumber(terrain.averageElevationM, 0, ' m');
     if (elevation) {
       metrics.push({
+        id: 'elevation',
         label: t('fields:intelligence.elevation'),
         value: elevation,
         hint:
@@ -159,6 +177,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     const slope = formatNumber(terrain.averageSlopePercent, 1, '%');
     if (slope) {
       metrics.push({
+        id: 'slope',
         label: t('fields:intelligence.slope'),
         value: slope,
         hint: terrain.dominantSlopeClass
@@ -168,6 +187,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     }
     if (terrain.dominantAspect) {
       metrics.push({
+        id: 'aspect',
         label: t('fields:intelligence.aspect'),
         value: t(`fields:intelligence.aspects.${terrain.dominantAspect}`, terrain.dominantAspect),
       });
@@ -183,21 +203,24 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     if (landCover?.dominantClass) {
       const share = landCover.percentByClass?.[landCover.dominantClass];
       metrics.push({
+        id: 'landCover',
         label: t('fields:intelligence.landCover'),
         value: t(`fields:intelligence.landCoverClasses.${landCover.dominantClass}`, landCover.dominantClass),
         hint: share != null ? `${share.toFixed(0)}%` : undefined,
       });
     } else {
       metrics.push({
+        id: 'landCover',
         label: t('fields:intelligence.landCover'),
         value: t('fields:intelligence.landCoverUnknown'),
       });
     }
     if (soil?.ph != null) {
-      metrics.push({ label: t('fields:intelligence.soilPh'), value: soil.ph.toFixed(1) });
+      metrics.push({ id: 'ph', label: t('fields:intelligence.soilPh'), value: soil.ph.toFixed(1) });
     }
     if (soil?.clayPercent != null && soil?.sandPercent != null) {
       metrics.push({
+        id: 'texture',
         label: t('fields:intelligence.soilTexture'),
         value: t('fields:intelligence.soilTextureValue', {
           clay: soil.clayPercent.toFixed(0),
@@ -207,6 +230,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     }
     if (soil?.organicCarbonPercent != null) {
       metrics.push({
+        id: 'organic',
         label: t('fields:intelligence.organicCarbon'),
         value: `${soil.organicCarbonPercent.toFixed(1)}%`,
       });
@@ -221,12 +245,14 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
 
     if (environment.intersectsNatura) {
       metrics.push({
+        id: 'natura',
         label: t('fields:intelligence.natura'),
         value: t('fields:intelligence.naturaInside'),
         hint: environment.nearestNaturaSite,
       });
     } else if (environment.distanceToNearestNaturaKm != null) {
       metrics.push({
+        id: 'natura',
         label: t('fields:intelligence.natura'),
         value: t('fields:intelligence.naturaDistance', {
           distance: environment.distanceToNearestNaturaKm.toFixed(1),
@@ -235,6 +261,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
       });
     } else {
       metrics.push({
+        id: 'natura',
         label: t('fields:intelligence.natura'),
         value: t('fields:intelligence.naturaUnknown'),
       });
@@ -242,6 +269,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
 
     if (environment.closestFire) {
       metrics.push({
+        id: 'fire',
         label: t('fields:intelligence.fire'),
         value: t('fields:intelligence.fireDistance', {
           distance: environment.closestFire.distanceKm.toFixed(1),
@@ -251,6 +279,7 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
       });
     } else {
       metrics.push({
+        id: 'fire',
         label: t('fields:intelligence.fire'),
         value: t('fields:intelligence.fireNone'),
       });
@@ -283,38 +312,11 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
     groundMetrics.length > 0 ||
     environmentMetrics.length > 0;
 
-  const sections: Array<{ key: string; title: string; metrics: Metric[]; metadata?: DataSourceMetadata; extra?: React.ReactNode }> = [
-    {
-      key: 'vegetation',
-      title: t('fields:intelligence.vegetation'),
-      metrics: vegetationMetrics,
-      metadata: summary.vegetation?.metadata,
-      extra: (
-        <>
-          {vegetationMeaningKey(summary.vegetation?.ndviMean) ? (
-            <p className="field-intel-meaning">
-              {t(`fields:intelligence.meaning.${vegetationMeaningKey(summary.vegetation?.ndviMean)}`)}
-            </p>
-          ) : null}
-          {summary.vegetation?.observationDate ? (
-            <span className="field-intel-observed">
-              {t('fields:intelligence.observed', { date: formatDate(summary.vegetation.observationDate) })}
-              {summary.vegetation.fieldCloudCoverPercent != null
-                ? ` · ${t('fields:intelligence.cloudOverField', {
-                    percent: Math.round(summary.vegetation.fieldCloudCoverPercent),
-                  })}`
-                : ''}
-            </span>
-          ) : null}
-        </>
-      ),
-    },
-    {
-      key: 'terrain',
-      title: t('fields:intelligence.terrain'),
-      metrics: terrainMetrics,
-      metadata: summary.terrain?.metadata,
-    },
+  const meaning = vegetationMeaningKey(summary.vegetation?.ndviMean);
+  const featuredVegetation = vegetationMetrics.filter((metric) => metric.featured);
+  const extraVegetation = vegetationMetrics.filter((metric) => !metric.featured);
+  const compactSections: Array<{ key: string; title: string; metrics: Metric[]; metadata?: DataSourceMetadata }> = [
+    { key: 'terrain', title: t('fields:intelligence.terrain'), metrics: terrainMetrics, metadata: summary.terrain?.metadata },
     {
       key: 'ground',
       title: t('fields:intelligence.ground'),
@@ -345,12 +347,16 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
             aria-label={t('fields:intelligence.refresh')}
             title={t('fields:intelligence.refresh')}
           >
-            <RefreshCw size={13} aria-hidden className={refreshing ? 'spinning' : undefined} />
+            <RefreshCw size={14} aria-hidden className={refreshing ? 'spinning' : undefined} />
           </button>
         </div>
       </div>
 
-      <p className="field-intel-intro">{t('fields:intelligence.intro')}</p>
+      {meaning ? (
+        <p className={`field-intel-verdict field-intel-verdict--${meaning}`}>
+          {t(`fields:intelligence.meaning.${meaning}`)}
+        </p>
+      ) : null}
 
       {!hasAnyData ? (
         <p className="field-intel-pending">
@@ -360,45 +366,95 @@ const FieldIntelligencePanel: React.FC<Props> = ({ fieldId }) => {
         </p>
       ) : null}
 
-      {sections.map((section) => (
-          <section className="field-intel-section" key={section.key}>
-            <div className="field-intel-section-head">
-              <h4>{section.title}</h4>
-              {section.metadata ? (
-                <button
-                  type="button"
-                  className="field-intel-info"
-                  onClick={() => openInfo(section.title, section.metadata)}
-                  aria-label={t('fields:intelligence.aboutSource', { section: section.title })}
-                >
-                  <Info size={13} aria-hidden />
-                </button>
-              ) : null}
-            </div>
+      <div className="field-intel-grid">
+      <section className="field-intel-section">
+        <div className="field-intel-section-head">
+          <h4>{t('fields:intelligence.vegetation')}</h4>
+          {summary.vegetation?.metadata ? (
+            <button
+              type="button"
+              className="field-intel-info"
+              onClick={() => openInfo(t('fields:intelligence.vegetation'), summary.vegetation?.metadata)}
+              aria-label={t('fields:intelligence.aboutSource', { section: t('fields:intelligence.vegetation') })}
+            >
+              <Info size={14} aria-hidden />
+            </button>
+          ) : null}
+        </div>
 
-            {section.metrics.length > 0 ? (
-              <dl className="field-intel-metrics">
-                {section.metrics.map((metric) => (
-                  <div className="field-intel-metric" key={metric.label}>
-                    <dt>{metric.label}</dt>
-                    <dd>
-                      {metric.value}
-                      {metric.hint ? <em>{metric.hint}</em> : null}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            ) : (
-              <p className="field-intel-empty">{t('fields:intelligence.notAvailable')}</p>
-            )}
+        {featuredVegetation.length > 0 ? (
+          <div className="field-intel-tiles">
+            {featuredVegetation.map((metric) => (
+              <div className={`field-intel-tile${metric.tone ? ` field-intel-tile--${metric.tone}` : ''}`} key={metric.id}>
+                <span className="field-intel-tile-label">{metric.label}</span>
+                <strong>{metric.value}</strong>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="field-intel-empty">{t('fields:intelligence.notAvailable')}</p>
+        )}
 
-            {section.extra}
+        {extraVegetation.length > 0 ? (
+          <dl className="field-intel-rows">
+            {extraVegetation.map((metric) => (
+              <div className="field-intel-row" key={metric.id}>
+                <dt>{metric.label}</dt>
+                <dd>
+                  {metric.value}
+                  {metric.hint ? <em>{metric.hint}</em> : null}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
 
-            {section.metadata?.confidenceNote ? (
-              <p className="field-intel-confidence">{section.metadata.confidenceNote}</p>
+        {summary.vegetation?.observationDate ? (
+          <span className="field-intel-observed">
+            {t('fields:intelligence.observed', { date: formatDate(summary.vegetation.observationDate) })}
+            {summary.vegetation.fieldCloudCoverPercent != null
+              ? ` · ${t('fields:intelligence.cloudOverField', {
+                  percent: Math.round(summary.vegetation.fieldCloudCoverPercent),
+                })}`
+              : ''}
+          </span>
+        ) : null}
+      </section>
+
+      {compactSections.map((section) => (
+        <section className="field-intel-section" key={section.key}>
+          <div className="field-intel-section-head">
+            <h4>{section.title}</h4>
+            {section.metadata ? (
+              <button
+                type="button"
+                className="field-intel-info"
+                onClick={() => openInfo(section.title, section.metadata)}
+                aria-label={t('fields:intelligence.aboutSource', { section: section.title })}
+              >
+                <Info size={14} aria-hidden />
+              </button>
             ) : null}
-          </section>
-        ))}
+          </div>
+
+          {section.metrics.length > 0 ? (
+            <dl className="field-intel-rows">
+              {section.metrics.map((metric) => (
+                <div className="field-intel-row" key={metric.id}>
+                  <dt>{metric.label}</dt>
+                  <dd>
+                    {metric.value}
+                    {metric.hint ? <em>{metric.hint}</em> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="field-intel-empty">{t('fields:intelligence.notAvailable')}</p>
+          )}
+        </section>
+      ))}
+      </div>
 
       {sourceInfo ? <DataSourceInfoModal info={sourceInfo} onClose={() => setSourceInfo(undefined)} /> : null}
     </div>

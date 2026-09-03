@@ -1,0 +1,50 @@
+.experience-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: var(--bg-interactive, #f8f9fa);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.experience-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--tap-min, 44px);
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary, #5a5a5a);
+  font-size: calc(0.8rem * var(--font-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.experience-mode-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.experience-mode-btn:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 1px;
+}
+
+.experience-mode-toggle-compact .experience-mode-btn {
+  min-height: 36px;
+  padding: 0.25rem 0.55rem;
+}
+
+.experience-mode-btn-short {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .experience-mode-toggle:not(.experience-mode-toggle-compact) span:not(.experience-mode-btn-short) {
+    display: none;
+  }
+}

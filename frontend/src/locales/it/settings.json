@@ -25,9 +25,39 @@
       "dashboard": "Dashboard",
       "fields": "Campi",
       "tasks": "Attività",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "today": "Oggi"
     },
-    "language": "Lingua"
+    "language": "Lingua",
+    "fontScale": "Dimensione testo",
+    "fontScales": {
+      "default": "Predefinita",
+      "large": "Grande",
+      "xl": "Molto grande"
+    },
+    "largeControls": "Pulsanti e aree tocco grandi"
+  },
+  "experience": {
+    "label": "Come appare OliveCycle",
+    "everyday": "Quotidiana",
+    "everydayShort": "Quotid.",
+    "everydayDesc": "Cosa fare ora — azioni grandi, meno numeri.",
+    "everydayHint": "Consigliata per la maggior parte delle persone",
+    "full": "Quadro completo",
+    "fullShort": "Completo",
+    "fullDesc": "Mappe, numeri, satellite e storico per una revisione più approfondita.",
+    "fullHint": "Per utenti esperti",
+    "chooserTitle": "Come vuoi che appaia OliveCycle?",
+    "chooserSubtitle": "Puoi cambiarlo in qualsiasi momento nelle Impostazioni. Stessi campi e attività in entrambi i casi.",
+    "chooserFooter": "Nessuna scelta è sbagliata — scegli ciò che oggi è più chiaro.",
+    "onrampTitle": "Vuoi il quadro completo?",
+    "onrampBody": "Hai aperto i dettagli del campo alcune volte. Passa al Quadro completo per vedere satellite, suolo e mappe senza cercare.",
+    "onrampSwitch": "Passa al Quadro completo",
+    "onrampDismiss": "Mantieni Quotidiana",
+    "peekMoreAboutField": "Altro su questo campo",
+    "peekSoilSlope": "Mostra suolo e pendenza",
+    "peekSatellite": "Mostra satellite e vegetazione",
+    "switchForDetails": "Passa al Quadro completo per satellite e suolo"
   },
   "notifications": {
     "title": "Notifiche",
