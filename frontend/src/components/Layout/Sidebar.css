@@ -22,10 +22,13 @@
 .nav-section-title {
   padding: 0 var(--spacing-lg);
   margin: var(--spacing-sm) 0;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--font-scale, 1));
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  min-height: var(--tap-min, 44px);
+  display: flex;
+  align-items: center;
 }
 
 .nav-list {
@@ -47,6 +50,7 @@
   text-decoration: none;
   transition: all var(--transition-fast);
   border-left: 3px solid transparent;
+  min-height: var(--tap-min, 44px);
 }
 
 .nav-link:hover {
@@ -64,20 +68,22 @@
 }
 
 .nav-icon {
-  font-size: 1.25rem;
+  font-size: calc(1.25rem * var(--font-scale, 1));
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
+  flex-shrink: 0;
 }
 
 .nav-label {
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--font-scale, 1));
+  line-height: 1.4;
 }
 
 @media (max-width: 768px) {
   .nav-label {
-    font-size: 0.875rem;
+    font-size: calc(0.875rem * var(--font-scale, 1));
   }
 }
 

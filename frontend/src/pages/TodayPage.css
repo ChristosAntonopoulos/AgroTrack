@@ -16,13 +16,14 @@
 
 .today-header h1 {
   margin: 0 0 var(--spacing-xs) 0;
-  font-size: 2rem;
+  font-size: calc(2rem * var(--font-scale, 1));
   font-weight: 800;
   color: var(--color-text-primary);
 }
 
 .today-subtitle {
   margin: 0;
+  font-size: calc(1rem * var(--font-scale, 1));
   color: var(--color-text-secondary);
 }
 
@@ -50,6 +51,7 @@
 
 .today-task-title {
   font-weight: 800;
+  font-size: calc(1rem * var(--font-scale, 1));
   color: var(--color-text-primary);
 }
 
@@ -57,6 +59,7 @@
   display: flex;
   gap: var(--spacing-sm);
   flex-wrap: wrap;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   color: var(--color-text-secondary);
   margin-top: 4px;
 }
@@ -112,11 +115,13 @@
   color: var(--color-text-inverse);
   display: grid;
   place-items: center;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   font-weight: 800;
 }
 
 .today-route-name {
   font-weight: 800;
+  font-size: calc(1rem * var(--font-scale, 1));
   color: var(--color-text-primary);
 }
 
@@ -125,6 +130,7 @@
   display: flex;
   gap: var(--spacing-sm);
   flex-wrap: wrap;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   color: var(--color-text-secondary);
 }
 
