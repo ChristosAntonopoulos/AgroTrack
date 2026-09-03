@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing } from '../../theme';
 import Button from '../ui/Button';
 
@@ -20,14 +21,19 @@ const Section: React.FC<SectionProps> = ({
   children,
 }) => {
   const { colors } = useTheme();
+  const { fontScaleMultiplier } = usePreferences();
 
   return (
     <View style={styles.container}>
       <View style={[styles.header, { borderBottomColor: colors.primary + '25' }]}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier }]}>
+            {title}
+          </Text>
           {subtitle ? (
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>
+              {subtitle}
+            </Text>
           ) : null}
         </View>
         {actionLabel && onActionPress ? (
@@ -56,12 +62,10 @@ const styles = StyleSheet.create({
   title: {
     ...typography.styles.h4,
     fontWeight: '700',
-    fontSize: 18,
     letterSpacing: -0.3,
   },
   subtitle: {
     ...typography.styles.bodySmall,
-    fontSize: 13,
     marginTop: 2,
   },
   content: {},

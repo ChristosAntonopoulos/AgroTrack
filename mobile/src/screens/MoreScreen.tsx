@@ -22,6 +22,12 @@ interface MenuItem {
   showArrow?: boolean;
 }
 
+interface MenuSection {
+  id: string;
+  title: string;
+  items: MenuItem[];
+}
+
 const MoreScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -29,27 +35,39 @@ const MoreScreen = () => {
   const { t } = useTranslation(['settings', 'common', 'nav']);
   const navigation = useNavigation<Nav>();
 
-  const menuItems: MenuItem[] = [
+  const sections: MenuSection[] = [
     {
-      id: 'calendar',
-      icon: 'calendar-outline',
-      label: t('nav:calendar'),
-      onPress: () => navigation.navigate('Calendar' as any),
-      showArrow: true,
+      id: 'work',
+      title: t('nav:sections.work', { defaultValue: 'Work' }),
+      items: [
+        {
+          id: 'calendar',
+          icon: 'calendar-outline',
+          label: t('nav:calendar'),
+          onPress: () => navigation.navigate('Calendar' as any),
+          showArrow: true,
+        },
+      ],
     },
     {
-      id: 'ministry',
-      icon: 'document-text-outline',
-      label: t('nav:ministry'),
-      onPress: () => navigation.navigate('Ministry' as any),
-      showArrow: true,
-    },
-    {
-      id: 'settings',
-      icon: 'settings-outline',
-      label: t('nav:settings'),
-      onPress: () => navigation.navigate('Settings' as any),
-      showArrow: true,
+      id: 'account',
+      title: t('nav:sections.account', { defaultValue: 'Account' }),
+      items: [
+        {
+          id: 'ministry',
+          icon: 'document-text-outline',
+          label: t('nav:ministry'),
+          onPress: () => navigation.navigate('Ministry' as any),
+          showArrow: true,
+        },
+        {
+          id: 'settings',
+          icon: 'settings-outline',
+          label: t('nav:settings'),
+          onPress: () => navigation.navigate('Settings' as any),
+          showArrow: true,
+        },
+      ],
     },
   ];
 
@@ -66,52 +84,59 @@ const MoreScreen = () => {
         ) : null}
       </View>
 
-      <View style={styles.menu}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.menuItem,
-              {
-                backgroundColor: colors.surfaceElevated,
-                borderBottomWidth: index < menuItems.length - 1 ? 1 : 0,
-                borderBottomColor: colors.borderLight,
-                minHeight: Math.max(tapMin, 56),
-                ...createElevation(colors, 'sm'),
-              },
-            ]}
-            onPress={item.onPress}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconWrapper, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name={item.icon} size={22} color={colors.primary} />
-              </View>
-              <Text
+      {sections.map((section, sectionIndex) => (
+        <View key={section.id} style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier }]}>
+            {section.title}
+          </Text>
+          <View style={[styles.menu, { backgroundColor: colors.surfaceElevated, ...createElevation(colors, 'sm') }]}>
+            {section.items.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
                 style={[
-                  styles.menuLabel,
+                  styles.menuItem,
                   {
-                    color: colors.textPrimary,
-                    fontSize: 16 * fontScaleMultiplier,
+                    borderBottomWidth: index < section.items.length - 1 ? 1 : 0,
+                    borderBottomColor: colors.borderLight,
+                    minHeight: Math.max(tapMin, 56),
                   },
                 ]}
+                onPress={item.onPress}
+                activeOpacity={0.7}
               >
-                {item.label}
-              </Text>
-            </View>
-            <View style={styles.menuItemRight}>
-              {item.badge ? (
-                <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                  <Text style={[styles.badgeText, { color: colors.textInverse }]}>{item.badge}</Text>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.iconWrapper, { backgroundColor: colors.primary + '15' }]}>
+                    <Ionicons name={item.icon} size={22} color={colors.primary} />
+                  </View>
+                  <Text
+                    style={[
+                      styles.menuLabel,
+                      {
+                        color: colors.textPrimary,
+                        fontSize: 16 * fontScaleMultiplier,
+                      },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
                 </View>
-              ) : null}
-              {item.showArrow ? (
-                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-              ) : null}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+                <View style={styles.menuItemRight}>
+                  {item.badge ? (
+                    <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                      <Text style={[styles.badgeText, { color: colors.textInverse, fontSize: 12 * fontScaleMultiplier }]}>
+                        {item.badge}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {item.showArrow ? (
+                    <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ))}
 
       <View style={styles.infoSection}>
         <Text style={[styles.infoText, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>
@@ -121,6 +146,9 @@ const MoreScreen = () => {
               ? t('settings:experience.everyday') 
               : t('settings:experience.full')}
           </Text>
+        </Text>
+        <Text style={[styles.infoHint, { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier }]}>
+          {t('settings:experience.changeInSettings', { defaultValue: 'Change in Settings' })}
         </Text>
       </View>
     </ScrollView>
@@ -144,11 +172,21 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.styles.body,
   },
+  section: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.base,
+  },
+  sectionTitle: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
   menu: {
-    marginHorizontal: spacing.base,
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
@@ -189,14 +227,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   badgeText: {
-    fontSize: 12,
     fontWeight: '700',
   },
   infoSection: {
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.md,
+    marginTop: spacing.md,
   },
   infoText: {
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  infoHint: {
     textAlign: 'center',
   },
 });

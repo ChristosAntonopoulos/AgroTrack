@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing, spacingPatterns } from '../../theme';
 import { createElevation } from '../../theme/elevation';
 
@@ -37,6 +38,7 @@ const Button: React.FC<ButtonProps> = ({
   style,
 }) => {
   const { colors } = useTheme();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const touchableDisabled = disabled || loading;
 
   const getVariantStyles = () => {
@@ -83,11 +85,26 @@ const Button: React.FC<ButtonProps> = ({
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
-        return { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, fontSize: typography.fontSize.sm };
+        return {
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          fontSize: typography.fontSize.sm * fontScaleMultiplier,
+          minHeight: Math.max(tapMin * 0.8, 36),
+        };
       case 'large':
-        return { paddingVertical: spacing.lg, paddingHorizontal: spacing.xl, fontSize: typography.fontSize.lg };
+        return {
+          paddingVertical: spacing.lg,
+          paddingHorizontal: spacing.xl,
+          fontSize: typography.fontSize.lg * fontScaleMultiplier,
+          minHeight: Math.max(tapMin * 1.3, 56),
+        };
       default:
-        return { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, fontSize: typography.fontSize.base };
+        return {
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.lg,
+          fontSize: typography.fontSize.base * fontScaleMultiplier,
+          minHeight: tapMin,
+        };
     }
   };
 
@@ -105,6 +122,7 @@ const Button: React.FC<ButtonProps> = ({
           borderWidth: bordered ? 1 : 0,
           paddingVertical: sizeStyles.paddingVertical,
           paddingHorizontal: sizeStyles.paddingHorizontal,
+          minHeight: sizeStyles.minHeight,
           width: fullWidth ? '100%' : 'auto',
           opacity: touchableDisabled ? 0.55 : 1,
         },
