@@ -1,0 +1,46 @@
+{
+  "everyday": {
+    "step1": {
+      "title": "Welcome to Everyday",
+      "body": "This is your Today view. See what needs doing now, in plain language."
+    },
+    "step2": {
+      "title": "Next action",
+      "body": "Tap the hero card to start your most important task."
+    },
+    "step3": {
+      "title": "Your fields",
+      "body": "Tap Fields to see your groves. Tap Tasks to see all open work."
+    },
+    "step4": {
+      "title": "More tools",
+      "body": "Calendar, Ministry, and Settings live in More."
+    },
+    "step5": {
+      "title": "Ready to go",
+      "body": "You can switch to Full picture anytime in Settings."
+    }
+  },
+  "full": {
+    "step1": {
+      "title": "Welcome to Full picture",
+      "body": "Control-room density with maps, analytics, and field intelligence."
+    },
+    "step2": {
+      "title": "Dashboard stats",
+      "body": "See your fields, tasks, and overdue items at a glance."
+    },
+    "step3": {
+      "title": "Field detail",
+      "body": "Maps, lifecycle stepper, cadastre, and satellite layers all in one scroll."
+    },
+    "step4": {
+      "title": "Analytics",
+      "body": "Aggregations and reports when you need the full picture."
+    },
+    "step5": {
+      "title": "Ready to work",
+      "body": "Switch back to Everyday anytime in Settings for a simpler view."
+    }
+  }
+}

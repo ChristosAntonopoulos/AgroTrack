@@ -16,12 +16,18 @@ interface PreferencesContextType {
   fontScale: FontScale;
   largeControls: boolean;
   experienceModeChosen: boolean;
+  comfortSetupDone: boolean;
+  everydayTutorialSeen: boolean;
+  fullTutorialSeen: boolean;
   setLanguage: (lang: AppLanguage) => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   setExperienceMode: (mode: ExperienceMode) => Promise<void>;
   chooseExperienceMode: (mode: ExperienceMode) => Promise<void>;
   setFontScale: (scale: FontScale) => Promise<void>;
   setLargeControls: (enabled: boolean) => Promise<void>;
+  markComfortSetupDone: () => Promise<void>;
+  markEverydayTutorialSeen: () => Promise<void>;
+  markFullTutorialSeen: () => Promise<void>;
   applyRoleDefaultIfNeeded: (role: string | undefined | null) => Promise<void>;
   isEveryday: boolean;
   isFullPicture: boolean;
@@ -32,22 +38,6 @@ interface PreferencesContextType {
   shouldShowFullPictureOnramp: boolean;
   dismissFullPictureOnramp: () => Promise<void>;
   isReady: boolean;
-  experienceMode: ExperienceMode;
-  fontScale: FontScale;
-  largeControls: boolean;
-  experienceModeChosen: boolean;
-  setExperienceMode: (mode: ExperienceMode) => Promise<void>;
-  chooseExperienceMode: (mode: ExperienceMode) => Promise<void>;
-  setFontScale: (scale: FontScale) => Promise<void>;
-  setLargeControls: (enabled: boolean) => Promise<void>;
-  isEveryday: boolean;
-  isFullPicture: boolean;
-  showWidget: (widget: ExperienceWidget) => boolean;
-  recordIntelligenceOpen: () => Promise<void>;
-  shouldShowFullPictureOnramp: boolean;
-  dismissFullPictureOnramp: () => Promise<void>;
-  tapMin: number;
-  fontScaleMultiplier: number;
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
@@ -60,6 +50,9 @@ const FONT_SCALE_KEY = '@agrotrack_font_scale';
 const LARGE_CONTROLS_KEY = '@agrotrack_large_controls';
 const INTELLIGENCE_OPENS_KEY = '@agrotrack_everyday_intelligence_opens';
 const ONRAMP_DISMISSED_KEY = '@agrotrack_full_picture_onramp_dismissed';
+const COMFORT_SETUP_DONE_KEY = '@agrotrack_comfort_setup_done';
+const EVERYDAY_TUTORIAL_SEEN_KEY = '@agrotrack_everyday_tutorial_seen';
+const FULL_TUTORIAL_SEEN_KEY = '@agrotrack_full_tutorial_seen';
 
 export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -69,6 +62,9 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [fontScale, setFontScaleState] = useState<FontScale>('default');
   const [largeControls, setLargeControlsState] = useState(false);
   const [experienceModeChosen, setExperienceModeChosen] = useState(false);
+  const [comfortSetupDone, setComfortSetupDone] = useState(false);
+  const [everydayTutorialSeen, setEverydayTutorialSeen] = useState(false);
+  const [fullTutorialSeen, setFullTutorialSeen] = useState(false);
   const [everydayIntelligenceOpens, setEverydayIntelligenceOpens] = useState(0);
   const [fullPictureOnrampDismissed, setFullPictureOnrampDismissed] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -83,6 +79,9 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           storedChosen,
           storedFont,
           storedLarge,
+          storedComfort,
+          storedEverydayTut,
+          storedFullTut,
           storedOpens,
           storedOnramp,
         ] = await Promise.all([
@@ -92,6 +91,9 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           AsyncStorage.getItem(EXPERIENCE_CHOSEN_KEY),
           AsyncStorage.getItem(FONT_SCALE_KEY),
           AsyncStorage.getItem(LARGE_CONTROLS_KEY),
+          AsyncStorage.getItem(COMFORT_SETUP_DONE_KEY),
+          AsyncStorage.getItem(EVERYDAY_TUTORIAL_SEEN_KEY),
+          AsyncStorage.getItem(FULL_TUTORIAL_SEEN_KEY),
           AsyncStorage.getItem(INTELLIGENCE_OPENS_KEY),
           AsyncStorage.getItem(ONRAMP_DISMISSED_KEY),
         ]);
@@ -107,6 +109,9 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           setFontScaleState(storedFont);
         }
         if (storedLarge === 'true') setLargeControlsState(true);
+        if (storedComfort === 'true') setComfortSetupDone(true);
+        if (storedEverydayTut === 'true') setEverydayTutorialSeen(true);
+        if (storedFullTut === 'true') setFullTutorialSeen(true);
         if (storedOpens) setEverydayIntelligenceOpens(Number(storedOpens) || 0);
         if (storedOnramp === 'true') setFullPictureOnrampDismissed(true);
       } finally {
@@ -167,6 +172,21 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     await AsyncStorage.setItem(ONRAMP_DISMISSED_KEY, 'true');
   }, []);
 
+  const markComfortSetupDone = useCallback(async () => {
+    setComfortSetupDone(true);
+    await AsyncStorage.setItem(COMFORT_SETUP_DONE_KEY, 'true');
+  }, []);
+
+  const markEverydayTutorialSeen = useCallback(async () => {
+    setEverydayTutorialSeen(true);
+    await AsyncStorage.setItem(EVERYDAY_TUTORIAL_SEEN_KEY, 'true');
+  }, []);
+
+  const markFullTutorialSeen = useCallback(async () => {
+    setFullTutorialSeen(true);
+    await AsyncStorage.setItem(FULL_TUTORIAL_SEEN_KEY, 'true');
+  }, []);
+
   const shouldShowFullPictureOnramp =
     experienceMode === 'everyday' &&
     !fullPictureOnrampDismissed &&
@@ -188,10 +208,16 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       fontScale,
       largeControls,
       experienceModeChosen,
+      comfortSetupDone,
+      everydayTutorialSeen,
+      fullTutorialSeen,
       setExperienceMode,
       chooseExperienceMode,
       setFontScale,
       setLargeControls,
+      markComfortSetupDone,
+      markEverydayTutorialSeen,
+      markFullTutorialSeen,
       isEveryday: experienceMode === 'everyday',
       isFullPicture: experienceMode === 'full',
       showWidget,
@@ -209,10 +235,16 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       fontScale,
       largeControls,
       experienceModeChosen,
+      comfortSetupDone,
+      everydayTutorialSeen,
+      fullTutorialSeen,
       showWidget,
       recordIntelligenceOpen,
       shouldShowFullPictureOnramp,
       dismissFullPictureOnramp,
+      markComfortSetupDone,
+      markEverydayTutorialSeen,
+      markFullTutorialSeen,
     ]
   );
 
