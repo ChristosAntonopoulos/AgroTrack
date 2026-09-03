@@ -26,6 +26,8 @@ public static class FieldMapper
         CurrentLifecycleYear = field.CurrentLifecycleYear,
         CurrentLifecycleStage = OliveLifecycleStage.Normalize(field.CurrentLifecycleStage),
         AssignedProducerIds = field.AssignedProducerIds,
+        Memberships = field.Memberships.Select(ToMembershipDto).ToList(),
+        AdvisorComments = field.AdvisorComments.Select(ToAdvisorCommentDto).ToList(),
         CreatedAt = field.CreatedAt,
         UpdatedAt = field.UpdatedAt,
         Status = field.Status.ToString(),
@@ -44,6 +46,23 @@ public static class FieldMapper
         Documents = includeDocuments
             ? field.Documents.Select(ToDocumentDto).ToList()
             : new List<FieldDocumentAttachmentDto>()
+    };
+
+    public static FieldMembershipDto ToMembershipDto(FieldMembership membership) => new()
+    {
+        UserId = membership.UserId,
+        Capacities = membership.Capacities,
+        Status = membership.Status,
+        InvitedBy = membership.InvitedBy,
+        CreatedAt = membership.CreatedAt
+    };
+
+    public static AdvisorCommentDto ToAdvisorCommentDto(AdvisorComment comment) => new()
+    {
+        Id = comment.Id,
+        UserId = comment.UserId,
+        Body = comment.Body,
+        CreatedAt = comment.CreatedAt
     };
 
     public static GeoJsonPolygonDto ToPolygonDto(GeoJsonPolygon polygon) => new()

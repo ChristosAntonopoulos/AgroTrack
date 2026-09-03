@@ -70,6 +70,38 @@
   
   /* Header */
   --header-height: 64px;
+
+  /* Experience modes (Wong palette — color-blind safe) */
+  --experience-everyday: #0072b2;
+  --experience-everyday-soft: color-mix(in srgb, #0072b2 12%, white);
+  --experience-everyday-ink: #003a5d;
+  --experience-everyday-muted: #56b4e9;
+  --experience-full: #e69f00;
+  --experience-full-soft: color-mix(in srgb, #e69f00 14%, white);
+  --experience-full-ink: #5a4200;
+  --font-scale: 1;
+  --tap-min: 44px;
+  --ui-density: 1;
+}
+
+html[data-font-scale='large'],
+html[data-font-scale='xl'] {
+  font-size: calc(16px * var(--font-scale, 1));
+}
+
+html[data-large-controls='true'] button,
+html[data-large-controls='true'] .btn,
+html[data-large-controls='true'] a.button {
+  min-height: var(--tap-min, 48px);
+}
+
+[data-theme='dark'] {
+  --experience-everyday: #56b4e9;
+  --experience-everyday-soft: color-mix(in srgb, #56b4e9 18%, #2d2d2d);
+  --experience-everyday-ink: #d7efff;
+  --experience-full: #e69f00;
+  --experience-full-soft: color-mix(in srgb, #e69f00 20%, #2d2d2d);
+  --experience-full-ink: #ffe6a8;
 }
 
 /* ============================================

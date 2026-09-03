@@ -34,6 +34,16 @@ public class MongoIndexInitializer : IHostedService
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.AssignedProducerIds)));
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Ascending("memberships.userId")));
+
+            var invites = _context.GetCollection<FieldInviteDocument>("field_invites");
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Token),
+                new CreateIndexOptions { Unique = true }));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.FieldId)));
+
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.Status)));
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.CropType)));

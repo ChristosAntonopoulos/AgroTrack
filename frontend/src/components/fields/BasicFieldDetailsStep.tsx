@@ -61,6 +61,23 @@ const BasicFieldDetailsStep: React.FC<Props> = ({ formData, kaekInput, onChange,
         />
         <p className="field-form-hint">{t('addField.kaekHint')}</p>
       </div>
+
+      <div className="form-group">
+        <label className="field-form-checkbox">
+          <input
+            type="checkbox"
+            name="worksThisFieldMyself"
+            checked={formData.worksThisFieldMyself !== false}
+            onChange={onChange}
+          />
+          <span>{t('addField.worksThisFieldMyself', { defaultValue: 'I work this field myself' })}</span>
+        </label>
+        <p className="field-form-hint">
+          {t('addField.worksThisFieldMyselfHint', {
+            defaultValue: 'Adds you with Own + Work on this field so you can start and finish today’s jobs.',
+          })}
+        </p>
+      </div>
     </div>
   );
 };

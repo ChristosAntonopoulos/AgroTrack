@@ -15,6 +15,8 @@ public class FieldDto
     public string CurrentLifecycleYear { get; set; } = "low";
     public string CurrentLifecycleStage { get; set; } = "dormancy";
     public List<string> AssignedProducerIds { get; set; } = new();
+    public List<FieldMembershipDto> Memberships { get; set; } = new();
+    public List<AdvisorCommentDto> AdvisorComments { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

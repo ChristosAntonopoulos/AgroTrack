@@ -19,6 +19,22 @@ public class UsersController : BaseApiController
         _userService = userService;
     }
 
+    [HttpGet("me/preferences")]
+    public async Task<ActionResult<UserExperiencePreferencesDto>> GetMyPreferences(CancellationToken cancellationToken)
+    {
+        var prefs = await _userService.GetPreferencesAsync(UserContext.UserId, cancellationToken);
+        return OkResult(prefs);
+    }
+
+    [HttpPut("me/preferences")]
+    public async Task<ActionResult<UserExperiencePreferencesDto>> UpdateMyPreferences(
+        [FromBody] UpdateUserPreferencesDto dto,
+        CancellationToken cancellationToken)
+    {
+        var prefs = await _userService.UpdatePreferencesAsync(UserContext.UserId, dto, cancellationToken);
+        return OkResult(prefs);
+    }
+
     [HttpGet]
     [Authorize(Policy = PolicyNames.CanManageUsers)]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] string? role, CancellationToken cancellationToken)

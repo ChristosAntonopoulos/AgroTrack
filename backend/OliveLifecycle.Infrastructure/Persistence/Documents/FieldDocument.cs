@@ -43,6 +43,12 @@ public class FieldDocument
     [BsonElement("assignedProducerIds")]
     public List<string> AssignedProducerIds { get; set; } = new();
 
+    [BsonElement("memberships")]
+    public List<FieldMembershipDocument> Memberships { get; set; } = new();
+
+    [BsonElement("advisorComments")]
+    public List<AdvisorCommentDocument> AdvisorComments { get; set; } = new();
+
     [BsonElement("status")]
     [BsonRepresentation(BsonType.String)]
     public FieldStatus Status { get; set; } = FieldStatus.Active;
@@ -169,6 +175,85 @@ public class GreekCadastreInfoDocument
 
     [BsonElement("areaDifferencePercent")]
     public double? AreaDifferencePercent { get; set; }
+}
+
+public class FieldMembershipDocument
+{
+    [BsonElement("userId")]
+    public string UserId { get; set; } = string.Empty;
+
+    [BsonElement("capacities")]
+    public List<string> Capacities { get; set; } = new();
+
+    [BsonElement("status")]
+    public string Status { get; set; } = "active";
+
+    [BsonElement("invitedBy")]
+    public string? InvitedBy { get; set; }
+
+    [BsonElement("createdAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AdvisorCommentDocument
+{
+    [BsonElement("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [BsonElement("userId")]
+    public string UserId { get; set; } = string.Empty;
+
+    [BsonElement("body")]
+    public string Body { get; set; } = string.Empty;
+
+    [BsonElement("createdAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class FieldInviteDocument
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; } = string.Empty;
+
+    [BsonElement("token")]
+    public string Token { get; set; } = string.Empty;
+
+    [BsonElement("fieldId")]
+    public string FieldId { get; set; } = string.Empty;
+
+    [BsonElement("fieldName")]
+    public string FieldName { get; set; } = string.Empty;
+
+    [BsonElement("invitedBy")]
+    public string InvitedBy { get; set; } = string.Empty;
+
+    [BsonElement("capacities")]
+    public List<string> Capacities { get; set; } = new();
+
+    [BsonElement("phone")]
+    public string? Phone { get; set; }
+
+    [BsonElement("email")]
+    public string? Email { get; set; }
+
+    [BsonElement("displayName")]
+    public string? DisplayName { get; set; }
+
+    [BsonElement("status")]
+    public string Status { get; set; } = "pending";
+
+    [BsonElement("expiresAt")]
+    public DateTime ExpiresAt { get; set; }
+
+    [BsonElement("acceptedBy")]
+    public string? AcceptedBy { get; set; }
+
+    [BsonElement("createdAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [BsonElement("updatedAt")]
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class FieldDocumentAttachmentDocument

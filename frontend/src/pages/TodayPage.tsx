@@ -14,6 +14,7 @@ import { getFieldService, getTaskService, isMockMode } from '../services/service
 import { demoStore } from '../services/demo/demoStore';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
+import { hasCapacity } from '../services/fieldPeopleService';
 import { locationService, Location } from '../services/locationService';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
@@ -57,9 +58,10 @@ const TodayPage: React.FC = () => {
     } else if (user?.userId) {
       void (async () => {
         try {
+          // Load all tasks on fields the user can see — capacity (not role) decides work list.
           const [fieldsData, tasksData] = await Promise.all([
             getFieldService().getFields(),
-            getTaskService().getTasks(undefined, user.userId),
+            getTaskService().getTasks(),
           ]);
           setApiFields(fieldsData);
           setApiTasks(tasksData);
@@ -98,10 +100,30 @@ const TodayPage: React.FC = () => {
 
   const myOpenTasks = useMemo(() => {
     if (!producerId) return [];
+    const workFieldIds = new Set(
+      fields
+        .filter((f) => {
+          if (f.memberships?.length) {
+            return hasCapacity(f.memberships, producerId, 'work') || hasCapacity(f.memberships, producerId, 'help');
+          }
+          return (
+            f.ownerId === producerId ||
+            (f.assignedProducerIds || []).includes(producerId) ||
+            role === 'Producer'
+          );
+        })
+        .map((f) => f.id)
+    );
+
     return tasks
-      .filter((t) => t.assignedTo === producerId)
-      .filter((t) => t.status !== 'completed');
-  }, [tasks, producerId]);
+      .filter((t) => {
+        if (t.status === 'completed') return false;
+        if (t.assignedTo === producerId) return true;
+        // Solo owners with work capacity: unassigned or field tasks on their working fields.
+        if (workFieldIds.has(t.fieldId) && (!t.assignedTo || t.assignedTo === producerId)) return true;
+        return false;
+      });
+  }, [tasks, producerId, fields, role]);
 
   const recommended = useMemo(() => {
     const now = new Date();
@@ -213,17 +235,6 @@ const TodayPage: React.FC = () => {
     if (routeFields[0]?.latitude && routeFields[0]?.longitude) return [routeFields[0].latitude, routeFields[0].longitude];
     return [37.7749, -122.4194];
   }, [currentLocation, routeFields]);
-
-  if (role !== 'Producer') {
-    return (
-      <PageContainer>
-        <EmptyState
-          title={t('today:producerOnlyTitle')}
-          description={t('today:producerOnlyDescription')}
-        />
-      </PageContainer>
-    );
-  }
 
   if (loading) return <LoadingSpinner fullScreen />;
 

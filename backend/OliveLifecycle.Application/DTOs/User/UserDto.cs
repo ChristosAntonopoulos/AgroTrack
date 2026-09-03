@@ -7,4 +7,5 @@ public class UserDto
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string Role { get; set; } = string.Empty;
+    public UserExperiencePreferencesDto Preferences { get; set; } = new();
 }

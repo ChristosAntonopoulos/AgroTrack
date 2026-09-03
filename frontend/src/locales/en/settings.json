@@ -25,9 +25,17 @@
       "dashboard": "Dashboard",
       "fields": "Fields",
       "tasks": "Tasks",
-      "calendar": "Calendar"
+      "calendar": "Calendar",
+      "today": "Today"
     },
-    "language": "Language"
+    "language": "Language",
+    "fontScale": "Text size",
+    "fontScales": {
+      "default": "Normal",
+      "large": "Large",
+      "xl": "Extra large"
+    },
+    "largeControls": "Large buttons"
   },
   "notifications": {
     "title": "Notifications",
@@ -42,6 +50,31 @@
     "description": "Reset the demo back to the original story if things get messy.",
     "resetButton": "Reset Demo Data",
     "resetConfirm": "Reset demo data? This will restore the original demo fields, tasks, and assignments."
+  },
+  "experience": {
+    "label": "How OliveCycle looks",
+    "everyday": "Everyday",
+    "everydayShort": "Day",
+    "everydayDesc": "What to do now — large actions, fewer numbers.",
+    "everydayHint": "Recommended for most people",
+    "full": "Full picture",
+    "fullShort": "Full",
+    "fullDesc": "Maps, satellite, soil, analytics, and denser history.",
+    "fullHint": "For agronomists and detailed planning",
+    "chooserTitle": "How should OliveCycle look?",
+    "chooserSubtitle": "Same fields and tasks. You choose the density.",
+    "chooserFooter": "You can change this later in Settings.",
+    "comfortTitle": "How large should text be?",
+    "comfortSubtitle": "You can change this anytime. Large helps outdoors.",
+    "comfortSkip": "Keep normal size",
+    "onrampTitle": "Want the full picture?",
+    "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
+    "onrampSwitch": "Switch to Full picture",
+    "onrampDismiss": "Not now",
+    "peekMoreAboutField": "More about this field",
+    "switchForDetails": "Switch to Full picture for details",
+    "setupPhoneTitle": "Set up this phone",
+    "setupPhoneBody": "Everyday · Large text · Large buttons · Today is home"
   },
   "saveButton": "Save Preferences",
   "saved": "Preferences saved!"

@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { User, LogOut, Menu } from 'lucide-react';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
+import ExperienceModeToggle from '../Experience/ExperienceModeToggle';
 import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useLocale } from '../../context/LocaleProvider';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../../i18n/config';
@@ -65,6 +66,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </div>
 
           <NotificationBell />
+
+          <ExperienceModeToggle compact />
 
           <div className="user-menu">
             <div className="user-info">

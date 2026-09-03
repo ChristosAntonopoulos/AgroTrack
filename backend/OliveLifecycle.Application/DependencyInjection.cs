@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFieldService, FieldService>();
+        services.AddScoped<IFieldPeopleService, FieldPeopleService>();
         services.AddScoped<IKaekNormalizer, KaekNormalizer>();
         services.AddScoped<IFieldAreaCalculator, FieldAreaCalculator>();
         services.AddScoped<IFieldAreaValidationService, FieldAreaValidationService>();

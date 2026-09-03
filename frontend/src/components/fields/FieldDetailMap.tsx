@@ -11,6 +11,7 @@ import FieldMapOverlay, { OverlayBounds } from './FieldMapOverlay';
 import MapLayerPanel from './MapLayerPanel';
 import MapLayerLegend from './MapLayerLegend';
 import SatelliteDateSelector from './SatelliteDateSelector';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
 import './FieldDetailMap.css';
 
 interface Props {
@@ -45,14 +46,17 @@ const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
 };
 
 const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers = true }) => {
-  const { t } = useTranslation(['fields', 'common']);
+  const { t } = useTranslation(['fields', 'common', 'settings']);
+  const { showWidget, recordIntelligenceOpen, isEveryday } = useExperienceMode();
+  const allowDataLayers = showDataLayers && showWidget('satelliteLayers') && showWidget('mapLayerPanel');
   const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
   const [opacity, setOpacity] = useState(0.75);
   const [layerInfo, setLayerInfo] = useState<DataSourceInfo>();
+  const [layersPeeked, setLayersPeeked] = useState(false);
   const center = useMemo(() => resolveFieldCenter(field), [field]);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
 
-  const mapLayers = useFieldMapLayers(showDataLayers ? field.id : undefined);
+  const mapLayers = useFieldMapLayers(allowDataLayers || layersPeeked ? field.id : undefined);
   const {
     definitions,
     activeLayer,
@@ -96,7 +100,7 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
   return (
     <div className="field-detail-map-wrap">
       <div className="field-detail-map" style={{ height: heightPx }}>
-        {showDataLayers ? (
+        {allowDataLayers || layersPeeked ? (
           <MapLayerPanel
             baseLayer={baseLayer}
             onBaseLayerChange={setBaseLayer}
@@ -173,7 +177,8 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
         ) : null}
       </div>
 
-      {showDataLayers && definitions.length > 0 ? (
+      {allowDataLayers || layersPeeked ? (
+        definitions.length > 0 ? (
         <div className="field-detail-map-overlays-wrap">
           <p className="field-detail-map-overlays-hint">{t('fields:mapLayers.overlayHint')}</p>
           <div className="field-detail-map-overlays" role="group" aria-label={t('fields:mapLayers.dataOverlay')}>
@@ -196,9 +201,23 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             ))}
           </div>
         </div>
+        ) : null
+      ) : isEveryday && showWidget('fieldMapDefault') ? (
+        <div className="field-detail-map-overlays-wrap">
+          <button
+            type="button"
+            className="fd-everyday-peek-btn"
+            onClick={() => {
+              setLayersPeeked(true);
+              recordIntelligenceOpen();
+            }}
+          >
+            {t('settings:experience.peekMoreAboutField', { defaultValue: 'More about this field' })}
+          </button>
+        </div>
       ) : null}
 
-      {showDataLayers && satelliteLayerActive ? (
+      {(allowDataLayers || layersPeeked) && satelliteLayerActive ? (
         <SatelliteDateSelector
           dates={dates}
           selectedId={selectedDateId}

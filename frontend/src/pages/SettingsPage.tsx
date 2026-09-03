@@ -3,15 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleProvider';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { settingsService, UserPreferences, Theme } from '../services/settingsService';
 import { isMockMode } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
+import type { FontScale } from '../experience/types';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
-import { Save, User, Bell, Droplet, Globe, Sun, Moon, Circle } from 'lucide-react';
+import ExperienceModeToggle from '../components/Experience/ExperienceModeToggle';
+import { Save, User, Bell, Droplet, Globe, Sun, Moon, Circle, Type } from 'lucide-react';
 import './SettingsPage.css';
 
 const SettingsPage: React.FC = () => {
@@ -19,6 +22,7 @@ const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { setLocale } = useLocale();
+  const { fontScale, setFontScale, largeControls, setLargeControls } = useExperienceMode();
   const [preferences, setPreferences] = useState<UserPreferences>(settingsService.getPreferences());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -166,6 +170,37 @@ const SettingsPage: React.FC = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="preference-item">
+                <label>{t('experience.label')}</label>
+                <ExperienceModeToggle />
+              </div>
+
+              <div className="preference-item">
+                <label htmlFor="settings-font-scale">
+                  <Type size={16} aria-hidden /> {t('preferences.fontScale')}
+                </label>
+                <select
+                  id="settings-font-scale"
+                  value={fontScale}
+                  onChange={(e) => setFontScale(e.target.value as FontScale)}
+                >
+                  <option value="default">{t('preferences.fontScales.default')}</option>
+                  <option value="large">{t('preferences.fontScales.large')}</option>
+                  <option value="xl">{t('preferences.fontScales.xl')}</option>
+                </select>
+              </div>
+
+              <div className="preference-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={largeControls}
+                    onChange={(e) => setLargeControls(e.target.checked)}
+                  />
+                  <span>{t('preferences.largeControls')}</span>
+                </label>
               </div>
             </div>
           </Card>

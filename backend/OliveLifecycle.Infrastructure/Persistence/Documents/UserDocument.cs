@@ -24,9 +24,27 @@ public class UserDocument
     [BsonElement("lastName")]
     public string? LastName { get; set; }
 
+    [BsonElement("preferences")]
+    public UserExperiencePreferencesDocument Preferences { get; set; } = new();
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [BsonElement("updatedAt")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class UserExperiencePreferencesDocument
+{
+    [BsonElement("experienceMode")]
+    public string ExperienceMode { get; set; } = "everyday";
+
+    [BsonElement("experienceModeChosen")]
+    public bool ExperienceModeChosen { get; set; }
+
+    [BsonElement("fontScale")]
+    public string FontScale { get; set; } = "default";
+
+    [BsonElement("largeControls")]
+    public bool LargeControls { get; set; }
 }

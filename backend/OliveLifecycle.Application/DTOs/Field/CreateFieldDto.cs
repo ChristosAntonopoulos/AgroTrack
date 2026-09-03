@@ -40,6 +40,11 @@ public class CreateFieldDto
 
     public string? ProducerUserId { get; set; }
 
+    /// <summary>
+    /// When true (default), the creating owner also gets the "work" capacity so solo farms need one account.
+    /// </summary>
+    public bool WorksThisFieldMyself { get; set; } = true;
+
     public string? Status { get; set; }
 
     public GreekCadastreInfoDto? GreekCadastre { get; set; }

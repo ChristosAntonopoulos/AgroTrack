@@ -11,5 +11,26 @@
   "language": "Language",
   "logout": "Sign out",
   "logoutConfirm": "Are you sure you want to sign out?",
-  "saved": "Preferences saved"
+  "saved": "Preferences saved",
+  "experience": {
+    "label": "How OliveCycle looks",
+    "everyday": "Everyday",
+    "full": "Full picture",
+    "everydayDesc": "What to do now — large actions, fewer numbers.",
+    "fullDesc": "Maps, satellite, soil, analytics, and denser history.",
+    "fontScale": "Text size",
+    "fontScales": {
+      "default": "Normal",
+      "large": "Large",
+      "xl": "Extra large"
+    },
+    "largeControls": "Large buttons",
+    "setupPhone": "Set up this phone for Everyday",
+    "peekMoreAboutField": "More about this field",
+    "switchForDetails": "Switch to Full picture for details",
+    "onrampTitle": "Want the full picture?",
+    "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
+    "onrampSwitch": "Switch to Full picture",
+    "onrampDismiss": "Not now"
+  }
 }

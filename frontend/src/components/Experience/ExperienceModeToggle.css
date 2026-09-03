@@ -1,0 +1,42 @@
+.experience-mode-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-muted, var(--color-border-light));
+  border: 1px solid var(--color-border);
+}
+
+.experience-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--tap-min, 44px);
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.experience-mode-btn.active.experience-mode-btn-everyday {
+  background: color-mix(in srgb, var(--experience-everyday) 18%, transparent);
+  color: var(--experience-everyday-ink, var(--experience-everyday));
+}
+
+.experience-mode-btn.active.experience-mode-btn-full {
+  background: color-mix(in srgb, var(--experience-full) 18%, transparent);
+  color: var(--experience-full-ink, var(--experience-full));
+}
+
+.experience-mode-toggle-compact .experience-mode-btn {
+  min-height: calc(var(--tap-min, 44px) * 0.85);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.experience-mode-btn-short {
+  font-size: 0.75rem;
+}

@@ -12,6 +12,13 @@ public static class UserMapper
         Email = user.Email,
         FirstName = user.FirstName,
         LastName = user.LastName,
-        Role = user.Role.ToRoleName()
+        Role = user.Role.ToRoleName(),
+        Preferences = new UserExperiencePreferencesDto
+        {
+            ExperienceMode = user.Preferences.ExperienceMode,
+            ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
+            FontScale = user.Preferences.FontScale,
+            LargeControls = user.Preferences.LargeControls
+        }
     };
 }

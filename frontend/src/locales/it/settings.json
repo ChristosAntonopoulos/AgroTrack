@@ -25,9 +25,17 @@
       "dashboard": "Dashboard",
       "fields": "Campi",
       "tasks": "Attività",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "today": "Oggi"
     },
-    "language": "Lingua"
+    "language": "Lingua",
+    "fontScale": "Dimensione testo",
+    "fontScales": {
+      "default": "Normale",
+      "large": "Grande",
+      "xl": "Extra grande"
+    },
+    "largeControls": "Pulsanti grandi"
   },
   "notifications": {
     "title": "Notifiche",
@@ -42,6 +50,31 @@
     "description": "Ripristina la demo allo stato originale se necessario.",
     "resetButton": "Ripristina dati demo",
     "resetConfirm": "Ripristinare i dati demo? Verranno ripristinati campi, attività e assegnazioni originali."
+  },
+  "experience": {
+    "label": "Come appare OliveCycle",
+    "everyday": "Quotidiano",
+    "everydayShort": "Giorno",
+    "everydayDesc": "Cosa fare ora — azioni grandi, meno numeri.",
+    "everydayHint": "Consigliato per la maggior parte delle persone",
+    "full": "Quadro completo",
+    "fullShort": "Pieno",
+    "fullDesc": "Mappe, satellite, suolo, analitiche e cronologia più densa.",
+    "fullHint": "Per agronomi e pianificazione dettagliata",
+    "chooserTitle": "Come vuoi che appaia OliveCycle?",
+    "chooserSubtitle": "Stessi campi e attività. Tu scegli la densità.",
+    "chooserFooter": "Puoi cambiarlo dopo nelle Impostazioni.",
+    "comfortTitle": "Quanto grande deve essere il testo?",
+    "comfortSubtitle": "Puoi cambiarlo in qualsiasi momento. Grande aiuta all'aperto.",
+    "comfortSkip": "Mantieni dimensione normale",
+    "onrampTitle": "Vuoi il quadro completo?",
+    "onrampBody": "Hai aperto i dettagli del campo alcune volte. Passa quando vuoi mappe e strumenti più densi.",
+    "onrampSwitch": "Passa al Quadro completo",
+    "onrampDismiss": "Non ora",
+    "peekMoreAboutField": "Altro su questo campo",
+    "switchForDetails": "Passa al Quadro completo per i dettagli",
+    "setupPhoneTitle": "Configura questo telefono",
+    "setupPhoneBody": "Quotidiano · Testo grande · Pulsanti grandi · Oggi è la home"
   },
   "saveButton": "Salva preferenze",
   "saved": "Preferenze salvate!"

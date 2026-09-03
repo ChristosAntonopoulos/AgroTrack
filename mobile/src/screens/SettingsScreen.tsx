@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences, AppLanguage } from '../context/PreferencesContext';
 import { ThemeMode } from '../theme/themes';
+import type { ExperienceMode, FontScale } from '../experience/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import Card from '../components/ui/Card';
@@ -22,7 +23,19 @@ const SettingsScreen = () => {
   const { user, logout, isFieldOwner } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation(['settings', 'common', 'nav']);
-  const { language, themeMode, setLanguage, setThemeMode } = usePreferences();
+  const {
+    language,
+    themeMode,
+    setLanguage,
+    setThemeMode,
+    experienceMode,
+    setExperienceMode,
+    fontScale,
+    setFontScale,
+    largeControls,
+    setLargeControls,
+    tapMin,
+  } = usePreferences();
   const navigation = useNavigation<Nav>();
 
   const handleLogout = () => {
@@ -52,9 +65,11 @@ const SettingsScreen = () => {
   }) => (
     <TouchableOpacity
       onPress={onPress}
+      accessibilityRole="button"
       style={[
         styles.option,
         {
+          minHeight: tapMin,
           backgroundColor: selected ? colors.primaryDark : colors.surfaceMuted,
           borderColor: selected ? colors.primaryDark : colors.border,
         },
@@ -89,6 +104,77 @@ const SettingsScreen = () => {
             <Text style={[styles.profileRole, { color: colors.primaryDark }]}>{roleLabel}</Text>
           </View>
         </View>
+      </Card>
+
+      <Card variant="outlined" style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          {t('settings:experience.label')}
+        </Text>
+        <View style={styles.optionRow}>
+          <OptionRow
+            label={t('settings:experience.everyday')}
+            selected={experienceMode === 'everyday'}
+            onPress={() => void setExperienceMode('everyday' as ExperienceMode)}
+          />
+          <OptionRow
+            label={t('settings:experience.full')}
+            selected={experienceMode === 'full'}
+            onPress={() => void setExperienceMode('full' as ExperienceMode)}
+          />
+        </View>
+        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+          {experienceMode === 'everyday'
+            ? t('settings:experience.everydayDesc')
+            : t('settings:experience.fullDesc')}
+        </Text>
+      </Card>
+
+      <Card variant="outlined" style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          {t('settings:experience.fontScale')}
+        </Text>
+        <View style={styles.optionRow}>
+          {(['default', 'large', 'xl'] as FontScale[]).map((scale) => (
+            <OptionRow
+              key={scale}
+              label={t(`settings:experience.fontScales.${scale}`)}
+              selected={fontScale === scale}
+              onPress={() => void setFontScale(scale)}
+            />
+          ))}
+        </View>
+        <TouchableOpacity
+          onPress={() => void setLargeControls(!largeControls)}
+          style={[
+            styles.option,
+            {
+              minHeight: tapMin,
+              marginTop: spacing.sm,
+              backgroundColor: largeControls ? colors.primaryDark : colors.surfaceMuted,
+              borderColor: largeControls ? colors.primaryDark : colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.optionText,
+              { color: largeControls ? colors.textInverse : colors.textPrimary },
+            ]}
+          >
+            {t('settings:experience.largeControls')}
+          </Text>
+        </TouchableOpacity>
+        <Button
+          title={t('settings:experience.setupPhone')}
+          variant="outline"
+          onPress={() => {
+            void setExperienceMode('everyday');
+            void setFontScale('large');
+            void setLargeControls(true);
+          }}
+          fullWidth
+          style={styles.actionBtn}
+        />
       </Card>
 
       <Card variant="outlined" style={styles.section}>
@@ -149,6 +235,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     fontWeight: '600',
   },
+  hint: {
+    ...typography.styles.bodySmall,
+    marginTop: spacing.sm,
+  },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatar: {
     width: 52,
@@ -164,8 +254,9 @@ const styles = StyleSheet.create({
   option: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   optionText: { ...typography.styles.bodySmall, fontWeight: '600' },
   actionBtn: { marginTop: spacing.sm },

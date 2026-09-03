@@ -11,6 +11,7 @@ import {
   Route,
   Settings,
   Database,
+  Users,
 } from 'lucide-react';
 
 export type AppRole = 'FieldOwner' | 'Producer' | 'Agronomist' | 'Administrator' | 'ServiceProvider' | '';
@@ -54,7 +55,7 @@ export const navItems: NavItem[] = [
     path: '/today',
     labelKey: 'items.today',
     icon: <Route />,
-    roles: ['Producer'],
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
     section: 'work',
   },
   {
@@ -71,6 +72,13 @@ export const navItems: NavItem[] = [
     labelKeyProducer: 'items.tasksProducer',
     icon: <CheckSquare />,
     roles: ['FieldOwner', 'Producer', 'Agronomist'],
+    section: 'operations',
+  },
+  {
+    path: '/people',
+    labelKey: 'items.people',
+    icon: <Users />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
     section: 'operations',
   },
   {
@@ -123,7 +131,8 @@ export const resolveNavItemLabel = (item: NavItem, role: AppRole, t: TFunction<'
   return t(item.labelKey);
 };
 
-export const roleHomePath = (role: AppRole) => {
+export const roleHomePath = (role: AppRole, experienceMode?: 'everyday' | 'full') => {
+  if (experienceMode === 'everyday') return '/today';
   if (role === 'Producer') return '/today';
   return '/dashboard';
 };

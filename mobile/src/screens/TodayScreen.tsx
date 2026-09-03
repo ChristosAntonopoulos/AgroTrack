@@ -73,19 +73,6 @@ const TodayScreen = () => {
 
   const nextTask = recommended[0];
 
-  if (isFieldOwner()) {
-    return (
-      <ScreenLayout scroll contentContainerStyle={styles.content}>
-        <ScreenHeader title={t('producerOnlyTitle')} subtitle={t('producerOnlyDescription')} />
-        <EmptyState
-          icon={<Ionicons name="sunny-outline" size={32} color={colors.primaryDark} />}
-          title={t('producerOnlyTitle')}
-          description={t('producerOnlyDescription')}
-        />
-      </ScreenLayout>
-    );
-  }
-
   if (loading && tasks.length === 0) {
     return <LoadingSpinner fullScreen />;
   }

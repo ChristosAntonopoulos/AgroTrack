@@ -20,6 +20,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFieldRepository, FieldRepository>();
+        services.AddScoped<IFieldInviteRepository, FieldInviteRepository>();
         services.AddScoped<ILifecycleRepository, LifecycleRepository>();
         services.AddScoped<ITaskRepository, TaskRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();

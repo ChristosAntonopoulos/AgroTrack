@@ -6,6 +6,7 @@ using OliveLifecycle.Application.Abstractions.Storage;
 using OliveLifecycle.Application.DTOs.Field;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -132,6 +133,15 @@ public class FieldService : IFieldService
             field.AssignedProducerIds.Add(createFieldDto.ProducerUserId);
         }
 
+        var ownerCapacities = createFieldDto.WorksThisFieldMyself
+            ? new List<string> { FieldCapacities.Own, FieldCapacities.Work }
+            : new List<string> { FieldCapacities.Own };
+        FieldMembershipSync.Upsert(field, ownerId, ownerCapacities, ownerId);
+        if (!string.IsNullOrWhiteSpace(createFieldDto.ProducerUserId))
+        {
+            FieldMembershipSync.Upsert(field, createFieldDto.ProducerUserId, [FieldCapacities.Work], ownerId);
+        }
+
         var createdField = await _fieldRepository.CreateAsync(field, cancellationToken);
         if (createdField.Boundary != null)
         {
@@ -167,14 +177,17 @@ public class FieldService : IFieldService
     {
         var fields = new List<FieldEntity>();
 
-        if (userRole == Roles.FieldOwner || userRole == Roles.Administrator)
+        if (userRole == Roles.Administrator)
         {
             fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken));
         }
-        else if (userRole == Roles.Producer)
-        {
-            fields.AddRange(await _fieldRepository.GetByAssignedProducerIdAsync(userId, cancellationToken));
 
+        fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken));
+        fields.AddRange(await _fieldRepository.GetByAssignedProducerIdAsync(userId, cancellationToken));
+        fields.AddRange(await _fieldRepository.GetByMemberUserIdAsync(userId, cancellationToken));
+
+        if (userRole == Roles.Producer)
+        {
             var tasks = await _taskRepository.GetByAssignedToAsync(userId, cancellationToken);
             var fieldIds = tasks.Select(t => t.FieldId).Distinct().ToList();
             if (fieldIds.Count > 0)
@@ -182,13 +195,13 @@ public class FieldService : IFieldService
                 fields.AddRange(await _fieldRepository.GetByIdsAsync(fieldIds, cancellationToken));
             }
         }
-        else if (userRole == Roles.Agronomist)
-        {
-            fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken));
-        }
 
         var includeDocuments = userRole == Roles.FieldOwner || userRole == Roles.Administrator;
-        return fields.DistinctBy(f => f.Id).Select(f => FieldMapper.ToDto(f, includeDocuments));
+        return fields.DistinctBy(f => f.Id).Select(f =>
+        {
+            FieldMembershipSync.EnsureBackfilled(f);
+            return FieldMapper.ToDto(f, includeDocuments || FieldMembershipSync.HasCapacity(f, userId, FieldCapacities.Own));
+        });
     }
 
     public async Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default)
@@ -229,30 +242,25 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (field.OwnerId != ownerId)
+        FieldMembershipSync.EnsureBackfilled(field);
+        if (!FieldMembershipSync.HasCapacity(field, ownerId, FieldCapacities.Own) && field.OwnerId != ownerId)
         {
             throw new ForbiddenException("You do not have permission to assign producers to this field.");
         }
 
-        var producer = await _userRepository.GetByIdAsync(producerId, cancellationToken);
-        if (producer == null || producer.Role != UserRole.Producer)
-        {
-            throw new ValidationException("User is not a valid producer.");
-        }
+        var producer = await _userRepository.GetByIdAsync(producerId, cancellationToken)
+            ?? throw new ValidationException("User is not a valid producer.");
 
-        if (!field.AssignedProducerIds.Contains(producerId))
-        {
-            field.AssignedProducerIds.Add(producerId);
-            await _fieldRepository.UpdateAsync(field, cancellationToken);
-            await _activityService.RecordAsync(
-                fieldId,
-                "producer_assigned",
-                "Producer assigned to field",
-                ownerId,
-                metadata: new Dictionary<string, string> { ["producerId"] = producerId },
-                cancellationToken: cancellationToken);
-            _logger.LogInformation("Producer {ProducerId} assigned to field {FieldId}", producerId, fieldId);
-        }
+        FieldMembershipSync.Upsert(field, producerId, [FieldCapacities.Work], ownerId);
+        await _fieldRepository.UpdateAsync(field, cancellationToken);
+        await _activityService.RecordAsync(
+            fieldId,
+            "producer_assigned",
+            "Producer assigned to field",
+            ownerId,
+            metadata: new Dictionary<string, string> { ["producerId"] = producerId },
+            cancellationToken: cancellationToken);
+        _logger.LogInformation("Producer {ProducerId} assigned to field {FieldId}", producerId, fieldId);
     }
 
     public async Task UnassignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default)
@@ -260,23 +268,35 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (field.OwnerId != ownerId)
+        FieldMembershipSync.EnsureBackfilled(field);
+        if (!FieldMembershipSync.HasCapacity(field, ownerId, FieldCapacities.Own) && field.OwnerId != ownerId)
         {
             throw new ForbiddenException("You do not have permission to unassign producers from this field.");
         }
 
-        if (field.AssignedProducerIds.Remove(producerId))
+        try
         {
-            await _fieldRepository.UpdateAsync(field, cancellationToken);
-            await _activityService.RecordAsync(
-                fieldId,
-                "producer_unassigned",
-                "Producer removed from field",
-                ownerId,
-                metadata: new Dictionary<string, string> { ["producerId"] = producerId },
-                cancellationToken: cancellationToken);
-            _logger.LogInformation("Producer {ProducerId} unassigned from field {FieldId}", producerId, fieldId);
+            FieldMembershipSync.Remove(field, producerId);
         }
+        catch (InvalidOperationException)
+        {
+            if (field.AssignedProducerIds.Remove(producerId))
+            {
+                await _fieldRepository.UpdateAsync(field, cancellationToken);
+            }
+
+            return;
+        }
+
+        await _fieldRepository.UpdateAsync(field, cancellationToken);
+        await _activityService.RecordAsync(
+            fieldId,
+            "producer_unassigned",
+            "Producer removed from field",
+            ownerId,
+            metadata: new Dictionary<string, string> { ["producerId"] = producerId },
+            cancellationToken: cancellationToken);
+        _logger.LogInformation("Producer {ProducerId} unassigned from field {FieldId}", producerId, fieldId);
     }
 
     public async Task<IEnumerable<string>> GetAssignedProducerIdsAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default)

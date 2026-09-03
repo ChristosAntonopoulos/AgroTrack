@@ -1,6 +1,7 @@
-using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
+using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -27,12 +28,18 @@ public class FieldAccessService : IFieldAccessService
             return false;
         }
 
-        if (field.OwnerId == userId || userRole == Roles.Administrator)
+        if (userRole == Roles.Administrator)
         {
             return true;
         }
 
-        if (field.AssignedProducerIds.Contains(userId))
+        FieldMembershipSync.EnsureBackfilled(field);
+        if (FieldMembershipSync.IsMember(field, userId))
+        {
+            return true;
+        }
+
+        if (field.OwnerId == userId || field.AssignedProducerIds.Contains(userId))
         {
             return true;
         }
@@ -43,7 +50,7 @@ public class FieldAccessService : IFieldAccessService
             return tasks.Any(t => t.FieldId == fieldId);
         }
 
-        return userRole == Roles.Agronomist && field.OwnerId == userId;
+        return false;
     }
 
     public async Task<bool> CanUserModifyFieldAsync(
@@ -52,7 +59,13 @@ public class FieldAccessService : IFieldAccessService
         CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
-        return field != null && field.OwnerId == userId;
+        if (field == null)
+        {
+            return false;
+        }
+
+        FieldMembershipSync.EnsureBackfilled(field);
+        return FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Own) || field.OwnerId == userId;
     }
 
     public async Task<bool> CanUserAccessFieldDocumentsAsync(
@@ -61,12 +74,33 @@ public class FieldAccessService : IFieldAccessService
         string userRole,
         CancellationToken cancellationToken = default)
     {
+        if (userRole == Roles.Administrator)
+        {
+            return true;
+        }
+
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
         if (field == null)
         {
             return false;
         }
 
-        return field.OwnerId == userId || userRole == Roles.Administrator;
+        FieldMembershipSync.EnsureBackfilled(field);
+        return FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Own) || field.OwnerId == userId;
+    }
+
+    public async Task<bool> HasCapacityAsync(
+        string fieldId,
+        string userId,
+        string capacity,
+        CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
+        if (field == null)
+        {
+            return false;
+        }
+
+        return FieldMembershipSync.HasCapacity(field, userId, capacity);
     }
 }

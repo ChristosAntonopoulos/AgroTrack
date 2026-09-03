@@ -1,24 +1,36 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
 import { isMockMode } from '../../services/serviceFactory';
+import { isEverydayAllowedPath, isEverydayPrimaryPath } from '../../experience/catalog';
 import { navItems, navSections, isNavActive, AppRole, resolveNavItemLabel } from '../../navigation/navConfig';
 import './Sidebar.css';
 
-interface SidebarProps {
-  sidebarOpen?: boolean;
-}
-
-const Sidebar: React.FC<SidebarProps> = () => {
+const Sidebar: React.FC = () => {
   const { t } = useTranslation(['nav', 'common']);
   const { user } = useAuth();
+  const { isEveryday } = useExperienceMode();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
-  const filteredItems = navItems.filter(
-    (item) => item.roles.includes(userRole) && (!item.mockOnly || isMockMode())
-  );
+  const filteredItems = useMemo(() => {
+    return navItems.filter((item) => {
+      if (!item.roles.includes(userRole)) return false;
+      if (item.mockOnly && !isMockMode()) return false;
+      if (isEveryday) {
+        if (item.path === '/dashboard') return false;
+        if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
+          return false;
+        }
+        if (item.path === '/people') return true;
+        return isEverydayAllowedPath(item.path) || isEverydayPrimaryPath(item.path);
+      }
+      return true;
+    });
+  }, [userRole, isEveryday]);
+
   const visibleSections = navSections.filter((s) => filteredItems.some((i) => i.section === s.id));
 
   return (

@@ -8,6 +8,7 @@ import { authService } from '../services/authService';
 import { demoAccounts } from '../services/demoAccounts';
 import { showDemoLogin } from '../config/apiConfig';
 import { roleHomePath, AppRole } from '../navigation/navConfig';
+import { settingsService } from '../services/settingsService';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
 import LoginHero from '../components/Auth/LoginHero';
@@ -40,7 +41,8 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const navigateAfterLogin = (role: string) => {
-    navigate(roleHomePath(role as AppRole));
+    const prefs = settingsService.getPreferences();
+    navigate(roleHomePath(role as AppRole, prefs.experienceModeChosen ? prefs.experienceMode : undefined));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

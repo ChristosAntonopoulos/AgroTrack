@@ -21,6 +21,12 @@ export interface AuthResponse {
   expiresAt: string;
   firstName?: string;
   lastName?: string;
+  preferences?: {
+    experienceMode: string;
+    experienceModeChosen: boolean;
+    fontScale: string;
+    largeControls: boolean;
+  };
 }
 
 export const authService = {

@@ -17,6 +17,8 @@ public class Field : BaseEntity
     public string CurrentLifecycleYear { get; set; } = "low";
     public string CurrentLifecycleStage { get; set; } = OliveLifecycleStage.Dormancy;
     public List<string> AssignedProducerIds { get; set; } = new();
+    public List<FieldMembership> Memberships { get; set; } = new();
+    public List<AdvisorComment> AdvisorComments { get; set; } = new();
 
     public FieldStatus Status { get; set; } = FieldStatus.Active;
     public string CropType { get; set; } = "Olive";

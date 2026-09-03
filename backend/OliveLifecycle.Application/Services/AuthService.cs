@@ -111,7 +111,16 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Email = user.Email,
             Role = user.Role.ToRoleName(),
-            ExpiresAt = expiresAt
+            ExpiresAt = expiresAt,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Preferences = new DTOs.User.UserExperiencePreferencesDto
+            {
+                ExperienceMode = user.Preferences.ExperienceMode,
+                ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
+                FontScale = user.Preferences.FontScale,
+                LargeControls = user.Preferences.LargeControls
+            }
         };
     }
 }

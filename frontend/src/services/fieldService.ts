@@ -76,6 +76,8 @@ export interface Field {
   currentLifecycleYear: string;
   currentLifecycleStage?: string;
   assignedProducerIds?: string[];
+  memberships?: import('./fieldPeopleService').FieldMembership[];
+  advisorComments?: import('./fieldPeopleService').AdvisorComment[];
   createdAt: string;
   updatedAt: string;
   status?: FieldStatus;
@@ -112,6 +114,7 @@ export interface CreateFieldDto {
   slope?: string;
   accessNotes?: string;
   producerUserId?: string;
+  worksThisFieldMyself?: boolean;
   status?: FieldStatus;
   greekCadastre?: GreekCadastreInfo;
 }

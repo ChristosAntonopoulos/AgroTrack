@@ -14,6 +14,15 @@ public static class UserMapper
         Role = ParseRole(document.Role),
         FirstName = document.FirstName,
         LastName = document.LastName,
+        Preferences = document.Preferences == null
+            ? new UserExperiencePreferences()
+            : new UserExperiencePreferences
+            {
+                ExperienceMode = document.Preferences.ExperienceMode,
+                ExperienceModeChosen = document.Preferences.ExperienceModeChosen,
+                FontScale = document.Preferences.FontScale,
+                LargeControls = document.Preferences.LargeControls
+            },
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -26,6 +35,13 @@ public static class UserMapper
         Role = entity.Role.ToString(),
         FirstName = entity.FirstName,
         LastName = entity.LastName,
+        Preferences = new UserExperiencePreferencesDocument
+        {
+            ExperienceMode = entity.Preferences.ExperienceMode,
+            ExperienceModeChosen = entity.Preferences.ExperienceModeChosen,
+            FontScale = entity.Preferences.FontScale,
+            LargeControls = entity.Preferences.LargeControls
+        },
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

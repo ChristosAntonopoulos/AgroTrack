@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Task } from '../services/taskService';
 import { Field } from '../services/fieldService';
@@ -42,6 +43,7 @@ type ViewMode = 'list' | 'board';
 const TasksPage: React.FC = () => {
   const { t } = useTranslation(['tasks', 'common', 'errors', 'taskTemplates']);
   const { user } = useAuth();
+  const { showWidget, isEveryday } = useExperienceMode();
   const labels = useTaskTemplateLabels();
   const localizedTemplates = useAllLocalizedTemplates();
 
@@ -60,6 +62,12 @@ const TasksPage: React.FC = () => {
 
   const isOwner = user?.role === 'FieldOwner';
   const currentMonth = new Date().getMonth() + 1;
+
+  useEffect(() => {
+    if (isEveryday || !showWidget('taskBoardView')) {
+      setViewMode('list');
+    }
+  }, [isEveryday, showWidget]);
 
   useEffect(() => {
     loadData();
@@ -305,14 +313,16 @@ const TasksPage: React.FC = () => {
                       <List size={16} />
                       <span>{t('tasks:viewList')}</span>
                     </button>
-                    <button
-                      type="button"
-                      className={viewMode === 'board' ? 'active' : ''}
-                      onClick={() => setViewMode('board')}
-                    >
-                      <LayoutGrid size={16} />
-                      <span>{t('tasks:viewBoard')}</span>
-                    </button>
+                    {showWidget('taskBoardView') ? (
+                      <button
+                        type="button"
+                        className={viewMode === 'board' ? 'active' : ''}
+                        onClick={() => setViewMode('board')}
+                      >
+                        <LayoutGrid size={16} />
+                        <span>{t('tasks:viewBoard')}</span>
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </div>

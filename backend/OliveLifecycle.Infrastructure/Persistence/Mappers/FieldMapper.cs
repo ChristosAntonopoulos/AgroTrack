@@ -27,6 +27,8 @@ public static class FieldMapper
         CurrentLifecycleYear = document.CurrentLifecycleYear,
         CurrentLifecycleStage = document.CurrentLifecycleStage,
         AssignedProducerIds = document.AssignedProducerIds,
+        Memberships = document.Memberships.Select(ToMembershipEntity).ToList(),
+        AdvisorComments = document.AdvisorComments.Select(ToAdvisorCommentEntity).ToList(),
         Status = document.Status,
         CropType = document.CropType,
         LocationText = document.LocationText,
@@ -64,6 +66,8 @@ public static class FieldMapper
         CurrentLifecycleYear = entity.CurrentLifecycleYear,
         CurrentLifecycleStage = entity.CurrentLifecycleStage,
         AssignedProducerIds = entity.AssignedProducerIds,
+        Memberships = entity.Memberships.Select(ToMembershipDocument).ToList(),
+        AdvisorComments = entity.AdvisorComments.Select(ToAdvisorCommentDocument).ToList(),
         Status = entity.Status,
         CropType = entity.CropType,
         LocationText = entity.LocationText,
@@ -163,5 +167,39 @@ public static class FieldMapper
         FileName = entity.FileName,
         StoragePath = entity.StoragePath,
         UploadedAt = entity.UploadedAt
+    };
+
+    private static FieldMembership ToMembershipEntity(FieldMembershipDocument doc) => new()
+    {
+        UserId = doc.UserId,
+        Capacities = doc.Capacities,
+        Status = doc.Status,
+        InvitedBy = doc.InvitedBy,
+        CreatedAt = doc.CreatedAt
+    };
+
+    private static FieldMembershipDocument ToMembershipDocument(FieldMembership entity) => new()
+    {
+        UserId = entity.UserId,
+        Capacities = entity.Capacities,
+        Status = entity.Status,
+        InvitedBy = entity.InvitedBy,
+        CreatedAt = entity.CreatedAt
+    };
+
+    private static AdvisorComment ToAdvisorCommentEntity(AdvisorCommentDocument doc) => new()
+    {
+        Id = doc.Id,
+        UserId = doc.UserId,
+        Body = doc.Body,
+        CreatedAt = doc.CreatedAt
+    };
+
+    private static AdvisorCommentDocument ToAdvisorCommentDocument(AdvisorComment entity) => new()
+    {
+        Id = entity.Id,
+        UserId = entity.UserId,
+        Body = entity.Body,
+        CreatedAt = entity.CreatedAt
     };
 }

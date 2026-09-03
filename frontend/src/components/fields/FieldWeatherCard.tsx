@@ -4,6 +4,7 @@ import { Droplets, Wind, Info } from 'lucide-react';
 import { weatherService, WeatherData } from '../../services/weatherService';
 import DataSourceInfoModal, { DataSourceInfo } from '../Common/DataSourceInfoModal';
 import LoadingSpinner from '../Common/LoadingSpinner';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
 import './FieldWeatherCard.css';
 
 interface Props {
@@ -20,11 +21,13 @@ const formatAge = (updatedAt?: Date): string | null => {
 };
 
 const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
-  const { t } = useTranslation('fields');
+  const { t } = useTranslation(['fields', 'settings']);
+  const { showWidget, isEveryday, recordIntelligenceOpen } = useExperienceMode();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [sourceInfo, setSourceInfo] = useState<DataSourceInfo | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +52,10 @@ const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
     };
   }, [fieldId]);
 
+  if (!showWidget('weatherAdvice') && isEveryday) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="field-weather-card field-weather-card--loading">
@@ -66,6 +73,42 @@ const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
   }
 
   const age = formatAge(weather.lastUpdatedAt);
+  const advice =
+    weather.frostLevel && weather.frostLevel !== 'None'
+      ? t('weather.frostRisk', { level: weather.frostLevel })
+      : weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5
+        ? t('weather.rainNext24h', { mm: weather.rainForecast24hMm.toFixed(1) })
+        : t('weather.rainNone');
+
+  // Everyday: plain advice first; denser numbers behind peek (counts toward on-ramp).
+  if (isEveryday && !detailsOpen) {
+    return (
+      <div className="field-weather-card field-weather-card--everyday">
+        <div className="field-weather-header">
+          <span className="field-weather-title">{t('weather.today')}</span>
+        </div>
+        <div className="field-weather-main">
+          <span className="field-weather-icon" aria-hidden>
+            {weather.icon}
+          </span>
+          <div>
+            <div className="field-weather-temp">{weather.temperature}°C</div>
+            <div className="field-weather-desc">{advice}</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="fd-everyday-peek-btn"
+          onClick={() => {
+            setDetailsOpen(true);
+            recordIntelligenceOpen();
+          }}
+        >
+          {t('settings:experience.peekMoreAboutField')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="field-weather-card">
@@ -114,11 +157,7 @@ const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
           {t('weather.wind', { speed: weather.windSpeed })}
         </span>
       </div>
-      <p className="field-weather-outlook">
-        {weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5
-          ? t('weather.rainNext24h', { mm: weather.rainForecast24hMm.toFixed(1) })
-          : t('weather.rainNone')}
-      </p>
+      <p className="field-weather-outlook">{advice}</p>
       {weather.frostLevel && weather.frostLevel !== 'None' ? (
         <p className="field-weather-frost">{t('weather.frostRisk', { level: weather.frostLevel })}</p>
       ) : null}

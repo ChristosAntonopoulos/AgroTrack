@@ -57,6 +57,7 @@ const FieldFormPage: React.FC = () => {
     variety: '',
     irrigationStatus: false,
     status: 'Draft',
+    worksThisFieldMyself: true,
   });
   const [kaekInput, setKaekInput] = useState('');
   const [cadastre, setCadastre] = useState<GreekCadastreInfo | undefined>();

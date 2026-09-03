@@ -16,6 +16,7 @@ import {
 } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Section from '../components/layout/Section';
 import Card from '../components/ui/Card';
@@ -25,6 +26,7 @@ import FieldDetailHeader from '../components/domain/FieldDetailHeader';
 import FieldDetailToolbar from '../components/domain/FieldDetailToolbar';
 import FieldPreviewHero from '../components/domain/FieldPreviewHero';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
+import FullPictureOnrampBanner from '../components/Experience/FullPictureOnrampBanner';
 import AlertBanner from '../components/ui/AlertBanner';
 import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
 import AgendaTaskRow from '../components/domain/AgendaTaskRow';
@@ -59,9 +61,11 @@ const FieldDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
   const { fieldId } = route.params;
-  const { isFieldOwner } = useAuth();
+  const { isFieldOwner, user } = useAuth();
   const { colors } = useTheme();
-  const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks']);
+  const { isEveryday, isFullPicture, showWidget, recordIntelligenceOpen, setExperienceMode, tapMin } =
+    usePreferences();
+  const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks', 'settings']);
 
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
@@ -69,6 +73,7 @@ const FieldDetailScreen = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [alerts, setAlerts] = useState<FieldEnvironmentalAlert[]>([]);
   const [cadastreExpanded, setCadastreExpanded] = useState(false);
+  const [intelligencePeek, setIntelligencePeek] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
@@ -175,6 +180,12 @@ const FieldDetailScreen = () => {
   const hasMappableLocation = fieldCenter != null;
   const hasCadastre = Boolean(field.greekCadastre?.kaek || field.greekCadastre?.normalizedKaek);
 
+  const canOwn = isFieldOwner() || field?.ownerId === user?.userId;
+  const canWork =
+    canOwn ||
+    user?.role === 'Producer' ||
+    (field?.assignedProducerIds || []).includes(user?.userId || '');
+
   const toolbarActions = [
     {
       id: 'tasks',
@@ -196,7 +207,7 @@ const FieldDetailScreen = () => {
       onPress: openMaps,
       disabled: !hasMappableLocation,
     },
-    ...(isFieldOwner()
+    ...(canOwn
       ? [
           {
             id: 'edit',
@@ -253,12 +264,75 @@ const FieldDetailScreen = () => {
         </View>
       ))}
 
-      {field.boundary ? (
+      {field.boundary && showWidget('fieldIntelligence') ? (
         <Section title={t('fields:intelligence.title')}>
           <FieldIntelligenceCard fieldId={field.id} />
         </Section>
       ) : null}
 
+      {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+        <Section title={t('settings:experience.peekMoreAboutField')}>
+          {!intelligencePeek ? (
+            <Button
+              title={t('settings:experience.peekMoreAboutField')}
+              variant="outline"
+              onPress={() => {
+                setIntelligencePeek(true);
+                void recordIntelligenceOpen();
+              }}
+              fullWidth
+              style={{ minHeight: tapMin }}
+            />
+          ) : (
+            <>
+              <FieldIntelligenceCard fieldId={field.id} />
+              <Button
+                title={t('settings:experience.switchForDetails', {
+                  defaultValue: 'Switch to Full picture for details',
+                })}
+                variant="ghost"
+                onPress={() => void setExperienceMode('full')}
+                fullWidth
+                style={{ marginTop: spacing.sm, minHeight: tapMin }}
+              />
+            </>
+          )}
+        </Section>
+      ) : null}
+
+      <FullPictureOnrampBanner />
+
+      <Section
+        title={t('fields:upcomingTasks')}
+        actionLabel={tasks.length > 0 ? t('fields:viewAllTasks', { count: tasks.length }) : undefined}
+        onActionPress={tasks.length > 0 ? () => goTab('Tasks') : undefined}
+      >
+        {agendaTasks.length > 0 ? (
+          agendaTasks.map(task => (
+            <AgendaTaskRow
+              key={task.id}
+              task={task}
+              onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
+            />
+          ))
+        ) : (
+          <EmptyState
+            icon={<Ionicons name="clipboard-outline" size={32} color={colors.textTertiary} />}
+            title={t('fields:noOpenTasks')}
+            description={t('fields:noOpenTasksHint')}
+            action={
+              canOwn || canWork
+                ? {
+                    label: t('tasks:createTask'),
+                    onPress: () => navigation.navigate('CreateTask', { fieldId }),
+                  }
+                : undefined
+            }
+          />
+        )}
+      </Section>
+
+      {isFullPicture ? (
       <Section title={t('fields:lifecycle')}>
         <Card>
           <View style={styles.lifecycleHeader}>
@@ -292,42 +366,13 @@ const FieldDetailScreen = () => {
           )}
         </Card>
       </Section>
+      ) : null}
 
-      <Section
-        title={t('fields:upcomingTasks')}
-        actionLabel={tasks.length > 0 ? t('fields:viewAllTasks', { count: tasks.length }) : undefined}
-        onActionPress={tasks.length > 0 ? () => goTab('Tasks') : undefined}
-      >
-        {agendaTasks.length > 0 ? (
-          agendaTasks.map(task => (
-            <AgendaTaskRow
-              key={task.id}
-              task={task}
-              onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
-            />
-          ))
-        ) : (
-          <EmptyState
-            icon={<Ionicons name="clipboard-outline" size={32} color={colors.textTertiary} />}
-            title={t('fields:noOpenTasks')}
-            description={t('fields:noOpenTasksHint')}
-            action={
-              isFieldOwner()
-                ? {
-                    label: t('tasks:createTask'),
-                    onPress: () => navigation.navigate('CreateTask', { fieldId }),
-                  }
-                : undefined
-            }
-          />
-        )}
-      </Section>
-
-      {hasCadastre ? (
+      {isFullPicture && hasCadastre && showWidget('cadastreDetails') ? (
         <View style={styles.cadastreSection}>
           <Pressable
             onPress={() => setCadastreExpanded((v) => !v)}
-            style={[styles.cadastreHeader, { borderColor: colors.borderLight }]}
+            style={[styles.cadastreHeader, { borderColor: colors.borderLight, minHeight: tapMin }]}
           >
             <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary }]}>
               {t('fields:addField.cadastre.referenceTitle')}
@@ -344,6 +389,7 @@ const FieldDetailScreen = () => {
         </View>
       ) : null}
 
+      {isFullPicture ? (
       <Section title={t('fields:fieldDetails')}>
         <Card>
           <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={field.name} />
@@ -389,14 +435,15 @@ const FieldDetailScreen = () => {
           />
         </Card>
       </Section>
+      ) : null}
 
-      {activities.length > 0 ? (
+      {isFullPicture && activities.length > 0 ? (
         <Section title={t('fields:activity')}>
           <ActivityTimeline activities={activities} fieldNames={{ [field.id]: field.name }} />
         </Section>
       ) : null}
 
-      {isFieldOwner() ? (
+      {isFullPicture && canOwn ? (
         <Section title={t('fields:manageField')}>
           <View style={styles.ownerActions}>
             {!lifecycle ? (

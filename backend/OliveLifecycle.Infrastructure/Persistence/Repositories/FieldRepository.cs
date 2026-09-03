@@ -39,6 +39,15 @@ public class FieldRepository : MongoRepositoryBase<FieldDocument, Field>, IField
         return documents.Select(ToEntity);
     }
 
+    public async Task<IEnumerable<Field>> GetByMemberUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<FieldDocument>.Filter.ElemMatch(
+            f => f.Memberships,
+            m => m.UserId == userId && m.Status == "active");
+        var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
+        return documents.Select(ToEntity);
+    }
+
     public async Task<IEnumerable<Field>> GetByOwnerAndNormalizedKaekAsync(
         string ownerId,
         string normalizedKaek,

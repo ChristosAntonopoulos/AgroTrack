@@ -10,4 +10,5 @@ public class User : BaseEntity
     public UserRole Role { get; set; } = UserRole.Producer;
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public UserExperiencePreferences Preferences { get; set; } = new();
 }

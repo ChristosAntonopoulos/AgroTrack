@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { getCalendarService, getFieldService, getTaskService } from '../services/serviceFactory';
 import { CalendarEvent, CalendarFilters } from '../services/calendarService';
 import { Field } from '../services/fieldService';
@@ -52,15 +53,18 @@ type ViewMode = 'month' | 'week' | 'agenda' | 'field';
 const CalendarPage: React.FC = () => {
   const { t, i18n } = useTranslation('calendar');
   const { user } = useAuth();
+  const { isEveryday, showWidget } = useExperienceMode();
   const navigate = useNavigate();
   const localizedTemplates = useAllLocalizedTemplates();
   const dateLocale = i18n.language === 'el' ? el : enUS;
   const isMobile = useMediaQuery('(max-width: 900px)');
 
-  const [viewMode, setViewMode] = useState<ViewMode>(() => (isMobile ? 'agenda' : 'month'));
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    isMobile || !showWidget('calendarMonthView') ? 'agenda' : 'month'
+  );
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [drawerOpen, setDrawerOpen] = useState(!isMobile);
+  const [drawerOpen, setDrawerOpen] = useState(!isMobile && !isEveryday);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldTasks, setFieldTasks] = useState<Task[]>([]);
@@ -76,10 +80,10 @@ const CalendarPage: React.FC = () => {
   const visibleMonth = currentDate.getMonth() + 1;
 
   useEffect(() => {
-    if (isMobile && viewMode === 'month') {
+    if (isEveryday || (isMobile && viewMode === 'month')) {
       setViewMode('agenda');
     }
-  }, [isMobile]);
+  }, [isMobile, isEveryday]);
 
   const recommended = useMemo(
     () =>
@@ -231,10 +235,16 @@ const CalendarPage: React.FC = () => {
         : format(currentDate, 'MMMM yyyy', { locale: dateLocale });
 
   const viewTabs: { id: ViewMode; icon: React.ReactNode; label: string }[] = [
-    { id: 'month', icon: <LayoutGrid size={16} />, label: t('viewMonth') },
-    { id: 'week', icon: <CalendarDays size={16} />, label: t('viewWeek') },
+    ...(showWidget('calendarMonthView')
+      ? [{ id: 'month' as const, icon: <LayoutGrid size={16} />, label: t('viewMonth') }]
+      : []),
+    ...(showWidget('calendarWeekView')
+      ? [{ id: 'week' as const, icon: <CalendarDays size={16} />, label: t('viewWeek') }]
+      : []),
     { id: 'agenda', icon: <List size={16} />, label: t('viewAgenda') },
-    { id: 'field', icon: <MapPin size={16} />, label: t('viewField') },
+    ...(showWidget('calendarFieldView')
+      ? [{ id: 'field' as const, icon: <MapPin size={16} />, label: t('viewField') }]
+      : []),
   ];
 
   const fieldLabel = selectedFieldId

@@ -33,17 +33,29 @@ import FieldDetailMap from '../components/fields/FieldDetailMap';
 import FieldWeatherCard from '../components/fields/FieldWeatherCard';
 import FieldIntelligencePanel from '../components/fields/FieldIntelligencePanel';
 import FieldAlertList from '../components/fields/FieldAlertList';
+import FullPictureOnramp from '../components/Experience/FullPictureOnramp';
+import FieldPeoplePanel from '../components/Field/FieldPeoplePanel';
+import EvidenceUpload from '../components/Task/EvidenceUpload';
+import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useFieldCapacity } from '../hooks/useFieldCapacity';
 import { formatFieldArea, formatFieldAreaSqm, resolveFieldCenter } from '../utils/fieldGeo';
 import './FieldDetailPage.css';
 type ControlRoomTab = 'board' | 'timeline' | 'evidence';
 
 const FieldDetailPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common']);
+  const { t } = useTranslation(['fields', 'common', 'settings']);
   const { formatDate, formatDateTime } = useLocaleFormatters();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const {
+    isEveryday,
+    isFullPicture,
+    showWidget,
+    recordIntelligenceOpen,
+    setExperienceMode,
+  } = useExperienceMode();
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,6 +68,7 @@ const FieldDetailPage: React.FC = () => {
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
   const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
+  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
 
   const [controlRoomTab, setControlRoomTab] = useState<ControlRoomTab>('board');
   const handledInitialAction = useRef(false);
@@ -350,6 +363,9 @@ const FieldDetailPage: React.FC = () => {
 
   const isFieldOwner = user?.role === 'FieldOwner';
   const isProducer = user?.role === 'Producer';
+  const capacity = useFieldCapacity(field);
+  const canOwn = capacity.canOwn || isFieldOwner || field?.ownerId === user?.userId;
+  const canWork = capacity.canWork || isProducer || canOwn;
   const fieldCenter = field ? resolveFieldCenter(field) : null;
   const measuredAreaSqm = field ? formatFieldAreaSqm(field) : undefined;
 
@@ -382,7 +398,7 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="fd-header-actions">
-            {isFieldOwner || field.ownerId === user?.userId ? (
+            {canOwn ? (
               <>
                 <Button
                   to={`/fields/${field.id}/task-templates`}
@@ -417,7 +433,7 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="fd-status-actions">
-            {isProducer ? (
+            {canWork ? (
               <Button
                 variant="primary"
                 size="sm"
@@ -441,12 +457,12 @@ const FieldDetailPage: React.FC = () => {
 
         {field.boundary ? <FieldAlertList fieldId={field.id} /> : null}
 
-        <section className="fd-hero">
+        <section className={`fd-hero${isEveryday ? ' fd-hero--everyday' : ''}`}>
           <div className="fd-hero-map">
-            <FieldDetailMap field={field} heightPx={420} />
+            <FieldDetailMap field={field} heightPx={isEveryday ? 280 : 420} />
           </div>
           <div className="fd-hero-panel">
-            {fieldCenter ? <FieldWeatherCard fieldId={field.id} /> : null}
+            {fieldCenter && showWidget('weatherAdvice') ? <FieldWeatherCard fieldId={field.id} /> : null}
 
             <div className="fd-hero-facts">
               <div className="fd-hero-fact">
@@ -469,17 +485,76 @@ const FieldDetailPage: React.FC = () => {
               )}
             </div>
 
-            {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && (
+            {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && showWidget('cadastreDetails') && (
               <AreaComparisonCard
                 officialAreaSqm={field.greekCadastre?.officialAreaSqm}
                 measuredAreaSqm={measuredAreaSqm}
               />
             )}
-
-            {field.boundary ? <FieldIntelligencePanel fieldId={field.id} /> : null}
           </div>
         </section>
 
+        <FullPictureOnramp />
+
+        {showWidget('peopleStrip') ? (
+          <FieldPeoplePanel
+            fieldId={field.id}
+            fieldName={field.name}
+            canManage={canOwn}
+            canAdvise={capacity.canAdvise}
+            compact={isEveryday}
+            initialMemberships={field.memberships}
+          />
+        ) : null}
+
+        {field.boundary && showWidget('fieldIntelligence') ? (
+          <FieldIntelligencePanel fieldId={field.id} />
+        ) : null}
+
+        {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+          <div className="fd-everyday-peek">
+            {!everydayFieldPeek ? (
+              <button
+                type="button"
+                className="fd-everyday-peek-btn"
+                onClick={() => {
+                  setEverydayFieldPeek(true);
+                  recordIntelligenceOpen();
+                }}
+              >
+                {t('settings:experience.peekMoreAboutField')}
+              </button>
+            ) : (
+              <>
+                <FieldIntelligencePanel fieldId={field.id} />
+                <button
+                  type="button"
+                  className="fd-everyday-peek-link"
+                  onClick={() => setExperienceMode('full')}
+                >
+                  {t('settings:experience.switchForDetails')}
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {isEveryday && canWork && recommendedNextTaskId ? (
+          <Card className="fd-everyday-next-action">
+            <h2>{t('fields:controlRoom.startNextTask')}</h2>
+            <p>{riskSummary.nextDue?.title}</p>
+            <Button variant="primary" onClick={handleStartRecommended}>
+              {t('fields:controlRoom.startNextTask')}
+            </Button>
+            <EvidenceUpload
+              taskId={recommendedNextTaskId}
+              existingEvidence={tasks.find((tk) => tk.id === recommendedNextTaskId)?.evidence || []}
+              onEvidenceAdded={loadTasks}
+            />
+          </Card>
+        ) : null}
+
+        {isFullPicture ? (
         <div className="fd-layout">          <main className="fd-main">
           <Card className="field-control-room-card" padding="md">
             <div className="fcr-tabs" role="tablist" aria-label={t('fields:controlRoom.tabsAria')}>
@@ -558,7 +633,7 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </Card>
 
-            {isProducer ? (
+            {isProducer || canWork ? (
               <Card className="fd-my-tasks-card">
                 <h2 className="fd-sidebar-title">{t('fields:controlRoom.myTasksTitle')}</h2>
                 {myTasks.length === 0 ? (
@@ -655,9 +730,9 @@ const FieldDetailPage: React.FC = () => {
           </main>
 
           <aside className="fd-sidebar">
-            {field.greekCadastre && (
+            {field.greekCadastre && showWidget('cadastreDetails') && (
               <Card className="fd-sidebar-card fd-collapsible-card" padding="none">
-                <details className="fd-collapsible" open>
+                <details className="fd-collapsible" open={!isEveryday}>
                   <summary className="fd-collapsible-summary">
                     {t('fields:addField.cadastre.referenceTitle')}
                   </summary>
@@ -668,7 +743,7 @@ const FieldDetailPage: React.FC = () => {
               </Card>
             )}
 
-            {(field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation') && isFieldOwner && (
+            {(field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation') && canOwn && (
               <Card className="fd-sidebar-card">
                 <Button to={`/fields/${field.id}/edit`} variant="primary" size="sm">
                   {t('fields:addField.completeBoundary')}
@@ -710,7 +785,7 @@ const FieldDetailPage: React.FC = () => {
               </dl>
             </Card>
 
-            {isFieldOwner && (              <Card className="fd-sidebar-card">
+            {canOwn && (              <Card className="fd-sidebar-card">
                 <h2 className="fd-sidebar-title">{t('fields:controlRoom.lifecycleTitle')}</h2>
                 <div className="lifecycle-management lifecycle-compact">
                   <div className="lifecycle-status">
@@ -752,38 +827,19 @@ const FieldDetailPage: React.FC = () => {
               </Card>
             )}
 
-            {isFieldOwner ? (
-              <Card className="fd-sidebar-card">
-                <h2 className="fd-sidebar-title">{t('fields:controlRoom.assignments')}</h2>
-                <div className="assignments">
-                  {assignedProducerIds.length === 0 ? (
-                    <p className="assignments-empty">{t('fields:controlRoom.noProducers')}</p>
-                  ) : (
-                    <div className="assignments-list">
-                      {assignedProducerIds.map((pid) => (
-                        <div key={pid} className="assignment-item">
-                          <span className="assignment-name">{getProducerName(pid)}</span>
-                          <Button variant="outline" size="sm" onClick={() => handleUnassignProducer(pid)}>{t('fields:controlRoom.unassign')}</Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="assignments-add">
-                    <select value={assigningProducerId} onChange={(e) => setAssigningProducerId(e.target.value)}>
-                      <option value="">{t('fields:controlRoom.assignProducer')}</option>
-                      {producerUsers.map((p) => (
-                        <option key={p.id} value={p.id}>{getProducerName(p.id)}</option>
-                      ))}
-                    </select>
-                    <Button variant="primary" size="sm" icon={<UserPlus />} onClick={handleAssignProducer} disabled={!assigningProducerId}>
-                      {t('common:confirm')}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+            {canOwn || capacity.canAdvise ? (
+              <FieldPeoplePanel
+                fieldId={field.id}
+                fieldName={field.name}
+                canManage={canOwn}
+                canAdvise={capacity.canAdvise}
+                initialMemberships={field.memberships}
+                initialComments={field.advisorComments}
+              />
             ) : null}
           </aside>
         </div>
+        ) : null}
       </div>
     </PageContainer>
   );

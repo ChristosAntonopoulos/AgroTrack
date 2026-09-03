@@ -1,0 +1,97 @@
+.field-people-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.field-people-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.field-people-list,
+.field-people-stats ul,
+.field-people-comments ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.field-people-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.field-people-caps,
+.field-people-capacity small {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.field-people-manage,
+.field-people-stats,
+.field-people-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.field-people-capacity-grid {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field-people-capacity {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.field-people-capacity span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.field-people-invite-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.people-strip {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--experience-everyday) 10%, var(--bg-card));
+  border: 1px solid var(--color-border);
+  font-weight: 650;
+}
+
+.people-strip-solo {
+  color: var(--color-text-secondary);
+}
+
+.field-people-comment-form textarea,
+.field-people-manage input,
+.field-people-manage select {
+  width: 100%;
+  min-height: var(--tap-min, 44px);
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.field-people-comment-form textarea {
+  min-height: 88px;
+}

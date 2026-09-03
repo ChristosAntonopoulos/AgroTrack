@@ -39,7 +39,8 @@ public class UserService : IUserService
         {
             var producers = await _userRepository.GetByRoleAsync(Roles.Producer, cancellationToken);
             var fieldOwners = await _userRepository.GetByRoleAsync(Roles.FieldOwner, cancellationToken);
-            users = producers.Concat(fieldOwners);
+            var agronomists = await _userRepository.GetByRoleAsync(Roles.Agronomist, cancellationToken);
+            users = producers.Concat(fieldOwners).Concat(agronomists);
         }
 
         _logger.LogDebug("User {CallerId} listed users with role filter {Role}", callerId, role ?? "all");
@@ -59,5 +60,54 @@ public class UserService : IUserService
 
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
         return user == null ? null : UserMapper.ToDto(user);
+    }
+
+    public async Task<UserExperiencePreferencesDto> GetPreferencesAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found.");
+        return new UserExperiencePreferencesDto
+        {
+            ExperienceMode = user.Preferences.ExperienceMode,
+            ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
+            FontScale = user.Preferences.FontScale,
+            LargeControls = user.Preferences.LargeControls
+        };
+    }
+
+    public async Task<UserExperiencePreferencesDto> UpdatePreferencesAsync(
+        string userId,
+        UpdateUserPreferencesDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found.");
+
+        if (!string.IsNullOrWhiteSpace(dto.ExperienceMode)
+            && (dto.ExperienceMode == "everyday" || dto.ExperienceMode == "full"))
+        {
+            user.Preferences.ExperienceMode = dto.ExperienceMode;
+        }
+
+        if (dto.ExperienceModeChosen.HasValue)
+        {
+            user.Preferences.ExperienceModeChosen = dto.ExperienceModeChosen.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.FontScale)
+            && (dto.FontScale is "default" or "large" or "xl"))
+        {
+            user.Preferences.FontScale = dto.FontScale;
+        }
+
+        if (dto.LargeControls.HasValue)
+        {
+            user.Preferences.LargeControls = dto.LargeControls.Value;
+        }
+
+        await _userRepository.UpdateAsync(user, cancellationToken);
+        return await GetPreferencesAsync(userId, cancellationToken);
     }
 }
