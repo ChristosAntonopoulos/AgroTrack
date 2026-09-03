@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { usePreferences } from '../context/PreferencesContext';
-import { useTheme } from '../context/ThemeContext';
-import { typography, spacing } from '../theme';
+import { usePreferences } from '../../context/PreferencesContext';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing } from '../../theme';
 
 const FullPictureOnrampBanner: React.FC = () => {
   const { t } = useTranslation('settings');
