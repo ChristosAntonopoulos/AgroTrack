@@ -67,7 +67,7 @@
 
 .card-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: calc(1.25rem * var(--font-scale, 1));
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.4;
@@ -75,7 +75,7 @@
 
 .card-subtitle {
   margin: var(--spacing-xs) 0 0 0;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   color: var(--color-text-secondary);
   line-height: 1.4;
 }

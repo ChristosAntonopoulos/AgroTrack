@@ -21,6 +21,7 @@ export interface TaskCardProps {
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact = false }) => {
   const { colors } = useTheme();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['tasks', 'common']);
   const overdue = isTaskOverdue(task);
   const accent = overdue ? colors.error : getStatusAccentColor(task.status, colors);
@@ -45,6 +46,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
         {
           backgroundColor: colors.surfaceElevated,
           borderColor: colors.borderLight,
+          minHeight: Math.max(tapMin, 88),
           ...createElevation(colors, 'sm'),
         },
       ]}
@@ -55,7 +57,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
         <View style={styles.titleRow}>
           <View style={[styles.typeDot, { backgroundColor: categoryColor }]} />
           <Text
-            style={[styles.taskTitle, { color: colors.textPrimary }]}
+            style={[styles.taskTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
             numberOfLines={compact ? 1 : 2}
           >
             {task.title}
@@ -68,13 +70,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
           {overdue ? (
             <View style={[styles.overduePill, { backgroundColor: colors.errorLight }]}>
               <Ionicons name="alert-circle" size={12} color={colors.error} />
-              <Text style={[styles.overdueText, { color: colors.error }]}>{t('tasks:overdue')}</Text>
+              <Text style={[styles.overdueText, { color: colors.error, fontSize: 10 * fontScaleMultiplier }]}>
+                {t('tasks:overdue')}
+              </Text>
             </View>
           ) : null}
           {needsApproval ? (
             <View style={[styles.overduePill, { backgroundColor: colors.warningLight }]}>
               <Ionicons name="hourglass-outline" size={12} color={colors.warningDark} />
-              <Text style={[styles.overdueText, { color: colors.warningDark }]}>
+              <Text style={[styles.overdueText, { color: colors.warningDark, fontSize: 10 * fontScaleMultiplier }]}>
                 {t('tasks:filters.approval')}
               </Text>
             </View>
@@ -82,7 +86,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
         </View>
 
         {!compact && task.description ? (
-          <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
+          <Text style={[styles.description, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]} numberOfLines={2}>
             {task.description}
           </Text>
         ) : null}
@@ -94,16 +98,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
               label={t('tasks:field')}
               value={fieldName}
               colors={colors}
+              fontScale={fontScaleMultiplier}
             />
           ) : null}
-          <MetaCell icon="pricetag-outline" label={t('tasks:type')} value={task.type} colors={colors} />
-          <MetaCell icon="calendar-outline" label={t('tasks:scheduled')} value={dateLabel} colors={colors} />
+          <MetaCell icon="pricetag-outline" label={t('tasks:type')} value={task.type} colors={colors} fontScale={fontScaleMultiplier} />
+          <MetaCell icon="calendar-outline" label={t('tasks:scheduled')} value={dateLabel} colors={colors} fontScale={fontScaleMultiplier} />
           {dueLabel ? (
             <MetaCell
               icon="time-outline"
               label={t('tasks:due')}
               value={dueLabel}
               colors={colors}
+              fontScale={fontScaleMultiplier}
               highlight={overdue}
             />
           ) : null}
@@ -118,23 +124,25 @@ const MetaCell = ({
   label,
   value,
   colors,
+  fontScale = 1,
   highlight = false,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value: string;
   colors: ReturnType<typeof useTheme>['colors'];
+  fontScale?: number;
   highlight?: boolean;
 }) => (
   <View style={styles.metaCell}>
     <View style={styles.metaLabelRow}>
       <Ionicons name={icon} size={14} color={colors.textTertiary} />
-      <Text style={[styles.metaLabel, { color: colors.textTertiary }]}>{label}</Text>
+      <Text style={[styles.metaLabel, { color: colors.textTertiary, fontSize: 10 * fontScale }]}>{label}</Text>
     </View>
     <Text
       style={[
         styles.metaValue,
-        { color: highlight ? colors.error : colors.textPrimary },
+        { color: highlight ? colors.error : colors.textPrimary, fontSize: 13 * fontScale },
       ]}
       numberOfLines={1}
     >
@@ -150,7 +158,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: spacing.md,
     overflow: 'hidden',
-    minHeight: 88,
   },
   accentBar: {
     width: 5,
@@ -175,7 +182,6 @@ const styles = StyleSheet.create({
   taskTitle: {
     ...typography.styles.body,
     fontWeight: '700',
-    fontSize: 16,
     lineHeight: 22,
     flex: 1,
   },
@@ -195,7 +201,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   overdueText: {
-    fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -223,7 +228,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   metaLabel: {
-    fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -231,7 +235,6 @@ const styles = StyleSheet.create({
   metaValue: {
     ...typography.styles.bodySmall,
     fontWeight: '600',
-    fontSize: 13,
   },
 });
 
