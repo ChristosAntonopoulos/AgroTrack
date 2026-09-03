@@ -43,13 +43,19 @@ spec:
             secretKeyRef:
               name: backend-secrets
               key: JWT__SecretKey
+        - name: Geospatial__Fires__MapKey
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: Geospatial__Fires__MapKey
+              optional: true
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
             memory: "512Mi"
-            cpu: "500m"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
         volumeMounts:
         - name: uploads
           mountPath: /app/uploads
@@ -71,4 +77,5 @@ spec:
           failureThreshold: 3
       volumes:
       - name: uploads
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: olive-lifecycle-uploads

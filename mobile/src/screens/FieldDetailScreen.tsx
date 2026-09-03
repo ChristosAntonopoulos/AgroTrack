@@ -24,6 +24,7 @@ import InfoRow from '../components/ui/InfoRow';
 import FieldDetailHeader from '../components/domain/FieldDetailHeader';
 import FieldDetailToolbar from '../components/domain/FieldDetailToolbar';
 import FieldPreviewHero from '../components/domain/FieldPreviewHero';
+import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import AlertBanner from '../components/ui/AlertBanner';
 import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
 import AgendaTaskRow from '../components/domain/AgendaTaskRow';
@@ -32,7 +33,7 @@ import ActivityTimeline from '../components/domain/ActivityTimeline';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import OfflineBanner from '../components/OfflineBanner';
-import { weatherService, WeatherAlert } from '../services/weatherService';
+import { geospatialService, FieldEnvironmentalAlert } from '../services/geospatialService';
 import { typography, spacing } from '../theme';
 import { formatLocaleDate } from '../utils/formatters';
 import { fieldHealthStatus, getAgendaTasks } from '../utils/dashboardUtils';
@@ -43,6 +44,16 @@ import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
+
+const ALERT_ICONS: Record<string, React.ComponentProps<typeof AlertBanner>['icon']> = {
+  frost: 'snow',
+  heat: 'sunny',
+  fireproximity: 'flame',
+  vegetationchange: 'leaf',
+  taskwarning: 'clipboard',
+};
+
+const SEVERE_ALERT_LEVELS = ['critical', 'high'];
 
 const FieldDetailScreen = () => {
   const route = useRoute<Route>();
@@ -56,7 +67,7 @@ const FieldDetailScreen = () => {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
+  const [alerts, setAlerts] = useState<FieldEnvironmentalAlert[]>([]);
   const [cadastreExpanded, setCadastreExpanded] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -82,19 +93,9 @@ const FieldDetailScreen = () => {
         setActivities([]);
       }
 
-      const center = resolveFieldCenter(fieldData);
-      if (center) {
-        try {
-          const alerts = await weatherService
-            .getWeatherAlerts(center.latitude, center.longitude)
-            .catch(() => []);
-          setWeatherAlerts(alerts);
-        } catch {
-          setWeatherAlerts([]);
-        }
-      } else {
-        setWeatherAlerts([]);
-      }
+      // Warnings are raised and de-duplicated by the backend, so the device shows
+      // exactly what the web app shows rather than re-deriving thresholds.
+      setAlerts(resolveFieldCenter(fieldData) ? await geospatialService.getAlerts(fieldId) : []);
     } catch (error) {
       console.error('Error loading field details:', error);
       setField(null);
@@ -222,6 +223,7 @@ const FieldDetailScreen = () => {
       <View style={styles.heroMapBlock}>
         <FieldPreviewHero
           field={field}
+          mapHeight={300}
           onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
         />
       </View>
@@ -241,15 +243,21 @@ const FieldDetailScreen = () => {
         </View>
       ) : null}
 
-      {weatherAlerts.map((alert, index) => (
-        <View key={`${alert.type}-${index}`} style={styles.bannerWrap}>
+      {alerts.map((alert) => (
+        <View key={alert.id} style={styles.bannerWrap}>
           <AlertBanner
-            variant="warning"
-            icon="warning"
-            message={alert.message}
+            variant={SEVERE_ALERT_LEVELS.includes(alert.severity?.toLowerCase()) ? 'error' : 'warning'}
+            icon={ALERT_ICONS[alert.alertType?.toLowerCase()] ?? 'warning'}
+            message={`${alert.title}: ${alert.message}`}
           />
         </View>
       ))}
+
+      {field.boundary ? (
+        <Section title={t('fields:intelligence.title')}>
+          <FieldIntelligenceCard fieldId={field.id} />
+        </Section>
+      ) : null}
 
       <Section title={t('fields:lifecycle')}>
         <Card>

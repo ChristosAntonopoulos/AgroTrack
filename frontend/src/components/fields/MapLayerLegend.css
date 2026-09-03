@@ -1,0 +1,41 @@
+.map-layer-legend {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 1000;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 9rem;
+  max-width: min(15rem, calc(100% - 16px));
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.map-layer-legend-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.map-layer-legend-ramp {
+  height: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+}
+
+.map-layer-legend-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-layer-legend-attribution {
+  font-size: 0.55rem;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+}

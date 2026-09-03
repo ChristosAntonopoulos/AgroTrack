@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Task;
@@ -17,6 +18,7 @@ public class TaskService : ITaskService
     private readonly ILifecycleService _lifecycleService;
     private readonly IActivityService _activityService;
     private readonly IFieldRepository _fieldRepository;
+    private readonly IGeospatialJobQueue _geospatialJobQueue;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<TaskService> _logger;
 
@@ -26,6 +28,7 @@ public class TaskService : ITaskService
         ILifecycleService lifecycleService,
         IActivityService activityService,
         IFieldRepository fieldRepository,
+        IGeospatialJobQueue geospatialJobQueue,
         IDateTimeProvider dateTimeProvider,
         ILogger<TaskService> logger)
     {
@@ -34,6 +37,7 @@ public class TaskService : ITaskService
         _lifecycleService = lifecycleService;
         _activityService = activityService;
         _fieldRepository = fieldRepository;
+        _geospatialJobQueue = geospatialJobQueue;
         _dateTimeProvider = dateTimeProvider;
         _logger = logger;
     }
@@ -75,6 +79,7 @@ public class TaskService : ITaskService
         };
 
         var created = await _taskRepository.CreateAsync(task, cancellationToken);
+        await QueueWeatherAdviceAsync(created.FieldId, cancellationToken);
         _logger.LogInformation("Task created: {TaskId} for field {FieldId}", created.Id, createTaskDto.FieldId);
         return TaskMapper.ToDto(created);
     }
@@ -176,6 +181,7 @@ public class TaskService : ITaskService
                 ["newStatus"] = status
             },
             cancellationToken);
+        await QueueWeatherAdviceAsync(task.FieldId, cancellationToken);
         _logger.LogInformation("Task {TaskId} status updated from {PreviousStatus} to {NewStatus}", id, previousStatus, status);
         return TaskMapper.ToDto(updated);
     }
@@ -289,6 +295,22 @@ public class TaskService : ITaskService
             task.Id,
             cancellationToken: cancellationToken);
         return TaskMapper.ToDto(updated);
+    }
+
+    /// <summary>
+    /// Asks the geospatial worker to re-check the field's task weather warnings. Advice is
+    /// a nice-to-have, so a queueing failure must never fail the task operation itself.
+    /// </summary>
+    private async Task QueueWeatherAdviceAsync(string fieldId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _geospatialJobQueue.EnqueueTaskConditionsAsync(fieldId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not queue task weather evaluation for field {FieldId}", fieldId);
+        }
     }
 
     private async Task<bool> CanUserAccessTaskAsync(TaskItem task, string userId, string userRole, CancellationToken cancellationToken)

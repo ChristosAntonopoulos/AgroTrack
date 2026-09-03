@@ -1,0 +1,28 @@
+{
+  "dataSources": {
+    "title": "Data sources",
+    "subtitle": "Health of the external geospatial, weather and satellite providers, and the background jobs that use them.",
+    "forbidden": "You do not have permission to view data sources.",
+    "loadFailed": "Could not load data source health.",
+    "providers": "Providers",
+    "noProviders": "No provider has reported yet. Health is recorded the first time each background job runs.",
+    "lastSuccess": "Last successful update",
+    "never": "Never",
+    "stale": "No refresh in over {{hours}} h",
+    "details": "Details",
+    "lastError": "Last error",
+    "jobs": "Processing queues",
+    "jobStatus": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "partial": "Partial",
+      "failed": "Failed"
+    },
+    "jobType": "Job",
+    "field": "Field",
+    "attempts": "Attempts",
+    "failedAt": "Failed at",
+    "noFailures": "No recent job failures."
+  }
+}

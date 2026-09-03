@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import { resolveFieldCenter, formatFieldAreaSqm } from '../../utils/fieldGeo';
-import { weatherService } from '../../services/weatherService';
+import { weatherService, WeatherData } from '../../services/weatherService';
 import FieldDetailMap from './FieldDetailMap';
 import WeatherWidget from './WeatherWidget';
 import AreaComparisonCard from './AreaComparisonCard';
@@ -29,20 +29,16 @@ const FieldPreviewHero: React.FC<FieldPreviewHeroProps> = ({
 }) => {
   const { t } = useTranslation('fields');
   const [weatherLoading, setWeatherLoading] = useState(false);
-  const [weather, setWeather] = useState<Awaited<ReturnType<typeof weatherService.getCurrentWeather>> | null>(
-    null
-  );
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const loadWeather = useCallback(async () => {
-    const center = resolveFieldCenter(field);
-    if (!center) {
+    if (!resolveFieldCenter(field)) {
       setWeather(null);
       return;
     }
     setWeatherLoading(true);
     try {
-      const wx = await weatherService.getCurrentWeather(center.latitude, center.longitude);
-      setWeather(wx);
+      setWeather(await weatherService.getFieldWeatherData(field.id));
     } catch {
       setWeather(null);
     } finally {

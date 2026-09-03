@@ -5,6 +5,7 @@ using OliveLifecycle.Application.Abstractions.Storage;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence;
 using OliveLifecycle.Infrastructure.Persistence.Repositories;
+using OliveLifecycle.Infrastructure.Geospatial;
 using OliveLifecycle.Infrastructure.Storage;
 
 namespace OliveLifecycle.Infrastructure;
@@ -27,6 +28,8 @@ public static class DependencyInjection
         services.AddScoped<IHarvestRecordRepository, HarvestRecordRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+        services.AddGeospatial(configuration);
 
         return services;
     }

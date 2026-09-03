@@ -1,0 +1,185 @@
+.field-intel {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.field-intel--loading,
+.field-intel--empty {
+  place-items: center;
+  min-height: 5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.field-intel--empty button {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary-light);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.field-intel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.field-intel-header h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.field-intel-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.field-intel-status {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--bg-hover);
+  color: var(--color-text-muted);
+}
+
+.field-intel-status--completed {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success-dark);
+}
+
+.field-intel-status--partial {
+  background: color-mix(in srgb, var(--color-warning) 22%, transparent);
+  color: var(--color-warning-dark);
+}
+
+.field-intel-status--failed {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  color: var(--color-error-dark);
+}
+
+.field-intel-refresh,
+.field-intel-info {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.field-intel-refresh:hover:not(:disabled),
+.field-intel-info:hover {
+  color: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.field-intel-refresh:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.field-intel-refresh .spinning {
+  animation: field-intel-spin 1s linear infinite;
+}
+
+@keyframes field-intel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.field-intel-intro,
+.field-intel-pending,
+.field-intel-empty,
+.field-intel-meaning {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.field-intel-meaning {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.field-intel-section {
+  display: grid;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.field-intel-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.field-intel-section-head h4 {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.field-intel-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.3rem 0.6rem;
+  margin: 0;
+}
+
+.field-intel-metric dt {
+  font-size: 0.68rem;
+  color: var(--color-text-secondary);
+}
+
+.field-intel-metric dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.field-intel-metric dd em {
+  display: block;
+  font-style: normal;
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.field-intel-observed {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.field-intel-confidence {
+  margin: 0.15rem 0 0;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--color-warning-dark);
+}

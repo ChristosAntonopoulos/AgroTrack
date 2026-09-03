@@ -22,6 +22,7 @@ import CalendarPage from './pages/CalendarPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import DataSourcesPage from './pages/DataSourcesPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import TodayPage from './pages/TodayPage';
 import './App.css';
@@ -53,6 +54,7 @@ function App() {
                 <Route path="today" element={<TodayPage />} />
                 <Route path="ministry" element={<MinistryNotificationsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="data-sources" element={<DataSourcesPage />} />
               </Route>
             </Routes>
           </Router>

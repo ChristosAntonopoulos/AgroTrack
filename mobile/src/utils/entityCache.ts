@@ -51,6 +51,16 @@ async function getUserId(): Promise<string | null> {
 }
 
 export class EntityCache {
+  /** Generic namespaced cache used by read-only derived data (e.g. geospatial). */
+  static async setOne<T>(namespace: string, id: string, data: T): Promise<void> {
+    await writeEntry(`${KEY_PREFIX}${namespace}:${id}`, data);
+  }
+
+  static async getOne<T>(namespace: string, id: string): Promise<T | null> {
+    const entry = await readEntry<T>(`${KEY_PREFIX}${namespace}:${id}`);
+    return entry ? entry.data : null;
+  }
+
   static async setFields(userId: string, fields: Field[]): Promise<void> {
     await writeEntry(fieldsKey(userId), fields);
     await Promise.all(fields.map((f) => writeEntry(fieldKey(f.id), f)));

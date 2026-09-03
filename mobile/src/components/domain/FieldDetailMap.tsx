@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,24 +20,45 @@ import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
 import MapPointLayer from '../maps/MapPointLayer';
+import MapRasterOverlay from '../maps/MapRasterOverlay';
 import MapLayerToggle from './MapLayerToggle';
+import MapLayerSheet from './MapLayerSheet';
 import MapZoomControls from '../maps/MapZoomControls';
+import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
 import { typography, spacing } from '../../theme';
+import { createElevation } from '../../theme/elevation';
 
 export interface FieldDetailMapProps {
   field: Field;
   height?: number;
   onGestureActiveChange?: (active: boolean) => void;
+  /** Set to false where only the boundary matters, such as compact previews. */
+  showDataLayers?: boolean;
 }
 
 const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   field,
   height = 210,
   onGestureActiveChange,
+  showDataLayers = true,
 }) => {
   const { colors } = useTheme();
-  const { t } = useTranslation('fields');
+  const { t } = useTranslation(['fields', 'common']);
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [opacity, setOpacity] = useState(0.75);
+
+  const {
+    definitions,
+    activeLayerId,
+    activeLayer,
+    dates,
+    selectedDateId,
+    selectLayer,
+    selectDate,
+  } = useFieldMapLayers(showDataLayers ? field.id : undefined);
+
+  const satelliteLayerActive = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<AppMapViewRef>(null);
   const mapReadyRef = useRef(false);
@@ -117,13 +138,16 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         ]}
       >
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-          {t('mapEmptyDescription')}
+          {t('fields:mapEmptyDescription')}
         </Text>
       </View>
     );
   }
 
+  const overlayChips = showDataLayers && definitions.length > 0;
+
   return (
+    <View style={styles.block}>
     <View
       style={[styles.wrap, { height, borderColor: colors.borderLight }]}
       onTouchStart={() => setGestureActive(true)}
@@ -143,6 +167,16 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         pitchEnabled={false}
         onMapReady={handleMapReady}
       >
+        {activeLayer?.available ? (
+          <MapRasterOverlay
+            id={activeLayer.layerId}
+            imageUrl={activeLayer.imageUrl}
+            bounds={activeLayer.bounds}
+            tileUrlTemplate={activeLayer.imageUrl ? undefined : activeLayer.tileUrlTemplate}
+            opacity={opacity}
+          />
+        ) : null}
+
         {polygon && polygon.length >= 3 ? (
           <MapPolygonLayer id={field.id} ring={polygon} />
         ) : (
@@ -154,19 +188,117 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         )}
       </AppMapView>
       <View style={styles.toggle} pointerEvents="box-none">
-        <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+        {showDataLayers ? (
+          <Pressable
+            onPress={() => setSheetVisible(true)}
+            style={[
+              styles.layersButton,
+              {
+                backgroundColor: colors.surfaceElevated + 'E6',
+                borderColor: colors.borderLight,
+                ...createElevation(colors, 'sm'),
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t('fields:mapLayers.title')}
+          >
+            <Text style={[styles.layersLabel, { color: colors.textSecondary }]}>
+              {t('fields:mapLayers.title')}
+              {activeLayerId ? ` · ${t(`fields:mapLayers.names.${activeLayerId}`, { defaultValue: activeLayerId })}` : ''}
+            </Text>
+          </Pressable>
+        ) : (
+          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+        )}
       </View>
       <View style={styles.zoom} pointerEvents="box-none">
         <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
       </View>
+
+      {showDataLayers ? (
+        <MapLayerSheet
+          visible={sheetVisible}
+          onClose={() => setSheetVisible(false)}
+          baseLayer={mapLayer}
+          onBaseLayerChange={setMapLayer}
+          overlays={definitions}
+          activeLayerId={activeLayerId}
+          onActiveLayerChange={selectLayer}
+          activeLayer={activeLayer}
+          opacity={opacity}
+          onOpacityChange={setOpacity}
+          dates={dates}
+          selectedDateId={selectedDateId}
+          onSelectDate={selectDate}
+          satelliteLayerActive={satelliteLayerActive}
+        />
+      ) : null}
+    </View>
+    {overlayChips ? (
+      <View style={styles.chipBlock}>
+        <Text style={[styles.chipHint, { color: colors.textSecondary }]}>
+          {t('fields:mapLayers.overlayHint')}
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+          <Pressable
+            onPress={() => selectLayer(undefined)}
+            style={[
+              styles.chip,
+              {
+                borderColor: !activeLayerId ? colors.primary : colors.borderLight,
+                backgroundColor: !activeLayerId ? colors.primaryDark : colors.surface,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: !activeLayerId }}
+          >
+            <Text style={{ color: !activeLayerId ? colors.textInverse : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+              {t('fields:mapLayers.none')}
+            </Text>
+          </Pressable>
+          {definitions.map((definition) => {
+            const active = activeLayerId === definition.id;
+            return (
+              <Pressable
+                key={definition.id}
+                onPress={() => selectLayer(definition.id)}
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: active ? colors.primary : colors.borderLight,
+                    backgroundColor: active ? colors.primaryDark : colors.surface,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={{ color: active ? colors.textInverse : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+                  {t(`fields:mapLayers.names.${definition.id}`, { defaultValue: definition.name })}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  block: { gap: spacing.sm },
   wrap: {
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+  },
+  chipBlock: { gap: 6 },
+  chipHint: { ...typography.styles.caption, fontSize: 12, lineHeight: 16 },
+  chipRow: { gap: 8, paddingRight: spacing.sm },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
     borderWidth: 1,
   },
   map: { flex: 1 },
@@ -174,6 +306,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
+  },
+  layersButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    maxWidth: 200,
+  },
+  layersLabel: {
+    ...typography.styles.caption,
+    fontWeight: '600',
+    fontSize: 11,
   },
   zoom: {
     position: 'absolute',

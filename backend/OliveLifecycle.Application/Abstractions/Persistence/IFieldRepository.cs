@@ -9,4 +9,5 @@ public interface IFieldRepository : IRepository<Field, string>
     Task<IEnumerable<Field>> GetByAssignedProducerIdAsync(string producerId, CancellationToken cancellationToken = default);
     Task<IEnumerable<Field>> GetByOwnerAndNormalizedKaekAsync(string ownerId, string normalizedKaek, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Field>> GetActiveFieldsWithCoordinatesAsync(CancellationToken cancellationToken = default);
 }

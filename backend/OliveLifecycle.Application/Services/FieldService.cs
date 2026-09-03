@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Storage;
@@ -28,6 +29,7 @@ public class FieldService : IFieldService
     private readonly IFileStorageService _fileStorageService;
     private readonly ILifecycleService _lifecycleService;
     private readonly ILifecycleRepository _lifecycleRepository;
+    private readonly IGeospatialJobQueue _geospatialJobQueue;
     private readonly ILogger<FieldService> _logger;
 
     public FieldService(
@@ -44,6 +46,7 @@ public class FieldService : IFieldService
         IFileStorageService fileStorageService,
         ILifecycleService lifecycleService,
         ILifecycleRepository lifecycleRepository,
+        IGeospatialJobQueue geospatialJobQueue,
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
@@ -59,6 +62,7 @@ public class FieldService : IFieldService
         _fileStorageService = fileStorageService;
         _lifecycleService = lifecycleService;
         _lifecycleRepository = lifecycleRepository;
+        _geospatialJobQueue = geospatialJobQueue;
         _logger = logger;
     }
 
@@ -129,6 +133,10 @@ public class FieldService : IFieldService
         }
 
         var createdField = await _fieldRepository.CreateAsync(field, cancellationToken);
+        if (createdField.Boundary != null)
+        {
+            await QueueFieldIntelligenceAsync(createdField.Id, cancellationToken);
+        }
         return FieldMapper.ToDto(createdField);
     }
 
@@ -430,6 +438,7 @@ public class FieldService : IFieldService
 
         field.UpdatedAt = _dateTimeProvider.UtcNow;
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
+        await QueueFieldIntelligenceAsync(updated.Id, cancellationToken);
         return FieldMapper.ToDto(updated);
     }
 
@@ -672,6 +681,23 @@ public class FieldService : IFieldService
                 Type = "Point",
                 Coordinates = new List<double> { updateFieldDto.Longitude.Value, updateFieldDto.Latitude.Value }
             };
+        }
+    }
+
+    /// <summary>
+    /// Queues terrain/weather/environment processing and a satellite search.
+    /// Failures here must not fail the field save itself.
+    /// </summary>
+    private async Task QueueFieldIntelligenceAsync(string fieldId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _geospatialJobQueue.EnqueueSpatialProfileAsync(fieldId, cancellationToken);
+            await _geospatialJobQueue.EnqueueSatelliteProcessingAsync(fieldId, null, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not queue geospatial processing for field {FieldId}", fieldId);
         }
     }
 

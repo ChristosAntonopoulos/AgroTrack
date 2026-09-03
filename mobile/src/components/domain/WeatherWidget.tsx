@@ -78,6 +78,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         <MetaItem icon="water-outline" label={`${weather.humidity}%`} colors={colors} />
         <MetaItem icon="flag-outline" label={`${weather.windSpeed}`} colors={colors} suffix="km/h" />
       </View>
+      {namespace === 'fields' ? (
+        <>
+          <Text style={[styles.outlook, { color: colors.textSecondary }]}>
+            {weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5
+              ? t('weather.rainNext24h', { mm: weather.rainForecast24hMm.toFixed(1) })
+              : t('weather.rainNone')}
+          </Text>
+          {weather.frostLevel && weather.frostLevel !== 'None' ? (
+            <Text style={[styles.frost, { color: colors.warning }]}>
+              {t('weather.frostRisk', { level: weather.frostLevel })}
+            </Text>
+          ) : null}
+        </>
+      ) : null}
     </View>
   );
 };
@@ -125,6 +139,8 @@ const styles = StyleSheet.create({
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   metaText: { fontSize: 10, fontWeight: '600' },
+  outlook: { ...typography.styles.caption, fontSize: 11, lineHeight: 15, marginTop: 4 },
+  frost: { ...typography.styles.caption, fontSize: 11, fontWeight: '600', lineHeight: 15 },
 });
 
 export default WeatherWidget;

@@ -265,6 +265,10 @@ stages:
             displayName: 'Apply backend ConfigMap'
             condition: eq('${{ parameters.deployBackend }}', true)
 
+          - script: 'kubectl apply -f backend/k8s/pvc.yaml'
+            displayName: 'Apply backend uploads PVC'
+            condition: eq('${{ parameters.deployBackend }}', true)
+
           - task: Bash@3
             displayName: 'Create backend Kubernetes Secrets'
             condition: eq('${{ parameters.deployBackend }}', true)
@@ -295,9 +299,16 @@ stages:
                   echo "WARNING: MONGODB_CONNECTION_STRING may be malformed"
                 fi
 
+                SECRET_ARGS=(
+                  --from-literal=MongoDB__ConnectionString="${MONGODB_CONNECTION_STRING}"
+                  --from-literal=JWT__SecretKey="${JWT_SECRET_KEY}"
+                )
+                if [ -n "${FIRMS_MAP_KEY:-}" ] && [ "${FIRMS_MAP_KEY}" != '$(FIRMS_MAP_KEY)' ]; then
+                  SECRET_ARGS+=(--from-literal=Geospatial__Fires__MapKey="${FIRMS_MAP_KEY}")
+                fi
+
                 kubectl create secret generic backend-secrets \
-                  --from-literal=MongoDB__ConnectionString="${MONGODB_CONNECTION_STRING}" \
-                  --from-literal=JWT__SecretKey="${JWT_SECRET_KEY}" \
+                  "${SECRET_ARGS[@]}" \
                   --namespace=$(backendNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -310,6 +321,7 @@ stages:
             env:
               MONGODB_CONNECTION_STRING: $(MONGODB_CONNECTION_STRING)
               JWT_SECRET_KEY: $(JWT_SECRET_KEY)
+              FIRMS_MAP_KEY: $(FIRMS_MAP_KEY)
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullImageName):$(imageTag)|g" backend/k8s/deployment.yaml

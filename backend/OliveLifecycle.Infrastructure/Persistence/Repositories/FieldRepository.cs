@@ -1,6 +1,7 @@
 using MongoDB.Driver;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
@@ -54,5 +55,14 @@ public class FieldRepository : MongoRepositoryBase<FieldDocument, Field>, IField
     {
         var count = await Collection.CountDocumentsAsync(BuildIdFilter(id), cancellationToken: cancellationToken);
         return count > 0;
+    }
+
+    public async Task<IReadOnlyList<Field>> GetActiveFieldsWithCoordinatesAsync(CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<FieldDocument>.Filter.And(
+            Builders<FieldDocument>.Filter.Eq(f => f.Status, FieldStatus.Active),
+            Builders<FieldDocument>.Filter.Ne<GeoJsonPointDocument?>(f => f.CenterPoint, null));
+        var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
     }
 }

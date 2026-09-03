@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: olive-lifecycle-uploads
+  namespace: agrotrack-backend
+  labels:
+    app: olive-lifecycle-api
+    app.kubernetes.io/part-of: agrotrack
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Field photos plus Sentinel-2 overlays, DEM derivatives and land-cover
+      # rasters. A single replica owns the volume; grow this if retention or
+      # field count increases.
+      storage: 20Gi

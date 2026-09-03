@@ -1,3 +1,45 @@
+.field-detail-map-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.4rem;
+}
+
+.field-detail-map-overlays-wrap {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.field-detail-map-overlays-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+}
+
+.field-detail-map-overlays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.field-detail-map-overlays button {
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.field-detail-map-overlays button.active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--bg-elevated));
+  color: var(--color-primary-light);
+}
+
 .field-detail-map {
   position: relative;
   width: 100%;

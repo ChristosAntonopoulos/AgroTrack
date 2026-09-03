@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
+using OliveLifecycle.Infrastructure.Persistence.Documents.Geospatial;
 
 namespace OliveLifecycle.Infrastructure.MongoDB;
 
@@ -42,6 +43,8 @@ public class MongoIndexInitializer : IHostedService
                 Builders<FieldDocument>.IndexKeys.Descending(f => f.CreatedAt)));
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Geo2DSphere("centerPoint")));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Geo2DSphere("boundary")));
 
             var tasks = _context.GetCollection<TaskDocument>("tasks");
             tasks.Indexes.CreateOne(new CreateIndexModel<TaskDocument>(
@@ -83,6 +86,8 @@ public class MongoIndexInitializer : IHostedService
             harvests.Indexes.CreateOne(new CreateIndexModel<HarvestRecordDocument>(
                 Builders<HarvestRecordDocument>.IndexKeys.Ascending(h => h.FieldId)));
 
+            EnsureGeospatialIndexes();
+
             _logger.LogInformation("MongoDB indexes ensured.");
         }
         catch (Exception ex)
@@ -94,4 +99,85 @@ public class MongoIndexInitializer : IHostedService
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private void EnsureGeospatialIndexes()
+    {
+        var profiles = _context.GetCollection<FieldSpatialProfileDocument>("field_spatial_profiles");
+        profiles.Indexes.CreateOne(new CreateIndexModel<FieldSpatialProfileDocument>(
+            Builders<FieldSpatialProfileDocument>.IndexKeys.Ascending(p => p.FieldId),
+            new CreateIndexOptions { Unique = true }));
+
+        var weatherCache = _context.GetCollection<WeatherCacheLocationDocument>("weather_cache_locations");
+        weatherCache.Indexes.CreateOne(new CreateIndexModel<WeatherCacheLocationDocument>(
+            Builders<WeatherCacheLocationDocument>.IndexKeys.Ascending(w => w.GridKey),
+            new CreateIndexOptions { Unique = true }));
+        weatherCache.Indexes.CreateOne(new CreateIndexModel<WeatherCacheLocationDocument>(
+            Builders<WeatherCacheLocationDocument>.IndexKeys.Ascending(w => w.FetchedAt)));
+
+        // Unique (fieldId, date) is what makes repeated snapshot jobs idempotent.
+        var snapshots = _context.GetCollection<FieldDailyWeatherSnapshotDocument>("field_daily_weather_snapshots");
+        snapshots.Indexes.CreateOne(new CreateIndexModel<FieldDailyWeatherSnapshotDocument>(
+            Builders<FieldDailyWeatherSnapshotDocument>.IndexKeys
+                .Ascending(s => s.FieldId)
+                .Ascending(s => s.Date),
+            new CreateIndexOptions { Unique = true }));
+
+        var observations = _context.GetCollection<FieldSatelliteObservationDocument>("field_satellite_observations");
+        observations.Indexes.CreateOne(new CreateIndexModel<FieldSatelliteObservationDocument>(
+            Builders<FieldSatelliteObservationDocument>.IndexKeys
+                .Ascending(o => o.FieldId)
+                .Descending(o => o.ObservationDate)));
+
+        // Serves the usable-only lookups behind change analysis and map overlays.
+        observations.Indexes.CreateOne(new CreateIndexModel<FieldSatelliteObservationDocument>(
+            Builders<FieldSatelliteObservationDocument>.IndexKeys
+                .Ascending(o => o.FieldId)
+                .Ascending(o => o.IsUsable)
+                .Descending(o => o.ObservationDate)));
+
+        // One observation per field and scene, so repeated discovery runs cannot
+        // insert a duplicate for imagery that has already been processed.
+        observations.Indexes.CreateOne(new CreateIndexModel<FieldSatelliteObservationDocument>(
+            Builders<FieldSatelliteObservationDocument>.IndexKeys
+                .Ascending(o => o.FieldId)
+                .Ascending(o => o.CatalogItemId),
+            new CreateIndexOptions { Unique = true }));
+
+        // Supports the retention sweep that prunes rasters past the storage window.
+        observations.Indexes.CreateOne(new CreateIndexModel<FieldSatelliteObservationDocument>(
+            Builders<FieldSatelliteObservationDocument>.IndexKeys.Ascending(o => o.ObservationDate)));
+
+        var alerts = _context.GetCollection<FieldEnvironmentalAlertDocument>("field_environmental_alerts");
+        alerts.Indexes.CreateOne(new CreateIndexModel<FieldEnvironmentalAlertDocument>(
+            Builders<FieldEnvironmentalAlertDocument>.IndexKeys.Ascending(a => a.DedupKey),
+            new CreateIndexOptions { Unique = true }));
+        alerts.Indexes.CreateOne(new CreateIndexModel<FieldEnvironmentalAlertDocument>(
+            Builders<FieldEnvironmentalAlertDocument>.IndexKeys
+                .Ascending(a => a.FieldId)
+                .Descending(a => a.CreatedAt)));
+
+        var fires = _context.GetCollection<FireDetectionDocument>("fire_detections");
+        fires.Indexes.CreateOne(new CreateIndexModel<FireDetectionDocument>(
+            Builders<FireDetectionDocument>.IndexKeys.Descending(f => f.DetectedAt)));
+
+        var natura = _context.GetCollection<NaturaSiteDocument>("natura_sites");
+        natura.Indexes.CreateOne(new CreateIndexModel<NaturaSiteDocument>(
+            Builders<NaturaSiteDocument>.IndexKeys.Ascending(n => n.SiteCode),
+            new CreateIndexOptions { Unique = true }));
+
+        var health = _context.GetCollection<DataSourceHealthDocument>("data_source_health");
+        health.Indexes.CreateOne(new CreateIndexModel<DataSourceHealthDocument>(
+            Builders<DataSourceHealthDocument>.IndexKeys.Ascending(h => h.SourceId),
+            new CreateIndexOptions { Unique = true }));
+
+        var jobs = _context.GetCollection<GeospatialProcessingJobDocument>("geospatial_processing_jobs");
+        jobs.Indexes.CreateOne(new CreateIndexModel<GeospatialProcessingJobDocument>(
+            Builders<GeospatialProcessingJobDocument>.IndexKeys.Ascending(j => j.IdempotencyKey),
+            new CreateIndexOptions { Unique = true, Sparse = true }));
+        jobs.Indexes.CreateOne(new CreateIndexModel<GeospatialProcessingJobDocument>(
+            Builders<GeospatialProcessingJobDocument>.IndexKeys
+                .Ascending(j => j.FieldId)
+                .Ascending(j => j.JobType)
+                .Ascending(j => j.Status)));
+    }
 }

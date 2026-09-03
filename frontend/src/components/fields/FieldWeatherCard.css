@@ -30,10 +30,31 @@
   color: var(--color-text-secondary);
 }
 
+.field-weather-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .field-weather-updated {
   font-size: 0.7rem;
   color: var(--color-success);
   font-weight: 600;
+}
+
+.field-weather-stale {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.field-weather-info {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: inline-flex;
 }
 
 .field-weather-main {
@@ -72,4 +93,17 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.field-weather-outlook,
+.field-weather-frost {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.field-weather-frost {
+  color: var(--color-warning-dark);
+  font-weight: 600;
 }

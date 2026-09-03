@@ -2,6 +2,8 @@
   "appName": "AgroTrack",
   "home": "Home",
   "loading": "Loading...",
+  "retry": "Retry",
+  "refresh": "Refresh",
   "save": "Save",
   "cancel": "Cancel",
   "delete": "Delete",

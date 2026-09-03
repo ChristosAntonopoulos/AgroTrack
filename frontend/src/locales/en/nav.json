@@ -18,6 +18,7 @@
     "analytics": "Analytics",
     "reports": "Reports",
     "ministry": "Ministry",
+    "dataSources": "Data sources",
     "settings": "Settings"
   },
   "breadcrumb": {

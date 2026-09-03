@@ -28,6 +28,7 @@ export const NAMESPACES = [
   'today',
   'taskTemplates',
   'landing',
+  'admin',
 ] as const;
 
 export type AppNamespace = (typeof NAMESPACES)[number];

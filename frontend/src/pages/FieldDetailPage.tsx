@@ -31,6 +31,8 @@ import GreekCadastreInfoCard from '../components/fields/GreekCadastreInfoCard';
 import AreaComparisonCard from '../components/fields/AreaComparisonCard';
 import FieldDetailMap from '../components/fields/FieldDetailMap';
 import FieldWeatherCard from '../components/fields/FieldWeatherCard';
+import FieldIntelligencePanel from '../components/fields/FieldIntelligencePanel';
+import FieldAlertList from '../components/fields/FieldAlertList';
 import { formatFieldArea, formatFieldAreaSqm, resolveFieldCenter } from '../utils/fieldGeo';
 import './FieldDetailPage.css';
 type ControlRoomTab = 'board' | 'timeline' | 'evidence';
@@ -437,14 +439,14 @@ const FieldDetailPage: React.FC = () => {
           </div>
         </div>
 
+        {field.boundary ? <FieldAlertList fieldId={field.id} /> : null}
+
         <section className="fd-hero">
           <div className="fd-hero-map">
-            <FieldDetailMap field={field} heightPx={260} />
+            <FieldDetailMap field={field} heightPx={420} />
           </div>
           <div className="fd-hero-panel">
-            {fieldCenter ? (
-              <FieldWeatherCard latitude={fieldCenter[0]} longitude={fieldCenter[1]} />
-            ) : null}
+            {fieldCenter ? <FieldWeatherCard fieldId={field.id} /> : null}
 
             <div className="fd-hero-facts">
               <div className="fd-hero-fact">
@@ -473,6 +475,8 @@ const FieldDetailPage: React.FC = () => {
                 measuredAreaSqm={measuredAreaSqm}
               />
             )}
+
+            {field.boundary ? <FieldIntelligencePanel fieldId={field.id} /> : null}
           </div>
         </section>
 

@@ -8,25 +8,35 @@ export interface UseDashboardWeatherResult {
   refresh: () => Promise<void>;
 }
 
+/**
+ * Dashboard weather uses the first field the user has, so the reading always
+ * comes from AgroTrack's cache for a field they can actually access.
+ */
 export const useDashboardWeather = (fields: Field[]): UseDashboardWeatherResult => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const primaryFieldId = fields.find(
+    f => f.centerPoint != null || (f.latitude != null && f.longitude != null)
+  )?.id;
+
   const load = useCallback(async () => {
-    const withCoords = fields.find(f => f.latitude != null && f.longitude != null);
-    const lat = withCoords?.latitude ?? 37.9838;
-    const lng = withCoords?.longitude ?? 23.7275;
+    if (!primaryFieldId) {
+      setWeather(null);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      const data = await weatherService.getCurrentWeather(lat, lng);
+      const data = await weatherService.getFieldWeatherData(primaryFieldId);
       setWeather(data);
     } catch {
       setWeather(null);
     } finally {
       setLoading(false);
     }
-  }, [fields]);
+  }, [primaryFieldId]);
 
   useEffect(() => {
     load();

@@ -10,6 +10,7 @@ import {
   Bell,
   Route,
   Settings,
+  Database,
 } from 'lucide-react';
 
 export type AppRole = 'FieldOwner' | 'Producer' | 'Agronomist' | 'Administrator' | 'ServiceProvider' | '';
@@ -99,6 +100,13 @@ export const navItems: NavItem[] = [
     icon: <Bell />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
     section: 'compliance',
+  },
+  {
+    path: '/data-sources',
+    labelKey: 'items.dataSources',
+    icon: <Database />,
+    roles: ['Administrator'],
+    section: 'account',
   },
   {
     path: '/settings',

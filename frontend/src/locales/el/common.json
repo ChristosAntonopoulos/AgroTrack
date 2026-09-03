@@ -2,6 +2,8 @@
   "appName": "AgroTrack",
   "home": "Αρχική",
   "loading": "Φόρτωση...",
+  "retry": "Δοκιμή ξανά",
+  "refresh": "Ανανέωση",
   "save": "Αποθήκευση",
   "cancel": "Ακύρωση",
   "delete": "Διαγραφή",
