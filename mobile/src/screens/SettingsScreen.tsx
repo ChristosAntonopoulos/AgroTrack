@@ -129,6 +129,15 @@ const SettingsScreen = () => {
         </Text>
       </Card>
 
+      <Button
+        title={t('nav:calendar', { defaultValue: 'Calendar' })}
+        variant="outline"
+        onPress={() => navigation.navigate('Main', { screen: 'Calendar' })}
+        fullWidth
+        style={styles.actionBtn}
+        icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />}
+      />
+
       <Card variant="outlined" style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {t('settings:experience.fontScale')}

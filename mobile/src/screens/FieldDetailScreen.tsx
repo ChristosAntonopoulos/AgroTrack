@@ -63,7 +63,7 @@ const FieldDetailScreen = () => {
   const { fieldId } = route.params;
   const { isFieldOwner, user } = useAuth();
   const { colors } = useTheme();
-  const { isEveryday, isFullPicture, showWidget, recordIntelligenceOpen, setExperienceMode, tapMin } =
+  const { isEveryday, isFullPicture, showWidget, recordIntelligenceOpen, tapMin } =
     usePreferences();
   const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks', 'settings']);
 
@@ -207,6 +207,12 @@ const FieldDetailScreen = () => {
       onPress: openMaps,
       disabled: !hasMappableLocation,
     },
+    {
+      id: 'history',
+      icon: 'time-outline' as const,
+      label: t('fields:history.button'),
+      onPress: () => navigation.navigate('FieldHistory', { fieldId }),
+    },
     ...(canOwn
       ? [
           {
@@ -218,6 +224,134 @@ const FieldDetailScreen = () => {
         ]
       : []),
   ];
+
+  const nextTask = agendaTasks[0];
+  const seasonLine = t('fields:everydaySeasonLine', {
+    stage: t(`common:lifecycleStage.${normalizeStage(currentStage)}`),
+    year: t(`common:lifecycleYear.${currentYear}`),
+    defaultValue: `${t(`common:lifecycleStage.${normalizeStage(currentStage)}`)} · ${t(`common:lifecycleYear.${currentYear}`)}`,
+  });
+
+  // Everyday: name → next job → alerts → small map → tasks → one in-place peek.
+  // Full: existing control-room density.
+  if (isEveryday) {
+    return (
+      <ScreenLayout scroll scrollEnabled={parentScrollEnabled} contentContainerStyle={styles.content}>
+        <OfflineBanner />
+        <View style={styles.everydayHeader}>
+          <Text style={[styles.everydayTitle, { color: colors.textPrimary }]}>{field.name}</Text>
+          <Text style={[styles.everydaySeason, { color: colors.textSecondary }]}>{seasonLine}</Text>
+        </View>
+
+        {overdueCount > 0 ? (
+          <View style={styles.bannerWrap}>
+            <AlertBanner
+              variant="error"
+              icon="alert-circle"
+              message={t('fields:overdueOnField', { count: overdueCount })}
+              onPress={() => goTab('Tasks')}
+            />
+          </View>
+        ) : null}
+
+        {showWidget('alertsPlain')
+          ? alerts.slice(0, 2).map((alert) => (
+              <View key={alert.id} style={styles.bannerWrap}>
+                <AlertBanner
+                  variant={
+                    SEVERE_ALERT_LEVELS.includes(alert.severity?.toLowerCase()) ? 'error' : 'warning'
+                  }
+                  icon={ALERT_ICONS[alert.alertType?.toLowerCase()] ?? 'warning'}
+                  message={alert.message || alert.title}
+                />
+              </View>
+            ))
+          : null}
+
+        {canWork && nextTask ? (
+          <View style={styles.everydayNextWrap}>
+            <Text style={[styles.everydayNextLabel, { color: colors.textSecondary }]}>
+              {t('fields:everydayDoHere', { defaultValue: 'What to do here today' })}
+            </Text>
+            <Button
+              title={nextTask.title}
+              onPress={() => navigation.navigate('TaskDetail', { taskId: nextTask.id })}
+              fullWidth
+              style={{ minHeight: Math.max(tapMin + 8, 56) }}
+            />
+          </View>
+        ) : null}
+
+        {showWidget('fieldMapDefault') ? (
+          <View style={styles.heroMapBlock}>
+            <FieldPreviewHero
+              field={field}
+              mapHeight={160}
+              onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
+            />
+          </View>
+        ) : null}
+
+        {showWidget('nextTasks') ? (
+          <Section title={t('fields:upcomingTasks')}>
+            {agendaTasks.length > 0 ? (
+              agendaTasks.map((task) => (
+                <AgendaTaskRow
+                  key={task.id}
+                  task={task}
+                  onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
+                />
+              ))
+            ) : (
+              <EmptyState
+                icon={<Ionicons name="clipboard-outline" size={32} color={colors.textTertiary} />}
+                title={t('fields:noOpenTasks')}
+                description={t('fields:noOpenTasksHint')}
+              />
+            )}
+          </Section>
+        ) : null}
+
+        <View style={styles.everydayPeekWrap}>
+          {!intelligencePeek ? (
+            <Button
+              title={t('settings:experience.peekMoreAboutField')}
+              variant="outline"
+              onPress={() => {
+                setIntelligencePeek(true);
+                void recordIntelligenceOpen();
+              }}
+              fullWidth
+              style={{ minHeight: tapMin }}
+            />
+          ) : (
+            <>
+              {field.boundary ? <FieldIntelligenceCard fieldId={field.id} /> : null}
+              {hasMappableLocation ? (
+                <Button
+                  title={t('fields:openMaps')}
+                  variant="outline"
+                  onPress={openMaps}
+                  fullWidth
+                  style={{ marginTop: spacing.sm, minHeight: tapMin }}
+                />
+              ) : null}
+              {canOwn ? (
+                <Button
+                  title={t('fields:editField')}
+                  variant="ghost"
+                  onPress={() => navigation.navigate('FieldForm', { fieldId })}
+                  fullWidth
+                  style={{ marginTop: spacing.sm, minHeight: tapMin }}
+                />
+              ) : null}
+              <FullPictureOnrampBanner />
+            </>
+          )}
+        </View>
+      </ScreenLayout>
+    );
+  }
 
   return (
     <ScreenLayout scroll scrollEnabled={parentScrollEnabled} contentContainerStyle={styles.content}>
@@ -267,36 +401,6 @@ const FieldDetailScreen = () => {
       {field.boundary && showWidget('fieldIntelligence') ? (
         <Section title={t('fields:intelligence.title')}>
           <FieldIntelligenceCard fieldId={field.id} />
-        </Section>
-      ) : null}
-
-      {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
-        <Section title={t('settings:experience.peekMoreAboutField')}>
-          {!intelligencePeek ? (
-            <Button
-              title={t('settings:experience.peekMoreAboutField')}
-              variant="outline"
-              onPress={() => {
-                setIntelligencePeek(true);
-                void recordIntelligenceOpen();
-              }}
-              fullWidth
-              style={{ minHeight: tapMin }}
-            />
-          ) : (
-            <>
-              <FieldIntelligenceCard fieldId={field.id} />
-              <Button
-                title={t('settings:experience.switchForDetails', {
-                  defaultValue: 'Switch to Full picture for details',
-                })}
-                variant="ghost"
-                onPress={() => void setExperienceMode('full')}
-                fullWidth
-                style={{ marginTop: spacing.sm, minHeight: tapMin }}
-              />
-            </>
-          )}
         </Section>
       ) : null}
 
@@ -504,6 +608,35 @@ const styles = StyleSheet.create({
   content: { paddingBottom: spacing['3xl'] },
   centered: { flex: 1, justifyContent: 'center' },
   bannerWrap: { paddingHorizontal: spacing.base, marginBottom: spacing.xs },
+  everydayHeader: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  everydayTitle: {
+    ...typography.styles.h2,
+    fontWeight: '800',
+  },
+  everydaySeason: {
+    ...typography.styles.body,
+    marginTop: 4,
+  },
+  everydayNextWrap: {
+    paddingHorizontal: spacing.base,
+    marginBottom: spacing.md,
+  },
+  everydayNextLabel: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: spacing.sm,
+  },
+  everydayPeekWrap: {
+    paddingHorizontal: spacing.base,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
   heroMapBlock: {
     paddingHorizontal: spacing.base,
     marginBottom: spacing.sm,

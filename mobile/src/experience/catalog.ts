@@ -1,5 +1,9 @@
 import type { ExperienceMode, ExperienceWidget } from './types';
 
+/**
+ * Everyday allow-list. Wiki Field Detail needs map + weather advice + next tasks + alerts.
+ * Density tools (intelligence, cadastre, satellite) stay Full-only.
+ */
 const EVERYDAY_WIDGETS: ReadonlySet<ExperienceWidget> = new Set([
   'fieldMapDefault',
   'todayAction',
@@ -17,12 +21,11 @@ export const isWidgetVisible = (
   return EVERYDAY_WIDGETS.has(widget);
 };
 
-/** Tab names that remain primary in Everyday mode. */
+/** Everyday thumb bar: Today, Fields, Tasks, More. Calendar lives under More. */
 export const EVERYDAY_PRIMARY_TABS: ReadonlySet<string> = new Set([
   'Today',
   'Fields',
   'Tasks',
-  'People',
   'More',
 ]);
 

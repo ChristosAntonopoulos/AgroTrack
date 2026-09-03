@@ -886,6 +886,17 @@
   margin: var(--spacing-md) 0;
 }
 
+.fd-everyday-season {
+  margin: 0;
+  font-size: calc(1rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.fd-status-bar--everyday {
+  align-items: center;
+}
+
 .fd-everyday-next-action h2 {
   margin: 0 0 var(--spacing-xs);
   font-size: calc(1.25rem * var(--font-scale, 1));

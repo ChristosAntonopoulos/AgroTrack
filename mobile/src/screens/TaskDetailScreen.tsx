@@ -17,6 +17,7 @@ import { Field } from '../services/fieldService';
 import { getTaskService, getFieldService } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import Card from '../components/ui/Card';
 import Section from '../components/layout/Section';
 import StatusBadge from '../components/StatusBadge';
@@ -58,8 +59,9 @@ const TaskDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
   const { taskId } = route.params;
-  const { isFieldOwner } = useAuth();
+  const { isFieldOwner, user } = useAuth();
   const { colors } = useTheme();
+  const { isEveryday, tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['tasks', 'common']);
   const [task, setTask] = useState<Task | null>(null);
   const [field, setField] = useState<Field | null>(null);
@@ -70,6 +72,15 @@ const TaskDetailScreen = () => {
 
   const isUpdating = toBoolean(updating);
   const isAddingEvidence = toBoolean(addingEvidence);
+
+  // Capacity-first: field owners who work the land and assigned people can complete tasks.
+  const canWork = Boolean(
+    user?.userId &&
+      (field?.ownerId === user.userId ||
+        (field?.assignedProducerIds || []).includes(user.userId) ||
+        user.role === 'Producer')
+  );
+  const canApprove = isFieldOwner();
 
   useEffect(() => {
     loadTaskDetails();
@@ -148,30 +159,33 @@ const TaskDetailScreen = () => {
 
   const primaryAction = useMemo(() => {
     if (!task) return null;
-    if (!isFieldOwner()) {
+    if (canWork) {
       if (task.status === 'pending') {
         return { label: t('tasks:startTask'), onPress: () => handleStatusUpdate('in_progress') };
       }
       if (task.status === 'in_progress') {
-        return { label: t('tasks:completeTask'), onPress: () => handleStatusUpdate('completed') };
+        return {
+          label: isEveryday ? t('tasks:completeTask', { defaultValue: 'Done' }) : t('tasks:completeTask'),
+          onPress: () => handleStatusUpdate('completed'),
+        };
       }
     }
-    if (isFieldOwner() && task.approvalStatus === 'pending') {
+    if (canApprove && task.approvalStatus === 'pending') {
       return { label: t('tasks:approve'), onPress: () => handleApprove(true) };
     }
     return null;
-  }, [task, isFieldOwner, t]);
+  }, [task, canWork, canApprove, isEveryday, t]);
 
   const secondaryAction = useMemo(() => {
     if (!task) return null;
-    if (!isFieldOwner() && (task.status === 'in_progress' || task.status === 'completed')) {
+    if (canWork && (task.status === 'in_progress' || task.status === 'completed')) {
       return { label: t('tasks:addEvidence'), onPress: () => setShowEvidenceForm(true) };
     }
-    if (isFieldOwner() && task.approvalStatus === 'pending') {
+    if (canApprove && task.approvalStatus === 'pending') {
       return { label: t('tasks:reject'), onPress: () => handleApprove(false) };
     }
     return null;
-  }, [task, isFieldOwner, t]);
+  }, [task, canWork, canApprove, t]);
 
   if (loading) return <LoadingSpinner fullScreen />;
 
@@ -272,7 +286,7 @@ const TaskDetailScreen = () => {
               title={secondaryAction.label}
               onPress={secondaryAction.onPress}
               variant="outline"
-              style={styles.footerBtn}
+              style={[styles.footerBtn, { minHeight: tapMin }]}
               disabled={isUpdating}
             />
           ) : null}
@@ -281,7 +295,7 @@ const TaskDetailScreen = () => {
               title={primaryAction.label}
               onPress={primaryAction.onPress}
               loading={isUpdating}
-              style={[styles.footerBtn, { flex: 1 }]}
+              style={[styles.footerBtn, { flex: 1, minHeight: tapMin }]}
             />
           ) : null}
         </View>

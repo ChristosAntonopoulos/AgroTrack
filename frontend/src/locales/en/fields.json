@@ -98,6 +98,34 @@
     }
   },
   "mapLocationHint": "Enable location permissions to see distances from you.",
+  "history": {
+    "button": "History",
+    "kicker": "Field history",
+    "title": "History for {{name}}",
+    "description": "Past weather and satellite readings for this grove. Daily values are shown for 90 days; longer ranges are grouped by month.",
+    "backToField": "Back to field",
+    "rangeAria": "History range",
+    "range90d": "90 days",
+    "range1y": "1 year",
+    "range3y": "3 years",
+    "temperatureTitle": "Temperature",
+    "minTemp": "Low °C",
+    "maxTemp": "High °C",
+    "rainTitle": "Rain",
+    "rainMm": "Rain mm",
+    "etTitle": "Evapotranspiration",
+    "et0Mm": "ET0 mm",
+    "vegetationTitle": "Tree greenness",
+    "ndvi": "NDVI",
+    "ndmi": "NDMI",
+    "gathering": "Loading the past years for this grove. Weather usually appears first; satellite scenes follow.",
+    "emptyTitle": "No history yet",
+    "emptyDescription": "After you finish adding the field and accept the terms, we pull the past years in the background. Check again in a few minutes.",
+    "vegetationEmptyTitle": "No satellite history yet",
+    "vegetationEmptyDescription": "Monthly Sentinel-2 scenes are still being processed for this field.",
+    "failedLoad": "Could not load field history.",
+    "sourceNote": "Weather from Open-Meteo archive. Vegetation from Sentinel-2."
+  },
   "weather": {
     "today": "Weather at the grove",
     "live": "Now",
@@ -493,5 +521,7 @@
     },
     "worksMyself": "I work this field myself",
     "worksMyselfHint": "Solo farms: you own and work it with one account."
-  }
+  },
+  "everydayDoHere": "What to do here today",
+  "everydaySeasonLine": "{{stage}} · {{year}}"
 }

@@ -24,7 +24,7 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin } from 'lucide-react';
+import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin, History } from 'lucide-react';
 import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../utils/taskRules';
 import FieldStatusBadge from '../components/fields/FieldStatusBadge';
 import GreekCadastreInfoCard from '../components/fields/GreekCadastreInfoCard';
@@ -54,7 +54,6 @@ const FieldDetailPage: React.FC = () => {
     isFullPicture,
     showWidget,
     recordIntelligenceOpen,
-    setExperienceMode,
   } = useExperienceMode();
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
@@ -398,6 +397,9 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="fd-header-actions">
+            <Button to={`/fields/${field.id}/history`} icon={<History />} variant="outline" size="sm">
+              <span className="fd-btn-label">{t('fields:history.button')}</span>
+            </Button>
             {canOwn ? (
               <>
                 <Button
@@ -419,7 +421,8 @@ const FieldDetailPage: React.FC = () => {
           </div>
         </header>
 
-        <div className="fd-status-bar">
+        <div className={`fd-status-bar${isEveryday ? ' fd-status-bar--everyday' : ''}`}>
+          {!isEveryday ? (
           <div className="fd-status-metrics">
             <div className={`fd-metric ${riskSummary.overdueCount > 0 ? 'fd-metric--warn' : ''}`}>
               <span className="fd-metric-value">{riskSummary.overdueCount}</span>
@@ -432,8 +435,17 @@ const FieldDetailPage: React.FC = () => {
               <span className="fd-metric-label">{t('fields:controlRoom.focusNextDue')}</span>
             </div>
           </div>
+          ) : (
+            <p className="fd-everyday-season">
+              {t('fields:everydaySeasonLine', {
+                stage: field.currentLifecycleStage || lifecycle?.currentStage || '—',
+                year: field.currentLifecycleYear || '—',
+                defaultValue: `${field.currentLifecycleStage || lifecycle?.currentStage || ''} · ${field.currentLifecycleYear || ''}`,
+              })}
+            </p>
+          )}
           <div className="fd-status-actions">
-            {canWork ? (
+            {!isEveryday && canWork ? (
               <Button
                 variant="primary"
                 size="sm"
@@ -457,9 +469,24 @@ const FieldDetailPage: React.FC = () => {
 
         {field.boundary ? <FieldAlertList fieldId={field.id} /> : null}
 
+        {isEveryday && canWork && recommendedNextTaskId ? (
+          <Card className="fd-everyday-next-action">
+            <h2>{t('fields:everydayDoHere', { defaultValue: 'What to do here today' })}</h2>
+            <p>{riskSummary.nextDue?.title}</p>
+            <Button variant="primary" onClick={handleStartRecommended}>
+              {t('fields:controlRoom.startNextTask')}
+            </Button>
+            <EvidenceUpload
+              taskId={recommendedNextTaskId}
+              existingEvidence={tasks.find((tk) => tk.id === recommendedNextTaskId)?.evidence || []}
+              onEvidenceAdded={loadTasks}
+            />
+          </Card>
+        ) : null}
+
         <section className={`fd-hero${isEveryday ? ' fd-hero--everyday' : ''}`}>
           <div className="fd-hero-map">
-            <FieldDetailMap field={field} heightPx={isEveryday ? 280 : 420} />
+            <FieldDetailMap field={field} heightPx={isEveryday ? 200 : 420} />
           </div>
           <div className="fd-hero-panel">
             {fieldCenter && showWidget('weatherAdvice') ? <FieldWeatherCard fieldId={field.id} /> : null}
@@ -527,31 +554,10 @@ const FieldDetailPage: React.FC = () => {
             ) : (
               <>
                 <FieldIntelligencePanel fieldId={field.id} />
-                <button
-                  type="button"
-                  className="fd-everyday-peek-link"
-                  onClick={() => setExperienceMode('full')}
-                >
-                  {t('settings:experience.switchForDetails')}
-                </button>
+                <FullPictureOnramp />
               </>
             )}
           </div>
-        ) : null}
-
-        {isEveryday && canWork && recommendedNextTaskId ? (
-          <Card className="fd-everyday-next-action">
-            <h2>{t('fields:controlRoom.startNextTask')}</h2>
-            <p>{riskSummary.nextDue?.title}</p>
-            <Button variant="primary" onClick={handleStartRecommended}>
-              {t('fields:controlRoom.startNextTask')}
-            </Button>
-            <EvidenceUpload
-              taskId={recommendedNextTaskId}
-              existingEvidence={tasks.find((tk) => tk.id === recommendedNextTaskId)?.evidence || []}
-              onEvidenceAdded={loadTasks}
-            />
-          </Card>
         ) : null}
 
         {isFullPicture ? (

@@ -27,16 +27,19 @@ const TabIcon = ({
   color,
   pillColor,
   accentColor,
+  tapMin,
 }: {
   name: IconName;
   focused: boolean;
   color: string;
   pillColor: string;
   accentColor: string;
+  tapMin: number;
 }) => (
   <View
     style={[
       styles.iconWrap,
+      { minHeight: Math.max(32, tapMin * 0.7), minWidth: Math.max(32, tapMin * 0.7) },
       focused && {
         backgroundColor: pillColor,
         borderRadius: 20,
@@ -51,23 +54,31 @@ const TabIcon = ({
   </View>
 );
 
+/** Keep screen mounted for deep links; hide from Everyday thumb bar. */
+const hiddenTabOptions = {
+  tabBarButton: () => null as unknown as React.ReactElement,
+  tabBarItemStyle: { display: 'none' as const },
+};
+
 const MainTabs = () => {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation('nav');
   const { isFieldOwner } = useAuth();
-  const { isEveryday } = usePreferences();
+  const { isEveryday, isFullPicture, tapMin, fontScaleMultiplier } = usePreferences();
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
   const owner = isFieldOwner();
-  // Audited behavior: Everyday owners land on Today; Full picture keeps Dashboard.
-  const showDashboard = owner && !isEveryday;
+  // Dashboard only for Full picture + FieldOwner. Everyday home is always Today.
+  const showDashboard = owner && isFullPicture;
 
   const openTaskCount = useMemo(
     () => tasks.filter((tk) => tk.status !== 'completed').length,
     [tasks]
   );
 
-  const tabBarHeight = 58 + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
+  const labelSize = Math.max(12, Math.round(12 * fontScaleMultiplier));
+  const tabBarHeight =
+    Math.max(64, tapMin + 20) + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
   const tabAccent = colors.headerAccent;
 
   return (
@@ -92,9 +103,13 @@ const MainTabs = () => {
         },
         tabBarLabelStyle: {
           ...typography.styles.caption,
-          fontSize: 10,
+          fontSize: labelSize,
           fontWeight: '700',
           marginTop: 0,
+        },
+        tabBarItemStyle: {
+          minHeight: tapMin,
+          paddingVertical: 2,
         },
       }}
     >
@@ -111,44 +126,31 @@ const MainTabs = () => {
                 color={color}
                 pillColor={colors.tabBarActivePill}
                 accentColor={tabAccent}
+                tapMin={tapMin}
               />
             ),
           }}
         />
-      ) : (
-        <Tab.Screen
-          name="Today"
-          component={TodayScreen}
-          options={{
-            tabBarLabel: t('today'),
-            tabBarIcon: ({ focused, color }) => (
-              <TabIcon
-                name={focused ? 'sunny' : 'sunny-outline'}
-                focused={focused}
-                color={color}
-                pillColor={colors.tabBarActivePill}
-                accentColor={tabAccent}
-              />
-            ),
-          }}
-        />
-      )}
+      ) : null}
+
       <Tab.Screen
-        name="Calendar"
-        component={CalendarScreen}
+        name="Today"
+        component={TodayScreen}
         options={{
-          tabBarLabel: t('calendar'),
+          tabBarLabel: t('today'),
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
-              name={focused ? 'calendar' : 'calendar-outline'}
+              name={focused ? 'sunny' : 'sunny-outline'}
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
               accentColor={tabAccent}
+              tapMin={tapMin}
             />
           ),
         }}
       />
+
       <Tab.Screen
         name="Fields"
         component={FieldsListScreen}
@@ -161,10 +163,12 @@ const MainTabs = () => {
               color={color}
               pillColor={colors.tabBarActivePill}
               accentColor={tabAccent}
+              tapMin={tapMin}
             />
           ),
         }}
       />
+
       <Tab.Screen
         name="Tasks"
         component={TaskListScreen}
@@ -175,7 +179,7 @@ const MainTabs = () => {
           tabBarBadgeStyle: {
             backgroundColor: colors.error,
             color: '#FFFCF6',
-            fontSize: 10,
+            fontSize: Math.max(10, labelSize - 2),
             fontWeight: '700',
             minWidth: 18,
             height: 18,
@@ -188,10 +192,32 @@ const MainTabs = () => {
               color={color}
               pillColor={colors.tabBarActivePill}
               accentColor={tabAccent}
+              tapMin={tapMin}
             />
           ),
         }}
       />
+
+      {/* Calendar: Full picture primary; Everyday opens it from More only. */}
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarScreen}
+        options={{
+          tabBarLabel: t('calendar'),
+          ...(isEveryday ? hiddenTabOptions : {}),
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              name={focused ? 'calendar' : 'calendar-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+              accentColor={tabAccent}
+              tapMin={tapMin}
+            />
+          ),
+        }}
+      />
+
       <Tab.Screen
         name="More"
         component={SettingsScreen}
@@ -199,11 +225,12 @@ const MainTabs = () => {
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
-              name={focused ? 'settings' : 'settings-outline'}
+              name={focused ? 'menu' : 'menu-outline'}
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
               accentColor={tabAccent}
+              tapMin={tapMin}
             />
           ),
         }}
