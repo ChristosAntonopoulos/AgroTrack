@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import Section from '../components/layout/Section';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Card from '../components/ui/Card';
 import AlertBanner from '../components/ui/AlertBanner';
+import TutorialOverlay, { TutorialStep } from '../components/TutorialOverlay';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { formatLocaleDate } from '../utils/formatters';
@@ -43,11 +44,52 @@ const openDirections = (lat: number, lng: number) => {
 const TodayScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { isEveryday, isFullPicture, tapMin, fontScaleMultiplier } = usePreferences();
-  const { t, i18n } = useTranslation(['today', 'common', 'fields']);
+  const { isEveryday, isFullPicture, tapMin, fontScaleMultiplier, everydayTutorialSeen, markEverydayTutorialSeen } = usePreferences();
+  const { t, i18n } = useTranslation(['today', 'common', 'fields', 'tutorial']);
   const navigation = useNavigation<Nav>();
   const { tasks, fields, loading, refresh } = useTasks();
   const { refreshing, onRefresh } = useRefresh(refresh);
+
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (isEveryday && !everydayTutorialSeen && !loading) {
+      setShowTutorial(true);
+    }
+  }, [isEveryday, everydayTutorialSeen, loading]);
+
+  const everydaySteps: TutorialStep[] = [
+    {
+      id: 'today-welcome',
+      titleKey: 'tutorial:everyday.step1.title',
+      bodyKey: 'tutorial:everyday.step1.body',
+    },
+    {
+      id: 'next-action',
+      titleKey: 'tutorial:everyday.step2.title',
+      bodyKey: 'tutorial:everyday.step2.body',
+    },
+    {
+      id: 'fields-tasks',
+      titleKey: 'tutorial:everyday.step3.title',
+      bodyKey: 'tutorial:everyday.step3.body',
+    },
+    {
+      id: 'more-menu',
+      titleKey: 'tutorial:everyday.step4.title',
+      bodyKey: 'tutorial:everyday.step4.body',
+    },
+  ];
+
+  const handleTutorialComplete = async () => {
+    await markEverydayTutorialSeen();
+    setShowTutorial(false);
+  };
+
+  const handleTutorialSkip = async () => {
+    await markEverydayTutorialSeen();
+    setShowTutorial(false);
+  };
 
   const myOpenTasks = useMemo(() => {
     if (!user) return [];
@@ -281,6 +323,13 @@ const TodayScreen = () => {
           </Text>
         </TouchableOpacity>
       ) : null}
+
+      <TutorialOverlay
+        visible={showTutorial}
+        steps={everydaySteps}
+        onComplete={handleTutorialComplete}
+        onSkip={handleTutorialSkip}
+      />
     </ScreenLayout>
   );
 };

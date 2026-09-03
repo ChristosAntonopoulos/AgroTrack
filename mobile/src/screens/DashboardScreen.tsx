@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useRefresh } from '../hooks/useRefresh';
 import { useTasks } from '../hooks/useTasks';
@@ -22,6 +23,7 @@ import DashboardFieldCard from '../components/domain/DashboardFieldCard';
 import WeatherWidget from '../components/domain/WeatherWidget';
 import ActivityTimeline from '../components/domain/ActivityTimeline';
 import EmptyState from '../components/EmptyState';
+import TutorialOverlay, { TutorialStep } from '../components/TutorialOverlay';
 import { spacing } from '../theme';
 import { createElevation } from '../theme/elevation';
 import { RootStackParamList, MainTabParamList } from '../navigation/types';
@@ -38,7 +40,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const DashboardScreen = () => {
   const { user, isFieldOwner } = useAuth();
   const { colors } = useTheme();
-  const { t, i18n } = useTranslation(['dashboard', 'common', 'nav']);
+  const { isFullPicture, fullTutorialSeen, markFullTutorialSeen } = usePreferences();
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'nav', 'tutorial']);
   const navigation = useNavigation<Nav>();
   const { stats, loading, refresh } = useDashboardStats();
   const { refreshing, onRefresh } = useRefresh(refresh);
@@ -46,6 +49,42 @@ const DashboardScreen = () => {
   const { fields } = useFields();
   const { weather, loading: weatherLoading } = useDashboardWeather(fields);
   const { activities } = useRecentActivities(fields, tasks);
+
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (isFullPicture && !fullTutorialSeen && !loading) {
+      setShowTutorial(true);
+    }
+  }, [isFullPicture, fullTutorialSeen, loading]);
+
+  const fullPictureSteps: TutorialStep[] = [
+    {
+      id: 'dashboard-overview',
+      titleKey: 'tutorial:full.step1.title',
+      bodyKey: 'tutorial:full.step1.body',
+    },
+    {
+      id: 'field-control',
+      titleKey: 'tutorial:full.step2.title',
+      bodyKey: 'tutorial:full.step2.body',
+    },
+    {
+      id: 'analytics',
+      titleKey: 'tutorial:full.step3.title',
+      bodyKey: 'tutorial:full.step3.body',
+    },
+  ];
+
+  const handleTutorialComplete = async () => {
+    await markFullTutorialSeen();
+    setShowTutorial(false);
+  };
+
+  const handleTutorialSkip = async () => {
+    await markFullTutorialSeen();
+    setShowTutorial(false);
+  };
 
   const goTab = (
     screen: 'Fields' | 'Tasks' | 'Calendar',
@@ -324,6 +363,13 @@ const DashboardScreen = () => {
           <Ionicons name="add" size={28} color={colors.textInverse} />
         </TouchableOpacity>
       ) : null}
+
+      <TutorialOverlay
+        visible={showTutorial}
+        steps={fullPictureSteps}
+        onComplete={handleTutorialComplete}
+        onSkip={handleTutorialSkip}
+      />
     </View>
   );
 };
