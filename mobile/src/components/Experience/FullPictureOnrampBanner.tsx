@@ -7,7 +7,7 @@ import { typography, spacing } from '../../theme';
 
 const FullPictureOnrampBanner: React.FC = () => {
   const { t } = useTranslation('settings');
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const {
     shouldShowFullPictureOnramp,
     setExperienceMode,
@@ -18,9 +18,23 @@ const FullPictureOnrampBanner: React.FC = () => {
 
   if (!shouldShowFullPictureOnramp) return null;
 
+  // Wong orange — readable dark ink on the fill (color-blind safe vs Everyday blue)
+  const fullAccent = '#E69F00';
+  const fullSoft = isDark ? '#5C4300' : '#F6DC8A';
+  const onAccent = '#1A1400';
+
   return (
-    <View style={[styles.banner, { backgroundColor: colors.success + '22', borderColor: colors.primary }]}>
-      <Text style={[styles.title, { color: colors.primaryDark, fontSize: 16 * fontScaleMultiplier }]}>
+    <View
+      style={[
+        styles.banner,
+        {
+          backgroundColor: fullSoft,
+          borderColor: colors.border,
+          borderLeftColor: fullAccent,
+        },
+      ]}
+    >
+      <Text style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
         {t('experience.onrampTitle')}
       </Text>
       <Text style={[styles.body, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
@@ -28,13 +42,13 @@ const FullPictureOnrampBanner: React.FC = () => {
       </Text>
       <View style={styles.actions}>
         <TouchableOpacity
-          style={[styles.primary, { backgroundColor: colors.primaryDark, minHeight: tapMin }]}
+          style={[styles.primary, { backgroundColor: fullAccent, minHeight: tapMin }]}
           onPress={async () => {
             await setExperienceMode('full');
             await dismissFullPictureOnramp();
           }}
         >
-          <Text style={[styles.primaryText, { fontSize: 14 * fontScaleMultiplier }]}>
+          <Text style={[styles.primaryText, { color: onAccent, fontSize: 14 * fontScaleMultiplier }]}>
             {t('experience.onrampSwitch')}
           </Text>
         </TouchableOpacity>
@@ -54,6 +68,7 @@ const FullPictureOnrampBanner: React.FC = () => {
 const styles = StyleSheet.create({
   banner: {
     borderWidth: 1,
+    borderLeftWidth: 6,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -67,7 +82,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
   },
-  primaryText: { color: '#fff', fontWeight: '700' },
+  primaryText: { fontWeight: '700' },
   secondary: {
     borderWidth: 1,
     borderRadius: 10,

@@ -8,14 +8,51 @@ import type { ExperienceMode } from '../experience/types';
 import { typography, spacing } from '../theme';
 import BrandLogo from '../components/ui/BrandLogo';
 
+/** Wong Nature Methods: blue + orange. Distinct luminance + icon + label. */
+const MODE_PALETTE = {
+  light: {
+    everyday: {
+      accent: '#0072B2',
+      soft: '#B7DDF0',
+      ink: '#0B1F2A',
+      muted: '#2C4A5C',
+      onAccent: '#FFFFFF',
+    },
+    full: {
+      accent: '#E69F00',
+      soft: '#F6DC8A',
+      ink: '#1A1400',
+      muted: '#5A4308',
+      onAccent: '#1A1400',
+    },
+  },
+  dark: {
+    everyday: {
+      accent: '#56B4E9',
+      soft: '#154A66',
+      ink: '#F3FAFF',
+      muted: '#C5E6F6',
+      onAccent: '#0B1F2A',
+    },
+    full: {
+      accent: '#E69F00',
+      soft: '#5C4300',
+      ink: '#FFF6DC',
+      muted: '#F0D48A',
+      onAccent: '#1A1400',
+    },
+  },
+} as const;
+
 interface ExperienceChooserScreenProps {
   onChosen?: () => void;
 }
 
 const ExperienceChooserScreen: React.FC<ExperienceChooserScreenProps> = ({ onChosen }) => {
   const { t } = useTranslation('settings');
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { chooseExperienceMode, fontScaleMultiplier, tapMin } = usePreferences();
+  const palette = isDark ? MODE_PALETTE.dark : MODE_PALETTE.light;
 
   const finish = async (mode: ExperienceMode) => {
     await chooseExperienceMode(mode);
@@ -34,32 +71,43 @@ const ExperienceChooserScreen: React.FC<ExperienceChooserScreenProps> = ({ onCho
     titleKey: string;
     descKey: string;
     hintKey: string;
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.option,
-        {
-          backgroundColor: colors.surfaceElevated,
-          borderColor: colors.border,
-          minHeight: tapMin * 3.5,
-        },
-      ]}
-      onPress={() => finish(mode)}
-      accessibilityRole="button"
-      accessibilityLabel={t(titleKey)}
-    >
-      <Ionicons name={icon} size={28} color={colors.primaryDark} />
-      <Text style={[styles.optionTitle, { color: colors.primaryDark, fontSize: 20 * fontScaleMultiplier }]}>
-        {t(titleKey)}
-      </Text>
-      <Text style={[styles.optionDesc, { color: colors.textSecondary, fontSize: 15 * fontScaleMultiplier }]}>
-        {t(descKey)}
-      </Text>
-      <Text style={[styles.optionHint, { color: colors.primary, fontSize: 13 * fontScaleMultiplier }]}>
-        {t(hintKey)}
-      </Text>
-    </TouchableOpacity>
-  );
+  }) => {
+    const tone = palette[mode];
+    return (
+      <TouchableOpacity
+        style={[
+          styles.option,
+          {
+            backgroundColor: tone.soft,
+            borderColor: tone.accent,
+            minHeight: tapMin * 3.5,
+          },
+        ]}
+        onPress={() => finish(mode)}
+        accessibilityRole="button"
+        accessibilityLabel={t(titleKey)}
+      >
+        <View style={[styles.band, { backgroundColor: tone.accent }]}>
+          <View style={[styles.iconWrap, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+            <Ionicons name={icon} size={22} color={tone.onAccent} />
+          </View>
+          <Text style={[styles.optionTitle, { color: tone.onAccent, fontSize: 18 * fontScaleMultiplier }]}>
+            {t(titleKey)}
+          </Text>
+        </View>
+        <View style={styles.body}>
+          <Text style={[styles.optionDesc, { color: tone.muted, fontSize: 15 * fontScaleMultiplier }]}>
+            {t(descKey)}
+          </Text>
+          <View style={[styles.hintChip, { backgroundColor: tone.accent }]}>
+            <Text style={[styles.hintText, { color: tone.onAccent, fontSize: 13 * fontScaleMultiplier }]}>
+              {t(hintKey)}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScrollView
@@ -91,7 +139,7 @@ const ExperienceChooserScreen: React.FC<ExperienceChooserScreenProps> = ({ onCho
         />
       </View>
 
-      <Text style={[styles.footer, { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier }]}>
+      <Text style={[styles.footer, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>
         {t('experience.chooserFooter')}
       </Text>
     </ScrollView>
@@ -107,7 +155,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.styles.h3,
-    fontWeight: '700',
+    fontWeight: '800',
     marginTop: spacing.md,
   },
   subtitle: {
@@ -121,22 +169,47 @@ const styles = StyleSheet.create({
   option: {
     borderWidth: 2,
     borderRadius: 16,
-    padding: spacing.lg,
+    overflow: 'hidden',
+  },
+  band: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: {
+    padding: spacing.md,
     gap: spacing.sm,
   },
   optionTitle: {
-    fontWeight: '700',
+    fontWeight: '800',
+    flex: 1,
   },
   optionDesc: {
     lineHeight: 22,
   },
-  optionHint: {
-    fontWeight: '600',
+  hintChip: {
+    alignSelf: 'flex-start',
     marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+  },
+  hintText: {
+    fontWeight: '700',
   },
   footer: {
     textAlign: 'center',
     marginTop: spacing.md,
+    lineHeight: 20,
   },
 });
 

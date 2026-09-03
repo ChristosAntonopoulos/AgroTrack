@@ -35,6 +35,10 @@ public class WeatherIntelligenceServiceTests
             .ReturnsAsync((WeatherCacheLocation l, CancellationToken _) => l);
         _snapshotRepository.Setup(r => r.UpsertAsync(It.IsAny<FieldDailyWeatherSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((FieldDailyWeatherSnapshot s, CancellationToken _) => s);
+        _snapshotRepository.Setup(r => r.UpsertManyAsync(It.IsAny<IReadOnlyList<FieldDailyWeatherSnapshot>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<FieldDailyWeatherSnapshot> list, CancellationToken _) => list.Count);
+        _snapshotRepository.Setup(r => r.GetHistoryAsync(It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FieldDailyWeatherSnapshot>());
     }
 
     private WeatherIntelligenceService CreateService() => new(
@@ -389,5 +393,69 @@ public class WeatherIntelligenceServiceTests
         Assert.Equal("cache-1", result.Id);
         Assert.Equal(Now, result.FetchedAt);
         Assert.Single(result.HourlyForecast);
+    }
+
+    [Fact]
+    public async Task BackfillHistoryAsync_WritesMissingArchiveDays()
+    {
+        _weatherProvider.Setup(p => p.FetchArchiveDailyAsync(
+                It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WeatherArchiveResult
+            {
+                Provider = "Open-Meteo",
+                Model = "era5_seamless",
+                Days =
+                [
+                    new DailyWeatherArchiveDay { Date = new DateOnly(2025, 3, 1), RainTotalMm = 2, MinTemperatureC = 8, MaxTemperatureC = 16 },
+                    new DailyWeatherArchiveDay { Date = new DateOnly(2025, 3, 2), RainTotalMm = 0, MinTemperatureC = 9, MaxTemperatureC = 18 }
+                ]
+            });
+
+        var written = await CreateService().BackfillHistoryAsync(CreateField());
+
+        Assert.Equal(2, written);
+        _snapshotRepository.Verify(r => r.UpsertManyAsync(
+            It.Is<IReadOnlyList<FieldDailyWeatherSnapshot>>(list =>
+                list.Count == 2 &&
+                list.All(s => s.FieldId == "field-1") &&
+                list.Any(s => s.Date == new DateOnly(2025, 3, 1) && s.RainTotalMm == 2)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task BackfillHistoryAsync_SkipsDaysThatAlreadyExist()
+    {
+        _snapshotRepository.Setup(r => r.GetHistoryAsync(It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new FieldDailyWeatherSnapshot { Date = new DateOnly(2025, 3, 1) }]);
+        _weatherProvider.Setup(p => p.FetchArchiveDailyAsync(
+                It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WeatherArchiveResult
+            {
+                Days =
+                [
+                    new DailyWeatherArchiveDay { Date = new DateOnly(2025, 3, 1), RainTotalMm = 4 },
+                    new DailyWeatherArchiveDay { Date = new DateOnly(2025, 3, 2), RainTotalMm = 1 }
+                ]
+            });
+
+        var written = await CreateService().BackfillHistoryAsync(CreateField());
+
+        Assert.Equal(1, written);
+        _snapshotRepository.Verify(r => r.UpsertManyAsync(
+            It.Is<IReadOnlyList<FieldDailyWeatherSnapshot>>(list => list.Count == 1 && list[0].Date == new DateOnly(2025, 3, 2)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task BackfillHistoryAsync_DoesNothing_WhenHistoryYearsIsZero()
+    {
+        _options.Weather.HistoryYears = 0;
+
+        var written = await CreateService().BackfillHistoryAsync(CreateField());
+
+        Assert.Equal(0, written);
+        _weatherProvider.Verify(
+            p => p.FetchArchiveDailyAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

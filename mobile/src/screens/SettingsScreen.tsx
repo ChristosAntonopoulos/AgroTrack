@@ -59,39 +59,51 @@ const SettingsScreen = () => {
     label,
     selected,
     onPress,
+    accent,
   }: {
     label: string;
     selected: boolean;
     onPress: () => void;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[
-        styles.option,
-        {
-          backgroundColor: selected ? colors.primaryDark : colors.surfaceMuted,
-          borderColor: selected ? colors.primaryDark : colors.border,
-          minHeight: tapMin,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-    >
-      <Text
+    /** Optional color-blind-safe selected fill (defaults to brand primary). */
+    accent?: string;
+  }) => {
+    const selectedBg = accent ?? colors.primaryDark;
+    return (
+      <TouchableOpacity
+        onPress={onPress}
         style={[
-          styles.optionText,
+          styles.option,
           {
-            color: selected ? colors.textInverse : colors.textPrimary,
-            fontSize: 14 * fontScaleMultiplier,
+            backgroundColor: selected ? selectedBg : colors.surfaceMuted,
+            borderColor: selected ? selectedBg : colors.border,
+            minHeight: tapMin,
           },
         ]}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
       >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text
+          style={[
+            styles.optionText,
+            {
+              color: selected
+                ? accent === fullAccent
+                  ? '#1A1400'
+                  : '#ffffff'
+                : colors.textPrimary,
+              fontSize: 14 * fontScaleMultiplier,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const roleLabel = user?.role ? t(`common:roles.${user.role}`, { defaultValue: user.role }) : '';
+  const everydayAccent = '#0072B2';
+  const fullAccent = '#E69F00';
 
   return (
     <ScreenLayout scroll contentContainerStyle={styles.content}>
@@ -122,11 +134,13 @@ const SettingsScreen = () => {
             label={t('settings:experience.everyday')}
             selected={experienceMode === 'everyday'}
             onPress={() => setExperienceMode('everyday' as ExperienceMode)}
+            accent={everydayAccent}
           />
           <OptionRow
             label={t('settings:experience.full')}
             selected={experienceMode === 'full'}
             onPress={() => setExperienceMode('full' as ExperienceMode)}
+            accent={fullAccent}
           />
         </View>
         <Text style={[styles.help, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>

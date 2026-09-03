@@ -25,7 +25,7 @@ const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = f
     >
       <button
         type="button"
-        className={`experience-mode-btn ${experienceMode === 'everyday' ? 'active' : ''}`}
+        className={`experience-mode-btn experience-mode-btn-everyday ${experienceMode === 'everyday' ? 'active' : ''}`}
         onClick={() => select('everyday')}
         aria-pressed={experienceMode === 'everyday'}
         title={t('experience.everyday')}
@@ -36,7 +36,7 @@ const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = f
       </button>
       <button
         type="button"
-        className={`experience-mode-btn ${experienceMode === 'full' ? 'active' : ''}`}
+        className={`experience-mode-btn experience-mode-btn-full ${experienceMode === 'full' ? 'active' : ''}`}
         onClick={() => select('full')}
         aria-pressed={experienceMode === 'full'}
         title={t('experience.full')}

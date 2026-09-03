@@ -15,6 +15,7 @@ import DashboardPage from './pages/DashboardPage';
 import FieldsPage from './pages/FieldsPage';
 import FieldFormPage from './pages/FieldFormPage';
 import FieldDetailPage from './pages/FieldDetailPage';
+import FieldHistoryPage from './pages/FieldHistoryPage';
 import FieldTaskTemplatesPage from './pages/FieldTaskTemplatesPage';
 import TasksPage from './pages/TasksPage';
 import TaskDetailPage from './pages/TaskDetailPage';
@@ -47,6 +48,7 @@ function App() {
                   <Route path="fields" element={<FieldsPage />} />
                   <Route path="fields/new" element={<FieldFormPage />} />
                   <Route path="fields/:id/task-templates" element={<FieldTaskTemplatesPage />} />
+                  <Route path="fields/:id/history" element={<FieldHistoryPage />} />
                   <Route path="fields/:id/edit" element={<FieldFormPage />} />
                   <Route path="fields/:id" element={<FieldDetailPage />} />
                   <Route path="tasks" element={<TasksPage />} />

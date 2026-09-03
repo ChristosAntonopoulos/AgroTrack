@@ -397,6 +397,10 @@ export const geospatialService = {
     await api.post(`/api/v1/fields/${fieldId}/intelligence/refresh`);
   },
 
+  requestHistoryBackfill: async (fieldId: string): Promise<void> => {
+    await api.post(`/api/v1/fields/${fieldId}/history/backfill`);
+  },
+
   getMapData: async (fieldId: string, layerIds: string[], observationId?: string): Promise<FieldMapData> => {
     const response = await api.get<FieldMapData>(`/api/v1/fields/${fieldId}/map-data`, {
       params: { layers: layerIds.join(','), observationId },

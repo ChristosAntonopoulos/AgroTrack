@@ -125,13 +125,15 @@
 .field-weather-advice {
   margin: 0.35rem 0 0;
   font-size: calc(1rem * var(--font-scale, 1));
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.4;
-  color: var(--color-primary);
+  color: var(--color-text-primary);
 }
 
 .field-weather-card--everyday .field-weather-advice {
   font-size: calc(1.05rem * var(--font-scale, 1));
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--experience-everyday);
 }
 
 .field-weather-peek {
@@ -140,10 +142,11 @@
   padding: 0.4rem 0;
   border: none;
   background: transparent;
-  color: var(--color-primary-light);
-  font-weight: 650;
+  color: var(--color-text-primary);
+  font-weight: 700;
   font-size: calc(0.9rem * var(--font-scale, 1));
   cursor: pointer;
   text-align: left;
   text-decoration: underline;
+  text-underline-offset: 3px;
 }

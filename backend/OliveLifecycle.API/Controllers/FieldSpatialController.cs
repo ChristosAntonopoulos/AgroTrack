@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
+using OliveLifecycle.Application.Configuration.Geospatial;
 using OliveLifecycle.Application.DTOs.Geospatial;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Application.Services.Geospatial;
@@ -26,6 +28,7 @@ public class FieldSpatialController : BaseApiController
     private readonly IFieldMapDataService _mapDataService;
     private readonly IGeospatialJobQueue _jobQueue;
     private readonly IGeospatialStorageService _storage;
+    private readonly GeospatialOptions _options;
 
     public FieldSpatialController(
         IFieldAccessService fieldAccessService,
@@ -38,6 +41,7 @@ public class FieldSpatialController : BaseApiController
         IFieldMapDataService mapDataService,
         IGeospatialJobQueue jobQueue,
         IGeospatialStorageService storage,
+        IOptions<GeospatialOptions> options,
         ICurrentUserContext currentUser) : base(currentUser)
     {
         _fieldAccessService = fieldAccessService;
@@ -50,6 +54,7 @@ public class FieldSpatialController : BaseApiController
         _mapDataService = mapDataService;
         _jobQueue = jobQueue;
         _storage = storage;
+        _options = options.Value;
     }
 
     [HttpGet("spatial-profile")]
@@ -80,9 +85,15 @@ public class FieldSpatialController : BaseApiController
     public async Task<ActionResult<FieldWeatherHistoryDto>> GetWeatherHistory(string fieldId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
     {
         await RequireFieldAccess(fieldId, ct);
-        var fromDate = from ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var historyYears = Math.Max(1, _options.Weather.HistoryYears);
+        var fromDate = from ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-historyYears));
         var toDate = to ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var snapshots = await _snapshotRepository.GetHistoryAsync(fieldId, fromDate, toDate, ct);
+        if (snapshots.Count < 60)
+        {
+            await _jobQueue.EnqueueFieldHistoryBackfillAsync(fieldId, ct);
+        }
+
         return Ok(new FieldWeatherHistoryDto
         {
             FieldId = fieldId,
@@ -161,6 +172,19 @@ public class FieldSpatialController : BaseApiController
         await _jobQueue.EnqueueSpatialProfileAsync(fieldId, ct);
         await _jobQueue.EnqueueSatelliteProcessingAsync(fieldId, null, ct);
         await _jobQueue.EnqueueTaskConditionsAsync(fieldId, ct);
+        await _jobQueue.EnqueueFieldHistoryBackfillAsync(fieldId, ct);
+        return Accepted();
+    }
+
+    /// <summary>
+    /// Queues multi-year weather and monthly Sentinel-2 history for a field that
+    /// is already active but still missing its archive.
+    /// </summary>
+    [HttpPost("history/backfill")]
+    public async Task<IActionResult> BackfillHistory(string fieldId, CancellationToken ct)
+    {
+        await RequireFieldAccess(fieldId, ct);
+        await _jobQueue.EnqueueFieldHistoryBackfillAsync(fieldId, ct);
         return Accepted();
     }
 

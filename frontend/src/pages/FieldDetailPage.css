@@ -882,22 +882,24 @@
   min-height: var(--tap-min, 44px);
   padding: 0.65rem 1rem;
   border-radius: var(--radius-md);
-  font-weight: 650;
+  font-weight: 700;
   font-size: calc(0.95rem * var(--font-scale, 1));
   cursor: pointer;
   text-align: left;
 }
 
 .fd-everyday-peek-btn {
-  border: 1px solid var(--color-primary-lighter, #6b9a3f);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--bg-surface));
-  color: var(--color-primary);
+  border: 2px solid var(--experience-everyday);
+  border-left-width: 6px;
+  background: var(--experience-everyday-soft);
+  color: var(--color-text-primary);
 }
 
 .fd-everyday-peek-link {
   border: none;
   background: transparent;
-  color: var(--color-primary-light);
+  color: var(--color-text-primary);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 

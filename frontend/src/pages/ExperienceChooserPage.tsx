@@ -33,12 +33,18 @@ const ExperienceChooserPage: React.FC = () => {
             className="experience-option experience-option-everyday"
             onClick={() => finish('everyday')}
           >
-            <ListChecks size={28} aria-hidden />
-            <span className="experience-option-title">{t('experience.everyday')}</span>
-            <span className="experience-option-desc">{t('experience.everydayDesc')}</span>
-            <span className="experience-option-hint">
-              <CheckCircle2 size={16} aria-hidden />
-              {t('experience.everydayHint')}
+            <span className="experience-option-band">
+              <span className="experience-option-icon" aria-hidden>
+                <ListChecks size={22} />
+              </span>
+              <span className="experience-option-title">{t('experience.everyday')}</span>
+            </span>
+            <span className="experience-option-body">
+              <span className="experience-option-desc">{t('experience.everydayDesc')}</span>
+              <span className="experience-option-hint">
+                <CheckCircle2 size={16} aria-hidden />
+                {t('experience.everydayHint')}
+              </span>
             </span>
           </button>
 
@@ -47,12 +53,18 @@ const ExperienceChooserPage: React.FC = () => {
             className="experience-option experience-option-full"
             onClick={() => finish('full')}
           >
-            <Layers size={28} aria-hidden />
-            <span className="experience-option-title">{t('experience.full')}</span>
-            <span className="experience-option-desc">{t('experience.fullDesc')}</span>
-            <span className="experience-option-hint">
-              <CheckCircle2 size={16} aria-hidden />
-              {t('experience.fullHint')}
+            <span className="experience-option-band">
+              <span className="experience-option-icon" aria-hidden>
+                <Layers size={22} />
+              </span>
+              <span className="experience-option-title">{t('experience.full')}</span>
+            </span>
+            <span className="experience-option-body">
+              <span className="experience-option-desc">{t('experience.fullDesc')}</span>
+              <span className="experience-option-hint">
+                <Layers size={16} aria-hidden />
+                {t('experience.fullHint')}
+              </span>
             </span>
           </button>
         </div>

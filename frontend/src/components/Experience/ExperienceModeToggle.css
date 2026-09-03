@@ -1,11 +1,11 @@
 .experience-mode-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: 4px;
+  padding: 4px;
   border-radius: var(--radius-full);
-  background: var(--bg-interactive, #f8f9fa);
-  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-interactive);
+  border: 1px solid var(--color-border);
 }
 
 .experience-mode-btn {
@@ -14,24 +14,48 @@
   gap: 0.35rem;
   min-height: var(--tap-min, 44px);
   padding: 0.35rem 0.75rem;
-  border: none;
+  border: 2px solid transparent;
   border-radius: var(--radius-full);
   background: transparent;
-  color: var(--text-secondary, #5a5a5a);
+  color: var(--color-text-secondary);
   font-size: calc(0.8rem * var(--font-scale, 1));
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.experience-mode-btn.active {
-  background: var(--color-primary);
-  color: #fff;
+/* Icon stays in the mode hue even when inactive (not color-only: icon + fill) */
+.experience-mode-btn-everyday svg {
+  color: var(--experience-everyday);
+}
+
+.experience-mode-btn-full svg {
+  color: var(--experience-full);
+}
+
+.experience-mode-btn-everyday.active {
+  background: var(--experience-everyday);
+  border-color: var(--experience-everyday);
+  color: var(--experience-on-everyday);
+}
+
+.experience-mode-btn-everyday.active svg {
+  color: var(--experience-on-everyday);
+}
+
+.experience-mode-btn-full.active {
+  background: var(--experience-full);
+  border-color: var(--experience-full);
+  color: var(--experience-on-full);
+}
+
+.experience-mode-btn-full.active svg {
+  color: var(--experience-on-full);
 }
 
 .experience-mode-btn:focus-visible {
-  outline: 2px solid var(--color-primary-light);
-  outline-offset: 1px;
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
 }
 
 .experience-mode-toggle-compact .experience-mode-btn {

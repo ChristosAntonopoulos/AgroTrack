@@ -87,6 +87,76 @@ public class OpenMeteoWeatherProvider : IWeatherProvider
         };
     }
 
+    public async Task<WeatherArchiveResult> FetchArchiveDailyAsync(
+        double latitude,
+        double longitude,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        if (to < from)
+        {
+            return new WeatherArchiveResult { Provider = ProviderName, Model = "era5_seamless" };
+        }
+
+        var url = $"{_options.ArchiveBaseUrl.TrimEnd('/')}/archive?" +
+                  $"latitude={latitude.ToString(CultureInfo.InvariantCulture)}&longitude={longitude.ToString(CultureInfo.InvariantCulture)}" +
+                  $"&start_date={from:yyyy-MM-dd}&end_date={to:yyyy-MM-dd}" +
+                  "&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,rain_sum," +
+                  "et0_fao_evapotranspiration,wind_speed_10m_max,wind_speed_10m_mean,wind_gusts_10m_max,shortwave_radiation_sum" +
+                  "&timezone=UTC";
+
+        if (!string.IsNullOrEmpty(_options.ApiKey))
+            url += $"&apikey={_options.ApiKey}";
+
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+
+        if (!json.TryGetProperty("daily", out var daily))
+        {
+            return new WeatherArchiveResult { Provider = ProviderName, Model = "era5_seamless" };
+        }
+
+        var dates = daily.TryGetProperty("time", out var timeArray)
+            ? timeArray.EnumerateArray()
+                .Select(e => DateOnly.Parse(e.GetString()!, CultureInfo.InvariantCulture))
+                .ToList()
+            : [];
+
+        var days = new List<DailyWeatherArchiveDay>(dates.Count);
+        for (var i = 0; i < dates.Count; i++)
+        {
+            var rain = GetArrayDouble(daily, "rain_sum", i) ?? GetArrayDouble(daily, "precipitation_sum", i);
+            var radiationMj = GetArrayDouble(daily, "shortwave_radiation_sum", i);
+            days.Add(new DailyWeatherArchiveDay
+            {
+                Date = dates[i],
+                MinTemperatureC = GetArrayDouble(daily, "temperature_2m_min", i),
+                MaxTemperatureC = GetArrayDouble(daily, "temperature_2m_max", i),
+                AverageTemperatureC = GetArrayDouble(daily, "temperature_2m_mean", i),
+                RainTotalMm = rain,
+                Et0Mm = GetArrayDouble(daily, "et0_fao_evapotranspiration", i),
+                MaximumWindSpeedKmh = GetArrayDouble(daily, "wind_speed_10m_max", i),
+                AverageWindSpeedKmh = GetArrayDouble(daily, "wind_speed_10m_mean", i),
+                MaximumWindGustKmh = GetArrayDouble(daily, "wind_gusts_10m_max", i),
+                // Archive reports MJ/m²/day; convert to an equivalent daily-mean W/m².
+                SolarRadiationWm2 = radiationMj.HasValue ? radiationMj.Value * 1_000_000d / 86_400d : null
+            });
+        }
+
+        _logger.LogInformation(
+            "Fetched Open-Meteo archive for {Lat},{Lng} from {From} to {To} ({Days} days)",
+            latitude, longitude, from, to, days.Count);
+
+        return new WeatherArchiveResult
+        {
+            Provider = ProviderName,
+            Model = "era5_seamless",
+            Days = days
+        };
+    }
+
     private static double? GetArrayDouble(JsonElement parent, string name, int index)
     {
         if (!parent.TryGetProperty(name, out var arr) || index >= arr.GetArrayLength()) return null;

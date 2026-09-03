@@ -18,6 +18,12 @@ public interface IWeatherIntelligenceService
     Task<FieldWeatherDto> GetFieldWeatherAsync(Field field, CancellationToken cancellationToken = default);
     /// <summary>Returns null when the provider window does not cover the requested day.</summary>
     Task<FieldDailyWeatherSnapshot?> CreateDailySnapshotAsync(Field field, DateOnly date, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes daily weather snapshots from the historical archive after the field
+    /// has been activated. Existing days are left untouched.
+    /// </summary>
+    Task<int> BackfillHistoryAsync(Field field, CancellationToken cancellationToken = default);
 }
 
 public class WeatherIntelligenceService : IWeatherIntelligenceService
@@ -192,6 +198,68 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
             UpdatedAt = _dateTimeProvider.UtcNow
         };
         return await _snapshotRepository.UpsertAsync(snapshot, cancellationToken);
+    }
+
+    public async Task<int> BackfillHistoryAsync(Field field, CancellationToken cancellationToken = default)
+    {
+        var years = _options.Weather.HistoryYears;
+        if (years <= 0)
+        {
+            return 0;
+        }
+
+        var end = DateOnly.FromDateTime(_dateTimeProvider.UtcNow.AddDays(-_options.Weather.ArchiveLagDays));
+        var start = end.AddYears(-years);
+        if (end < start)
+        {
+            return 0;
+        }
+
+        var (lat, lng) = ResolveCoordinates(field);
+        var archive = await _weatherProvider.FetchArchiveDailyAsync(lat, lng, start, end, cancellationToken);
+        if (archive.Days.Count == 0)
+        {
+            return 0;
+        }
+
+        var existing = await _snapshotRepository.GetHistoryAsync(field.Id, start, end, cancellationToken);
+        var existingDates = existing.Select(s => s.Date).ToHashSet();
+        var now = _dateTimeProvider.UtcNow;
+
+        var snapshots = archive.Days
+            .Where(day => !existingDates.Contains(day.Date))
+            .Select(day => new FieldDailyWeatherSnapshot
+            {
+                Id = $"{field.Id}_{day.Date:yyyyMMdd}",
+                FieldId = field.Id,
+                Date = day.Date,
+                MinTemperatureC = day.MinTemperatureC,
+                MaxTemperatureC = day.MaxTemperatureC,
+                AverageTemperatureC = day.AverageTemperatureC,
+                RainTotalMm = day.RainTotalMm,
+                Et0Mm = day.Et0Mm,
+                MaximumWindSpeedKmh = day.MaximumWindSpeedKmh,
+                AverageWindSpeedKmh = day.AverageWindSpeedKmh,
+                MaximumWindGustKmh = day.MaximumWindGustKmh,
+                SolarRadiationWm2 = day.SolarRadiationWm2,
+                Provider = archive.Provider,
+                Model = archive.Model,
+                SourceResolution = SourceResolution,
+                CreatedAt = now,
+                UpdatedAt = now
+            })
+            .ToList();
+
+        if (snapshots.Count == 0)
+        {
+            return 0;
+        }
+
+        var written = await _snapshotRepository.UpsertManyAsync(snapshots, cancellationToken);
+        _logger.LogInformation(
+            "Backfilled {Count} daily weather snapshots for field {FieldId} ({From}–{To})",
+            written, field.Id, start, end);
+        return written;
     }
 
     /// <summary>

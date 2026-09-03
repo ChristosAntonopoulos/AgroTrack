@@ -24,7 +24,7 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin } from 'lucide-react';
+import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin, History } from 'lucide-react';
 import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../utils/taskRules';
 import FieldStatusBadge from '../components/fields/FieldStatusBadge';
 import GreekCadastreInfoCard from '../components/fields/GreekCadastreInfoCard';
@@ -386,6 +386,9 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="fd-header-actions">
+            <Button to={`/fields/${field.id}/history`} icon={<History />} variant="outline" size="sm">
+              <span className="fd-btn-label">{t('fields:history.button')}</span>
+            </Button>
             {isFieldOwner || field.ownerId === user?.userId ? (
               <>
                 <Button

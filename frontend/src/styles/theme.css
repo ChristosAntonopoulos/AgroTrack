@@ -67,7 +67,7 @@
   /* Sidebar */
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 80px;
-  
+
   /* Header */
   --header-height: 64px;
 
@@ -75,6 +75,33 @@
   --font-scale: 1;
   --tap-min: 44px;
   --ui-density: 1;
+
+  /* Experience modes: Wong (Nature Methods) blue + orange — safest 2-hue pair
+     for protanopia, deuteranopia, and tritanopia. Meaning is never color-only:
+     different luminance, icon, pattern, and label. Text ≥ WCAG AA on fills. */
+  --experience-everyday: #0072b2;
+  --experience-everyday-soft: #b7ddf0;
+  --experience-everyday-ink: #0b1f2a;
+  --experience-everyday-muted: #2c4a5c;
+  --experience-on-everyday: #ffffff;
+  --experience-full: #e69f00;
+  --experience-full-soft: #f6dc8a;
+  --experience-full-ink: #1a1400;
+  --experience-full-muted: #5a4308;
+  --experience-on-full: #1a1400;
+}
+
+[data-theme='dark'] {
+  --experience-everyday: #56b4e9;
+  --experience-everyday-soft: #154a66;
+  --experience-everyday-ink: #f3faff;
+  --experience-everyday-muted: #c5e6f6;
+  --experience-on-everyday: #0b1f2a;
+  --experience-full: #e69f00;
+  --experience-full-soft: #5c4300;
+  --experience-full-ink: #fff6dc;
+  --experience-full-muted: #f0d48a;
+  --experience-on-full: #1a1400;
 }
 
 [data-font-scale='large'] {

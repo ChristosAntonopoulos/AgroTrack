@@ -296,12 +296,21 @@ export interface FieldMapData {
   layers: MapLayerData[];
 }
 
+export interface DailyWeatherSnapshot {
+  date: string;
+  minTemperatureC?: number;
+  maxTemperatureC?: number;
+  rainTotalMm?: number;
+  et0Mm?: number;
+}
+
 const WEATHER_CACHE = 'geospatial_weather';
 const PROFILE_CACHE = 'geospatial_profile';
 const INTELLIGENCE_CACHE = 'geospatial_intelligence';
 const LAYERS_CACHE = 'geospatial_layers';
 const SATELLITE_DATES_CACHE = 'geospatial_satellite_dates';
 const MAP_DATA_CACHE = 'geospatial_map_data';
+const WEATHER_HISTORY_CACHE = 'geospatial_weather_history';
 
 /**
  * All geospatial data comes from the AgroTrack backend. The device never calls
@@ -309,6 +318,30 @@ const MAP_DATA_CACHE = 'geospatial_map_data';
  * screens keep working offline.
  */
 export const geospatialService = {
+  getWeatherHistory: async (fieldId: string, from?: string, to?: string): Promise<DailyWeatherSnapshot[]> => {
+    const cacheKey = `${fieldId}:${from ?? ''}:${to ?? ''}`;
+    try {
+      const response = await api.get<{ snapshots: DailyWeatherSnapshot[] }>(
+        `/api/v1/fields/${fieldId}/weather/history`,
+        { params: { from, to } }
+      );
+      const snapshots = response.data.snapshots ?? [];
+      await EntityCache.setOne<DailyWeatherSnapshot[]>(WEATHER_HISTORY_CACHE, cacheKey, snapshots);
+      return snapshots;
+    } catch {
+      return (await EntityCache.getOne<DailyWeatherSnapshot[]>(WEATHER_HISTORY_CACHE, cacheKey)) ?? [];
+    }
+  },
+
+  requestHistoryBackfill: async (fieldId: string): Promise<boolean> => {
+    try {
+      await api.post(`/api/v1/fields/${fieldId}/history/backfill`);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   getFieldWeather: async (fieldId: string): Promise<FieldWeather | null> => {
     try {
       const response = await api.get<FieldWeather>(`/api/v1/fields/${fieldId}/weather`);

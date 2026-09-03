@@ -148,6 +148,25 @@ public class FieldDailyWeatherSnapshotRepository : IFieldDailyWeatherSnapshotRep
         return snapshot;
     }
 
+    public async Task<int> UpsertManyAsync(IReadOnlyList<FieldDailyWeatherSnapshot> snapshots, CancellationToken cancellationToken = default)
+    {
+        if (snapshots.Count == 0) return 0;
+
+        var models = snapshots.Select(snapshot =>
+        {
+            var doc = ToDocument(snapshot);
+            return new ReplaceOneModel<FieldDailyWeatherSnapshotDocument>(
+                Builders<FieldDailyWeatherSnapshotDocument>.Filter.Eq(x => x.Id, snapshot.Id),
+                doc)
+            {
+                IsUpsert = true
+            };
+        }).ToList();
+
+        var result = await _collection.BulkWriteAsync(models, new BulkWriteOptions { IsOrdered = false }, cancellationToken);
+        return (int)(result.InsertedCount + result.ModifiedCount + result.Upserts.Count);
+    }
+
     private static FieldDailyWeatherSnapshot ToEntity(FieldDailyWeatherSnapshotDocument d) => new()
     {
         Id = d.Id, FieldId = d.FieldId, Date = DateOnly.FromDateTime(d.Date),

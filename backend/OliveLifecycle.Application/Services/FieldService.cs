@@ -525,6 +525,8 @@ public class FieldService : IFieldService
             suggestLifecyclePlan = true;
         }
 
+        await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+
         return new ActivateFieldResponse
         {
             Field = FieldMapper.ToDto(updated),
@@ -698,6 +700,22 @@ public class FieldService : IFieldService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Could not queue geospatial processing for field {FieldId}", fieldId);
+        }
+    }
+
+    /// <summary>
+    /// Starts the multi-year weather and satellite backfill only after activation
+    /// terms have been accepted and the field add is complete.
+    /// </summary>
+    private async Task QueueFieldHistoryBackfillAsync(string fieldId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _geospatialJobQueue.EnqueueFieldHistoryBackfillAsync(fieldId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not queue history backfill for field {FieldId}", fieldId);
         }
     }
 

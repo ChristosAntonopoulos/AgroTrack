@@ -7,8 +7,9 @@
   margin: var(--spacing-md) 0;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-primary-lighter, #6b9a3f);
-  background: var(--color-success-light, #d4edda);
+  border: 1px solid var(--color-border);
+  border-left: 6px solid var(--experience-full);
+  background: var(--experience-full-soft);
 }
 
 .full-picture-onramp-body {
@@ -19,13 +20,13 @@
 .full-picture-onramp-body strong {
   display: block;
   margin-bottom: 0.25rem;
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   font-size: calc(1rem * var(--font-scale, 1));
 }
 
 .full-picture-onramp-body p {
   margin: 0;
-  color: var(--text-secondary, #5a5a5a);
+  color: var(--color-text-secondary);
   font-size: calc(0.9rem * var(--font-scale, 1));
 }
 
@@ -40,19 +41,25 @@
   min-height: var(--tap-min, 44px);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   font-size: calc(0.9rem * var(--font-scale, 1));
 }
 
 .full-picture-onramp-primary {
   border: none;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--experience-full);
+  color: var(--experience-on-full);
 }
 
 .full-picture-onramp-secondary {
-  border: 1px solid var(--border-color, #ccc);
-  background: var(--bg-surface, #fff);
-  color: var(--text-primary, #1a1a1a);
+  border: 1px solid var(--color-border);
+  background: var(--bg-surface);
+  color: var(--color-text-primary);
+}
+
+.full-picture-onramp-primary:focus-visible,
+.full-picture-onramp-secondary:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
 }

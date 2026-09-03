@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import AuthNavigator from './AuthNavigator';
 import MainLayout from './MainLayout';
 import FieldDetailScreen from '../screens/FieldDetailScreen';
+import FieldHistoryScreen from '../screens/FieldHistoryScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import FieldFormScreen from '../screens/FieldFormScreen';
 import FieldMapBoundaryScreen from '../screens/FieldMapBoundaryScreen';
@@ -94,6 +95,21 @@ const RootNavigator = () => {
               name="TaskDetail"
               component={TaskDetailScreen}
               options={{ title: t('tasks'), headerBackTitle: t('home') }}
+            />
+            <Stack.Screen
+              name="FieldHistory"
+              component={FieldHistoryScreen}
+              options={{
+                title: t('fields:history.button'),
+                headerBackTitle: t('fields'),
+                headerStyle: { backgroundColor: colors.headerBackground },
+                headerTintColor: colors.headerForeground,
+                headerTitleStyle: {
+                  color: colors.headerForeground,
+                  fontWeight: '700',
+                  fontSize: 17,
+                },
+              }}
             />
             <Stack.Screen
               name="FieldForm"

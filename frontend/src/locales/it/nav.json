@@ -26,6 +26,8 @@
   "breadcrumb": {
     "new": "Nuovo",
     "edit": "Modifica",
-    "details": "Dettagli"
+    "details": "Dettagli",
+    "taskTemplates": "Modelli di attività",
+    "history": "Cronologia"
   }
 }

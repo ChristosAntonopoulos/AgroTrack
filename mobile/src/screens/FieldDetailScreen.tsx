@@ -207,6 +207,12 @@ const FieldDetailScreen = () => {
       onPress: openMaps,
       disabled: !hasMappableLocation,
     },
+    {
+      id: 'history',
+      icon: 'time-outline' as const,
+      label: t('fields:history.button'),
+      onPress: () => navigation.navigate('FieldHistory', { fieldId }),
+    },
     ...(isFieldOwner()
       ? [
           {
