@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { usePreferences } from '../../context/PreferencesContext';
 import StatusBadge from '../StatusBadge';
 import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
