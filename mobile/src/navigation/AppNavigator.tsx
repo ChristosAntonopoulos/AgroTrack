@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DashboardScreen from '../screens/DashboardScreen';
+import TodayScreen from '../screens/TodayScreen';
 import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
+import MoreScreen from '../screens/MoreScreen';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import BrandLogo from '../components/ui/BrandLogo';
-import { colors, typography, spacing } from '../theme';
+import { colors as themeColors, typography, spacing } from '../theme';
 
 // Import detail screens for navigation
 import FieldDetailScreen from '../screens/FieldDetailScreen';
@@ -15,21 +18,24 @@ import TaskDetailScreen from '../screens/TaskDetailScreen';
 // Custom Tab Navigator - avoids React Navigation Tab Navigator boolean serialization issues
 const AppNavigator = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('Dashboard');
+  const { colors } = useTheme();
+  const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
+  const [activeTab, setActiveTab] = useState('Today');
   const [overlayScreen, setOverlayScreen] = useState<string | null>(null);
   const [overlayParams, setOverlayParams] = useState<any>(null);
 
   const tabs = [
-    { id: 'Dashboard', label: 'Dashboard', icon: '📊', component: DashboardScreen },
-    { id: 'Fields', label: 'Fields', icon: '🏡', component: FieldsListScreen },
-    { id: 'Tasks', label: 'Tasks', icon: '📋', component: TaskListScreen },
+    { id: 'Today', label: 'Today', icon: 'sunny', component: TodayScreen },
+    { id: 'Fields', label: 'Fields', icon: 'leaf', component: FieldsListScreen },
+    { id: 'Tasks', label: 'Tasks', icon: 'list', component: TaskListScreen },
+    { id: 'More', label: 'More', icon: 'ellipsis-horizontal', component: MoreScreen },
   ];
 
   const ActiveScreen = tabs.find(tab => tab.id === activeTab)?.component || DashboardScreen;
 
   const navigation = {
     navigate: (screen: string, params?: any) => {
-      const tabIds = ['Fields', 'Tasks', 'Dashboard'];
+      const tabIds = ['Today', 'Fields', 'Tasks', 'More'];
       if (tabIds.includes(screen)) {
         setOverlayScreen(null);
         setOverlayParams(null);
@@ -67,48 +73,70 @@ const AppNavigator = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView edges={['top']} style={styles.headerContainer}>
-        <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView edges={['top']} style={[styles.headerContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.header, { minHeight: Math.max(tapMin, 56) }]}>
           <View style={styles.headerLeft}>
             <BrandLogo size={30} style={styles.headerLogo} />
-            <Text style={styles.headerTitle}>AgroTrack</Text>
+            <Text style={[styles.headerTitle, { color: colors.primary, fontSize: 20 * fontScaleMultiplier }]}>
+              AgroTrack
+            </Text>
           </View>
           {user?.role ? (
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>{user.role}</Text>
+            <View style={[styles.roleBadge, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+              <Text style={[styles.roleText, { color: colors.primary, fontSize: 10 * fontScaleMultiplier }]}>
+                {user.role}
+              </Text>
             </View>
           ) : null}
         </View>
       </SafeAreaView>
       <View style={styles.content}>
         {overlayScreen ? (
-          <View style={styles.overlayContainer}>
+          <View style={[styles.overlayContainer, { backgroundColor: colors.background }]}>
             {renderOverlayScreen()}
           </View>
         ) : (
           <ActiveScreen navigation={navigation} />
         )}
       </View>
-      <SafeAreaView edges={['bottom']} style={styles.tabBarContainer}>
-        <View style={styles.tabBar}>
+      <SafeAreaView edges={['bottom']} style={[styles.tabBarContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <View style={[styles.tabBar, { backgroundColor: colors.surface }]}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[styles.tab, isActive && styles.tabActive]}
+                style={[styles.tab, { minHeight: Math.max(tapMin, 64) }]}
                 onPress={() => {
                   setOverlayScreen(null);
                   setOverlayParams(null);
                   setActiveTab(tab.id);
                 }}
                 activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label}
+                accessibilityState={{ selected: isActive }}
               >
-                <Text style={[styles.tabIcon, isActive && styles.tabIconActive]}>
-                  {tab.icon}
-                </Text>
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                <View style={[styles.tabIconWrapper, isActive && { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={[styles.tabIcon, { color: isActive ? colors.primary : colors.textSecondary, fontSize: 24 * fontScaleMultiplier }]}>
+                    {/* Using icon placeholder - in production would use proper icons */}
+                    {tab.icon === 'sunny' && '☀️'}
+                    {tab.icon === 'leaf' && '🌿'}
+                    {tab.icon === 'list' && '📋'}
+                    {tab.icon === 'ellipsis-horizontal' && '⋯'}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color: isActive ? colors.primary : colors.textSecondary,
+                      fontSize: Math.max(13, 13 * fontScaleMultiplier),
+                      fontWeight: isActive ? '700' : '500',
+                    },
+                  ]}
+                >
                   {tab.label}
                 </Text>
               </TouchableOpacity>
@@ -123,12 +151,9 @@ const AppNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   headerContainer: {
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   header: {
     flexDirection: 'row',
@@ -136,7 +161,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
-    minHeight: 56,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -148,24 +172,18 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.styles.h3,
-    color: colors.primary,
     fontWeight: typography.fontWeight.bold,
-    fontSize: 20,
     letterSpacing: -0.3,
   },
   roleBadge: {
-    backgroundColor: colors.primary + '15',
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
   },
   roleText: {
     ...typography.styles.caption,
-    color: colors.primary,
     fontWeight: typography.fontWeight.semibold,
-    fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -174,19 +192,15 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   tabBarContainer: {
-    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     zIndex: 1000,
     elevation: 10,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
-    minHeight: 64,
-    shadowColor: colors.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -197,31 +211,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.xs,
+    gap: 2,
   },
-  tabActive: {
-    // Active tab styling
+  tabIconWrapper: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    marginBottom: 2,
   },
   tabIcon: {
-    fontSize: 26,
-    marginBottom: 4,
-  },
-  tabIconActive: {
-    // Active icon styling
+    textAlign: 'center',
   },
   tabLabel: {
     ...typography.styles.caption,
-    color: colors.gray500,
-    fontSize: 12,
-    fontWeight: typography.fontWeight.regular,
-  },
-  tabLabelActive: {
-    color: colors.primary,
-    fontWeight: typography.fontWeight.semibold,
-    fontSize: 12,
+    textAlign: 'center',
+    letterSpacing: 0.1,
   },
   overlayContainer: {
     flex: 1,
-    backgroundColor: colors.background,
   },
 });
 
