@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -58,6 +58,7 @@ const SettingsScreen = () => {
     label,
     selected,
     onPress,
+    accent,
   }: {
     label: string;
     selected: boolean;
@@ -77,16 +78,38 @@ const SettingsScreen = () => {
     >
       <Text
         style={[
-          styles.optionText,
-          { color: selected ? colors.textInverse : colors.textPrimary },
+          styles.option,
+          {
+            backgroundColor: selected ? selectedBg : colors.surfaceMuted,
+            borderColor: selected ? selectedBg : colors.border,
+            minHeight: tapMin,
+          },
         ]}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
       >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text
+          style={[
+            styles.optionText,
+            {
+              color: selected
+                ? accent === fullAccent
+                  ? '#1A1400'
+                  : '#ffffff'
+                : colors.textPrimary,
+              fontSize: 14 * fontScaleMultiplier,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const roleLabel = user?.role ? t(`common:roles.${user.role}`, { defaultValue: user.role }) : '';
+  const everydayAccent = '#0072B2';
+  const fullAccent = '#E69F00';
 
   return (
     <ScreenLayout scroll contentContainerStyle={styles.content}>
@@ -98,10 +121,12 @@ const SettingsScreen = () => {
             <Ionicons name="person" size={24} color={colors.primaryDark} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { color: colors.textPrimary }]}>
+            <Text style={[styles.profileName, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
               {user?.firstName} {user?.lastName}
             </Text>
-            <Text style={[styles.profileRole, { color: colors.primaryDark }]}>{roleLabel}</Text>
+            <Text style={[styles.profileRole, { color: colors.primaryDark, fontSize: 14 * fontScaleMultiplier }]}>
+              {roleLabel}
+            </Text>
           </View>
         </View>
       </Card>
@@ -268,6 +293,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionText: { ...typography.styles.bodySmall, fontWeight: '600' },
+  help: { marginTop: spacing.sm, lineHeight: 20 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    gap: spacing.md,
+  },
+  switchLabel: { flex: 1, fontWeight: '500' },
   actionBtn: { marginTop: spacing.sm },
   version: { ...typography.styles.caption, textAlign: 'center', marginTop: spacing.xl },
 });

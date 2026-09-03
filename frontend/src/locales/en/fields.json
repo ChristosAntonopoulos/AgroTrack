@@ -135,7 +135,11 @@
     "wind": "Wind {{speed}} km/h",
     "rainNext24h": "{{mm}} mm of rain expected in the next 24 hours",
     "rainNone": "No rain expected in the next 24 hours",
-    "frostRisk": "Frost risk: {{level}}"
+    "frostRisk": "Frost risk: {{level}}",
+    "adviceFrost": "Frost risk tonight — protect young trees.",
+    "adviceRain": "Do not spray — rain expected today.",
+    "adviceOk": "Conditions look workable for field tasks today.",
+    "showDetails": "Show temperature and wind"
   },
   "mapLayers": {
     "title": "Map pictures",
@@ -273,6 +277,7 @@
     "subtitle": "What's happening now, what's next, and what needs attention.",
     "backToFields": "Back to Fields",
     "edit": "Edit",
+    "history": "History",
     "addTaskFromTemplate": "Add task from template",
     "noOverdue": "No overdue tasks",
     "overdueCount": "{{count}} overdue",

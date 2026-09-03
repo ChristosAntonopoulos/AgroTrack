@@ -478,7 +478,7 @@ const FieldDetailScreen = () => {
             onPress={() => setCadastreExpanded((v) => !v)}
             style={[styles.cadastreHeader, { borderColor: colors.borderLight, minHeight: tapMin }]}
           >
-            <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary }]}>
+            <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
               {t('fields:addField.cadastre.referenceTitle')}
             </Text>
             <Ionicons

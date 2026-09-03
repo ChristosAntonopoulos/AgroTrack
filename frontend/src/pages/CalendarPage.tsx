@@ -286,6 +286,7 @@ const CalendarPage: React.FC = () => {
             </Button>
           </div>
 
+          {!isEveryday ? (
           <div className="calendar-view-toggle" role="tablist" aria-label={t('viewModeAria')}>
             {viewTabs.map((tab) => (
               <button
@@ -301,6 +302,7 @@ const CalendarPage: React.FC = () => {
               </button>
             ))}
           </div>
+          ) : null}
         </div>
 
         <CalendarFilterBar

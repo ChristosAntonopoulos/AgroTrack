@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { getFieldService, getTaskService, getUserService, isMockMode } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
@@ -33,6 +34,7 @@ type SortKey = 'name' | 'area' | 'overdue';
 const FieldsPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common', 'errors']);
   const { user } = useAuth();
+  const { isEveryday } = useExperienceMode();
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldTasks, setFieldTasks] = useState<Map<string, Task[]>>(new Map());
@@ -181,7 +183,7 @@ const FieldsPage: React.FC = () => {
 
   return (
     <PageContainer>
-      <div className="fields-page">
+      <div className={`fields-page ${isEveryday ? 'fields-page--everyday' : ''}`}>
         <Breadcrumbs />
 
         <header className="fields-page-header">

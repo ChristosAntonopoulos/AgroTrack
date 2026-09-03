@@ -269,13 +269,21 @@ const FieldIntelligenceCard: React.FC<Props> = ({ fieldId }) => {
     );
   }
 
-  const hasAnyData = blocks.some((block) => block.metrics.some((metric) => metric.value !== t('fields:intelligence.notAvailable')));
+  const hasAnyData = blocks.some((block) =>
+    block.metrics.some((metric) => metric.value !== t('fields:intelligence.notAvailable'))
+  );
+  const vegetationBlock = blocks.find((block) => block.key === 'vegetation');
+  const meaningKey = vegetationMeaningKey(summary.vegetation?.ndviMean);
+  const verdictColor =
+    meaningKey === 'high' ? colors.success : meaningKey === 'medium' ? colors.warning : colors.error;
+  const verdictBg =
+    meaningKey === 'high' ? colors.successLight : meaningKey === 'medium' ? colors.warningLight : colors.errorLight;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
       <View style={styles.header}>
-        <Text style={[styles.intro, { color: colors.textSecondary }]}>
-          {t('fields:intelligence.intro')}
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          {t('fields:intelligence.title')}
         </Text>
         <Pressable
           onPress={refreshIntelligence}
@@ -286,18 +294,20 @@ const FieldIntelligenceCard: React.FC<Props> = ({ fieldId }) => {
         >
           <Ionicons
             name="refresh"
-            size={16}
+            size={18}
             color={refreshing ? colors.textTertiary : colors.textSecondary}
           />
         </Pressable>
       </View>
+      {meaningKey && vegetationBlock?.meaning ? (
+        <View style={[styles.verdict, { backgroundColor: verdictBg }]}>
+          <Text style={[styles.verdictText, { color: verdictColor }]}>{vegetationBlock.meaning}</Text>
+        </View>
+      ) : null}
       <Text style={[styles.status, { color: colors.textSecondary }]}>
         {t(`fields:intelligence.status.${summary.processingStatus}`, {
           defaultValue: summary.processingStatus,
         })}
-      </Text>
-      <Text style={[styles.hint, { color: colors.textTertiary }]}>
-        {t('fields:intelligence.sourceHint')}
       </Text>
 
       {!hasAnyData ? (
@@ -321,13 +331,25 @@ const FieldIntelligenceCard: React.FC<Props> = ({ fieldId }) => {
             <Text style={[styles.blockTitle, { color: colors.textSecondary }]}>{block.title}</Text>
 
             {block.metrics.length > 0 ? (
-              <View style={styles.metrics}>
-                {block.metrics.map((metric) => (
-                  <View key={metric.label} style={styles.metric}>
+              <View style={block.key === 'vegetation' ? styles.tiles : styles.rows}>
+                {block.metrics.map((metric, index) => (
+                  <View
+                    key={metric.label}
+                    style={
+                      block.key === 'vegetation' && index < 2
+                        ? [styles.tile, { backgroundColor: colors.surfaceMuted }]
+                        : styles.row
+                    }
+                  >
                     <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
                       {metric.label}
                     </Text>
-                    <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
+                    <Text
+                      style={[
+                        block.key === 'vegetation' && index < 2 ? styles.tileValue : styles.metricValue,
+                        { color: colors.textPrimary },
+                      ]}
+                    >
                       {metric.value}
                     </Text>
                     {metric.hint ? (
@@ -344,18 +366,8 @@ const FieldIntelligenceCard: React.FC<Props> = ({ fieldId }) => {
               </Text>
             )}
 
-            {block.meaning ? (
-              <Text style={[styles.meaning, { color: colors.textPrimary }]}>{block.meaning}</Text>
-            ) : null}
-
             {block.footnote ? (
               <Text style={[styles.metricHint, { color: colors.textSecondary }]}>{block.footnote}</Text>
-            ) : null}
-
-            {block.metadata?.confidenceNote ? (
-              <Text style={[styles.metricHint, { color: colors.warning }]}>
-                {block.metadata.confidenceNote}
-              </Text>
             ) : null}
 
             {showSource && block.metadata ? (
@@ -387,20 +399,23 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   centered: { alignItems: 'center', justifyContent: 'center', minHeight: 80 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
-  intro: { ...typography.styles.caption, fontSize: 12, lineHeight: 17, flex: 1 },
-  refresh: { padding: 4 },
-  status: { ...typography.styles.caption, fontSize: 11 },
-  hint: { ...typography.styles.caption, fontSize: 11 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  title: { ...typography.styles.bodySmall, fontWeight: '700', fontSize: 16, flex: 1 },
+  refresh: { padding: 6 },
+  verdict: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  verdictText: { ...typography.styles.bodySmall, fontWeight: '700', fontSize: 14, lineHeight: 19 },
+  status: { ...typography.styles.caption, fontSize: 12 },
   note: { ...typography.styles.caption, lineHeight: 16 },
-  block: { paddingTop: spacing.sm, borderTopWidth: 1, gap: 4 },
-  blockTitle: { ...typography.styles.caption, fontWeight: '700', fontSize: 12 },
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  metric: { minWidth: 90 },
-  metricLabel: { ...typography.styles.caption, fontSize: 11 },
-  metricValue: { ...typography.styles.bodySmall, fontWeight: '600' },
-  metricHint: { ...typography.styles.caption, fontSize: 10, lineHeight: 14 },
-  meaning: { ...typography.styles.caption, fontSize: 12, fontWeight: '600', lineHeight: 16 },
+  block: { paddingTop: spacing.sm, borderTopWidth: 1, gap: 6 },
+  blockTitle: { ...typography.styles.bodySmall, fontWeight: '700', fontSize: 14 },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  tile: { flexGrow: 1, minWidth: 120, borderRadius: 10, padding: 10, gap: 2 },
+  tileValue: { ...typography.styles.h2, fontWeight: '800', fontSize: 22 },
+  rows: { gap: 6 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
+  metricLabel: { ...typography.styles.caption, fontSize: 13, flex: 1 },
+  metricValue: { ...typography.styles.bodySmall, fontWeight: '700', fontSize: 14 },
+  metricHint: { ...typography.styles.caption, fontSize: 11, lineHeight: 15, width: '100%' },
   source: { marginTop: 2, gap: 2 },
 });
 

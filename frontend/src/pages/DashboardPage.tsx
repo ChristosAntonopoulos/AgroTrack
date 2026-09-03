@@ -37,6 +37,7 @@ import './DashboardPage.css';
 const DashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation(['dashboard', 'common']);
   const { user } = useAuth();
+  const { isEveryday } = useExperienceMode();
   const navigate = useNavigate();
   const { isEveryday } = useExperienceMode();
   const [fields, setFields] = useState<Field[]>([]);
@@ -140,6 +141,10 @@ const DashboardPage: React.FC = () => {
   const pendingTasks = tasks.filter((task) => task.status === 'pending').length;
   const inProgressTasks = tasks.filter((task) => task.status === 'in_progress').length;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
+
+  if (isEveryday) {
+    return <Navigate to="/today" replace />;
+  }
 
   if (loading) {
     return <LoadingSpinner fullScreen />;

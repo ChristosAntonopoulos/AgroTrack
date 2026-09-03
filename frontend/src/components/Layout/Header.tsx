@@ -51,6 +51,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <h1 className="page-title">{pageTitle}</h1>
 
         <div className="header-right">
+          <ExperienceModeToggle compact />
+
           <div className="header-lang-switch" role="group" aria-label={tCommon('language', { defaultValue: 'Language' })}>
             {bilingualLocales.map((lang) => (
               <button

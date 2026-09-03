@@ -12,8 +12,25 @@ export type AppLanguage = 'en' | 'el';
 interface PreferencesContextType {
   language: AppLanguage;
   themeMode: ThemeMode;
+  experienceMode: ExperienceMode;
+  fontScale: FontScale;
+  largeControls: boolean;
+  experienceModeChosen: boolean;
   setLanguage: (lang: AppLanguage) => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
+  setExperienceMode: (mode: ExperienceMode) => Promise<void>;
+  chooseExperienceMode: (mode: ExperienceMode) => Promise<void>;
+  setFontScale: (scale: FontScale) => Promise<void>;
+  setLargeControls: (enabled: boolean) => Promise<void>;
+  applyRoleDefaultIfNeeded: (role: string | undefined | null) => Promise<void>;
+  isEveryday: boolean;
+  isFullPicture: boolean;
+  showWidget: (widget: ExperienceWidget) => boolean;
+  fontScaleMultiplier: number;
+  tapMin: number;
+  recordIntelligenceOpen: () => Promise<void>;
+  shouldShowFullPictureOnramp: boolean;
+  dismissFullPictureOnramp: () => Promise<void>;
   isReady: boolean;
   experienceMode: ExperienceMode;
   fontScale: FontScale;
@@ -205,7 +222,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
 export const usePreferences = (): PreferencesContextType => {
   const context = useContext(PreferencesContext);
   if (!context) {
-    throw new Error('usePreferences must be used within PreferencesProvider');
+    throw new Error('usePreferences must be used within a PreferencesProvider');
   }
   return context;
 };

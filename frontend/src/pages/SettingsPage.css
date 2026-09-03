@@ -73,6 +73,13 @@
   gap: var(--spacing-xs);
 }
 
+.preference-help {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--color-text-secondary);
+  font-size: calc(0.9rem * var(--font-scale, 1));
+  line-height: 1.45;
+}
+
 .preference-item label {
   font-weight: 500;
   color: var(--color-text-primary);

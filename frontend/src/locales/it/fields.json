@@ -54,5 +54,33 @@
     "area": "Area (hectares)",
     "location": "Location",
     "save": "Save Field"
+  },
+  "history": {
+    "button": "Cronologia",
+    "kicker": "Cronologia del campo",
+    "title": "Cronologia di {{name}}",
+    "description": "Meteo e letture satellitari passate per questo oliveto. I 90 giorni sono giornalieri; gli intervalli più lunghi sono raggruppati per mese.",
+    "backToField": "Torna al campo",
+    "rangeAria": "Intervallo cronologia",
+    "range90d": "90 giorni",
+    "range1y": "1 anno",
+    "range3y": "3 anni",
+    "temperatureTitle": "Temperatura",
+    "minTemp": "Min °C",
+    "maxTemp": "Max °C",
+    "rainTitle": "Pioggia",
+    "rainMm": "Pioggia mm",
+    "etTitle": "Evapotraspirazione",
+    "et0Mm": "ET0 mm",
+    "vegetationTitle": "Verdeggiamento",
+    "ndvi": "NDVI",
+    "ndmi": "NDMI",
+    "gathering": "Stiamo caricando gli anni precedenti per questo oliveto. Il meteo arriva prima; le scene satellitari seguono.",
+    "emptyTitle": "Nessuna cronologia ancora",
+    "emptyDescription": "Dopo aver completato l'aggiunta del campo e accettato i termini, recuperiamo gli anni precedenti in background. Controlla di nuovo tra qualche minuto.",
+    "vegetationEmptyTitle": "Nessuna cronologia satellitare ancora",
+    "vegetationEmptyDescription": "Le scene mensili Sentinel-2 sono ancora in elaborazione per questo campo.",
+    "failedLoad": "Impossibile caricare la cronologia.",
+    "sourceNote": "Meteo dall'archivio Open-Meteo. Vegetazione da Sentinel-2."
   }
 }

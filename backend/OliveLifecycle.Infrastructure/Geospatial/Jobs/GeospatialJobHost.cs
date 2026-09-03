@@ -53,7 +53,8 @@ public class GeospatialJobHost : BackgroundService
             RunOnIntervalAsync("DailyFieldSnapshotJob", TimeSpan.FromHours(1), RunDailySnapshotsAsync, stoppingToken),
             ProcessSpatialProfileQueueAsync(stoppingToken),
             ProcessSatelliteQueueAsync(stoppingToken),
-            ProcessTaskConditionQueueAsync(stoppingToken)
+            ProcessTaskConditionQueueAsync(stoppingToken),
+            ProcessFieldHistoryQueueAsync(stoppingToken)
         };
 
         await Task.WhenAll(loops);
@@ -121,6 +122,26 @@ public class GeospatialJobHost : BackgroundService
             {
                 var service = provider.GetRequiredService<ISatelliteProcessingService>();
                 await service.ProcessFieldAsync(item.FieldId, item.CatalogItemId, ct);
+            }, ct);
+        }
+    }
+
+    private async Task ProcessFieldHistoryQueueAsync(CancellationToken ct)
+    {
+        await foreach (var item in _queue.FieldHistoryReader.ReadAllAsync(ct))
+        {
+            using var scope = _scopeFactory.CreateScope();
+            await RunQueuedJobAsync(scope.ServiceProvider, item.JobId, async provider =>
+            {
+                var fieldRepository = provider.GetRequiredService<IFieldRepository>();
+                var field = await fieldRepository.GetByIdAsync(item.FieldId, ct);
+                if (field?.Boundary == null) return;
+
+                var weather = provider.GetRequiredService<IWeatherIntelligenceService>();
+                await weather.BackfillHistoryAsync(field, ct);
+
+                var satellite = provider.GetRequiredService<ISatelliteProcessingService>();
+                await satellite.ProcessHistoricalAsync(item.FieldId, ct);
             }, ct);
         }
     }

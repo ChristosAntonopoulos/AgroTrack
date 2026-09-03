@@ -59,6 +59,7 @@ const FieldDetailPage: React.FC = () => {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
   const [showProgressConfirm, setShowProgressConfirm] = useState(false);
@@ -385,7 +386,7 @@ const FieldDetailPage: React.FC = () => {
   }
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth="full" padding="sm">
       <div className="field-detail-page">
         <Breadcrumbs />
         <header className="fd-header">
@@ -510,6 +511,7 @@ const FieldDetailPage: React.FC = () => {
                   <span className="fd-hero-fact-value">{field.locationText}</span>
                 </div>
               )}
+            </div>
             </div>
 
             {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && showWidget('cadastreDetails') && (

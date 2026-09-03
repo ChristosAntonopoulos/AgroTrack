@@ -22,6 +22,10 @@ public class WeatherOptions
 {
     public string Provider { get; set; } = "OpenMeteo";
     public string BaseUrl { get; set; } = "https://api.open-meteo.com/v1";
+
+    /// <summary>ERA5-based daily archive used to backfill years of weather when a field is added.</summary>
+    public string ArchiveBaseUrl { get; set; } = "https://archive-api.open-meteo.com/v1";
+
     public string? ApiKey { get; set; }
     public int RefreshMinutes { get; set; } = 60;
     public int GridRoundingDecimals { get; set; } = 2;
@@ -29,6 +33,12 @@ public class WeatherOptions
 
     /// <summary>Days of history requested so rain totals and ET sums have real past values.</summary>
     public int PastDays { get; set; } = 7;
+
+    /// <summary>Years of daily weather written onto a field after activation. 0 disables backfill.</summary>
+    public int HistoryYears { get; set; } = 3;
+
+    /// <summary>The archive lags a few days behind real time; backfill stops this many days before today.</summary>
+    public int ArchiveLagDays { get; set; } = 5;
 
     /// <summary>Assumed water applied per completed irrigation task, used by the field water balance.</summary>
     public double IrrigationMmPerTask { get; set; } = 10;
@@ -50,6 +60,12 @@ public class SatelliteOptions
 
     /// <summary>How far back scene discovery looks for a usable observation.</summary>
     public int SearchWindowDays { get; set; } = 30;
+
+    /// <summary>Years of Sentinel-2 history processed after the field is activated. 0 disables backfill.</summary>
+    public int HistoryYears { get; set; } = 3;
+
+    /// <summary>Cloud-cover ceiling used while hunting a monthly historical scene. Higher than live discovery so winter months still fill.</summary>
+    public int HistoryMaxCloudCover { get; set; } = 40;
 
     /// <summary>Native resolution of the 10 m Sentinel-2 bands, used as the analysis grid.</summary>
     public double AnalysisPixelSizeMetres { get; set; } = 10;

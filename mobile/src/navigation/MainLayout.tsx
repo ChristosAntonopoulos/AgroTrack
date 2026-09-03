@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import AppHeader from '../components/layout/AppHeader';
 import OfflineBanner from '../components/OfflineBanner';

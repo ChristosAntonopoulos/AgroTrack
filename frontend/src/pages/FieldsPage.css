@@ -6,6 +6,14 @@
   padding-bottom: var(--spacing-2xl);
 }
 
+.fields-page--everyday .field-card-v2 {
+  padding: calc(var(--spacing-lg) * var(--ui-density, 1));
+}
+
+.fields-page--everyday .field-card-v2-title {
+  font-size: calc(1.25rem * var(--font-scale, 1));
+}
+
 .fields-page-header {
   display: flex;
   justify-content: space-between;

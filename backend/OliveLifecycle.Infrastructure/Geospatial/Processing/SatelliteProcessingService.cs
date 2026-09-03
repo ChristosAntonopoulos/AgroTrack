@@ -4,6 +4,7 @@ using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Configuration.Geospatial;
+using OliveLifecycle.Application.Services.Geospatial;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Geospatial;
@@ -19,6 +20,12 @@ public interface ISatelliteProcessingService
     /// catalogue item is given the most recent scene within the cloud limit is used.
     /// </summary>
     Task<FieldSatelliteObservation?> ProcessFieldAsync(string fieldId, string? catalogItemId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Processes one low-cloud Sentinel-2 scene per month across the configured
+    /// history window. Called after the field is activated.
+    /// </summary>
+    Task<int> ProcessHistoricalAsync(string fieldId, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes observations and rasters past the retention window.</summary>
     Task<int> PruneAsync(CancellationToken cancellationToken = default);
@@ -90,6 +97,63 @@ public class SatelliteProcessingService : ISatelliteProcessingService
         }
 
         return await BuildObservationAsync(field, item, cancellationToken);
+    }
+
+    public async Task<int> ProcessHistoricalAsync(string fieldId, CancellationToken cancellationToken = default)
+    {
+        if (_options.HistoryYears <= 0)
+        {
+            return 0;
+        }
+
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
+        if (field?.Boundary == null || field.Boundary.Coordinates.Count == 0)
+        {
+            _logger.LogDebug("Field {FieldId} has no boundary; skipping satellite history", fieldId);
+            return 0;
+        }
+
+        var bbox = GeoMath.BoundingBox(field.Boundary);
+        var to = _dateTimeProvider.UtcNow;
+        var from = to.AddYears(-_options.HistoryYears);
+        var collected = new List<SatelliteCatalogItem>();
+        var cloudLimit = Math.Max(_options.MaxCloudCover, _options.HistoryMaxCloudCover);
+
+        for (var yearStart = from; yearStart < to; yearStart = yearStart.AddYears(1))
+        {
+            var yearEnd = yearStart.AddYears(1) < to ? yearStart.AddYears(1) : to;
+            var results = await _catalogProvider.SearchAsync(new SatelliteSearchRequest
+            {
+                MinLng = bbox[0],
+                MinLat = bbox[1],
+                MaxLng = bbox[2],
+                MaxLat = bbox[3],
+                MaxCloudCover = cloudLimit,
+                From = yearStart,
+                To = yearEnd,
+                Limit = 100
+            }, cancellationToken);
+
+            collected.AddRange(results.Where(item => item.HasBands(MandatoryBands)));
+        }
+
+        var selected = SatelliteHistorySelector.SelectBestPerMonth(collected);
+        var processed = 0;
+
+        foreach (var item in selected)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var observation = await ProcessFieldAsync(fieldId, item.ItemId, cancellationToken);
+            if (observation != null)
+            {
+                processed++;
+            }
+        }
+
+        _logger.LogInformation(
+            "Processed {Count} historical Sentinel-2 scenes for field {FieldId} ({From:yyyy-MM}–{To:yyyy-MM})",
+            processed, fieldId, from, to);
+        return processed;
     }
 
     private async Task<SatelliteCatalogItem?> ResolveCatalogItemAsync(Field field, string? catalogItemId, CancellationToken cancellationToken)
@@ -422,7 +486,8 @@ public class SatelliteProcessingService : ISatelliteProcessingService
 
     public async Task<int> PruneAsync(CancellationToken cancellationToken = default)
     {
-        var cutoff = _dateTimeProvider.UtcNow.AddDays(-_options.RetentionDays);
+        var retainDays = Math.Max(_options.RetentionDays, Math.Max(0, _options.HistoryYears) * 365 + 31);
+        var cutoff = _dateTimeProvider.UtcNow.AddDays(-retainDays);
         var removed = await _observationRepository.DeleteOlderThanAsync(cutoff, cancellationToken);
 
         foreach (var observation in removed)

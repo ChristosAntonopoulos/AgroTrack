@@ -304,6 +304,7 @@ const TasksPage: React.FC = () => {
                     <option value="recent">{t('tasks:sortRecent')}</option>
                   </select>
 
+                  {!isEveryday && showWidget('taskBoardView') ? (
                   <div className="tasks-view-toggle" role="group" aria-label={t('tasks:viewModeAria')}>
                     <button
                       type="button"
@@ -324,6 +325,7 @@ const TasksPage: React.FC = () => {
                       </button>
                     ) : null}
                   </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -349,7 +351,7 @@ const TasksPage: React.FC = () => {
                 title={t('tasks:emptySearchTitle')}
                 description={t('tasks:emptySearchDescription')}
               />
-            ) : viewMode === 'board' ? (
+            ) : !isEveryday && viewMode === 'board' ? (
               <TasksBoardView tasks={filteredTasks} fieldNames={fieldNames} />
             ) : (
               <div className="tasks-grid">

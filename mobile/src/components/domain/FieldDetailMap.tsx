@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
@@ -25,6 +25,7 @@ import MapLayerToggle from './MapLayerToggle';
 import MapLayerSheet from './MapLayerSheet';
 import MapZoomControls from '../maps/MapZoomControls';
 import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
+import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
 
@@ -40,13 +41,15 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   field,
   height = 210,
   onGestureActiveChange,
-  showDataLayers = true,
+  showDataLayers,
 }) => {
   const { colors } = useTheme();
-  const { t } = useTranslation(['fields', 'common']);
+  const { showWidget, isEveryday } = usePreferences();
+  const { t } = useTranslation(['fields', 'common', 'settings']);
+  const allowDataLayers = showDataLayers ?? showWidget('mapLayerPanel');
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [sheetVisible, setSheetVisible] = useState(false);
-  const [opacity, setOpacity] = useState(0.75);
+  const [opacity, setOpacity] = useState(0.5);
 
   const {
     definitions,
@@ -56,7 +59,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     selectedDateId,
     selectLayer,
     selectDate,
-  } = useFieldMapLayers(showDataLayers ? field.id : undefined);
+  } = useFieldMapLayers(allowDataLayers ? field.id : undefined);
 
   const satelliteLayerActive = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -144,7 +147,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     );
   }
 
-  const overlayChips = showDataLayers && definitions.length > 0;
+  const overlayChips = allowDataLayers && definitions.length > 0;
 
   return (
     <View style={styles.block}>
@@ -174,11 +177,17 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             bounds={activeLayer.bounds}
             tileUrlTemplate={activeLayer.imageUrl ? undefined : activeLayer.tileUrlTemplate}
             opacity={opacity}
+            belowLayerId={`polygon-fill-${field.id}`}
           />
         ) : null}
 
         {polygon && polygon.length >= 3 ? (
-          <MapPolygonLayer id={field.id} ring={polygon} />
+          <MapPolygonLayer
+            id={field.id}
+            ring={polygon}
+            fillOpacity={activeLayerId ? 0 : 0.22}
+            strokeWidth={activeLayerId ? 3 : 2}
+          />
         ) : (
           <MapPointLayer
             sourceId="field-center"
@@ -188,7 +197,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         )}
       </AppMapView>
       <View style={styles.toggle} pointerEvents="box-none">
-        {showDataLayers ? (
+        {allowDataLayers ? (
           <Pressable
             onPress={() => setSheetVisible(true)}
             style={[
@@ -208,14 +217,14 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             </Text>
           </Pressable>
         ) : (
-          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact={isEveryday} />
         )}
       </View>
       <View style={styles.zoom} pointerEvents="box-none">
         <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
       </View>
 
-      {showDataLayers ? (
+      {allowDataLayers ? (
         <MapLayerSheet
           visible={sheetVisible}
           onClose={() => setSheetVisible(false)}
@@ -236,10 +245,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     </View>
     {overlayChips ? (
       <View style={styles.chipBlock}>
-        <Text style={[styles.chipHint, { color: colors.textSecondary }]}>
-          {t('fields:mapLayers.overlayHint')}
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <View style={styles.chipRow}>
           <Pressable
             onPress={() => selectLayer(undefined)}
             style={[
@@ -278,7 +284,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
     ) : null}
     </View>
@@ -293,13 +299,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipBlock: { gap: 6 },
-  chipHint: { ...typography.styles.caption, fontSize: 12, lineHeight: 16 },
-  chipRow: { gap: 8, paddingRight: spacing.sm },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
+    minHeight: 34,
+    justifyContent: 'center',
   },
   map: { flex: 1 },
   toggle: {

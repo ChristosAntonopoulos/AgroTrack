@@ -13,6 +13,10 @@ const MainLayout: React.FC = () => {
     return <Navigate to="/experience" replace />;
   }
 
+  if (!experienceModeChosen) {
+    return <Navigate to="/experience" replace />;
+  }
+
   return (
     <div className="main-layout">
       <Header onMenuClick={() => setSidebarOpen((v) => !v)} />

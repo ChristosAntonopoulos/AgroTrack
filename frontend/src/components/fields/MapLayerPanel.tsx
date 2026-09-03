@@ -47,8 +47,7 @@ const MapLayerPanel: React.FC<Props> = ({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
-        <span aria-hidden="true">▤</span> {t('fields:mapLayers.title')}
-        {activeDefinition ? <em>{t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name)}</em> : null}
+        <span aria-hidden="true">▤</span> {t('fields:mapLayers.baseLayer')}
       </button>
 
       {open ? (
@@ -73,46 +72,18 @@ const MapLayerPanel: React.FC<Props> = ({
             </div>
           </fieldset>
 
-          <fieldset>
-            <legend>{t('fields:mapLayers.dataOverlay')}</legend>
-            <label className="map-layer-panel-option">
-              <input
-                type="radio"
-                name="field-map-overlay"
-                checked={!activeLayerId}
-                onChange={() => onActiveLayerChange(undefined)}
-              />
-              <span>{t('fields:mapLayers.none')}</span>
-            </label>
-
-            {overlays.map((overlay) => (
-              <div className="map-layer-panel-row" key={overlay.id}>
-                <label className="map-layer-panel-option">
-                  <input
-                    type="radio"
-                    name="field-map-overlay"
-                    checked={activeLayerId === overlay.id}
-                    onChange={() => onActiveLayerChange(overlay.id)}
-                  />
-                  <span>{t(`fields:mapLayers.names.${overlay.id}`, overlay.name)}</span>
-                </label>
-                <button
-                  type="button"
-                  className="map-layer-panel-info"
-                  onClick={() => onShowInfo(overlay, activeLayerId === overlay.id ? activeLayer : undefined)}
-                  aria-label={t('fields:mapLayers.aboutLayer', {
-                    layer: t(`fields:mapLayers.names.${overlay.id}`, overlay.name),
-                  })}
-                >
-                  i
-                </button>
-              </div>
-            ))}
-
-            {overlays.length === 0 ? (
-              <p className="map-layer-panel-note">{t('fields:mapLayers.noOverlays')}</p>
-            ) : null}
-          </fieldset>
+          {activeDefinition ? (
+            <button
+              type="button"
+              className="map-layer-panel-info"
+              onClick={() => onShowInfo(activeDefinition, activeLayer)}
+              aria-label={t('fields:mapLayers.aboutLayer', {
+                layer: t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name),
+              })}
+            >
+              i
+            </button>
+          ) : null}
 
           {activeLayerId ? (
             <div className="map-layer-panel-opacity">

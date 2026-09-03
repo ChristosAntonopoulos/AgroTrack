@@ -23,6 +23,9 @@ public class GeospatialJobQueue : IGeospatialJobQueue
     private readonly Channel<TaskConditionWorkItem> _taskConditionChannel =
         Channel.CreateUnbounded<TaskConditionWorkItem>();
 
+    private readonly Channel<FieldHistoryWorkItem> _fieldHistoryChannel =
+        Channel.CreateUnbounded<FieldHistoryWorkItem>();
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<GeospatialJobQueue> _logger;
 
@@ -35,6 +38,7 @@ public class GeospatialJobQueue : IGeospatialJobQueue
     public ChannelReader<SpatialProfileWorkItem> SpatialProfileReader => _spatialProfileChannel.Reader;
     public ChannelReader<SatelliteWorkItem> SatelliteReader => _satelliteChannel.Reader;
     public ChannelReader<TaskConditionWorkItem> TaskConditionReader => _taskConditionChannel.Reader;
+    public ChannelReader<FieldHistoryWorkItem> FieldHistoryReader => _fieldHistoryChannel.Reader;
 
     public async Task EnqueueSpatialProfileAsync(string fieldId, CancellationToken cancellationToken = default)
     {
@@ -60,6 +64,16 @@ public class GeospatialJobQueue : IGeospatialJobQueue
         var job = await TryRecordJobAsync(fieldId, "TaskConditions", key, cancellationToken);
         if (job == null) return;
         await _taskConditionChannel.Writer.WriteAsync(new TaskConditionWorkItem(fieldId, job.Id), cancellationToken);
+    }
+
+    public async Task EnqueueFieldHistoryBackfillAsync(string fieldId, CancellationToken cancellationToken = default)
+    {
+        // One key per field so redrawing the boundary or re-activating cannot
+        // launch a second multi-year download.
+        var key = $"fieldhistory_{fieldId}";
+        var job = await TryRecordJobAsync(fieldId, "FieldHistoryBackfill", key, cancellationToken);
+        if (job == null) return;
+        await _fieldHistoryChannel.Writer.WriteAsync(new FieldHistoryWorkItem(fieldId, job.Id), cancellationToken);
     }
 
     private async Task<GeospatialProcessingJob?> TryRecordJobAsync(string fieldId, string jobType, string idempotencyKey, CancellationToken ct)
@@ -102,3 +116,5 @@ public record SpatialProfileWorkItem(string FieldId, string JobId);
 public record SatelliteWorkItem(string FieldId, string? CatalogItemId, string JobId);
 
 public record TaskConditionWorkItem(string FieldId, string JobId);
+
+public record FieldHistoryWorkItem(string FieldId, string JobId);

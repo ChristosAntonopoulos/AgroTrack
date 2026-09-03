@@ -21,6 +21,7 @@ public interface IFieldDailyWeatherSnapshotRepository
     Task<FieldDailyWeatherSnapshot?> GetByFieldAndDateAsync(string fieldId, DateOnly date, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FieldDailyWeatherSnapshot>> GetHistoryAsync(string fieldId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
     Task<FieldDailyWeatherSnapshot> UpsertAsync(FieldDailyWeatherSnapshot snapshot, CancellationToken cancellationToken = default);
+    Task<int> UpsertManyAsync(IReadOnlyList<FieldDailyWeatherSnapshot> snapshots, CancellationToken cancellationToken = default);
 }
 
 public interface IFieldSatelliteObservationRepository
