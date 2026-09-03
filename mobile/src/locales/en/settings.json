@@ -12,10 +12,14 @@
   "logout": "Sign out",
   "logoutConfirm": "Are you sure you want to sign out?",
   "saved": "Preferences saved",
+  "more": {
+    "title": "More"
+  },
   "experience": {
     "label": "How OliveCycle looks",
     "everyday": "Everyday",
     "full": "Full picture",
+    "currentMode": "Experience mode",
     "everydayDesc": "What to do now — large actions, fewer numbers.",
     "fullDesc": "Maps, satellite, soil, analytics, and denser history.",
     "fontScale": "Text size",
@@ -31,6 +35,12 @@
     "onrampTitle": "Want the full picture?",
     "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
     "onrampSwitch": "Switch to Full picture",
-    "onrampDismiss": "Not now"
+    "onrampDismiss": "Not now",
+    "chooserTitle": "How do you want to use OliveCycle?",
+    "chooserSubtitle": "You can change this anytime in Settings.",
+    "chooserFooter": "This choice is saved on this device.",
+    "comfortTitle": "Choose your text size",
+    "comfortSubtitle": "You can adjust this later in Settings.",
+    "comfortSkip": "Skip for now"
   }
 }
