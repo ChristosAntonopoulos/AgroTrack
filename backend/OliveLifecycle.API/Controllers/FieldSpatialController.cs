@@ -188,18 +188,6 @@ public class FieldSpatialController : BaseApiController
         return Accepted();
     }
 
-    /// <summary>
-    /// Re-queues weather and satellite work when the History page finds too few snapshots.
-    /// </summary>
-    [HttpPost("history/backfill")]
-    public async Task<IActionResult> BackfillHistory(string fieldId, CancellationToken ct)
-    {
-        await RequireFieldAccess(fieldId, ct);
-        await _jobQueue.EnqueueSpatialProfileAsync(fieldId, ct);
-        await _jobQueue.EnqueueSatelliteProcessingAsync(fieldId, null, ct);
-        return Accepted();
-    }
-
     [HttpGet("map-data")]
     public async Task<ActionResult<FieldMapDataDto>> GetMapData(
         string fieldId,
