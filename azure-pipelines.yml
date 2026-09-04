@@ -241,6 +241,9 @@ stages:
       runOnce:
         deploy:
           steps:
+          - checkout: self
+            displayName: 'Checkout source for Kubernetes manifests'
+
           - script: |
               kubectl create namespace $(backendNamespace) --dry-run=client -o yaml | kubectl apply -f -
               kubectl create namespace $(frontendNamespace) --dry-run=client -o yaml | kubectl apply -f -
@@ -375,6 +378,20 @@ stages:
           - script: 'kubectl apply -f backend/k8s/ingress.yaml'
             displayName: 'Apply backend ingress (control panel discovery)'
             condition: eq('${{ parameters.deployBackend }}', true)
+
+          - script: |
+              set -euo pipefail
+              if [ ! -d /etc/caddy/sites ] || ! command -v caddy >/dev/null 2>&1; then
+                echo "Caddy not available on this agent; overlays use API PublicBasePath and frontend nginx /uploads proxy."
+                exit 0
+              fi
+              SITE=/etc/caddy/sites/agrotrack.caddy
+              cp deploy/caddy/Caddyfile "$SITE"
+              caddy validate --config /etc/caddy/Caddyfile
+              systemctl reload caddy || caddy reload --config /etc/caddy/Caddyfile
+              echo "Reloaded Caddy so /uploads on the website host goes to the API NodePort."
+            displayName: 'Reload host Caddy /uploads route'
+            continueOnError: true
 
           - script: |
               set -euo pipefail

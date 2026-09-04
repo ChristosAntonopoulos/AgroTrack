@@ -67,3 +67,11 @@ export const getApiEnvironmentLabel = (): string => {
   if (__DEV__) return 'development';
   return 'production';
 };
+
+/** Overlay rasters live on the API host; relative /uploads paths 404 on the website. */
+export const resolvePublicAssetUrl = (path?: string | null): string | undefined => {
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path) || path.startsWith('data:')) return path;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${resolveApiBaseUrl()}${normalized}`;
+};

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { ImageOverlay, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import './FieldMapOverlay.css';
 
 export type OverlayBounds = [[number, number], [number, number]];
@@ -68,13 +69,15 @@ const FieldMapOverlay: React.FC<Props> = ({
   compareImageUrl,
   compareBounds,
 }) => {
+  const resolvedImageUrl = resolvePublicAssetUrl(imageUrl) ?? imageUrl;
+  const resolvedCompareUrl = resolvePublicAssetUrl(compareImageUrl);
   const map = useMap();
   const primaryRef = useRef<L.ImageOverlay>(null);
   const compareRef = useRef<L.ImageOverlay>(null);
   const [split, setSplit] = useState(0.5);
   const dragging = useRef(false);
   const rect = useOverlayRect(bounds);
-  const comparing = Boolean(compareImageUrl);
+  const comparing = Boolean(resolvedCompareUrl);
 
   const effectiveCompareBounds = useMemo(
     () => compareBounds ?? bounds,
@@ -91,7 +94,7 @@ const FieldMapOverlay: React.FC<Props> = ({
     if (compareElement) {
       compareElement.style.clipPath = clipLeft(split);
     }
-  }, [comparing, split, imageUrl, compareImageUrl]);
+  }, [comparing, split, resolvedImageUrl, resolvedCompareUrl]);
 
   const moveSeam = useCallback(
     (clientX: number) => {
@@ -160,15 +163,15 @@ const FieldMapOverlay: React.FC<Props> = ({
     <>
       <ImageOverlay
         ref={primaryRef}
-        url={imageUrl}
+        url={resolvedImageUrl}
         bounds={bounds}
         opacity={opacity}
         pane="field-overlay"
       />
-      {compareImageUrl ? (
+      {resolvedCompareUrl ? (
         <ImageOverlay
           ref={compareRef}
-          url={compareImageUrl}
+          url={resolvedCompareUrl}
           bounds={effectiveCompareBounds}
           opacity={opacity}
           pane="field-overlay"

@@ -1,4 +1,5 @@
 import api from './api';
+import { resolvePublicAssetUrl } from '../config/apiConfig';
 
 export interface DataSourceMetadata {
   source: string;
@@ -338,6 +339,25 @@ export interface GeospatialJobStatus {
   recentFailures: GeospatialJobFailure[];
 }
 
+const withPublicUrls = (observation: FieldSatelliteObservation): FieldSatelliteObservation => ({
+  ...observation,
+  trueColorUrl: resolvePublicAssetUrl(observation.trueColorUrl),
+  ndviUrl: resolvePublicAssetUrl(observation.ndviUrl),
+  ndmiUrl: resolvePublicAssetUrl(observation.ndmiUrl),
+  ndreUrl: resolvePublicAssetUrl(observation.ndreUrl),
+  ndwiUrl: resolvePublicAssetUrl(observation.ndwiUrl),
+  saviUrl: resolvePublicAssetUrl(observation.saviUrl),
+  ndviChangeUrl: resolvePublicAssetUrl(observation.ndviChangeUrl),
+});
+
+const withPublicLayerUrls = (data: FieldMapData): FieldMapData => ({
+  ...data,
+  layers: data.layers.map((layer) => ({
+    ...layer,
+    imageUrl: resolvePublicAssetUrl(layer.imageUrl),
+  })),
+});
+
 export const geospatialService = {
   getFieldWeather: async (fieldId: string): Promise<FieldWeather> => {
     const response = await api.get<FieldWeather>(`/api/v1/fields/${fieldId}/weather`);
@@ -377,14 +397,14 @@ export const geospatialService = {
 
   getSatelliteObservations: async (fieldId: string): Promise<FieldSatelliteObservation[]> => {
     const response = await api.get<FieldSatelliteObservation[]>(`/api/v1/fields/${fieldId}/satellite`);
-    return response.data;
+    return response.data.map(withPublicUrls);
   },
 
   getSatelliteObservation: async (fieldId: string, observationId: string): Promise<FieldSatelliteObservation> => {
     const response = await api.get<FieldSatelliteObservation>(
       `/api/v1/fields/${fieldId}/satellite/${observationId}`
     );
-    return response.data;
+    return withPublicUrls(response.data);
   },
 
   /** Observation dates for the date selector, including cloud-affected ones. */
@@ -409,7 +429,7 @@ export const geospatialService = {
     const response = await api.get<FieldMapData>(`/api/v1/fields/${fieldId}/map-data`, {
       params: { layers: layerIds.join(','), observationId },
     });
-    return response.data;
+    return withPublicLayerUrls(response.data);
   },
 
   getMapLayers: async (): Promise<MapLayerCatalog> => {

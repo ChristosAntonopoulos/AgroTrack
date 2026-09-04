@@ -11,7 +11,7 @@ data:
   JWT__Audience: "OliveLifecycleClients"
   JWT__ExpirationMinutes: "60"
   Storage__LocalPath: "uploads"
-  Storage__PublicBasePath: "/uploads"
+  Storage__PublicBasePath: "https://api.agrotrack.conceptatlas.eu/uploads"
   Cors__AllowedHost: "agrotrack.conceptatlas.eu"
   Auth__AllowAnonymous: "false"
   DemoAccounts__Seed: "true"

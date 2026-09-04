@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ImageSource, RasterSource, RasterLayer } from '@maplibre/maplibre-react-native';
+import { resolvePublicAssetUrl } from '../../config/env';
 
 export interface MapRasterOverlayProps {
   id: string;
@@ -41,9 +42,11 @@ const MapRasterOverlayNative: React.FC<MapRasterOverlayProps> = ({
     ];
   }, [bounds]);
 
-  if (imageUrl && coordinates) {
+  const resolvedImageUrl = resolvePublicAssetUrl(imageUrl) ?? imageUrl;
+
+  if (resolvedImageUrl && coordinates) {
     return (
-      <ImageSource id={`overlay-src-${id}`} url={imageUrl} coordinates={coordinates}>
+      <ImageSource id={`overlay-src-${id}`} url={resolvedImageUrl} coordinates={coordinates}>
         <RasterLayer
           id={`overlay-layer-${id}`}
           style={{ rasterOpacity: opacity }}

@@ -16,6 +16,10 @@
 4. Αν όλα είναι εντάξει, ο κώδικας deploy σε staging.
 5. Αφού δοκιμαστεί στο staging, προωθείται σε production όπου τον χρησιμοποιούν οι πραγματικοί πελάτες.
 
+## Geospatial στο production
+
+Οι κλήσεις καιρού / Sentinel / εδάφους τρέχουν **μέσα στο API process**, όχι ως Kubernetes CronJobs. Replicas του API = **1**. Secrets, allowlist, ουρές και troubleshooting: [Geospatial Data Sources](./Geospatial-Data-Sources.md).
+
 ## Εργαλεία που χρησιμοποιούμε
 
 | Τομέας | Εργαλείο |

@@ -16,6 +16,18 @@ export const isMockDataEnabled = (): boolean =>
 export const isAuthDisabled = (): boolean =>
   process.env.REACT_APP_DISABLE_AUTH === 'true';
 
+/**
+ * Raster overlays are stored on the API host. Local CRA proxies /uploads;
+ * production must use the API origin or the web server returns 404 HTML.
+ */
+export const resolvePublicAssetUrl = (path?: string | null): string | undefined => {
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path) || path.startsWith('data:')) return path;
+  const base = getApiBaseUrl();
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return base ? `${base}${normalized}` : normalized;
+};
+
 export const showDemoLogin = (): boolean => {
   const flag = process.env.REACT_APP_SHOW_DEMO_LOGIN;
   if (flag === 'true') return true;

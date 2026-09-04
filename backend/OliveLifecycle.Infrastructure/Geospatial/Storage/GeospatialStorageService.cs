@@ -16,7 +16,7 @@ public class GeospatialStorageService : IGeospatialStorageService
         var rasterRoot = configuration["Geospatial:Storage:RasterRoot"] ?? "geospatial";
         var basePath = Path.IsPathRooted(storageRoot) ? storageRoot : Path.Combine(Directory.GetCurrentDirectory(), storageRoot);
         _rootPath = Path.Combine(basePath, rasterRoot);
-        _publicBasePath = $"{configuration["Storage:PublicBasePath"] ?? "/uploads"}/{rasterRoot}".Replace("//", "/");
+        _publicBasePath = JoinPublicUrl(configuration["Storage:PublicBasePath"] ?? "/uploads", rasterRoot);
         _logger = logger;
         Directory.CreateDirectory(_rootPath);
     }
@@ -77,5 +77,13 @@ public class GeospatialStorageService : IGeospatialStorageService
 
     public string? GetPublicUrl(string? relativePath) => string.IsNullOrWhiteSpace(relativePath)
         ? null
-        : $"{_publicBasePath.TrimEnd('/')}/{relativePath.Replace('\\', '/').TrimStart('/')}";
+        : JoinPublicUrl(_publicBasePath, relativePath.Replace('\\', '/'));
+
+    /// <summary>
+    /// Joins URL segments without collapsing the scheme slashes in https://.
+    /// </summary>
+    private static string JoinPublicUrl(string basePath, string relative)
+    {
+        return $"{basePath.TrimEnd('/')}/{relative.TrimStart('/')}";
+    }
 }

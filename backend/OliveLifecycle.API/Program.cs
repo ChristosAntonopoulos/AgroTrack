@@ -164,7 +164,8 @@ Directory.CreateDirectory(uploadPath);
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadPath),
-    RequestPath = builder.Configuration["Storage:PublicBasePath"] ?? "/uploads"
+    // PublicBasePath may be an absolute URL for clients; the HTTP path stays /uploads.
+    RequestPath = GetUploadsRequestPath(builder.Configuration["Storage:PublicBasePath"])
 });
 
 app.UseAuthentication();
@@ -174,5 +175,28 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+static PathString GetUploadsRequestPath(string? publicBasePath)
+{
+    var value = string.IsNullOrWhiteSpace(publicBasePath) ? "/uploads" : publicBasePath.Trim();
+    if (Uri.TryCreate(value, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host))
+    {
+        value = uri.AbsolutePath;
+    }
+
+    if (!value.StartsWith('/'))
+    {
+        value = "/" + value;
+    }
+
+    var cut = value.IndexOfAny(['?', '#']);
+    if (cut >= 0)
+    {
+        value = value[..cut];
+    }
+
+    value = value.TrimEnd('/');
+    return string.IsNullOrEmpty(value) ? "/uploads" : value;
+}
 
 public partial class Program;

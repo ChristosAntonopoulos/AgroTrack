@@ -22,5 +22,7 @@
 - [Authentication and Authorization](./Authentication-and-Authorization.md) — ποιος μπορεί να κάνει τι
 - [Infrastructure](./Infrastructure.md) — πού τρέχει όλο
 - [DevOps and CICD](./DevOps-and-CICD.md) — πώς φτάνει ο κώδικας στους πελάτες
+- [Geospatial Sources for Geologists](./Geospatial-Sources-for-Geologists.md) — where field data comes from, in plain language (paste into Azure DevOps Wiki)
+- [Geospatial Data Sources](./Geospatial-Data-Sources.md) — providers, jobs, secrets, egress (DevOps runbook)
 - [Security](./Security.md) — πώς προστατεύουμε τα δεδομένα πελατών
 - [Technical Decision Log](./Technical-Decision-Log.md) — καταγραφή τεχνικών επιλογών

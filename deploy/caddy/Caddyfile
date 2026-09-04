@@ -2,6 +2,9 @@
 # Install: sudo bash deploy/caddy/install.sh
 
 agrotrack.conceptatlas.eu {
+	handle /uploads* {
+		reverse_proxy 127.0.0.1:31847
+	}
 	reverse_proxy 127.0.0.1:31848
 }
 

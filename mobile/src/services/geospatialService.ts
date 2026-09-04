@@ -1,5 +1,6 @@
 import api from './api';
 import { EntityCache } from '../utils/entityCache';
+import { resolvePublicAssetUrl } from '../config/env';
 
 export interface DataSourceMetadata {
   source: string;
@@ -312,6 +313,14 @@ const SATELLITE_DATES_CACHE = 'geospatial_satellite_dates';
 const MAP_DATA_CACHE = 'geospatial_map_data';
 const WEATHER_HISTORY_CACHE = 'geospatial_weather_history';
 
+const withPublicLayerUrls = (data: FieldMapData): FieldMapData => ({
+  ...data,
+  layers: data.layers.map((layer) => ({
+    ...layer,
+    imageUrl: resolvePublicAssetUrl(layer.imageUrl),
+  })),
+});
+
 /**
  * All geospatial data comes from the AgroTrack backend. The device never calls
  * Open-Meteo, Copernicus or FIRMS directly, and responses are cached so field
@@ -415,10 +424,12 @@ export const geospatialService = {
       const response = await api.get<FieldMapData>(`/api/v1/fields/${fieldId}/map-data`, {
         params: { layers: layerIds.join(','), observationId },
       });
-      await EntityCache.setOne<FieldMapData>(MAP_DATA_CACHE, cacheKey, response.data);
-      return response.data;
+      const mapped = withPublicLayerUrls(response.data);
+      await EntityCache.setOne<FieldMapData>(MAP_DATA_CACHE, cacheKey, mapped);
+      return mapped;
     } catch {
-      return EntityCache.getOne<FieldMapData>(MAP_DATA_CACHE, cacheKey);
+      const cached = await EntityCache.getOne<FieldMapData>(MAP_DATA_CACHE, cacheKey);
+      return cached ? withPublicLayerUrls(cached) : null;
     }
   },
 

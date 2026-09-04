@@ -27,6 +27,10 @@
 - Γίνονται backups της database σε τακτικό πρόγραμμα.
 - Η επαναφορά από backup έχει δοκιμαστεί τουλάχιστον μία φορά πριν ζωντανέψουν τα pilots.
 
+## Geospatial egress και storage
+
+Το API pod καλεί εξωτερικούς παρόχους (Open-Meteo, Earth Search, SoilGrids, Terrascope, FIRMS). Τα overlay PNG ζουν στο PVC `olive-lifecycle-uploads` και σερβίρονται από το API host (`Storage__PublicBasePath`). Λεπτομέρειες: [Geospatial Data Sources](./Geospatial-Data-Sources.md).
+
 ## Monitoring (ελαφρύ, προς το παρόν)
 
 - Ξέρουμε αν ο ιστότοπος είναι up ή down.
