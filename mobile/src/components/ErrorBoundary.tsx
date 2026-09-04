@@ -1,7 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { colors, typography, spacing, spacingPatterns } from '../theme';
-import Button from './ui/Button';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { colors, typography, spacing } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -130,12 +129,9 @@ class ErrorBoundary extends Component<Props, State> {
                 </View>
               )}
 
-              <Button
-                title="Try Again"
-                onPress={this.handleReset}
-                variant="primary"
-                style={styles.resetButton}
-              />
+              <Pressable onPress={this.handleReset} style={styles.resetButton}>
+                <Text style={styles.resetButtonText}>Try Again</Text>
+              </Pressable>
             </View>
           </ScrollView>
         </View>
@@ -161,7 +157,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: spacing.md,
     padding: spacing.xl,
-    ...spacingPatterns.shadow.lg,
   },
   errorIcon: {
     fontSize: 64,
@@ -201,6 +196,15 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     marginTop: spacing.md,
+    backgroundColor: colors.primaryDark,
+    borderRadius: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  resetButtonText: {
+    ...typography.styles.body,
+    color: colors.white,
+    fontWeight: typography.fontWeight.bold,
   },
 });
 

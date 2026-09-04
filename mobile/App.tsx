@@ -40,17 +40,17 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <I18nextProvider i18n={i18n}>
-          <PreferencesProvider>
-            <ThemeProvider>
-              <I18nSync>
-                <AuthProvider>
+          <AuthProvider>
+            <PreferencesProvider>
+              <ThemeProvider>
+                <I18nSync>
                   <OfflineProvider>
                     <AppInner />
                   </OfflineProvider>
-                </AuthProvider>
-              </I18nSync>
-            </ThemeProvider>
-          </PreferencesProvider>
+                </I18nSync>
+              </ThemeProvider>
+            </PreferencesProvider>
+          </AuthProvider>
         </I18nextProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

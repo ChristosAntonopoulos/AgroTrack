@@ -140,7 +140,7 @@ stages:
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
-  dependsOn: Package
+  dependsOn: Build
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
   - job: BuildMobile
@@ -149,11 +149,19 @@ stages:
       name: 'Default'
     steps:
     - task: NodeTool@0
-      displayName: 'Install Node.js'
+      displayName: 'Use Node.js 20'
       inputs:
         versionSpec: '20.x'
 
-    - script: 'cd mobile && npm install'
+    - task: Cache@2
+      displayName: 'Cache mobile npm packages'
+      inputs:
+        key: 'npm | "$(Agent.OS)" | mobile/package-lock.json'
+        restoreKeys: |
+          npm | "$(Agent.OS)"
+        path: $(Build.SourcesDirectory)/mobile/node_modules
+
+    - script: 'cd mobile && npm install --prefer-offline --no-audit --no-fund'
       displayName: 'Install mobile dependencies'
 
     - script: |

@@ -116,13 +116,23 @@ echo "ANDROID_HOME=${ANDROID_HOME}"
 echo "Building release APK with embedded JS bundle (no Metro, no EAS)..."
 
 rm -f "${OUTPUT_APK}" "${BUILD_INFO}" "${GRADLE_LOG}"
-npx expo prebuild --platform android --clean --no-install
+
+PREBUILD_STAMP="${ANDROID_DIR}/.agrotrack-prebuild-stamp"
+CURRENT_STAMP="$(cat "${MOBILE_DIR}/app.json" "${MOBILE_DIR}/package-lock.json" "${MOBILE_DIR}/package.json" | sha256sum | awk '{print $1}')"
+if [ ! -d "${ANDROID_DIR}" ] || [ ! -x "${ANDROID_DIR}/gradlew" ] || [ ! -f "${PREBUILD_STAMP}" ] || [ "$(cat "${PREBUILD_STAMP}")" != "${CURRENT_STAMP}" ]; then
+  echo "Native project missing or Expo plugins changed — expo prebuild --clean"
+  npx expo prebuild --platform android --clean --no-install
+  echo "${CURRENT_STAMP}" > "${PREBUILD_STAMP}"
+else
+  echo "Reusing android/ — expo prebuild without --clean"
+  npx expo prebuild --platform android --no-install
+fi
 node "${SCRIPT_DIR}/patch-android-alpha-signing.js"
 
 cd "${ANDROID_DIR}"
 chmod +x gradlew
 set +e
-./gradlew assembleRelease --no-daemon -x lint -x test 2>&1 | tee "${GRADLE_LOG}"
+./gradlew assembleRelease --build-cache -x lint -x test 2>&1 | tee "${GRADLE_LOG}"
 GRADLE_EXIT_STATUS="${PIPESTATUS[0]}"
 set -e
 
