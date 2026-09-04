@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LocaleProvider } from './context/LocaleProvider';
 import { NotificationProvider } from './context/NotificationContext';
 import { ExperienceModeProvider, useExperienceMode } from './context/ExperienceModeContext';
+import { OfflineProvider } from './context/OfflineContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import LandingPage from './pages/LandingPage';
@@ -34,6 +35,7 @@ import './App.css';
 
 const FullOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isEveryday } = useExperienceMode();
+  // Only kick off Full-only routes (analytics/reports/data-sources). Stay put elsewhere.
   if (isEveryday) return <Navigate to="/today" replace />;
   return children;
 };
@@ -44,6 +46,7 @@ function App() {
       <LocaleProvider>
         <AuthProvider>
           <ExperienceModeProvider>
+            <OfflineProvider>
             <NotificationProvider>
               <Router>
                 <Routes>
@@ -109,6 +112,7 @@ function App() {
                 </Routes>
               </Router>
             </NotificationProvider>
+            </OfflineProvider>
           </ExperienceModeProvider>
         </AuthProvider>
       </LocaleProvider>

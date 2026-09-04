@@ -1,6 +1,8 @@
 import api from './api';
 import { isMockMode } from './serviceFactory';
 import { demoStore } from './demo/demoStore';
+import { EntityCache } from '../utils/entityCache';
+import { isDeviceOnline, isNetworkError } from '../utils/networkStatus';
 
 export type FieldCapacity = 'own' | 'work' | 'advise' | 'help' | 'view';
 
@@ -81,8 +83,24 @@ const mockMemberships = (fieldId: string): FieldMembership[] => {
 export const fieldPeopleService = {
   getPeople: async (fieldId: string): Promise<FieldMembership[]> => {
     if (isMockMode()) return mockMemberships(fieldId);
-    const response = await api.get<FieldMembership[]>(`/api/v1/fields/${fieldId}/people`);
-    return response.data;
+
+    if (!isDeviceOnline()) {
+      const cached = EntityCache.getPeople(fieldId);
+      if (cached) return cached.data;
+      throw new Error('No cached people available offline');
+    }
+
+    try {
+      const response = await api.get<FieldMembership[]>(`/api/v1/fields/${fieldId}/people`);
+      EntityCache.setPeople(fieldId, response.data);
+      return response.data;
+    } catch (err: unknown) {
+      if (isNetworkError(err)) {
+        const cached = EntityCache.getPeople(fieldId);
+        if (cached) return cached.data;
+      }
+      throw err;
+    }
   },
 
   upsertMembership: async (

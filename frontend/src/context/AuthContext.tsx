@@ -51,6 +51,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    try {
+      // Clear entity cache on logout so the next user never sees stale data.
+      void import('../utils/entityCache').then(({ EntityCache }) => EntityCache.clearAll());
+      void import('../utils/offlineQueue').then(({ OfflineQueue }) => OfflineQueue.clearQueue());
+    } catch {
+      // ignore
+    }
     authService.logout();
     setUser(null);
   };

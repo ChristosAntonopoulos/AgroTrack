@@ -1,8 +1,7 @@
 import api from './api';
 import { OfflineQueue } from '../utils/offlineQueue';
-
-const isNetworkError = (err: any) =>
-  !!err && !err.response && (err.code === 'ERR_NETWORK' || err.message === 'Network Error');
+import { EntityCache } from '../utils/entityCache';
+import { createTempFieldId, isDeviceOnline, isNetworkError } from '../utils/networkStatus';
 
 const getCurrentUserId = () => {
   try {
@@ -171,25 +170,60 @@ export interface ActivateFieldResponse {
 
 export const fieldService = {
   getFields: async (): Promise<Field[]> => {
-    const response = await api.get<Field[]>('/api/v1/fields');
-    return response.data;
+    const userId = getCurrentUserId();
+
+    if (!isDeviceOnline()) {
+      if (userId) {
+        const cached = EntityCache.getFields(userId);
+        if (cached) return cached.data;
+      }
+      throw new Error('No cached fields available offline');
+    }
+
+    try {
+      const response = await api.get<Field[]>('/api/v1/fields');
+      if (userId) EntityCache.setFields(userId, response.data);
+      return response.data;
+    } catch (err: unknown) {
+      if (isNetworkError(err) && userId) {
+        const cached = EntityCache.getFields(userId);
+        if (cached) return cached.data;
+      }
+      throw err;
+    }
   },
 
   getField: async (id: string): Promise<Field> => {
-    const response = await api.get<Field>(`/api/v1/fields/${id}`);
-    return response.data;
+    if (!isDeviceOnline()) {
+      const cached = EntityCache.getField(id);
+      if (cached) return cached.data;
+      throw new Error('No cached field available offline');
+    }
+
+    try {
+      const response = await api.get<Field>(`/api/v1/fields/${id}`);
+      EntityCache.setField(response.data);
+      return response.data;
+    } catch (err: unknown) {
+      if (isNetworkError(err)) {
+        const cached = EntityCache.getField(id);
+        if (cached) return cached.data;
+      }
+      throw err;
+    }
   },
 
   createField: async (data: CreateFieldDto): Promise<Field> => {
     try {
       const response = await api.post<Field>('/api/v1/fields', data);
+      EntityCache.setField(response.data);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isNetworkError(err)) {
-        await OfflineQueue.addOperation({ method: 'post', endpoint: '/api/v1/fields', data });
+        const tempId = createTempFieldId();
         const now = new Date().toISOString();
-        return {
-          id: `temp-field-${Date.now()}`,
+        const optimistic: Field = {
+          id: tempId,
           ownerId: getCurrentUserId() || 'unknown',
           name: data.name,
           latitude: data.latitude,
@@ -205,14 +239,54 @@ export const fieldService = {
           createdAt: now,
           updatedAt: now,
         };
+        EntityCache.setField(optimistic);
+        await OfflineQueue.addOperation({
+          method: 'post',
+          endpoint: '/api/v1/fields',
+          data,
+          entityType: 'field',
+          tempEntityId: tempId,
+        });
+        return optimistic;
       }
       throw err;
     }
   },
 
   updateField: async (id: string, data: UpdateFieldDto): Promise<Field> => {
-    const response = await api.put<Field>(`/api/v1/fields/${id}`, data);
-    return response.data;
+    try {
+      const response = await api.put<Field>(`/api/v1/fields/${id}`, data);
+      EntityCache.setField(response.data);
+      return response.data;
+    } catch (err: unknown) {
+      if (isNetworkError(err)) {
+        const patched = EntityCache.patchField(id, data as Partial<Field>);
+        const now = new Date().toISOString();
+        const optimistic =
+          patched ??
+          ({
+            id,
+            ownerId: getCurrentUserId() || 'unknown',
+            name: data.name ?? 'Field',
+            area: data.area ?? 0,
+            irrigationStatus: data.irrigationStatus ?? false,
+            currentLifecycleYear: 'low',
+            createdAt: now,
+            updatedAt: now,
+            ...data,
+          } as Field);
+        EntityCache.setField(optimistic);
+        await OfflineQueue.addOperation({
+          method: 'put',
+          endpoint: `/api/v1/fields/${id}`,
+          data,
+          entityType: 'field',
+          entityId: id,
+        });
+        return optimistic;
+      }
+      throw err;
+    }
   },
 
   deleteField: async (id: string): Promise<void> => {
@@ -233,6 +307,7 @@ export const fieldService = {
 
   updateBoundary: async (id: string, boundary: GeoJsonPolygon): Promise<Field> => {
     const response = await api.put<Field>(`/api/v1/fields/${id}/boundary`, { boundary });
+    EntityCache.setField(response.data);
     return response.data;
   },
 
@@ -243,6 +318,7 @@ export const fieldService = {
 
   activateField: async (id: string, request: ActivateFieldRequest): Promise<ActivateFieldResponse> => {
     const response = await api.post<ActivateFieldResponse>(`/api/v1/fields/${id}/activate`, request);
+    EntityCache.setField(response.data.field);
     return response.data;
   },
 

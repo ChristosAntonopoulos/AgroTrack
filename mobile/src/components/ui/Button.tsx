@@ -89,7 +89,7 @@ const Button: React.FC<ButtonProps> = ({
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
           fontSize: typography.fontSize.sm * fontScaleMultiplier,
-          minHeight: Math.max(tapMin * 0.8, 36),
+          minHeight: tapMin,
         };
       case 'large':
         return {

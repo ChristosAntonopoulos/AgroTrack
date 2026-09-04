@@ -66,8 +66,6 @@ const MinistryNotificationsPage: React.FC = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner fullScreen />;
-
   return (
     <PageContainer>
       <div className="ministry-page">
@@ -94,7 +92,7 @@ const MinistryNotificationsPage: React.FC = () => {
               size="sm"
               icon={<CheckCircle2 />}
               onClick={handleMarkAllAsRead}
-              disabled={notifications.length === 0 || unreadCount === 0}
+              disabled={loading || notifications.length === 0 || unreadCount === 0}
             >
               {t('ministry:markAllRead')}
             </Button>
@@ -107,9 +105,13 @@ const MinistryNotificationsPage: React.FC = () => {
 
         {error ? <div className="error-message">{error}</div> : null}
 
-        <Card padding="md">
-          <MinistryNotificationList notifications={notifications} onMarkAsRead={handleMarkAsRead} onOpen={handleOpen} />
-        </Card>
+        {loading ? (
+          <LoadingSpinner className="page-inline-loading" />
+        ) : (
+          <Card padding="md">
+            <MinistryNotificationList notifications={notifications} onMarkAsRead={handleMarkAsRead} onOpen={handleOpen} />
+          </Card>
+        )}
       </div>
     </PageContainer>
   );

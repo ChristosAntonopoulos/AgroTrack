@@ -69,8 +69,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
           <NotificationBell />
 
-          <ExperienceModeToggle compact />
-
           <div className="user-menu">
             <div className="user-info">
               <User className="user-icon" />

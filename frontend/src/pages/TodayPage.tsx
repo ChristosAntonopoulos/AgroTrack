@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
+import { useOfflineMode } from '../context/OfflineContext';
+import { isDeviceOnline } from '../utils/networkStatus';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Card from '../components/Common/Card';
@@ -41,6 +43,7 @@ const TodayPage: React.FC = () => {
   const { formatDate } = useLocaleFormatters();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
 
   const [loading, setLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
@@ -50,6 +53,7 @@ const TodayPage: React.FC = () => {
   const [apiTasks, setApiTasks] = useState<Task[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     if (isMockMode()) {
       demoStore.ensureSeeded();
       if (user?.userId) {
@@ -58,30 +62,37 @@ const TodayPage: React.FC = () => {
     } else if (user?.userId) {
       void (async () => {
         try {
-          // Load all tasks on fields the user can see — capacity (not role) decides work list.
           const [fieldsData, tasksData] = await Promise.all([
             getFieldService().getFields(),
             getTaskService().getTasks(),
           ]);
-          setApiFields(fieldsData);
-          setApiTasks(tasksData);
+          if (!cancelled) {
+            setApiFields(fieldsData);
+            setApiTasks(tasksData);
+            setShowingCachedData(!isDeviceOnline());
+          }
         } catch {
-          setApiFields([]);
-          setApiTasks([]);
+          if (!cancelled) {
+            setApiFields([]);
+            setApiTasks([]);
+          }
         }
       })();
     }
     (async () => {
       try {
         const loc = await locationService.getCurrentLocation({ enableHighAccuracy: false, timeoutMs: 5000 });
-        setCurrentLocation(loc);
+        if (!cancelled) setCurrentLocation(loc);
       } catch (e: any) {
-        setLocationError(e?.message || 'Location unavailable');
+        if (!cancelled) setLocationError(e?.message || 'Location unavailable');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [user?.userId, user?.role]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.userId, user?.role, refreshGeneration, setShowingCachedData]);
 
   const producerId = user?.userId;
   const role = user?.role || '';
@@ -97,7 +108,6 @@ const TodayPage: React.FC = () => {
     }
     return { fields: apiFields, tasks: apiTasks };
   }, [apiFields, apiTasks]);
-
   const myOpenTasks = useMemo(() => {
     if (!producerId) return [];
     const workFieldIds = new Set(
@@ -236,7 +246,22 @@ const TodayPage: React.FC = () => {
     return [37.7749, -122.4194];
   }, [currentLocation, routeFields]);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="today-page">
+          <Breadcrumbs />
+          <div className="today-header">
+            <div>
+              <h1>{t('today:title')}</h1>
+              <p className="today-subtitle">{t('today:subtitle')}</p>
+            </div>
+          </div>
+          <LoadingSpinner className="page-inline-loading" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>

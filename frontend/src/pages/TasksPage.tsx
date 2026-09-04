@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useOfflineMode } from '../context/OfflineContext';
+import { isDeviceOnline } from '../utils/networkStatus';
 import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Task } from '../services/taskService';
 import { Field } from '../services/fieldService';
@@ -44,6 +46,7 @@ const TasksPage: React.FC = () => {
   const { t } = useTranslation(['tasks', 'common', 'errors', 'taskTemplates']);
   const { user } = useAuth();
   const { showWidget, isEveryday } = useExperienceMode();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const labels = useTaskTemplateLabels();
   const localizedTemplates = useAllLocalizedTemplates();
 
@@ -71,11 +74,12 @@ const TasksPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [user?.role, user?.userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.userId, refreshGeneration]);
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (tasks.length === 0) setLoading(true);
       const taskService = getTaskService();
       const userId = user?.role === 'Producer' ? user.userId : undefined;
       const [tasksData, fieldsData] = await Promise.all([
@@ -84,6 +88,7 @@ const TasksPage: React.FC = () => {
       ]);
       setTasks(tasksData);
       setFields(fieldsData);
+      setShowingCachedData(!isDeviceOnline());
       if (fieldsData.length > 0 && !templateFieldId) {
         setTemplateFieldId(fieldsData[0].id);
       }
@@ -137,10 +142,6 @@ const TasksPage: React.FC = () => {
   const subtitle =
     user?.role === 'Producer' ? t('tasks:subtitleProducer') : t('tasks:subtitleDefault');
 
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
-
   return (
     <PageContainer>
       <div className="tasks-page">
@@ -160,6 +161,10 @@ const TasksPage: React.FC = () => {
           )}
         </header>
 
+        {loading ? (
+          <LoadingSpinner className="page-inline-loading" />
+        ) : (
+          <>
         {error && <div className="tasks-error">{error}</div>}
 
         <div className="tasks-summary-strip">
@@ -364,6 +369,8 @@ const TasksPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </>
+        )}
           </>
         )}
       </div>

@@ -13,6 +13,7 @@ export type MainTabParamList = {
   Fields: undefined;
   Tasks: { fieldId?: string; filter?: string } | undefined;
   More: undefined;
+  Settings: undefined;
 };
 
 export type RootStackParamList = {

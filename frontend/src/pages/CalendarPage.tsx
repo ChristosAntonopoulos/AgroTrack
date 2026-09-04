@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useOfflineMode } from '../context/OfflineContext';
 import { getCalendarService, getFieldService, getTaskService } from '../services/serviceFactory';
+import { isDeviceOnline } from '../utils/networkStatus';
 import { CalendarEvent, CalendarFilters } from '../services/calendarService';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
@@ -54,6 +56,7 @@ const CalendarPage: React.FC = () => {
   const { t, i18n } = useTranslation('calendar');
   const { user } = useAuth();
   const { isEveryday, showWidget } = useExperienceMode();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
   const localizedTemplates = useAllLocalizedTemplates();
   const dateLocale = i18n.language === 'el' ? el : enUS;
@@ -131,23 +134,24 @@ const CalendarPage: React.FC = () => {
     if (user?.userId && (user.role === 'FieldOwner' || user.role === 'Administrator')) {
       demoStore.markDemoStep(user.userId, user.role, 'owner_visit_calendar');
     }
-  }, []);
+  }, [refreshGeneration]);
 
   useEffect(() => {
     loadEvents();
-  }, [currentDate, viewMode, filters, selectedFieldId]);
+  }, [currentDate, viewMode, filters, selectedFieldId, refreshGeneration]);
 
   useEffect(() => {
     getTaskService()
       .getTasks(selectedFieldId || undefined)
       .then(setFieldTasks)
       .catch(() => setFieldTasks([]));
-  }, [selectedFieldId]);
+  }, [selectedFieldId, refreshGeneration]);
 
   const loadFields = async () => {
     try {
       const fieldsData = await getFieldService().getFields();
       setFields(fieldsData);
+      setShowingCachedData(!isDeviceOnline());
     } catch (error) {
       console.error('Error loading fields:', error);
     }
@@ -155,7 +159,7 @@ const CalendarPage: React.FC = () => {
 
   const loadEvents = async () => {
     try {
-      setLoading(true);
+      if (events.length === 0) setLoading(true);
       const calendarService = getCalendarService();
 
       let rangeStart: Date;

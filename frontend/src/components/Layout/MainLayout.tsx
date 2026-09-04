@@ -2,16 +2,13 @@ import React, { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import OfflineBanner from '../Offline/OfflineBanner';
 import { useExperienceMode } from '../../context/ExperienceModeContext';
 import './MainLayout.css';
 
 const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { experienceModeChosen } = useExperienceMode();
-
-  if (!experienceModeChosen) {
-    return <Navigate to="/experience" replace />;
-  }
 
   if (!experienceModeChosen) {
     return <Navigate to="/experience" replace />;
@@ -26,6 +23,7 @@ const MainLayout: React.FC = () => {
         </div>
         {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
         <main className="main-content">
+          <OfflineBanner />
           <Outlet />
         </main>
       </div>

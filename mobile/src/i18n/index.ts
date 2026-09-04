@@ -12,6 +12,7 @@ import enSettings from '../locales/en/settings.json';
 import enErrors from '../locales/en/errors.json';
 import enCalendar from '../locales/en/calendar.json';
 import enToday from '../locales/en/today.json';
+import enTutorial from '../locales/en/tutorial.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -23,6 +24,7 @@ import elSettings from '../locales/el/settings.json';
 import elErrors from '../locales/el/errors.json';
 import elCalendar from '../locales/el/calendar.json';
 import elToday from '../locales/el/today.json';
+import elTutorial from '../locales/el/tutorial.json';
 
 const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
 const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
@@ -41,6 +43,7 @@ i18n.use(initReactI18next).init({
       errors: enErrors,
       calendar: enCalendar,
       today: enToday,
+      tutorial: enTutorial,
     },
     el: {
       auth: elAuth,
@@ -53,6 +56,7 @@ i18n.use(initReactI18next).init({
       errors: elErrors,
       calendar: elCalendar,
       today: elToday,
+      tutorial: elTutorial,
     },
   },
   lng: defaultLng,

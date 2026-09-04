@@ -57,7 +57,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
         <View style={styles.titleRow}>
           <View style={[styles.typeDot, { backgroundColor: categoryColor }]} />
           <Text
-            style={[styles.taskTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
+            style={[
+              styles.taskTitle,
+              {
+                color: colors.textPrimary,
+                fontSize: 16 * fontScaleMultiplier,
+                lineHeight: 22 * fontScaleMultiplier,
+              },
+            ]}
             numberOfLines={compact ? 1 : 2}
           >
             {task.title}
@@ -182,7 +189,6 @@ const styles = StyleSheet.create({
   taskTitle: {
     ...typography.styles.body,
     fontWeight: '700',
-    lineHeight: 22,
     flex: 1,
   },
   badgeRow: {

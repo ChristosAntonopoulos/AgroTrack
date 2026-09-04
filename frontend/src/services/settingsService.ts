@@ -4,8 +4,6 @@ import type { ExperienceMode, FontScale } from '../experience/types';
 export type Theme = 'light' | 'dark' | 'white';
 export type { ExperienceMode, FontScale };
 
-export type { ExperienceMode, FontScale };
-
 export interface UserPreferences {
   theme: Theme;
   dateFormat: string;

@@ -21,6 +21,7 @@ interface Props {
   showDataLayers?: boolean;
 }
 
+/** Create custom panes before ImageOverlay mounts (pane="field-overlay"). */
 const EnsureMapPanes: React.FC = () => {
   const map = useMap();
   if (!map.getPane('field-overlay')) {
@@ -64,7 +65,7 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
   const { showWidget, recordIntelligenceOpen, isEveryday } = useExperienceMode();
   const allowDataLayers = showDataLayers && showWidget('satelliteLayers') && showWidget('mapLayerPanel');
   const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
-  const [opacity, setOpacity] = useState(0.5);
+  const [opacity, setOpacity] = useState(0.75);
   const [layerInfo, setLayerInfo] = useState<DataSourceInfo>();
   const [layersPeeked, setLayersPeeked] = useState(false);
   const center = useMemo(() => resolveFieldCenter(field), [field]);
@@ -143,19 +144,9 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             >
               {t('fields:addField.mapLayerStreet')}
             </button>
-            {isEveryday ? (
-              <button
-                type="button"
-                className="field-detail-map-full-hint"
-                onClick={() => setExperienceMode('full')}
-              >
-                {t('settings:experience.switchForDetails')}
-              </button>
-            ) : null}
           </div>
         )}
 
-        <div className="field-detail-map-canvas">
         <MapContainer center={center} zoom={16} scrollWheelZoom className="field-detail-map-leaflet">
           <EnsureMapPanes />
           {baseLayer === 'satellite' ? (
@@ -186,7 +177,6 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
               url={activeLayer.tileUrlTemplate}
               opacity={opacity}
               attribution={activeLayer.attribution}
-              pane="field-overlay"
             />
           ) : null}
 
@@ -194,11 +184,12 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
           {polygon?.length ? (
             <Polygon
               positions={polygon}
-              pane="field-boundary"
               pathOptions={activeLayerId ? FIELD_BOUNDARY_OUTLINE : FIELD_POLYGON_STYLE}
+              pane="field-boundary"
             />
           ) : null}
         </MapContainer>
+
         {activeLayer?.legend && activeDefinition ? (
           <MapLayerLegend
             legend={activeLayer.legend}
@@ -206,7 +197,7 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             attribution={activeLayer.attribution}
           />
         ) : null}
-        </div>
+      </div>
 
       {allowDataLayers || layersPeeked ? (
         definitions.length > 0 ? (
@@ -223,31 +214,13 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             {definitions.map((definition) => (
               <button
                 type="button"
-                className={!activeLayerId ? 'active' : ''}
-                onClick={() => selectLayer(undefined)}
+                key={definition.id}
+                className={activeLayerId === definition.id ? 'active' : ''}
+                onClick={() => selectLayer(definition.id)}
               >
-                {t('fields:mapLayers.none')}
+                {t(`fields:mapLayers.names.${definition.id}`, definition.name)}
               </button>
-              {definitions.map((definition) => (
-                <button
-                  type="button"
-                  key={definition.id}
-                  className={activeLayerId === definition.id ? 'active' : ''}
-                  onClick={() => selectLayer(definition.id)}
-                >
-                  {t(`fields:mapLayers.names.${definition.id}`, definition.name)}
-                </button>
-              ))}
-            </div>
-            {satelliteLayerActive ? (
-              <SatelliteDateSelector
-                dates={dates}
-                selectedId={selectedDateId}
-                onSelect={selectDate}
-                compareId={compareDateId}
-                onCompareSelect={selectCompareDate}
-              />
-            ) : null}
+            ))}
           </div>
         </div>
         ) : null

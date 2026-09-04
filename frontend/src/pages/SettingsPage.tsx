@@ -5,7 +5,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleProvider';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { settingsService, UserPreferences, Theme } from '../services/settingsService';
-import type { ExperienceMode, FontScale } from '../experience/types';
 import { isMockMode } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
@@ -34,7 +33,6 @@ const SettingsPage: React.FC = () => {
     if (prefs.theme !== theme) {
       setTheme(prefs.theme as Theme);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePreferenceChange = (key: keyof UserPreferences, value: UserPreferences[keyof UserPreferences]) => {
@@ -48,29 +46,11 @@ const SettingsPage: React.FC = () => {
     if (key === 'language') {
       setLocale(value as SupportedLocale);
     }
-
-    if (key === 'experienceMode') {
-      setExperienceMode(value as ExperienceMode);
-    }
-
-    if (key === 'fontScale') {
-      setFontScale(value as FontScale);
-    }
-
-    if (key === 'largeControls') {
-      setLargeControls(Boolean(value));
-    }
   };
 
   const handleSave = () => {
     setSaving(true);
-    settingsService.savePreferences({
-      ...preferences,
-      experienceMode,
-      fontScale,
-      largeControls,
-      experienceModeChosen: true,
-    });
+    settingsService.savePreferences(preferences);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -132,23 +112,6 @@ const SettingsPage: React.FC = () => {
           <Card className="settings-section">
             <div className="section-header">
               <Droplet />
-              <h2>{t('experience.label')}</h2>
-            </div>
-            <div className="section-content">
-              <div className="preference-item">
-                <ExperienceModeToggle />
-                <p className="preference-help">
-                  {experienceMode === 'everyday'
-                    ? t('experience.everydayDesc')
-                    : t('experience.fullDesc')}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="settings-section">
-            <div className="section-header">
-              <Type />
               <h2>{t('preferences.title')}</h2>
             </div>
             <div className="section-content">
@@ -171,33 +134,6 @@ const SettingsPage: React.FC = () => {
               </div>
 
               <div className="preference-item">
-                <label>{t('preferences.fontScale')}</label>
-                <div className="theme-selector">
-                  {(['default', 'large', 'xl'] as FontScale[]).map((scale) => (
-                    <button
-                      key={scale}
-                      type="button"
-                      className={`theme-option ${fontScale === scale ? 'active' : ''}`}
-                      onClick={() => handlePreferenceChange('fontScale', scale)}
-                    >
-                      <span>{t(`preferences.fontScales.${scale}`)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="notification-item">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={largeControls}
-                    onChange={(e) => handlePreferenceChange('largeControls', e.target.checked)}
-                  />
-                  <span>{t('preferences.largeControls')}</span>
-                </label>
-              </div>
-
-              <div className="preference-item">
                 <label>{t('preferences.dateFormat')}</label>
                 <select
                   value={preferences.dateFormat}
@@ -216,7 +152,6 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => handlePreferenceChange('defaultView', e.target.value)}
                 >
                   <option value="dashboard">{t('preferences.defaultViews.dashboard')}</option>
-                  <option value="today">{t('preferences.defaultViews.today')}</option>
                   <option value="fields">{t('preferences.defaultViews.fields')}</option>
                   <option value="tasks">{t('preferences.defaultViews.tasks')}</option>
                   <option value="calendar">{t('preferences.defaultViews.calendar')}</option>

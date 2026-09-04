@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Layers, ListChecks } from 'lucide-react';
 import { useExperienceMode } from '../../context/ExperienceModeContext';
 import type { ExperienceMode } from '../../experience/types';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import './ExperienceModeToggle.css';
 
 interface ExperienceModeToggleProps {
@@ -13,13 +11,11 @@ interface ExperienceModeToggleProps {
 
 const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = false }) => {
   const { t } = useTranslation('settings');
-  const { experienceMode, setExperienceMode, rehomePathForMode } = useExperienceMode();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { experienceMode, setExperienceMode } = useExperienceMode();
 
   const select = (mode: ExperienceMode) => {
+    if (mode === experienceMode) return;
     setExperienceMode(mode);
-    navigate(rehomePathForMode(mode, user?.role), { replace: false });
   };
 
   return (
@@ -35,9 +31,10 @@ const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = f
         aria-pressed={experienceMode === 'everyday'}
         title={t('experience.everyday')}
       >
-        <ListChecks size={compact ? 16 : 18} aria-hidden />
-        {!compact && <span>{t('experience.everyday')}</span>}
-        {compact && <span className="experience-mode-btn-short">{t('experience.everydayShort')}</span>}
+        {!compact && <ListChecks size={18} aria-hidden />}
+        <span className={compact ? 'experience-mode-btn-short' : undefined}>
+          {compact ? t('experience.everydayShort') : t('experience.everyday')}
+        </span>
       </button>
       <button
         type="button"
@@ -46,9 +43,10 @@ const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = f
         aria-pressed={experienceMode === 'full'}
         title={t('experience.full')}
       >
-        <Layers size={compact ? 16 : 18} aria-hidden />
-        {!compact && <span>{t('experience.full')}</span>}
-        {compact && <span className="experience-mode-btn-short">{t('experience.fullShort')}</span>}
+        {!compact && <Layers size={18} aria-hidden />}
+        <span className={compact ? 'experience-mode-btn-short' : undefined}>
+          {compact ? t('experience.fullShort') : t('experience.full')}
+        </span>
       </button>
     </div>
   );

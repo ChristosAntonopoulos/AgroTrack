@@ -65,6 +65,15 @@
   color: inherit;
 }
 
+.page-inline-loading {
+  display: flex;
+  width: 100%;
+  min-height: 12rem;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl, 2rem) 0;
+}
+
 @keyframes spinner-spin {
   to {
     transform: rotate(360deg);

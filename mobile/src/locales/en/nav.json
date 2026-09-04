@@ -6,7 +6,12 @@
   "fields": "Fields",
   "tasks": "Tasks",
   "more": "More",
+  "settings": "Settings",
   "fieldsOwner": "My Fields",
   "tasksProducer": "My Tasks",
-  "notifications": "Notifications"
+  "notifications": "Notifications",
+  "sections": {
+    "work": "Work",
+    "account": "Account"
+  }
 }

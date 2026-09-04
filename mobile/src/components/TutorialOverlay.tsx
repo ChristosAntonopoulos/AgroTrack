@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { typography, spacing } from '../theme';
-import Button from '../components/ui/Button';
+import Button from './ui/Button';
 
 export interface TutorialStep {
   id: string;
   titleKey: string;
   bodyKey: string;
-  targetArea?: {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  };
 }
 
 interface TutorialOverlayProps {
@@ -26,10 +19,8 @@ interface TutorialOverlayProps {
   onSkip: () => void;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ visible, steps, onComplete, onSkip }) => {
-  const { t } = useTranslation('tutorial');
+  const { t } = useTranslation(['tutorial', 'common']);
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -53,103 +44,11 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ visible, steps, onCom
     }
   };
 
-  const targetArea = currentStep.targetArea;
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onSkip}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onSkip}>
       <View style={styles.overlay}>
-        {/* Dimmed backdrop with cutout for highlighted area */}
-        <View style={StyleSheet.absoluteFill}>
-          {targetArea ? (
-            <>
-              {/* Top */}
-              <View
-                style={[
-                  styles.backdrop,
-                  {
-                    backgroundColor: colors.shadow + 'E6',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: targetArea.top,
-                  },
-                ]}
-              />
-              {/* Left */}
-              <View
-                style={[
-                  styles.backdrop,
-                  {
-                    backgroundColor: colors.shadow + 'E6',
-                    top: targetArea.top,
-                    left: 0,
-                    width: targetArea.left,
-                    height: targetArea.height,
-                  },
-                ]}
-              />
-              {/* Right */}
-              <View
-                style={[
-                  styles.backdrop,
-                  {
-                    backgroundColor: colors.shadow + 'E6',
-                    top: targetArea.top,
-                    left: targetArea.left + targetArea.width,
-                    right: 0,
-                    height: targetArea.height,
-                  },
-                ]}
-              />
-              {/* Bottom */}
-              <View
-                style={[
-                  styles.backdrop,
-                  {
-                    backgroundColor: colors.shadow + 'E6',
-                    top: targetArea.top + targetArea.height,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                  },
-                ]}
-              />
-              {/* Highlight border */}
-              <View
-                style={[
-                  styles.highlight,
-                  {
-                    top: targetArea.top - 4,
-                    left: targetArea.left - 4,
-                    width: targetArea.width + 8,
-                    height: targetArea.height + 8,
-                    borderColor: colors.primary,
-                  },
-                ]}
-              />
-            </>
-          ) : (
-            <View
-              style={[
-                styles.backdrop,
-                {
-                  backgroundColor: colors.shadow + 'E6',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                },
-              ]}
-            />
-          )}
-        </View>
+        <View style={[styles.backdrop, { backgroundColor: colors.shadow + 'E6' }]} />
 
-        {/* Coach card */}
         <View style={styles.cardWrapper}>
           <View
             style={[
@@ -162,21 +61,26 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ visible, steps, onCom
           >
             <View style={styles.cardHeader}>
               <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
-                {t(currentStep.titleKey, { defaultValue: currentStep.id })}
+                {t(currentStep.titleKey)}
               </Text>
-              <Pressable
-                style={[styles.skipButton, { minHeight: tapMin * 0.7 }]}
-                onPress={onSkip}
-                hitSlop={8}
-              >
+              <Pressable style={[styles.skipButton, { minHeight: tapMin }]} onPress={onSkip} hitSlop={8}>
                 <Text style={[styles.skipText, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
-                  {t('common:skip', { defaultValue: 'Skip' })}
+                  {t('common:skip')}
                 </Text>
               </Pressable>
             </View>
 
-            <Text style={[styles.cardBody, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
-              {t(currentStep.bodyKey, { defaultValue: '' })}
+            <Text
+              style={[
+                styles.cardBody,
+                {
+                  color: colors.textSecondary,
+                  fontSize: 16 * fontScaleMultiplier,
+                  lineHeight: 24 * fontScaleMultiplier,
+                },
+              ]}
+            >
+              {t(currentStep.bodyKey)}
             </Text>
 
             <View style={styles.cardFooter}>
@@ -195,7 +99,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ visible, steps, onCom
               </View>
 
               <Button
-                title={isLastStep ? t('common:done', { defaultValue: 'Done' }) : t('common:next', { defaultValue: 'Next' })}
+                title={isLastStep ? t('common:done') : t('common:next')}
                 onPress={handleNext}
                 size="medium"
               />
@@ -213,13 +117,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   backdrop: {
-    position: 'absolute',
-  },
-  highlight: {
-    position: 'absolute',
-    borderWidth: 3,
-    borderRadius: 12,
-    borderStyle: 'dashed',
+    ...StyleSheet.absoluteFillObject,
   },
   cardWrapper: {
     position: 'absolute',
@@ -260,7 +158,6 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     ...typography.styles.body,
-    lineHeight: 24,
     marginBottom: spacing.lg,
   },
   cardFooter: {

@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import { useAuth } from '../context/AuthContext';
+import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService } from '../services/serviceFactory';
 import { getLifecycleService } from '../services/serviceFactory';
 import { getTaskService } from '../services/serviceFactory';
 import { getUserService, isMockMode } from '../services/serviceFactory';
+import { isDeviceOnline } from '../utils/networkStatus';
 import { Field } from '../services/fieldService';
 import { Lifecycle } from '../services/lifecycleService';
 import { Task } from '../services/taskService';
@@ -55,6 +57,7 @@ const FieldDetailPage: React.FC = () => {
     showWidget,
     recordIntelligenceOpen,
   } = useExperienceMode();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const [field, setField] = useState<Field | null>(null);
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -68,7 +71,6 @@ const FieldDetailPage: React.FC = () => {
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
   const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
-  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
 
   const [controlRoomTab, setControlRoomTab] = useState<ControlRoomTab>('board');
   const handledInitialAction = useRef(false);
@@ -79,7 +81,8 @@ const FieldDetailPage: React.FC = () => {
       loadLifecycle();
       loadTasks();
     }
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, refreshGeneration]);
 
   useEffect(() => {
     if (!user?.userId) return;
@@ -113,10 +116,11 @@ const FieldDetailPage: React.FC = () => {
 
   const loadField = async () => {
     try {
-      setLoading(true);
+      if (!field) setLoading(true);
       const fieldService = getFieldService();
       const data = await fieldService.getField(id!);
       setField(data);
+      setShowingCachedData(!isDeviceOnline());
     } catch (err: any) {
       setError(err.response?.data?.message || t('fields:controlRoom.failedLoad'));
     } finally {
@@ -369,7 +373,15 @@ const FieldDetailPage: React.FC = () => {
   const fieldCenter = field ? resolveFieldCenter(field) : null;
   const measuredAreaSqm = field ? formatFieldAreaSqm(field) : undefined;
 
-  if (loading) {    return <LoadingSpinner fullScreen />;
+  if (loading) {
+    return (
+      <PageContainer maxWidth="full" padding="sm">
+        <div className="field-detail-page">
+          <Breadcrumbs />
+          <LoadingSpinner className="page-inline-loading" />
+        </div>
+      </PageContainer>
+    );
   }
 
   if (error || !field) {
@@ -512,7 +524,6 @@ const FieldDetailPage: React.FC = () => {
                 </div>
               )}
             </div>
-            </div>
 
             {(field.greekCadastre?.officialAreaSqm || measuredAreaSqm) && showWidget('cadastreDetails') && (
               <AreaComparisonCard
@@ -525,13 +536,13 @@ const FieldDetailPage: React.FC = () => {
 
         <FullPictureOnramp />
 
-        {showWidget('peopleStrip') ? (
+        {isEveryday && showWidget('peopleStrip') ? (
           <FieldPeoplePanel
             fieldId={field.id}
             fieldName={field.name}
             canManage={canOwn}
             canAdvise={capacity.canAdvise}
-            compact={isEveryday}
+            compact
             initialMemberships={field.memberships}
           />
         ) : null}

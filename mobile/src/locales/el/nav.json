@@ -6,7 +6,12 @@
   "fields": "Αγροτεμάχια",
   "tasks": "Εργασίες",
   "more": "Περισσότερα",
+  "settings": "Ρυθμίσεις",
   "fieldsOwner": "Τα αγροτεμάχια μου",
   "tasksProducer": "Οι εργασίες μου",
-  "notifications": "Ειδοποιήσεις"
+  "notifications": "Ειδοποιήσεις",
+  "sections": {
+    "work": "Εργασία",
+    "account": "Λογαριασμός"
+  }
 }

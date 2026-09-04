@@ -75,5 +75,14 @@
     "empty": "Nessuna notifica",
     "markAllRead": "Segna tutte come lette",
     "clearAll": "Cancella tutte"
+  },
+  "retry": "Riprova",
+  "language": "Lingua",
+  "offline": {
+    "offline": "Sei offline. Le modifiche si sincronizzeranno quando torni online.",
+    "offlineCached": "Sei offline. Mostro gli ultimi campi e attività salvati.",
+    "offlineWithPending": "Sei offline. {{count}} modifica(e) in attesa di sincronizzazione.",
+    "pending": "{{count}} modifica(e) in attesa. Tocca riprova per sincronizzare.",
+    "syncing": "Sincronizzazione di {{count}} modifica(e)…"
   }
 }

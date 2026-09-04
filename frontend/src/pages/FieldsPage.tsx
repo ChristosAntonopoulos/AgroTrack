@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService, getTaskService, getUserService, isMockMode } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
 import { User } from '../services/userService';
 import { demoStore } from '../services/demo/demoStore';
 import { getApiErrorMessage } from '../utils/translateApiError';
+import { isDeviceOnline } from '../utils/networkStatus';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
@@ -35,6 +37,7 @@ const FieldsPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common', 'errors']);
   const { user } = useAuth();
   const { isEveryday } = useExperienceMode();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldTasks, setFieldTasks] = useState<Map<string, Task[]>>(new Map());
@@ -47,7 +50,7 @@ const FieldsPage: React.FC = () => {
 
   useEffect(() => {
     loadFields();
-  }, []);
+  }, [refreshGeneration]);
 
   useEffect(() => {
     if (!isMockMode() && user?.role === 'FieldOwner') {
@@ -56,7 +59,7 @@ const FieldsPage: React.FC = () => {
         .then((users) => setProducersById(new Map(users.map((u) => [u.id, u]))))
         .catch(() => undefined);
     }
-  }, [user?.role]);
+  }, [user?.role, refreshGeneration]);
 
   useEffect(() => {
     if (fields.length > 0) loadFieldTasks();
@@ -64,9 +67,10 @@ const FieldsPage: React.FC = () => {
 
   const loadFields = async () => {
     try {
-      setLoading(true);
+      if (fields.length === 0) setLoading(true);
       const fieldService = getFieldService();
       setFields(await fieldService.getFields());
+      setShowingCachedData(!isDeviceOnline());
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:failedLoad'));
     } finally {
@@ -179,8 +183,6 @@ const FieldsPage: React.FC = () => {
 
   const canCreate = user?.role !== 'Producer';
 
-  if (loading) return <LoadingSpinner fullScreen />;
-
   return (
     <PageContainer>
       <div className={`fields-page ${isEveryday ? 'fields-page--everyday' : ''}`}>
@@ -198,126 +200,132 @@ const FieldsPage: React.FC = () => {
           )}
         </header>
 
-        {fields.length > 0 && (
-          <div className="fields-summary-strip">
-            <div className="fields-summary-item">
-              <Sprout size={18} />
-              <span>
-                <strong>{fields.length}</strong> {t('fields:summary.fields')}
-              </span>
-            </div>
-            <div className="fields-summary-item">
-              <CheckSquare size={18} />
-              <span>
-                <strong>{summary.activeTasks}</strong> {t('fields:summary.activeTasks')}
-              </span>
-            </div>
-            {summary.overdue > 0 && (
-              <div className="fields-summary-item fields-summary-item--warn">
-                <AlertTriangle size={18} />
-                <span>
-                  <strong>{summary.overdue}</strong> {t('fields:summary.overdue')}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {error && <div className="fields-error">{error}</div>}
-
-        {fields.length === 0 ? (
-          <EmptyState
-            icon={<Layers size={64} />}
-            title={t('fields:emptyTitle')}
-            description={t('fields:emptyDescription')}
-            action={
-              canCreate ? (
-                <Button to="/fields/new" icon={<Plus />}>
-                  {t('fields:createNewField')}
-                </Button>
-              ) : undefined
-            }
-          />
+        {loading ? (
+          <LoadingSpinner className="page-inline-loading" />
         ) : (
           <>
-            <div className="fields-toolbar">
-              <div className="fields-search-wrap">
-                <Search size={18} className="fields-search-icon" />
-                <input
-                  type="search"
-                  className="fields-search-input"
-                  placeholder={t('fields:searchPlaceholder')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label={t('fields:searchPlaceholder')}
-                />
-              </div>
-              <div className="fields-toolbar-right">
-                <label className="fields-sort">
-                  <span className="sr-only">{t('fields:sortLabel')}</span>
-                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
-                    <option value="name">{t('fields:sortName')}</option>
-                    <option value="area">{t('fields:sortArea')}</option>
-                    <option value="overdue">{t('fields:sortOverdue')}</option>
-                  </select>
-                </label>
-                <div className="fields-view-toggle" role="group" aria-label={t('fields:viewModeAria')}>
-                  <button
-                    type="button"
-                    className={`fields-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => setViewMode('list')}
-                  >
-                    <ListIcon size={16} />
-                    <span>{t('fields:viewList')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`fields-view-btn ${viewMode === 'map' ? 'active' : ''}`}
-                    onClick={() => setViewMode('map')}
-                  >
-                    <MapIcon size={16} />
-                    <span>{t('fields:viewMap')}</span>
-                  </button>
+            {fields.length > 0 && (
+              <div className="fields-summary-strip">
+                <div className="fields-summary-item">
+                  <Sprout size={18} />
+                  <span>
+                    <strong>{fields.length}</strong> {t('fields:summary.fields')}
+                  </span>
                 </div>
+                <div className="fields-summary-item">
+                  <CheckSquare size={18} />
+                  <span>
+                    <strong>{summary.activeTasks}</strong> {t('fields:summary.activeTasks')}
+                  </span>
+                </div>
+                {summary.overdue > 0 && (
+                  <div className="fields-summary-item fields-summary-item--warn">
+                    <AlertTriangle size={18} />
+                    <span>
+                      <strong>{summary.overdue}</strong> {t('fields:summary.overdue')}
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {viewMode === 'map' ? (
-              <Card
-                title={t('fields:mapTitle')}
-                subtitle={t('fields:mapSubtitle')}
-                padding="none"
-                className="fields-map-card"
-              >
-                <FieldsMap
-                  fields={filteredFields}
-                  onFieldPress={(fieldId) => navigate(`/fields/${fieldId}`)}
-                  onStartNextTask={(fieldId) => navigate(`/fields/${fieldId}?action=start`)}
-                  heightPx={520}
-                />
-              </Card>
-            ) : filteredFields.length === 0 ? (
+            {error && <div className="fields-error">{error}</div>}
+
+            {fields.length === 0 ? (
               <EmptyState
-                title={t('fields:emptySearchTitle')}
-                description={t('fields:emptySearchDescription')}
+                icon={<Layers size={64} />}
+                title={t('fields:emptyTitle')}
+                description={t('fields:emptyDescription')}
+                action={
+                  canCreate ? (
+                    <Button to="/fields/new" icon={<Plus />}>
+                      {t('fields:createNewField')}
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : (
-              <div className="fields-grid">
-                {filteredFields.map((field) => (
-                  <FieldCard
-                    key={field.id}
-                    field={field}
-                    stats={getFieldTaskStats(field.id)}
-                    isOwner={field.ownerId === user?.userId}
-                    showProducerInfo={user?.role !== 'Producer'}
-                    assignedProducers={getAssignedProducerNames(field)}
-                    nextTask={
-                      user?.role === 'Producer' ? getNextRecommendedTask(field.id) : undefined
-                    }
-                    onDelete={field.ownerId === user?.userId ? handleDelete : undefined}
+              <>
+                <div className="fields-toolbar">
+                  <div className="fields-search-wrap">
+                    <Search size={18} className="fields-search-icon" />
+                    <input
+                      type="search"
+                      className="fields-search-input"
+                      placeholder={t('fields:searchPlaceholder')}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      aria-label={t('fields:searchPlaceholder')}
+                    />
+                  </div>
+                  <div className="fields-toolbar-right">
+                    <label className="fields-sort">
+                      <span className="sr-only">{t('fields:sortLabel')}</span>
+                      <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
+                        <option value="name">{t('fields:sortName')}</option>
+                        <option value="area">{t('fields:sortArea')}</option>
+                        <option value="overdue">{t('fields:sortOverdue')}</option>
+                      </select>
+                    </label>
+                    <div className="fields-view-toggle" role="group" aria-label={t('fields:viewModeAria')}>
+                      <button
+                        type="button"
+                        className={`fields-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setViewMode('list')}
+                      >
+                        <ListIcon size={16} />
+                        <span>{t('fields:viewList')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`fields-view-btn ${viewMode === 'map' ? 'active' : ''}`}
+                        onClick={() => setViewMode('map')}
+                      >
+                        <MapIcon size={16} />
+                        <span>{t('fields:viewMap')}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {viewMode === 'map' ? (
+                  <Card
+                    title={t('fields:mapTitle')}
+                    subtitle={t('fields:mapSubtitle')}
+                    padding="none"
+                    className="fields-map-card"
+                  >
+                    <FieldsMap
+                      fields={filteredFields}
+                      onFieldPress={(fieldId) => navigate(`/fields/${fieldId}`)}
+                      onStartNextTask={(fieldId) => navigate(`/fields/${fieldId}?action=start`)}
+                      heightPx={520}
+                    />
+                  </Card>
+                ) : filteredFields.length === 0 ? (
+                  <EmptyState
+                    title={t('fields:emptySearchTitle')}
+                    description={t('fields:emptySearchDescription')}
                   />
-                ))}
-              </div>
+                ) : (
+                  <div className="fields-grid">
+                    {filteredFields.map((field) => (
+                      <FieldCard
+                        key={field.id}
+                        field={field}
+                        stats={getFieldTaskStats(field.id)}
+                        isOwner={field.ownerId === user?.userId}
+                        showProducerInfo={user?.role !== 'Producer'}
+                        assignedProducers={getAssignedProducerNames(field)}
+                        nextTask={
+                          user?.role === 'Producer' ? getNextRecommendedTask(field.id) : undefined
+                        }
+                        onDelete={field.ownerId === user?.userId ? handleDelete : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

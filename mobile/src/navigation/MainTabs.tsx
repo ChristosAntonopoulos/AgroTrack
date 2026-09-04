@@ -9,6 +9,7 @@ import TodayScreen from '../screens/TodayScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
+import MoreScreen from '../screens/MoreScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
@@ -220,7 +221,7 @@ const MainTabs = () => {
 
       <Tab.Screen
         name="More"
-        component={SettingsScreen}
+        component={MoreScreen}
         options={{
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
@@ -233,6 +234,16 @@ const MainTabs = () => {
               tapMin={tapMin}
             />
           ),
+        }}
+      />
+
+      {/* Settings: opened from More hub; keep mounted for typed navigation. */}
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarLabel: t('settings'),
+          ...hiddenTabOptions,
         }}
       />
     </Tab.Navigator>

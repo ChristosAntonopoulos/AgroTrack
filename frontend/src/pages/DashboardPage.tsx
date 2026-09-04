@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { getFieldService, getTaskService, isMockMode } from '../services/serviceFactory';
 import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useOfflineMode } from '../context/OfflineContext';
+import { isDeviceOnline } from '../utils/networkStatus';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
 import { demoStore } from '../services/demo/demoStore';
@@ -37,16 +39,12 @@ import './DashboardPage.css';
 const DashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation(['dashboard', 'common']);
   const { user } = useAuth();
-  const { isEveryday } = useExperienceMode();
   const navigate = useNavigate();
   const { isEveryday } = useExperienceMode();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const [fields, setFields] = useState<Field[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-
-  if (isEveryday) {
-    return <Navigate to="/today" replace />;
-  }
 
   const dateLocale = i18n.language === 'el' ? el : enUS;
   const isFieldOwner = user?.role === 'FieldOwner' || user?.role === 'Administrator';
@@ -62,13 +60,14 @@ const DashboardPage: React.FC = () => {
     '';
 
   useEffect(() => {
+    if (isEveryday) return;
     loadDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.userId]);
+  }, [user?.userId, isEveryday, refreshGeneration]);
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true);
+      if (fields.length === 0) setLoading(true);
       const fieldService = getFieldService();
       const taskService = getTaskService();
       const [fieldsData, tasksData] = await Promise.all([
@@ -80,6 +79,7 @@ const DashboardPage: React.FC = () => {
       ]);
       setFields(fieldsData);
       setTasks(tasksData);
+      setShowingCachedData(!isDeviceOnline());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -137,17 +137,24 @@ const DashboardPage: React.FC = () => {
     };
   }, [isFieldOwner, tasks, today]);
 
+  if (isEveryday) {
+    return <Navigate to="/today" replace />;
+  }
+
   const totalArea = fields.reduce((sum, field) => sum + field.area, 0);
   const pendingTasks = tasks.filter((task) => task.status === 'pending').length;
   const inProgressTasks = tasks.filter((task) => task.status === 'in_progress').length;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
 
-  if (isEveryday) {
-    return <Navigate to="/today" replace />;
-  }
-
   if (loading) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <PageContainer>
+        <div className="dashboard-page">
+          <Breadcrumbs />
+          <LoadingSpinner className="page-inline-loading" />
+        </div>
+      </PageContainer>
+    );
   }
 
   const hasAlerts =

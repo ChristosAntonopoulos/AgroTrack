@@ -35,36 +35,38 @@ const MoreScreen = () => {
   const { t } = useTranslation(['settings', 'common', 'nav']);
   const navigation = useNavigation<Nav>();
 
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+
   const sections: MenuSection[] = [
     {
       id: 'work',
-      title: t('nav:sections.work', { defaultValue: 'Work' }),
+      title: t('nav:sections.work'),
       items: [
         {
           id: 'calendar',
           icon: 'calendar-outline',
           label: t('nav:calendar'),
-          onPress: () => navigation.navigate('Calendar' as any),
+          onPress: () => navigation.navigate('Main', { screen: 'Calendar' }),
           showArrow: true,
         },
       ],
     },
     {
       id: 'account',
-      title: t('nav:sections.account', { defaultValue: 'Account' }),
+      title: t('nav:sections.account'),
       items: [
         {
           id: 'ministry',
           icon: 'document-text-outline',
-          label: t('nav:ministry'),
-          onPress: () => navigation.navigate('Ministry' as any),
+          label: t('nav:notifications'),
+          onPress: () => navigation.navigate('Notifications'),
           showArrow: true,
         },
         {
           id: 'settings',
           icon: 'settings-outline',
           label: t('nav:settings'),
-          onPress: () => navigation.navigate('Settings' as any),
+          onPress: () => navigation.navigate('Main', { screen: 'Settings' }),
           showArrow: true,
         },
       ],
@@ -75,16 +77,16 @@ const MoreScreen = () => {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary, fontSize: 28 * fontScaleMultiplier }]}>
-          {t('settings:more.title', { defaultValue: 'More' })}
+          {t('settings:more.title')}
         </Text>
-        {user?.name ? (
+        {displayName ? (
           <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: 15 * fontScaleMultiplier }]}>
-            {user.name}
+            {displayName}
           </Text>
         ) : null}
       </View>
 
-      {sections.map((section, sectionIndex) => (
+      {sections.map((section) => (
         <View key={section.id} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier }]}>
             {section.title}
@@ -140,15 +142,15 @@ const MoreScreen = () => {
 
       <View style={styles.infoSection}>
         <Text style={[styles.infoText, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>
-          {t('settings:experience.currentMode', { defaultValue: 'Experience mode' })}:{' '}
+          {t('settings:experience.currentMode')}:{' '}
           <Text style={{ fontWeight: '700' }}>
-            {experienceMode === 'everyday' 
-              ? t('settings:experience.everyday') 
+            {experienceMode === 'everyday'
+              ? t('settings:experience.everyday')
               : t('settings:experience.full')}
           </Text>
         </Text>
         <Text style={[styles.infoHint, { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier }]}>
-          {t('settings:experience.changeInSettings', { defaultValue: 'Change in Settings' })}
+          {t('settings:experience.changeInSettings')}
         </Text>
       </View>
     </ScrollView>

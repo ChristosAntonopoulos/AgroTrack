@@ -16,7 +16,6 @@ interface PreferencesContextType {
   fontScale: FontScale;
   largeControls: boolean;
   experienceModeChosen: boolean;
-  comfortSetupDone: boolean;
   everydayTutorialSeen: boolean;
   fullTutorialSeen: boolean;
   setLanguage: (lang: AppLanguage) => Promise<void>;
@@ -25,7 +24,6 @@ interface PreferencesContextType {
   chooseExperienceMode: (mode: ExperienceMode) => Promise<void>;
   setFontScale: (scale: FontScale) => Promise<void>;
   setLargeControls: (enabled: boolean) => Promise<void>;
-  markComfortSetupDone: () => Promise<void>;
   markEverydayTutorialSeen: () => Promise<void>;
   markFullTutorialSeen: () => Promise<void>;
   applyRoleDefaultIfNeeded: (role: string | undefined | null) => Promise<void>;
@@ -50,7 +48,6 @@ const FONT_SCALE_KEY = '@agrotrack_font_scale';
 const LARGE_CONTROLS_KEY = '@agrotrack_large_controls';
 const INTELLIGENCE_OPENS_KEY = '@agrotrack_everyday_intelligence_opens';
 const ONRAMP_DISMISSED_KEY = '@agrotrack_full_picture_onramp_dismissed';
-const COMFORT_SETUP_DONE_KEY = '@agrotrack_comfort_setup_done';
 const EVERYDAY_TUTORIAL_SEEN_KEY = '@agrotrack_everyday_tutorial_seen';
 const FULL_TUTORIAL_SEEN_KEY = '@agrotrack_full_tutorial_seen';
 
@@ -62,7 +59,6 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [fontScale, setFontScaleState] = useState<FontScale>('default');
   const [largeControls, setLargeControlsState] = useState(false);
   const [experienceModeChosen, setExperienceModeChosen] = useState(false);
-  const [comfortSetupDone, setComfortSetupDone] = useState(false);
   const [everydayTutorialSeen, setEverydayTutorialSeen] = useState(false);
   const [fullTutorialSeen, setFullTutorialSeen] = useState(false);
   const [everydayIntelligenceOpens, setEverydayIntelligenceOpens] = useState(0);
@@ -79,7 +75,6 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           storedChosen,
           storedFont,
           storedLarge,
-          storedComfort,
           storedEverydayTut,
           storedFullTut,
           storedOpens,
@@ -91,7 +86,6 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           AsyncStorage.getItem(EXPERIENCE_CHOSEN_KEY),
           AsyncStorage.getItem(FONT_SCALE_KEY),
           AsyncStorage.getItem(LARGE_CONTROLS_KEY),
-          AsyncStorage.getItem(COMFORT_SETUP_DONE_KEY),
           AsyncStorage.getItem(EVERYDAY_TUTORIAL_SEEN_KEY),
           AsyncStorage.getItem(FULL_TUTORIAL_SEEN_KEY),
           AsyncStorage.getItem(INTELLIGENCE_OPENS_KEY),
@@ -104,14 +98,25 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
         if (storedExperience === 'everyday' || storedExperience === 'full') {
           setExperienceModeState(storedExperience);
         }
-        if (storedChosen === 'true') setExperienceModeChosen(true);
+        const alreadyChosen = storedChosen === 'true';
+        if (alreadyChosen) setExperienceModeChosen(true);
         if (storedFont === 'default' || storedFont === 'large' || storedFont === 'xl') {
           setFontScaleState(storedFont);
         }
         if (storedLarge === 'true') setLargeControlsState(true);
-        if (storedComfort === 'true') setComfortSetupDone(true);
-        if (storedEverydayTut === 'true') setEverydayTutorialSeen(true);
-        if (storedFullTut === 'true') setFullTutorialSeen(true);
+
+        // Existing users who already chose a mode should not see new first-run tutorials.
+        const everydaySeen = storedEverydayTut === 'true' || alreadyChosen;
+        const fullSeen = storedFullTut === 'true' || alreadyChosen;
+        setEverydayTutorialSeen(everydaySeen);
+        setFullTutorialSeen(fullSeen);
+        if (alreadyChosen && storedEverydayTut !== 'true') {
+          void AsyncStorage.setItem(EVERYDAY_TUTORIAL_SEEN_KEY, 'true');
+        }
+        if (alreadyChosen && storedFullTut !== 'true') {
+          void AsyncStorage.setItem(FULL_TUTORIAL_SEEN_KEY, 'true');
+        }
+
         if (storedOpens) setEverydayIntelligenceOpens(Number(storedOpens) || 0);
         if (storedOnramp === 'true') setFullPictureOnrampDismissed(true);
       } finally {
@@ -172,11 +177,6 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     await AsyncStorage.setItem(ONRAMP_DISMISSED_KEY, 'true');
   }, []);
 
-  const markComfortSetupDone = useCallback(async () => {
-    setComfortSetupDone(true);
-    await AsyncStorage.setItem(COMFORT_SETUP_DONE_KEY, 'true');
-  }, []);
-
   const markEverydayTutorialSeen = useCallback(async () => {
     setEverydayTutorialSeen(true);
     await AsyncStorage.setItem(EVERYDAY_TUTORIAL_SEEN_KEY, 'true');
@@ -186,6 +186,14 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     setFullTutorialSeen(true);
     await AsyncStorage.setItem(FULL_TUTORIAL_SEEN_KEY, 'true');
   }, []);
+
+  const applyRoleDefaultIfNeeded = useCallback(
+    async (role: string | undefined | null) => {
+      if (experienceModeChosen || !role) return;
+      await setExperienceMode(defaultExperienceModeForRole(role));
+    },
+    [experienceModeChosen]
+  );
 
   const shouldShowFullPictureOnramp =
     experienceMode === 'everyday' &&
@@ -208,16 +216,15 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       fontScale,
       largeControls,
       experienceModeChosen,
-      comfortSetupDone,
       everydayTutorialSeen,
       fullTutorialSeen,
       setExperienceMode,
       chooseExperienceMode,
       setFontScale,
       setLargeControls,
-      markComfortSetupDone,
       markEverydayTutorialSeen,
       markFullTutorialSeen,
+      applyRoleDefaultIfNeeded,
       isEveryday: experienceMode === 'everyday',
       isFullPicture: experienceMode === 'full',
       showWidget,
@@ -235,16 +242,15 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       fontScale,
       largeControls,
       experienceModeChosen,
-      comfortSetupDone,
       everydayTutorialSeen,
       fullTutorialSeen,
       showWidget,
       recordIntelligenceOpen,
       shouldShowFullPictureOnramp,
       dismissFullPictureOnramp,
-      markComfortSetupDone,
       markEverydayTutorialSeen,
       markFullTutorialSeen,
+      applyRoleDefaultIfNeeded,
     ]
   );
 

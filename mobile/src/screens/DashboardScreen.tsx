@@ -61,18 +61,13 @@ const DashboardScreen = () => {
   const fullPictureSteps: TutorialStep[] = [
     {
       id: 'dashboard-overview',
-      titleKey: 'tutorial:full.step1.title',
-      bodyKey: 'tutorial:full.step1.body',
+      titleKey: 'full.step1.title',
+      bodyKey: 'full.step1.body',
     },
     {
       id: 'field-control',
-      titleKey: 'tutorial:full.step2.title',
-      bodyKey: 'tutorial:full.step2.body',
-    },
-    {
-      id: 'analytics',
-      titleKey: 'tutorial:full.step3.title',
-      bodyKey: 'tutorial:full.step3.body',
+      titleKey: 'full.step2.title',
+      bodyKey: 'full.step2.body',
     },
   ];
 

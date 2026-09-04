@@ -61,23 +61,18 @@ const TodayScreen = () => {
   const everydaySteps: TutorialStep[] = [
     {
       id: 'today-welcome',
-      titleKey: 'tutorial:everyday.step1.title',
-      bodyKey: 'tutorial:everyday.step1.body',
+      titleKey: 'everyday.step1.title',
+      bodyKey: 'everyday.step1.body',
     },
     {
       id: 'next-action',
-      titleKey: 'tutorial:everyday.step2.title',
-      bodyKey: 'tutorial:everyday.step2.body',
-    },
-    {
-      id: 'fields-tasks',
-      titleKey: 'tutorial:everyday.step3.title',
-      bodyKey: 'tutorial:everyday.step3.body',
+      titleKey: 'everyday.step2.title',
+      bodyKey: 'everyday.step2.body',
     },
     {
       id: 'more-menu',
-      titleKey: 'tutorial:everyday.step4.title',
-      bodyKey: 'tutorial:everyday.step4.body',
+      titleKey: 'everyday.step3.title',
+      bodyKey: 'everyday.step3.body',
     },
   ];
 

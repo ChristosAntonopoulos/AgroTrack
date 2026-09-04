@@ -15,19 +15,6 @@
   "more": {
     "title": "More"
   },
-  "onboarding": {
-    "comfortTitle": "Make it comfortable",
-    "comfortSubtitle": "Choose how the app looks and feels",
-    "largeControlsHint": "48px buttons and links",
-    "next": "Next",
-    "settingUp": "Setting things up",
-    "phases": {
-      "gathering": "Gathering grove data",
-      "applying": "Applying your theme",
-      "personalizing": "Personalizing your mode",
-      "ready": "Almost ready"
-    }
-  },
   "experience": {
     "label": "How OliveCycle looks",
     "everyday": "Everyday",
@@ -53,8 +40,8 @@
     "chooserTitle": "How do you want to use OliveCycle?",
     "chooserSubtitle": "You can change this anytime in Settings.",
     "chooserFooter": "This choice is saved on this device.",
-    "comfortTitle": "Choose your text size",
-    "comfortSubtitle": "You can adjust this later in Settings.",
+    "comfortTitle": "Make it comfortable",
+    "comfortSubtitle": "Choose how the app looks and feels. You can change this later in Settings.",
     "comfortSkip": "Skip for now"
   }
 }

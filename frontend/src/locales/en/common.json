@@ -85,5 +85,12 @@
     "markAllRead": "Mark all as read",
     "clearAll": "Clear all"
   },
-  "language": "Language"
+  "language": "Language",
+  "offline": {
+    "offline": "You are offline. Changes will sync when you reconnect.",
+    "offlineCached": "You are offline. Showing last saved fields and tasks.",
+    "offlineWithPending": "You are offline. {{count}} change(s) waiting to sync.",
+    "pending": "{{count}} change(s) waiting to sync. Tap retry to sync.",
+    "syncing": "Syncing {{count}} change(s)…"
+  }
 }

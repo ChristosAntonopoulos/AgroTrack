@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +35,7 @@ const SettingsScreen = () => {
     largeControls,
     setLargeControls,
     tapMin,
+    fontScaleMultiplier,
   } = usePreferences();
   const navigation = useNavigation<Nav>();
 
@@ -58,7 +59,6 @@ const SettingsScreen = () => {
     label,
     selected,
     onPress,
-    accent,
   }: {
     label: string;
     selected: boolean;
@@ -78,38 +78,19 @@ const SettingsScreen = () => {
     >
       <Text
         style={[
-          styles.option,
+          styles.optionText,
           {
-            backgroundColor: selected ? selectedBg : colors.surfaceMuted,
-            borderColor: selected ? selectedBg : colors.border,
-            minHeight: tapMin,
+            color: selected ? colors.textInverse : colors.textPrimary,
+            fontSize: 14 * fontScaleMultiplier,
           },
         ]}
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
       >
-        <Text
-          style={[
-            styles.optionText,
-            {
-              color: selected
-                ? accent === fullAccent
-                  ? '#1A1400'
-                  : '#ffffff'
-                : colors.textPrimary,
-              fontSize: 14 * fontScaleMultiplier,
-            },
-          ]}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   const roleLabel = user?.role ? t(`common:roles.${user.role}`, { defaultValue: user.role }) : '';
-  const everydayAccent = '#0072B2';
-  const fullAccent = '#E69F00';
 
   return (
     <ScreenLayout scroll contentContainerStyle={styles.content}>
@@ -153,15 +134,6 @@ const SettingsScreen = () => {
             : t('settings:experience.fullDesc')}
         </Text>
       </Card>
-
-      <Button
-        title={t('nav:calendar', { defaultValue: 'Calendar' })}
-        variant="outline"
-        onPress={() => navigation.navigate('Main', { screen: 'Calendar' })}
-        fullWidth
-        style={styles.actionBtn}
-        icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />}
-      />
 
       <Card variant="outlined" style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>

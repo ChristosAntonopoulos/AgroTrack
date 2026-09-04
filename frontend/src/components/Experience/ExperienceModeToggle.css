@@ -19,6 +19,12 @@
   color: var(--color-text-secondary);
   font-weight: 650;
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.experience-mode-btn:hover:not(.active) {
+  background: var(--bg-hover);
+  color: var(--color-text-primary);
 }
 
 .experience-mode-btn.active.experience-mode-btn-everyday {
@@ -31,12 +37,46 @@
   color: var(--experience-full-ink, var(--experience-full));
 }
 
+/* Compact: match header lang switch height/shape */
+.experience-mode-toggle-compact {
+  gap: 0;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
 .experience-mode-toggle-compact .experience-mode-btn {
-  min-height: calc(var(--tap-min, 44px) * 0.85);
-  padding: 0.25rem 0.55rem;
-  font-size: 0.8rem;
+  min-height: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.3rem;
+}
+
+.experience-mode-toggle-compact .experience-mode-btn + .experience-mode-btn {
+  border-left: 1px solid var(--color-border);
+}
+
+.experience-mode-toggle-compact .experience-mode-btn.active.experience-mode-btn-everyday,
+.experience-mode-toggle-compact .experience-mode-btn.active.experience-mode-btn-full {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.experience-mode-toggle-compact .experience-mode-btn.active:hover {
+  background: var(--color-primary-light);
+  color: #fff;
 }
 
 .experience-mode-btn-short {
-  font-size: 0.75rem;
+  font-size: inherit;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .experience-mode-toggle-compact .experience-mode-btn {
+    padding: 0.35rem 0.55rem;
+  }
 }

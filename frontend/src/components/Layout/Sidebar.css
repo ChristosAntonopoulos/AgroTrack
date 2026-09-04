@@ -26,9 +26,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  min-height: var(--tap-min, 44px);
-  display: flex;
-  align-items: center;
 }
 
 .nav-list {

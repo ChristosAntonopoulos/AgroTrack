@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import PageContainer from '../components/Common/PageContainer';
@@ -10,16 +10,22 @@ import { getFieldService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { fieldPeopleService, FieldMembership } from '../services/fieldPeopleService';
 import { useExperienceMode } from '../context/ExperienceModeContext';
+import { useOfflineMode } from '../context/OfflineContext';
+import { isDeviceOnline } from '../utils/networkStatus';
 
 const PeoplePage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { isEveryday } = useExperienceMode();
+  const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Array<{ field: Field; people: FieldMembership[] }>>([]);
+  const hasDataRef = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       try {
+        if (!hasDataRef.current) setLoading(true);
         const fields = await getFieldService().getFields();
         const withPeople = await Promise.all(
           fields.map(async (field) => ({
@@ -27,21 +33,30 @@ const PeoplePage: React.FC = () => {
             people: await fieldPeopleService.getPeople(field.id).catch(() => field.memberships || []),
           }))
         );
-        setRows(withPeople.filter((r) => r.people.length > 0));
+        if (!cancelled) {
+          setRows(withPeople.filter((r) => r.people.length > 0));
+          hasDataRef.current = true;
+          setShowingCachedData(!isDeviceOnline());
+        }
+      } catch {
+        if (!cancelled && !hasDataRef.current) setRows([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, []);
-
-  if (loading) return <LoadingSpinner fullScreen />;
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshGeneration, setShowingCachedData]);
 
   return (
     <PageContainer>
       <Breadcrumbs />
       <h1>{t('fields:people.pageTitle')}</h1>
       <p>{isEveryday ? t('fields:people.pageEverydayHint') : t('fields:people.pageFullHint')}</p>
-      {rows.length === 0 ? (
+      {loading ? (
+        <LoadingSpinner className="page-inline-loading" />
+      ) : rows.length === 0 ? (
         <EmptyState title={t('fields:people.emptyTitle')} description={t('fields:people.emptyDesc')} />
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
