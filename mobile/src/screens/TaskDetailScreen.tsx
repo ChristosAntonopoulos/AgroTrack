@@ -75,9 +75,9 @@ const TaskDetailScreen = () => {
 
   // Capacity-first: field owners who work the land and assigned people can complete tasks.
   const canWork = Boolean(
-    user?.userId &&
-      (field?.ownerId === user.userId ||
-        (field?.assignedProducerIds || []).includes(user.userId) ||
+    user?.id &&
+      (field?.ownerId === user.id ||
+        (field?.assignedProducerIds || []).includes(user.id) ||
         user.role === 'Producer')
   );
   const canApprove = isFieldOwner();

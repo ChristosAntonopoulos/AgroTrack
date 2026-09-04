@@ -63,8 +63,14 @@ const FieldDetailScreen = () => {
   const { fieldId } = route.params;
   const { isFieldOwner, user } = useAuth();
   const { colors } = useTheme();
-  const { isEveryday, isFullPicture, showWidget, recordIntelligenceOpen, tapMin } =
-    usePreferences();
+  const {
+    isEveryday,
+    isFullPicture,
+    showWidget,
+    recordIntelligenceOpen,
+    tapMin,
+    fontScaleMultiplier,
+  } = usePreferences();
   const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks', 'settings']);
 
   const [field, setField] = useState<Field | null>(null);
@@ -180,11 +186,12 @@ const FieldDetailScreen = () => {
   const hasMappableLocation = fieldCenter != null;
   const hasCadastre = Boolean(field.greekCadastre?.kaek || field.greekCadastre?.normalizedKaek);
 
-  const canOwn = isFieldOwner() || field?.ownerId === user?.userId;
+  const currentUserId = user?.id;
+  const canOwn = isFieldOwner() || field?.ownerId === currentUserId;
   const canWork =
     canOwn ||
     user?.role === 'Producer' ||
-    (field?.assignedProducerIds || []).includes(user?.userId || '');
+    (field?.assignedProducerIds || []).includes(currentUserId || '');
 
   const toolbarActions = [
     {

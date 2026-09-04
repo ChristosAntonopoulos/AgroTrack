@@ -232,7 +232,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       shouldShowFullPictureOnramp,
       dismissFullPictureOnramp,
       tapMin: largeControls ? TAP_MIN_PX.large : TAP_MIN_PX.default,
-      fontScaleMultiplier: FONT_SCALE_VALUES[fontScale],
+      fontScaleMultiplier: FONT_SCALE_VALUES[fontScale] ?? 1,
     }),
     [
       language,
