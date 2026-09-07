@@ -10,8 +10,10 @@
   "viewCalendar": "Calendar",
   "irrigated": "Irrigated",
   "dry": "Dry land",
-  "highYear": "High year",
-  "lowYear": "Low year",
+  "highYear": "Heavy crop year",
+  "lowYear": "Light crop year",
+  "noJobsToday": "No jobs today.",
+  "openMapsDirections": "Open maps / Directions",
   "fieldLabel": "Olive grove",
   "addFieldLabel": "Add field",
   "editField": "Edit field",
@@ -61,6 +63,20 @@
   "overdueOnField": "{{count}} overdue on this field",
   "everydayDoHere": "What to do here today",
   "everydaySeasonLine": "{{stage}} · {{year}}",
+  "thisIsWrong": "This is wrong",
+  "thisIsWrongTitle": "Fix year or stage?",
+  "thisIsWrongPick": "Choose what is wrong.",
+  "thisIsWrongStage": "Wrong stage",
+  "thisIsWrongConfirm": "Set this grove to {{stage}} · {{year}}?",
+  "people": {
+    "title": "People",
+    "subtitle": "Who works on your groves",
+    "whoWorks": "Who works here",
+    "empty": "Just you on this grove for now.",
+    "emptyTitle": "No people listed",
+    "emptyHint": "People who work a grove show up here.",
+    "unnamed": "Person"
+  },
   "weatherLocation": "Weather & location",
   "coordinates": "Coordinates",
   "openMaps": "Open in Maps",
@@ -275,8 +291,13 @@
       "title": "How do you want to add this field?",
       "subtitle": "Choose the method that fits your situation.",
       "webOnly": "Available on web",
+      "computerOnly": "Cadastre and KAEK are on the computer.",
+      "later": {
+        "title": "Draw later",
+        "desc": "Save the name now. Draw the grove when you have time."
+      },
       "draw": {
-        "title": "Draw manually",
+        "title": "Draw now",
         "desc": "Best if you know your field boundary on the map."
       },
       "cadastre": {
@@ -340,5 +361,89 @@
     "clearBoundary": "Clear",
     "saveBoundary": "Save boundary",
     "errors": { "boundaryRequired": "Draw at least 3 boundary points." }
+  },
+  "costs": {
+    "title": "Costs on this field",
+    "toolbar": "Costs",
+    "save": "Save it",
+    "saveOut": "Save the payment",
+    "saveIn": "Save the sale",
+    "amount": "How many euros?",
+    "whatFor": "What for?",
+    "whatForPlaceholder": "e.g. fertilizer, crew",
+    "addNote": "I want to write a note",
+    "uncategorized": "No type yet",
+    "emptyHint": "Paid something or sold something? Write it here in two taps.",
+    "amountRequired": "Enter an amount greater than zero.",
+    "descriptionRequired": "Pick what it was for, or write a word.",
+    "spent": "I paid",
+    "received": "I received",
+    "left": "Left",
+    "saved": "Saved {{amount}}",
+    "thatWasWrong": "That was wrong",
+    "wrongTitle": "Take this off?",
+    "wrongConfirm": "This removes the last save. The numbers stay honest.",
+    "voidFailed": "Could not undo that.",
+    "saveFailed": "Could not save that.",
+    "todayDefault": "Today · {{date}}",
+    "changeDay": "Another day?",
+    "date": "Day",
+    "moreDetail": "More detail",
+    "kind": "Paid or received?",
+    "kindHints": {
+      "expense": "From my pocket",
+      "income": "From a sale"
+    },
+    "categories": {
+      "labor": "People",
+      "mill_cost": "Mill",
+      "harvest_workers": "Harvest crew",
+      "fertilizers": "Fertilizer",
+      "other": "Other"
+    },
+    "kinds": {
+      "expense": "I paid",
+      "income": "I received"
+    },
+    "buckets": {
+      "labor": "People",
+      "inputs": "Spray",
+      "harvest": "Harvest",
+      "other": "Other"
+    }
+  },
+  "harvest": {
+    "title": "Harvest",
+    "finalTitle": "Close this harvest",
+    "finalHint": "Write oil kilos and mill details if you have them.",
+    "saveFinal": "Save mill / oil",
+    "writeMoneyIn": "Write the sale",
+    "date": "Date",
+    "oliveKg": "Olives (kg)",
+    "oilKg": "Oil (kg)",
+    "millName": "Mill name",
+    "millCost": "Mill cost (€)",
+    "addMore": "Add more",
+    "save": "Save harvest",
+    "emptyHint": "Write today’s kilos when you pick.",
+    "lastSaved": "Last saved {{kg}} kg",
+    "savedKg": "Saved {{kg}} kg",
+    "undo": "Undo",
+    "undoTitle": "Undo this harvest?",
+    "undoConfirm": "This voids the last save. The kilos stay honest.",
+    "undoFailed": "Could not undo that harvest.",
+    "saveFailed": "Could not save harvest.",
+    "oliveKgRequired": "Enter olives in kilos.",
+    "oilKgRequired": "Oil must be greater than zero.",
+    "millCostRequired": "Mill cost must be greater than zero."
+  },
+  "thisHarvest": {
+    "title": "This harvest",
+    "season": "Season {{year}}",
+    "olives": "Olives this season",
+    "net": "Left this season",
+    "kgValue": "{{kg}} kg",
+    "emptyTitle": "Nothing recorded yet",
+    "emptyHint": "Write harvest or costs on a field and it shows up here."
   }
 }

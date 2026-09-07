@@ -1,3 +1,4 @@
+/** Semantic light palette. Read the active set via `useTheme().colors`. */
 export const colors = {
   // Primary — olive oil green
   primary: '#5C7A1F',
@@ -88,13 +89,4 @@ export const colors = {
   bannerErrorBorder: '#B84A32',
   bannerWarningBg: '#F5E6C8',
   bannerWarningBorder: '#C4923A',
-};
-
-export const gradients = {
-  primary: ['#3D5214', '#5C7A1F'],
-  header: ['#2A3810', '#3D5214', '#5C7A1F'],
-  headerDark: ['#121810', '#1A2016', '#283020'],
-  secondary: ['#7A6B4F', '#5C5040'],
-  success: ['#6B9E3A', '#4A7028'],
-  warm: ['#E4EBD8', '#EFF4E8'],
 };

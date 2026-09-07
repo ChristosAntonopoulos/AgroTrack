@@ -125,8 +125,80 @@
     "templateSearch": "Search templates...",
     "recommendedOnly": "Recommended now only",
     "manualTask": "Create custom task without template",
-    "scheduleDesc": "Adjust dates, assignment, and checklist before saving.",
-    "reviewDesc": "Confirm everything looks correct.",
+    "scheduleDesc": "Pick the days and who will do it. Everything else is ready.",
+    "moreSettings": "Change title or priority",
+    "hideMore": "Hide extra settings",
+    "addStep": "Add a step",
+    "addStepPlaceholder": "Another step",
+    "removeStep": "Remove",
+    "noChecklist": "No steps yet. Add one if you want.",
+    "who": "Who will do it?",
+    "whenStart": "Starts",
+    "whenDue": "Until",
+    "assigned": "Assigned to",
+    "unassignedReview": "Nobody yet — that’s fine",
+    "when": {
+      "default": {
+        "title": "When is this work?",
+        "hint": "Pick the days. The steps are ready."
+      },
+      "harvest": {
+        "title": "When do you pick?",
+        "hint": "Pick the days. Write kilos and the mill later, on the field.",
+        "who": "Who picks?"
+      },
+      "pruning": {
+        "title": "When do you prune?",
+        "hint": "Pick the days. The pruning steps stay on the task.",
+        "who": "Who prunes?"
+      },
+      "irrigation": {
+        "title": "When do you water?",
+        "hint": "Pick the days. One watering or a short stretch.",
+        "who": "Who waters?"
+      },
+      "fertilization": {
+        "title": "When do you fertilize?",
+        "hint": "Pick the days you put fertilizer on this grove.",
+        "who": "Who fertilizes?"
+      },
+      "pest": {
+        "title": "When do you check or spray?",
+        "hint": "Pick the days for traps, scouting, or spray.",
+        "who": "Who checks?"
+      },
+      "disease": {
+        "title": "When do you treat disease?",
+        "hint": "Pick the days to look and treat.",
+        "who": "Who treats?"
+      },
+      "weeds": {
+        "title": "When do you cut the weeds?",
+        "hint": "Pick the days for mowing or cleanup.",
+        "who": "Who cuts?"
+      },
+      "soil": {
+        "title": "When is the analysis?",
+        "hint": "Pick the day for sampling.",
+        "who": "Who samples?"
+      },
+      "observation": {
+        "title": "When do you walk the grove?",
+        "hint": "Pick the day to look around.",
+        "who": "Who walks it?"
+      },
+      "equipment": {
+        "title": "When do you prepare tools?",
+        "hint": "Pick the days to check nets, crates, and machines.",
+        "who": "Who prepares?"
+      },
+      "postHarvest": {
+        "title": "When do you close the season?",
+        "hint": "Pick the days after harvest for this grove.",
+        "who": "Who closes it?"
+      }
+    },
+    "reviewDesc": "Check the field, the days, and who does it. Then create.",
     "errors": {
       "fieldRequired": "Select a field to continue.",
       "templateRequired": "Pick a template or use custom task.",

@@ -1,3 +1,5 @@
+import { colors } from './colors';
+
 /** Fixed dark palette for auth screens — independent of app light/dark mode */
 export const loginTheme = {
   overlay: 'rgba(8, 14, 6, 0.78)',
@@ -7,7 +9,7 @@ export const loginTheme = {
   cardBorder: 'rgba(196, 184, 150, 0.16)',
   inputBg: '#1A2016',
   inputBorder: '#3D4634',
-  inputBorderFocused: '#6B8E23',
+  inputBorderFocused: colors.primaryLight,
   inputPlaceholder: '#7A7568',
   textPrimary: '#F0EBE0',
   textSecondary: '#A8A090',

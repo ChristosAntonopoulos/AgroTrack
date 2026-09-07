@@ -19,5 +19,12 @@
   "viewCalendar": "Agenda",
   "safetyTitle": "Before you go out",
   "fieldsNeedYou": "Fields that need you",
-  "overdueSafety": "{{count}} overdue — do these first"
+  "overdueSafety": "{{count}} overdue — do these first",
+  "writeHarvest": "Write today’s harvest",
+  "nextHarvest": {
+    "prepare": "Get ready for harvest",
+    "daily": "Write today’s harvest",
+    "final": "Close this harvest"
+  },
+  "thisWeek": "This week"
 }

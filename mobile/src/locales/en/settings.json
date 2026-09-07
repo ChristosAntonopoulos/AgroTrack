@@ -16,7 +16,7 @@
     "title": "More"
   },
   "experience": {
-    "label": "How OliveCycle looks",
+    "label": "How AgroTrack looks",
     "everyday": "Everyday",
     "full": "Full picture",
     "currentMode": "Experience mode",
@@ -37,7 +37,7 @@
     "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
     "onrampSwitch": "Switch to Full picture",
     "onrampDismiss": "Not now",
-    "chooserTitle": "How do you want to use OliveCycle?",
+    "chooserTitle": "How do you want to use AgroTrack?",
     "chooserSubtitle": "You can change this anytime in Settings.",
     "chooserFooter": "This choice is saved on this device.",
     "comfortTitle": "Make it comfortable",

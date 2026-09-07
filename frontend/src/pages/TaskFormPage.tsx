@@ -8,7 +8,7 @@ import { CreateTaskDto } from '../services/taskService';
 import { Field } from '../services/fieldService';
 import { User } from '../services/userService';
 import { OLIVE_TASK_TEMPLATES } from '../data/oliveTaskTemplates';
-import { OliveTaskTemplate } from '../types/oliveTaskTemplate';
+import { OliveTaskTemplate, TaskTemplateCategory } from '../types/oliveTaskTemplate';
 import {
   getSuggestedEndDate,
   getSuggestedStartDate,
@@ -36,9 +36,54 @@ import {
   Check,
   ClipboardList,
   MapPin,
+  Plus,
   Sparkles,
+  X,
 } from 'lucide-react';
 import './TaskFormPage.css';
+
+const MANUAL_CATEGORIES: TaskTemplateCategory[] = [
+  'Observation',
+  'Soil & Analysis',
+  'Fertilization',
+  'Irrigation',
+  'Pruning',
+  'Weed Management',
+  'Pest Monitoring',
+  'Disease Management',
+  'Harvest',
+  'Equipment',
+  'Post-Harvest',
+];
+
+const WHEN_KEY: Record<string, string> = {
+  Harvest: 'harvest',
+  Pruning: 'pruning',
+  Irrigation: 'irrigation',
+  Fertilization: 'fertilization',
+  'Pest Monitoring': 'pest',
+  'Disease Management': 'disease',
+  'Weed Management': 'weeds',
+  'Soil & Analysis': 'soil',
+  Observation: 'observation',
+  Equipment: 'equipment',
+  'Post-Harvest': 'postHarvest',
+};
+
+const datePart = (value?: string) => (value ? value.slice(0, 10) : '');
+
+const withDatePart = (current: string | undefined, nextDate: string, fallbackTime: string) => {
+  if (!nextDate) return '';
+  const time = current?.includes('T') ? current.split('T')[1]?.slice(0, 5) || fallbackTime : fallbackTime;
+  return `${nextDate}T${time}`;
+};
+
+const formatDay = (value?: string, locale?: string) => {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value.replace('T', ' ');
+  return parsed.toLocaleDateString(locale || undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+};
 
 type FormStep = 'field' | 'template' | 'schedule' | 'review';
 
@@ -52,7 +97,7 @@ const STEP_ICONS: Record<FormStep, React.ReactNode> = {
 };
 
 const TaskFormPage: React.FC = () => {
-  const { t } = useTranslation(['tasks', 'common', 'taskTemplates']);
+  const { t, i18n } = useTranslation(['tasks', 'common', 'taskTemplates']);
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -100,7 +145,8 @@ const TaskFormPage: React.FC = () => {
     notes: '',
   });
 
-  const [checklistText, setChecklistText] = useState('');
+  const [showMore, setShowMore] = useState(false);
+  const [newStep, setNewStep] = useState('');
 
   const rawSelectedTemplate = useMemo(
     () => (selectedTemplateId ? OLIVE_TASK_TEMPLATES.find((x) => x.id === selectedTemplateId) : undefined),
@@ -109,6 +155,26 @@ const TaskFormPage: React.FC = () => {
   const selectedTemplate = useLocalizedTemplate(rawSelectedTemplate ?? null);
   const currentMonth = new Date().getMonth() + 1;
   const selectedField = fields.find((f) => f.id === formData.fieldId) ?? null;
+  const assignedProducer = producers.find((p) => p.id === formData.assignedTo);
+  const workCategory = (selectedTemplate?.category || formData.type) as TaskTemplateCategory | '';
+  const whenKey = WHEN_KEY[workCategory] || 'default';
+  const whenTitle = t(`tasks:form.when.${whenKey}.title`);
+  const whenHint = t(`tasks:form.when.${whenKey}.hint`);
+  const whoLabel = t(`tasks:form.when.${whenKey}.who`, {
+    defaultValue: t('tasks:form.who'),
+  });
+  const checklistItems = formData.checklist || [];
+
+  const setChecklistItems = (items: string[]) => {
+    setFormData((prev) => ({ ...prev, checklist: items }));
+  };
+
+  const addChecklistStep = () => {
+    const next = newStep.trim();
+    if (!next) return;
+    setChecklistItems([...checklistItems, next]);
+    setNewStep('');
+  };
 
   useEffect(() => {
     if (user?.role === 'FieldOwner') {
@@ -134,8 +200,19 @@ const TaskFormPage: React.FC = () => {
       setFields(fieldsData);
       setProducers(producersData);
 
-      if (formData.fieldId) {
-        const tasks = await getTaskService().getTasks(formData.fieldId);
+      const onlyField = fieldsData.length === 1 ? fieldsData[0] : null;
+      if (onlyField && !fieldIdParam) {
+        setFormData((prev) => ({
+          ...prev,
+          fieldId: onlyField.id,
+          lifecycleYear: onlyField.currentLifecycleYear || 'low',
+        }));
+        setStep((current) => (current === 'field' ? 'template' : current));
+      }
+
+      const fieldForTasks = fieldIdParam || formData.fieldId || onlyField?.id;
+      if (fieldForTasks) {
+        const tasks = await getTaskService().getTasks(fieldForTasks);
         setExistingTasks(tasks);
       }
     } catch {
@@ -173,8 +250,8 @@ const TaskFormPage: React.FC = () => {
       completionFields: localized.completionFields,
       notes: localized.timingExplanation,
     }));
-    setChecklistText(localized.checklist.join('\n'));
     setManualMode(false);
+    setShowMore(false);
   };
 
   useEffect(() => {
@@ -258,12 +335,14 @@ const TaskFormPage: React.FC = () => {
     }));
     setSelectedTemplateId(null);
     setManualMode(false);
+    setStep(templateIdParam ? 'schedule' : 'template');
   };
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
     const tpl = OLIVE_TASK_TEMPLATES.find((x) => x.id === templateId);
     if (tpl) applyTemplate(tpl);
+    setStep('schedule');
   };
 
   const handleManualMode = () => {
@@ -281,7 +360,7 @@ const TaskFormPage: React.FC = () => {
       notes: '',
       priority: 'Medium',
     }));
-    setChecklistText('');
+    setShowMore(true);
     setStep('schedule');
   };
 
@@ -297,10 +376,7 @@ const TaskFormPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const checklist = checklistText
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean);
+      const checklist = (formData.checklist || []).map((line) => line.trim()).filter(Boolean);
 
       const submitData: CreateTaskDto = {
         ...formData,
@@ -497,93 +573,92 @@ const TaskFormPage: React.FC = () => {
 
           {step === 'schedule' && (
             <div className="task-form-panel">
-              <h2>{t('tasks:form.steps.schedule')}</h2>
-              <p className="task-form-panel-desc">{t('tasks:form.scheduleDesc')}</p>
+              <h2>{whenTitle}</h2>
+              <p className="task-form-panel-desc">{whenHint}</p>
 
               {selectedTemplate && !manualMode && (
                 <div className="task-form-template-banner">
                   <Sparkles size={18} />
                   <div>
-                    <strong>{t('tasks:form.templateBannerTitle', { name: selectedTemplate.title })}</strong>
-                    <p>{selectedTemplate.shortDescription}</p>
+                    <span className="task-form-template-cat">
+                      {labels.categoryLabel(selectedTemplate.category)}
+                    </span>
+                    <strong>{selectedTemplate.title}</strong>
                   </div>
                 </div>
               )}
 
-              <div className="task-form-row">
-                <div className="task-form-group">
-                  <label htmlFor="type">{t('tasks:form.taskType')} *</label>
-                  <input
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    placeholder={t('tasks:form.taskTypePlaceholder')}
-                    required
-                  />
-                </div>
-                <div className="task-form-group">
-                  <label htmlFor="priority">{t('tasks:form.priority')}</label>
-                  <select id="priority" name="priority" value={formData.priority || 'Medium'} onChange={handleChange}>
-                    {(['Low', 'Medium', 'High', 'Critical'] as const).map((p) => (
-                      <option key={p} value={p}>
-                        {t(`tasks:form.priorities.${p}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="task-form-group">
-                <label htmlFor="title">{t('tasks:form.title')} *</label>
-                <input
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder={t('tasks:form.titlePlaceholder')}
-                  required
-                />
-              </div>
-
-              <div className="task-form-group">
-                <label htmlFor="description">{t('common:description')}</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder={t('tasks:form.descriptionPlaceholder')}
-                />
-              </div>
+              {manualMode ? (
+                <>
+                  <div className="task-form-group">
+                    <label htmlFor="title">{t('tasks:form.title')} *</label>
+                    <input
+                      id="title"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleChange}
+                      placeholder={t('tasks:form.titlePlaceholder')}
+                      required
+                    />
+                  </div>
+                  <div className="task-form-group">
+                    <label htmlFor="type">{t('tasks:form.taskType')} *</label>
+                    <select id="type" name="type" value={formData.type} onChange={handleChange} required>
+                      <option value="">{t('tasks:form.taskTypePlaceholder')}</option>
+                      {MANUAL_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {labels.categoryLabel(category)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : null}
 
               <div className="task-form-row">
                 <div className="task-form-group">
-                  <label htmlFor="scheduledStart">{t('tasks:form.scheduledStart')}</label>
+                  <label htmlFor="scheduledStart">{t('tasks:form.whenStart')}</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     id="scheduledStart"
                     name="scheduledStart"
-                    value={formData.scheduledStart}
-                    onChange={handleChange}
+                    className="task-form-date"
+                    value={datePart(formData.scheduledStart)}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        scheduledStart: withDatePart(prev.scheduledStart, e.target.value, '09:00'),
+                      }))
+                    }
                   />
                 </div>
                 <div className="task-form-group">
-                  <label htmlFor="scheduledEnd">{t('tasks:form.scheduledEnd')}</label>
+                  <label htmlFor="scheduledEnd">{t('tasks:form.whenDue')}</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     id="scheduledEnd"
                     name="scheduledEnd"
-                    value={formData.scheduledEnd}
-                    onChange={handleChange}
+                    className="task-form-date"
+                    value={datePart(formData.scheduledEnd)}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        scheduledEnd: withDatePart(prev.scheduledEnd, e.target.value, '17:00'),
+                      }))
+                    }
                   />
                 </div>
               </div>
 
               <div className="task-form-group">
-                <label htmlFor="assignedTo">{t('tasks:form.assignTo')}</label>
-                <select id="assignedTo" name="assignedTo" value={formData.assignedTo} onChange={handleChange}>
+                <label htmlFor="assignedTo">{whoLabel}</label>
+                <select
+                  id="assignedTo"
+                  name="assignedTo"
+                  className="task-form-date"
+                  value={formData.assignedTo}
+                  onChange={handleChange}
+                >
                   <option value="">{t('tasks:form.notAssigned')}</option>
                   {producers.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -594,27 +669,85 @@ const TaskFormPage: React.FC = () => {
               </div>
 
               <div className="task-form-group">
-                <label htmlFor="checklist">{t('tasks:form.checklist')}</label>
-                <textarea
-                  id="checklist"
-                  value={checklistText}
-                  onChange={(e) => setChecklistText(e.target.value)}
-                  rows={5}
-                  placeholder={t('tasks:form.checklistPlaceholder')}
-                />
+                <span className="task-form-label">{t('tasks:form.checklist')}</span>
+                {checklistItems.length === 0 ? (
+                  <p className="task-form-hint">{t('tasks:form.noChecklist')}</p>
+                ) : (
+                  <ul className="task-form-steps-list">
+                    {checklistItems.map((item, index) => (
+                      <li key={`${item}-${index}`}>
+                        <span>{item}</span>
+                        <button
+                          type="button"
+                          className="task-form-step-remove"
+                          onClick={() => setChecklistItems(checklistItems.filter((_, i) => i !== index))}
+                          aria-label={t('tasks:form.removeStep')}
+                        >
+                          <X size={16} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="task-form-add-step">
+                  <input
+                    value={newStep}
+                    onChange={(e) => setNewStep(e.target.value)}
+                    placeholder={t('tasks:form.addStepPlaceholder')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addChecklistStep();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" icon={<Plus size={16} />} onClick={addChecklistStep}>
+                    {t('tasks:form.addStep')}
+                  </Button>
+                </div>
               </div>
 
-              <div className="task-form-group">
-                <label htmlFor="notes">{t('tasks:form.notes')}</label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows={2}
-                  placeholder={t('tasks:form.notesPlaceholder')}
-                />
-              </div>
+              {showMore ? (
+                <div className="task-form-more">
+                  {!manualMode ? (
+                    <div className="task-form-group">
+                      <label htmlFor="title">{t('tasks:form.title')}</label>
+                      <input
+                        id="title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        placeholder={t('tasks:form.titlePlaceholder')}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="task-form-group">
+                    <label htmlFor="priority">{t('tasks:form.priority')}</label>
+                    <select id="priority" name="priority" value={formData.priority || 'Medium'} onChange={handleChange}>
+                      {(['Low', 'Medium', 'High', 'Critical'] as const).map((p) => (
+                        <option key={p} value={p}>
+                          {t(`tasks:form.priorities.${p}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="task-form-group">
+                    <label htmlFor="notes">{t('tasks:form.notes')}</label>
+                    <textarea
+                      id="notes"
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleChange}
+                      rows={2}
+                      placeholder={t('tasks:form.notesPlaceholder')}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="task-manual-link" onClick={() => setShowMore(true)}>
+                  {t('tasks:form.moreSettings')}
+                </button>
+              )}
             </div>
           )}
 
@@ -634,36 +767,38 @@ const TaskFormPage: React.FC = () => {
                 </div>
                 <div>
                   <dt>{t('tasks:form.taskType')}</dt>
-                  <dd>{formData.type}</dd>
+                  <dd>
+                    {workCategory ? labels.categoryLabel(workCategory as TaskTemplateCategory) : '—'}
+                  </dd>
                 </div>
                 <div>
-                  <dt>{t('tasks:form.priority')}</dt>
-                  <dd>{t(`tasks:form.priorities.${formData.priority || 'Medium'}`)}</dd>
+                  <dt>{t('tasks:form.assigned')}</dt>
+                  <dd>
+                    {assignedProducer
+                      ? `${assignedProducer.firstName} ${assignedProducer.lastName}`
+                      : t('tasks:form.unassignedReview')}
+                  </dd>
                 </div>
                 {formData.scheduledStart && (
                   <div>
-                    <dt>{t('tasks:form.scheduledStart')}</dt>
-                    <dd>{formData.scheduledStart.replace('T', ' ')}</dd>
+                    <dt>{t('tasks:form.whenStart')}</dt>
+                    <dd>{formatDay(formData.scheduledStart, i18n.language)}</dd>
                   </div>
                 )}
                 {formData.scheduledEnd && (
                   <div>
-                    <dt>{t('tasks:form.scheduledEnd')}</dt>
-                    <dd>{formData.scheduledEnd.replace('T', ' ')}</dd>
+                    <dt>{t('tasks:form.whenDue')}</dt>
+                    <dd>{formatDay(formData.scheduledEnd, i18n.language)}</dd>
                   </div>
                 )}
-                {checklistText.trim() && (
+                {checklistItems.length > 0 && (
                   <div>
                     <dt>{t('tasks:form.checklist')}</dt>
                     <dd>
                       <ul>
-                        {checklistText
-                          .split('\n')
-                          .map((l) => l.trim())
-                          .filter(Boolean)
-                          .map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
+                        {checklistItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
                       </ul>
                     </dd>
                   </div>

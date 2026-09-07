@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useTasks } from '../hooks/useTasks';
 import { useRefresh } from '../hooks/useRefresh';
+import { useDashboardWeather } from '../hooks/useDashboardWeather';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import Section from '../components/layout/Section';
@@ -27,6 +28,9 @@ import { RootStackParamList } from '../navigation/types';
 import { formatLocaleDate } from '../utils/formatters';
 import { createElevation } from '../theme/elevation';
 import { isTaskOverdue } from '../utils/taskListUtils';
+import { getFieldService } from '../services/serviceFactory';
+import { Field } from '../services/fieldService';
+import { harvestFocusForPhase, pickNextHarvestWork } from '../utils/harvestUtils';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -44,13 +48,23 @@ const openDirections = (lat: number, lng: number) => {
 const TodayScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { isEveryday, isFullPicture, tapMin, fontScaleMultiplier, everydayTutorialSeen, markEverydayTutorialSeen } = usePreferences();
+  const { isEveryday, tapMin, fontScaleMultiplier, everydayTutorialSeen, markEverydayTutorialSeen } = usePreferences();
   const { t, i18n } = useTranslation(['today', 'common', 'fields', 'tutorial']);
   const navigation = useNavigation<Nav>();
   const { tasks, fields, loading, refresh } = useTasks();
   const { refreshing, onRefresh } = useRefresh(refresh);
+  const [allFields, setAllFields] = useState<Field[]>([]);
+  const { weather } = useDashboardWeather(allFields.length > 0 ? allFields : Object.values(fields));
 
   const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getFieldService()
+      .getFields(user.id, user.role)
+      .then(setAllFields)
+      .catch(() => setAllFields([]));
+  }, [user]);
 
   useEffect(() => {
     if (isEveryday && !everydayTutorialSeen && !loading) {
@@ -118,6 +132,22 @@ const TodayScreen = () => {
     [sortedOpen]
   );
 
+  const nextHarvest = useMemo(
+    () => pickNextHarvestWork(sortedOpen, allFields),
+    [sortedOpen, allFields]
+  );
+
+  const weatherLine = useMemo(() => {
+    if (!weather) return null;
+    if (weather.frostLevel && weather.frostLevel !== 'None') {
+      return t('fields:weather.adviceFrost');
+    }
+    if (weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5) {
+      return t('fields:weather.adviceRain');
+    }
+    return null;
+  }, [weather, t]);
+
   if (loading && tasks.length === 0) {
     return <LoadingSpinner fullScreen />;
   }
@@ -136,8 +166,59 @@ const TodayScreen = () => {
             variant="error"
             icon="alert-circle"
             message={t('overdueSafety', { count: overdueCount })}
+            onPress={() => navigation.navigate('Main', { screen: 'Tasks' })}
           />
         </View>
+      ) : null}
+
+      {weatherLine ? (
+        <View style={styles.bannerWrap}>
+          <AlertBanner
+            variant="warning"
+            icon={weather?.frostLevel && weather.frostLevel !== 'None' ? 'snow' : 'rainy'}
+            message={weatherLine}
+          />
+        </View>
+      ) : null}
+
+      {nextHarvest ? (
+        <TouchableOpacity
+          style={[
+            styles.harvestCta,
+            {
+              backgroundColor: colors.surfaceElevated,
+              borderColor: colors.primaryDark,
+              minHeight: Math.max(tapMin + 8, 64),
+              ...createElevation(colors, 'sm'),
+            },
+          ]}
+          onPress={() => {
+            if (nextHarvest.kind === 'task') {
+              navigation.navigate('TaskDetail', { taskId: nextHarvest.task.id });
+              return;
+            }
+            navigation.navigate('FieldDetail', {
+              fieldId: nextHarvest.fieldId,
+              focus: harvestFocusForPhase(nextHarvest.phase),
+            });
+          }}
+          accessibilityRole="button"
+        >
+          <Ionicons name="basket-outline" size={22} color={colors.primaryDark} />
+          <Text
+            style={{
+              color: colors.primaryDark,
+              fontWeight: '800',
+              flex: 1,
+              fontSize: 17 * fontScaleMultiplier,
+            }}
+          >
+            {nextHarvest.kind === 'task'
+              ? nextHarvest.task.title
+              : t(`nextHarvest.${nextHarvest.phase}`, { defaultValue: t('writeHarvest') })}
+          </Text>
+          <Ionicons name="arrow-forward" size={20} color={colors.primaryDark} />
+        </TouchableOpacity>
       ) : null}
 
       {nextTask ? (
@@ -301,23 +382,21 @@ const TodayScreen = () => {
         </Section>
       ) : null}
 
-      {isFullPicture ? (
-        <TouchableOpacity
-          style={[styles.agendaLink, { minHeight: tapMin }]}
-          onPress={() => navigation.navigate('Main', { screen: 'Calendar' })}
+      <TouchableOpacity
+        style={[styles.agendaLink, { minHeight: tapMin }]}
+        onPress={() => navigation.navigate('Main', { screen: 'Calendar' })}
+      >
+        <Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />
+        <Text
+          style={{
+            color: colors.primaryDark,
+            fontWeight: '700',
+            fontSize: 15 * fontScaleMultiplier,
+          }}
         >
-          <Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />
-          <Text
-            style={{
-              color: colors.primaryDark,
-              fontWeight: '700',
-              fontSize: 15 * fontScaleMultiplier,
-            }}
-          >
-            {t('viewCalendar')}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
+          {t('thisWeek')}
+        </Text>
+      </TouchableOpacity>
 
       <TutorialOverlay
         visible={showTutorial}
@@ -374,6 +453,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: spacing.sm,
     gap: spacing.sm,
+  },
+  harvestCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
   },
   agendaLink: {
     flexDirection: 'row',

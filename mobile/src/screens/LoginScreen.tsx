@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { usePreferences, AppLanguage } from '../context/PreferencesContext';
 import { mobileDemoUsers, TestUser } from '../services/mockUsers';
 import { getApiConnectionInfo } from '../services/api';
 import { showDemoLogin, isMockDataEnabled } from '../config/env';
@@ -36,6 +37,7 @@ const LockIcon = () => <Text style={styles.fieldIcon}>🔒</Text>;
 
 const LoginScreen = () => {
   const { login } = useAuth();
+  const { language, setLanguage } = usePreferences();
   const { t } = useTranslation(['auth', 'common']);
   const navigation = useNavigation<Nav>();
   const [email, setEmail] = useState('');
@@ -58,8 +60,8 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert(t('auth:login.failed'), t('auth:login.failed'));
+    if (!email.trim() || !password) {
+      Alert.alert(t('auth:login.failed'), t('auth:login.missingFields'));
       return;
     }
     try {
@@ -70,14 +72,6 @@ const LoginScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    Alert.alert(t('auth:login.googleLogin'), t('auth:login.googleComingSoon'));
-  };
-
-  const handleForgotPassword = () => {
-    Alert.alert(t('auth:login.forgotPassword'), t('auth:login.forgotPasswordHint'));
   };
 
   return (
@@ -102,6 +96,27 @@ const LoginScreen = () => {
               </View>
 
               <View style={styles.card}>
+                <View style={styles.langRow}>
+                  {([
+                    { id: 'el' as AppLanguage, label: t('common:greek') },
+                    { id: 'en' as AppLanguage, label: t('common:english') },
+                  ]).map((lang) => (
+                    <TouchableOpacity
+                      key={lang.id}
+                      onPress={() => setLanguage(lang.id)}
+                      style={[
+                        styles.langBtn,
+                        language === lang.id && styles.langBtnActive,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: language === lang.id }}
+                    >
+                      <Text style={[styles.langText, language === lang.id && styles.langTextActive]}>
+                        {lang.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <Text style={styles.title}>{t('auth:login.title')}</Text>
                 <Text style={styles.subtitle}>{t('auth:login.subtitle')}</Text>
 
@@ -129,14 +144,6 @@ const LoginScreen = () => {
                 />
 
                 <TouchableOpacity
-                  onPress={handleForgotPassword}
-                  style={styles.forgotLink}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.forgotText}>{t('auth:login.forgotPassword')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
                   onPress={handleLogin}
                   disabled={isLoading}
@@ -147,22 +154,6 @@ const LoginScreen = () => {
                   ) : (
                     <Text style={styles.primaryBtnText}>{t('auth:login.button')}</Text>
                   )}
-                </TouchableOpacity>
-
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>{t('common:or')}</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.googleBtn}
-                  onPress={handleGoogleLogin}
-                  disabled={isLoading}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.googleMark}>G</Text>
-                  <Text style={styles.googleText}>{t('auth:login.googleLogin')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -252,6 +243,33 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 8,
   },
+  langRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  langBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: spacingPatterns.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: loginTheme.inputBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: loginTheme.inputBg,
+  },
+  langBtnActive: {
+    borderColor: loginTheme.inputBorderFocused,
+    backgroundColor: loginTheme.buttonBg,
+  },
+  langText: {
+    ...typography.styles.bodySmall,
+    color: loginTheme.textSecondary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  langTextActive: {
+    color: loginTheme.buttonText,
+  },
   title: {
     ...typography.styles.h3,
     color: loginTheme.textPrimary,
@@ -267,16 +285,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: loginTheme.textMuted,
   },
-  forgotLink: {
-    alignSelf: 'flex-end',
-    marginBottom: spacing.base,
-    marginTop: -spacing.xs,
-  },
-  forgotText: {
-    ...typography.styles.bodySmall,
-    color: loginTheme.link,
-    fontWeight: typography.fontWeight.medium,
-  },
   primaryBtn: {
     backgroundColor: loginTheme.buttonBg,
     borderRadius: spacingPatterns.borderRadius.lg,
@@ -284,6 +292,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
+    marginTop: spacing.sm,
   },
   primaryBtnDisabled: {
     opacity: 0.7,
@@ -292,44 +301,6 @@ const styles = StyleSheet.create({
     ...typography.styles.button,
     color: loginTheme.buttonText,
     fontWeight: typography.fontWeight.semibold,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: loginTheme.divider,
-  },
-  dividerText: {
-    ...typography.styles.caption,
-    color: loginTheme.textMuted,
-    textTransform: 'lowercase',
-  },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: loginTheme.googleBg,
-    borderWidth: 1,
-    borderColor: loginTheme.googleBorder,
-    borderRadius: spacingPatterns.borderRadius.lg,
-    minHeight: 52,
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  googleMark: {
-    fontSize: 18,
-    fontWeight: typography.fontWeight.bold,
-    color: '#4285F4',
-  },
-  googleText: {
-    ...typography.styles.button,
-    color: loginTheme.textPrimary,
-    fontWeight: typography.fontWeight.medium,
   },
   registerLink: { alignItems: 'center' },
   registerText: {

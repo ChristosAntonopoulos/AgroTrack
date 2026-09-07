@@ -1,4 +1,5 @@
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
 
 namespace OliveLifecycle.Infrastructure.Persistence.Mappers;
@@ -72,6 +73,10 @@ public static class HarvestRecordMapper
         OilYieldPercent = document.OilYieldPercent,
         QualityGrade = document.QualityGrade,
         Notes = document.Notes,
+        Status = FinancialEntryStatusExtensions.FromApiString(document.Status),
+        VoidReason = document.VoidReason,
+        VoidedAt = document.VoidedAt,
+        VoidedBy = document.VoidedBy,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -90,6 +95,10 @@ public static class HarvestRecordMapper
         OilYieldPercent = entity.OilYieldPercent,
         QualityGrade = entity.QualityGrade,
         Notes = entity.Notes,
+        Status = entity.Status.ToApiString(),
+        VoidReason = entity.VoidReason,
+        VoidedAt = entity.VoidedAt,
+        VoidedBy = entity.VoidedBy,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

@@ -5,9 +5,18 @@ import './FieldMonitoring.css';
 
 interface FieldMonitoringProps {
   tasks: Task[];
+  ledgerTotalCost?: number;
+  currency?: string;
 }
 
-const FieldMonitoring: React.FC<FieldMonitoringProps> = ({ tasks }) => {
+const formatMoney = (amount: number, currency = 'EUR') =>
+  new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount);
+
+const FieldMonitoring: React.FC<FieldMonitoringProps> = ({
+  tasks,
+  ledgerTotalCost,
+  currency = 'EUR',
+}) => {
   const totalTasks = tasks.length;
   const pendingTasks = tasks.filter(t => t.status === 'pending').length;
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
@@ -15,11 +24,11 @@ const FieldMonitoring: React.FC<FieldMonitoringProps> = ({ tasks }) => {
   
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   
-  const totalCost = tasks
+  const taskCost = tasks
     .filter(t => t.status === 'completed' && t.cost)
     .reduce((sum, t) => sum + (t.cost || 0), 0);
-  
-  const averageCost = completedTasks > 0 ? totalCost / completedTasks : 0;
+  const totalCost = ledgerTotalCost != null ? ledgerTotalCost : taskCost;
+  const averageCost = completedTasks > 0 && ledgerTotalCost == null ? totalCost / completedTasks : 0;
   
   const upcomingDeadlines = tasks
     .filter(t => t.status !== 'completed' && t.scheduledEnd)
@@ -54,8 +63,12 @@ const FieldMonitoring: React.FC<FieldMonitoringProps> = ({ tasks }) => {
             <DollarSign className="metric-icon info" />
             <span className="metric-label">Total Cost</span>
           </div>
-          <div className="metric-value">${totalCost.toFixed(2)}</div>
-          <div className="metric-detail">Avg: ${averageCost.toFixed(2)} per task</div>
+          <div className="metric-value">{formatMoney(totalCost, currency)}</div>
+          <div className="metric-detail">
+            {ledgerTotalCost != null
+              ? `${completedTasks} completed tasks`
+              : `Avg: ${formatMoney(averageCost, currency)} per task`}
+          </div>
         </div>
 
         <div className="metric-card">

@@ -17,6 +17,7 @@ export interface UseFieldsResult {
   fieldTaskCounts: Record<string, number>;
   fieldOpenTaskCounts: Record<string, number>;
   fieldHasOverdue: Record<string, boolean>;
+  fieldNextJobTitle: Record<string, string | undefined>;
   fromCache: boolean;
 }
 
@@ -30,11 +31,13 @@ export const useFields = (): UseFieldsResult => {
   const [fieldTaskCounts, setFieldTaskCounts] = useState<Record<string, number>>({});
   const [fieldOpenTaskCounts, setFieldOpenTaskCounts] = useState<Record<string, number>>({});
   const [fieldHasOverdue, setFieldHasOverdue] = useState<Record<string, boolean>>({});
+  const [fieldNextJobTitle, setFieldNextJobTitle] = useState<Record<string, string | undefined>>({});
 
   const buildTaskMaps = (sanitizedFields: Field[], tasks: Task[]) => {
     const counts: Record<string, number> = {};
     const openCounts: Record<string, number> = {};
     const overdue: Record<string, boolean> = {};
+    const nextJob: Record<string, string | undefined> = {};
 
     for (const field of sanitizedFields) {
       const fieldTasks = tasks.filter((t) => t.fieldId === field.id);
@@ -42,11 +45,18 @@ export const useFields = (): UseFieldsResult => {
       const open = fieldTasks.filter((t) => t.status !== 'completed');
       openCounts[field.id] = open.length;
       overdue[field.id] = open.some((t) => isTaskOverdue(t));
+      const next = [...open].sort((a, b) => {
+        const ad = a.scheduledEnd ? new Date(a.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+        const bd = b.scheduledEnd ? new Date(b.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+        return ad - bd;
+      })[0];
+      nextJob[field.id] = next?.title;
     }
 
     setFieldTaskCounts(counts);
     setFieldOpenTaskCounts(openCounts);
     setFieldHasOverdue(overdue);
+    setFieldNextJobTitle(nextJob);
   };
 
   const loadFields = async () => {
@@ -101,6 +111,7 @@ export const useFields = (): UseFieldsResult => {
     fieldTaskCounts,
     fieldOpenTaskCounts,
     fieldHasOverdue,
+    fieldNextJobTitle,
     fromCache,
   };
 };

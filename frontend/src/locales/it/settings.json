@@ -52,7 +52,7 @@
     "resetConfirm": "Ripristinare i dati demo? Verranno ripristinati campi, attività e assegnazioni originali."
   },
   "experience": {
-    "label": "Come appare OliveCycle",
+    "label": "Come appare AgroTrack",
     "everyday": "Quotidiano",
     "everydayShort": "Giorno",
     "everydayDesc": "Cosa fare ora — azioni grandi, meno numeri.",
@@ -61,7 +61,7 @@
     "fullShort": "Pieno",
     "fullDesc": "Mappe, satellite, suolo, analitiche e cronologia più densa.",
     "fullHint": "Per agronomi e pianificazione dettagliata",
-    "chooserTitle": "Come vuoi che appaia OliveCycle?",
+    "chooserTitle": "Come vuoi che appaia AgroTrack?",
     "chooserSubtitle": "Stessi campi e attività. Tu scegli la densità.",
     "chooserFooter": "Puoi cambiarlo dopo nelle Impostazioni.",
     "comfortTitle": "Quanto grande deve essere il testo?",

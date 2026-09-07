@@ -17,6 +17,10 @@ import { mockTaskTemplateService } from './mockTaskTemplateService';
 import { fileService } from './fileService';
 import { mockFileService } from './mockFileService';
 import { calendarService } from './calendarService';
+import { financialEntryService } from './financialEntryService';
+import { mockFinancialEntryService } from './mockFinancialEntryService';
+import { harvestService } from './harvestService';
+import { mockHarvestService } from './mockHarvestService';
 import { isMockDataEnabled } from '../config/env';
 
 const useMock = () => isMockDataEnabled();
@@ -31,5 +35,8 @@ export const getMinistryService = () => (useMock() ? mockMinistryService : minis
 export const getTaskTemplateService = () => (useMock() ? mockTaskTemplateService : taskTemplateService);
 export const getFileService = () => (useMock() ? mockFileService : fileService);
 export const getCalendarService = () => calendarService;
+export const getFinancialEntryService = () =>
+  useMock() ? mockFinancialEntryService : financialEntryService;
+export const getHarvestService = () => (useMock() ? mockHarvestService : harvestService);
 
 export const isMockMode = () => isMockDataEnabled();

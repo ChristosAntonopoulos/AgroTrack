@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { spacing, spacingPatterns } from '../../theme';
-import { createElevation } from '../../theme/elevation';
+import { spacing, radii, motion, createElevation } from '../../theme';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -86,7 +85,7 @@ const Card: React.FC<CardProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.72}>
+      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={motion.pressOpacity}>
         {content}
       </TouchableOpacity>
     );
@@ -97,7 +96,7 @@ const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: spacingPatterns.borderRadius.lg,
+    borderRadius: radii.lg,
   },
   header: {
     marginBottom: spacing.sm,

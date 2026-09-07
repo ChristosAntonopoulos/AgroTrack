@@ -30,6 +30,7 @@ public class HarvestRecordDto
     public double? OilYieldPercent { get; set; }
     public string QualityGrade { get; set; } = string.Empty;
     public string? Notes { get; set; }
+    public string Status { get; set; } = "posted";
 }
 
 public class ProfitLossReportDto
@@ -39,6 +40,8 @@ public class ProfitLossReportDto
     public decimal TotalExpenses { get; set; }
     public decimal NetProfit { get; set; }
     public List<FieldProfitDto> ProfitByField { get; set; } = new();
+    public Dictionary<string, decimal> ExpensesByBucket { get; set; } = new();
+    public Dictionary<string, decimal> ExpensesByCategory { get; set; } = new();
 }
 
 public class FieldProfitDto

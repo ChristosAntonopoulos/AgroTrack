@@ -15,6 +15,8 @@ public static class TaskMapper
         Title = task.Title,
         Description = task.Description,
         LifecycleYear = task.LifecycleYear,
+        HarvestPhase = task.HarvestPhase?.ToApiString()
+            ?? HarvestPhaseCatalog.FromTypeOrTitle(task.Type, task.Title)?.ToApiString(),
         AssignedTo = task.AssignedTo,
         Status = task.Status.ToApiString(),
         ScheduledStart = task.ScheduledStart,

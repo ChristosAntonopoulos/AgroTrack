@@ -6,4 +6,5 @@ public class UserExperiencePreferences
     public bool ExperienceModeChosen { get; set; }
     public string FontScale { get; set; } = "default";
     public bool LargeControls { get; set; }
+    public string Language { get; set; } = "en";
 }

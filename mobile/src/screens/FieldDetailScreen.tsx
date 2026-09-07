@@ -13,7 +13,20 @@ import {
   getTaskService,
   getLifecycleService,
   getActivityService,
+  getFinancialEntryService,
+  getHarvestService,
 } from '../services/serviceFactory';
+import {
+  CreateFinancialEntryInput,
+  FieldFinancialSummary,
+  FinancialEntry,
+} from '../services/financialEntryService';
+import { CreateHarvestRecordInput, HarvestRecord } from '../services/harvestService';
+import FieldCostsCard from '../components/domain/FieldCostsCard';
+import FieldHarvestCard from '../components/domain/FieldHarvestCard';
+import WhoWorksHere from '../components/domain/WhoWorksHere';
+import { fieldPeopleService, FieldMembership } from '../services/fieldPeopleService';
+import { LIFECYCLE_STAGES } from '../utils/lifecycleUtils';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
@@ -60,7 +73,7 @@ const SEVERE_ALERT_LEVELS = ['critical', 'high'];
 const FieldDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { fieldId } = route.params;
+  const { fieldId, focus } = route.params;
   const { isFieldOwner, user } = useAuth();
   const { colors } = useTheme();
   const {
@@ -83,6 +96,11 @@ const FieldDetailScreen = () => {
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
+  const [costEntries, setCostEntries] = useState<FinancialEntry[]>([]);
+  const [costSummary, setCostSummary] = useState<FieldFinancialSummary | null>(null);
+  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
+  const [people, setPeople] = useState<FieldMembership[]>([]);
+  const [correcting, setCorrecting] = useState(false);
 
   const loadFieldDetails = useCallback(async () => {
     try {
@@ -102,6 +120,32 @@ const FieldDetailScreen = () => {
         setActivities(acts);
       } catch {
         setActivities([]);
+      }
+
+      try {
+        const money = getFinancialEntryService();
+        const year = lifecycleData?.currentYear ?? fieldData.currentLifecycleYear;
+        const [entries, summary] = await Promise.all([
+          money.listByField(fieldId),
+          money.getSummary(fieldId, year),
+        ]);
+        setCostEntries(entries);
+        setCostSummary(summary);
+      } catch {
+        setCostEntries([]);
+        setCostSummary(null);
+      }
+
+      try {
+        setHarvestRecords(await getHarvestService().listByField(fieldId));
+      } catch {
+        setHarvestRecords([]);
+      }
+
+      try {
+        setPeople(await fieldPeopleService.getPeople(fieldId, fieldData));
+      } catch {
+        setPeople([]);
       }
 
       // Warnings are raised and de-duplicated by the backend, so the device shows
@@ -128,10 +172,6 @@ const FieldDetailScreen = () => {
     [openTasks]
   );
   const agendaTasks = useMemo(() => getAgendaTasks(tasks, 5), [tasks]);
-
-  const currentStage =
-    lifecycle?.currentStage ?? field?.currentLifecycleStage ?? 'dormancy';
-  const currentYear = lifecycle?.currentYear ?? field?.currentLifecycleYear ?? 'low';
 
   const handleLifecycleAction = async (action: 'advance' | 'revert' | 'progress' | 'init') => {
     try {
@@ -193,6 +233,88 @@ const FieldDetailScreen = () => {
     user?.role === 'Producer' ||
     (field?.assignedProducerIds || []).includes(currentUserId || '');
 
+  const currentStage =
+    lifecycle?.currentStage ?? field?.currentLifecycleStage ?? 'dormancy';
+  const currentYear = lifecycle?.currentYear ?? field?.currentLifecycleYear ?? 'low';
+
+  const refreshMoney = async () => {
+    const money = getFinancialEntryService();
+    const [entries, summary] = await Promise.all([
+      money.listByField(fieldId),
+      money.getSummary(fieldId, currentYear),
+    ]);
+    setCostEntries(entries);
+    setCostSummary(summary);
+  };
+
+  const handleCreateCost = async (input: CreateFinancialEntryInput) => {
+    const created = await getFinancialEntryService().create(input);
+    await refreshMoney();
+    return created;
+  };
+
+  const handleVoidCost = async (id: string) => {
+    await getFinancialEntryService().void(id);
+    await refreshMoney();
+  };
+
+  const handleCreateHarvest = async (input: CreateHarvestRecordInput) => {
+    const created = await getHarvestService().create(input);
+    try {
+      setHarvestRecords(await getHarvestService().listByField(fieldId));
+    } catch {
+      setHarvestRecords((prev) => [created, ...prev]);
+    }
+    await refreshMoney();
+    return created;
+  };
+
+  const handleVoidHarvest = async (id: string) => {
+    await getHarvestService().void(id);
+    try {
+      setHarvestRecords(await getHarvestService().listByField(fieldId));
+    } catch {
+      setHarvestRecords((prev) => prev.filter((r) => r.id !== id));
+    }
+    await refreshMoney();
+  };
+
+  const harvestMode = focus === 'harvest-final' ? 'final' : focus === 'harvest' ? 'daily' : 'default';
+
+  const harvestCard = (
+    <View style={styles.everydayNextWrap}>
+      <FieldHarvestCard
+        fieldId={fieldId}
+        records={harvestRecords}
+        canAdd={canWork}
+        canVoid={canOwn}
+        compact={isEveryday && harvestMode !== 'final'}
+        autoFocus={focus === 'harvest' || focus === 'harvest-final'}
+        mode={harvestMode}
+        onCreate={handleCreateHarvest}
+        onVoid={handleVoidHarvest}
+        onWriteMoneyIn={() => navigation.setParams({ focus: 'money' })}
+      />
+    </View>
+  );
+
+  const costsCard = showWidget('fieldCosts') ? (
+    <View style={styles.everydayNextWrap}>
+      <FieldCostsCard
+        fieldId={fieldId}
+        lifecycleYear={currentYear}
+        entries={costEntries}
+        summary={costSummary}
+        canAdd={canWork}
+        canVoid={canOwn}
+        tasks={tasks}
+        autoFocus={focus === 'money'}
+        onCreate={handleCreateCost}
+        onVoid={handleVoidCost}
+      />
+    </View>
+  ) : null;
+
   const toolbarActions = [
     {
       id: 'tasks',
@@ -206,6 +328,12 @@ const FieldDetailScreen = () => {
       icon: 'calendar-outline' as const,
       label: t('fields:viewCalendar'),
       onPress: () => goTab('Calendar'),
+    },
+    {
+      id: 'money',
+      icon: 'wallet-outline' as const,
+      label: t('fields:costs.toolbar'),
+      onPress: () => navigation.setParams({ focus: 'money' }),
     },
     {
       id: 'maps',
@@ -239,6 +367,68 @@ const FieldDetailScreen = () => {
     defaultValue: `${t(`common:lifecycleStage.${normalizeStage(currentStage)}`)} · ${t(`common:lifecycleYear.${currentYear}`)}`,
   });
 
+  const confirmCorrectLifecycle = (year: string, stage: string) => {
+    Alert.alert(
+      t('fields:thisIsWrongTitle'),
+      t('fields:thisIsWrongConfirm', {
+        stage: t(`common:lifecycleStage.${normalizeStage(stage)}`),
+        year: t(`common:lifecycleYear.${year}`),
+      }),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('common:confirm'),
+          onPress: async () => {
+            try {
+              setCorrecting(true);
+              const updated = await getLifecycleService().correctLifecycle(fieldId, {
+                currentYear: year,
+                currentStage: stage,
+              });
+              setLifecycle(updated);
+              const refreshed = await getFieldService().getField(fieldId);
+              setField(refreshed);
+            } catch (error: any) {
+              Alert.alert(t('fields:lifecycle'), error.message);
+            } finally {
+              setCorrecting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openThisIsWrong = () => {
+    Alert.alert(t('fields:thisIsWrongTitle'), t('fields:thisIsWrongPick'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('common:lifecycleYear.low'),
+        onPress: () => confirmCorrectLifecycle('low', currentStage),
+      },
+      {
+        text: t('common:lifecycleYear.high'),
+        onPress: () => confirmCorrectLifecycle('high', currentStage),
+      },
+      {
+        text: t('fields:thisIsWrongStage'),
+        onPress: () => {
+          Alert.alert(
+            t('fields:thisIsWrongStage'),
+            undefined,
+            [
+              { text: t('common:cancel'), style: 'cancel' },
+              ...LIFECYCLE_STAGES.map((stage) => ({
+                text: t(`common:lifecycleStage.${stage}`),
+                onPress: () => confirmCorrectLifecycle(currentYear, stage),
+              })),
+            ]
+          );
+        },
+      },
+    ]);
+  };
+
   // Everyday: name → next job → alerts → small map → tasks → one in-place peek.
   // Full: existing control-room density.
   if (isEveryday) {
@@ -248,6 +438,17 @@ const FieldDetailScreen = () => {
         <View style={styles.everydayHeader}>
           <Text style={[styles.everydayTitle, { color: colors.textPrimary }]}>{field.name}</Text>
           <Text style={[styles.everydaySeason, { color: colors.textSecondary }]}>{seasonLine}</Text>
+          {canOwn ? (
+            <Pressable
+              onPress={openThisIsWrong}
+              disabled={correcting}
+              style={{ minHeight: tapMin, justifyContent: 'center' }}
+            >
+              <Text style={{ color: colors.primaryDark, fontWeight: '700', fontSize: 15 * fontScaleMultiplier }}>
+                {t('fields:thisIsWrong')}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {overdueCount > 0 ? (
@@ -283,6 +484,27 @@ const FieldDetailScreen = () => {
             <Button
               title={nextTask.title}
               onPress={() => navigation.navigate('TaskDetail', { taskId: nextTask.id })}
+              fullWidth
+              style={{ minHeight: Math.max(tapMin + 8, 56) }}
+            />
+          </View>
+        ) : null}
+
+        {harvestCard}
+
+        {costsCard}
+
+        {showWidget('peopleStrip') ? (
+          <View style={styles.everydayNextWrap}>
+            <WhoWorksHere people={people} />
+          </View>
+        ) : null}
+
+        {hasMappableLocation ? (
+          <View style={styles.everydayNextWrap}>
+            <Button
+              title={t('fields:openMapsDirections')}
+              onPress={openMaps}
               fullWidth
               style={{ minHeight: Math.max(tapMin + 8, 56) }}
             />
@@ -336,7 +558,7 @@ const FieldDetailScreen = () => {
               {field.boundary ? <FieldIntelligenceCard fieldId={field.id} /> : null}
               {hasMappableLocation ? (
                 <Button
-                  title={t('fields:openMaps')}
+                  title={t('fields:openMapsDirections')}
                   variant="outline"
                   onPress={openMaps}
                   fullWidth
@@ -383,6 +605,16 @@ const FieldDetailScreen = () => {
       <View style={styles.toolbarWrap}>
         <FieldDetailToolbar actions={toolbarActions} />
       </View>
+
+      {harvestCard}
+
+      {costsCard}
+
+      {showWidget('peopleStrip') ? (
+        <View style={styles.everydayNextWrap}>
+          <WhoWorksHere people={people} />
+        </View>
+      ) : null}
 
       {overdueCount > 0 ? (
         <View style={styles.bannerWrap}>

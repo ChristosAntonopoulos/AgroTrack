@@ -6,6 +6,8 @@ import { FONT_SCALE_VALUES, TAP_MIN_PX } from '../experience/types';
 import { isWidgetVisible } from '../experience/catalog';
 import { defaultExperienceModeForRole } from '../experience/defaults';
 import { useAuth } from './AuthContext';
+import { isMockMode } from '../services/serviceFactory';
+import { userPreferencesService } from '../services/userPreferencesService';
 
 export type AppLanguage = 'en' | 'el';
 
@@ -131,9 +133,66 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     setExperienceModeState(next);
   }, [user?.role, experienceModeChosen]);
 
+  useEffect(() => {
+    if (!isReady || !user || isMockMode()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const server = await userPreferencesService.get();
+        if (cancelled) return;
+        if (!server.experienceModeChosen) return;
+        if (server.language === 'en' || server.language === 'el') {
+          setLanguageState(server.language);
+          await AsyncStorage.setItem(LANG_KEY, server.language);
+        }
+        setExperienceModeState(server.experienceMode);
+        setExperienceModeChosen(true);
+        setFontScaleState(server.fontScale);
+        setLargeControlsState(server.largeControls);
+        await AsyncStorage.multiSet([
+          [EXPERIENCE_KEY, server.experienceMode],
+          [EXPERIENCE_CHOSEN_KEY, 'true'],
+          [FONT_SCALE_KEY, server.fontScale],
+          [LARGE_CONTROLS_KEY, server.largeControls ? 'true' : 'false'],
+        ]);
+      } catch {
+        // Local prefs stay authoritative when offline.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, user?.id]);
+
+  const pushServerPrefs = useCallback(
+    async (patch: {
+      experienceMode?: ExperienceMode;
+      experienceModeChosen?: boolean;
+      fontScale?: FontScale;
+      largeControls?: boolean;
+      language?: AppLanguage;
+    }) => {
+      if (!user || isMockMode()) return;
+      try {
+        await userPreferencesService.update({
+          experienceMode,
+          experienceModeChosen,
+          fontScale,
+          largeControls,
+          language,
+          ...patch,
+        });
+      } catch {
+        // Device prefs remain authoritative when offline.
+      }
+    },
+    [user, experienceMode, experienceModeChosen, fontScale, largeControls, language]
+  );
+
   const setLanguage = async (lang: AppLanguage) => {
     setLanguageState(lang);
     await AsyncStorage.setItem(LANG_KEY, lang);
+    await pushServerPrefs({ language: lang });
   };
 
   const setThemeMode = async (mode: ThemeMode) => {
@@ -148,6 +207,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       [EXPERIENCE_KEY, mode],
       [EXPERIENCE_CHOSEN_KEY, 'true'],
     ]);
+    await pushServerPrefs({ experienceMode: mode, experienceModeChosen: true });
   };
 
   const chooseExperienceMode = async (mode: ExperienceMode) => {
@@ -157,11 +217,13 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const setFontScale = async (scale: FontScale) => {
     setFontScaleState(scale);
     await AsyncStorage.setItem(FONT_SCALE_KEY, scale);
+    await pushServerPrefs({ fontScale: scale });
   };
 
   const setLargeControls = async (enabled: boolean) => {
     setLargeControlsState(enabled);
     await AsyncStorage.setItem(LARGE_CONTROLS_KEY, enabled ? 'true' : 'false');
+    await pushServerPrefs({ largeControls: enabled });
   };
 
   const recordIntelligenceOpen = useCallback(async () => {

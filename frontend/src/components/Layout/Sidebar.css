@@ -45,7 +45,8 @@
   padding: var(--spacing-md) var(--spacing-lg);
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast), opacity var(--transition-fast);
   border-left: 3px solid transparent;
   min-height: var(--tap-min, 44px);
 }
@@ -56,9 +57,12 @@
   border-left-color: var(--color-primary-light);
 }
 
+.nav-link:active {
+  opacity: var(--press-opacity, 0.75);
+}
+
 .nav-link.active {
-  background-color: var(--color-primary-light);
-  background: linear-gradient(90deg, rgba(45, 80, 22, 0.1) 0%, transparent 100%);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   color: var(--color-primary);
   font-weight: 500;
   border-left-color: var(--color-primary);

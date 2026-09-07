@@ -42,6 +42,18 @@ public class HarvestRecordDocument
     [BsonElement("notes")]
     public string? Notes { get; set; }
 
+    [BsonElement("status")]
+    public string Status { get; set; } = "posted";
+
+    [BsonElement("voidReason")]
+    public string? VoidReason { get; set; }
+
+    [BsonElement("voidedAt")]
+    public DateTime? VoidedAt { get; set; }
+
+    [BsonElement("voidedBy")]
+    public string? VoidedBy { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

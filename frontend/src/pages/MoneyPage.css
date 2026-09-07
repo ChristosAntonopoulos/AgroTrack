@@ -1,0 +1,44 @@
+.money-page {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.money-page-picker h2 {
+  margin: 0 0 var(--spacing-sm);
+  font-size: calc(1.1rem * var(--font-scale, 1));
+}
+
+.money-page-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.money-page-field {
+  min-height: var(--tap-min, 44px);
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.money-page-field:active {
+  opacity: var(--press-opacity, 0.75);
+}
+
+.money-page-field.is-active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-surface));
+  color: var(--color-primary);
+}
+
+.money-page--everyday .money-page-field {
+  font-size: 1.05rem;
+  padding: 12px 18px;
+}

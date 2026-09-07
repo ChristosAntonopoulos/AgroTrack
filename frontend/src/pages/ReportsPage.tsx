@@ -45,6 +45,8 @@ import { format as formatDate } from 'date-fns';
 import './ReportsPage.css';
 
 const REPORT_PREVIEW_ID = 'report-preview-document';
+const CURRENT_YEAR = new Date().getFullYear();
+const SEASON_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map(String);
 
 const REPORT_META: Record<
   ReportTypeId,
@@ -72,7 +74,7 @@ const ReportsPage: React.FC = () => {
   const { t } = useTranslation('reports');
   const { user } = useAuth();
   const [reportType, setReportType] = useState<ReportTypeId>('field-summary');
-  const [season, setSeason] = useState('2025');
+  const [season, setSeason] = useState(String(CURRENT_YEAR));
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -91,17 +93,17 @@ const ReportsPage: React.FC = () => {
     if (!isMockMode()) {
       loadReportData();
     }
-  }, []);
+  }, [season]);
 
   const loadReportData = async () => {
     try {
       setReportsLoading(true);
       const reports = getReportsService();
       const [summaries, harvest, profitLoss, comparison] = await Promise.all([
-        reports.getFieldSummaries(),
-        reports.getHarvestRecords(),
-        reports.getProfitLoss(),
-        reports.getFieldComparison(),
+        reports.getFieldSummaries(season),
+        reports.getHarvestRecords(season),
+        reports.getProfitLoss(season),
+        reports.getFieldComparison(season),
       ]);
       setApiSummaries(summaries);
       setApiHarvest(harvest);
@@ -167,7 +169,7 @@ const ReportsPage: React.FC = () => {
       return pl;
     }
     if (!apiProfitLoss) {
-      return MOCK_PROFIT_LOSS;
+      return null;
     }
     const pl = { ...apiProfitLoss };
     pl.profitByField = filterByFields(apiProfitLoss.profitByField, selectedFields);
@@ -175,12 +177,22 @@ const ReportsPage: React.FC = () => {
   }, [apiProfitLoss, selectedFields]);
 
   const comparisonInsights = useMemo((): ComparisonInsights => {
-    if (isMockMode() || filteredComparison.length === 0) {
+    if (isMockMode()) {
       return MOCK_COMPARISON_INSIGHTS;
     }
-    const bestYield = filteredComparison.reduce((a, b) => (a.kgPerHa >= b.kgPerHa ? a : b));
-    const bestOil = filteredComparison.reduce((a, b) => (a.oilYieldPercent >= b.oilYieldPercent ? a : b));
-    const mostProfitable = filteredComparison.reduce((a, b) => (a.profitPerHa >= b.profitPerHa ? a : b));
+    if (filteredComparison.length === 0) {
+      return {
+        bestYieldField: '',
+        bestOilYieldField: '',
+        mostProfitableField: '',
+        mostExpensiveField: '',
+        mostOverdueTasksField: '',
+        highestPestField: '',
+      };
+    }
+    const bestYield = filteredComparison.reduce((a, b) => ((a.kgPerHa ?? 0) >= (b.kgPerHa ?? 0) ? a : b));
+    const bestOil = filteredComparison.reduce((a, b) => ((a.oilYieldPercent ?? 0) >= (b.oilYieldPercent ?? 0) ? a : b));
+    const mostProfitable = filteredComparison.reduce((a, b) => ((a.profitPerHa ?? 0) >= (b.profitPerHa ?? 0) ? a : b));
     const mostExpensive = filteredComparison.reduce((a, b) => (a.costPerHa >= b.costPerHa ? a : b));
     return {
       bestYieldField: bestYield.fieldName,
@@ -230,25 +242,24 @@ const ReportsPage: React.FC = () => {
       case 'production-harvest':
         headers = ['Field', 'Date', 'Olive Kg', 'Oil Kg', 'Oil Yield %', 'Kg/Tree', 'Kg/Ha', 'Mill', 'Quality'];
         rows = filteredHarvest.map(r => [
-          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg, r.oilYieldPercent,
-          r.kgPerTree, r.kgPerHa, r.millName, r.qualityGrade,
+          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg ?? '', r.oilYieldPercent ?? '',
+          r.kgPerTree ?? '', r.kgPerHa ?? '', r.millName ?? '', r.qualityGrade ?? '',
         ]);
         break;
       case 'profit-loss':
         headers = ['Category', 'Amount (€)'];
-        rows = [
-          ['Total Income', filteredProfitLoss.totalIncome],
-          ['Total Expenses', filteredProfitLoss.totalExpenses],
-          ['Net Profit', filteredProfitLoss.netProfit],
-          ['Cost/kg olives', filteredProfitLoss.costPerKgOlives],
-          ['Cost/kg oil', filteredProfitLoss.costPerKgOil],
-        ];
+        rows = filteredProfitLoss
+          ? [
+              ['Total Income', filteredProfitLoss.totalIncome],
+              ['Total Expenses', filteredProfitLoss.totalExpenses],
+              ['Net Profit', filteredProfitLoss.netProfit],
+            ]
+          : [];
         break;
       case 'field-comparison':
-        headers = ['Field', 'Olive Kg', 'Oil Kg', 'Oil %', 'Kg/Ha', 'Cost/Ha', 'Profit/Ha', 'Pest'];
+        headers = ['Field', 'Olive Kg', 'Kg/Ha', 'Cost/Ha'];
         rows = filteredComparison.map(r => [
-          r.fieldName, r.oliveKg, r.oilKg, r.oilYieldPercent,
-          r.kgPerHa, r.costPerHa, r.profitPerHa, r.pestPressure,
+          r.fieldName, r.oliveKg, r.kgPerHa ?? '', r.costPerHa,
         ]);
         break;
     }
@@ -271,24 +282,25 @@ const ReportsPage: React.FC = () => {
       case 'production-harvest':
         headers = ['Field', 'Date', 'Olive Kg', 'Oil Kg', 'Oil Yield %', 'Kg/Tree', 'Kg/Ha', 'Mill', 'Quality'];
         rows = filteredHarvest.map(r => [
-          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg, r.oilYieldPercent,
-          r.kgPerTree, r.kgPerHa, r.millName, r.qualityGrade,
+          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg ?? '', r.oilYieldPercent ?? '',
+          r.kgPerTree ?? '', r.kgPerHa ?? '', r.millName ?? '', r.qualityGrade ?? '',
         ]);
         break;
       case 'profit-loss':
         headers = ['Category', 'Amount (€)'];
-        rows = [
-          ['Total Income', filteredProfitLoss.totalIncome],
-          ['Total Expenses', filteredProfitLoss.totalExpenses],
-          ['Net Profit', filteredProfitLoss.netProfit],
-          ...filteredProfitLoss.profitByField.map(f => [`Profit — ${f.fieldName}`, f.profit]),
-        ];
+        rows = filteredProfitLoss
+          ? [
+              ['Total Income', filteredProfitLoss.totalIncome],
+              ['Total Expenses', filteredProfitLoss.totalExpenses],
+              ['Net Profit', filteredProfitLoss.netProfit],
+              ...filteredProfitLoss.profitByField.map(f => [`Profit — ${f.fieldName}`, f.profit]),
+            ]
+          : [];
         break;
       case 'field-comparison':
-        headers = ['Field', 'Olive Kg', 'Oil Kg', 'Oil %', 'Kg/Ha', 'Cost/Ha', 'Profit/Ha', 'Pest'];
+        headers = ['Field', 'Olive Kg', 'Kg/Ha', 'Cost/Ha'];
         rows = filteredComparison.map(r => [
-          r.fieldName, r.oliveKg, r.oilKg, r.oilYieldPercent,
-          r.kgPerHa, r.costPerHa, r.profitPerHa, r.pestPressure,
+          r.fieldName, r.oliveKg, r.kgPerHa ?? '', r.costPerHa,
         ]);
         break;
     }
@@ -311,15 +323,23 @@ const ReportsPage: React.FC = () => {
       case 'field-summary':
         return <FieldSummaryReportView id={REPORT_PREVIEW_ID} data={filteredSummaries} />;
       case 'production-harvest':
-        return <ProductionHarvestReportView id={REPORT_PREVIEW_ID} data={filteredHarvest} />;
+        return <ProductionHarvestReportView id={REPORT_PREVIEW_ID} data={filteredHarvest} season={season} />;
       case 'profit-loss':
-        return <ProfitLossReportView id={REPORT_PREVIEW_ID} data={filteredProfitLoss} />;
+        return filteredProfitLoss
+          ? <ProfitLossReportView id={REPORT_PREVIEW_ID} data={filteredProfitLoss} />
+          : (
+            <div className="report-empty-state">
+              <Euro size={40} strokeWidth={1.5} />
+              <h3>{t('selectFieldsPrompt')}</h3>
+            </div>
+          );
       case 'field-comparison':
         return (
           <FieldComparisonReportView
             id={REPORT_PREVIEW_ID}
             data={filteredComparison}
             insights={comparisonInsights}
+            season={season}
           />
         );
       default:
@@ -348,10 +368,12 @@ const ReportsPage: React.FC = () => {
             <h1>{t('title')}</h1>
             <p className="reports-subtitle">{t('subtitle')}</p>
           </div>
-          <div className="reports-hero-badge">
-            <Sparkles size={14} />
-            <span>{t('demoData')}</span>
-          </div>
+          {isMockMode() ? (
+            <div className="reports-hero-badge">
+              <Sparkles size={14} />
+              <span>{t('demoData')}</span>
+            </div>
+          ) : null}
         </header>
 
         <div className="reports-layout">
@@ -398,9 +420,9 @@ const ReportsPage: React.FC = () => {
                   {t('season')}
                 </label>
                 <select value={season} onChange={e => setSeason(e.target.value)}>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
+                  {SEASON_OPTIONS.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
                 </select>
               </div>
 

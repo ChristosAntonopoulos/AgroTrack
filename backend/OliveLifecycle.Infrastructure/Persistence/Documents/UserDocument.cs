@@ -47,4 +47,7 @@ public class UserExperiencePreferencesDocument
 
     [BsonElement("largeControls")]
     public bool LargeControls { get; set; }
+
+    [BsonElement("language")]
+    public string Language { get; set; } = "en";
 }

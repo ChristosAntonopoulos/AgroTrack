@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, typography, spacing, spacingPatterns } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing, radii } from '../../theme';
 
 export interface BadgeProps {
   label: string;
@@ -17,7 +18,8 @@ const Badge: React.FC<BadgeProps> = ({
   icon,
   showDot = false,
 }) => {
-  // Prop is already correct type, use directly
+  const { colors, fontScaleMultiplier } = useTheme();
+
   const getVariantStyles = () => {
     switch (variant) {
       case 'primary':
@@ -59,19 +61,19 @@ const Badge: React.FC<BadgeProps> = ({
         return {
           paddingVertical: spacing.xs / 2,
           paddingHorizontal: spacing.xs,
-          fontSize: typography.fontSize.xs,
+          fontSize: typography.fontSize.xs * fontScaleMultiplier,
         };
       case 'large':
         return {
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
-          fontSize: typography.fontSize.sm,
+          fontSize: typography.fontSize.sm * fontScaleMultiplier,
         };
       default:
         return {
           paddingVertical: spacing.xs,
           paddingHorizontal: spacing.sm,
-          fontSize: typography.fontSize.xs,
+          fontSize: typography.fontSize.xs * fontScaleMultiplier,
         };
     }
   };
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderRadius: spacingPatterns.borderRadius.md,
+    borderRadius: radii.md,
   },
   dot: {
     width: 6,

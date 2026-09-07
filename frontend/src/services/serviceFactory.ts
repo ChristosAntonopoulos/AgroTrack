@@ -30,6 +30,10 @@ import { ministryApiService } from './ministryApiService';
 
 // Reports
 import { reportsService } from './reportsService';
+import { financialEntryService } from './financialEntryService';
+import { mockFinancialEntryService } from './mock/mockFinancialEntryService';
+import { harvestService } from './harvestService';
+import { mockHarvestService } from './mock/mockHarvestService';
 import { isMockDataEnabled } from '../config/apiConfig';
 
 const useMockData = isMockDataEnabled();
@@ -43,6 +47,9 @@ export const getAnalyticsService = () => useMockData ? mockAnalyticsService : an
 export const getMinistryNotificationService = () =>
   useMockData ? ministryNotificationService : ministryApiService;
 export const getReportsService = () => reportsService;
+export const getFinancialEntryService = () =>
+  useMockData ? mockFinancialEntryService : financialEntryService;
+export const getHarvestService = () => (useMockData ? mockHarvestService : harvestService);
 
 // Export a helper to check if mock mode is active
 export const isMockMode = () => useMockData;

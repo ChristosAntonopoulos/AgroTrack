@@ -96,6 +96,22 @@ public class MongoIndexInitializer : IHostedService
             harvests.Indexes.CreateOne(new CreateIndexModel<HarvestRecordDocument>(
                 Builders<HarvestRecordDocument>.IndexKeys.Ascending(h => h.FieldId)));
 
+            var financialEntries = _context.GetCollection<FinancialEntryDocument>("financial_entries");
+            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
+                Builders<FinancialEntryDocument>.IndexKeys
+                    .Ascending(e => e.FieldId)
+                    .Descending(e => e.OccurredOn)));
+            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
+                Builders<FinancialEntryDocument>.IndexKeys
+                    .Ascending(e => e.FieldId)
+                    .Ascending(e => e.LifecycleYear)));
+            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
+                Builders<FinancialEntryDocument>.IndexKeys.Ascending(e => e.TaskId),
+                new CreateIndexOptions { Sparse = true }));
+            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
+                Builders<FinancialEntryDocument>.IndexKeys.Ascending(e => e.HarvestId),
+                new CreateIndexOptions { Sparse = true }));
+
             EnsureGeospatialIndexes();
 
             _logger.LogInformation("MongoDB indexes ensured.");

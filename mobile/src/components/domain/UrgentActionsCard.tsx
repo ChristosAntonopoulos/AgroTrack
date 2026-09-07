@@ -188,7 +188,6 @@ const styles = StyleSheet.create({
     borderRadius: spacingPatterns.borderRadius.md,
     borderLeftWidth: 3,
     marginRight: spacing.sm,
-    ...spacingPatterns.shadow.sm,
   },
   actionHeader: {
     flexDirection: 'row',

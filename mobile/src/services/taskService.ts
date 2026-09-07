@@ -24,6 +24,8 @@ export interface Task {
   actualStart?: string;
   actualEnd?: string;
   lifecycleYear: string;
+  harvestPhase?: 'prepare' | 'daily' | 'final';
+  templateId?: string;
   cost?: number;
   approvalStatus?: string;
   approvalNote?: string;
@@ -39,6 +41,8 @@ type CreateTaskData = {
   description?: string;
   assignedTo?: string;
   templateId?: string;
+  harvestPhase?: 'prepare' | 'daily' | 'final';
+  lifecycleYear?: string;
   scheduledStart?: string;
   scheduledEnd?: string;
 };
@@ -301,7 +305,8 @@ export const taskService = {
         assignedTo: data.assignedTo,
         scheduledStart: data.scheduledStart,
         scheduledEnd: data.scheduledEnd,
-        lifecycleYear: 'low',
+        harvestPhase: data.harvestPhase,
+        lifecycleYear: data.lifecycleYear || 'low',
         evidence: [],
         createdAt: now,
         updatedAt: now,

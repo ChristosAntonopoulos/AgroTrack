@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing } from '../../theme';
+import { typography, spacing, radii, motion } from '../../theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -16,7 +16,7 @@ export interface AlertBannerProps {
 }
 
 const AlertBanner: React.FC<AlertBannerProps> = ({ variant, icon, message, onPress }) => {
-  const { colors } = useTheme();
+  const { colors, fontScaleMultiplier, tapMin } = useTheme();
   const isError = variant === 'error';
   const bg = isError ? colors.bannerErrorBg : colors.bannerWarningBg;
   const border = isError ? colors.bannerErrorBorder : colors.bannerWarningBorder;
@@ -27,7 +27,14 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ variant, icon, message, onPre
       <View style={[styles.iconWrap, { backgroundColor: iconColor + '22' }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>
-      <Text style={[styles.message, { color: colors.textPrimary }]}>{message}</Text>
+      <Text
+        style={[
+          styles.message,
+          { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier, lineHeight: 20 * fontScaleMultiplier },
+        ]}
+      >
+        {message}
+      </Text>
       {onPress ? (
         <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
       ) : null}
@@ -36,7 +43,11 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ variant, icon, message, onPre
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.wrap}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={motion.pressOpacity}
+        style={[styles.wrap, { minHeight: tapMin }]}
+      >
         {inner}
       </TouchableOpacity>
     );
@@ -51,7 +62,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderLeftWidth: 4,
   },
   iconWrap: {

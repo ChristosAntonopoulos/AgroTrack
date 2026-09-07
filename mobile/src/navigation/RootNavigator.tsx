@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { motion } from '../theme';
 import AuthNavigator from './AuthNavigator';
 import MainLayout from './MainLayout';
 import FieldDetailScreen from '../screens/FieldDetailScreen';
@@ -13,6 +14,8 @@ import FieldFormScreen from '../screens/FieldFormScreen';
 import FieldMapBoundaryScreen from '../screens/FieldMapBoundaryScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import ThisHarvestScreen from '../screens/ThisHarvestScreen';
+import PeopleScreen from '../screens/PeopleScreen';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { RootStackParamList } from './types';
 import { setSessionExpiredHandler } from '../services/api';
@@ -21,7 +24,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   const { isAuthenticated, isLoading, logout } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, fontScaleMultiplier } = useTheme();
+  const headerTitleSize = 17 * fontScaleMultiplier;
   const { t } = useTranslation(['nav', 'fields']);
   const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -57,9 +61,10 @@ const RootNavigator = () => {
         screenOptions={{
           headerStyle: { backgroundColor: colors.surfaceElevated },
           headerTintColor: colors.primaryDark,
-          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700', fontSize: 17 },
+          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700', fontSize: headerTitleSize },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.background },
+          animationDuration: motion.durationMs.ui,
         }}
       >
         {!isAuthenticated ? (
@@ -87,7 +92,7 @@ const RootNavigator = () => {
                 headerTitleStyle: {
                   color: colors.headerForeground,
                   fontWeight: '700',
-                  fontSize: 17,
+                  fontSize: headerTitleSize,
                 },
               }}
             />
@@ -107,7 +112,7 @@ const RootNavigator = () => {
                 headerTitleStyle: {
                   color: colors.headerForeground,
                   fontWeight: '700',
-                  fontSize: 17,
+                  fontSize: headerTitleSize,
                 },
               }}
             />
@@ -124,7 +129,7 @@ const RootNavigator = () => {
                 headerTitleStyle: {
                   color: colors.headerForeground,
                   fontWeight: '700',
-                  fontSize: 17,
+                  fontSize: headerTitleSize,
                 },
               })}
             />
@@ -142,6 +147,22 @@ const RootNavigator = () => {
               name="Notifications"
               component={NotificationsScreen}
               options={{ title: t('notifications') }}
+            />
+            <Stack.Screen
+              name="ThisHarvest"
+              component={ThisHarvestScreen}
+              options={{
+                title: t('fields:thisHarvest.title', { defaultValue: 'This harvest' }),
+                headerBackTitle: t('more'),
+              }}
+            />
+            <Stack.Screen
+              name="People"
+              component={PeopleScreen}
+              options={{
+                title: t('fields:people.title', { defaultValue: 'People' }),
+                headerBackTitle: t('more'),
+              }}
             />
           </>
         )}

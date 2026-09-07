@@ -1,6 +1,7 @@
 using OliveLifecycle.Application.DTOs.TaskTemplate;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -38,6 +39,8 @@ public class TaskTemplateService : ITaskTemplateService
         Title = template.Title,
         Description = template.Description,
         LifecycleYear = template.LifecycleYear,
+        HarvestPhase = template.HarvestPhase?.ToApiString()
+            ?? HarvestPhaseCatalog.FromTypeOrTitle(template.Type, template.Title)?.ToApiString(),
         DefaultSchedulingWindow = template.DefaultSchedulingWindow == null
             ? null
             : new SchedulingWindowDto

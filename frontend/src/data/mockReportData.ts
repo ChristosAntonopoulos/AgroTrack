@@ -38,19 +38,19 @@ export interface HarvestRecord {
   fieldId: string;
   fieldName: string;
   harvestDate: string;
-  harvestMethod: string;
-  workersUsed: number;
+  harvestMethod?: string;
+  workersUsed?: number;
   oliveKg: number;
-  kgPerTree: number;
-  kgPerHa: number;
-  millName: string;
-  deliveryTime: string;
-  oilKg: number;
-  oilYieldPercent: number;
+  kgPerTree?: number;
+  kgPerHa?: number;
+  millName?: string;
+  deliveryTime?: string;
+  oilKg?: number;
+  oilYieldPercent?: number;
   oilAcidity?: number;
-  qualityGrade: string;
-  rejectedKg: number;
-  notes: string;
+  qualityGrade?: string;
+  rejectedKg?: number;
+  notes?: string;
 }
 
 export interface ProfitLossData {
@@ -95,16 +95,16 @@ export interface FieldComparisonRow {
   fieldId: string;
   fieldName: string;
   oliveKg: number;
-  oilKg: number;
-  oilYieldPercent: number;
-  kgPerTree: number;
-  kgPerHa: number;
+  oilKg?: number;
+  oilYieldPercent?: number;
+  kgPerTree?: number;
+  kgPerHa?: number;
   costPerHa: number;
-  profitPerHa: number;
+  profitPerHa?: number;
   tasksCompleted: number;
-  issueCount: number;
-  pestPressure: 'Low' | 'Medium' | 'High';
-  waterUsageM3: number;
+  issueCount?: number;
+  pestPressure?: 'Low' | 'Medium' | 'High';
+  waterUsageM3?: number;
 }
 
 export interface ComparisonInsights {
@@ -412,13 +412,15 @@ export function formatCurrency(value: number): string {
   return `€${value.toLocaleString('en-EU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-export function formatNumber(value: number, decimals = 0): string {
+export function formatNumber(value: number | undefined, decimals = 0): string {
+  if (value == null || Number.isNaN(value)) return '—';
   return value.toLocaleString('en-EU', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
-export function formatPercent(value: number): string {
+export function formatPercent(value: number | undefined): string {
+  if (value == null || Number.isNaN(value)) return '—';
   return `${value.toFixed(1)}%`;
 }

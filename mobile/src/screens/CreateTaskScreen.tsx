@@ -17,6 +17,8 @@ import { Field } from '../services/fieldService';
 import { TaskTemplate } from '../services/taskTemplateService';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
+import { CREATE_HARVEST_JOBS, getHarvestJob } from '../utils/harvestJobs';
 import FormField from '../components/forms/FormField';
 import FormDateField from '../components/forms/FormDateField';
 import Button from '../components/ui/Button';
@@ -34,6 +36,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'CreateTask'>;
 
 const ALL_STEPS: TaskWizardStep[] = ['field', 'template', 'details', 'review'];
 const SKIP_FIELD_STEPS: TaskWizardStep[] = ['template', 'details', 'review'];
+const EVERYDAY_STEPS: TaskWizardStep[] = ['field', 'template', 'details'];
+const EVERYDAY_SKIP_FIELD: TaskWizardStep[] = ['template', 'details'];
 
 const CUSTOM_TEMPLATE_ID = '__custom__';
 
@@ -51,12 +55,13 @@ const CreateTaskScreen = () => {
   const preselectedStart = route.params?.scheduledStart;
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { isEveryday, tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['tasks', 'common', 'fields']);
 
-  const steps = useMemo(
-    () => (preselectedFieldId ? SKIP_FIELD_STEPS : ALL_STEPS),
-    [preselectedFieldId]
-  );
+  const steps = useMemo(() => {
+    if (isEveryday) return preselectedFieldId ? EVERYDAY_SKIP_FIELD : EVERYDAY_STEPS;
+    return preselectedFieldId ? SKIP_FIELD_STEPS : ALL_STEPS;
+  }, [preselectedFieldId, isEveryday]);
 
   const [step, setStep] = useState<TaskWizardStep>(steps[0]);
   const [fields, setFields] = useState<Field[]>([]);
@@ -111,6 +116,39 @@ const CreateTaskScreen = () => {
       }
     })();
   }, [user, t]);
+
+  const jobChoices = useMemo(() => {
+    const byType = new Map<string, TaskTemplate>();
+    templates.forEach((tpl) => {
+      if (!byType.has(tpl.type)) byType.set(tpl.type, tpl);
+    });
+    CREATE_HARVEST_JOBS.forEach((type) => {
+      if (byType.has(type)) return;
+      const alias = templates.find((tpl) => getHarvestJob(tpl.type)?.aliasOf === type);
+      if (alias) {
+        byType.set(type, { ...alias, type, title: t(`tasks:harvestJobs.${type}.title`, { defaultValue: alias.title }) });
+        return;
+      }
+      byType.set(type, {
+        id: `local-${type}`,
+        type,
+        title: t(`tasks:harvestJobs.${type}.title`),
+        description: t(`tasks:harvestJobs.${type}.helper`),
+        lifecycleYear: 'high',
+        harvestPhase: getHarvestJob(type)?.phase,
+      });
+    });
+    const list = [...byType.values()];
+    const month = new Date().getMonth() + 1;
+    const harvestFirst = month >= 9 || month <= 1;
+    list.sort((a, b) => {
+      const ap = getHarvestJob(a.type) ? 0 : 1;
+      const bp = getHarvestJob(b.type) ? 0 : 1;
+      if (harvestFirst && ap !== bp) return ap - bp;
+      return a.title.localeCompare(b.title);
+    });
+    return list;
+  }, [templates, t]);
 
   const applyTemplate = useCallback((tpl: TaskTemplate) => {
     setTemplateId(tpl.id);
@@ -219,10 +257,15 @@ const CreateTaskScreen = () => {
       setError(null);
       await getTaskService().createTask({
         fieldId,
-        templateId: templateId && templateId !== CUSTOM_TEMPLATE_ID ? templateId : undefined,
+        templateId:
+          templateId && templateId !== CUSTOM_TEMPLATE_ID && !templateId.startsWith('local-')
+            ? templateId
+            : undefined,
         title: title.trim(),
         type: type.trim(),
         description: description.trim() || undefined,
+        harvestPhase: getHarvestJob(type)?.phase,
+        lifecycleYear: selectedField?.currentLifecycleYear,
         scheduledStart: scheduledStart
           ? new Date(`${scheduledStart}T09:00:00`).toISOString()
           : undefined,
@@ -302,6 +345,7 @@ const CreateTaskScreen = () => {
                     {
                       borderColor: active ? colors.primaryDark : colors.borderLight,
                       backgroundColor: active ? colors.primaryDark + '10' : colors.surface,
+                      minHeight: isEveryday ? tapMin + 8 : undefined,
                     },
                   ]}
                 >
@@ -343,9 +387,10 @@ const CreateTaskScreen = () => {
                 </Text>
               </View>
             ) : null}
-            {templates.map((tpl) => {
-              const active = templateId === tpl.id;
-              const tint = getTaskCategoryColor(tpl.type);
+            {jobChoices.map((tpl) => {
+              const active = templateId === tpl.id || (templateId == null && type === tpl.type);
+              const harvest = getHarvestJob(tpl.type);
+              const tint = harvest ? colors.primaryDark : getTaskCategoryColor(tpl.type);
               return (
                 <Pressable
                   key={tpl.id}
@@ -355,14 +400,30 @@ const CreateTaskScreen = () => {
                     {
                       borderColor: active ? colors.primaryDark : colors.borderLight,
                       backgroundColor: active ? colors.primaryDark + '08' : colors.surface,
+                      minHeight: isEveryday ? tapMin + 8 : undefined,
                     },
                   ]}
                 >
-                  <View style={[styles.typePill, { backgroundColor: tint + '22' }]}>
-                    <Text style={[styles.typePillText, { color: tint }]}>{tpl.type}</Text>
-                  </View>
-                  <Text style={[styles.templateTitle, { color: colors.textPrimary }]}>{tpl.title}</Text>
-                  {tpl.description ? (
+                  {harvest ? (
+                    <View style={[styles.typePill, { backgroundColor: tint + '22' }]}>
+                      <Text style={[styles.typePillText, { color: tint }]}>
+                        {t('tasks:harvest.word')} · {t(`tasks:harvest.phases.${harvest.phase}`)}
+                      </Text>
+                    </View>
+                  ) : !isEveryday ? (
+                    <View style={[styles.typePill, { backgroundColor: tint + '22' }]}>
+                      <Text style={[styles.typePillText, { color: tint }]}>{tpl.type}</Text>
+                    </View>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.templateTitle,
+                      { color: colors.textPrimary, fontSize: isEveryday ? 17 * fontScaleMultiplier : undefined },
+                    ]}
+                  >
+                    {harvest ? t(`tasks:harvestJobs.${harvest.aliasOf ?? harvest.type}.title`, { defaultValue: tpl.title }) : tpl.title}
+                  </Text>
+                  {tpl.description && !isEveryday ? (
                     <Text style={[styles.templateDesc, { color: colors.textSecondary }]} numberOfLines={2}>
                       {tpl.description}
                     </Text>
@@ -397,31 +458,37 @@ const CreateTaskScreen = () => {
         {step === 'details' ? (
           <View style={styles.stepBody}>
             <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('tasks:createWizard.detailsTitle')}
+              {isEveryday ? t('tasks:createWizard.whenTitle') : t('tasks:createWizard.detailsTitle')}
             </Text>
-            <FormField
-              label={t('tasks:createWizard.taskTitle')}
-              value={title}
-              onChangeText={setTitle}
-              editable={!saving}
-              placeholder={t('tasks:createWizard.taskTitlePlaceholder')}
-            />
-            <FormField
-              label={t('tasks:type')}
-              value={type}
-              onChangeText={setType}
-              editable={!saving}
-              placeholder={t('tasks:createWizard.typePlaceholder')}
-            />
-            <FormField
-              label={t('tasks:notes')}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              editable={!saving}
-              placeholder={t('tasks:createWizard.notesPlaceholder')}
-            />
+            {!isEveryday || isCustom ? (
+              <>
+                <FormField
+                  label={t('tasks:createWizard.taskTitle')}
+                  value={title}
+                  onChangeText={setTitle}
+                  editable={!saving}
+                  placeholder={t('tasks:createWizard.taskTitlePlaceholder')}
+                />
+                <FormField
+                  label={t('tasks:type')}
+                  value={type}
+                  onChangeText={setType}
+                  editable={!saving}
+                  placeholder={t('tasks:createWizard.typePlaceholder')}
+                />
+              </>
+            ) : null}
+            {!isEveryday ? (
+              <FormField
+                label={t('tasks:notes')}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+                editable={!saving}
+                placeholder={t('tasks:createWizard.notesPlaceholder')}
+              />
+            ) : null}
             <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>
               {t('tasks:createWizard.scheduleTitle')}
             </Text>
@@ -432,7 +499,12 @@ const CreateTaskScreen = () => {
                   onPress={() => applySchedulePreset(preset)}
                   style={[
                     styles.presetChip,
-                    { borderColor: colors.borderLight, backgroundColor: colors.surface },
+                    {
+                      borderColor: colors.borderLight,
+                      backgroundColor: colors.surface,
+                      minHeight: isEveryday ? tapMin : undefined,
+                      justifyContent: 'center',
+                    },
                   ]}
                 >
                   <Text style={[styles.presetText, { color: colors.textSecondary }]}>

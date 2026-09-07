@@ -12,25 +12,22 @@
   --color-success: #28a745;
   --color-success-light: #d4edda;
   --color-success-dark: #218838;
-  --color-success-gradient: linear-gradient(135deg, #28a745 0%, #218838 100%);
   --color-warning: #ffc107;
   --color-warning-light: #fff3cd;
   --color-warning-dark: #e0a800;
-  --color-warning-gradient: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  --color-warning-ink: #5a4200;
   --color-error: #dc3545;
   --color-error-light: #f8d7da;
   --color-error-dark: #c82333;
-  --color-error-gradient: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  --color-danger: var(--color-error);
   --color-info: #17a2b8;
   --color-info-light: #d1ecf1;
   --color-info-dark: #138496;
-  --color-info-gradient: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   
   /* Secondary Colors */
   --color-secondary: #6c757d;
   --color-secondary-light: #adb5bd;
   --color-secondary-dark: #5a6268;
-  --color-secondary-gradient: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
   
   /* Lifecycle Colors */
   --color-lifecycle-low: #4a7c2a;
@@ -50,10 +47,15 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
   
-  /* Transitions */
+  /* Motion — 150 / 200 / 250ms, shared press fade */
+  --motion-fast: 150ms;
+  --motion-ui: 200ms;
+  --motion-slow: 250ms;
+  --press-opacity: 0.75;
   --transition-fast: 150ms ease-in-out;
+  --transition-ui: 200ms ease-in-out;
   --transition-base: 250ms ease-in-out;
-  --transition-slow: 350ms ease-in-out;
+  --transition-slow: 250ms ease-in-out;
   
   /* Z-index */
   --z-dropdown: 1000;
@@ -91,7 +93,13 @@ html[data-font-scale='xl'] {
 
 html[data-large-controls='true'] button,
 html[data-large-controls='true'] .btn,
-html[data-large-controls='true'] a.button {
+html[data-large-controls='true'] a.button,
+html[data-large-controls='true'] .nav-link,
+html[data-large-controls='true'] .icon-button,
+html[data-large-controls='true'] .menu-button,
+html[data-large-controls='true'] .header-lang-btn,
+html[data-large-controls='true'] .logout-button,
+html[data-large-controls='true'] .offline-banner-action {
   min-height: var(--tap-min, 48px);
 }
 
@@ -111,7 +119,8 @@ html[data-large-controls='true'] a.button {
 [data-theme="light"] {
   /* Background Layers (Semantic) */
   --bg-page: #f0f2f5;
-  --bg-page-gradient: linear-gradient(135deg, #f0f2f5 0%, #e0e2e5 100%);
+  --color-bg: var(--bg-page);
+  --bg-page-gradient: var(--bg-page);
   --bg-surface: #ffffff;
   --bg-surface-hover: #f5f7fa;
   --bg-elevated: #fafbfc;
@@ -133,6 +142,7 @@ html[data-large-controls='true'] a.button {
   
   /* Text Colors */
   --color-text-primary: #212529;
+  --color-text: var(--color-text-primary);
   --color-text-secondary: #6c757d;
   --color-text-muted: #adb5bd;
   --color-text-inverse: #ffffff;
@@ -148,12 +158,6 @@ html[data-large-controls='true'] a.button {
   --color-surface: var(--bg-surface);
   --color-surface-hover: var(--bg-surface-hover);
   --color-surface-elevated: var(--bg-elevated);
-  
-  /* Gradient Backgrounds */
-  --gradient-primary: linear-gradient(135deg, #2d5016 0%, #4a7c2a 100%);
-  --gradient-primary-light: linear-gradient(135deg, #4a7c2a 0%, #6b9a3f 100%);
-  --gradient-surface: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  --gradient-card: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -174,7 +178,8 @@ html[data-large-controls='true'] a.button {
 [data-theme="white"] {
   /* Background Layers - Minimal */
   --bg-page: #ffffff;
-  --bg-page-gradient: #ffffff;
+  --color-bg: var(--bg-page);
+  --bg-page-gradient: var(--bg-page);
   --bg-surface: #ffffff;
   --bg-surface-hover: #fafafa;
   --bg-elevated: #ffffff;
@@ -196,6 +201,7 @@ html[data-large-controls='true'] a.button {
   
   /* Text Colors */
   --color-text-primary: #212529;
+  --color-text: var(--color-text-primary);
   --color-text-secondary: #6c757d;
   --color-text-muted: #adb5bd;
   --color-text-inverse: #ffffff;
@@ -211,12 +217,6 @@ html[data-large-controls='true'] a.button {
   --color-surface: #ffffff;
   --color-surface-hover: #fafafa;
   --color-surface-elevated: #ffffff;
-  
-  /* Gradient Backgrounds - Minimal */
-  --gradient-primary: linear-gradient(135deg, #2d5016 0%, #4a7c2a 100%);
-  --gradient-primary-light: linear-gradient(135deg, #4a7c2a 0%, #6b9a3f 100%);
-  --gradient-surface: #ffffff;
-  --gradient-card: #ffffff;
   
   /* Shadows - Subtle */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
@@ -237,7 +237,8 @@ html[data-large-controls='true'] a.button {
 [data-theme="dark"] {
   /* Background Layers - Dark */
   --bg-page: #1a1a1a;
-  --bg-page-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  --color-bg: var(--bg-page);
+  --bg-page-gradient: var(--bg-page);
   --bg-surface: #2d2d2d;
   --bg-surface-hover: #353535;
   --bg-elevated: #3a3a3a;
@@ -259,6 +260,7 @@ html[data-large-controls='true'] a.button {
   
   /* Text Colors - Dark */
   --color-text-primary: #ffffff;
+  --color-text: var(--color-text-primary);
   --color-text-secondary: #b0b0b0;
   --color-text-muted: #808080;
   --color-text-inverse: #212529;
@@ -275,12 +277,6 @@ html[data-large-controls='true'] a.button {
   --color-surface-hover: var(--bg-surface-hover);
   --color-surface-elevated: var(--bg-elevated);
   
-  /* Gradient Backgrounds - Dark */
-  --gradient-primary: linear-gradient(135deg, #4a7c2a 0%, #6b9a3f 100%);
-  --gradient-primary-light: linear-gradient(135deg, #6b9a3f 0%, #8b9a46 100%);
-  --gradient-surface: linear-gradient(135deg, #2d2d2d 0%, #252525 100%);
-  --gradient-card: linear-gradient(135deg, #2d2d2d 0%, #353535 100%);
-  
   /* Shadows - Dark */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
@@ -296,6 +292,8 @@ html[data-large-controls='true'] a.button {
   /* Status Colors - Adjusted for dark */
   --color-success-light: #1e4628;
   --color-warning-light: #4a3d1e;
+  --color-warning-ink: #ffe6a8;
   --color-error-light: #4a1e1e;
+  --color-danger: var(--color-error);
   --color-info-light: #1e3a42;
 }

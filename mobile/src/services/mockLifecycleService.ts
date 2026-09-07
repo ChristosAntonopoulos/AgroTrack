@@ -47,4 +47,16 @@ export const mockLifecycleService = {
     if (!lifecycle) throw new Error('Lifecycle not found');
     return { ...lifecycle };
   },
+
+  correctLifecycle: async (
+    fieldId: string,
+    payload: { currentYear?: string; currentStage?: string }
+  ): Promise<Lifecycle> => {
+    await simulateDelay();
+    const lifecycle = mockLifecycles.find((l) => l.fieldId === fieldId);
+    if (!lifecycle) throw new Error('Lifecycle not found');
+    if (payload.currentYear) lifecycle.currentYear = payload.currentYear;
+    if (payload.currentStage) lifecycle.currentStage = payload.currentStage;
+    return { ...lifecycle };
+  },
 };

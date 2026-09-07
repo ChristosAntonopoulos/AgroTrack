@@ -52,7 +52,7 @@
     "resetConfirm": "Reset demo data? This will restore the original demo fields, tasks, and assignments."
   },
   "experience": {
-    "label": "How OliveCycle looks",
+    "label": "How AgroTrack looks",
     "everyday": "Everyday",
     "everydayShort": "Day",
     "everydayDesc": "What to do now — large actions, fewer numbers.",
@@ -61,7 +61,7 @@
     "fullShort": "Full",
     "fullDesc": "Maps, satellite, soil, analytics, and denser history.",
     "fullHint": "For agronomists and detailed planning",
-    "chooserTitle": "How should OliveCycle look?",
+    "chooserTitle": "How should AgroTrack look?",
     "chooserSubtitle": "Same fields and tasks. You choose the density.",
     "chooserFooter": "You can change this later in Settings.",
     "comfortTitle": "How large should text be?",

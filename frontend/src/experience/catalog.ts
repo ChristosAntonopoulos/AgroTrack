@@ -11,6 +11,7 @@ const EVERYDAY_WIDGETS: ReadonlySet<ExperienceWidget> = new Set([
   'nextTasks',
   'peopleStrip',
   'alertsPlain',
+  'fieldCosts',
 ]);
 
 /**
@@ -31,6 +32,7 @@ export const EVERYDAY_PRIMARY_PATHS: ReadonlySet<string> = new Set([
   '/fields',
   '/tasks',
   '/people',
+  '/money',
   '/settings',
 ]);
 

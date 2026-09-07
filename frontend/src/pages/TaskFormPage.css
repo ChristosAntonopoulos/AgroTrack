@@ -277,6 +277,14 @@
   flex-shrink: 0;
 }
 
+.task-form-template-cat {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
 .task-form-template-banner strong {
   display: block;
   margin-bottom: 4px;
@@ -301,6 +309,14 @@
   color: var(--color-text-primary);
 }
 
+.task-form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+}
+
 .task-form-group input,
 .task-form-group select,
 .task-form-group textarea {
@@ -312,6 +328,60 @@
   font-size: 0.9rem;
   background: var(--color-surface);
   color: var(--color-text-primary);
+}
+
+.task-form-date {
+  min-height: 52px;
+  font-size: 1.05rem !important;
+}
+
+.task-form-steps-list {
+  list-style: none;
+  margin: 0 0 var(--spacing-sm);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-form-steps-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input, var(--color-surface));
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+.task-form-step-remove {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.task-form-add-step {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.task-form-add-step input {
+  flex: 1;
+  min-height: 48px;
+}
+
+.task-form-more {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
 }
 
 .task-form-group input:focus,

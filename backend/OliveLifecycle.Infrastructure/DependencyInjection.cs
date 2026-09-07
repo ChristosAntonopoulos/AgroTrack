@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<ITaskTemplateRepository, TaskTemplateRepository>();
         services.AddScoped<IMinistryNotificationRepository, MinistryNotificationRepository>();
         services.AddScoped<IHarvestRecordRepository, HarvestRecordRepository>();
+        services.AddScoped<IFinancialEntryRepository, FinancialEntryRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
 

@@ -2,28 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Leaf,
-  MapPin,
-  ListTodo,
-  History,
-  CalendarDays,
-  Users,
-  Activity,
-  Wallet,
-  Sprout,
+  BookOpen,
+  MessageCircle,
   Smartphone,
-  Monitor,
-  ChevronDown,
   Download,
   Mail,
   Check,
-  AlertCircle,
-  BookOpen,
-  Eye,
-  ClipboardList,
+  ChevronDown,
   LogIn,
   X,
   Menu,
+  AlertCircle,
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleProvider';
 import { SupportedLocale } from '../i18n/config';
@@ -36,14 +25,59 @@ import {
 } from '../config/landingConfig';
 import './LandingPage.css';
 
-type WebTab = 'dashboard' | 'calendar' | 'fields' | 'history';
+import elPhoneToday from '../assets/landing/el-phone-today.png';
+import elPhoneFields from '../assets/landing/el-phone-fields.png';
+import elPhoneField from '../assets/landing/el-phone-field.png';
+import elPhoneTask from '../assets/landing/el-phone-task.png';
+import elPhoneHarvest from '../assets/landing/el-phone-harvest.png';
+import elWebMoney from '../assets/landing/el-web-money.png';
+import elWebField from '../assets/landing/el-web-field.png';
+import enPhoneToday from '../assets/landing/en-phone-today.png';
+import enPhoneFields from '../assets/landing/en-phone-fields.png';
+import enPhoneField from '../assets/landing/en-phone-field.png';
+import enPhoneTask from '../assets/landing/en-phone-task.png';
+import enPhoneHarvest from '../assets/landing/en-phone-harvest.png';
+import enWebMoney from '../assets/landing/en-web-money.png';
+import enWebField from '../assets/landing/en-web-field.png';
+
+type ShotKey =
+  | 'phoneToday'
+  | 'phoneFields'
+  | 'phoneField'
+  | 'phoneTask'
+  | 'phoneHarvest'
+  | 'webMoney'
+  | 'webField';
+
+const SHOTS_EL: Record<ShotKey, string> = {
+  phoneToday: elPhoneToday,
+  phoneFields: elPhoneFields,
+  phoneField: elPhoneField,
+  phoneTask: elPhoneTask,
+  phoneHarvest: elPhoneHarvest,
+  webMoney: elWebMoney,
+  webField: elWebField,
+};
+
+const SHOTS_EN: Record<ShotKey, string> = {
+  phoneToday: enPhoneToday,
+  phoneFields: enPhoneFields,
+  phoneField: enPhoneField,
+  phoneTask: enPhoneTask,
+  phoneHarvest: enPhoneHarvest,
+  webMoney: enWebMoney,
+  webField: enWebField,
+};
+
+const shotsFor = (locale: SupportedLocale): Record<ShotKey, string> =>
+  locale === 'el' ? SHOTS_EL : SHOTS_EN;
 
 const LandingPage: React.FC = () => {
   const { t } = useTranslation('landing');
   const { locale, setLocale } = useLocale();
+  const shots = shotsFor(locale);
   const [scrolled, setScrolled] = useState(false);
-  const [webTab, setWebTab] = useState<WebTab>('dashboard');
-  const [faqOpen, setFaqOpen] = useState<number | null>(0);
+  const [faqOpen, setFaqOpen] = useState<number | null>(1);
   const [installOpen, setInstallOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -67,7 +101,7 @@ const LandingPage: React.FC = () => {
     };
   }, [mobileMenuOpen]);
 
-  const faqKeys = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+  const faqKeys = [1, 2, 3, 4, 5, 6] as const;
 
   const submitDemo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +113,12 @@ const LandingPage: React.FC = () => {
     setDemoOpen(false);
   };
 
-  const webTabs: { id: WebTab; label: string; desc: string }[] = [
-    { id: 'dashboard', label: t('web.tabDashboard'), desc: t('web.dashboardDesc') },
-    { id: 'calendar', label: t('web.tabCalendar'), desc: t('web.calendarDesc') },
-    { id: 'fields', label: t('web.tabFields'), desc: t('web.fieldsDesc') },
-    { id: 'history', label: t('web.tabHistory'), desc: t('web.historyDesc') },
+  const noteRows: { key: string; shot: ShotKey; frame: 'phone' | 'laptop' }[] = [
+    { key: 'fields', shot: 'phoneFields', frame: 'phone' },
+    { key: 'today', shot: 'phoneToday', frame: 'phone' },
+    { key: 'harvest', shot: 'phoneHarvest', frame: 'phone' },
+    { key: 'costs', shot: 'webMoney', frame: 'laptop' },
+    { key: 'history', shot: 'phoneField', frame: 'phone' },
   ];
 
   return (
@@ -92,7 +127,14 @@ const LandingPage: React.FC = () => {
 
       <header className={`landing-header${scrolled ? ' landing-header--scrolled' : ''}`}>
         <div className="landing-header-inner">
-          <a href="#top" className="landing-brand" onClick={(e) => { e.preventDefault(); scrollTo('top'); }}>
+          <a
+            href="#top"
+            className="landing-brand"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollTo('top');
+            }}
+          >
             <BrandLogo size="sm" alt={t('brand')} rounded />
             <span>{t('brand')}</span>
             <span className="landing-alpha-pill">{t('alphaBadge')}</span>
@@ -108,7 +150,7 @@ const LandingPage: React.FC = () => {
 
           <div className="landing-header-actions">
             <div className="landing-lang landing-lang--desktop" role="group" aria-label="Language">
-              {(['en', 'el'] as SupportedLocale[]).map((code) => (
+              {(['el', 'en'] as SupportedLocale[]).map((code) => (
                 <button
                   key={code}
                   type="button"
@@ -156,7 +198,7 @@ const LandingPage: React.FC = () => {
             </nav>
             <div className="landing-mobile-menu-actions">
               <div className="landing-lang" role="group" aria-label="Language">
-                {(['en', 'el'] as SupportedLocale[]).map((code) => (
+                {(['el', 'en'] as SupportedLocale[]).map((code) => (
                   <button
                     key={code}
                     type="button"
@@ -168,7 +210,11 @@ const LandingPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <Link to="/login" className="landing-btn landing-btn--primary landing-btn--block" onClick={() => setMobileMenuOpen(false)}>
+              <Link
+                to="/login"
+                className="landing-btn landing-btn--primary landing-btn--block"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 <LogIn size={18} aria-hidden />
                 {t('header.signIn')}
               </Link>
@@ -187,99 +233,53 @@ const LandingPage: React.FC = () => {
       </header>
 
       <main id="top">
-        {/* Hero */}
         <section className="landing-hero">
           <div className="landing-container landing-hero-grid">
             <div className="landing-hero-copy">
               <h1>{t('hero.title')}</h1>
               <p className="landing-lead">{t('hero.subtitle')}</p>
               <div className="landing-hero-ctas">
-                <Link to="/login" className="landing-btn landing-btn--hero-primary">
-                  <LogIn size={18} aria-hidden />
-                  {t('hero.ctaLogin')}
+                <Link to="/register" className="landing-btn landing-btn--hero-primary">
+                  {t('hero.ctaPrimary')}
                 </Link>
-                <Link to="/register" className="landing-btn landing-btn--hero-secondary">
-                  {t('hero.ctaRegister')}
-                </Link>
-                <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--hero-ghost">
+                <a
+                  href={ALPHA_APK_URL}
+                  download={ALPHA_APK_FILENAME}
+                  className="landing-btn landing-btn--hero-secondary"
+                >
                   <Download size={18} aria-hidden />
-                  {t('hero.ctaDownload')}
+                  {t('hero.ctaSecondary')}
                 </a>
-                <button type="button" className="landing-btn landing-btn--hero-ghost" onClick={() => setDemoOpen(true)}>
-                  {t('hero.ctaDemo')}
-                </button>
               </div>
+              <button type="button" className="landing-text-link" onClick={() => setDemoOpen(true)}>
+                {t('hero.ctaDemo')}
+              </button>
               <p className="landing-trust">{t('hero.trust')}</p>
             </div>
 
-            <div className="landing-hero-aside">
-              <article className="landing-login-card">
-                <BrandLogo size="md" alt={t('brand')} rounded />
-                <h2>{t('hero.loginCardTitle')}</h2>
-                <p>{t('hero.loginCardText')}</p>
-                <Link to="/login" className="landing-btn landing-btn--primary landing-btn--block">
-                  <LogIn size={18} aria-hidden />
-                  {t('hero.loginCardButton')}
-                </Link>
-                <p className="landing-login-card-meta">
-                  <Link to="/register">{t('hero.ctaRegister')}</Link>
-                </p>
-                <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-login-card-apk">
-                  <Download size={14} aria-hidden />
-                  {t('hero.apkHint')}
-                </a>
-              </article>
-
-              <div className="landing-hero-visual" aria-hidden>
-              <div className="landing-mock-laptop">
-                <div className="landing-mock-bar">
-                  <span /><span /><span />
-                </div>
-                <div className="landing-mock-screen">
-                  <div className="landing-mock-sidebar" />
-                  <div className="landing-mock-main">
-                    <div className="landing-mock-stat-row">
-                      <div className="landing-mock-stat" />
-                      <div className="landing-mock-stat" />
-                      <div className="landing-mock-stat" />
-                    </div>
-                    <div className="landing-mock-chart" />
-                    <div className="landing-mock-list">
-                      <div /><div /><div />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="landing-mock-phone">
-                <div className="landing-mock-phone-notch" />
-                <p className="landing-mock-phone-title">{t('hero.mockToday')}</p>
-                <div className="landing-mock-task" />
-                <div className="landing-mock-task landing-mock-task--done" />
-                <div className="landing-mock-task" />
-                <span className="landing-mock-phone-btn">{t('hero.mockComplete')}</span>
-              </div>
-              <div className="landing-float landing-float--1">{t('hero.floatTasks')}</div>
-              <div className="landing-float landing-float--2">{t('hero.floatFields')}</div>
-              <div className="landing-float landing-float--3">{t('hero.floatProgress')}</div>
-              </div>
+            <div className="landing-hero-visual">
+              <figure className="landing-device landing-device--phone landing-device--hero">
+                <img src={shots.phoneToday} alt={t('hero.shotAlt')} />
+              </figure>
             </div>
           </div>
         </section>
 
-        {/* Product */}
-        <section id="product" className="landing-section">
+        <section id="product" className="landing-section landing-section--cream">
           <div className="landing-container landing-section-head">
-            <h2>{t('product.title')}</h2>
-            <p>{t('product.text')}</p>
+            <h2>{t('shift.title')}</h2>
+            <p>{t('shift.text')}</p>
           </div>
-          <div className="landing-container landing-cards-3">
+          <div className="landing-container landing-shift-grid">
             {[
-              { icon: MapPin, title: t('product.fieldsTitle'), text: t('product.fieldsText') },
-              { icon: ListTodo, title: t('product.tasksTitle'), text: t('product.tasksText') },
-              { icon: History, title: t('product.historyTitle'), text: t('product.historyText') },
+              { icon: BookOpen, title: t('shift.paperTitle'), text: t('shift.paperText') },
+              { icon: MessageCircle, title: t('shift.chatTitle'), text: t('shift.chatText') },
+              { icon: Smartphone, title: t('shift.phoneTitle'), text: t('shift.phoneText') },
             ].map(({ icon: Icon, title, text }) => (
-              <article key={title} className="landing-card">
-                <div className="landing-card-icon"><Icon size={22} strokeWidth={1.75} /></div>
+              <article key={title} className="landing-shift-card">
+                <div className="landing-card-icon">
+                  <Icon size={22} strokeWidth={1.75} />
+                </div>
                 <h3>{title}</h3>
                 <p>{text}</p>
               </article>
@@ -287,117 +287,29 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Pain points */}
-        <section className="landing-section landing-section--muted">
+        <section className="landing-section">
           <div className="landing-container landing-section-head">
-            <h2>{t('pain.title')}</h2>
+            <h2>{t('notes.title')}</h2>
+            <p>{t('notes.text')}</p>
           </div>
-          <div className="landing-container landing-cards-4">
-            {[
-              { icon: AlertCircle, title: t('pain.forgotten'), text: t('pain.forgottenText') },
-              { icon: Eye, title: t('pain.visibility'), text: t('pain.visibilityText') },
-              { icon: ClipboardList, title: t('pain.clarity'), text: t('pain.clarityText') },
-              { icon: BookOpen, title: t('pain.scattered'), text: t('pain.scatteredText') },
-            ].map(({ icon: Icon, title, text }) => (
-              <article key={title} className="landing-card landing-card--flat">
-                <div className="landing-card-icon landing-card-icon--muted"><Icon size={20} strokeWidth={1.75} /></div>
-                <h3>{title}</h3>
-                <p>{text}</p>
+          <div className="landing-container landing-notes">
+            {noteRows.map(({ key, shot, frame }, index) => (
+              <article
+                key={key}
+                className={`landing-note-row${index % 2 === 1 ? ' landing-note-row--flip' : ''}`}
+              >
+                <div className="landing-note-copy">
+                  <h3>{t(`notes.${key}Title`)}</h3>
+                  <p>{t(`notes.${key}Text`)}</p>
+                </div>
+                <figure className={`landing-device landing-device--${frame}`}>
+                  <img src={shots[shot]} alt={t(`notes.${key}Alt`)} />
+                </figure>
               </article>
             ))}
           </div>
         </section>
 
-        {/* Features */}
-        <section id="features" className="landing-section">
-          <div className="landing-container landing-section-head">
-            <h2>{t('features.title')}</h2>
-          </div>
-          <div className="landing-container landing-features-grid">
-            {[
-              { icon: MapPin, title: t('features.fieldMgmt'), text: t('features.fieldMgmtText'), badge: '12 fields' },
-              { icon: Sprout, title: t('features.lifecycle'), text: t('features.lifecycleText'), badge: 'Low season' },
-              { icon: CalendarDays, title: t('features.calendar'), text: t('features.calendarText'), badge: 'This week' },
-              { icon: Users, title: t('features.assignments'), text: t('features.assignmentsText'), badge: '3 assigned' },
-              { icon: Activity, title: t('features.activity'), text: t('features.activityText'), badge: '24 logged' },
-              { icon: Wallet, title: t('features.expenses'), text: t('features.expensesText'), badge: '€ tracked' },
-            ].map(({ icon: Icon, title, text, badge }) => (
-              <article key={title} className="landing-feature">
-                <div className="landing-feature-top">
-                  <div className="landing-card-icon"><Icon size={20} strokeWidth={1.75} /></div>
-                  <span className="landing-feature-badge">{badge}</span>
-                </div>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Web app */}
-        <section id="web-app" className="landing-section landing-section--olive">
-          <div className="landing-container">
-            <div className="landing-section-head landing-section-head--light">
-              <h2>{t('web.title')}</h2>
-              <p>{t('web.text')}</p>
-            </div>
-            <div className="landing-web-tabs" role="tablist">
-              {webTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={webTab === tab.id}
-                  className={webTab === tab.id ? 'active' : ''}
-                  onClick={() => setWebTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="landing-web-preview" role="tabpanel">
-              <div className={`landing-web-mock landing-web-mock--${webTab}`}>
-                <div className="landing-web-mock-chrome">
-                  <Monitor size={14} aria-hidden />
-                  <span>{webTabs.find((x) => x.id === webTab)?.label}</span>
-                </div>
-                <div className="landing-web-mock-body" />
-              </div>
-              <p className="landing-web-desc">{webTabs.find((x) => x.id === webTab)?.desc}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Mobile */}
-        <section id="mobile-app" className="landing-section">
-          <div className="landing-container landing-mobile-grid">
-            <div>
-              <h2>{t('mobile.title')}</h2>
-              <p className="landing-lead">{t('mobile.text')}</p>
-              <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--primary">
-                <Download size={18} aria-hidden />
-                {t('mobile.cta')}
-              </a>
-              <p className="landing-note">{t('mobile.note')}</p>
-            </div>
-            <div className="landing-mobile-phones">
-              {[
-                { title: t('mobile.todayTitle'), text: t('mobile.todayText') },
-                { title: t('mobile.detailTitle'), text: t('mobile.detailText') },
-                { title: t('mobile.activityTitle'), text: t('mobile.activityText') },
-                { title: t('mobile.calendarTitle'), text: t('mobile.calendarText') },
-              ].map(({ title, text }, i) => (
-                <div key={title} className={`landing-phone-card landing-phone-card--${i + 1}`}>
-                  <Smartphone size={16} aria-hidden />
-                  <strong>{title}</strong>
-                  <span>{text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Audience */}
         <section className="landing-section landing-section--muted">
           <div className="landing-container landing-section-head">
             <h2>{t('audience.title')}</h2>
@@ -405,101 +317,37 @@ const LandingPage: React.FC = () => {
           <div className="landing-container landing-audience-grid">
             <article className="landing-audience-card">
               <h3>{t('audience.ownerTitle')}</h3>
-              <ul>
-                {(t('audience.ownerBenefits', { returnObjects: true }) as string[]).map((item) => (
-                  <li key={item}><Check size={16} aria-hidden />{item}</li>
-                ))}
-              </ul>
-              <button type="button" className="landing-btn landing-btn--outline" onClick={() => setDemoOpen(true)}>
-                {t('audience.ownerCta')}
-              </button>
+              <p>{t('audience.ownerText')}</p>
+              <figure className="landing-device landing-device--laptop landing-device--embedded">
+                <img src={shots.webField} alt={t('audience.ownerAlt')} />
+              </figure>
             </article>
             <article className="landing-audience-card landing-audience-card--accent">
               <h3>{t('audience.producerTitle')}</h3>
-              <ul>
-                {(t('audience.producerBenefits', { returnObjects: true }) as string[]).map((item) => (
-                  <li key={item}><Check size={16} aria-hidden />{item}</li>
-                ))}
-              </ul>
-              <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--primary">
-                {t('audience.producerCta')}
-              </a>
+              <p>{t('audience.producerText')}</p>
+              <figure className="landing-device landing-device--phone landing-device--embedded">
+                <img src={shots.phoneTask} alt={t('audience.producerAlt')} />
+              </figure>
             </article>
           </div>
         </section>
 
-        {/* Steps */}
-        <section className="landing-section">
+        <section id="how-it-works" className="landing-section">
           <div className="landing-container landing-section-head">
             <h2>{t('steps.title')}</h2>
           </div>
           <div className="landing-container landing-steps">
-            {[
-              { n: 1, title: t('steps.step1Title'), text: t('steps.step1Text') },
-              { n: 2, title: t('steps.step2Title'), text: t('steps.step2Text') },
-              { n: 3, title: t('steps.step3Title'), text: t('steps.step3Text') },
-            ].map(({ n, title, text }) => (
+            {[1, 2, 3].map((n) => (
               <article key={n} className="landing-step">
                 <span className="landing-step-num">{n}</span>
-                <h3>{title}</h3>
-                <p>{text}</p>
+                <h3>{t(`steps.step${n}Title`)}</h3>
+                <p>{t(`steps.step${n}Text`)}</p>
               </article>
             ))}
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="pricing" className="landing-section landing-section--muted">
-          <div className="landing-container landing-section-head">
-            <h2>{t('pricing.title')}</h2>
-            <p>{t('pricing.subtitle')}</p>
-          </div>
-          <div className="landing-container landing-pricing-grid">
-            <article className="landing-price landing-price--featured">
-              <span className="landing-price-badge">{t('pricing.alphaBadge')}</span>
-              <h3>{t('pricing.alphaName')}</h3>
-              <p className="landing-price-amount">{t('pricing.alphaPrice')}</p>
-              <p className="landing-price-for">{t('pricing.alphaFor')}</p>
-              <ul>
-                {(t('pricing.alphaIncludes', { returnObjects: true }) as string[]).map((item) => (
-                  <li key={item}><Check size={14} aria-hidden />{item}</li>
-                ))}
-              </ul>
-              <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--primary landing-btn--block">
-                {t('pricing.alphaCta')}
-              </a>
-            </article>
-            <article className="landing-price">
-              <h3>{t('pricing.ownerName')}</h3>
-              <p className="landing-price-amount">{t('pricing.ownerPrice')}</p>
-              <p className="landing-price-for">{t('pricing.ownerFor')}</p>
-              <ul>
-                {(t('pricing.ownerIncludes', { returnObjects: true }) as string[]).map((item) => (
-                  <li key={item}><Check size={14} aria-hidden />{item}</li>
-                ))}
-              </ul>
-              <button type="button" className="landing-btn landing-btn--outline landing-btn--block" onClick={() => setDemoOpen(true)}>
-                {t('pricing.ownerCta')}
-              </button>
-            </article>
-            <article className="landing-price">
-              <h3>{t('pricing.teamName')}</h3>
-              <p className="landing-price-amount">{t('pricing.teamPrice')}</p>
-              <p className="landing-price-for">{t('pricing.teamFor')}</p>
-              <ul>
-                {(t('pricing.teamIncludes', { returnObjects: true }) as string[]).map((item) => (
-                  <li key={item}><Check size={14} aria-hidden />{item}</li>
-                ))}
-              </ul>
-              <button type="button" className="landing-btn landing-btn--outline landing-btn--block" onClick={() => setDemoOpen(true)}>
-                {t('pricing.teamCta')}
-              </button>
-            </article>
-          </div>
-        </section>
-
-        {/* Alpha APK */}
-        <section id="alpha-apk" className="landing-section">
+        <section id="download" className="landing-section landing-section--muted">
           <div className="landing-container landing-alpha-grid">
             <div className="landing-section-head">
               <h2>{t('alpha.title')}</h2>
@@ -507,22 +355,45 @@ const LandingPage: React.FC = () => {
             </div>
             <article className="landing-apk-card">
               <div className="landing-apk-head">
-                <Leaf size={28} aria-hidden />
+                <BrandLogo size="md" alt={t('brand')} rounded />
                 <div>
                   <h3>{t('alpha.cardTitle')}</h3>
-                  <span className="landing-apk-status">{t('alpha.statusValue')}</span>
+                  <p className="landing-price-amount">{t('alpha.price')}</p>
                 </div>
               </div>
+              <ul className="landing-apk-includes">
+                {(t('alpha.includes', { returnObjects: true }) as string[]).map((item) => (
+                  <li key={item}>
+                    <Check size={14} aria-hidden />
+                    {item}
+                  </li>
+                ))}
+              </ul>
               <dl className="landing-apk-meta">
-                <div><dt>{t('alpha.version')}</dt><dd>{t('alpha.versionValue')}</dd></div>
-                <div><dt>{t('alpha.platform')}</dt><dd>{t('alpha.platformValue')}</dd></div>
-                <div><dt>{t('alpha.updated')}</dt><dd>{t('alpha.updatedValue')}</dd></div>
-                <div><dt>{t('alpha.size')}</dt><dd>{t('alpha.sizeValue')}</dd></div>
+                <div>
+                  <dt>{t('alpha.version')}</dt>
+                  <dd>{t('alpha.versionValue')}</dd>
+                </div>
+                <div>
+                  <dt>{t('alpha.platform')}</dt>
+                  <dd>{t('alpha.platformValue')}</dd>
+                </div>
+                <div>
+                  <dt>{t('alpha.status')}</dt>
+                  <dd>{t('alpha.statusValue')}</dd>
+                </div>
               </dl>
-              <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--primary landing-btn--block">
+              <a
+                href={ALPHA_APK_URL}
+                download={ALPHA_APK_FILENAME}
+                className="landing-btn landing-btn--primary landing-btn--block"
+              >
                 <Download size={18} aria-hidden />
                 {t('alpha.download')}
               </a>
+              <Link to="/register" className="landing-btn landing-btn--outline landing-btn--block">
+                {t('alpha.webCta')}
+              </Link>
               <button
                 type="button"
                 className="landing-apk-guide-toggle"
@@ -536,39 +407,20 @@ const LandingPage: React.FC = () => {
                 <div className="landing-apk-guide">
                   <h4>{t('alpha.installTitle')}</h4>
                   <ol>
-                    {(t('alpha.installSteps', { returnObjects: true }) as string[]).map((step, i) => (
+                    {(t('alpha.installSteps', { returnObjects: true }) as string[]).map((step) => (
                       <li key={step}>{step}</li>
                     ))}
                   </ol>
                 </div>
               )}
-              <p className="landing-apk-warning"><AlertCircle size={14} aria-hidden />{t('alpha.safety')}</p>
-              <p className="landing-apk-warning landing-apk-warning--soft">{t('alpha.dataWarning')}</p>
+              <p className="landing-apk-warning">
+                <AlertCircle size={14} aria-hidden />
+                {t('alpha.safety')}
+              </p>
             </article>
           </div>
         </section>
 
-        {/* Roadmap */}
-        <section className="landing-section landing-section--muted">
-          <div className="landing-container landing-section-head">
-            <h2>{t('roadmap.title')}</h2>
-            <p className="landing-roadmap-note">{t('roadmap.disclaimer')}</p>
-          </div>
-          <div className="landing-container landing-roadmap-grid">
-            {[
-              { title: t('roadmap.now'), items: t('roadmap.nowItems', { returnObjects: true }) as string[] },
-              { title: t('roadmap.next'), items: t('roadmap.nextItems', { returnObjects: true }) as string[] },
-              { title: t('roadmap.later'), items: t('roadmap.laterItems', { returnObjects: true }) as string[] },
-            ].map(({ title, items }) => (
-              <article key={title} className="landing-roadmap-col">
-                <h3>{title}</h3>
-                <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* FAQ */}
         <section id="faq" className="landing-section">
           <div className="landing-container landing-faq-wrap">
             <h2>{t('faq.title')}</h2>
@@ -591,23 +443,18 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Final CTA */}
         <section className="landing-cta">
           <div className="landing-container landing-cta-inner">
             <h2>{t('cta.title')}</h2>
             <p>{t('cta.text')}</p>
             <div className="landing-hero-ctas landing-hero-ctas--centered">
-              <Link to="/login" className="landing-btn landing-btn--light">
-                <LogIn size={18} aria-hidden />
-                {t('hero.ctaLogin')}
+              <Link to="/register" className="landing-btn landing-btn--light">
+                {t('cta.primary')}
               </Link>
-              <a href={ALPHA_APK_URL} className="landing-btn landing-btn--ghost">
+              <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--ghost">
                 <Download size={18} aria-hidden />
-                {t('cta.download')}
+                {t('cta.secondary')}
               </a>
-              <button type="button" className="landing-btn landing-btn--ghost" onClick={() => setDemoOpen(true)}>
-                {t('cta.demo')}
-              </button>
             </div>
           </div>
         </section>
@@ -627,7 +474,9 @@ const LandingPage: React.FC = () => {
             <h4>{t('footer.product')}</h4>
             <nav>
               {LANDING_NAV.map(({ id, key }) => (
-                <button key={id} type="button" onClick={() => scrollTo(id)}>{t(`header.${key}`)}</button>
+                <button key={id} type="button" onClick={() => scrollTo(id)}>
+                  {t(`header.${key}`)}
+                </button>
               ))}
             </nav>
           </div>
@@ -638,7 +487,7 @@ const LandingPage: React.FC = () => {
               {t('footer.contactEmail')}
             </a>
             <div className="landing-lang landing-lang--footer">
-              {(['en', 'el'] as SupportedLocale[]).map((code) => (
+              {(['el', 'en'] as SupportedLocale[]).map((code) => (
                 <button
                   key={code}
                   type="button"
@@ -659,8 +508,18 @@ const LandingPage: React.FC = () => {
 
       {demoOpen && (
         <div className="landing-modal-backdrop" role="presentation" onClick={() => setDemoOpen(false)}>
-          <div className="landing-modal" role="dialog" aria-labelledby="demo-title" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="landing-modal-close" onClick={() => setDemoOpen(false)} aria-label="Close">
+          <div
+            className="landing-modal"
+            role="dialog"
+            aria-labelledby="demo-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="landing-modal-close"
+              onClick={() => setDemoOpen(false)}
+              aria-label="Close"
+            >
               <X size={20} />
             </button>
             <h2 id="demo-title">{t('demo.title')}</h2>
@@ -668,19 +527,35 @@ const LandingPage: React.FC = () => {
             <form onSubmit={submitDemo}>
               <label>
                 {t('demo.name')}
-                <input required value={demoForm.name} onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })} />
+                <input
+                  required
+                  value={demoForm.name}
+                  onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })}
+                />
               </label>
               <label>
                 {t('demo.email')}
-                <input type="email" required value={demoForm.email} onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })} />
+                <input
+                  type="email"
+                  required
+                  value={demoForm.email}
+                  onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })}
+                />
               </label>
               <label>
                 {t('demo.organization')}
-                <input value={demoForm.org} onChange={(e) => setDemoForm({ ...demoForm, org: e.target.value })} />
+                <input
+                  value={demoForm.org}
+                  onChange={(e) => setDemoForm({ ...demoForm, org: e.target.value })}
+                />
               </label>
               <label>
                 {t('demo.message')}
-                <textarea rows={4} value={demoForm.message} onChange={(e) => setDemoForm({ ...demoForm, message: e.target.value })} />
+                <textarea
+                  rows={4}
+                  value={demoForm.message}
+                  onChange={(e) => setDemoForm({ ...demoForm, message: e.target.value })}
+                />
               </label>
               <button type="submit" className="landing-btn landing-btn--primary landing-btn--block">
                 {t('demo.submit')}

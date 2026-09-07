@@ -38,8 +38,8 @@
     "rejected": "Rejected"
   },
   "lifecycleYear": {
-    "low": "Low year",
-    "high": "High year"
+    "low": "Light crop year",
+    "high": "Heavy crop year"
   },
   "lifecycleStage": {
     "dormancy": "Dormancy",

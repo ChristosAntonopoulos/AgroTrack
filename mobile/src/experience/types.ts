@@ -21,6 +21,7 @@ export type ExperienceWidget =
   | 'nextTasks'
   | 'peopleStrip'
   | 'alertsPlain'
+  | 'fieldCosts'
   | 'advisorComments'
   | 'peopleStats';
 

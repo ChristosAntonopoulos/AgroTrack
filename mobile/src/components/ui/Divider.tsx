@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { spacing } from '../../theme';
 
 export interface DividerProps {
   orientation?: 'horizontal' | 'vertical';
@@ -12,7 +13,7 @@ export interface DividerProps {
 const Divider: React.FC<DividerProps> = ({
   orientation = 'horizontal',
   spacing: spacingProp = 'medium',
-  color = colors.border,
+  color,
   thickness = 1,
 }) => {
   const getSpacing = () => {
@@ -30,6 +31,8 @@ const Divider: React.FC<DividerProps> = ({
     }
   };
 
+  const { colors } = useTheme();
+  const lineColor = color ?? colors.border;
   const spacingValue = getSpacing();
 
   if (orientation === 'vertical') {
@@ -39,7 +42,7 @@ const Divider: React.FC<DividerProps> = ({
           styles.vertical,
           {
             width: thickness,
-            backgroundColor: color,
+            backgroundColor: lineColor,
             marginHorizontal: spacingValue,
           },
         ]}
@@ -53,7 +56,7 @@ const Divider: React.FC<DividerProps> = ({
         styles.horizontal,
         {
           height: thickness,
-          backgroundColor: color,
+          backgroundColor: lineColor,
           marginVertical: spacingValue,
         },
       ]}

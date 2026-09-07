@@ -24,7 +24,7 @@ const Sidebar: React.FC = () => {
         if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
           return false;
         }
-        if (item.path === '/people') return true;
+        if (item.path === '/people' || item.path === '/money') return true;
         return isEverydayAllowedPath(item.path) || isEverydayPrimaryPath(item.path);
       }
       return true;

@@ -19,7 +19,9 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  FieldDetail: { fieldId: string };
+  FieldDetail: { fieldId: string; focus?: 'harvest' | 'harvest-final' | 'money' };
+  ThisHarvest: undefined;
+  People: undefined;
   FieldHistory: { fieldId: string };
   TaskDetail: { taskId: string };
   FieldForm: { fieldId?: string };

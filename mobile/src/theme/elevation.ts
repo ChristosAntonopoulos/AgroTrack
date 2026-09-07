@@ -1,6 +1,6 @@
 import { AppColors } from './themes';
 
-type ShadowLevel = 'sm' | 'md' | 'lg' | 'xl';
+export type ShadowLevel = 'sm' | 'md' | 'lg' | 'xl';
 
 export const createElevation = (colors: AppColors, level: ShadowLevel) => {
   const shadowColor = colors.shadow;

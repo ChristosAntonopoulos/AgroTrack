@@ -43,6 +43,7 @@ const FieldsListScreen = () => {
     loading,
     fieldOpenTaskCounts,
     fieldHasOverdue,
+    fieldNextJobTitle,
     refresh,
   } = useFields();
   const { refreshing, onRefresh } = useRefresh(refresh);
@@ -103,17 +104,6 @@ const FieldsListScreen = () => {
     navigation,
   ]);
 
-  const goTab = (screen: 'Tasks' | 'Calendar', fieldId: string) => {
-    if (screen === 'Tasks') {
-      navigation.navigate('Main', { screen: 'Tasks', params: { fieldId } });
-    } else {
-      navigation.navigate('Main', {
-        screen: 'Calendar',
-        params: { fieldId, date: new Date().toISOString() },
-      });
-    }
-  };
-
   if (loading && fields.length === 0) {
     return (
       <ScreenLayout style={styles.screen}>
@@ -136,7 +126,11 @@ const FieldsListScreen = () => {
   const viewToggle = fields.length > 0 ? (
     <View style={[styles.viewToggle, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
       <Pressable
-        style={[styles.viewBtn, viewMode === 'list' && { backgroundColor: colors.primaryDark }]}
+        style={[
+          styles.viewBtn,
+          { minHeight: 48 },
+          viewMode === 'list' && { backgroundColor: colors.primaryDark },
+        ]}
         onPress={() => setViewMode('list')}
         accessibilityRole="button"
         accessibilityState={{ selected: viewMode === 'list' }}
@@ -156,7 +150,11 @@ const FieldsListScreen = () => {
         </Text>
       </Pressable>
       <Pressable
-        style={[styles.viewBtn, viewMode === 'map' && { backgroundColor: colors.primaryDark }]}
+        style={[
+          styles.viewBtn,
+          { minHeight: 48 },
+          viewMode === 'map' && { backgroundColor: colors.primaryDark },
+        ]}
         onPress={() => setViewMode('map')}
         accessibilityRole="button"
         accessibilityState={{ selected: viewMode === 'map' }}
@@ -222,10 +220,8 @@ const FieldsListScreen = () => {
                 field={item}
                 openTaskCount={fieldOpenTaskCounts[item.id] ?? 0}
                 hasOverdue={fieldHasOverdue[item.id]}
+                nextJobTitle={fieldNextJobTitle[item.id]}
                 onPress={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
-                onViewTasks={() => goTab('Tasks', item.id)}
-                onViewCalendar={() => goTab('Calendar', item.id)}
-                onViewDetails={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
               />
             </View>
           )}
@@ -279,8 +275,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: 8,
+    minHeight: 48,
   },
   viewBtnText: {
     ...typography.styles.caption,

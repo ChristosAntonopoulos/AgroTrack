@@ -276,6 +276,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'pre_harvest_field_access_cleanup',
     title: 'Pre-harvest field access cleanup',
     category: 'Weed Management',
+    harvestPhase: 'prepare',
     priority: 'High',
     shortDescription:
       'Clear field access, roads, weeds, and obstacles before harvest workers or machinery enter the field.',
@@ -503,6 +504,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'ripening_index_sampling',
     title: 'Ripening index sampling',
     category: 'Harvest',
+    harvestPhase: 'prepare',
     priority: 'High',
     shortDescription:
       'Track fruit color and ripening to estimate the best harvest date.',
@@ -528,6 +530,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'harvest_planning',
     title: 'Harvest planning',
     category: 'Harvest',
+    harvestPhase: 'prepare',
     priority: 'Critical',
     shortDescription:
       'Prepare workers, equipment, mill booking, transport, harvest method, and expected harvest dates.',
@@ -553,6 +556,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'olive_harvest',
     title: 'Olive harvest',
     category: 'Harvest',
+    harvestPhase: 'daily',
     priority: 'Critical',
     shortDescription:
       'Harvest olives for oil or table use and record yield, method, workers, transport, and mill delivery.',
@@ -603,6 +607,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'harvest_equipment_preparation',
     title: 'Harvest equipment preparation',
     category: 'Equipment',
+    harvestPhase: 'prepare',
     priority: 'High',
     shortDescription:
       'Prepare nets, crates, harvest tools, rakes, shakers, gloves, transport, and weighing equipment.',
@@ -628,6 +633,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'post_harvest_field_inspection',
     title: 'Post-harvest field inspection',
     category: 'Post-Harvest',
+    harvestPhase: 'final',
     priority: 'High',
     shortDescription:
       'Inspect trees and field after harvest for broken branches, wounds, soil compaction, missing trees, and equipment damage.',
@@ -678,6 +684,7 @@ export const OLIVE_TASK_TEMPLATES: OliveTaskTemplate[] = [
     id: 'annual_field_report',
     title: 'Annual field report',
     category: 'Post-Harvest',
+    harvestPhase: 'final',
     priority: 'High',
     shortDescription:
       'Summarize yield, oil yield, costs, pest pressure, disease issues, irrigation, fertilization, and next-year recommendations.',

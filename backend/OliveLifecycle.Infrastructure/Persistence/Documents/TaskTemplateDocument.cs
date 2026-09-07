@@ -21,6 +21,10 @@ public class TaskTemplateDocument
     [BsonElement("lifecycleYear")]
     public string LifecycleYear { get; set; } = "low";
 
+    [BsonElement("harvestPhase")]
+    [BsonIgnoreIfNull]
+    public string? HarvestPhase { get; set; }
+
     [BsonElement("defaultSchedulingWindow")]
     public SchedulingWindowDocument? DefaultSchedulingWindow { get; set; }
 

@@ -16,12 +16,12 @@ export const isMockDataEnabled = (): boolean => {
   return false;
 };
 
-/** Quick-login chips on the sign-in screen (enabled for alpha/production demos). */
+/** Quick-login chips. Off unless mock mode or EXPO_PUBLIC_SHOW_DEMO_LOGIN=true. */
 export const showDemoLogin = (): boolean => {
   const flag = process.env.EXPO_PUBLIC_SHOW_DEMO_LOGIN;
   if (flag === 'true') return true;
   if (flag === 'false') return false;
-  return __DEV__ || isMockDataEnabled();
+  return isMockDataEnabled();
 };
 
 /** Strip trailing slashes and a mistaken `/api` suffix (paths already include /api/v1). */

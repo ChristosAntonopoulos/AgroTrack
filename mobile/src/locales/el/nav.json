@@ -10,6 +10,8 @@
   "fieldsOwner": "Τα αγροτεμάχια μου",
   "tasksProducer": "Οι εργασίες μου",
   "notifications": "Ειδοποιήσεις",
+  "thisWeek": "Αυτή την εβδομάδα",
+  "thisHarvest": "Αυτός ο τρύγος",
   "sections": {
     "work": "Εργασία",
     "account": "Λογαριασμός"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing } from '../../theme';
+import { typography, spacing, radii, motion } from '../../theme';
 
 export interface ScreenHeaderProps {
   title: string;
@@ -18,22 +18,45 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   onActionPress,
   action,
 }) => {
-  const { colors } = useTheme();
+  const { colors, fontScaleMultiplier, tapMin } = useTheme();
 
   return (
     <View style={styles.container}>
       <View style={styles.textBlock}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary, fontSize: 26 * fontScaleMultiplier }]}>
+          {title}
+        </Text>
         {subtitle ? (
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+          <Text
+            style={[
+              styles.subtitle,
+              {
+                color: colors.textSecondary,
+                fontSize: 14 * fontScaleMultiplier,
+                lineHeight: 20 * fontScaleMultiplier,
+              },
+            ]}
+          >
+            {subtitle}
+          </Text>
         ) : null}
       </View>
       {action ?? (actionLabel && onActionPress ? (
         <TouchableOpacity
           onPress={onActionPress}
-          style={[styles.actionChip, { backgroundColor: colors.primary + '20', borderColor: colors.primary + '50' }]}
+          activeOpacity={motion.pressOpacity}
+          style={[
+            styles.actionChip,
+            {
+              backgroundColor: colors.primary + '20',
+              borderColor: colors.primary + '50',
+              minHeight: tapMin,
+            },
+          ]}
         >
-          <Text style={[styles.actionText, { color: colors.primaryDark }]}>{actionLabel}</Text>
+          <Text style={[styles.actionText, { color: colors.primaryDark, fontSize: 12 * fontScaleMultiplier }]}>
+            {actionLabel}
+          </Text>
         </TouchableOpacity>
       ) : null)}
     </View>
@@ -66,7 +89,8 @@ const styles = StyleSheet.create({
   actionChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
+    borderRadius: radii.full,
+    justifyContent: 'center',
     borderWidth: 1,
     marginTop: 4,
   },

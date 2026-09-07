@@ -57,4 +57,14 @@ public class LifecycleController : BaseApiController
         var lifecycle = await _lifecycleService.RevertStageAsync(fieldId, UserContext.UserId, UserContext.Role, cancellationToken);
         return OkResult(lifecycle);
     }
+
+    [HttpPost("correct")]
+    public async Task<ActionResult<LifecycleDto>> Correct(
+        string fieldId,
+        [FromBody] CorrectLifecycleDto dto,
+        CancellationToken cancellationToken)
+    {
+        var lifecycle = await _lifecycleService.CorrectAsync(fieldId, dto, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(lifecycle);
+    }
 }

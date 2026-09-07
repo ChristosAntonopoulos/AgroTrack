@@ -73,7 +73,8 @@ public class UserService : IUserService
             ExperienceMode = user.Preferences.ExperienceMode,
             ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
             FontScale = user.Preferences.FontScale,
-            LargeControls = user.Preferences.LargeControls
+            LargeControls = user.Preferences.LargeControls,
+            Language = user.Preferences.Language
         };
     }
 
@@ -105,6 +106,12 @@ public class UserService : IUserService
         if (dto.LargeControls.HasValue)
         {
             user.Preferences.LargeControls = dto.LargeControls.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.Language)
+            && (dto.Language is "en" or "el"))
+        {
+            user.Preferences.Language = dto.Language;
         }
 
         await _userRepository.UpdateAsync(user, cancellationToken);

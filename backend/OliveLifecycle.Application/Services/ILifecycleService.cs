@@ -9,5 +9,6 @@ public interface ILifecycleService
     Task<LifecycleDto> ProgressCycleAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<LifecycleDto> AdvanceStageAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<LifecycleDto> RevertStageAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
+    Task<LifecycleDto> CorrectAsync(string fieldId, CorrectLifecycleDto dto, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<bool> ValidateTaskForLifecycleAsync(string fieldId, string lifecycleYear, CancellationToken cancellationToken = default);
 }

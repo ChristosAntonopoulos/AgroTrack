@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<ITaskTemplateService, TaskTemplateService>();
         services.AddScoped<IMinistryNotificationService, MinistryNotificationService>();
         services.AddScoped<IReportsService, ReportsService>();
+        services.AddScoped<IFinancialEntryService, FinancialEntryService>();
+        services.AddScoped<IHarvestService, HarvestService>();
 
         return services;
     }

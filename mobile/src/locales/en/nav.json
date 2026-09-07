@@ -10,6 +10,8 @@
   "fieldsOwner": "My Fields",
   "tasksProducer": "My Tasks",
   "notifications": "Notifications",
+  "thisWeek": "This week",
+  "thisHarvest": "This harvest",
   "sections": {
     "work": "Work",
     "account": "Account"

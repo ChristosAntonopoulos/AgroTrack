@@ -90,7 +90,8 @@
     "completed": "Completed",
     "totalTasks": "Total tasks",
     "dueToday": "Due today",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "thisWeekCost": "This week's cost"
   },
   "fieldsSection": {
     "ownerTitle": "My fields",

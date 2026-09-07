@@ -12,23 +12,10 @@ interface Props {
   id?: string;
 }
 
-const EXPENSE_CHART = [
-  { key: 'labor', label: 'Labor', pct: 35 },
-  { key: 'fertilizer', label: 'Fertilizer', pct: 18 },
-  { key: 'harvest', label: 'Harvest', pct: 22 },
-  { key: 'irrigation', label: 'Irrigation', pct: 10 },
-  { key: 'treatments', label: 'Treatments', pct: 8 },
-  { key: 'other', label: 'Other', pct: 7 },
-];
-
 const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
   const incomeLines = [
-    { label: 'Olive oil sales', value: data.income.oliveOilSales },
-    { label: 'Table olive sales', value: data.income.tableOliveSales },
-    { label: 'Bulk olive sales', value: data.income.bulkOliveSales },
-    { label: 'Subsidies', value: data.income.subsidies },
-    { label: 'Other income', value: data.income.other },
-  ];
+    { label: 'Money in', value: data.totalIncome },
+  ].filter((line) => line.value !== 0);
 
   const expenseLines = [
     { label: 'Labor', value: data.expenses.labor },
@@ -46,7 +33,23 @@ const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
     { label: 'Storage', value: data.expenses.storage },
     { label: 'Agronomist services', value: data.expenses.agronomist },
     { label: 'Other costs', value: data.expenses.other },
-  ];
+  ].filter((line) => line.value !== 0);
+
+  const kpis = [
+    { label: 'Cost / kg olives', value: data.costPerKgOlives, suffix: '' },
+    { label: 'Cost / kg oil', value: data.costPerKgOil, suffix: '' },
+    { label: 'Revenue / kg oil', value: data.revenuePerKgOil, suffix: '' },
+    { label: 'Break-even price', value: data.breakEvenPrice, suffix: '/kg' },
+    { label: 'Profit / hectare', value: data.profitPerHa, suffix: '' },
+    { label: 'Profit / tree', value: data.profitPerTree, suffix: '' },
+  ].filter((kpi) => kpi.value !== 0);
+
+  const expenseTotal = expenseLines.reduce((sum, line) => sum + line.value, 0);
+  const expenseBars = expenseLines.map((line) => ({
+    key: line.label,
+    label: line.label,
+    pct: expenseTotal > 0 ? Math.round((line.value / expenseTotal) * 100) : 0,
+  }));
 
   return (
     <ReportDocumentShell
@@ -104,35 +107,19 @@ const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
         </div>
       </section>
 
+      {kpis.length > 0 && (
       <section className="report-section">
         <h4 className="report-section-title">Key Metrics</h4>
         <div className="report-pl-kpis">
-          <div className="report-info-item">
-            <label>Cost / kg olives</label>
-            <span>€{data.costPerKgOlives.toFixed(2)}</span>
-          </div>
-          <div className="report-info-item">
-            <label>Cost / kg oil</label>
-            <span>€{data.costPerKgOil.toFixed(2)}</span>
-          </div>
-          <div className="report-info-item">
-            <label>Revenue / kg oil</label>
-            <span>€{data.revenuePerKgOil.toFixed(2)}</span>
-          </div>
-          <div className="report-info-item">
-            <label>Break-even price</label>
-            <span>€{data.breakEvenPrice.toFixed(2)}/kg</span>
-          </div>
-          <div className="report-info-item">
-            <label>Profit / hectare</label>
-            <span>{formatCurrency(data.profitPerHa)}</span>
-          </div>
-          <div className="report-info-item">
-            <label>Profit / tree</label>
-            <span>€{data.profitPerTree.toFixed(2)}</span>
-          </div>
+          {kpis.map((kpi) => (
+            <div key={kpi.label} className="report-info-item">
+              <label>{kpi.label}</label>
+              <span>€{kpi.value.toFixed(2)}{kpi.suffix}</span>
+            </div>
+          ))}
         </div>
       </section>
+      )}
 
       <section className="report-section">
         <h4 className="report-section-title">Profit by Field</h4>
@@ -142,7 +129,6 @@ const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
               <tr>
                 <th>Field</th>
                 <th>Net Profit</th>
-                <th>Profit / Ha</th>
               </tr>
             </thead>
             <tbody>
@@ -150,7 +136,6 @@ const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
                 <tr key={row.fieldId}>
                   <td className="field-name-cell">{row.fieldName}</td>
                   <td className="highlight-cell">{formatCurrency(row.profit)}</td>
-                  <td>{formatCurrency(row.profitPerHa)}</td>
                 </tr>
               ))}
             </tbody>
@@ -158,18 +143,19 @@ const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
         </div>
       </section>
 
+      {expenseBars.length > 0 && (
       <div className="report-chart-area">
         <h4>
           <PieChart size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
           Cost Breakdown
         </h4>
         <div className="report-bar-chart">
-          {EXPENSE_CHART.map(item => (
+          {expenseBars.map(item => (
             <div key={item.key} className="report-bar-row">
               <span className="report-bar-label">{item.label}</span>
               <div className="report-bar-track">
                 <div
-                  className={`report-bar-fill ${item.key}`}
+                  className="report-bar-fill other"
                   style={{ width: `${item.pct}%` }}
                 >
                   {item.pct}%
@@ -179,6 +165,7 @@ const ProfitLossReportView: React.FC<Props> = ({ data, id }) => {
           ))}
         </div>
       </div>
+      )}
     </ReportDocumentShell>
   );
 };

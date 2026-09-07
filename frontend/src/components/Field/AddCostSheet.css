@@ -1,0 +1,228 @@
+.add-cost-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.add-cost-sheet-kinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.add-cost-sheet-kind,
+.add-cost-sheet-chip,
+.add-cost-sheet-bucket {
+  min-height: var(--tap-min, 44px);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.add-cost-sheet-kind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 72px;
+  border-width: 2px;
+  border-radius: var(--radius-lg, 12px);
+}
+
+.add-cost-sheet-kind small {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.add-cost-sheet-kind--expense.is-active {
+  border-color: var(--color-secondary, #7a6b4f);
+  background: color-mix(in srgb, var(--color-warning, #c4923a) 16%, var(--bg-input));
+}
+
+.add-cost-sheet-kind--income.is-active {
+  border-color: var(--color-success, #6b9e3a);
+  background: color-mix(in srgb, var(--color-success, #6b9e3a) 16%, var(--bg-input));
+}
+
+.add-cost-sheet-field--amount span,
+.add-cost-sheet-what > span {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.add-cost-sheet-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-input);
+}
+
+.add-cost-sheet-amount span {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.add-cost-sheet-field--amount .add-cost-sheet-amount input {
+  border: 0;
+  background: transparent;
+  min-height: 60px;
+  padding: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  width: 100%;
+}
+
+.add-cost-sheet-what {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-cost-sheet-buckets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.add-cost-sheet-bucket {
+  min-height: 56px;
+  border-width: 2px;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 1.05rem;
+}
+
+.add-cost-sheet-bucket.is-active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--bg-input));
+}
+
+.add-cost-sheet-kind:active:not(:disabled),
+.add-cost-sheet-chip:active:not(:disabled),
+.add-cost-sheet-bucket:active:not(:disabled),
+.add-cost-sheet-link:active {
+  opacity: var(--press-opacity, 0.75);
+}
+
+.add-cost-sheet-chip.is-active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-input));
+}
+
+.add-cost-sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.add-cost-sheet-chip {
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.add-cost-sheet-date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.add-cost-sheet-link {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: var(--tap-min, 44px);
+  padding: 0;
+  text-align: left;
+}
+
+.add-cost-sheet-more {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.add-cost-sheet-more-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.add-cost-sheet-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.add-cost-sheet-row--three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.add-cost-sheet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.add-cost-sheet-field span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.add-cost-sheet-field input,
+.add-cost-sheet-field select {
+  width: 100%;
+  min-height: var(--tap-min, 44px);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 1rem;
+  background: var(--bg-input);
+  color: var(--color-text-primary);
+}
+
+.add-cost-sheet-field input:focus,
+.add-cost-sheet-field select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.add-cost-sheet-error {
+  margin: 0;
+  color: var(--color-danger, var(--color-error));
+  font-size: 0.875rem;
+}
+
+.add-cost-sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+@media (max-width: 640px) {
+  .add-cost-sheet-row,
+  .add-cost-sheet-row--three {
+    grid-template-columns: 1fr;
+  }
+}

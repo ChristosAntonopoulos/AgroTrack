@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing } from '../../theme';
+import { typography, spacing, radii, motion } from '../../theme';
 
 export interface FilterChipOption<T extends string = string> {
   value: T;
@@ -20,7 +20,7 @@ function FilterChips<T extends string = string>({
   selected,
   onSelect,
 }: FilterChipsProps<T>) {
-  const { colors } = useTheme();
+  const { colors, fontScaleMultiplier, tapMin } = useTheme();
 
   return (
     <ScrollView
@@ -40,17 +40,17 @@ function FilterChips<T extends string = string>({
               {
                 backgroundColor: active ? colors.primaryDark : colors.surfaceElevated,
                 borderColor: active ? colors.primaryDark : colors.border,
-                minHeight: 40,
+                minHeight: tapMin,
               },
             ]}
-            activeOpacity={0.75}
+            activeOpacity={motion.pressOpacity}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
             <Text
               style={[
                 styles.label,
-                { color: active ? colors.textInverse : colors.textPrimary },
+                { color: active ? colors.textInverse : colors.textPrimary, fontSize: 13 * fontScaleMultiplier },
               ]}
               numberOfLines={1}
             >
@@ -68,7 +68,7 @@ function FilterChips<T extends string = string>({
                 <Text
                   style={[
                     styles.countText,
-                    { color: active ? colors.textInverse : colors.textSecondary },
+                    { color: active ? colors.textInverse : colors.textSecondary, fontSize: 11 * fontScaleMultiplier },
                   ]}
                 >
                   {option.count}
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 22,
+    borderRadius: radii.full,
     borderWidth: 1,
     gap: 6,
   },

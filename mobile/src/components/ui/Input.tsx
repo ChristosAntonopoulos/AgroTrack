@@ -9,7 +9,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing, spacingPatterns } from '../../theme';
+import { typography, spacing, radii } from '../../theme';
 import { sanitizeNativeBooleans, toBoolean } from '../../utils/booleanConverter';
 
 export interface InputProps extends TextInputProps {
@@ -37,7 +37,7 @@ const Input: React.FC<InputProps> = ({
   multiline,
   ...restProps
 }) => {
-  const { colors } = useTheme();
+  const { colors, fontScaleMultiplier, tapMin } = useTheme();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -57,7 +57,7 @@ const Input: React.FC<InputProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? (
-        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+        <Text style={[styles.label, { color: colors.textPrimary, fontSize: typography.styles.label.fontSize * fontScaleMultiplier }]}>{label}</Text>
       ) : null}
 
       <View
@@ -76,7 +76,11 @@ const Input: React.FC<InputProps> = ({
           {...textInputProps}
           style={[
             styles.input,
-            { color: colors.textPrimary },
+            {
+              color: colors.textPrimary,
+              fontSize: typography.styles.body.fontSize * fontScaleMultiplier,
+              minHeight: tapMin,
+            },
             leftIcon ? styles.inputWithLeftIcon : null,
             rightIcon || showToggle ? styles.inputWithRightIcon : null,
             style,
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: spacingPatterns.borderRadius.md,
+    borderRadius: radii.md,
   },
   input: {
     flex: 1,
@@ -133,7 +137,6 @@ const styles = StyleSheet.create({
     lineHeight: typography.styles.body.lineHeight,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.base,
-    minHeight: 48,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },

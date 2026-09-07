@@ -11,6 +11,7 @@ const EVERYDAY_WIDGETS: ReadonlySet<ExperienceWidget> = new Set([
   'nextTasks',
   'peopleStrip',
   'alertsPlain',
+  'fieldCosts',
 ]);
 
 export const isWidgetVisible = (
@@ -21,7 +22,7 @@ export const isWidgetVisible = (
   return EVERYDAY_WIDGETS.has(widget);
 };
 
-/** Everyday thumb bar: Today, Fields, Tasks, More. Calendar lives under More. */
+/** Both modes: Today, Fields, Tasks, More. Dashboard/Calendar stay on the stack via More. */
 export const EVERYDAY_PRIMARY_TABS: ReadonlySet<string> = new Set([
   'Today',
   'Fields',

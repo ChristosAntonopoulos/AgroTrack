@@ -52,4 +52,12 @@ export const lifecycleService = {
     const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/progress`);
     return response.data;
   },
+
+  correctLifecycle: async (
+    fieldId: string,
+    payload: { currentYear?: string; currentStage?: string }
+  ): Promise<Lifecycle> => {
+    const response = await api.post<Lifecycle>(`/api/v1/fields/${fieldId}/lifecycle/correct`, payload);
+    return response.data;
+  },
 };

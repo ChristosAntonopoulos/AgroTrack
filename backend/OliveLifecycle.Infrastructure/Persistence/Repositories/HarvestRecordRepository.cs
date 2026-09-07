@@ -19,6 +19,15 @@ public class HarvestRecordRepository : MongoRepositoryBase<HarvestRecordDocument
     protected override FilterDefinition<HarvestRecordDocument> BuildIdFilter(string id) =>
         Builders<HarvestRecordDocument>.Filter.Eq(h => h.Id, id);
 
+    public async Task<IEnumerable<HarvestRecord>> GetByFieldIdAsync(string fieldId, CancellationToken cancellationToken = default)
+    {
+        var documents = await Collection
+            .Find(h => h.FieldId == fieldId)
+            .SortByDescending(h => h.HarvestDate)
+            .ToListAsync(cancellationToken);
+        return documents.Select(ToEntity);
+    }
+
     public async Task<IEnumerable<HarvestRecord>> GetByOwnerIdAsync(string ownerId, CancellationToken cancellationToken = default)
     {
         var documents = await Collection.Find(h => h.OwnerId == ownerId).ToListAsync(cancellationToken);

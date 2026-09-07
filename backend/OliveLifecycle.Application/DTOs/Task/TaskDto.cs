@@ -9,6 +9,7 @@ public class TaskDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string LifecycleYear { get; set; } = "low";
+    public string? HarvestPhase { get; set; }
     public string? AssignedTo { get; set; }
     public string Status { get; set; } = "pending";
     public DateTime? ScheduledStart { get; set; }

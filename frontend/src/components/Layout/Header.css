@@ -29,7 +29,7 @@
 }
 
 .header-brand-name {
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--font-scale, 1));
   font-weight: 700;
   color: var(--color-primary);
   letter-spacing: 0.02em;
@@ -45,10 +45,16 @@
   font-size: 1.5rem;
   color: var(--color-text-primary);
   cursor: pointer;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
-  transition: background-color var(--transition-fast);
+  transition: background-color var(--transition-fast), opacity var(--transition-fast);
   flex-shrink: 0;
+}
+
+.menu-button:active {
+  opacity: var(--press-opacity, 0.75);
 }
 
 .menu-button:hover {
@@ -67,7 +73,7 @@
 
 .page-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--font-scale, 1));
   font-weight: 700;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -89,9 +95,16 @@
   font-size: 1.25rem;
   color: var(--color-text-secondary);
   cursor: pointer;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.icon-button:active {
+  opacity: var(--press-opacity, 0.75);
 }
 
 .icon-button:hover {
@@ -103,7 +116,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  background: var(--color-error);
+  background: var(--color-danger, var(--color-error));
   color: var(--color-text-inverse);
   font-size: 0.75rem;
   font-weight: 600;
@@ -123,8 +136,9 @@
 .header-lang-btn {
   background: var(--bg-card);
   border: none;
+  min-height: var(--tap-min, 44px);
   padding: 0.35rem 0.65rem;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--font-scale, 1));
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -138,12 +152,12 @@
 
 .header-lang-btn-active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-inverse);
 }
 
 .header-lang-btn-active:hover {
   background: var(--color-primary-light);
-  color: #fff;
+  color: var(--color-text-inverse);
 }
 
 .user-menu {
@@ -172,7 +186,7 @@
 }
 
 .user-name {
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   font-weight: 500;
   color: var(--color-text-primary);
 }
@@ -188,9 +202,16 @@
   font-size: 1.25rem;
   color: var(--color-text-secondary);
   cursor: pointer;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.logout-button:active {
+  opacity: var(--press-opacity, 0.75);
 }
 
 .logout-button:hover {

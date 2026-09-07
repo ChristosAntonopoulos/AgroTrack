@@ -42,6 +42,7 @@ export interface OliveTaskTemplate {
   monthTooltip: string;
   warnings?: string[];
   requiresIrrigation?: boolean;
+  harvestPhase?: 'prepare' | 'daily' | 'final';
 }
 
 export interface TaskTemplateFilters {

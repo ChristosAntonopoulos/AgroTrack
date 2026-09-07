@@ -6,6 +6,7 @@ export interface TaskTemplate {
   title: string;
   description?: string;
   lifecycleYear: string;
+  harvestPhase?: 'prepare' | 'daily' | 'final';
 }
 
 export const taskTemplateService = {
@@ -24,4 +25,6 @@ export interface CreateTaskDto {
   assignedTo?: string;
   scheduledStart?: string;
   scheduledEnd?: string;
+  harvestPhase?: 'prepare' | 'daily' | 'final';
+  lifecycleYear?: string;
 }

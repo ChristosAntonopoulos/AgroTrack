@@ -23,6 +23,7 @@ export type ExperienceWidget =
   | 'nextTasks'
   | 'peopleStrip'
   | 'alertsPlain'
+  | 'fieldCosts'
   // Phase 4 Full-picture people depth
   | 'advisorComments'
   | 'peopleStats';

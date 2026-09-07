@@ -21,7 +21,10 @@ public static class UserMapper
                 ExperienceMode = document.Preferences.ExperienceMode,
                 ExperienceModeChosen = document.Preferences.ExperienceModeChosen,
                 FontScale = document.Preferences.FontScale,
-                LargeControls = document.Preferences.LargeControls
+                LargeControls = document.Preferences.LargeControls,
+                Language = string.IsNullOrWhiteSpace(document.Preferences.Language)
+                    ? "en"
+                    : document.Preferences.Language
             },
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
@@ -40,7 +43,8 @@ public static class UserMapper
             ExperienceMode = entity.Preferences.ExperienceMode,
             ExperienceModeChosen = entity.Preferences.ExperienceModeChosen,
             FontScale = entity.Preferences.FontScale,
-            LargeControls = entity.Preferences.LargeControls
+            LargeControls = entity.Preferences.LargeControls,
+            Language = entity.Preferences.Language
         },
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt

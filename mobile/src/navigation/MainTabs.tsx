@@ -14,8 +14,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { useTasks } from '../hooks/useTasks';
+import { isTaskOverdue } from '../utils/taskListUtils';
 import { typography, spacing } from '../theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -62,18 +62,18 @@ const hiddenTabOptions = {
 };
 
 const MainTabs = () => {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, tapMin, fontScaleMultiplier } = useTheme();
   const { t } = useTranslation('nav');
   const { isFieldOwner } = useAuth();
-  const { isEveryday, isFullPicture, tapMin, fontScaleMultiplier } = usePreferences();
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
   const owner = isFieldOwner();
-  // Dashboard only for Full picture + FieldOwner. Everyday home is always Today.
-  const showDashboard = owner && isFullPicture;
 
-  const openTaskCount = useMemo(
-    () => tasks.filter((tk) => tk.status !== 'completed').length,
+  const taskBadgeCount = useMemo(
+    () =>
+      tasks.filter(
+        (tk) => isTaskOverdue(tk) || tk.approvalStatus === 'pending'
+      ).length,
     [tasks]
   );
 
@@ -84,7 +84,7 @@ const MainTabs = () => {
 
   return (
     <Tab.Navigator
-      initialRouteName={showDashboard ? 'Dashboard' : 'Today'}
+      initialRouteName="Today"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.tabBarForeground,
@@ -114,25 +114,14 @@ const MainTabs = () => {
         },
       }}
     >
-      {showDashboard ? (
-        <Tab.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{
-            tabBarLabel: t('dashboard'),
-            tabBarIcon: ({ focused, color }) => (
-              <TabIcon
-                name={focused ? 'grid' : 'grid-outline'}
-                focused={focused}
-                color={color}
-                pillColor={colors.tabBarActivePill}
-                accentColor={tabAccent}
-                tapMin={tapMin}
-              />
-            ),
-          }}
-        />
-      ) : null}
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          tabBarLabel: t('dashboard'),
+          ...hiddenTabOptions,
+        }}
+      />
 
       <Tab.Screen
         name="Today"
@@ -176,10 +165,10 @@ const MainTabs = () => {
         options={{
           tabBarLabel: owner ? t('tasks') : t('tasksProducer'),
           tabBarBadge:
-            openTaskCount > 0 ? (openTaskCount > 99 ? '99+' : String(openTaskCount)) : undefined,
+            taskBadgeCount > 0 ? (taskBadgeCount > 99 ? '99+' : String(taskBadgeCount)) : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.error,
-            color: '#FFFCF6',
+            color: colors.textInverse,
             fontSize: Math.max(10, labelSize - 2),
             fontWeight: '700',
             minWidth: 18,
@@ -199,23 +188,12 @@ const MainTabs = () => {
         }}
       />
 
-      {/* Calendar: Full picture primary; Everyday opens it from More only. */}
       <Tab.Screen
         name="Calendar"
         component={CalendarScreen}
         options={{
           tabBarLabel: t('calendar'),
-          ...(isEveryday ? hiddenTabOptions : {}),
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon
-              name={focused ? 'calendar' : 'calendar-outline'}
-              focused={focused}
-              color={color}
-              pillColor={colors.tabBarActivePill}
-              accentColor={tabAccent}
-              tapMin={tapMin}
-            />
-          ),
+          ...hiddenTabOptions,
         }}
       />
 

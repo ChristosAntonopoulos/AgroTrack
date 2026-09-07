@@ -19,8 +19,9 @@ public class CreateTaskDto
 
     public string? Description { get; set; }
 
-    [Required]
-    public string LifecycleYear { get; set; } = "low";
+    public string? LifecycleYear { get; set; }
+
+    public string? HarvestPhase { get; set; }
 
     public string? AssignedTo { get; set; }
 

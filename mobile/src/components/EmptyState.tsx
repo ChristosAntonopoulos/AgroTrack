@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
-import { typography, spacing, spacingPatterns } from '../theme';
-import { createElevation } from '../theme/elevation';
+import { typography, spacing, radii, motion, createElevation } from '../theme';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -16,8 +14,7 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, action }) => {
-  const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier } = usePreferences();
+  const { colors, tapMin, fontScaleMultiplier } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -45,7 +42,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, actio
             },
           ]}
           onPress={action.onPress}
-          activeOpacity={0.8}
+          activeOpacity={motion.pressOpacity}
         >
           <Text style={[styles.actionText, { color: colors.textInverse, fontSize: 16 * fontScaleMultiplier }]}>
             {action.label}
@@ -88,7 +85,7 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: spacingPatterns.borderRadius.md,
+    borderRadius: radii.md,
     marginTop: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',

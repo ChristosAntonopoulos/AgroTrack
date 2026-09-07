@@ -19,7 +19,7 @@
 }
 
 .breadcrumb-separator {
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   color: var(--color-text-muted);
 }
 
@@ -29,8 +29,9 @@
   gap: var(--spacing-xs);
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: 0.875rem;
-  transition: color var(--transition-fast);
+  font-size: calc(0.875rem * var(--font-scale, 1));
+  min-height: var(--tap-min, 44px);
+  transition: color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .breadcrumb-link:hover {
@@ -39,6 +40,6 @@
 
 .breadcrumb-current {
   color: var(--color-text-primary);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--font-scale, 1));
   font-weight: 500;
 }

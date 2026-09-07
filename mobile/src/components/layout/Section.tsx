@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing } from '../../theme';
 import Button from '../ui/Button';
 
@@ -20,8 +19,7 @@ const Section: React.FC<SectionProps> = ({
   onActionPress,
   children,
 }) => {
-  const { colors } = useTheme();
-  const { fontScaleMultiplier } = usePreferences();
+  const { colors, fontScaleMultiplier } = useTheme();
 
   return (
     <View style={styles.container}>

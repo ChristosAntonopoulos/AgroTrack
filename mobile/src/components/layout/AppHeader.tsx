@@ -6,12 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import BrandLogo from '../ui/BrandLogo';
-import { typography, spacing } from '../../theme';
-import { createElevation } from '../../theme/elevation';
+import { typography, spacing, radii, createElevation } from '../../theme';
 
 const AppHeader = () => {
   const { user } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, fontScaleMultiplier } = useTheme();
   const { t } = useTranslation('common');
 
   const roleLabel = user?.role
@@ -53,8 +52,20 @@ const AppHeader = () => {
             <BrandLogo size={24} />
           </View>
           <View>
-            <Text style={[styles.title, { color: colors.headerForeground }]}>OliveCycle</Text>
-            <Text style={[styles.tagline, { color: colors.headerForegroundMuted }]}>
+            <Text
+              style={[
+                styles.title,
+                { color: colors.headerForeground, fontSize: 17 * fontScaleMultiplier },
+              ]}
+            >
+              {t('appName')}
+            </Text>
+            <Text
+              style={[
+                styles.tagline,
+                { color: colors.headerForegroundMuted, fontSize: 10 * fontScaleMultiplier },
+              ]}
+            >
               {t('tagline')}
             </Text>
           </View>
@@ -72,7 +83,11 @@ const AppHeader = () => {
             ]}
           >
             <Ionicons name="person-circle-outline" size={14} color={colors.headerAccent} />
-            <Text style={[styles.badgeText, { color: colors.headerForeground }]}>{roleLabel}</Text>
+            <Text
+              style={[styles.badgeText, { color: colors.headerForeground, fontSize: 10 * fontScaleMultiplier }]}
+            >
+              {roleLabel}
+            </Text>
           </View>
         ) : null}
       </View>
@@ -109,7 +124,7 @@ const styles = StyleSheet.create({
   logoWrap: {
     width: 38,
     height: 38,
-    borderRadius: 11,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

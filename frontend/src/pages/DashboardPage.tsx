@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
-import { getFieldService, getTaskService, isMockMode } from '../services/serviceFactory';
+import { getFieldService, getTaskService, getFinancialEntryService, isMockMode } from '../services/serviceFactory';
+import { FinancialOverview } from '../services/financialEntryService';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { isDeviceOnline } from '../utils/networkStatus';
@@ -24,6 +25,7 @@ import {
   AlertTriangle,
   CalendarDays,
   FileText,
+  Euro,
   PlusCircle,
   Sun,
   ChevronRight,
@@ -45,6 +47,7 @@ const DashboardPage: React.FC = () => {
   const [fields, setFields] = useState<Field[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [moneyOverview, setMoneyOverview] = useState<FinancialOverview | null>(null);
 
   const dateLocale = i18n.language === 'el' ? el : enUS;
   const isFieldOwner = user?.role === 'FieldOwner' || user?.role === 'Administrator';
@@ -70,15 +73,19 @@ const DashboardPage: React.FC = () => {
       if (fields.length === 0) setLoading(true);
       const fieldService = getFieldService();
       const taskService = getTaskService();
-      const [fieldsData, tasksData] = await Promise.all([
+      const [fieldsData, tasksData, overview] = await Promise.all([
         fieldService.getFields().catch(() => []),
         (isProducer
           ? taskService.getTasks(undefined, user?.userId)
           : taskService.getTasks()
         ).catch(() => []),
+        isFieldOwner
+          ? getFinancialEntryService().getOverview().catch(() => null)
+          : Promise.resolve(null),
       ]);
       setFields(fieldsData);
       setTasks(tasksData);
+      setMoneyOverview(overview);
       setShowingCachedData(!isDeviceOnline());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -301,6 +308,15 @@ const DashboardPage: React.FC = () => {
                 value={taskInsights.overdueCount}
                 icon={<AlertTriangle />}
                 color={taskInsights.overdueCount > 0 ? 'warning' : 'success'}
+              />
+              <StatsCard
+                title={t('dashboard:stats.thisWeekCost')}
+                value={new Intl.NumberFormat(undefined, {
+                  style: 'currency',
+                  currency: moneyOverview?.currency || 'EUR',
+                }).format(moneyOverview?.thisWeekExpenses ?? 0)}
+                icon={<Euro />}
+                color="info"
               />
             </>
           )}

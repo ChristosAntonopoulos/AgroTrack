@@ -1,3 +1,5 @@
+using OliveLifecycle.Core.Enums;
+
 namespace OliveLifecycle.Core.Entities;
 
 public class HarvestRecord : BaseEntity
@@ -13,4 +15,8 @@ public class HarvestRecord : BaseEntity
     public double? OilYieldPercent { get; set; }
     public string QualityGrade { get; set; } = string.Empty;
     public string? Notes { get; set; }
+    public FinancialEntryStatus Status { get; set; } = FinancialEntryStatus.Posted;
+    public string? VoidReason { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidedBy { get; set; }
 }

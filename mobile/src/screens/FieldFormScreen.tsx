@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { getFieldService } from '../services/serviceFactory';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import FormField from '../components/forms/FormField';
 import FormSelect from '../components/forms/FormSelect';
 import Button from '../components/ui/Button';
@@ -35,6 +36,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
 type WizardStep = WizardStepKey | 'basics-edit';
 
 const NEW_DRAW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'crop', 'review'];
+const EVERYDAY_NEW_STEPS: WizardStepKey[] = ['basics', 'method', 'boundary'];
 const EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
 
 const emptyForm = (): CreateFieldDto => ({
@@ -52,10 +54,11 @@ const FieldFormScreen = () => {
   const navigation = useNavigation<Nav>();
   const { fieldId } = route.params || {};
   const { colors } = useTheme();
+  const { isEveryday, tapMin } = usePreferences();
   const { t } = useTranslation(['fields', 'common']);
   const isEdit = !!fieldId;
 
-  const [step, setStep] = useState<WizardStep>(isEdit ? 'basics' : 'method');
+  const [step, setStep] = useState<WizardStep>(isEdit ? 'basics' : isEveryday ? 'basics' : 'method');
   const [method, setMethod] = useState<AddFieldMethod | null>(isEdit ? 'draw' : null);
   const [formData, setFormData] = useState<CreateFieldDto>(emptyForm);
   const [boundaryPoints, setBoundaryPoints] = useState<BoundaryPoint[]>([]);
@@ -68,10 +71,13 @@ const FieldFormScreen = () => {
   const [saving, setSaving] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
 
-  const activeSteps = useMemo(
-    () => (isEdit ? EDIT_STEPS : NEW_DRAW_STEPS),
-    [isEdit]
-  );
+  const activeSteps = useMemo(() => {
+    if (isEdit) return EDIT_STEPS;
+    if (isEveryday) {
+      return method === 'later' ? (['basics', 'method'] as WizardStepKey[]) : EVERYDAY_NEW_STEPS;
+    }
+    return NEW_DRAW_STEPS;
+  }, [isEdit, isEveryday, method]);
 
   const stepIndex = useMemo(() => {
     const key = step === 'basics-edit' ? 'basics' : step;
@@ -181,11 +187,11 @@ const FieldFormScreen = () => {
         return t('fields:form.errors.nameRequired');
       }
     }
-    if (step === 'boundary') {
+    if (step === 'boundary' && method !== 'later') {
       if (boundaryPoints.length < 3) return t('fields:addFieldWizard.errors.boundaryRequired');
     }
     if (step === 'review') {
-      if (!isEdit && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (!isEdit && method !== 'later' && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
       if (isEdit && boundaryChanged && !boundaryConfirmed) {
         return t('fields:addField.errors.confirmBoundary');
       }
@@ -297,9 +303,20 @@ const FieldFormScreen = () => {
         accessNotes: formData.accessNotes,
         area: measuredAreaSqm || formData.area,
       });
-      await persistBoundary(id);
+      if (method !== 'later' && boundaryPoints.length >= 3) {
+        await persistBoundary(id);
+      }
+      if (method === 'later') {
+        await getFieldService().updateField(id, {
+          name: formData.name.trim(),
+          cropType: formData.cropType || 'Olive',
+          status: 'Draft',
+        });
+        navigation.replace('FieldDetail', { fieldId: id });
+        return;
+      }
       const result = await getFieldService().activateField(id, {
-        boundaryConfirmed,
+        boundaryConfirmed: boundaryConfirmed || boundaryPoints.length >= 3,
         cadastreReferenceAcknowledged: true,
       });
       navigation.replace('FieldDetail', { fieldId: result.field.id });
@@ -399,6 +416,7 @@ const FieldFormScreen = () => {
         {step === 'method' ? (
           <AddFieldMethodStep
             method={method}
+            everyday={isEveryday}
             onSelect={(m) => {
               setMethod(m);
               setError(null);
@@ -420,20 +438,24 @@ const FieldFormScreen = () => {
               onChangeText={(name) => patchForm({ name })}
               editable={!saving}
             />
-            <FormSelect
-              label={t('fields:addField.cropType')}
-              value={formData.cropType || 'Olive'}
-              options={toSelectOptions(CROP_TYPE_OPTIONS)}
-              onValueChange={(cropType) => patchForm({ cropType })}
-              disabled={saving}
-            />
-            <FormField
-              label={t('fields:addField.locationText')}
-              value={formData.locationText || ''}
-              onChangeText={(locationText) => patchForm({ locationText })}
-              placeholder={t('fields:addField.locationPlaceholder')}
-              editable={!saving}
-            />
+            {!isEveryday ? (
+              <>
+                <FormSelect
+                  label={t('fields:addField.cropType')}
+                  value={formData.cropType || 'Olive'}
+                  options={toSelectOptions(CROP_TYPE_OPTIONS)}
+                  onValueChange={(cropType) => patchForm({ cropType })}
+                  disabled={saving}
+                />
+                <FormField
+                  label={t('fields:addField.locationText')}
+                  value={formData.locationText || ''}
+                  onChangeText={(locationText) => patchForm({ locationText })}
+                  placeholder={t('fields:addField.locationPlaceholder')}
+                  editable={!saving}
+                />
+              </>
+            ) : null}
           </View>
         ) : null}
 
@@ -587,10 +609,16 @@ const FieldFormScreen = () => {
             />
           ) : (
             <Button
-              title={isEdit ? t('fields:saveChanges') : t('fields:addField.activate')}
+              title={
+                isEdit
+                  ? t('fields:saveChanges')
+                  : method === 'later'
+                    ? t('common:save')
+                    : t('fields:addField.activate')
+              }
               onPress={isEdit ? handleSaveEdit : handleActivate}
               loading={saving}
-              style={styles.navBtn}
+              style={[styles.navBtn, { minHeight: tapMin }]}
             />
           )}
         </View>

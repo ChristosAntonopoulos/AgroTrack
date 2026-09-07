@@ -30,6 +30,7 @@ import DataSourcesPage from './pages/DataSourcesPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import TodayPage from './pages/TodayPage';
 import PeoplePage from './pages/PeoplePage';
+import MoneyPage from './pages/MoneyPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import './App.css';
 
@@ -80,6 +81,7 @@ function App() {
                     <Route path="tasks/new" element={<TaskFormPage />} />
                     <Route path="tasks/:id" element={<TaskDetailPage />} />
                     <Route path="people" element={<PeoplePage />} />
+                    <Route path="money" element={<MoneyPage />} />
                     <Route path="calendar" element={<CalendarPage />} />
                     <Route
                       path="analytics"

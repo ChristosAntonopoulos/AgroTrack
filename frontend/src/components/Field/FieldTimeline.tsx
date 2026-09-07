@@ -24,6 +24,11 @@ const labelForType: Record<string, string> = {
   producer_unassigned: 'Crew',
   lifecycle_stage_changed: 'Lifecycle',
   lifecycle_year_changed: 'Lifecycle',
+  expense_logged: 'Cost',
+  expense_updated: 'Cost',
+  expense_voided: 'Cost',
+  income_logged: 'Income',
+  harvest_recorded: 'Harvest',
 };
 
 const variantForType = (t: string) => {
@@ -39,7 +44,12 @@ const variantForType = (t: string) => {
       return 'primary';
     case 'lifecycle_stage_changed':
     case 'lifecycle_year_changed':
+    case 'expense_logged':
+    case 'income_logged':
+    case 'harvest_recorded':
       return 'info';
+    case 'expense_voided':
+      return 'error';
     default:
       return 'warning';
   }

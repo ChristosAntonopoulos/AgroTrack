@@ -20,25 +20,49 @@ public class ReportsController : BaseApiController
 
     [HttpGet("field-summaries")]
     [Authorize(Policy = PolicyNames.RequireFieldOwner)]
-    public async Task<IActionResult> GetFieldSummaries(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetFieldSummaries(
+        [FromQuery] string? lifecycleYear,
+        [FromQuery] string? season,
+        CancellationToken cancellationToken)
     {
-        var summaries = await _reportsService.GetFieldSummariesAsync(UserContext.UserId, UserContext.Role, cancellationToken);
+        var summaries = await _reportsService.GetFieldSummariesAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            lifecycleYear,
+            season,
+            cancellationToken);
         return Ok(summaries);
     }
 
     [HttpGet("harvest-records")]
     [Authorize(Policy = PolicyNames.RequireFieldOwner)]
-    public async Task<IActionResult> GetHarvestRecords(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetHarvestRecords(
+        [FromQuery] string? lifecycleYear,
+        [FromQuery] string? season,
+        CancellationToken cancellationToken)
     {
-        var records = await _reportsService.GetHarvestRecordsAsync(UserContext.UserId, UserContext.Role, cancellationToken);
+        var records = await _reportsService.GetHarvestRecordsAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            lifecycleYear,
+            season,
+            cancellationToken);
         return Ok(records);
     }
 
     [HttpGet("profit-loss")]
     [Authorize(Policy = PolicyNames.RequireFieldOwner)]
-    public async Task<IActionResult> GetProfitLoss(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetProfitLoss(
+        [FromQuery] string? lifecycleYear,
+        [FromQuery] string? season,
+        CancellationToken cancellationToken)
     {
-        var report = await _reportsService.GetProfitLossAsync(UserContext.UserId, UserContext.Role, cancellationToken);
+        var report = await _reportsService.GetProfitLossAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            lifecycleYear,
+            season,
+            cancellationToken);
         return Ok(report);
     }
 }

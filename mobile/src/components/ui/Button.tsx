@@ -8,9 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { usePreferences } from '../../context/PreferencesContext';
-import { typography, spacing, spacingPatterns } from '../../theme';
-import { createElevation } from '../../theme/elevation';
+import { typography, spacing, radii, motion, createElevation } from '../../theme';
 
 export interface ButtonProps {
   title: string;
@@ -37,8 +35,7 @@ const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   style,
 }) => {
-  const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier } = usePreferences();
+  const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const touchableDisabled = disabled || loading;
 
   const getVariantStyles = () => {
@@ -131,7 +128,7 @@ const Button: React.FC<ButtonProps> = ({
       ]}
       onPress={onPress}
       disabled={touchableDisabled}
-      activeOpacity={0.75}
+      activeOpacity={motion.pressOpacity}
     >
       {loading ? (
         <ActivityIndicator color={variantStyles.textColor} size="small" />
@@ -158,7 +155,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: spacingPatterns.borderRadius.md,
+    borderRadius: radii.md,
   },
   inner: {
     flexDirection: 'row',

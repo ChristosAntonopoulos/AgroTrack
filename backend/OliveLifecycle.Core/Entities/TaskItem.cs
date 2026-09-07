@@ -10,6 +10,7 @@ public class TaskItem : BaseEntity
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string LifecycleYear { get; set; } = "low";
+    public HarvestPhase? HarvestPhase { get; set; }
     public string? AssignedTo { get; set; }
     public WorkTaskStatus Status { get; set; } = WorkTaskStatus.Pending;
     public DateTime? ScheduledStart { get; set; }

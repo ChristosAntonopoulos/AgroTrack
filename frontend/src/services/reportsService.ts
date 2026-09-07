@@ -5,9 +5,12 @@ import {
   ProfitLossData,
   FieldComparisonRow,
 } from '../data/mockReportData';
+import { CATEGORY_TO_PNL_KEY, FINANCIAL_CATEGORIES } from '../data/financialCategories';
+
+const seasonParams = (season?: string) => (season ? { params: { season } } : undefined);
 
 export const reportsService = {
-  getFieldSummaries: async (): Promise<FieldSummaryData[]> => {
+  getFieldSummaries: async (season?: string): Promise<FieldSummaryData[]> => {
     const response = await api.get<Array<{
       fieldId: string;
       fieldName: string;
@@ -20,7 +23,7 @@ export const reportsService = {
       totalCost: number;
       totalProductionKg: number;
       yieldPerHa: number;
-    }>>('/api/v1/reports/field-summaries');
+    }>>('/api/v1/reports/field-summaries', seasonParams(season));
 
     return response.data.map((row) => ({
       fieldId: row.fieldId,
@@ -51,22 +54,22 @@ export const reportsService = {
     }));
   },
 
-  getHarvestRecords: async (): Promise<HarvestRecord[]> => {
+  getHarvestRecords: async (season?: string): Promise<HarvestRecord[]> => {
     const response = await api.get<Array<{
       id: string;
       fieldId: string;
       fieldName: string;
       harvestDate: string;
-      harvestMethod: string;
-      workersUsed: number;
+      harvestMethod?: string;
+      workersUsed?: number;
       oliveKg: number;
-      kgPerHa: number;
+      kgPerHa?: number;
       millName?: string;
       oilKg?: number;
       oilYieldPercent?: number;
-      qualityGrade: string;
+      qualityGrade?: string;
       notes?: string;
-    }>>('/api/v1/reports/harvest-records');
+    }>>('/api/v1/reports/harvest-records', seasonParams(season));
 
     return response.data.map((row) => ({
       fieldId: row.fieldId,
@@ -75,19 +78,16 @@ export const reportsService = {
       harvestMethod: row.harvestMethod,
       workersUsed: row.workersUsed,
       oliveKg: row.oliveKg,
-      kgPerTree: 0,
       kgPerHa: row.kgPerHa,
-      millName: row.millName ?? '',
-      deliveryTime: '',
-      oilKg: row.oilKg ?? 0,
-      oilYieldPercent: row.oilYieldPercent ?? 0,
-      qualityGrade: row.qualityGrade,
-      rejectedKg: 0,
-      notes: row.notes ?? '',
+      millName: row.millName,
+      oilKg: row.oilKg,
+      oilYieldPercent: row.oilYieldPercent,
+      qualityGrade: row.qualityGrade || undefined,
+      notes: row.notes,
     }));
   },
 
-  getProfitLoss: async (): Promise<ProfitLossData> => {
+  getProfitLoss: async (season?: string): Promise<ProfitLossData> => {
     const response = await api.get<{
       season: string;
       totalIncome: number;
@@ -100,12 +100,49 @@ export const reportsService = {
         revenue: number;
         profit: number;
       }>;
-    }>('/api/v1/reports/profit-loss');
+      expensesByBucket?: Record<string, number>;
+      expensesByCategory?: Record<string, number>;
+    }>('/api/v1/reports/profit-loss', seasonParams(season));
 
     const data = response.data;
     const totalIncome = Number(data.totalIncome);
     const totalExpenses = Number(data.totalExpenses);
     const netProfit = Number(data.netProfit);
+    const buckets = data.expensesByBucket ?? {};
+    const byCategory = data.expensesByCategory ?? {};
+    const expenses = {
+      labor: 0,
+      fertilizers: 0,
+      treatments: 0,
+      irrigationWater: 0,
+      electricityFuel: 0,
+      equipment: 0,
+      repairs: 0,
+      pruning: 0,
+      harvestWorkers: 0,
+      millCost: 0,
+      transport: 0,
+      packaging: 0,
+      storage: 0,
+      agronomist: 0,
+      other: 0,
+    };
+    let mapped = 0;
+    for (const id of FINANCIAL_CATEGORIES) {
+      const amount = Number(byCategory[id] || 0);
+      if (amount <= 0) continue;
+      const key = CATEGORY_TO_PNL_KEY[id] as keyof typeof expenses;
+      expenses[key] += amount;
+      mapped += amount;
+    }
+    if (mapped === 0) {
+      expenses.labor = Number(buckets.labor || 0);
+      expenses.electricityFuel = Number(buckets.inputs || 0);
+      expenses.harvestWorkers = Number(buckets.harvest || 0);
+      expenses.other = Number(buckets.other || 0);
+      mapped = expenses.labor + expenses.electricityFuel + expenses.harvestWorkers + expenses.other;
+    }
+    expenses.other += Math.max(0, totalExpenses - mapped);
     const profitByField = data.profitByField.map((f) => ({
       fieldId: f.fieldId,
       fieldName: f.fieldName,
@@ -122,23 +159,7 @@ export const reportsService = {
         subsidies: 0,
         other: 0,
       },
-      expenses: {
-        labor: totalExpenses,
-        fertilizers: 0,
-        treatments: 0,
-        irrigationWater: 0,
-        electricityFuel: 0,
-        equipment: 0,
-        repairs: 0,
-        pruning: 0,
-        harvestWorkers: 0,
-        millCost: 0,
-        transport: 0,
-        packaging: 0,
-        storage: 0,
-        agronomist: 0,
-        other: 0,
-      },
+      expenses,
       totalIncome,
       totalExpenses,
       netProfit,
@@ -152,22 +173,20 @@ export const reportsService = {
     };
   },
 
-  getFieldComparison: async (): Promise<FieldComparisonRow[]> => {
-    const summaries = await reportsService.getFieldSummaries();
+  getFieldComparison: async (season?: string): Promise<FieldComparisonRow[]> => {
+    const summaries = await reportsService.getFieldSummaries(season);
     return summaries.map((s) => ({
       fieldId: s.fieldId,
       fieldName: s.fieldName,
       oliveKg: s.totalProductionKg,
-      oilKg: s.oilProducedKg ?? 0,
-      oilYieldPercent: s.oilYieldPercent ?? 0,
-      kgPerTree: s.yieldPerTree,
+      oilKg: s.oilProducedKg,
+      oilYieldPercent: s.oilYieldPercent,
+      kgPerTree: s.yieldPerTree || undefined,
       kgPerHa: s.yieldPerHa,
       costPerHa: s.costPerHa,
-      profitPerHa: s.areaHa > 0 ? s.profit / s.areaHa : 0,
+      profitPerHa: s.areaHa > 0 ? s.profit / s.areaHa : undefined,
       tasksCompleted: s.tasksCompleted,
-      issueCount: s.issues.length,
-      pestPressure: 'Low' as const,
-      waterUsageM3: 0,
+      issueCount: s.issues.length || undefined,
     }));
   },
 };

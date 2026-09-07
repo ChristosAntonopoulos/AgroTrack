@@ -10,6 +10,12 @@
   "notes": "Notes",
   "startTask": "Start task",
   "completeTask": "Complete task",
+  "confirmDoneTitle": "Done?",
+  "confirmDoneBody": "Mark “{{title}}” done?",
+  "addPhotoTitle": "Add a photo?",
+  "addPhotoBody": "A photo helps you remember this job.",
+  "camera": "Camera",
+  "notNow": "Not now",
   "reopenTask": "Reopen task",
   "approve": "Approve",
   "reject": "Reject",
@@ -47,16 +53,17 @@
   "createWizard": {
     "subtitle": "Set up a task in a few quick steps",
     "steps": {
-      "field": "Choose field",
-      "template": "Pick template",
-      "details": "Details & schedule",
+      "field": "Grove",
+      "template": "Job",
+      "details": "When",
       "review": "Review"
     },
-    "fieldTitle": "Which field?",
-    "fieldDesc": "Select the field this task applies to.",
-    "searchFields": "Search fields…",
-    "templateTitle": "Task template",
-    "templateDesc": "Start from a common olive task or create your own.",
+    "fieldTitle": "Which grove?",
+    "fieldDesc": "Select the grove this job is for.",
+    "searchFields": "Search groves…",
+    "templateTitle": "Which job?",
+    "templateDesc": "Pick the job. Harvest jobs are a short sequence.",
+    "whenTitle": "When?",
     "customTask": "Custom task",
     "customTaskDesc": "Enter your own title and type.",
     "detailsTitle": "Task details",
@@ -76,13 +83,78 @@
     },
     "errors": {
       "fieldRequired": "Please select a field.",
-      "templateRequired": "Pick a template or choose custom task.",
+      "templateRequired": "Pick a job or write your own.",
       "titleRequired": "Enter a task title.",
       "typeRequired": "Enter a task type.",
       "invalidStart": "Start date must be YYYY-MM-DD.",
       "invalidEnd": "End date must be YYYY-MM-DD.",
       "endBeforeStart": "End date cannot be before start date.",
       "required": "Fill in all required fields."
+    }
+  },
+  "harvest": {
+    "word": "Harvest",
+    "phases": {
+      "prepare": "Prepare",
+      "daily": "While harvesting",
+      "final": "Close out"
+    },
+    "helpers": {
+      "prepare": "Get ready before picking.",
+      "daily": "Write the kilos for this grove today.",
+      "final": "Finish the season: mill, oil, and the sale."
+    },
+    "checklist": "Checklist",
+    "doneNamed": "Done — {{title}}",
+    "doneDaily": "Write the kilos",
+    "doneFinal": "Close this harvest",
+    "writeKilosTitle": "Write the kilos now?",
+    "writeKilosBody": "Open today’s harvest form for this grove.",
+    "writeKilosNow": "Write the kilos",
+    "closeTitle": "Close this harvest?",
+    "closeBody": "Add mill and oil, or write the sale.",
+    "writeMoneyIn": "Write the sale",
+    "addMillOil": "Add mill / oil"
+  },
+  "harvestJobs": {
+    "prepare": {
+      "checklist": ["Ready?", "Nothing blocking the work"]
+    },
+    "harvest_ready_nets": {
+      "title": "Ready nets and crates",
+      "helper": "Lay out nets, crates, and rakes before picking.",
+      "checklist": ["Nets are out", "Crates are ready", "Rakes and bags are with you"],
+      "field": "Anything missing?"
+    },
+    "harvest_book_mill": {
+      "title": "Book the mill",
+      "helper": "Call the mill and confirm a slot.",
+      "checklist": ["Called the mill", "Slot is booked"],
+      "field": "Mill name"
+    },
+    "harvest_call_crew": {
+      "title": "Call the crew",
+      "helper": "Confirm who is coming to pick.",
+      "checklist": ["People are confirmed", "They know the grove"],
+      "field": "Who is coming?"
+    },
+    "harvest_check_access": {
+      "title": "Check access and weather",
+      "helper": "Walk the entrance and check the forecast.",
+      "checklist": ["Road is clear", "Weather is workable"],
+      "field": "Notes"
+    },
+    "harvest_daily_kilos": {
+      "title": "Write today's kilos",
+      "helper": "Which grove, how many kilos today."
+    },
+    "harvest_mill_delivery": {
+      "title": "Take olives to the mill",
+      "helper": "Deliver the fruit and write oil kilos if you have them."
+    },
+    "harvest_close_season": {
+      "title": "Close this harvest",
+      "helper": "Mark harvest done and write the sale if you were paid."
     }
   }
 }

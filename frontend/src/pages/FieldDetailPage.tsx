@@ -7,7 +7,13 @@ import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService } from '../services/serviceFactory';
 import { getLifecycleService } from '../services/serviceFactory';
 import { getTaskService } from '../services/serviceFactory';
-import { getUserService, isMockMode } from '../services/serviceFactory';
+import { getUserService, getFinancialEntryService, getHarvestService, isMockMode } from '../services/serviceFactory';
+import {
+  CreateFinancialEntryInput,
+  FieldFinancialSummary,
+  FinancialEntry,
+} from '../services/financialEntryService';
+import { CreateHarvestInput, HarvestRecord } from '../services/harvestService';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { Field } from '../services/fieldService';
 import { Lifecycle } from '../services/lifecycleService';
@@ -26,7 +32,7 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin, History } from 'lucide-react';
+import { RefreshCw, Play, Edit, ArrowLeft, UserPlus, Navigation, CalendarDays, MapPin, History, Wallet } from 'lucide-react';
 import { hasBeforeAfterEvidence, requiresBeforeAfter } from '../utils/taskRules';
 import FieldStatusBadge from '../components/fields/FieldStatusBadge';
 import GreekCadastreInfoCard from '../components/fields/GreekCadastreInfoCard';
@@ -37,6 +43,8 @@ import FieldIntelligencePanel from '../components/fields/FieldIntelligencePanel'
 import FieldAlertList from '../components/fields/FieldAlertList';
 import FullPictureOnramp from '../components/Experience/FullPictureOnramp';
 import FieldPeoplePanel from '../components/Field/FieldPeoplePanel';
+import FieldCostsPanel from '../components/Field/FieldCostsPanel';
+import FieldHarvestPanel from '../components/Field/FieldHarvestPanel';
 import EvidenceUpload from '../components/Task/EvidenceUpload';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useFieldCapacity } from '../hooks/useFieldCapacity';
@@ -71,6 +79,9 @@ const FieldDetailPage: React.FC = () => {
   const [evidenceNotes, setEvidenceNotes] = useState('');
   const [evidencePhotoUrl, setEvidencePhotoUrl] = useState('');
   const [evidenceKind, setEvidenceKind] = useState<'before' | 'after' | 'general'>('general');
+  const [costEntries, setCostEntries] = useState<FinancialEntry[]>([]);
+  const [costSummary, setCostSummary] = useState<FieldFinancialSummary | null>(null);
+  const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
 
   const [controlRoomTab, setControlRoomTab] = useState<ControlRoomTab>('board');
   const handledInitialAction = useRef(false);
@@ -80,6 +91,7 @@ const FieldDetailPage: React.FC = () => {
       loadField();
       loadLifecycle();
       loadTasks();
+      loadHarvests();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, refreshGeneration]);
@@ -121,6 +133,7 @@ const FieldDetailPage: React.FC = () => {
       const data = await fieldService.getField(id!);
       setField(data);
       setShowingCachedData(!isDeviceOnline());
+      await loadCosts(data.currentLifecycleYear);
     } catch (err: any) {
       setError(err.response?.data?.message || t('fields:controlRoom.failedLoad'));
     } finally {
@@ -147,6 +160,48 @@ const FieldDetailPage: React.FC = () => {
     } catch (err) {
       console.error('Error loading tasks:', err);
     }
+  };
+
+  const loadCosts = async (lifecycleYear?: string) => {
+    if (!id) return;
+    try {
+      const service = getFinancialEntryService();
+      const [entries, summary] = await Promise.all([
+        service.listByField(id),
+        service.getSummary(id, lifecycleYear),
+      ]);
+      setCostEntries(entries);
+      setCostSummary(summary);
+    } catch (err) {
+      console.error('Error loading costs:', err);
+      setCostEntries([]);
+      setCostSummary(null);
+    }
+  };
+
+  const handleCreateCost = async (input: CreateFinancialEntryInput) => {
+    const created = await getFinancialEntryService().create(input);
+    await loadCosts(input.lifecycleYear || field?.currentLifecycleYear);
+    return created;
+  };
+
+  const handleVoidCost = async (entryId: string) => {
+    await getFinancialEntryService().void(entryId);
+    await loadCosts(field?.currentLifecycleYear);
+  };
+
+  const loadHarvests = async () => {
+    if (!id) return;
+    try {
+      setHarvests(await getHarvestService().listByField(id));
+    } catch {
+      setHarvests([]);
+    }
+  };
+
+  const handleCreateHarvest = async (input: CreateHarvestInput) => {
+    await getHarvestService().create(input);
+    await Promise.all([loadHarvests(), loadCosts(field?.currentLifecycleYear)]);
   };
 
   const getProducerName = (producerId?: string) => {
@@ -410,6 +465,9 @@ const FieldDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="fd-header-actions">
+            <Button to={`/money?fieldId=${field.id}`} icon={<Wallet />} variant="outline" size="sm">
+              <span className="fd-btn-label">{t('fields:costs.toolbar')}</span>
+            </Button>
             <Button to={`/fields/${field.id}/history`} icon={<History />} variant="outline" size="sm">
               <span className="fd-btn-label">{t('fields:history.button')}</span>
             </Button>
@@ -493,6 +551,35 @@ const FieldDetailPage: React.FC = () => {
               taskId={recommendedNextTaskId}
               existingEvidence={tasks.find((tk) => tk.id === recommendedNextTaskId)?.evidence || []}
               onEvidenceAdded={loadTasks}
+            />
+          </Card>
+        ) : null}
+
+        {showWidget('fieldCosts') ? (
+          <Card className="fd-everyday-next-action">
+            <FieldCostsPanel
+              fieldId={field.id}
+              lifecycleYear={field.currentLifecycleYear || lifecycle?.currentYear}
+              entries={costEntries}
+              summary={costSummary}
+              tasks={tasks.map((task) => ({ id: task.id, title: task.title }))}
+              canAdd={canWork}
+              canVoid={canOwn}
+              compact={isEveryday}
+              detailed={isFullPicture}
+              onCreate={handleCreateCost}
+              onVoid={canOwn ? handleVoidCost : undefined}
+            />
+          </Card>
+        ) : null}
+
+        {isFullPicture ? (
+          <Card className="fd-everyday-next-action">
+            <FieldHarvestPanel
+              fieldId={field.id}
+              records={harvests}
+              canAdd={canOwn}
+              onCreate={handleCreateHarvest}
             />
           </Card>
         ) : null}
@@ -609,7 +696,13 @@ const FieldDetailPage: React.FC = () => {
             <div className="fcr-body">
               {controlRoomTab === 'board' ? (
                 <>
-                  {tasks.length > 0 && <FieldMonitoring tasks={tasks} />}
+                  {tasks.length > 0 && (
+                    <FieldMonitoring
+                      tasks={tasks}
+                      ledgerTotalCost={costSummary?.totalExpenses}
+                      currency={costSummary?.currency}
+                    />
+                  )}
                   <FieldTaskBoard
                     fieldId={field.id}
                     tasks={tasks}

@@ -119,7 +119,8 @@ public class AuthService : IAuthService
                 ExperienceMode = user.Preferences.ExperienceMode,
                 ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
                 FontScale = user.Preferences.FontScale,
-                LargeControls = user.Preferences.LargeControls
+                LargeControls = user.Preferences.LargeControls,
+                Language = user.Preferences.Language
             }
         };
     }

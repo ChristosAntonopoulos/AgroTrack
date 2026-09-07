@@ -211,6 +211,95 @@ public class LifecycleService : ILifecycleService
         return LifecycleMapper.ToDto(lifecycle);
     }
 
+    public async Task<LifecycleDto> CorrectAsync(
+        string fieldId,
+        CorrectLifecycleDto dto,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(fieldId, userId, cancellationToken) && userRole != Roles.Administrator)
+        {
+            throw new ForbiddenException("You do not have permission to correct lifecycle for this field.");
+        }
+
+        var year = dto.CurrentYear?.Trim().ToLowerInvariant();
+        var stage = dto.CurrentStage?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(stage))
+        {
+            throw new ValidationException("Choose a year or a stage to correct.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(year) && year is not ("low" or "high"))
+        {
+            throw new ValidationException("Lifecycle year must be low or high.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(stage) && Array.IndexOf(OliveLifecycleStage.OrderedStages, stage) < 0)
+        {
+            throw new ValidationException("Unknown lifecycle stage.");
+        }
+
+        var lifecycle = await _lifecycleRepository.GetByFieldIdAsync(fieldId, cancellationToken);
+        if (lifecycle == null)
+        {
+            lifecycle = new Lifecycle
+            {
+                FieldId = fieldId,
+                CurrentYear = year ?? "low",
+                CurrentStage = stage ?? OliveLifecycleStage.Dormancy,
+                CycleStartDate = _dateTimeProvider.UtcNow,
+                CreatedAt = _dateTimeProvider.UtcNow,
+                UpdatedAt = _dateTimeProvider.UtcNow
+            };
+            lifecycle = await _lifecycleRepository.CreateAsync(lifecycle, cancellationToken);
+        }
+
+        var previousYear = lifecycle.CurrentYear;
+        var previousStage = OliveLifecycleStage.Normalize(lifecycle.CurrentStage);
+        var now = _dateTimeProvider.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(year))
+        {
+            lifecycle.CurrentYear = year;
+        }
+
+        if (!string.IsNullOrWhiteSpace(stage))
+        {
+            lifecycle.CurrentStage = stage;
+        }
+
+        lifecycle.UpdatedAt = now;
+
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+        field.CurrentLifecycleYear = lifecycle.CurrentYear;
+        field.CurrentLifecycleStage = OliveLifecycleStage.Normalize(lifecycle.CurrentStage);
+        field.UpdatedAt = now;
+        await _fieldLifecycleSync.SyncAsync(field, lifecycle, cancellationToken);
+
+        await _activityService.RecordAsync(
+            fieldId,
+            "lifecycle_corrected",
+            $"Lifecycle corrected to {lifecycle.CurrentYear} / {lifecycle.CurrentStage}",
+            userId,
+            metadata: new Dictionary<string, string>
+            {
+                ["previousYear"] = previousYear,
+                ["newYear"] = lifecycle.CurrentYear,
+                ["previousStage"] = previousStage,
+                ["newStage"] = OliveLifecycleStage.Normalize(lifecycle.CurrentStage)
+            },
+            cancellationToken: cancellationToken);
+
+        _logger.LogInformation(
+            "Lifecycle corrected for field {FieldId} to {Year}/{Stage}",
+            fieldId,
+            lifecycle.CurrentYear,
+            lifecycle.CurrentStage);
+        return LifecycleMapper.ToDto(lifecycle);
+    }
+
     public async Task<bool> ValidateTaskForLifecycleAsync(string fieldId, string lifecycleYear, CancellationToken cancellationToken = default)
     {
         var lifecycle = await _lifecycleRepository.GetByFieldIdAsync(fieldId, cancellationToken);

@@ -90,7 +90,8 @@
     "completed": "Ολοκληρωμένες",
     "totalTasks": "Σύνολο εργασιών",
     "dueToday": "Σήμερα",
-    "overdue": "Εκπρόθεσμες"
+    "overdue": "Εκπρόθεσμες",
+    "thisWeekCost": "Κόστος εβδομάδας"
   },
   "fieldsSection": {
     "ownerTitle": "Τα αγροτεμάχια μου",

@@ -14,6 +14,7 @@ namespace OliveLifecycle.Application.Services;
 public class TaskService : ITaskService
 {
     private readonly ITaskRepository _taskRepository;
+    private readonly ITaskTemplateRepository _taskTemplateRepository;
     private readonly IFieldAccessService _fieldAccessService;
     private readonly ILifecycleService _lifecycleService;
     private readonly IActivityService _activityService;
@@ -24,6 +25,7 @@ public class TaskService : ITaskService
 
     public TaskService(
         ITaskRepository taskRepository,
+        ITaskTemplateRepository taskTemplateRepository,
         IFieldAccessService fieldAccessService,
         ILifecycleService lifecycleService,
         IActivityService activityService,
@@ -33,6 +35,7 @@ public class TaskService : ITaskService
         ILogger<TaskService> logger)
     {
         _taskRepository = taskRepository;
+        _taskTemplateRepository = taskTemplateRepository;
         _fieldAccessService = fieldAccessService;
         _lifecycleService = lifecycleService;
         _activityService = activityService;
@@ -54,11 +57,28 @@ public class TaskService : ITaskService
             throw new ForbiddenException("You do not have permission to create tasks on this field.");
         }
 
-        if (!await _lifecycleService.ValidateTaskForLifecycleAsync(createTaskDto.FieldId, createTaskDto.LifecycleYear, cancellationToken))
+        var field = await _fieldRepository.GetByIdAsync(createTaskDto.FieldId, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+        var lifecycleYear = string.IsNullOrWhiteSpace(createTaskDto.LifecycleYear)
+            ? field.CurrentLifecycleYear
+            : createTaskDto.LifecycleYear.Trim();
+
+        if (!await _lifecycleService.ValidateTaskForLifecycleAsync(createTaskDto.FieldId, lifecycleYear, cancellationToken))
         {
             throw new ValidationException(
-                $"Task lifecycle year '{createTaskDto.LifecycleYear}' does not match field's current lifecycle year.");
+                $"Task lifecycle year '{lifecycleYear}' does not match field's current lifecycle year.");
         }
+
+        TaskTemplate? template = null;
+        if (!string.IsNullOrWhiteSpace(createTaskDto.TemplateId))
+        {
+            template = await _taskTemplateRepository.GetByIdAsync(createTaskDto.TemplateId, cancellationToken);
+        }
+
+        var harvestPhase = HarvestPhaseExtensions.FromApiString(createTaskDto.HarvestPhase)
+            ?? template?.HarvestPhase
+            ?? HarvestPhaseCatalog.FromTypeOrTitle(createTaskDto.Type, createTaskDto.Title)
+            ?? HarvestPhaseCatalog.FromTypeOrTitle(template?.Type, template?.Title);
 
         var now = _dateTimeProvider.UtcNow;
         var task = new TaskItem
@@ -68,7 +88,8 @@ public class TaskService : ITaskService
             Type = createTaskDto.Type,
             Title = createTaskDto.Title,
             Description = createTaskDto.Description,
-            LifecycleYear = createTaskDto.LifecycleYear,
+            LifecycleYear = lifecycleYear,
+            HarvestPhase = harvestPhase,
             AssignedTo = createTaskDto.AssignedTo,
             Status = WorkTaskStatus.Pending,
             ApprovalStatus = ApprovalStatus.NotRequired,

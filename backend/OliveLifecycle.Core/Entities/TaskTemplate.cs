@@ -1,3 +1,5 @@
+using OliveLifecycle.Core.Enums;
+
 namespace OliveLifecycle.Core.Entities;
 
 public class TaskTemplate : BaseEntity
@@ -6,6 +8,7 @@ public class TaskTemplate : BaseEntity
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string LifecycleYear { get; set; } = "low";
+    public HarvestPhase? HarvestPhase { get; set; }
     public SchedulingWindow? DefaultSchedulingWindow { get; set; }
 }
 

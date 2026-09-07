@@ -1,4 +1,5 @@
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
 
 namespace OliveLifecycle.Infrastructure.Persistence.Mappers;
@@ -12,6 +13,8 @@ public static class TaskTemplateMapper
         Title = document.Title,
         Description = document.Description,
         LifecycleYear = document.LifecycleYear,
+        HarvestPhase = HarvestPhaseExtensions.FromApiString(document.HarvestPhase)
+            ?? HarvestPhaseCatalog.FromTypeOrTitle(document.Type, document.Title),
         DefaultSchedulingWindow = document.DefaultSchedulingWindow == null
             ? null
             : new SchedulingWindow
@@ -32,6 +35,7 @@ public static class TaskTemplateMapper
         Title = entity.Title,
         Description = entity.Description,
         LifecycleYear = entity.LifecycleYear,
+        HarvestPhase = entity.HarvestPhase?.ToApiString(),
         DefaultSchedulingWindow = entity.DefaultSchedulingWindow == null
             ? null
             : new SchedulingWindowDocument

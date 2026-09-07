@@ -18,7 +18,8 @@
     "pendingTasks": "Pending Tasks",
     "inProgress": "In Progress",
     "completed": "Completed",
-    "totalTasks": "Total Tasks"
+    "totalTasks": "Total Tasks",
+    "thisWeekCost": "Costo di questa settimana"
   },
   "fieldsSection": {
     "ownerTitle": "My Fields",

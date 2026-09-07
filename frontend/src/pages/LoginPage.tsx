@@ -48,6 +48,10 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!email.trim() || !password) {
+      setError(t('auth:login.missingFields'));
+      return;
+    }
     setLoading(true);
 
     try {
@@ -211,12 +215,7 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="login-field">
-                <div className="login-field-row">
-                  <label htmlFor="password">{t('common:password')}</label>
-                  <Link to="/forgot-password" className="login-forgot">
-                    {t('auth:login.forgotPassword')}
-                  </Link>
-                </div>
+                <label htmlFor="password">{t('common:password')}</label>
                 <div className="login-input-wrap">
                   <Lock size={18} className="login-input-icon" aria-hidden />
                   <input
