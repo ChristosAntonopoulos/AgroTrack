@@ -76,7 +76,14 @@ stages:
     displayName: 'Build Application'
     pool:
       name: 'Default'
+    variables:
+      # Self-hosted agents sometimes have no HOME; NuGet/dotnet need one for caches.
+      DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
+      HOME: $(Agent.TempDirectory)/dotnet-home
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
     steps:
+    # Needed unless .NET 8 SDK is permanently installed on the agent and on PATH.
+    # First run downloads; later runs should hit the agent tool cache (yours missed cache).
     - task: UseDotNet@2
       displayName: 'Install .NET 8.0 SDK'
       inputs:
@@ -84,15 +91,29 @@ stages:
         version: '8.0.x'
         includePreviewVersions: false
 
-    - script: 'dotnet restore $(solution)'
+    - script: |
+        mkdir -p "$(Agent.TempDirectory)/dotnet-home"
+        dotnet restore $(solution)
       displayName: 'Restore NuGet packages'
+      env:
+        HOME: $(Agent.TempDirectory)/dotnet-home
+        DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
+        DOTNET_CLI_TELEMETRY_OPTOUT: '1'
 
     - script: 'dotnet build $(solution) --configuration $(buildConfiguration) --no-restore'
       displayName: 'Build solution'
+      env:
+        HOME: $(Agent.TempDirectory)/dotnet-home
+        DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
+        DOTNET_CLI_TELEMETRY_OPTOUT: '1'
 
     - script: 'dotnet test $(solution) --configuration $(buildConfiguration) --no-build --verbosity normal'
       displayName: 'Run tests'
       continueOnError: true
+      env:
+        HOME: $(Agent.TempDirectory)/dotnet-home
+        DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
+        DOTNET_CLI_TELEMETRY_OPTOUT: '1'
 
 - stage: Package
   displayName: 'Package Application'
