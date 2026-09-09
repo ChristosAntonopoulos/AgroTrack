@@ -25,8 +25,9 @@ parameters:
     default: true
 
 variables:
-  # Secrets come from this pipeline's Variables tab in Azure DevOps
-  # (DOCKER_USERNAME, DOCKER_PASSWORD, JWT_SECRET_KEY, MONGODB_CONNECTION_STRING).
+  # Library variable group (Pipelines → Library → Agrotrack-Secrets).
+  # Must stay linked or DOCKER_*/JWT_*/MONGODB_* will be empty and docker login breaks.
+  - group: Agrotrack-Secrets
   - name: solution
     value: 'backend/OliveLifecycle.sln'
   - name: buildConfiguration
@@ -124,7 +125,13 @@ stages:
     pool:
       name: 'Default'
     steps:
-    - script: 'echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin'
+    - script: |
+        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
+          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
+          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
+          exit 1
+        fi
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       displayName: 'Login to Docker Hub'
       env:
         DOCKER_USERNAME: $(DOCKER_USERNAME)
@@ -205,7 +212,13 @@ stages:
       continueOnError: false
       timeoutInMinutes: 90
 
-    - script: 'echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin'
+    - script: |
+        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
+          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
+          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
+          exit 1
+        fi
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       displayName: 'Login to Docker Hub for frontend rebuild'
       env:
         DOCKER_USERNAME: $(DOCKER_USERNAME)
@@ -324,7 +337,7 @@ stages:
                     echo "  - $var"
                   done
                   echo ""
-                  echo "Please set these on the pipeline Variables tab in Azure DevOps."
+                  echo "Please set these in Library variable group 'Agrotrack-Secrets'."
                   exit 1
                 fi
 
