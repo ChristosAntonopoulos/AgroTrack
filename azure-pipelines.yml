@@ -25,7 +25,8 @@ parameters:
     default: true
 
 variables:
-  - group: Oleachron-Secrets
+  # Secrets come from this pipeline's Variables tab in Azure DevOps
+  # (DOCKER_USERNAME, DOCKER_PASSWORD, JWT_SECRET_KEY, MONGODB_CONNECTION_STRING).
   - name: solution
     value: 'backend/OliveLifecycle.sln'
   - name: buildConfiguration
@@ -302,7 +303,7 @@ stages:
                     echo "  - $var"
                   done
                   echo ""
-                  echo "Please set these in the Oleachron-Secrets variable group."
+                  echo "Please set these on the pipeline Variables tab in Azure DevOps."
                   exit 1
                 fi
 
