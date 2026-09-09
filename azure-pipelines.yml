@@ -293,6 +293,7 @@ stages:
             displayName: 'Ensure namespaces exist'
 
           - script: |
+              set -euo pipefail
               echo "Removing legacy deployment and service names..."
               kubectl delete deployment backend-deployment -n $(backendNamespace) --ignore-not-found=true
               kubectl delete deployment frontend-deployment -n $(frontendNamespace) --ignore-not-found=true
@@ -300,6 +301,18 @@ stages:
               kubectl delete service frontend-service -n $(frontendNamespace) --ignore-not-found=true
               kubectl delete configmap backend-config -n $(backendNamespace) --ignore-not-found=true
               kubectl delete configmap frontend-config -n $(frontendNamespace) --ignore-not-found=true
+
+              # Free NodePorts held by pre-rename namespaces (agrotrack-* / mixed-case).
+              # Otherwise apply of olive-lifecycle-*-service fails with:
+              #   Service is invalid: ... nodePort ... provided port is already allocated
+              for ns in agrotrack-backend AgroTrack-backend Agrotrack-backend \
+                        agrotrack-frontend AgroTrack-frontend Agrotrack-frontend \
+                        Oleachron-backend Oleachron-frontend; do
+                if kubectl get namespace "$ns" >/dev/null 2>&1; then
+                  echo "Cleaning leftover services in legacy namespace: $ns"
+                  kubectl delete service --all -n "$ns" --ignore-not-found=true --wait=true --timeout=60s || true
+                fi
+              done
             displayName: 'Clean up legacy Kubernetes resource names'
             continueOnError: true
 
@@ -353,13 +366,16 @@ stages:
                   SECRET_ARGS+=(--from-literal=Geospatial__Fires__MapKey="${FIRMS_MAP_KEY}")
                 fi
 
+                echo "Creating Kubernetes secret 'backend-secrets' from Library group 'Agrotrack-Secrets'..."
                 kubectl create secret generic backend-secrets \
                   "${SECRET_ARGS[@]}" \
                   --namespace=$(backendNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
 
                 if kubectl get secret backend-secrets -n $(backendNamespace) > /dev/null 2>&1; then
-                  echo "Backend secret created successfully."
+                  echo "Backend secret 'backend-secrets' applied in namespace $(backendNamespace)."
+                  kubectl get secret backend-secrets -n $(backendNamespace) \
+                    -o go-template='keys:{{range $k, $v := .data}} {{$k}}{{end}}{{"\n"}}'
                 else
                   echo "ERROR: Failed to create backend secret!"
                   exit 1
@@ -376,10 +392,36 @@ stages:
             condition: eq('${{ parameters.deployBackend }}', true)
 
           - script: |
-              echo "Recreating backend service as NodePort $(backendNodePort)..."
-              kubectl delete service olive-lifecycle-api-service -n $(backendNamespace) --ignore-not-found=true
+              set -euo pipefail
+              echo "Applying backend service as NodePort $(backendNodePort)..."
               sed -i "s|nodePort: [0-9]*|nodePort: $(backendNodePort)|" backend/k8s/service.yaml
-              kubectl apply -f backend/k8s/service.yaml
+
+              # Do NOT delete+recreate: NodePort stays allocated briefly after delete and
+              # apply then fails with "Service ... is invalid: ... port is already allocated".
+              apply_backend_svc() {
+                kubectl apply -f backend/k8s/service.yaml
+              }
+
+              if ! apply_backend_svc; then
+                echo "Initial apply failed; checking what holds NodePort $(backendNodePort)..."
+                kubectl get svc -A -o wide || true
+                kubectl get svc -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{range .spec.ports[*]}{.nodePort}{" "}{end}{"\n"}{end}' \
+                  | awk -v p="$(backendNodePort)" '$0 ~ p {print}' || true
+
+                for attempt in 1 2 3 4 5 6; do
+                  echo "Retry apply (attempt ${attempt}) after waiting for NodePort release..."
+                  sleep 5
+                  if apply_backend_svc; then
+                    break
+                  fi
+                  if [ "${attempt}" -eq 6 ]; then
+                    echo "ERROR: Could not apply olive-lifecycle-api-service"
+                    exit 1
+                  fi
+                done
+              fi
+
+              kubectl get service olive-lifecycle-api-service -n $(backendNamespace) -o wide
             displayName: 'Apply backend service'
             condition: eq('${{ parameters.deployBackend }}', true)
 
