@@ -27,6 +27,7 @@ export BUILD_ID
 export API_URL
 export NODE_ENV=production
 export CI=1
+export ORG_GRADLE_OPTS="${ORG_GRADLE_OPTS:--Xmx4g -Dorg.gradle.daemon=true -Dorg.gradle.caching=true}"
 
 log_gradle_failure() {
   echo "=== Gradle build failed (exit ${GRADLE_EXIT_STATUS:-unknown}) ==="
@@ -97,28 +98,42 @@ find_built_apk() {
   return 1
 }
 
-echo "Applying Android versionCode from pipeline build id: ${BUILD_ID}"
-node <<'NODE'
+# Stamp native inputs only — never include pipeline versionCode (it changes every run).
+compute_prebuild_stamp() {
+  node <<'NODE'
+const crypto = require('crypto');
 const fs = require('fs');
-const buildId = Math.max(1, parseInt(process.env.BUILD_ID || '1', 10));
 const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-app.expo.android = app.expo.android || {};
-app.expo.android.versionCode = buildId;
-fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
-console.log('app version:', app.expo.version, 'versionCode:', buildId);
+const hash = crypto.createHash('sha256');
+hash.update(fs.readFileSync('package.json'));
+hash.update(fs.readFileSync('package-lock.json'));
+hash.update(JSON.stringify(app.expo.plugins || []));
+hash.update(fs.readFileSync('app.config.js'));
+hash.update('ci-skip-dev-client:1');
+console.log(hash.digest('hex'));
 NODE
+}
 
 source "${SCRIPT_DIR}/setup-java.sh"
 source "${SCRIPT_DIR}/setup-android-sdk.sh"
 
 echo "JAVA_HOME=${JAVA_HOME}"
 echo "ANDROID_HOME=${ANDROID_HOME}"
+echo "GRADLE_USER_HOME=${GRADLE_USER_HOME:-"(default)"}"
+echo "ORG_GRADLE_OPTS=${ORG_GRADLE_OPTS}"
 echo "Building release APK with embedded JS bundle (no Metro, no EAS)..."
+echo "Pipeline versionCode (applied after prebuild): ${BUILD_ID}"
 
 rm -f "${OUTPUT_APK}" "${BUILD_INFO}" "${GRADLE_LOG}"
 
 PREBUILD_STAMP="${ANDROID_DIR}/.oleachron-prebuild-stamp"
-CURRENT_STAMP="$(cat "${MOBILE_DIR}/app.json" "${MOBILE_DIR}/package-lock.json" "${MOBILE_DIR}/package.json" | sha256sum | awk '{print $1}')"
+CURRENT_STAMP="$(compute_prebuild_stamp)"
+
+# Exclude expo-dev-client from Gradle for this release build only.
+# Restore package.json afterward so the agent workspace stays clean between runs.
+node "${SCRIPT_DIR}/apply-ci-autolinking-exclude.js"
+
+PREBUILD_START="$(date +%s)"
 if [ ! -d "${ANDROID_DIR}" ] || [ ! -x "${ANDROID_DIR}/gradlew" ] || [ ! -f "${PREBUILD_STAMP}" ] || [ "$(cat "${PREBUILD_STAMP}")" != "${CURRENT_STAMP}" ]; then
   echo "Native project missing or Expo plugins changed — expo prebuild --clean"
   npx expo prebuild --platform android --clean --no-install
@@ -127,14 +142,20 @@ else
   echo "Reusing android/ — expo prebuild without --clean"
   npx expo prebuild --platform android --no-install
 fi
+echo "Prebuild finished in $(( $(date +%s) - PREBUILD_START ))s"
+git checkout -- package.json 2>/dev/null || true
+
 node "${SCRIPT_DIR}/patch-android-alpha-signing.js"
+node "${SCRIPT_DIR}/patch-android-version-code.js"
 
 cd "${ANDROID_DIR}"
 chmod +x gradlew
+GRADLE_START="$(date +%s)"
 set +e
-./gradlew assembleRelease --build-cache -x lint -x test 2>&1 | tee "${GRADLE_LOG}"
+./gradlew assembleRelease --build-cache --parallel -x lint -x test 2>&1 | tee "${GRADLE_LOG}"
 GRADLE_EXIT_STATUS="${PIPESTATUS[0]}"
 set -e
+echo "Gradle assembleRelease finished in $(( $(date +%s) - GRADLE_START ))s (exit ${GRADLE_EXIT_STATUS})"
 
 if [ "${GRADLE_EXIT_STATUS}" -ne 0 ]; then
   cd "${MOBILE_DIR}"
@@ -167,9 +188,10 @@ fi
 node <<'NODE'
 const fs = require('fs');
 const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+const buildId = Math.max(1, parseInt(process.env.BUILD_ID || '1', 10));
 const info = {
   version: app.expo.version,
-  versionCode: app.expo.android.versionCode,
+  versionCode: buildId,
   buildId: String(process.env.BUILD_ID || ''),
   builtAt: new Date().toISOString(),
   builder: 'gradle-agent-release',

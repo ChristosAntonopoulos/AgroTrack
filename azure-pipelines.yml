@@ -169,14 +169,24 @@ stages:
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
-  dependsOn: Build
-  condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
+  # Start immediately — APK build does not need .NET Build outputs.
+  dependsOn: []
+  condition: eq('${{ parameters.buildMobileApk }}', true)
   jobs:
   - job: BuildMobile
     displayName: 'Build Android APK (Gradle on agent)'
     pool:
       name: 'Default'
+    variables:
+      GRADLE_USER_HOME: $(Agent.HomeDirectory)/.oleachron/gradle
+      ANDROID_HOME: $(Agent.HomeDirectory)/.oleachron/android-sdk
+      ANDROID_SDK_ROOT: $(Agent.HomeDirectory)/.oleachron/android-sdk
+      ORG_GRADLE_OPTS: '-Xmx4g -Dorg.gradle.daemon=true -Dorg.gradle.caching=true'
     steps:
+    - checkout: self
+      clean: false
+      displayName: 'Checkout (keep mobile/android between runs)'
+
     - task: NodeTool@0
       displayName: 'Use Node.js 20'
       inputs:
@@ -190,27 +200,84 @@ stages:
           npm | "$(Agent.OS)"
         path: $(Build.SourcesDirectory)/mobile/node_modules
 
+    - task: Cache@2
+      displayName: 'Cache Gradle caches'
+      inputs:
+        key: 'gradle | "$(Agent.OS)" | mobile/package-lock.json'
+        restoreKeys: |
+          gradle | "$(Agent.OS)"
+        path: $(GRADLE_USER_HOME)/caches
+
     - script: 'cd mobile && npm install --prefer-offline --no-audit --no-fund'
       displayName: 'Install mobile dependencies'
 
     - script: |
-        # Do NOT re-run only part of this step — build + stage must run together.
         chmod +x mobile/scripts/setup-java.sh mobile/scripts/setup-android-sdk.sh \
           mobile/scripts/build-android-apk.sh mobile/scripts/build-and-stage-apk.sh
         source mobile/scripts/setup-java.sh
+        source mobile/scripts/setup-android-sdk.sh
         echo "##vso[task.setvariable variable=JAVA_HOME]${JAVA_HOME}"
-        mobile/scripts/build-and-stage-apk.sh
+        echo "JAVA_HOME=${JAVA_HOME}"
+        echo "ANDROID_HOME=${ANDROID_HOME}"
+        echo "GRADLE_USER_HOME=${GRADLE_USER_HOME}"
+      displayName: 'Setup JDK 17 + Android SDK'
+      env:
+        ANDROID_HOME: $(ANDROID_HOME)
+        ANDROID_SDK_ROOT: $(ANDROID_SDK_ROOT)
+      timeoutInMinutes: 30
+
+    - script: |
+        chmod +x mobile/scripts/build-android-apk.sh \
+          mobile/scripts/patch-android-alpha-signing.js \
+          mobile/scripts/patch-android-version-code.js \
+          mobile/scripts/apply-ci-autolinking-exclude.js
+        mobile/scripts/build-android-apk.sh
         test -f mobile/oleachron-mobile.apk
-        test -f frontend/public/downloads/$(apkFilename)
-      displayName: 'Build and stage APK for frontend /downloads'
+      displayName: 'Prebuild + Gradle assembleRelease'
       env:
         BACKEND_API_URL: $(backendApiUrl)
         BUILD_BUILDID: $(Build.BuildId)
         BUILD_ID: $(Build.BuildId)
         BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)
-        APK_FILENAME: $(apkFilename)
+        JAVA_HOME: $(JAVA_HOME)
+        ANDROID_HOME: $(ANDROID_HOME)
+        ANDROID_SDK_ROOT: $(ANDROID_SDK_ROOT)
+        GRADLE_USER_HOME: $(GRADLE_USER_HOME)
+        ORG_GRADLE_OPTS: $(ORG_GRADLE_OPTS)
       continueOnError: false
       timeoutInMinutes: 90
+
+    - script: |
+        if [ -f mobile/gradle-build.log ]; then
+          echo "##vso[task.setvariable variable=hasGradleLog]true"
+        else
+          echo "No gradle-build.log to publish"
+        fi
+      displayName: 'Detect gradle-build.log'
+      condition: failed()
+      continueOnError: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish gradle-build.log on failure'
+      condition: and(failed(), eq(variables['hasGradleLog'], 'true'))
+      inputs:
+        pathToPublish: 'mobile/gradle-build.log'
+        artifactName: 'mobile-gradle-log'
+        publishLocation: 'Container'
+      continueOnError: true
+
+    - script: |
+        chmod +x mobile/scripts/stage-apk-for-frontend.js
+        export BUILD_SOURCESDIRECTORY="$(Build.SourcesDirectory)"
+        export APK_FILENAME="$(apkFilename)"
+        node mobile/scripts/stage-apk-for-frontend.js
+        test -f frontend/public/downloads/$(apkFilename)
+        test -f frontend/public/downloads/latest.json
+      displayName: 'Stage APK into frontend/public/downloads'
+      env:
+        BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)
+        APK_FILENAME: $(apkFilename)
+      timeoutInMinutes: 10
 
     - script: |
         if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
