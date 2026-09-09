@@ -36,11 +36,13 @@ APK lands in `../frontend/public/downloads/`.
 
 | Script | Role |
 |--------|------|
-| `scripts/build-and-stage-apk.sh` | **Atomic** build + stage (use this in pipeline) |
-| `scripts/build-android-apk.sh` | Gradle release APK → `mobile/Oleachron-mobile.apk` |
+| `scripts/build-and-stage-apk.sh` | **Atomic** build + stage (local / one-shot) |
+| `scripts/build-android-apk.sh` | Prebuild (reuse `android/` when possible) + Gradle release APK → `mobile/oleachron-mobile.apk` |
+| `scripts/patch-android-version-code.js` | Set `versionCode` from `BUILD_ID` after prebuild (keeps CI stamp stable) |
+| `scripts/apply-ci-autolinking-exclude.js` | Drop `expo-dev-client` modules from CI release autolinking |
 | `scripts/stage-apk-for-frontend.js` | Copy to `frontend/public/downloads/` + `latest.json` |
 
-Do not run staging alone in Azure DevOps without the build step.
+Pipeline MobileBuild runs setup → assembleRelease → stage as separate timed steps. Do not stage in Azure without a successful build step.
 
 ## Environment
 
