@@ -92,6 +92,7 @@ const FieldFormPage: React.FC = () => {
         irrigationType: field.irrigationType,
         slope: field.slope,
         accessNotes: field.accessNotes,
+        color: field.color,
         status: field.status,
       });
       setCadastre(field.greekCadastre);
@@ -228,6 +229,7 @@ const FieldFormPage: React.FC = () => {
         irrigationType: formData.irrigationType,
         slope: formData.slope,
         accessNotes: formData.accessNotes,
+        color: formData.color,
         greekCadastre: cadastre,
       } as UpdateFieldDto);
 
@@ -278,6 +280,7 @@ const FieldFormPage: React.FC = () => {
         irrigationType: formData.irrigationType,
         slope: formData.slope,
         accessNotes: formData.accessNotes,
+        color: formData.color,
         greekCadastre: cadastre,
       } as UpdateFieldDto);
 
@@ -377,8 +380,10 @@ const FieldFormPage: React.FC = () => {
             <BasicFieldDetailsStep
               formData={formData}
               kaekInput={kaekInput}
+              fieldId={draftFieldId || id}
               onChange={handleChange}
               onKaekChange={setKaekInput}
+              onColorChange={(color) => setFormData((prev) => ({ ...prev, color }))}
             />
           )}
 

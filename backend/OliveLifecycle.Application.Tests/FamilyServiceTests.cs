@@ -72,6 +72,8 @@ public class FamilyServiceTests
         }, "https://app.oleachron.app");
 
         Assert.Equal("invite-1", invite.Id);
+        Assert.False(string.IsNullOrWhiteSpace(invite.Code));
+        Assert.Matches(@"^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$", invite.Code);
         Assert.Contains("/family-invite/", invite.ShareUrl);
         Assert.Contains("wa.me", invite.WhatsAppUrl);
         Assert.Contains("mailto:", invite.MailtoUrl);

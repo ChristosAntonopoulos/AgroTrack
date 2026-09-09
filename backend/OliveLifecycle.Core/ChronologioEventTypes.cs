@@ -20,6 +20,8 @@ public static class ChronologioEventTypes
     public const string WeatherHeavyRain = "weather.heavyRain";
     public const string WeatherFrost = "weather.frost";
     public const string WeatherHeat = "weather.heat";
+    public const string WeatherMonthReview = "weather.monthReview";
+    public const string WeatherYearReview = "weather.yearReview";
 
     public const string IntelligenceSprayRainRisk = "intelligence.sprayRainRisk";
     public const string IntelligenceFrostRisk = "intelligence.frostRisk";
@@ -47,4 +49,5 @@ public static class ChronologioSourceTypes
     public const string Harvest = "Harvest";
     public const string Note = "Note";
     public const string Activity = "Activity";
+    public const string WeatherReview = "WeatherReview";
 }

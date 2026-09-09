@@ -27,6 +27,8 @@ public class ChronologioFieldRefDto
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    /// <summary>Field accent color as #RRGGBB when set.</summary>
+    public string? Color { get; set; }
 }
 
 public class ChronologioActorDto
@@ -127,10 +129,24 @@ public class ChronologioActivityDetailsDto
 
 public class ChronologioWeatherDetailsDto
 {
+    public string? Period { get; set; }
+    public int? Year { get; set; }
+    public int? Month { get; set; }
     public double? RainfallMm { get; set; }
     public double? TemperatureMin { get; set; }
     public double? TemperatureMax { get; set; }
+    public int? FrostNights { get; set; }
+    public int? HeatDays { get; set; }
+    public int? HeavyRainDays { get; set; }
+    public int? LongestDryStreakDays { get; set; }
+    public double? RainVsPreviousPercent { get; set; }
+    public int? WettestMonth { get; set; }
+    public double? NdviMean { get; set; }
+    public double? NdviDeltaPercent { get; set; }
+    public IReadOnlyList<double>? RainSeries { get; set; }
+    public IReadOnlyList<string>? RainLabels { get; set; }
     public string? Source { get; set; }
+    public string? VegetationNote { get; set; }
 }
 
 public class ChronologioIntelligenceDetailsDto

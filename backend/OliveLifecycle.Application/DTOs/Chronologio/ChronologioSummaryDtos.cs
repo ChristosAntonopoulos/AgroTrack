@@ -137,6 +137,15 @@ public class ChronologioPeriodSummaryDto
     public string? HeroMediaUrl { get; set; }
 
     public IReadOnlyList<string> HighlightTitles { get; set; } = Array.Empty<string>();
+
+    public string? DominantWorkLabel { get; set; }
+    public string? ObservationHighlight { get; set; }
+
+    public double? RainfallMm { get; set; }
+    public double? TemperatureMax { get; set; }
+    public double? TemperatureMin { get; set; }
+    public int? HeatDays { get; set; }
+    public int? FrostNights { get; set; }
 }
 
 public class ChronologioMonthSummaryDto
@@ -162,4 +171,13 @@ public class ChronologioMonthSummaryDto
     public string? HeroMediaUrl { get; set; }
 
     public IReadOnlyList<string> HighlightTitles { get; set; } = Array.Empty<string>();
+
+    public string? DominantWorkLabel { get; set; }
+    public string? ObservationHighlight { get; set; }
+
+    public double? RainfallMm { get; set; }
+    public double? TemperatureMax { get; set; }
+    public double? TemperatureMin { get; set; }
+    public int? HeatDays { get; set; }
+    public int? FrostNights { get; set; }
 }

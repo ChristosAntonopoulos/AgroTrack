@@ -26,6 +26,7 @@ export interface FamilyMemberChecklist {
 export interface FamilyInviteShare {
   id: string;
   token: string;
+  code?: string;
   memberId: string;
   displayName?: string;
   phone?: string;

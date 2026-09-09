@@ -27,6 +27,7 @@ type Props = {
   showField?: boolean;
   locale?: SupportedLocale;
   selected?: boolean;
+  weatherTile?: boolean;
   onSelect?: (entry: ChronologioEntry) => void;
 };
 
@@ -72,6 +73,7 @@ const ChronologioEvent: React.FC<Props> = ({
   showField = false,
   locale = 'el',
   selected = false,
+  weatherTile = false,
   onSelect,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
@@ -144,6 +146,29 @@ const ChronologioEvent: React.FC<Props> = ({
               {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
             </span>
           ) : null}
+          {category === 'weather' &&
+          (entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview') ? (
+            <>
+              <span className="chrono-event-compact-meta">
+                {entry.details.weather?.rainfallMm != null
+                  ? `${entry.details.weather.rainfallMm.toLocaleString(numberLocale, {
+                      maximumFractionDigits: 0,
+                    })} mm`
+                  : null}
+                {entry.details.weather?.temperatureMax != null
+                  ? ` · ${entry.details.weather.temperatureMax.toFixed(0)}°`
+                  : ''}
+                {entry.eventType === 'weather.monthReview' &&
+                entry.details.weather?.temperatureMin != null
+                  ? ` / ${entry.details.weather.temperatureMin.toFixed(0)}°`
+                  : ''}
+                {entry.eventType === 'weather.yearReview' &&
+                (entry.details.weather?.frostNights ?? 0) > 0
+                  ? ` · ${entry.details.weather!.frostNights} frost`
+                  : ''}
+              </span>
+            </>
+          ) : null}
           {showField && entry.field?.name ? (
             <span className="chrono-event-compact-field">{entry.field.name}</span>
           ) : null}
@@ -165,6 +190,7 @@ const ChronologioEvent: React.FC<Props> = ({
         entry={entry}
         showField={showField}
         locale={locale}
+        weatherTile={weatherTile}
         onSelect={onSelect}
       />
     </div>

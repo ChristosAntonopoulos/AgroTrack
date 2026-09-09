@@ -1,11 +1,10 @@
 .satellite-dates {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.5rem 0 0;
+  gap: 0.4rem;
 }
 
 .satellite-dates--empty {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
@@ -14,67 +13,132 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
-.satellite-dates-header button {
-  padding: 0.15rem 0.5rem;
+.satellite-dates-mode {
+  display: inline-flex;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 0.65rem;
-  font-weight: 600;
+  overflow: hidden;
   text-transform: none;
   letter-spacing: 0;
+}
+
+.satellite-dates-mode button {
+  padding: 0.28rem 0.7rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 650;
   cursor: pointer;
 }
 
-.satellite-dates-header button.active {
+.satellite-dates-mode button + button {
+  border-left: 1px solid var(--color-border);
+}
+
+.satellite-dates-mode button.active {
   background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-elevated));
-  border-color: var(--color-primary);
   color: var(--color-primary-light);
 }
 
-.satellite-dates-header button:disabled {
+.satellite-dates-mode button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
+.satellite-dates-pair {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.satellite-dates-pair-sep {
+  color: var(--color-text-muted);
+}
+
+.satellite-dates-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 650;
+}
+
+.satellite-dates-chip--a {
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-elevated));
+  color: var(--color-primary-light);
+}
+
+.satellite-dates-chip--b {
+  background: color-mix(in srgb, var(--color-accent) 22%, var(--bg-elevated));
+  color: var(--oleachron-charcoal, #3c3c2e);
+}
+
+[data-theme='dark'] .satellite-dates-chip--b {
+  color: var(--oleachron-cream, #f8f7ee);
+}
+
 .satellite-dates-strip {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.35rem;
   overflow-x: auto;
-  padding-bottom: 0.2rem;
+  padding: 0.1rem 0 0.15rem;
   scrollbar-width: thin;
 }
 
 .satellite-date {
+  position: relative;
   flex: 0 0 auto;
   display: grid;
-  gap: 0.1rem;
-  min-width: 3.4rem;
-  padding: 0.3rem 0.35rem;
+  gap: 0.08rem;
+  min-width: 3.6rem;
+  padding: 0.4rem 0.45rem 0.35rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   background: var(--bg-elevated);
   cursor: pointer;
   text-align: center;
 }
 
+.satellite-date-tag {
+  position: absolute;
+  top: -0.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 1rem;
+  padding: 0 0.22rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-text-inverse, #fff);
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.satellite-date-tag--b {
+  background: var(--color-accent);
+  color: var(--oleachron-charcoal, #3c3c2e);
+}
+
 .satellite-date-day {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 650;
   color: var(--color-text-primary);
   white-space: nowrap;
 }
 
 .satellite-date-ndvi {
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -85,8 +149,8 @@
 }
 
 .satellite-date--compare {
-  border-color: var(--color-primary-lighter);
-  border-style: dashed;
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--bg-elevated));
 }
 
 .satellite-date--unusable {
@@ -96,7 +160,7 @@
 
 .satellite-dates-hint {
   margin: 0;
-  font-size: 0.65rem;
-  line-height: 1.3;
+  font-size: 0.7rem;
+  line-height: 1.35;
   color: var(--color-text-muted);
 }

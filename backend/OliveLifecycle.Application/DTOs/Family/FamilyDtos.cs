@@ -56,6 +56,7 @@ public class FamilyInviteShareDto
 {
     public string Id { get; set; } = string.Empty;
     public string Token { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
     public string MemberId { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
     public string? Phone { get; set; }

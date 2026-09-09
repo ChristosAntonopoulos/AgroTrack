@@ -23,7 +23,6 @@ import TasksPage from './pages/TasksPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import TaskFormPage from './pages/TaskFormPage';
 import CalendarPage from './pages/CalendarPage';
-import AnalyticsPage from './pages/AnalyticsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import DataSourcesPage from './pages/DataSourcesPage';
@@ -121,11 +120,7 @@ function App() {
                     <Route path="calendar" element={<CalendarPage />} />
                     <Route
                       path="analytics"
-                      element={
-                        <FullOnlyRoute>
-                          <AnalyticsPage />
-                        </FullOnlyRoute>
-                      }
+                      element={<Navigate to="/reports" replace />}
                     />
                     <Route
                       path="reports"

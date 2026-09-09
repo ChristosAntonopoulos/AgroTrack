@@ -21,6 +21,8 @@ const API_MESSAGE_KEYS: Record<string, string> = {
   'An error occurred while retrieving the lifecycle.': 'retrieveLifecycle',
   'An error occurred while initializing the lifecycle.': 'initLifecycle',
   'An error occurred while progressing the lifecycle.': 'progressLifecycle',
+  'This invitation code is not valid.': 'inviteInvalid',
+  'Invitation codes are not available.': 'inviteUnavailable',
 };
 
 export const translateApiError = (t: TFunction, message: string | undefined): string => {

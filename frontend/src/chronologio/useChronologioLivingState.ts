@@ -75,6 +75,11 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     [patch]
   );
 
+  /** Journal from the toolbar — live feed from today, not a drilled-in month. */
+  const openJournal = useCallback(() => {
+    patch({ view: 'month', date: toIsoDate(new Date()) });
+  }, [patch]);
+
   const zoomBy = useCallback(
     (delta: 1 | -1) => {
       patch({ view: stepZoom(zoom, delta) });
@@ -193,6 +198,7 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     canZoomOut,
     canZoomIn,
     setZoom,
+    openJournal,
     zoomBy,
     setAxis,
     setFocusDate,

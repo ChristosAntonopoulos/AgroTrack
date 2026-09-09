@@ -19,5 +19,7 @@
   "retrieveTasks": "An error occurred while retrieving tasks.",
   "retrieveLifecycle": "An error occurred while retrieving the lifecycle.",
   "initLifecycle": "An error occurred while initializing the lifecycle.",
-  "progressLifecycle": "An error occurred while progressing the lifecycle."
+  "progressLifecycle": "An error occurred while progressing the lifecycle.",
+  "inviteInvalid": "This invitation code is not valid.",
+  "inviteUnavailable": "Invitation codes are not available."
 }

@@ -24,6 +24,21 @@ public interface IFieldDailyWeatherSnapshotRepository
     Task<int> UpsertManyAsync(IReadOnlyList<FieldDailyWeatherSnapshot> snapshots, CancellationToken cancellationToken = default);
 }
 
+public interface IFieldWeatherPeriodReviewRepository
+{
+    Task<IReadOnlyList<FieldWeatherPeriodReview>> GetByFieldIdsAsync(
+        IReadOnlyList<string> fieldIds,
+        DateTime? from,
+        DateTime? to,
+        CancellationToken cancellationToken = default);
+
+    Task<FieldWeatherPeriodReview?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+
+    Task<FieldWeatherPeriodReview> UpsertAsync(FieldWeatherPeriodReview review, CancellationToken cancellationToken = default);
+
+    Task<int> UpsertManyAsync(IReadOnlyList<FieldWeatherPeriodReview> reviews, CancellationToken cancellationToken = default);
+}
+
 public interface IFieldSatelliteObservationRepository
 {
     Task<FieldSatelliteObservation?> GetByIdAsync(string id, CancellationToken cancellationToken = default);

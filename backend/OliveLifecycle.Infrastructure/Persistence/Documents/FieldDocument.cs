@@ -83,6 +83,9 @@ public class FieldDocument
     [BsonElement("accessNotes")]
     public string? AccessNotes { get; set; }
 
+    [BsonElement("color")]
+    public string? Color { get; set; }
+
     [BsonElement("greekCadastre")]
     public GreekCadastreInfoDocument? GreekCadastre { get; set; }
 

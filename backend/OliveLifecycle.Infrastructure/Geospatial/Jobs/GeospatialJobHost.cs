@@ -142,6 +142,9 @@ public class GeospatialJobHost : BackgroundService
 
                 var satellite = provider.GetRequiredService<ISatelliteProcessingService>();
                 await satellite.ProcessHistoricalAsync(item.FieldId, ct);
+
+                var reviews = provider.GetRequiredService<IWeatherReviewCompiler>();
+                await reviews.RebuildForFieldAsync(item.FieldId, ct);
             }, ct);
         }
     }
@@ -295,6 +298,7 @@ public class GeospatialJobHost : BackgroundService
     {
         var fieldRepository = provider.GetRequiredService<IFieldRepository>();
         var weather = provider.GetRequiredService<IWeatherIntelligenceService>();
+        var reviews = provider.GetRequiredService<IWeatherReviewCompiler>();
         var logger = provider.GetRequiredService<ILogger<GeospatialJobHost>>();
 
         var yesterday = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1));
@@ -304,6 +308,7 @@ public class GeospatialJobHost : BackgroundService
             try
             {
                 await weather.CreateDailySnapshotAsync(field, yesterday, ct);
+                await reviews.RebuildCurrentAsync(field.Id, ct);
             }
             catch (Exception ex)
             {

@@ -8,7 +8,7 @@ interface AuthContextType {
   user: AuthResponse | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
+  register: (email: string, password: string, firstName?: string, lastName?: string, inviteCode?: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -41,10 +41,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
+    inviteCode?: string
   ) => {
     const service = isMockDataEnabled() ? mockAuthService : authService;
-    const response = await service.register({ email, password, firstName, lastName });
+    const response = await service.register({
+      email,
+      password,
+      firstName,
+      lastName,
+      inviteCode: inviteCode?.trim() || undefined,
+    });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response));
     setUser(response);

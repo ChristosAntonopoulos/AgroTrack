@@ -68,6 +68,7 @@ export interface Field {
   soilType?: string;
   slope?: string;
   accessNotes?: string;
+  color?: string;
   greekCadastre?: GreekCadastreInfo;
   advisorComments?: import('./fieldPeopleService').AdvisorComment[];
 }
@@ -89,6 +90,7 @@ export interface CreateFieldDto {
   soilType?: string;
   slope?: string;
   accessNotes?: string;
+  color?: string;
   status?: FieldStatus;
   greekCadastre?: GreekCadastreInfo;
 }

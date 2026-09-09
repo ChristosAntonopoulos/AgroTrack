@@ -4,7 +4,6 @@ import {
   Home,
   Layers,
   CheckSquare,
-  BarChart2,
   FileText,
   Calendar,
   Bell,
@@ -115,13 +114,6 @@ export const navItems: NavItem[] = [
     icon: <Wheat />,
     roles: ['FieldOwner', 'Administrator'],
     section: 'operations',
-  },
-  {
-    path: '/analytics',
-    labelKey: 'items.analytics',
-    icon: <BarChart2 />,
-    roles: ['FieldOwner', 'Administrator'],
-    section: 'insights',
   },
   {
     path: '/reports',

@@ -1,15 +1,25 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateFieldDto } from '../../services/fieldService';
+import FieldColorPicker from './FieldColorPicker';
 
 interface Props {
   formData: CreateFieldDto;
   kaekInput: string;
+  fieldId?: string | null;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   onKaekChange: (value: string) => void;
+  onColorChange: (color: string) => void;
 }
 
-const BasicFieldDetailsStep: React.FC<Props> = ({ formData, kaekInput, onChange, onKaekChange }) => {
+const BasicFieldDetailsStep: React.FC<Props> = ({
+  formData,
+  kaekInput,
+  fieldId,
+  onChange,
+  onKaekChange,
+  onColorChange,
+}) => {
   const { t } = useTranslation('fields');
 
   return (
@@ -48,6 +58,10 @@ const BasicFieldDetailsStep: React.FC<Props> = ({ formData, kaekInput, onChange,
             placeholder={t('addField.locationPlaceholder')}
           />
         </div>
+      </div>
+
+      <div className="form-group">
+        <FieldColorPicker value={formData.color} fieldId={fieldId} onChange={onColorChange} />
       </div>
 
       <div className="form-group">

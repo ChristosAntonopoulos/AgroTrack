@@ -30,6 +30,7 @@ type Props = {
   embedded?: boolean;
   onBack?: () => void;
   onSetZoom: (z: ChronologioZoom) => void;
+  onOpenJournal?: () => void;
   onSetAxis: (a: ChronologioAxis) => void;
   onSetFilters: (f: Partial<LivingFilters>) => void;
   onClearFilters: () => void;
@@ -51,6 +52,7 @@ const ChronologioChrome: React.FC<Props> = ({
   embedded = false,
   onBack,
   onSetZoom,
+  onOpenJournal,
   onSetAxis,
   onSetFilters,
   onClearFilters,
@@ -76,7 +78,7 @@ const ChronologioChrome: React.FC<Props> = ({
     (!fieldMode && filters.fieldId) || filters.lifecycleYear || filters.category !== 'all'
   );
 
-  const showCompare = zoom === 'years' || zoom === 'year';
+  const showCompare = zoom === 'years';
 
   const categoryChip =
     filters.category !== 'all' ? (
@@ -133,7 +135,10 @@ const ChronologioChrome: React.FC<Props> = ({
 
       <div className="chronologio-sticky chrono-locked-toolbar">
         <div className="chrono-toolbar-row">
-          <ChronologioZoomBar zoom={zoom} onSetZoom={onSetZoom} />
+          <ChronologioZoomBar
+            zoom={zoom}
+            onSetZoom={(z) => (z === 'month' && onOpenJournal ? onOpenJournal() : onSetZoom(z))}
+          />
 
           <div className="chrono-toolbar-actions">
             <div className="chronologio-filter-popover" ref={filterPanelRef}>

@@ -111,13 +111,6 @@ const MoreScreen = () => {
         ...(canInsights
           ? [
               {
-                id: 'analytics',
-                icon: 'bar-chart-outline' as const,
-                label: t('nav:analytics', { defaultValue: 'Analytics' }),
-                onPress: () => navigation.navigate('Analytics'),
-                showArrow: true,
-              },
-              {
                 id: 'reports',
                 icon: 'document-outline' as const,
                 label: t('nav:reports', { defaultValue: 'Reports' }),

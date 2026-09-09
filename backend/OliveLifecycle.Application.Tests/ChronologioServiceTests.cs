@@ -26,12 +26,19 @@ public class ChronologioServiceTests
     private readonly Mock<IActivityRepository> _activities = new();
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IMediaAttachmentRepository> _media = new();
+    private readonly Mock<IFieldWeatherPeriodReviewRepository> _weatherReviews = new();
     private readonly ChronologioService _service;
 
     public ChronologioServiceTests()
     {
         _media.Setup(m => m.GetByOwnersAsync(It.IsAny<MediaOwnerType>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<MediaAttachment>());
+        _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Core.Entities.Geospatial.FieldWeatherPeriodReview>());
 
         _service = new ChronologioService(
             _access.Object,
@@ -44,6 +51,7 @@ public class ChronologioServiceTests
             _activities.Object,
             _users.Object,
             _media.Object,
+            _weatherReviews.Object,
             NullLogger<ChronologioService>.Instance);
 
         _users.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
@@ -654,6 +662,139 @@ public class ChronologioServiceTests
         Assert.Equal(1, y.NoteCount);
     }
 
+    [Fact]
+    public async Task GetForFieldAsync_ExcludesWeatherPeriodReviewsFromJournal()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new Core.Entities.Geospatial.FieldWeatherPeriodReview
+                {
+                    Id = "field-1_month_202603",
+                    FieldId = "field-1",
+                    PeriodType = Core.Entities.Geospatial.WeatherPeriodTypes.Month,
+                    Year = 2026,
+                    Month = 3,
+                    OccurredAt = new DateTime(2026, 3, 31, 12, 0, 0, DateTimeKind.Utc),
+                    RainTotalMm = 68.5,
+                    MinTemperatureC = 2,
+                    MaxTemperatureC = 24,
+                    FrostNights = 1,
+                    RainSeries = new double[] { 0, 2, 5 },
+                    RainLabels = new[] { "1", "2", "3" },
+                    DayCount = 31,
+                    WeatherProvider = "Open-Meteo",
+                    SatelliteSource = "Sentinel-2",
+                    CreatedAt = Nowish(),
+                    UpdatedAt = Nowish()
+                }
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery());
+
+        Assert.Empty(entries);
+    }
+
+    [Fact]
+    public async Task GetForFieldAsync_IncludesWeatherWhenCategoryWeather()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new Core.Entities.Geospatial.FieldWeatherPeriodReview
+                {
+                    Id = "field-1_month_202603",
+                    FieldId = "field-1",
+                    PeriodType = Core.Entities.Geospatial.WeatherPeriodTypes.Month,
+                    Year = 2026,
+                    Month = 3,
+                    OccurredAt = new DateTime(2026, 3, 31, 12, 0, 0, DateTimeKind.Utc),
+                    RainTotalMm = 68.5,
+                    MinTemperatureC = 2,
+                    MaxTemperatureC = 24,
+                    FrostNights = 1,
+                    RainSeries = new double[] { 0, 2, 5 },
+                    RainLabels = new[] { "1", "2", "3" },
+                    DayCount = 31,
+                    WeatherProvider = "Open-Meteo",
+                    SatelliteSource = "Sentinel-2",
+                    CreatedAt = Nowish(),
+                    UpdatedAt = Nowish()
+                }
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery { Category = "weather" });
+
+        var review = Assert.Single(entries);
+        Assert.Equal("weather.monthReview", review.EventType);
+        Assert.Equal("weather", review.Category);
+    }
+
+    [Fact]
+    public async Task GetYearSummariesForFieldAsync_IncludesWeatherAggregates()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new Core.Entities.Geospatial.FieldWeatherPeriodReview
+                {
+                    Id = "field-1_year_2025",
+                    FieldId = "field-1",
+                    PeriodType = Core.Entities.Geospatial.WeatherPeriodTypes.Year,
+                    Year = 2025,
+                    OccurredAt = new DateTime(2025, 12, 31, 12, 0, 0, DateTimeKind.Utc),
+                    RainTotalMm = 500,
+                    HeatDays = 19,
+                    DayCount = 365,
+                    WeatherProvider = "Open-Meteo",
+                    CreatedAt = Nowish(),
+                    UpdatedAt = Nowish()
+                }
+            });
+
+        var years = await _service.GetYearSummariesForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioSummaryQuery { Axis = ChronologioAxis.Calendar });
+
+        var y = Assert.Single(years, x => x.PeriodYear == 2025);
+        Assert.Equal(500, y.RainfallMm);
+        Assert.Equal(19, y.HeatDays);
+        Assert.Equal(0, y.TaskCount + y.ExpenseCount + y.HarvestCount + y.NoteCount);
+    }
+
+    private static DateTime Nowish() => new(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
+
     private void AllowField(string fieldId, string name)
     {
         _access.Setup(a => a.CanUserAccessFieldAsync(fieldId, "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
@@ -674,5 +815,11 @@ public class ChronologioServiceTests
             .ReturnsAsync(Array.Empty<Note>());
         _activities.Setup(r => r.GetByFieldIdAsync(fieldId, 200, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Activity>());
+        _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Core.Entities.Geospatial.FieldWeatherPeriodReview>());
     }
 }

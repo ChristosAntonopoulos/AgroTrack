@@ -57,15 +57,22 @@
   "family": {
     "title": "Famiglia",
     "lead": "{{used}} di {{max}} posti — accesso a tutti i tuoi campi, solo le parti che scegli.",
-    "empty": "Aggiungi fino a 2 familiari con invito, QR o email.",
+    "empty": "Aggiungi fino a 2 familiari. Riceverai un codice da condividere, più QR ed email.",
     "addMember": "Aggiungi familiare",
-    "addHint": "Vedranno tutti i tuoi campi, solo le parti che segni. Non è un elenco pubblico.",
-    "partsTitle": "Cosa possono vedere",
-    "partsHint": "Predefinito: campi, attività, calendario.",
-    "levelTitle": "Quanto possono fare",
-    "inviteReady": "L’invito è pronto. Invialo con QR, WhatsApp o email.",
+    "addHint": "Invito in famiglia — non è un elenco pubblico.",
+    "contactHint": "Basta telefono o email.",
+    "partsTitle": "Cosa possono aprire",
+    "partsHint": "Potrai cambiarlo in seguito.",
+    "levelTitle": "Cosa possono fare",
+    "sendInvite": "Invia invito",
+    "inviteReady": "Invito creato. Condividi il codice, il QR, WhatsApp o email.",
+    "inviteCode": "Codice invito",
+    "inviteCodeHint": "Lo inseriscono quando creano il loro account Oleachron.",
+    "copyCode": "Copia codice",
+    "codeCopied": "Codice copiato",
     "shareTitle": "Invito famiglia Oleachron",
     "shareMessage": "Sei stato invitato nella famiglia su Oleachron.",
+    "shareMessageWithCode": "Sei stato invitato nella famiglia su Oleachron. Codice invito: {{code}}.",
     "shareEmail": "Email",
     "nativeShare": "Condividi",
     "linkCopied": "Link copiato",
@@ -91,9 +98,14 @@
       "harvest": "Raccolta"
     },
     "levels": {
-      "view": "Può vedere",
-      "help": "Può aiutare",
-      "work": "Può lavorare"
+      "view": "Vede",
+      "help": "Aiuta",
+      "work": "Lavora"
+    },
+    "levelHints": {
+      "view": "Solo lettura.",
+      "help": "Aiuta nel lavoro già esistente.",
+      "work": "Aggiunge lavori e registrazioni."
     },
     "acceptTitle": "Invito famiglia",
     "acceptBody": "{{owner}} ti invita nella sua famiglia su Oleachron. Avrai accesso a tutti i suoi campi per: {{modules}}.",

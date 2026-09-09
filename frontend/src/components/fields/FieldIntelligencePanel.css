@@ -1,0 +1,259 @@
+.field-intel {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.field-intel--loading,
+.field-intel--empty {
+  place-items: center;
+  min-height: 5.5rem;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+
+.field-intel--empty button {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary-light);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.field-intel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.field-intel-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+.field-intel-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.field-intel-status {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--bg-hover);
+  color: var(--color-text-secondary);
+}
+
+.field-intel-status--completed {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success-dark);
+}
+
+.field-intel-status--partial {
+  background: color-mix(in srgb, var(--color-warning) 22%, transparent);
+  color: var(--color-warning-dark);
+}
+
+.field-intel-status--failed {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  color: var(--color-error-dark);
+}
+
+.field-intel-refresh,
+.field-intel-info {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.field-intel-refresh:hover:not(:disabled),
+.field-intel-info:hover {
+  color: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.field-intel-refresh:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.field-intel-refresh .spinning {
+  animation: field-intel-spin 1s linear infinite;
+}
+
+@keyframes field-intel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.field-intel-verdict {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.field-intel-verdict--high {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success-dark);
+}
+
+.field-intel-verdict--medium {
+  background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+  color: var(--color-warning-dark);
+}
+
+.field-intel-verdict--low {
+  background: color-mix(in srgb, var(--color-error) 16%, transparent);
+  color: var(--color-error-dark);
+}
+
+.field-intel-pending,
+.field-intel-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.field-intel-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  gap: 0.85rem 1.25rem;
+}
+
+.field-intel-section {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  padding-top: 0.2rem;
+}
+
+@media (max-width: 1100px) {
+  .field-intel-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .field-intel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field-intel-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.field-intel-section-head h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: var(--color-text-primary);
+}
+
+.field-intel-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.field-intel-tile {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-hover);
+  min-width: 0;
+}
+
+.field-intel-tile--good {
+  background: color-mix(in srgb, var(--color-success) 12%, var(--bg-hover));
+}
+
+.field-intel-tile--ok {
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--bg-hover));
+}
+
+.field-intel-tile--warn {
+  background: color-mix(in srgb, var(--color-error) 12%, var(--bg-hover));
+}
+
+.field-intel-tile-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.field-intel-tile strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.field-intel-rows {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.field-intel-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.field-intel-row dt {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.field-intel-row dd {
+  margin: 0;
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.field-intel-row dd em {
+  display: block;
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.field-intel-observed {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}

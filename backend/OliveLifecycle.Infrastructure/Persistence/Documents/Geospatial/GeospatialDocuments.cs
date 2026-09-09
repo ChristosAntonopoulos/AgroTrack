@@ -102,6 +102,36 @@ public class FieldSatelliteObservationDocument
     public DateTime UpdatedAt { get; set; }
 }
 
+public class FieldWeatherPeriodReviewDocument
+{
+    [BsonId]
+    public string Id { get; set; } = string.Empty;
+    public string FieldId { get; set; } = string.Empty;
+    public string PeriodType { get; set; } = "month";
+    public int Year { get; set; }
+    public int? Month { get; set; }
+    public DateTime OccurredAt { get; set; }
+    public double RainTotalMm { get; set; }
+    public double? MinTemperatureC { get; set; }
+    public double? MaxTemperatureC { get; set; }
+    public int FrostNights { get; set; }
+    public int HeatDays { get; set; }
+    public int HeavyRainDays { get; set; }
+    public int LongestDryStreakDays { get; set; }
+    public double? RainVsPreviousPercent { get; set; }
+    public int? WettestMonth { get; set; }
+    public double? NdviMean { get; set; }
+    public double? NdviDeltaPercent { get; set; }
+    public List<double> RainSeries { get; set; } = new();
+    public List<string> RainLabels { get; set; } = new();
+    public int DayCount { get; set; }
+    public int UsableSatelliteCount { get; set; }
+    public string WeatherProvider { get; set; } = string.Empty;
+    public string? SatelliteSource { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 public class FieldEnvironmentalAlertDocument
 {
     [BsonId]

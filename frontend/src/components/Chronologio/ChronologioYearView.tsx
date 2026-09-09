@@ -1,7 +1,14 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChronologioMonthSummary, ChronologioPeriodSummary } from '../../services/chronologioService';
-import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { isRealChronologioMediaUrl } from '../../chronologio/mediaGuard';
+import {
+  monthChapterFacts,
+  periodEventCount,
+  yearFixedMetrics,
+  weatherFactBits,
+} from '../../chronologio/summaryFacts';
+import ChronologioThumbnail from './ChronologioThumbnail';
 
 type Props = {
   period: ChronologioPeriodSummary | null;
@@ -9,7 +16,8 @@ type Props = {
   focusMonth: number;
   focusMonthYear: number;
   numberLocale: string;
-  onOpenMonth: (year: number, month: number) => void;
+  /** Opens month Peek — does not jump to Ημέρες. */
+  onPeekMonth: (year: number, month: number) => void;
 };
 
 const ChronologioYearView: React.FC<Props> = ({
@@ -18,117 +26,108 @@ const ChronologioYearView: React.FC<Props> = ({
   focusMonth,
   focusMonthYear,
   numberLocale,
-  onOpenMonth,
+  onPeekMonth,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
   const now = new Date();
   const nowMonth = now.getMonth() + 1;
   const nowYear = now.getFullYear();
 
-  const monthNames = useMemo(() => {
-    const fmt = new Intl.DateTimeFormat(i18n.language, { month: 'short', timeZone: 'UTC' });
-    return Array.from({ length: 12 }, (_, i) =>
-      fmt.format(new Date(Date.UTC(2020, i, 1))).replace(/\./g, '').toUpperCase()
-    );
-  }, [i18n.language]);
+  const orderedMonths = useMemo(() => {
+    return [...months]
+      .filter((m) => m.year < nowYear || (m.year === nowYear && m.month <= nowMonth))
+      .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+  }, [months, nowMonth, nowYear]);
 
-  const summaryBits = useMemo(() => {
-    if (!period) return [] as string[];
-    const bits: string[] = [];
-    if (period.taskCount > 0) bits.push(t('living.statTasks', { count: period.taskCount }));
-    if (period.expenseTotal > 0) {
-      bits.push(
-        t('living.statExpenses', {
-          amount: formatChronologioMoney(period.expenseTotal, period.currency, numberLocale),
-        })
-      );
-    }
-    if (period.oliveKg > 0) {
-      bits.push(
-        t('living.statOlives', { kg: Math.round(period.oliveKg).toLocaleString(numberLocale) })
-      );
-    }
-    if (period.oilKg > 0) {
-      bits.push(t('living.statOil', { kg: Math.round(period.oilKg).toLocaleString(numberLocale) }));
-    }
-    if (period.oilYieldPercent != null && period.oilYieldPercent > 0) {
-      bits.push(t('living.statYield', { pct: period.oilYieldPercent }));
-    }
-    return bits;
-  }, [numberLocale, period, t]);
+  const periodMetrics = useMemo(
+    () => (period ? yearFixedMetrics(period, numberLocale, t) : []),
+    [numberLocale, period, t]
+  );
+  const periodWeather = useMemo(
+    () => (period ? weatherFactBits(period, t) : []),
+    [period, t]
+  );
+
+  const monthTitle = (m: ChronologioMonthSummary) =>
+    new Date(Date.UTC(m.year, m.month - 1, 1)).toLocaleDateString(i18n.language, {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
 
   return (
     <div className="chrono-year-view">
       <header className="chrono-year-view-header">
         <h2 className="chrono-year-view-title">{period?.periodYear ?? period?.key ?? '—'}</h2>
-        {summaryBits.length > 0 ? (
-          <p className="chrono-year-inline-summary">{summaryBits.join(' · ')}</p>
+        {periodMetrics.length > 0 ? (
+          <ul className="chrono-year-metrics chrono-year-view-metrics">
+            {periodMetrics.map((m) => (
+              <li key={m.label}>
+                <span className="chrono-metric-value">{m.value}</span>
+                <span className="chrono-metric-label">{m.label}</span>
+              </li>
+            ))}
+          </ul>
         ) : (
           <p className="chrono-year-inline-summary is-muted">
             {t('living.emptyYear', { year: period?.periodYear ?? '' })}
           </p>
         )}
+        {periodWeather.length > 0 ? (
+          <p className="chrono-year-weather-line">{periodWeather.join(' · ')}</p>
+        ) : null}
       </header>
 
-      <ul className="chrono-month-spine" role="list">
-        {months.map((m) => {
+      <ul className="chrono-month-gallery">
+        {orderedMonths.map((m) => {
+          const eventCount = periodEventCount(m);
           const active = m.month === focusMonth && m.year === focusMonthYear;
           const isNow = m.month === nowMonth && m.year === nowYear;
-          const eventCount = m.taskCount + m.expenseCount + m.harvestCount + m.noteCount;
-          const highlights = (m.highlightTitles || []).filter(Boolean).slice(0, 3);
-          const overflow = Math.max(0, eventCount - highlights.length);
-          const important = m.harvestCount > 0 || (m.oliveKg > 0 && m.oliveKg >= 500);
+          const highlights = (m.highlightTitles || []).filter(Boolean).slice(0, 2);
+          const hero = isRealChronologioMediaUrl(m.heroMediaUrl) ? m.heroMediaUrl! : undefined;
+          const title = monthTitle(m);
+          const facts = monthChapterFacts(m, numberLocale, t);
 
-          const metaParts: string[] = [];
-          if (eventCount > 0) {
-            metaParts.push(
-              eventCount === 1
-                ? t('living.monthOneEvent')
-                : t('living.monthWorks', { count: eventCount })
-            );
-          }
-          if (m.expenseTotal > 0) {
-            metaParts.push(
-              formatChronologioMoney(m.expenseTotal, m.currency, numberLocale)
-            );
-          }
-          if (m.oliveKg > 0) {
-            metaParts.push(
-              `${Math.round(m.oliveKg).toLocaleString(numberLocale)} kg`
+          if (eventCount === 0) {
+            return (
+              <li key={m.key}>
+                <button
+                  type="button"
+                  className={`chrono-month-quiet-row${active ? ' is-active' : ''}`}
+                  onClick={() => onPeekMonth(m.year, m.month)}
+                >
+                  <span className="chrono-month-quiet-title">{title}</span>
+                  <span className="chrono-month-quiet-hint">{t('living.emptyPeriod')}</span>
+                </button>
+              </li>
             );
           }
 
           return (
-            <li key={m.key} role="listitem">
+            <li key={m.key}>
               <button
                 type="button"
-                className={`chrono-month-row${active ? ' is-active' : ''}${eventCount === 0 ? ' is-empty' : ''}${important ? ' is-important' : ''}${isNow ? ' is-now' : ''}`}
-                onClick={() => onOpenMonth(m.year, m.month)}
+                className={`chrono-month-chapter${active ? ' is-active' : ''}${isNow ? ' is-now' : ''}`}
+                onClick={() => onPeekMonth(m.year, m.month)}
+                aria-label={t('living.seeMonth', { month: title })}
               >
-                <span className="chrono-month-label">
-                  {monthNames[m.month - 1]}
-                  {isNow ? <span className="chrono-month-now">{t('living.now')}</span> : null}
-                </span>
-                <span className="chrono-month-dash" aria-hidden />
-                <span className="chrono-month-content">
+                <span className="chrono-month-chapter-text">
+                  <span className="chrono-month-poster-title-row">
+                    <span className="chrono-month-poster-title">{title}</span>
+                    {isNow ? <span className="chrono-month-now">{t('living.thisMonth')}</span> : null}
+                  </span>
                   {highlights.length > 0 ? (
-                    <span className="chrono-month-highlights">
-                      {highlights.join(' · ')}
-                    </span>
-                  ) : eventCount === 0 ? (
-                    <span className="chrono-month-quiet" aria-hidden>
-                      ─────────────────
-                    </span>
+                    <span className="chrono-month-highlights">{highlights.join(' · ')}</span>
                   ) : null}
-                  {metaParts.length > 0 ? (
-                    <span className="chrono-month-meta">{metaParts.join(' · ')}</span>
-                  ) : null}
-                  {overflow > 0 && highlights.length > 0 ? (
-                    <span className="chrono-month-more">
-                      {t('living.moreEvents', { count: overflow })}
-                    </span>
+                  {facts.length > 0 ? (
+                    <span className="chrono-month-meta">{facts.join(' · ')}</span>
                   ) : null}
                 </span>
+                {hero ? (
+                  <ChronologioThumbnail src={hero} className="chrono-month-chapter-hero" />
+                ) : (
+                  <span className="chrono-month-chapter-wash" aria-hidden />
+                )}
               </button>
             </li>
           );

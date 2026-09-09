@@ -10,6 +10,11 @@
   gap: var(--spacing-md);
 }
 
+.invite-accept-auth {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .invite-accept-error {
   color: var(--color-error);
 }

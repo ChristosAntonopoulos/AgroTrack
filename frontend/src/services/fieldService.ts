@@ -91,6 +91,8 @@ export interface Field {
   soilType?: string;
   slope?: string;
   accessNotes?: string;
+  /** UI accent as #RRGGBB */
+  color?: string;
   greekCadastre?: GreekCadastreInfo;
   documents?: FieldDocumentAttachment[];
 }
@@ -112,6 +114,7 @@ export interface CreateFieldDto {
   soilType?: string;
   slope?: string;
   accessNotes?: string;
+  color?: string;
   producerUserId?: string;
   worksThisFieldMyself?: boolean;
   status?: FieldStatus;
@@ -135,6 +138,7 @@ export interface UpdateFieldDto {
   soilType?: string;
   slope?: string;
   accessNotes?: string;
+  color?: string;
   greekCadastre?: GreekCadastreInfo;
 }
 

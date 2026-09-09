@@ -5,8 +5,8 @@ import Button from '../Common/Button';
 import PhoneActions from './PhoneActions';
 import PartnersSheet from './PartnersSheet';
 import FamilySharePanel from './FamilySharePanel';
+import FamilyAccessFields from './FamilyAccessFields';
 import {
-  FAMILY_MODULES,
   FamilyAccessLevel,
   FamilyMember,
   FamilyModule,
@@ -97,6 +97,11 @@ const FamilyMemberCard: React.FC<Props> = ({ member, canManage, onChanged }) => 
               <h3>{member.displayName}</h3>
               {member.phone ? <p className="partner-person-phone">{member.phone}</p> : null}
               {member.email ? <p className="partner-person-phone">{member.email}</p> : null}
+              {member.status === 'pending' && member.pendingInvite?.code ? (
+                <p className="family-member-code">
+                  {t('partners:family.inviteCode')}: <strong>{member.pendingInvite.code}</strong>
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="partner-chips">
@@ -155,59 +160,34 @@ const FamilyMemberCard: React.FC<Props> = ({ member, canManage, onChanged }) => 
           subtitle={member.displayName}
           onClose={() => setEditing(false)}
         >
-          <form className="partners-form" onSubmit={save}>
-            <label>
-              <span>{t('partners:inviteName')}</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} required />
-            </label>
-            <label>
-              <span>{t('partners:invitePhone')}</span>
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </label>
-            <label>
-              <span>{t('partners:inviteEmail')}</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-            <fieldset className="family-fieldset">
-              <legend>{t('partners:family.partsTitle')}</legend>
-              <div className="partners-toggle-list">
-                {FAMILY_MODULES.map((module) => {
-                  const on = modules.includes(module);
-                  return (
-                    <label key={module} className={`partner-toggle ${on ? 'is-on' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={() =>
-                          setModules((prev) =>
-                            prev.includes(module)
-                              ? prev.filter((m) => m !== module)
-                              : [...prev, module]
-                          )
-                        }
-                      />
-                      <span>{t(`partners:family.modules.${module}`)}</span>
-                    </label>
-                  );
-                })}
+          <form className="partners-form family-invite-form" onSubmit={save}>
+            <div className="family-form-section">
+              <label>
+                <span>{t('partners:inviteName')}</span>
+                <input value={name} onChange={(e) => setName(e.target.value)} required />
+              </label>
+              <div className="partners-form-row">
+                <label>
+                  <span>{t('partners:invitePhone')}</span>
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </label>
+                <label>
+                  <span>{t('partners:inviteEmail')}</span>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </label>
               </div>
-            </fieldset>
-            <fieldset className="family-fieldset">
-              <legend>{t('partners:family.levelTitle')}</legend>
-              <div className="partners-toggle-list">
-                {(['view', 'help', 'work'] as FamilyAccessLevel[]).map((level) => (
-                  <label key={level} className={`partner-toggle ${accessLevel === level ? 'is-on' : ''}`}>
-                    <input
-                      type="radio"
-                      name={`family-level-${member.id}`}
-                      checked={accessLevel === level}
-                      onChange={() => setAccessLevel(level)}
-                    />
-                    <span>{t(`partners:family.levels.${level}`)}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            </div>
+            <FamilyAccessFields
+              modules={modules}
+              accessLevel={accessLevel}
+              radioName={`family-level-${member.id}`}
+              onToggleModule={(module) =>
+                setModules((prev) =>
+                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
+                )
+              }
+              onSetLevel={setAccessLevel}
+            />
             {error ? <div className="error-message">{error}</div> : null}
             <div className="partners-sheet-actions">
               <Button type="submit" loading={saving} disabled={!name.trim() || modules.length === 0}>

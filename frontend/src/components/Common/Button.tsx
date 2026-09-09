@@ -18,6 +18,8 @@ interface ButtonProps {
   to?: string;
   onClick?: () => void;
   type?: 'button' | 'submit' | 'reset';
+  /** Associates a submit button outside a form with that form's id. */
+  form?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({

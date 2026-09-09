@@ -5,6 +5,7 @@ import { Plus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useFieldCapacity } from '../hooks/useFieldCapacity';
 import { useLocale } from '../context/LocaleProvider';
 import {
@@ -31,6 +32,10 @@ import FieldFinanceSummary from '../components/fields/FieldFinanceSummary';
 import FieldRecentChronologio from '../components/fields/FieldRecentChronologio';
 import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
+import FieldWeatherCard from '../components/fields/FieldWeatherCard';
+import FieldIntelligencePanel from '../components/fields/FieldIntelligencePanel';
+import FieldAlertList from '../components/fields/FieldAlertList';
+import FullPictureOnramp from '../components/Experience/FullPictureOnramp';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import './FieldDetailPage.css';
 import '../components/fields/FieldOverviewBlocks.css';
@@ -38,8 +43,9 @@ import '../components/fields/FieldOverviewBlocks.css';
 type FieldMode = 'overview' | 'chronologio';
 
 const FieldDetailPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
+  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings']);
   const { locale } = useLocale();
+  const { isEveryday, showWidget, recordIntelligenceOpen } = useExperienceMode();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,6 +59,7 @@ const FieldDetailPage: React.FC = () => {
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
 
   const mode: FieldMode = searchParams.get('mode') === 'chronologio' ? 'chronologio' : 'overview';
 
@@ -116,7 +123,7 @@ const FieldDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer maxWidth="full">
         <div className="field-detail-page">
           <Breadcrumbs />
           <LoadingSpinner className="page-inline-loading" />
@@ -127,7 +134,7 @@ const FieldDetailPage: React.FC = () => {
 
   if (error || !field || !id) {
     return (
-      <PageContainer>
+      <PageContainer maxWidth="full">
         <div className="error-container">
           <div className="error-message">{error || t('fields:controlRoom.failedLoad')}</div>
           <Button to="/fields" icon={<ArrowLeft />} variant="outline">
@@ -139,7 +146,7 @@ const FieldDetailPage: React.FC = () => {
   }
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth="full">
       <div className="field-detail-page">
         <Breadcrumbs />
 
@@ -185,15 +192,51 @@ const FieldDetailPage: React.FC = () => {
           </div>
         ) : (
           <div className="fd-overview fd-mode-panel">
+            {field.boundary ? <FieldAlertList fieldId={field.id} /> : null}
+
+            <section className={`fd-hero${isEveryday ? ' fd-hero--everyday' : ''}`}>
+              <div className="fd-hero-map">
+                <FieldDetailMap field={field} heightPx={isEveryday ? 240 : 720} />
+              </div>
+              <aside className="fd-hero-panel">
+                <div className="fd-glance">
+                  {showWidget('weatherAdvice') ? <FieldWeatherCard fieldId={field.id} /> : null}
+                  <FieldFacts field={field} />
+                </div>
+              </aside>
+            </section>
+
+            {field.boundary && showWidget('fieldIntelligence') ? (
+              <FieldIntelligencePanel fieldId={field.id} />
+            ) : null}
+
+            {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+              <div className="fd-everyday-peek">
+                {!everydayFieldPeek ? (
+                  <button
+                    type="button"
+                    className="fd-everyday-peek-btn"
+                    onClick={() => {
+                      setEverydayFieldPeek(true);
+                      recordIntelligenceOpen();
+                    }}
+                  >
+                    {t('settings:experience.peekMoreAboutField')}
+                  </button>
+                ) : (
+                  <>
+                    <FieldIntelligencePanel fieldId={field.id} />
+                    <FullPictureOnramp />
+                  </>
+                )}
+              </div>
+            ) : null}
+
             <div className="fd-overview-main">
               <FieldTodaySummary fieldId={field.id} tasks={tasks} locale={locale} />
               <FieldAttentionCard fieldId={field.id} entries={recentEntries} />
               <FieldFinanceSummary fieldId={field.id} summary={costSummary} />
               <FieldRecentChronologio fieldId={field.id} entries={recentEntries} />
-            </div>
-            <div className="fd-overview-map">
-              <FieldDetailMap field={field} heightPx={280} showDataLayers={false} compact />
-              <FieldFacts field={field} />
             </div>
           </div>
         )}

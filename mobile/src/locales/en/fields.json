@@ -392,6 +392,8 @@
     "failedLoad": "Failed to load field",
     "failedSave": "Failed to save field",
     "failedDelete": "Failed to delete field",
+    "color": "Field color",
+    "colorHint": "Used on Chronologio cards so you can spot this grove quickly.",
     "back": "Back",
     "next": "Next",
     "errors": {

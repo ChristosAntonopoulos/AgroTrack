@@ -73,9 +73,23 @@ const FamilyInviteAcceptPage: React.FC = () => {
                   })
                 : t('partners:family.acceptBodyFallback')}
             </p>
-            <Button onClick={accept} loading={accepting} variant="primary" className="btn-full-width">
-              {t('partners:family.accept')}
-            </Button>
+            {isAuthenticated ? (
+              <Button onClick={accept} loading={accepting} variant="primary" className="btn-full-width">
+                {t('partners:family.accept')}
+              </Button>
+            ) : (
+              <div className="invite-accept-auth">
+                <Link
+                  className="btn btn-primary btn-md btn-full-width"
+                  to={`/register?code=${encodeURIComponent(invite.code || token || '')}`}
+                >
+                  {t('auth:register.button')}
+                </Link>
+                <Link className="btn btn-outline btn-md btn-full-width" to={`/login?redirect=/family-invite/${token}`}>
+                  {t('auth:login.title')}
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <Link to="/login">{t('auth:login.title')}</Link>

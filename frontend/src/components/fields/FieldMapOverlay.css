@@ -1,12 +1,30 @@
 .field-map-seam {
   position: absolute;
   z-index: 900;
-  width: 2px;
-  margin-left: -1px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  width: 3px;
+  margin-left: -1.5px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
   cursor: ew-resize;
   touch-action: none;
+}
+
+.field-map-seam-label {
+  position: absolute;
+  z-index: 901;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(12, 18, 10, 0.72);
+  color: #f8f7ee;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.field-map-seam-label--right {
+  transform: translateX(-100%);
 }
 
 .field-map-seam-handle {
@@ -14,11 +32,11 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: rgba(46, 74, 46, 0.88);
 }
 
 .field-map-seam-handle::before,
@@ -34,11 +52,11 @@
 }
 
 .field-map-seam-handle::before {
-  left: 3px;
-  border-right: 5px solid rgba(255, 255, 255, 0.9);
+  left: 5px;
+  border-right: 6px solid rgba(255, 255, 255, 0.95);
 }
 
 .field-map-seam-handle::after {
-  right: 3px;
-  border-left: 5px solid rgba(255, 255, 255, 0.9);
+  right: 5px;
+  border-left: 6px solid rgba(255, 255, 255, 0.95);
 }

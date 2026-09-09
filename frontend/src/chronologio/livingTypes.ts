@@ -11,7 +11,7 @@ export type ChronologioZoom = 'years' | 'year' | 'month';
 /** Zoom-in direction for gestures: years → year → month */
 export const ZOOM_ORDER: ChronologioZoom[] = ['years', 'year', 'month'];
 
-/** Toolbar segment order (detail → overview) */
+/** Toolbar segment order: Days → Months → Years */
 export const ZOOM_DISPLAY_ORDER: ChronologioZoom[] = ['month', 'year', 'years'];
 
 export const SEASON_START_MONTH = 9;

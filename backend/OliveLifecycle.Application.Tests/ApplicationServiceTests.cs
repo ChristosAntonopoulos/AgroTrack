@@ -3,8 +3,10 @@ using Moq;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
+using OliveLifecycle.Application.DTOs.Family;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -267,6 +269,104 @@ public class AuthServiceTests
 
         Assert.Equal(UserRole.FieldOwner, created!.Role);
         Assert.Equal(Roles.FieldOwner, response.Role);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_AcceptsPendingFamilyInvite()
+    {
+        const string persistedId = "507f1f77bcf86cd799439014";
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.ExistsByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        userRepository
+            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) =>
+            {
+                u.Id = persistedId;
+                return u;
+            });
+
+        var family = new Mock<IFamilyService>();
+        family
+            .Setup(f => f.GetInviteAsync("AB12-CD34", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FamilyInviteShareDto
+            {
+                Status = FamilyInviteStatuses.Pending,
+                Code = "AB12-CD34"
+            });
+        family
+            .Setup(f => f.AcceptInviteAsync("AB12-CD34", persistedId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FamilyMemberDto
+            {
+                Status = FamilyMemberStatuses.Active,
+                LinkedUserId = persistedId
+            });
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(
+            userRepository.Object,
+            configuration,
+            new SystemDateTimeProvider(),
+            family.Object);
+
+        var response = await service.RegisterAsync(new RegisterDto
+        {
+            Email = "family@test.com",
+            Password = "password123",
+            FirstName = "Maria",
+            LastName = "Member",
+            InviteCode = "AB12-CD34"
+        });
+
+        Assert.Equal(persistedId, response.UserId);
+        family.Verify(
+            f => f.AcceptInviteAsync("AB12-CD34", persistedId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_RejectsUnknownInviteCode()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        var family = new Mock<IFamilyService>();
+        family
+            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FamilyInviteShareDto?)null);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(
+            userRepository.Object,
+            configuration,
+            new SystemDateTimeProvider(),
+            family.Object);
+
+        await Assert.ThrowsAsync<ValidationException>(() => service.RegisterAsync(new RegisterDto
+        {
+            Email = "family@test.com",
+            Password = "password123",
+            InviteCode = "ZZZZ-ZZZZ"
+        }));
+
+        userRepository.Verify(
+            r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
 

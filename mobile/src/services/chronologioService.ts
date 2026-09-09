@@ -24,11 +24,13 @@ export type ChronologioSourceType =
   | 'Expense'
   | 'Harvest'
   | 'Note'
-  | 'Activity';
+  | 'Activity'
+  | 'WeatherReview';
 
 export interface ChronologioFieldRef {
   id: string;
   name: string;
+  color?: string | null;
 }
 
 export interface ChronologioActor {
@@ -102,10 +104,24 @@ export interface ChronologioActivityDetails {
 }
 
 export interface ChronologioWeatherDetails {
+  period?: string;
+  year?: number;
+  month?: number;
   rainfallMm?: number;
   temperatureMin?: number;
   temperatureMax?: number;
+  frostNights?: number;
+  heatDays?: number;
+  heavyRainDays?: number;
+  longestDryStreakDays?: number;
+  rainVsPreviousPercent?: number;
+  wettestMonth?: number;
+  ndviMean?: number;
+  ndviDeltaPercent?: number;
+  rainSeries?: number[];
+  rainLabels?: string[];
   source?: string;
+  vegetationNote?: string;
 }
 
 export interface ChronologioIntelligenceDetails {
@@ -197,6 +213,13 @@ export interface ChronologioPeriodSummary {
   oilYieldPercent?: number | null;
   heroMediaUrl?: string | null;
   highlightTitles: string[];
+  dominantWorkLabel?: string | null;
+  observationHighlight?: string | null;
+  rainfallMm?: number | null;
+  temperatureMax?: number | null;
+  temperatureMin?: number | null;
+  heatDays?: number | null;
+  frostNights?: number | null;
 }
 
 export interface ChronologioMonthSummary {
@@ -216,6 +239,13 @@ export interface ChronologioMonthSummary {
   oilYieldPercent?: number | null;
   heroMediaUrl?: string | null;
   highlightTitles: string[];
+  dominantWorkLabel?: string | null;
+  observationHighlight?: string | null;
+  rainfallMm?: number | null;
+  temperatureMax?: number | null;
+  temperatureMin?: number | null;
+  heatDays?: number | null;
+  frostNights?: number | null;
 }
 
 function toParams(filters?: ChronologioFilters): Record<string, string | number> | undefined {

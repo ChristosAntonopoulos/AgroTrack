@@ -64,8 +64,12 @@ const PartnersHomeScreen = () => {
   const [editing, setEditing] = useState<SavedContact | null>(null);
   const [inviteName, setInviteName] = useState('');
   const [invitePhone, setInvitePhone] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteWorksHere, setInviteWorksHere] = useState(true);
+  const [inviteCanSee, setInviteCanSee] = useState(false);
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [contactNotes, setContactNotes] = useState('');
   const [contactFields, setContactFields] = useState<string[]>([]);
   const [contactSource, setContactSource] = useState<'Manual' | 'PhoneBook'>('Manual');
@@ -176,6 +180,7 @@ const PartnersHomeScreen = () => {
     setEditing(existing || null);
     setContactName(existing?.displayName || '');
     setContactPhone(existing?.phone || '');
+    setContactEmail(existing?.email || '');
     setContactNotes(existing?.notes || '');
     setContactFields(existing?.fieldIds?.length ? existing.fieldIds : fieldId ? [fieldId] : []);
     setContactSource(existing?.source || 'Manual');
@@ -215,6 +220,7 @@ const PartnersHomeScreen = () => {
       const payload = {
         displayName: name,
         phone: contactPhone.trim() || undefined,
+        email: contactEmail.trim() || undefined,
         notes: contactNotes.trim() || undefined,
         fieldIds,
         source: contactSource,
@@ -244,10 +250,15 @@ const PartnersHomeScreen = () => {
 
   const createInvite = async () => {
     if (!fieldId) return;
+    const capacities: Array<'work' | 'view'> = [];
+    if (inviteWorksHere) capacities.push('work');
+    if (inviteCanSee && !inviteWorksHere) capacities.push('view');
+    if (capacities.length === 0) capacities.push('work');
     const created = await fieldPeopleService.createInvite(fieldId, {
-      capacities: ['work'],
+      capacities,
       displayName: inviteName.trim() || undefined,
       phone: invitePhone.trim() || undefined,
+      email: inviteEmail.trim() || undefined,
     });
     setInvite(created);
     setPeopleTick((n) => n + 1);
@@ -589,13 +600,20 @@ const PartnersHomeScreen = () => {
           ) : (
             <>
               <Text style={{ color: colors.textSecondary }}>{t('partners:family.addHint')}</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                {t('partners:inviteName')}
+              </Text>
               <TextInput
                 value={familyName}
                 onChangeText={setFamilyName}
                 placeholder={t('partners:inviteName')}
                 placeholderTextColor={colors.textSecondary}
+                autoComplete="name"
                 style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
               />
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                {t('partners:invitePhone')}
+              </Text>
               <TextInput
                 value={familyPhone}
                 onChangeText={setFamilyPhone}
@@ -604,6 +622,9 @@ const PartnersHomeScreen = () => {
                 keyboardType="phone-pad"
                 style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
               />
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                {t('partners:inviteEmail')}
+              </Text>
               <TextInput
                 value={familyEmail}
                 onChangeText={setFamilyEmail}
@@ -613,7 +634,12 @@ const PartnersHomeScreen = () => {
                 autoCapitalize="none"
                 style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
               />
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{t('partners:family.partsTitle')}</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {t('partners:family.contactHint')}
+              </Text>
+              <Text style={[styles.fieldLabel, { color: colors.textPrimary, marginTop: 8 }]}>
+                {t('partners:family.partsTitle')}
+              </Text>
               <View style={styles.chips}>
                 {FAMILY_MODULES.map((module) => {
                   const on = familyModules.includes(module);
@@ -629,37 +655,48 @@ const PartnersHomeScreen = () => {
                         styles.chip,
                         {
                           backgroundColor: on ? colors.primaryDark : colors.background,
+                          borderColor: on ? colors.primaryDark : colors.border,
                         },
                       ]}
                     >
-                      <Text style={{ color: on ? '#fff' : colors.textPrimary }}>
+                      <Text style={{ color: on ? '#fff' : colors.textPrimary, fontWeight: '600' }}>
                         {t(`partners:family.modules.${module}`)}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{t('partners:family.levelTitle')}</Text>
-              <View style={styles.chips}>
-                {(['view', 'help', 'work'] as FamilyAccessLevel[]).map((level) => (
-                  <Pressable
-                    key={level}
-                    onPress={() => setFamilyLevel(level)}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: familyLevel === level ? colors.primaryDark : colors.background,
-                      },
-                    ]}
-                  >
-                    <Text style={{ color: familyLevel === level ? '#fff' : colors.textPrimary }}>
-                      {t(`partners:family.levels.${level}`)}
-                    </Text>
-                  </Pressable>
-                ))}
+              <Text style={[styles.fieldLabel, { color: colors.textPrimary, marginTop: 8 }]}>
+                {t('partners:family.levelTitle')}
+              </Text>
+              <View style={{ gap: 8 }}>
+                {(['view', 'help', 'work'] as FamilyAccessLevel[]).map((level) => {
+                  const on = familyLevel === level;
+                  return (
+                    <Pressable
+                      key={level}
+                      onPress={() => setFamilyLevel(level)}
+                      style={[
+                        styles.levelCard,
+                        {
+                          borderColor: on ? colors.primaryDark : colors.border,
+                          backgroundColor: on ? colors.primaryDark + '18' : colors.background,
+                          minHeight: tapMin,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                        {t(`partners:family.levels.${level}`)}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+                        {t(`partners:family.levelHints.${level}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
               <Button
-                title={t('partners:createInvite')}
+                title={t('partners:family.sendInvite')}
                 loading={savingFamily}
                 onPress={() => void createFamilyInvite()}
               />
@@ -702,6 +739,15 @@ const PartnersHomeScreen = () => {
                 placeholder={t('partners:invitePhone')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="phone-pad"
+                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
+              />
+              <TextInput
+                value={contactEmail}
+                onChangeText={setContactEmail}
+                placeholder={t('partners:contactEmail')}
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
               />
               <PhoneActions phone={contactPhone} />
@@ -775,7 +821,38 @@ const PartnersHomeScreen = () => {
                 keyboardType="phone-pad"
                 style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
               />
-              <Button title={t('partners:createInvite')} onPress={() => void createInvite()} />
+              <TextInput
+                value={inviteEmail}
+                onChangeText={setInviteEmail}
+                placeholder={t('partners:inviteEmail')}
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
+              />
+              <Pressable
+                onPress={() => setInviteWorksHere((v) => !v)}
+                style={[styles.fieldRow, { borderColor: colors.border, minHeight: tapMin }]}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                  {inviteWorksHere ? '☑ ' : '☐ '}
+                  {t('partners:connection.works')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setInviteCanSee((v) => !v)}
+                style={[styles.fieldRow, { borderColor: colors.border, minHeight: tapMin }]}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                  {inviteCanSee ? '☑ ' : '☐ '}
+                  {t('partners:connection.sees')}
+                </Text>
+              </Pressable>
+              <Button
+                title={t('partners:createInvite')}
+                onPress={() => void createInvite()}
+                disabled={!inviteName.trim() && !invitePhone.trim() && !inviteEmail.trim()}
+              />
               <Button title={t('common:back')} variant="outline" onPress={() => setAddStep('choose')} />
             </>
           )}
@@ -808,10 +885,19 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderRadius: 999,
+    borderWidth: 1,
     overflow: 'hidden',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    fontWeight: '600',
+    paddingVertical: 8,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  fieldLabel: { fontSize: 13, fontWeight: '700', marginTop: 4 },
+  levelCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   card: {

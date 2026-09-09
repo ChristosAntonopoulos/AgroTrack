@@ -10,21 +10,40 @@ import { createElevation } from '../../theme/elevation';
 import { Task } from '../../services/taskService';
 import { formatDate } from '../../utils/formatters';
 import { getTaskCategoryColor } from '../../utils/calendarCategoryColors';
-import { getStatusAccentColor, isTaskOverdue } from '../../utils/taskListUtils';
+import { isTaskOverdue } from '../../utils/taskListUtils';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
+import CardAccentFades from '../common/CardAccentFades';
 
 export interface TaskCardProps {
   task: Task;
   fieldName?: string;
+  fieldColor?: string | null;
   onPress?: () => void;
   compact?: boolean;
+  /** Drop outer bottom margin (horizontal category rails). */
+  embedded?: boolean;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact = false }) => {
+/**
+ * Task list card accents:
+ * left edge = field color + wash, right fade = system category / type color.
+ * Overdue keeps a thin top strip only.
+ */
+const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  fieldName,
+  fieldColor,
+  onPress,
+  compact = false,
+  embedded = false,
+}) => {
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['tasks', 'common']);
   const overdue = isTaskOverdue(task);
-  const accent = overdue ? colors.error : getStatusAccentColor(task.status, colors);
+  const categoryAccent = resolveTaskCategoryAccent(task.type);
+  const fieldAccent = resolveFieldColor(fieldColor, task.fieldId);
   const categoryColor = getTaskCategoryColor(task.type);
   const needsApproval = task.approvalStatus === 'pending';
 
@@ -33,9 +52,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
     : t('tasks:notScheduled');
 
   const dueLabel =
-    task.scheduledEnd && task.status !== 'completed'
-      ? formatDate(task.scheduledEnd)
-      : null;
+    task.scheduledEnd && task.status !== 'completed' ? formatDate(task.scheduledEnd) : null;
 
   return (
     <TouchableOpacity
@@ -43,15 +60,21 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
       activeOpacity={0.72}
       style={[
         styles.wrapper,
+        embedded && styles.wrapperEmbedded,
         {
           backgroundColor: colors.surfaceElevated,
           borderColor: colors.borderLight,
+          borderLeftColor: fieldAccent,
           minHeight: Math.max(tapMin, 88),
           ...createElevation(colors, 'sm'),
         },
       ]}
     >
-      <View style={[styles.accentBar, { backgroundColor: accent }]} />
+      <CardAccentFades fieldColor={fieldAccent} endColor={categoryAccent} />
+
+      {overdue ? (
+        <View style={[styles.overdueStrip, { backgroundColor: colors.error }]} />
+      ) : null}
 
       <View style={styles.body}>
         <View style={styles.titleRow}>
@@ -77,7 +100,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
           {overdue ? (
             <View style={[styles.overduePill, { backgroundColor: colors.errorLight }]}>
               <Ionicons name="alert-circle" size={12} color={colors.error} />
-              <Text style={[styles.overdueText, { color: colors.error, fontSize: 10 * fontScaleMultiplier }]}>
+              <Text
+                style={[styles.overdueText, { color: colors.error, fontSize: 10 * fontScaleMultiplier }]}
+              >
                 {t('tasks:overdue')}
               </Text>
             </View>
@@ -85,7 +110,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
           {needsApproval ? (
             <View style={[styles.overduePill, { backgroundColor: colors.warningLight }]}>
               <Ionicons name="hourglass-outline" size={12} color={colors.warningDark} />
-              <Text style={[styles.overdueText, { color: colors.warningDark, fontSize: 10 * fontScaleMultiplier }]}>
+              <Text
+                style={[
+                  styles.overdueText,
+                  { color: colors.warningDark, fontSize: 10 * fontScaleMultiplier },
+                ]}
+              >
                 {t('tasks:filters.approval')}
               </Text>
             </View>
@@ -93,23 +123,43 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, fieldName, onPress, compact =
         </View>
 
         {!compact && task.description ? (
-          <Text style={[styles.description, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]} numberOfLines={2}>
+          <Text
+            style={[
+              styles.description,
+              { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier },
+            ]}
+            numberOfLines={2}
+          >
             {task.description}
           </Text>
         ) : null}
 
         <View style={[styles.metaGrid, { borderTopColor: colors.borderLight }]}>
           {fieldName ? (
-            <MetaCell
-              icon="leaf-outline"
-              label={t('tasks:field')}
-              value={fieldName}
-              colors={colors}
-              fontScale={fontScaleMultiplier}
-            />
+            <View style={styles.fieldChip}>
+              <View style={[styles.fieldDot, { backgroundColor: fieldAccent }]} />
+              <Text
+                style={{ color: colors.textSecondary, fontSize: 12 * fontScaleMultiplier, flexShrink: 1 }}
+                numberOfLines={1}
+              >
+                {fieldName}
+              </Text>
+            </View>
           ) : null}
-          <MetaCell icon="pricetag-outline" label={t('tasks:type')} value={task.type} colors={colors} fontScale={fontScaleMultiplier} />
-          <MetaCell icon="calendar-outline" label={t('tasks:scheduled')} value={dateLabel} colors={colors} fontScale={fontScaleMultiplier} />
+          <MetaCell
+            icon="pricetag-outline"
+            label={t('tasks:type')}
+            value={task.type}
+            colors={colors}
+            fontScale={fontScaleMultiplier}
+          />
+          <MetaCell
+            icon="calendar-outline"
+            label={t('tasks:scheduled')}
+            value={dateLabel}
+            colors={colors}
+            fontScale={fontScaleMultiplier}
+          />
           {dueLabel ? (
             <MetaCell
               icon="time-outline"
@@ -144,7 +194,9 @@ const MetaCell = ({
   <View style={styles.metaCell}>
     <View style={styles.metaLabelRow}>
       <Ionicons name={icon} size={14} color={colors.textTertiary} />
-      <Text style={[styles.metaLabel, { color: colors.textTertiary, fontSize: 10 * fontScale }]}>{label}</Text>
+      <Text style={[styles.metaLabel, { color: colors.textTertiary, fontSize: 10 * fontScale }]}>
+        {label}
+      </Text>
     </View>
     <Text
       style={[
@@ -160,20 +212,31 @@ const MetaCell = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    flexDirection: 'row',
     borderRadius: 14,
     borderWidth: 1,
+    borderLeftWidth: 4,
     marginBottom: spacing.md,
     overflow: 'hidden',
+    position: 'relative',
   },
-  accentBar: {
-    width: 5,
+  wrapperEmbedded: {
+    marginBottom: 0,
+    height: '100%',
+  },
+  overdueStrip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    zIndex: 1,
   },
   body: {
-    flex: 1,
+    paddingTop: spacing.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     paddingRight: spacing.sm,
+    zIndex: 1,
   },
   titleRow: {
     flexDirection: 'row',
@@ -222,6 +285,18 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
+  },
+  fieldChip: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  fieldDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 99,
   },
   metaCell: {
     width: '46%',

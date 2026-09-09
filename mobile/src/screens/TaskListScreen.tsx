@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,6 +21,7 @@ import { usePreferences } from '../context/PreferencesContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import TaskCard from '../components/domain/TaskCard';
+import TasksCategoryBrowse from '../components/domain/TasksCategoryBrowse';
 import FilterChips from '../components/ui/FilterChips';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -84,6 +86,7 @@ const TaskListScreen = () => {
   }));
 
   const fieldName = fieldId ? fields[fieldId]?.name : undefined;
+
   const openCount = counts.pending + counts.in_progress;
   const subtitle = fieldName
     ? t('tasks:subtitleField', { field: fieldName, count: sortedTasks.length })
@@ -105,17 +108,16 @@ const TaskListScreen = () => {
   return (
     <ScreenLayout style={styles.screen}>
       <FlatList
-        data={sortedTasks}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TaskCard
-            task={item}
-            fieldName={fields[item.fieldId]?.name}
+        data={sortedTasks.length === 0 ? [] : (['browse'] as const)}
+        keyExtractor={() => 'browse'}
+        renderItem={() => (
+          <TasksCategoryBrowse
+            tasks={sortedTasks}
+            fields={fields}
             compact={!isEveryday}
-            onPress={() => navigation.navigate('TaskDetail', { taskId: item.id })}
+            onPressTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
           />
         )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             <ScreenHeader
@@ -331,7 +333,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   emptyContainer: { flexGrow: 1 },
-  separator: { height: 0 },
   fab: {
     position: 'absolute',
     right: spacing.base,

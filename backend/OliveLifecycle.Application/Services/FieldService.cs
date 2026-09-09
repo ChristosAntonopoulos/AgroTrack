@@ -95,6 +95,7 @@ public class FieldService : IFieldService
             IrrigationType = createFieldDto.IrrigationType ?? (createFieldDto.IrrigationStatus ? "Drip irrigation" : "Rainfed"),
             Slope = createFieldDto.Slope,
             AccessNotes = createFieldDto.AccessNotes,
+            Color = NormalizeFieldColor(createFieldDto.Color) ?? PickDefaultFieldColor(createFieldDto.Name),
             Status = status,
             CurrentLifecycleYear = "low",
             CurrentLifecycleStage = OliveLifecycleStage.Dormancy,
@@ -377,6 +378,7 @@ public class FieldService : IFieldService
             Area = parseResult.OfficialAreaSqm ?? 0,
             CurrentLifecycleYear = "low",
             CurrentLifecycleStage = OliveLifecycleStage.Dormancy,
+            Color = PickDefaultFieldColor(suggestedName),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -697,6 +699,11 @@ public class FieldService : IFieldService
             field.AccessNotes = updateFieldDto.AccessNotes;
         }
 
+        if (updateFieldDto.Color != null)
+        {
+            field.Color = NormalizeFieldColor(updateFieldDto.Color) ?? field.Color;
+        }
+
         if (updateFieldDto.GreekCadastre != null)
         {
             field.GreekCadastre = FieldMapper.ToCadastreEntity(updateFieldDto.GreekCadastre);
@@ -757,6 +764,37 @@ public class FieldService : IFieldService
         {
             _logger.LogWarning(ex, "Could not queue history backfill for field {FieldId}", fieldId);
         }
+    }
+
+    private static readonly string[] DefaultFieldColors =
+    {
+        "#2F6B4F", "#3D6EA8", "#C47A1A", "#8B5E3C",
+        "#5B7C99", "#6B8F3A", "#A65D4E", "#5C6B8A"
+    };
+
+    private static string? NormalizeFieldColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return null;
+        }
+
+        var trimmed = color.Trim();
+        return System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#[0-9A-Fa-f]{6}$")
+            ? trimmed.ToUpperInvariant()
+            : null;
+    }
+
+    private static string PickDefaultFieldColor(string? seed)
+    {
+        var hash = 0;
+        foreach (var ch in seed ?? string.Empty)
+        {
+            hash = unchecked((hash * 31) + ch);
+        }
+
+        var index = Math.Abs(hash) % DefaultFieldColors.Length;
+        return DefaultFieldColors[index];
     }
 
     private static string BuildSuggestedName(GreekCadastreParseResult parseResult)

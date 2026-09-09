@@ -32,6 +32,8 @@ public class FieldDto
     public string? SoilType { get; set; }
     public string? Slope { get; set; }
     public string? AccessNotes { get; set; }
+    /// <summary>UI accent as #RRGGBB.</summary>
+    public string? Color { get; set; }
     public GreekCadastreInfoDto? GreekCadastre { get; set; }
     public List<FieldDocumentAttachmentDto> Documents { get; set; } = new();
 }

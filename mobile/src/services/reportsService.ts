@@ -88,4 +88,67 @@ export const reportsService = {
       tasksOverdue: s.tasksOverdue,
     }));
   },
+
+  getMonthlyWeather: async (query?: ReportQuery & { month?: number }): Promise<MonthlyWeatherReport> => {
+    const response = await api.get<MonthlyWeatherReport>('/api/v1/reports/weather-month', {
+      params: { ...reportParams(query).params, month: query?.month },
+    });
+    return response.data;
+  },
+
+  getYearlyWeather: async (query?: ReportQuery): Promise<YearlyWeatherReport> => {
+    const response = await api.get<YearlyWeatherReport>('/api/v1/reports/weather-year', reportParams(query));
+    return response.data;
+  },
+};
+
+export type ReportInsight = { code: string; count?: number; value?: number };
+
+export type DailyWeatherRow = {
+  day: number;
+  minTemperatureC?: number;
+  maxTemperatureC?: number;
+  rainTotalMm: number;
+  et0Mm?: number;
+};
+
+export type FieldMonthlyWeather = {
+  fieldId: string;
+  fieldName: string;
+  areaHa: number;
+  rainTotalMm: number;
+  frostNights: number;
+  heatDays: number;
+  heavyRainDays: number;
+  longestDryStreakDays: number;
+  waterBalanceMm: number;
+  days: DailyWeatherRow[];
+  insights: ReportInsight[];
+};
+
+export type MonthlyWeatherReport = {
+  season: string;
+  month: number;
+  fields: FieldMonthlyWeather[];
+};
+
+export type FieldYearlyOperations = {
+  fieldId: string;
+  fieldName: string;
+  rainTotalMm: number;
+  totalCost: number;
+  revenue: number;
+  profit: number;
+  tasksCompleted: number;
+  tasksPending: number;
+  tasksOverdue: number;
+  monthlyRainMm: number[];
+  monthlyCost: number[];
+  monthlyTasksCompleted: number[];
+  insights: ReportInsight[];
+};
+
+export type YearlyWeatherReport = {
+  season: string;
+  fields: FieldYearlyOperations[];
 };

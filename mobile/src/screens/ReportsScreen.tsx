@@ -7,60 +7,68 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
-import { reportsService, FieldSummaryReport, HarvestReportRecord, ProfitLossReport } from '../services/reportsService';
+import {
+  reportsService,
+  FieldSummaryReport,
+  FieldMonthlyWeather,
+  FieldYearlyOperations,
+} from '../services/reportsService';
 import { currentHarvestSeason, formatKg } from '../utils/harvestUtils';
-import { spacing, typography } from '../theme';
+import { spacing } from '../theme';
 
-type ReportType = 'summary' | 'harvest' | 'pnl' | 'comparison';
+type ReportType = 'weather-month' | 'weather-year' | 'year-overview';
 
 const formatMoney = (amount: number) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(amount);
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+
+const formatHa = (area: number) =>
+  `${new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(area)} ha`;
+
+const formatMm = (mm: number) =>
+  `${new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(mm)} mm`;
 
 const ReportsScreen = () => {
-  const { t } = useTranslation(['reports', 'nav', 'fields', 'common']);
+  const { t } = useTranslation(['nav', 'fields', 'common']);
   const { colors } = useTheme();
   const { tapMin } = usePreferences();
   const season = useMemo(() => String(currentHarvestSeason()), []);
-  const [type, setType] = useState<ReportType>('summary');
+  const month = useMemo(() => new Date().getMonth() + 1, []);
+  const [type, setType] = useState<ReportType>('weather-month');
   const [loading, setLoading] = useState(true);
   const [summaries, setSummaries] = useState<FieldSummaryReport[]>([]);
-  const [harvests, setHarvests] = useState<HarvestReportRecord[]>([]);
-  const [pnl, setPnl] = useState<ProfitLossReport | null>(null);
-  const [compareRows, setCompareRows] = useState<
-    Array<{ fieldId: string; fieldName: string; oliveKg: number; kgPerHa: number; cost: number; tasksCompleted: number }>
-  >([]);
+  const [monthly, setMonthly] = useState<FieldMonthlyWeather[]>([]);
+  const [yearly, setYearly] = useState<FieldYearlyOperations[]>([]);
 
   useEffect(() => {
     void (async () => {
       setLoading(true);
       try {
         const query = { season };
-        const [nextSummaries, nextHarvests, nextPnl, nextCompare] = await Promise.all([
+        const [nextSummaries, nextMonthly, nextYearly] = await Promise.all([
           reportsService.getFieldSummaries(query).catch(() => []),
-          reportsService.getHarvestRecords(query).catch(() => []),
-          reportsService.getProfitLoss(query).catch(() => null),
-          reportsService.getFieldComparison(query).catch(() => []),
+          reportsService.getMonthlyWeather({ ...query, month }).catch(() => ({ fields: [] })),
+          reportsService.getYearlyWeather(query).catch(() => ({ fields: [] })),
         ]);
         setSummaries(nextSummaries);
-        setHarvests(nextHarvests);
-        setPnl(nextPnl);
-        setCompareRows(nextCompare);
+        setMonthly(nextMonthly.fields ?? []);
+        setYearly(nextYearly.fields ?? []);
       } finally {
         setLoading(false);
       }
     })();
-  }, [season]);
+  }, [season, month]);
 
   const types: { id: ReportType; label: string }[] = [
-    { id: 'summary', label: t('reports:fieldSummary', { defaultValue: 'Fields' }) },
-    { id: 'harvest', label: t('reports:harvest', { defaultValue: 'Harvest' }) },
-    { id: 'pnl', label: t('reports:profitLoss', { defaultValue: 'P&L' }) },
-    { id: 'comparison', label: t('reports:comparison', { defaultValue: 'Compare' }) },
+    { id: 'weather-month', label: t('nav:weatherMonth', { defaultValue: 'Month weather' }) },
+    { id: 'weather-year', label: t('nav:weatherYear', { defaultValue: 'Year & work' }) },
+    { id: 'year-overview', label: t('nav:yearOverview', { defaultValue: 'Year report' }) },
   ];
+
+  const monthName = new Date(Number(season), month - 1, 1).toLocaleDateString(undefined, { month: 'long' });
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('nav:reports', { defaultValue: 'Reports' })} subtitle={season} />
+      <ScreenHeader title={t('nav:reports', { defaultValue: 'Reports' })} subtitle={`${season} · ${monthName}`} />
       <View style={styles.row}>
         {types.map((item) => (
           <Pressable
@@ -83,15 +91,31 @@ const ReportsScreen = () => {
       </View>
       {loading ? (
         <LoadingSpinner />
-      ) : type === 'summary' ? (
-        summaries.length === 0 ? (
+      ) : type === 'weather-month' ? (
+        monthly.length === 0 ? (
           <EmptyState title={t('common:empty.noData', { defaultValue: 'No data' })} />
         ) : (
-          summaries.map((row) => (
+          monthly.map((row) => (
             <View key={row.fieldId} style={[styles.card, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
               <Text style={[styles.name, { color: colors.textPrimary }]}>{row.fieldName}</Text>
               <Text style={{ color: colors.textSecondary }}>
-                {formatKg(row.totalProductionKg)} kg · {formatMoney(row.totalCost)}
+                {formatHa(row.areaHa)} · {formatMm(row.rainTotalMm)}
+              </Text>
+              <Text style={{ color: colors.textSecondary }}>
+                Frost {row.frostNights} · Heat {row.heatDays} · Heavy rain {row.heavyRainDays} · Dry {row.longestDryStreakDays}d
+              </Text>
+            </View>
+          ))
+        )
+      ) : type === 'weather-year' ? (
+        yearly.length === 0 ? (
+          <EmptyState title={t('common:empty.noData', { defaultValue: 'No data' })} />
+        ) : (
+          yearly.map((row) => (
+            <View key={row.fieldId} style={[styles.card, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
+              <Text style={[styles.name, { color: colors.textPrimary }]}>{row.fieldName}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                {formatMm(row.rainTotalMm)} · {formatMoney(row.totalCost)} · {formatMoney(row.profit)}
               </Text>
               <Text style={{ color: colors.textSecondary }}>
                 {row.tasksCompleted} done · {row.tasksPending} open · {row.tasksOverdue} overdue
@@ -99,42 +123,17 @@ const ReportsScreen = () => {
             </View>
           ))
         )
-      ) : type === 'harvest' ? (
-        harvests.length === 0 ? (
-          <EmptyState title={t('fields:thisHarvest.emptyTitle')} />
-        ) : (
-          harvests.map((row) => (
-            <View key={row.id} style={[styles.card, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
-              <Text style={[styles.name, { color: colors.textPrimary }]}>{row.fieldName}</Text>
-              <Text style={{ color: colors.textSecondary }}>
-                {formatKg(row.oliveKg)} kg{row.oilKg ? ` · ${formatKg(row.oilKg)} kg oil` : ''}
-              </Text>
-            </View>
-          ))
-        )
-      ) : type === 'pnl' ? (
-        !pnl ? (
-          <EmptyState title={t('common:empty.noData', { defaultValue: 'No data' })} />
-        ) : (
-          <View style={[styles.card, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
-            <Text style={{ color: colors.textSecondary }}>{t('fields:costs.received')}: {formatMoney(pnl.totalIncome)}</Text>
-            <Text style={{ color: colors.textSecondary }}>{t('fields:costs.spent')}: {formatMoney(pnl.totalExpenses)}</Text>
-            <Text style={[styles.name, { color: colors.textPrimary }]}>{t('fields:thisHarvest.net')}: {formatMoney(pnl.netProfit)}</Text>
-            {pnl.profitByField.map((row) => (
-              <Text key={row.fieldId} style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
-                {row.fieldName}: {formatMoney(row.profit)}
-              </Text>
-            ))}
-          </View>
-        )
-      ) : compareRows.length === 0 ? (
+      ) : summaries.length === 0 ? (
         <EmptyState title={t('common:empty.noData', { defaultValue: 'No data' })} />
       ) : (
-        compareRows.map((row) => (
+        summaries.map((row) => (
           <View key={row.fieldId} style={[styles.card, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
             <Text style={[styles.name, { color: colors.textPrimary }]}>{row.fieldName}</Text>
             <Text style={{ color: colors.textSecondary }}>
-              {formatKg(row.oliveKg)} kg · {formatMoney(row.cost)} · {row.tasksCompleted} tasks
+              {formatHa(row.areaHa)} · {formatKg(row.totalProductionKg)} kg · {formatMoney(row.totalCost)}
+            </Text>
+            <Text style={{ color: colors.textSecondary }}>
+              {row.tasksCompleted} done · {row.tasksPending} open · {row.tasksOverdue} overdue
             </Text>
           </View>
         ))

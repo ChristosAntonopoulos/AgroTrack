@@ -21,4 +21,10 @@ public class RegisterDto
     /// Privileged values (Administrator, Agronomist, ServiceProvider) are rejected.
     /// </summary>
     public string? Role { get; set; }
+
+    /// <summary>
+    /// Optional family invitation code or URL token. When set, the new account
+    /// is linked to that family seat after registration.
+    /// </summary>
+    public string? InviteCode { get; set; }
 }

@@ -59,6 +59,7 @@ public static class FamilyMappers
     {
         Id = document.Id,
         Token = document.Token,
+        Code = document.Code,
         CircleId = document.CircleId,
         MemberId = document.MemberId,
         OwnerUserId = document.OwnerUserId,
@@ -79,6 +80,7 @@ public static class FamilyMappers
     {
         Id = entity.Id,
         Token = entity.Token,
+        Code = entity.Code,
         CircleId = entity.CircleId,
         MemberId = entity.MemberId,
         OwnerUserId = entity.OwnerUserId,

@@ -14,10 +14,6 @@ public static class ChronologioDemoSeeder
     public const string OwnerId = DemoFarmDataSeeder.OwnerId;
     public const string ProducerId = DemoFarmDataSeeder.ProducerId;
 
-    // Stable ids — 24 hex chars — so restarts upsert the same story.
-    private const string FieldNorthHint = "088";
-    private const string FieldSouthHint = "089";
-
     public static async Task SeedAsync(
         MongoDbContext context,
         IConfiguration configuration,
@@ -39,15 +35,12 @@ public static class ChronologioDemoSeeder
             return;
         }
 
-        // Prefer the two Φιλιατρών plots when present; otherwise first two owned fields.
-        var north = fields.FirstOrDefault(f => f.Name.Contains(FieldNorthHint, StringComparison.OrdinalIgnoreCase)
-                                               || f.Name.Contains("Megaritiki", StringComparison.OrdinalIgnoreCase)
-                                               || (f.Variety?.Contains("Megaritiki", StringComparison.OrdinalIgnoreCase) ?? false))
+        var north = fields.FirstOrDefault(f => f.Id == DemoFarmDataSeeder.FieldIds[0])
+                    ?? fields.FirstOrDefault(f => f.Name.Contains("North Olive", StringComparison.OrdinalIgnoreCase))
                     ?? fields[0];
-        var south = fields.FirstOrDefault(f => f.Id != north.Id
-                                               && (f.Name.Contains(FieldSouthHint, StringComparison.OrdinalIgnoreCase)
-                                                   || f.Name.Contains("Koroneiki", StringComparison.OrdinalIgnoreCase)
-                                                   || (f.Variety?.Contains("Koroneiki", StringComparison.OrdinalIgnoreCase) ?? false)))
+        var south = fields.FirstOrDefault(f => f.Id == DemoFarmDataSeeder.FieldIds[1] && f.Id != north.Id)
+                    ?? fields.FirstOrDefault(f => f.Id != north.Id
+                                               && f.Name.Contains("South Valley", StringComparison.OrdinalIgnoreCase))
                     ?? fields.FirstOrDefault(f => f.Id != north.Id);
 
         var targets = south == null ? new[] { north } : new[] { north, south };

@@ -1,4 +1,4 @@
-﻿/* Chronologio â€” editorial timeline (720â€“800px reading column) */
+/* Chronologio â€” editorial timeline (720â€“800px reading column) */
 
 .chronologio-shell {
   max-width: 1120px;
@@ -300,58 +300,23 @@
   background: #b33a3a;
 }
 
-/* Event-specific cards */
 .chronologio-card {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--color-border);
-  background: var(--bg-card, var(--bg-surface, #fff));
-  border-radius: 14px;
-  padding: 0.9rem 1rem;
-  cursor: pointer;
-  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-  border-left-width: 3px;
-  border-left-color: transparent;
+  /* AccentCard provides shell; keep chronologio-specific overrides light */
+  font: inherit;
+  color: inherit;
 }
 
-.chronologio-card:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-text-primary) 7%, transparent);
-}
-
-.chronologio-card.is-harvest {
-  border-left-color: #4a7c2a;
-}
-
-.chronologio-card.is-expense {
-  border-left-color: #3d6ea8;
-}
-
-.chronologio-card.is-task {
-  border-left-color: #c47a1a;
-}
-
-.chronologio-card.is-note {
-  border-left-color: #7a5ea8;
-}
-
+.chronologio-card.is-harvest,
+.chronologio-card.is-expense,
+.chronologio-card.is-task,
+.chronologio-card.is-note,
 .chronologio-card.is-weather,
-.chronologio-card.is-warning {
-  border-left-color: #c47a1a;
-}
-
-.chronologio-card.is-intelligence {
-  border-left-color: #8a6d3b;
-}
-
-.chronologio-card.is-positive {
-  border-left-color: #4a7c2a;
-}
-
+.chronologio-card.is-warning,
+.chronologio-card.is-intelligence,
+.chronologio-card.is-positive,
 .chronologio-card.is-critical {
-  border-left-color: #b33a3a;
+  /* Field accent from AccentCard wins; category tones kept as icon fallbacks only. */
+  border-left-color: var(--accent-color, transparent);
 }
 
 .chronologio-card-top {
@@ -510,6 +475,369 @@
   background: color-mix(in srgb, #3d6ea8 12%, transparent);
   border-radius: 999px;
   padding: 0.22rem 0.65rem;
+}
+
+.weather-review {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.weather-review--compact {
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.weather-review-compact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem 0.85rem;
+}
+
+.weather-review-compact-rain {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #2d6a9f;
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-review-compact-rain strong {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: var(--color-text-primary);
+}
+
+.weather-review-compact-rain span {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--color-text-secondary);
+}
+
+.weather-review-compact-temps {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-review-tap-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.weather-review-compare.is-compact {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.weather-review-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.weather-review-rain {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, #2d6a9f 16%, transparent),
+      color-mix(in srgb, #2d6a9f 5%, transparent)
+    );
+  color: #1f4f78;
+}
+
+.weather-review-rain-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 55%, transparent);
+  color: #2d6a9f;
+  flex-shrink: 0;
+}
+
+.weather-review-rain strong {
+  display: block;
+  font-size: 1.55rem;
+  font-weight: 750;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.weather-review--lg .weather-review-rain strong {
+  font-size: 1.85rem;
+}
+
+.weather-review-rain span {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.weather-review-temps {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem 0.7rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-border) 35%, transparent);
+}
+
+.weather-review-temp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 3.2rem;
+}
+
+.weather-review-temp--hot {
+  text-align: right;
+}
+
+.weather-review-temp strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+}
+
+.weather-review-temp--cold strong {
+  color: #3d6ea8;
+}
+
+.weather-review-temp--hot strong {
+  color: #b45309;
+}
+
+.weather-review-temp span {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.weather-review-temp-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 80%, transparent);
+  overflow: hidden;
+}
+
+.weather-review-temp-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5b8fc7 0%, #d4a017 55%, #c45c26 100%);
+}
+
+.weather-review-year-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.weather-review-mini {
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, #2d6a9f 8%, transparent);
+}
+
+.weather-review-mini strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+}
+
+.weather-review-mini span {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.weather-review-chart {
+  padding: 0.55rem 0.65rem 0.45rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, #2d6a9f 7%, transparent);
+  color: #2d6a9f;
+}
+
+.weather-review-chart-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.chronologio-rain-spark {
+  display: block;
+  width: 100%;
+  color: inherit;
+}
+
+.chrono-event-compact-spark {
+  display: block;
+  margin-top: 0.35rem;
+  color: #2d6a9f;
+  width: 100%;
+  max-width: 220px;
+}
+
+.weather-review-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weather-review-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.weather-review-chip.is-heavyRain {
+  color: #1f4f78;
+  background: color-mix(in srgb, #2d6a9f 14%, transparent);
+}
+
+.weather-review-chip.is-frost {
+  color: #2f5f8f;
+  background: color-mix(in srgb, #6ba3d4 18%, transparent);
+}
+
+.weather-review-chip.is-heat {
+  color: #9a3412;
+  background: color-mix(in srgb, #ea580c 14%, transparent);
+}
+
+.weather-review-chip.is-dry {
+  color: #92400e;
+  background: color-mix(in srgb, #d4a017 16%, transparent);
+}
+
+.weather-review-compare {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.weather-review-compare.is-wetter {
+  color: #1f4f78;
+  background: color-mix(in srgb, #2d6a9f 12%, transparent);
+  border-left: 3px solid #2d6a9f;
+}
+
+.weather-review-compare.is-drier {
+  color: #92400e;
+  background: color-mix(in srgb, #d4a017 14%, transparent);
+  border-left: 3px solid #c27803;
+}
+
+.weather-review-note {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.weather-review-note--veg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: #3d6b2a;
+}
+
+.weather-review-note--veg svg {
+  flex-shrink: 0;
+  margin-top: 0.12rem;
+}
+
+.weather-review-source,
+.chrono-drawer-source {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.chrono-drawer-weather {
+  margin-bottom: 0.75rem;
+}
+
+/* Legacy aliases kept for any leftover markup */
+.chronologio-weather-review {
+  margin-top: 0.55rem;
+}
+
+.chronologio-weather-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+}
+
+.chronologio-weather-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 4.5rem;
+}
+
+.chronologio-weather-stat strong {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+}
+
+.chronologio-weather-stat span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.chronologio-weather-adverse {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
 }
 
 .chronologio-media-row {
@@ -698,13 +1026,75 @@
 .chrono-icon-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface, #fff); color: var(--color-text, inherit); cursor: pointer; }
 .chrono-zoom-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0; }
 .chrono-zoom-levels { display: inline-flex; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden; background: var(--color-surface, #fff); }
-.chrono-zoom-level { min-height: 44px; padding: 0 1.05rem; border: 0; background: transparent; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; color: var(--color-text-secondary, #666); transition: background 180ms ease-out, color 180ms ease-out; }
+.chrono-zoom-level { min-height: 36px; padding: 0 0.95rem; border: 0; background: transparent; font-weight: 600; font-size: 0.9rem; letter-spacing: -0.01em; cursor: pointer; color: var(--color-text-secondary, #666); transition: background 180ms ease-out, color 180ms ease-out; }
 .chrono-zoom-level.is-active { background: var(--color-primary, #3d5a2a); color: #fff; }
 .chrono-filter-wide { min-width: min(22rem, 92vw); }
 .chrono-filter-label { margin: 0.6rem 0 0.35rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary, #666); }
 .chrono-chip-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .chrono-living-layout { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 3.75rem; gap: 1rem; align-items: start; }
-.chrono-years { display: flex; flex-direction: column; gap: 0; }
+.chrono-years { display: flex; flex-direction: column; gap: 1.15rem; }
+.chrono-history-card { display: flex; flex-direction: column; gap: 0.7rem; text-align: left; width: 100%; border: 0; background: transparent; padding: 0; cursor: pointer; color: inherit; border-radius: 18px; }
+.chrono-history-card:focus-visible { outline: 2px solid var(--color-primary, #3d5a2a); outline-offset: 3px; }
+.chrono-history-media { position: relative; width: 100%; height: clamp(10rem, 28vw, 12.5rem); border-radius: 18px; overflow: hidden; background: color-mix(in srgb, var(--color-primary, #3d5a2a) 14%, var(--color-border)); }
+.chrono-year-weather-line { margin: 0.35rem 0 0; font-size: 0.88rem; color: var(--color-text-secondary, #666); }
+.chrono-year-view-metrics { margin-top: 0.75rem; }
+.chrono-month-chapter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5rem;
+  gap: 0.85rem;
+  align-items: stretch;
+  width: 100%;
+  min-height: 7.5rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  border-radius: 16px;
+}
+.chrono-month-chapter:focus-visible { outline: 2px solid var(--color-primary, #3d5a2a); outline-offset: 3px; }
+.chrono-month-chapter.is-active .chrono-month-chapter-hero,
+.chrono-month-chapter.is-active .chrono-month-chapter-wash {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #3d5a2a) 55%, transparent);
+}
+.chrono-month-chapter-text { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.35rem 0.1rem; justify-content: center; min-width: 0; }
+.chrono-thumb.chrono-month-chapter-hero { width: 7.5rem; height: 7.5rem; border-radius: 14px; }
+.chrono-month-chapter-wash {
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 14px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-primary, #3d5a2a) 22%, transparent), color-mix(in srgb, var(--color-primary, #3d5a2a) 6%, var(--color-border)));
+}
+.chrono-month-quiet-row { display: flex; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 52px; padding: 0.45rem 0.15rem; border: 0; background: transparent; cursor: pointer; color: inherit; text-align: left; align-items: center; }
+.chrono-peek-section { margin-top: 1rem; }
+.chrono-peek-section h3 { margin: 0 0 0.35rem; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-secondary, #666); }
+.chrono-peek-section p { margin: 0; line-height: 1.45; }
+.chrono-peek-sub { margin-top: 0.35rem !important; font-size: 0.88rem; color: var(--color-text-secondary, #666); }
+.chrono-peek-facts { margin: 0.65rem 0 0; color: var(--color-text-secondary, #555); }
+.chrono-peek-recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.chrono-peek-recent-btn {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  border: 0;
+  background: color-mix(in srgb, var(--color-primary, #3d5a2a) 6%, transparent);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+.chrono-peek-recent-title { font-weight: 600; font-size: 0.92rem; }
+.chrono-peek-recent-when { font-size: 0.8rem; color: var(--color-text-secondary, #777); white-space: nowrap; }
+.chrono-peek-metrics { margin-bottom: 0.35rem; }
+.chrono-history-card.is-active .chrono-history-media { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #3d5a2a) 55%, transparent); }
+.chrono-thumb.chrono-history-hero { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; }
+.chrono-history-placeholder { position: absolute; inset: 0; background: linear-gradient(160deg, color-mix(in srgb, var(--color-primary, #3d5a2a) 28%, #c5cfc0), color-mix(in srgb, var(--color-border) 70%, #8a9a82)); }
+.chrono-history-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.15rem 1.1rem 0.95rem; background: linear-gradient(to top, rgba(18, 22, 16, 0.62), transparent); display: flex; align-items: baseline; gap: 0.55rem; }
+.chrono-history-overlay .chrono-year-title { color: #fff; font-size: 2.35rem; font-weight: 700; letter-spacing: -0.04em; }
+.chrono-history-overlay .chrono-today-pill { background: rgba(255, 255, 255, 0.2); color: #fff; }
 .chrono-year-chapter { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 0.85rem; text-align: left; width: 100%; border: 1px solid transparent; background: transparent; padding: 0.85rem 0.65rem; margin: 0 -0.65rem; border-radius: 14px; cursor: pointer; color: inherit; transition: border-color 150ms ease-out, background 150ms ease-out, transform 150ms ease-out; }
 .chrono-year-chapter:hover { border-color: color-mix(in srgb, var(--color-border) 80%, var(--color-primary, #3d5a2a)); background: color-mix(in srgb, var(--color-surface, #fff) 70%, transparent); transform: translateY(-1px); }
 .chrono-year-chapter:hover .chrono-year-cta { opacity: 1; }
@@ -718,38 +1108,217 @@
 .chrono-year-title-row { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
 .chrono-year-cta { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; font-weight: 600; color: var(--color-primary, #3d5a2a); opacity: 0; transition: opacity 150ms ease-out; }
 .chrono-today-pill { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px; background: color-mix(in srgb, var(--color-primary, #3d5a2a) 18%, transparent); color: var(--color-primary, #3d5a2a); }
-.chrono-year-metrics { list-style: none; margin: 0.85rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 0.65rem 1rem; }
+.chrono-year-metrics { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 0.65rem 1rem; }
 .chrono-metric-value { display: block; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .chrono-metric-label { display: block; margin-top: 0.1rem; font-size: 0.75rem; color: var(--color-text-secondary, #666); }
-.chrono-year-empty-hint { margin: 0.65rem 0 0; color: var(--color-text-secondary, #777); font-style: italic; }
+.chrono-year-empty-hint { margin: 0; color: var(--color-text-secondary, #777); font-style: italic; }
 .chrono-year-placeholder { margin-top: 0.65rem; width: min(100%, 14rem); height: 4.5rem; border-radius: 12px; background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary, #3d5a2a) 12%, transparent), color-mix(in srgb, var(--color-border) 55%, transparent)); }
-.chrono-years-origin { margin: 1.5rem 0 0.5rem; padding-left: 2.85rem; color: var(--color-text-secondary, #777); font-size: 0.92rem; line-height: 1.45; max-width: 28rem; }
+.chrono-years-origin { margin: 0.25rem 0 0.5rem; color: var(--color-text-secondary, #777); font-size: 0.92rem; line-height: 1.45; max-width: 28rem; }
 .chrono-thumb { position: relative; display: inline-block; overflow: hidden; border-radius: 10px; border: 0; padding: 0; background: transparent; }
 .chrono-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .chrono-thumb.chrono-year-hero { margin-top: 0.65rem; width: min(100%, 10rem); height: 5.5rem; }
 .chrono-thumb.chrono-event-compact-thumb { margin-top: 0.45rem; width: 7.5rem; height: 4.5rem; }
 .chrono-thumb-extra { position: absolute; right: 0.35rem; bottom: 0.35rem; padding: 0.1rem 0.35rem; border-radius: 6px; background: rgba(20, 24, 18, 0.72); color: #fff; font-size: 0.7rem; font-weight: 700; }
-.chrono-year-view { display: block; max-width: 48rem; }
-.chrono-year-view-header { margin-bottom: 1.1rem; }
-.chrono-year-view-title { margin: 0; font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; }
+.chrono-year-view { display: block; max-width: 40rem; }
+.chrono-year-view-header { margin-bottom: 1.25rem; }
+.chrono-year-view-title { margin: 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.04em; }
 .chrono-year-inline-summary { margin: 0.45rem 0 0; color: var(--color-text-secondary, #555); font-size: 0.95rem; line-height: 1.45; }
 .chrono-year-inline-summary.is-muted { font-style: italic; }
+.chrono-month-gallery { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.15rem; }
+.chrono-month-poster { display: flex; flex-direction: column; width: 100%; border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; color: inherit; border-radius: 16px; }
+.chrono-month-poster:focus-visible { outline: 2px solid var(--color-primary, #3d5a2a); outline-offset: 3px; }
+.chrono-month-poster.is-active .chrono-month-poster-hero,
+.chrono-month-poster.is-active .chrono-month-poster-placeholder { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #3d5a2a) 55%, transparent); }
+.chrono-thumb.chrono-month-poster-hero { width: 100%; height: 9.5rem; border-radius: 16px; }
+.chrono-month-poster-placeholder { width: 100%; height: 9.5rem; border-radius: 16px; background: linear-gradient(160deg, color-mix(in srgb, var(--color-primary, #3d5a2a) 16%, #d5ddd0), color-mix(in srgb, var(--color-border) 80%, transparent)); }
+.chrono-month-poster-caption { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.55rem 0.15rem 0; }
+.chrono-month-poster-title-row { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.chrono-month-poster-title { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; text-transform: capitalize; }
+.chrono-month-quiet-row { display: flex; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 44px; padding: 0.35rem 0.15rem; border: 0; background: transparent; cursor: pointer; color: inherit; text-align: left; }
+.chrono-month-quiet-title { font-size: 0.95rem; font-weight: 600; text-transform: capitalize; color: var(--color-text-secondary, #666); }
+.chrono-month-quiet-hint { font-size: 0.82rem; color: var(--color-text-secondary, #999); }
 .chrono-month-spine { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
 .chrono-month-row { display: grid; grid-template-columns: 3.75rem 1.25rem minmax(0, 1fr); align-items: start; gap: 0.4rem; width: 100%; min-height: 44px; border: 1px solid transparent; background: transparent; text-align: left; cursor: pointer; color: inherit; border-radius: 10px; padding: 0.45rem 0.5rem; transition: background 150ms ease-out, border-color 150ms ease-out; }
 .chrono-month-row:hover, .chrono-month-row.is-active { background: color-mix(in srgb, var(--color-primary, #3d5a2a) 10%, transparent); border-color: color-mix(in srgb, var(--color-primary, #3d5a2a) 18%, transparent); }
 .chrono-month-row.is-empty { opacity: 0.42; }
 .chrono-month-row.is-important .chrono-month-label { color: var(--color-primary, #3d5a2a); }
 .chrono-month-label { font-weight: 800; font-size: 0.78rem; letter-spacing: 0.05em; display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0.15rem; }
-.chrono-month-now { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.02em; text-transform: none; color: var(--color-primary, #3d5a2a); }
+.chrono-month-now { font-size: 0.7rem; font-weight: 650; letter-spacing: 0; text-transform: none; color: var(--color-primary, #3d5a2a); }
 .chrono-month-dash { height: 1px; margin-top: 0.75rem; background: var(--color-border); }
 .chrono-month-content { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-.chrono-month-highlights { font-size: 0.95rem; font-weight: 600; line-height: 1.35; }
+.chrono-month-highlights { font-size: 0.92rem; font-weight: 600; line-height: 1.35; }
 .chrono-month-meta, .chrono-month-more { font-size: 0.82rem; color: var(--color-text-secondary, #666); }
 .chrono-month-quiet { color: var(--color-border); letter-spacing: 0.02em; font-size: 0.75rem; }
 .chrono-month-view { max-width: 48rem; }
+.chrono-journal-view { max-width: 40rem; }
 .chrono-month-view-title { margin: 0 0 0.85rem; font-size: 1.55rem; font-weight: 800; text-transform: capitalize; letter-spacing: -0.02em; }
-.chrono-month-scroll { height: min(70vh, 720px); overflow: auto; }
-.chrono-day-heading { margin: 0.85rem 0 0.4rem; font-size: 0.95rem; font-weight: 700; }
+.chrono-month-scroll {
+  position: relative;
+  height: min(70vh, 720px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-primary) 22%, transparent) transparent;
+}
+.chrono-month-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.chrono-month-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0.5rem 0;
+}
+.chrono-month-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.chrono-month-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 32%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.chrono-journal-scroll {
+  height: calc(100dvh - 14.5rem);
+  min-height: 22rem;
+}
+.chrono-sticky-date-host {
+  position: sticky;
+  top: 0.55rem;
+  z-index: 6;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  margin: 0 0.15rem 0 auto;
+  height: 0;
+}
+.chrono-sticky-date-stack {
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  max-width: min(72%, 17rem);
+}
+.chrono-sticky-date {
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--bg-card, var(--bg-surface, #fff)) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chrono-sticky-weather-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--bg-card, var(--bg-surface, #fff)) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+.chrono-sticky-weather-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary, #3d6b4f) 45%, var(--color-border));
+}
+.chrono-sticky-weather-btn:focus-visible {
+  outline: 2px solid var(--color-primary, #3d6b4f);
+  outline-offset: 2px;
+}
+.chrono-sticky-date-short { display: none; }
+.chrono-sticky-date-full { display: inline; overflow: hidden; text-overflow: ellipsis; }
+.chrono-month-weather-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.chrono-month-weather-block {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-color, transparent) 10%, transparent),
+      color-mix(in srgb, var(--accent-secondary, transparent) 8%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-card, var(--bg-surface, #fff)) 96%, transparent);
+  cursor: pointer;
+}
+.chrono-month-weather-block:hover {
+  border-color: color-mix(in srgb, var(--accent-color, var(--color-border)) 40%, var(--color-border));
+}
+.chrono-month-weather-block .chrono-drawer-field-chip {
+  margin-bottom: 0.65rem;
+}
+.chrono-day-heading {
+  margin: 1rem 0 0.5rem;
+  padding-right: 7.5rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-secondary);
+  transition: opacity 180ms ease, color 180ms ease;
+}
+.chrono-day-heading.is-sticky-active {
+  opacity: 0.35;
+}
+.chrono-event-card-wrap { margin-bottom: 0.65rem; }
+.chrono-weather-cluster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+.chrono-weather-cluster .chrono-event-card-wrap {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.chronologio-card.is-weather-tile {
+  padding: 0.65rem 0.7rem;
+  min-height: 100%;
+}
+.weather-tile-field {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  font-weight: 650;
+  color: var(--color-text-primary);
+}
+.weather-tile-period {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  line-height: 1.25;
+}
+.chrono-journal-status { margin: 0.85rem 0 1.25rem; text-align: center; color: var(--color-text-secondary, #777); font-size: 0.88rem; }
 .chrono-event-compact { display: grid; grid-template-columns: 3.2rem 0.9rem minmax(0, 1fr); gap: 0.35rem; width: 100%; min-height: 44px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface, #fff); padding: 0.6rem 0.7rem; text-align: left; cursor: pointer; color: inherit; margin-bottom: 0.4rem; transition: border-color 150ms ease-out, transform 150ms ease-out; }
 .chrono-event-compact:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--color-primary, #3d5a2a) 35%, var(--color-border)); }
 .chrono-event-compact.is-selected { border-color: var(--color-primary, #3d5a2a); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary, #3d5a2a) 35%, transparent); }
@@ -775,7 +1344,32 @@
 .chrono-rail-item.is-active .chrono-rail-dot { border-color: var(--color-primary, #3d5a2a); background: var(--color-primary, #3d5a2a); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #3d5a2a) 22%, transparent); }
 .chrono-return-today { position: fixed; right: 1.25rem; bottom: 1.5rem; z-index: 40; display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; padding: 0.45rem 0.85rem; border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-surface, #fff); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); font-weight: 600; font-size: 0.85rem; cursor: pointer; color: inherit; }
 .chrono-drawer-backdrop { position: fixed; inset: 0; border: 0; background: rgba(20, 24, 18, 0.35); z-index: 80; cursor: pointer; }
-.chrono-event-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(26.5rem, 100vw); background: var(--color-surface, #fff); z-index: 90; display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12); }
+.chrono-event-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(26.5rem, 100vw);
+  background: var(--color-surface, #fff);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  border-left: 4px solid var(--accent-color, transparent);
+}
+
+.chrono-event-drawer::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--accent-secondary, transparent);
+  pointer-events: none;
+}
+
+.chrono-drawer-field-chip {
+  margin-top: 0.55rem;
+}
 .chrono-drawer-header { display: flex; justify-content: space-between; gap: 0.75rem; padding: 1.1rem 1.1rem 0.75rem; border-bottom: 1px solid var(--color-border); }
 .chrono-drawer-header h2 { margin: 0.15rem 0; font-size: 1.25rem; }
 .chrono-drawer-meta, .chrono-drawer-when { margin: 0; font-size: 0.85rem; color: var(--color-text-secondary, #666); }
@@ -796,13 +1390,22 @@
 .chrono-compare-spines ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 @media (max-width: 900px) {
-  .chrono-living-layout { grid-template-columns: 1fr; }
+  .chrono-zoom-level { padding: 0 0.7rem; font-size: 0.85rem; min-height: 40px; }
   .chrono-date-rail { display: none; }
   .chrono-year-cta { display: none; }
   .chrono-year-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .chrono-compare-spines { grid-template-columns: 1fr; }
   .chrono-event-drawer { top: auto; bottom: 0; height: min(88vh, 100%); width: 100%; border-radius: 16px 16px 0 0; }
   .chrono-return-today { right: 0.75rem; bottom: 5.5rem; }
+  .chrono-history-media { height: 10rem; }
+  .chrono-month-chapter { grid-template-columns: 1fr; min-height: 0; }
+  .chrono-thumb.chrono-month-chapter-hero,
+  .chrono-month-chapter-wash { width: 100%; height: 7.5rem; }
+  .chrono-thumb.chrono-month-poster-hero, .chrono-month-poster-placeholder { height: 8rem; }
+  .chrono-journal-scroll { height: calc(100dvh - 16.5rem); }
+  .chrono-sticky-date-short { display: inline; }
+  .chrono-sticky-date-full { display: none; }
+  .chrono-day-heading { padding-right: 5.5rem; }
   .chrono-event-compact { grid-template-columns: 0.7rem minmax(0, 1fr); }
   .chrono-event-compact-time { grid-column: 2; padding-top: 0; }
   .chrono-event-compact-rail { grid-row: 1 / span 3; }

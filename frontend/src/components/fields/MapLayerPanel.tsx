@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Layers } from 'lucide-react';
 import { MapLayerData, MapLayerDefinition } from '../../services/geospatialService';
 import { MapLayerType } from '../../utils/mapLayers';
 import './MapLayerPanel.css';
@@ -17,9 +18,21 @@ interface Props {
   loading?: boolean;
 }
 
+/** First-look layers, in the order a grower typically wants (photo → greenness → change → moisture). */
+const PRIMARY_LAYER_IDS = ['truecolor', 'ndvi', 'ndvi-change', 'ndmi'];
+
+const splitOverlays = (overlays: MapLayerDefinition[]) => {
+  const byId = new Map(overlays.map((layer) => [layer.id, layer]));
+  const primary = PRIMARY_LAYER_IDS.map((id) => byId.get(id)).filter(
+    (layer): layer is MapLayerDefinition => Boolean(layer)
+  );
+  const more = overlays.filter((layer) => !PRIMARY_LAYER_IDS.includes(layer.id));
+  return { primary, more };
+};
+
 /**
- * Collapsible layer picker for the field map. Only one data overlay can be active
- * at a time: stacked index rasters cover each other and would misrepresent values.
+ * On-map layer picker. One data overlay at a time — stacked index rasters would
+ * cover each other and misrepresent values.
  */
 const MapLayerPanel: React.FC<Props> = ({
   baseLayer,
@@ -34,20 +47,67 @@ const MapLayerPanel: React.FC<Props> = ({
   loading,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const activeDefinition = overlays.find((o) => o.id === activeLayerId);
   const overlayUnavailable = Boolean(activeLayerId) && activeLayer?.available === false;
+  const { primary, more } = useMemo(() => splitOverlays(overlays), [overlays]);
+
+  useEffect(() => {
+    if (activeLayerId && more.some((layer) => layer.id === activeLayerId)) {
+      setShowMore(true);
+    }
+  }, [activeLayerId, more]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const currentLabel = activeDefinition
+    ? t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name)
+    : t('fields:mapLayers.none');
+
+  const renderOption = (definition: MapLayerDefinition | undefined, id: string, label: string) => {
+    const selected = activeLayerId === (definition?.id ?? undefined) || (!definition && !activeLayerId);
+    return (
+      <label key={id} className={`map-layer-panel-option${selected ? ' is-selected' : ''}`}>
+        <input
+          type="radio"
+          name="field-map-overlay"
+          checked={selected}
+          onChange={() => onActiveLayerChange(definition?.id)}
+        />
+        <span>{label}</span>
+      </label>
+    );
+  };
 
   return (
-    <div className={`map-layer-panel${open ? ' map-layer-panel--open' : ''}`}>
+    <div ref={rootRef} className={`map-layer-panel${open ? ' map-layer-panel--open' : ''}`}>
       <button
         type="button"
         className="map-layer-panel-trigger"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-label={t('fields:mapLayers.title')}
       >
-        <span aria-hidden="true">▤</span> {t('fields:mapLayers.baseLayer')}
+        <Layers size={15} strokeWidth={2} aria-hidden />
+        <span>{t('fields:mapLayers.layers')}</span>
+        <em>{currentLabel}</em>
       </button>
 
       {open ? (
@@ -72,16 +132,45 @@ const MapLayerPanel: React.FC<Props> = ({
             </div>
           </fieldset>
 
+          <fieldset>
+            <legend>{t('fields:mapLayers.dataOverlay')}</legend>
+            {renderOption(undefined, 'none', t('fields:mapLayers.none'))}
+            {primary.map((definition) =>
+              renderOption(
+                definition,
+                definition.id,
+                t(`fields:mapLayers.names.${definition.id}`, definition.name)
+              )
+            )}
+            {more.length > 0 && showMore
+              ? more.map((definition) =>
+                  renderOption(
+                    definition,
+                    definition.id,
+                    t(`fields:mapLayers.names.${definition.id}`, definition.name)
+                  )
+                )
+              : null}
+            {more.length > 0 ? (
+              <button
+                type="button"
+                className="map-layer-panel-more"
+                onClick={() => setShowMore((value) => !value)}
+              >
+                {showMore ? t('fields:mapLayers.lessLayers') : t('fields:mapLayers.moreLayers')}
+              </button>
+            ) : null}
+          </fieldset>
+
           {activeDefinition ? (
             <button
               type="button"
-              className="map-layer-panel-info"
+              className="map-layer-panel-about"
               onClick={() => onShowInfo(activeDefinition, activeLayer)}
-              aria-label={t('fields:mapLayers.aboutLayer', {
+            >
+              {t('fields:mapLayers.aboutLayer', {
                 layer: t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name),
               })}
-            >
-              i
             </button>
           ) : null}
 

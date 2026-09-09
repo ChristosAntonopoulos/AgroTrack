@@ -11,11 +11,12 @@ import './TasksBoardView.css';
 type Props = {
   tasks: Task[];
   fieldNames: Record<string, string>;
+  fieldColors?: Record<string, string | null | undefined>;
 };
 
 const COLUMN_ORDER: TaskBoardColumn[] = ['overdue', 'today', 'thisWeek', 'done'];
 
-const TasksBoardView: React.FC<Props> = ({ tasks, fieldNames }) => {
+const TasksBoardView: React.FC<Props> = ({ tasks, fieldNames, fieldColors = {} }) => {
   const { t } = useTranslation(['tasks', 'fields']);
   const isMobile = useBreakpoint('md');
   const [activeColumn, setActiveColumn] = useState<TaskBoardColumn>('today');
@@ -82,6 +83,7 @@ const TasksBoardView: React.FC<Props> = ({ tasks, fieldNames }) => {
                     key={task.id}
                     task={task}
                     fieldName={fieldNames[task.fieldId]}
+                    fieldColor={fieldColors[task.fieldId]}
                     compact
                   />
                 ))

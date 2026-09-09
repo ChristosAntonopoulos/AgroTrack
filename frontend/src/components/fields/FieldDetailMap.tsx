@@ -52,6 +52,25 @@ const FitFieldBounds: React.FC<{ polygon?: [number, number][]; center: [number, 
   return null;
 };
 
+/** Leaflet measures the pane on mount. A flex child with height: 100% can be 0px until layout settles. */
+const InvalidateOnResize: React.FC = () => {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const invalidate = () => {
+      if (container.clientWidth > 0 && container.clientHeight > 0) {
+        map.invalidateSize({ animate: false });
+      }
+    };
+    invalidate();
+    const observer = new ResizeObserver(invalidate);
+    observer.observe(container);
+    if (container.parentElement) observer.observe(container.parentElement);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+};
+
 /** Backend bounds arrive as [minLng, minLat, maxLng, maxLat]; Leaflet wants lat/lng corners. */
 const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
   if (!bounds || bounds.length < 4) return undefined;
@@ -62,7 +81,7 @@ const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
 };
 
 const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers = true, compact = false }) => {
-  const { t } = useTranslation(['fields', 'common', 'settings']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'settings']);
   const { showWidget, recordIntelligenceOpen, isEveryday } = useExperienceMode();
   const allowDataLayers = showDataLayers && showWidget('satelliteLayers') && showWidget('mapLayerPanel');
   const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
@@ -91,6 +110,17 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
   const compareBounds = toLeafletBounds(compareLayer?.bounds);
   const satelliteLayerActive = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
   const activeDefinition = definitions.find((d) => d.id === activeLayerId);
+  const showLayerTools = allowDataLayers || layersPeeked;
+  const showDateDock = showLayerTools && satelliteLayerActive;
+
+  const formatPassDate = (observationId?: string) => {
+    const pass = dates.find((d) => d.observationId === observationId);
+    if (!pass) return undefined;
+    return new Date(pass.observationDate).toLocaleDateString(i18n.language, {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
 
   const showInfo = (definition: MapLayerDefinition, data?: MapLayerData) => {
     setLayerInfo({
@@ -116,116 +146,108 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
   return (
     <div className="field-detail-map-wrap">
       <div className={`field-detail-map${compact ? ' field-detail-map--compact' : ''}`} style={{ height: heightPx }}>
-        {allowDataLayers || layersPeeked ? (
-          <MapLayerPanel
-            baseLayer={baseLayer}
-            onBaseLayerChange={setBaseLayer}
-            overlays={definitions}
-            activeLayerId={activeLayerId}
-            onActiveLayerChange={selectLayer}
-            activeLayer={activeLayer}
-            opacity={opacity}
-            onOpacityChange={setOpacity}
-            onShowInfo={showInfo}
-            loading={loading}
-          />
-        ) : (
-          <div className="field-detail-map-layer-toggle" role="group" aria-label={t('fields:mapLayers.baseLayer')}>
-            <button
-              type="button"
-              className={baseLayer === 'satellite' ? 'active' : ''}
-              onClick={() => setBaseLayer('satellite')}
-            >
-              {t('fields:mapLayerSatellite')}
-            </button>
-            <button
-              type="button"
-              className={baseLayer === 'street' ? 'active' : ''}
-              onClick={() => setBaseLayer('street')}
-            >
-              {t('fields:mapLayerStreet')}
-            </button>
-          </div>
-        )}
-
-        <MapContainer center={center} zoom={16} scrollWheelZoom className="field-detail-map-leaflet">
-          <EnsureMapPanes />
-          {baseLayer === 'satellite' ? (
-            <>
-              <TileLayer attribution="Tiles &copy; Esri" url={SATELLITE_TILE} />
-              <TileLayer url={SATELLITE_PLACES_TILE} opacity={0.92} />
-              <TileLayer url={SATELLITE_LABELS_TILE} opacity={0.55} />
-            </>
-          ) : (
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url={STREET_TILE}
+        <div className="field-detail-map-canvas">
+          {showLayerTools ? (
+            <MapLayerPanel
+              baseLayer={baseLayer}
+              onBaseLayerChange={setBaseLayer}
+              overlays={definitions}
+              activeLayerId={activeLayerId}
+              onActiveLayerChange={selectLayer}
+              activeLayer={activeLayer}
+              opacity={opacity}
+              onOpacityChange={setOpacity}
+              onShowInfo={showInfo}
+              loading={loading}
             />
+          ) : (
+            <div className="field-detail-map-layer-toggle" role="group" aria-label={t('fields:mapLayers.baseLayer')}>
+              <button
+                type="button"
+                className={baseLayer === 'satellite' ? 'active' : ''}
+                onClick={() => setBaseLayer('satellite')}
+              >
+                {t('fields:mapLayerSatellite')}
+              </button>
+              <button
+                type="button"
+                className={baseLayer === 'street' ? 'active' : ''}
+                onClick={() => setBaseLayer('street')}
+              >
+                {t('fields:mapLayerStreet')}
+              </button>
+            </div>
           )}
 
-          {activeLayer?.available && activeLayer.imageUrl && overlayBounds ? (
-            <FieldMapOverlay
-              imageUrl={activeLayer.imageUrl}
-              bounds={overlayBounds}
-              opacity={opacity}
-              compareImageUrl={compareLayer?.available ? compareLayer.imageUrl : undefined}
-              compareBounds={compareBounds}
-            />
-          ) : null}
+          <MapContainer center={center} zoom={16} scrollWheelZoom className="field-detail-map-leaflet">
+            <EnsureMapPanes />
+            {baseLayer === 'satellite' ? (
+              <>
+                <TileLayer attribution="Tiles &copy; Esri" url={SATELLITE_TILE} />
+                <TileLayer url={SATELLITE_PLACES_TILE} opacity={0.92} />
+                <TileLayer url={SATELLITE_LABELS_TILE} opacity={0.55} />
+              </>
+            ) : (
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url={STREET_TILE}
+              />
+            )}
 
-          {activeLayer?.available && activeLayer.tileUrlTemplate && !activeLayer.imageUrl ? (
-            <TileLayer
-              url={activeLayer.tileUrlTemplate}
-              opacity={opacity}
+            {activeLayer?.available && activeLayer.imageUrl && overlayBounds ? (
+              <FieldMapOverlay
+                imageUrl={activeLayer.imageUrl}
+                bounds={overlayBounds}
+                opacity={opacity}
+                compareImageUrl={compareLayer?.available ? compareLayer.imageUrl : undefined}
+                compareBounds={compareBounds}
+                leftLabel={formatPassDate(selectedDateId)}
+                rightLabel={formatPassDate(compareDateId)}
+              />
+            ) : null}
+
+            {activeLayer?.available && activeLayer.tileUrlTemplate && !activeLayer.imageUrl ? (
+              <TileLayer
+                url={activeLayer.tileUrlTemplate}
+                opacity={opacity}
+                attribution={activeLayer.attribution}
+              />
+            ) : null}
+
+            <FitFieldBounds polygon={polygon} center={center} />
+            <InvalidateOnResize />
+            {polygon?.length ? (
+              <Polygon
+                positions={polygon}
+                pathOptions={activeLayerId ? FIELD_BOUNDARY_OUTLINE : FIELD_POLYGON_STYLE}
+                pane="field-boundary"
+              />
+            ) : null}
+          </MapContainer>
+
+          {activeLayer?.legend && activeDefinition ? (
+            <MapLayerLegend
+              legend={activeLayer.legend}
+              label={t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name)}
               attribution={activeLayer.attribution}
             />
           ) : null}
+        </div>
 
-          <FitFieldBounds polygon={polygon} center={center} />
-          {polygon?.length ? (
-            <Polygon
-              positions={polygon}
-              pathOptions={activeLayerId ? FIELD_BOUNDARY_OUTLINE : FIELD_POLYGON_STYLE}
-              pane="field-boundary"
+        {showDateDock ? (
+          <div className="field-detail-map-dock">
+            <SatelliteDateSelector
+              dates={dates}
+              selectedId={selectedDateId}
+              onSelect={selectDate}
+              compareId={compareDateId}
+              onCompareSelect={selectCompareDate}
             />
-          ) : null}
-        </MapContainer>
-
-        {activeLayer?.legend && activeDefinition ? (
-          <MapLayerLegend
-            legend={activeLayer.legend}
-            label={t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name)}
-            attribution={activeLayer.attribution}
-          />
+          </div>
         ) : null}
       </div>
 
-      {allowDataLayers || layersPeeked ? (
-        definitions.length > 0 ? (
-        <div className="field-detail-map-overlays-wrap">
-          <p className="field-detail-map-overlays-hint">{t('fields:mapLayers.overlayHint')}</p>
-          <div className="field-detail-map-overlays" role="group" aria-label={t('fields:mapLayers.dataOverlay')}>
-            <button
-              type="button"
-              className={!activeLayerId ? 'active' : ''}
-              onClick={() => selectLayer(undefined)}
-            >
-              {t('fields:mapLayers.none')}
-            </button>
-            {definitions.map((definition) => (
-              <button
-                type="button"
-                key={definition.id}
-                className={activeLayerId === definition.id ? 'active' : ''}
-                onClick={() => selectLayer(definition.id)}
-              >
-                {t(`fields:mapLayers.names.${definition.id}`, definition.name)}
-              </button>
-            ))}
-          </div>
-        </div>
-        ) : null
-      ) : isEveryday && showWidget('fieldMapDefault') && !compact ? (
+      {!showLayerTools && isEveryday && showWidget('fieldMapDefault') && !compact ? (
         <div className="field-detail-map-overlays-wrap">
           <button
             type="button"
@@ -238,16 +260,6 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
             {t('settings:experience.peekMoreAboutField', { defaultValue: 'More about this field' })}
           </button>
         </div>
-      ) : null}
-
-      {(allowDataLayers || layersPeeked) && satelliteLayerActive ? (
-        <SatelliteDateSelector
-          dates={dates}
-          selectedId={selectedDateId}
-          onSelect={selectDate}
-          compareId={compareDateId}
-          onCompareSelect={selectCompareDate}
-        />
       ) : null}
 
       {layerInfo ? <DataSourceInfoModal info={layerInfo} onClose={() => setLayerInfo(undefined)} /> : null}

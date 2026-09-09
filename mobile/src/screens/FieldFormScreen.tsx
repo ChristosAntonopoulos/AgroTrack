@@ -18,7 +18,9 @@ import WizardStepIndicator, { WizardStepKey } from '../components/fields/WizardS
 import FieldBoundaryDrawMap, { BoundaryPoint } from '../components/fields/FieldBoundaryDrawMap';
 import CadastreUploadStep from '../components/fields/CadastreUploadStep';
 import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
+import FieldColorPicker from '../components/fields/FieldColorPicker';
 import { CreateFieldDto, Field, GeoJsonPolygon, GreekCadastreInfo, ImportGreekCadastreFieldResponse } from '../services/fieldService';
+import { resolveFieldColor } from '../utils/fieldColors';
 import { geoJsonToPoints, pointsToGeoJsonPolygon } from '../utils/polygonArea';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import {
@@ -51,6 +53,7 @@ const emptyForm = (): CreateFieldDto => ({
   variety: '',
   irrigationStatus: false,
   status: 'Draft',
+  color: resolveFieldColor(undefined, undefined),
 });
 
 const FieldFormScreen = () => {
@@ -159,6 +162,7 @@ const FieldFormScreen = () => {
           slope: f.slope,
           accessNotes: f.accessNotes,
           status: f.status,
+          color: resolveFieldColor(f.color, f.id),
         });
         setDraftFieldId(f.id);
         if (f.boundary) {
@@ -303,6 +307,7 @@ const FieldFormScreen = () => {
         slope: formData.slope,
         accessNotes: formData.accessNotes,
         area: measuredAreaSqm || formData.area,
+        color: formData.color,
       });
       if (boundaryPoints.length >= 3) {
         await persistBoundary(draftFieldId);
@@ -341,6 +346,7 @@ const FieldFormScreen = () => {
         slope: formData.slope,
         accessNotes: formData.accessNotes,
         area: measuredAreaSqm || formData.area,
+        color: formData.color,
         greekCadastre: cadastre
           ? { ...cadastre, kaek: kaekInput || cadastre.kaek }
           : kaekInput
@@ -354,6 +360,7 @@ const FieldFormScreen = () => {
         await getFieldService().updateField(id, {
           name: formData.name.trim(),
           cropType: formData.cropType || 'Olive',
+          color: formData.color,
           status: 'Draft',
         });
         navigation.replace('FieldDetail', { fieldId: id });
@@ -485,6 +492,12 @@ const FieldFormScreen = () => {
               value={formData.name}
               onChangeText={(name) => patchForm({ name })}
               editable={!saving}
+            />
+            <FieldColorPicker
+              value={formData.color}
+              fieldId={draftFieldId || fieldId}
+              onChange={(color) => patchForm({ color })}
+              disabled={saving}
             />
             {!isEveryday ? (
               <>

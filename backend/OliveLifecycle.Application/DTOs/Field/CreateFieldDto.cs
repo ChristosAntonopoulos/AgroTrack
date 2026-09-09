@@ -38,6 +38,10 @@ public class CreateFieldDto
     public string? Slope { get; set; }
     public string? AccessNotes { get; set; }
 
+    /// <summary>UI accent as #RRGGBB.</summary>
+    [RegularExpression("^#[0-9A-Fa-f]{6}$")]
+    public string? Color { get; set; }
+
     public string? ProducerUserId { get; set; }
 
     /// <summary>

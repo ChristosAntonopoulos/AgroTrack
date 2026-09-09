@@ -7,6 +7,7 @@ export interface RegisterDto {
   firstName?: string;
   lastName?: string;
   role?: string;
+  inviteCode?: string;
 }
 
 export interface LoginDto {

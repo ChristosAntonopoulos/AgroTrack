@@ -12,8 +12,8 @@ interface Props {
 }
 
 /**
- * Date strip for satellite overlays. Cloud-affected dates stay visible but are marked
- * unusable, because a missing date is otherwise indistinguishable from a missing pass.
+ * Date filmstrip for satellite overlays. Compare mode picks a second pass and
+ * the map swipe (EOSDA / Sentinel Hub pattern) shows the two dates side by side.
  */
 const SatelliteDateSelector: React.FC<Props> = ({
   dates,
@@ -37,29 +37,53 @@ const SatelliteDateSelector: React.FC<Props> = ({
   }
 
   const comparableDates = dates.filter((d) => d.isUsable && d.observationId !== selectedId);
+  const selectedDate = dates.find((d) => d.observationId === selectedId);
+  const compareDate = dates.find((d) => d.observationId === compareId);
 
   const toggleCompare = () => {
     if (compareMode) {
       onCompareSelect(undefined);
       return;
     }
-    // Default to the most recent other usable pass, which is the comparison a grower wants.
     onCompareSelect(comparableDates[0]?.observationId);
   };
 
   return (
-    <div className="satellite-dates">
+    <div className={`satellite-dates${compareMode ? ' satellite-dates--compare' : ''}`}>
       <div className="satellite-dates-header">
         <span>{t('fields:mapLayers.observationDate')}</span>
-        <button
-          type="button"
-          className={compareMode ? 'active' : ''}
-          onClick={toggleCompare}
-          disabled={!compareMode && comparableDates.length === 0}
-        >
-          {t('fields:mapLayers.compare')}
-        </button>
+        <div className="satellite-dates-mode" role="group" aria-label={t('fields:mapLayers.compare')}>
+          <button
+            type="button"
+            className={!compareMode ? 'active' : ''}
+            onClick={() => onCompareSelect(undefined)}
+          >
+            {t('fields:mapLayers.singleDate')}
+          </button>
+          <button
+            type="button"
+            className={compareMode ? 'active' : ''}
+            onClick={toggleCompare}
+            disabled={!compareMode && comparableDates.length === 0}
+          >
+            {t('fields:mapLayers.compareDates')}
+          </button>
+        </div>
       </div>
+
+      {compareMode && selectedDate && compareDate ? (
+        <p className="satellite-dates-pair">
+          <span className="satellite-dates-chip satellite-dates-chip--a">
+            {t('fields:mapLayers.dateA')} · {formatDate(selectedDate.observationDate)}
+          </span>
+          <span className="satellite-dates-pair-sep" aria-hidden>
+            ↔
+          </span>
+          <span className="satellite-dates-chip satellite-dates-chip--b">
+            {t('fields:mapLayers.dateB')} · {formatDate(compareDate.observationDate)}
+          </span>
+        </p>
+      ) : null}
 
       <div className="satellite-dates-strip" role="listbox" aria-label={t('fields:mapLayers.observationDate')}>
         {dates.map((date) => {
@@ -77,7 +101,11 @@ const SatelliteDateSelector: React.FC<Props> = ({
               role="option"
               aria-selected={isSelected}
               className={classes.join(' ')}
-              onClick={() => (compareMode && !isSelected ? onCompareSelect(date.observationId) : onSelect(date.observationId))}
+              onClick={() =>
+                compareMode && !isSelected
+                  ? onCompareSelect(date.observationId)
+                  : onSelect(date.observationId)
+              }
               disabled={!date.isUsable}
               title={
                 date.isUsable
@@ -90,6 +118,8 @@ const SatelliteDateSelector: React.FC<Props> = ({
                     })
               }
             >
+              {isSelected ? <span className="satellite-date-tag">A</span> : null}
+              {isCompare ? <span className="satellite-date-tag satellite-date-tag--b">B</span> : null}
               <span className="satellite-date-day">{formatDate(date.observationDate)}</span>
               {date.ndviMean != null ? (
                 <span className="satellite-date-ndvi">{date.ndviMean.toFixed(2)}</span>
@@ -104,7 +134,7 @@ const SatelliteDateSelector: React.FC<Props> = ({
       </div>
 
       {compareMode ? (
-        <p className="satellite-dates-hint">{t('fields:mapLayers.compareHint')}</p>
+        <p className="satellite-dates-hint">{t('fields:mapLayers.comparePick')}</p>
       ) : null}
     </div>
   );

@@ -95,8 +95,14 @@
     "Pest Monitoring": "Παρακολούθηση εντόμων",
     "Disease Management": "Ασθένειες",
     "Harvest": "Συγκομιδή",
+    "Harvesting": "Συγκομιδή",
     "Equipment": "Εξοπλισμός",
-    "Post-Harvest": "Μετά τη συγκομιδή"
+    "Post-Harvest": "Μετά τη συγκομιδή",
+    "Pest Control": "Φυτοπροστασία",
+    "Soil Analysis": "Ανάλυση εδάφους",
+    "Spraying": "Ψεκασμός",
+    "Inspection": "Επιθεώρηση",
+    "Task": "Εργασία"
   },
   "priorities": {
     "All": "Όλα",

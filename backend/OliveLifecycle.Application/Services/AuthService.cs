@@ -8,6 +8,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
 using OliveLifecycle.Application.Extensions;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -19,15 +20,18 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IFamilyService? _familyService;
 
     public AuthService(
         IUserRepository userRepository,
         IConfiguration configuration,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        IFamilyService? familyService = null)
     {
         _userRepository = userRepository;
         _configuration = configuration;
         _dateTimeProvider = dateTimeProvider;
+        _familyService = familyService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
@@ -38,6 +42,22 @@ public class AuthService : IAuthService
             !Roles.IsPublicRegistrationRole(registerDto.Role))
         {
             throw new ValidationException("Registration cannot assign a privileged role.");
+        }
+
+        var inviteCode = registerDto.InviteCode?.Trim();
+        if (!string.IsNullOrWhiteSpace(inviteCode))
+        {
+            if (_familyService == null)
+            {
+                throw new ValidationException("Invitation codes are not available.");
+            }
+
+            var invite = await _familyService.GetInviteAsync(inviteCode, null, cancellationToken);
+            if (invite == null
+                || !string.Equals(invite.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ValidationException("This invitation code is not valid.");
+            }
         }
 
         if (await _userRepository.ExistsByEmailAsync(registerDto.Email, cancellationToken))
@@ -58,6 +78,12 @@ public class AuthService : IAuthService
         };
 
         var created = await _userRepository.CreateAsync(user, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(inviteCode) && _familyService != null)
+        {
+            await _familyService.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
+        }
+
         return GenerateAuthResponse(created);
     }
 

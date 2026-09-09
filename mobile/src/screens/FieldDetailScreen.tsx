@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { usePreferences } from '../context/PreferencesContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
@@ -37,6 +38,7 @@ import FieldRecentChronologio from '../components/fields/FieldRecentChronologio'
 import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
+import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import ChronologioScreen from './ChronologioScreen';
 import { spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
@@ -52,7 +54,8 @@ const FieldDetailScreen = () => {
   const { isFieldOwner, user } = useAuth();
   const capture = useCaptureOptional();
   const { colors, tapMin } = useTheme();
-  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
+  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings']);
+  const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
 
   const [field, setField] = useState<Field | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -60,6 +63,7 @@ const FieldDetailScreen = () => {
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
 
   const mode: FieldMode = modeParam === 'chronologio' ? 'chronologio' : 'overview';
 
@@ -203,6 +207,31 @@ const FieldDetailScreen = () => {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.overview} showsVerticalScrollIndicator={false}>
+          <FieldDetailMap field={field} height={isEveryday ? 240 : 340} />
+          {field.boundary && showWidget('fieldIntelligence') ? (
+            <FieldIntelligenceCard fieldId={field.id} />
+          ) : null}
+          {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+            everydayFieldPeek ? (
+              <FieldIntelligenceCard fieldId={field.id} />
+            ) : (
+              <Pressable
+                onPress={() => {
+                  setEverydayFieldPeek(true);
+                  void recordIntelligenceOpen();
+                }}
+                style={[
+                  styles.peekBtn,
+                  { borderColor: colors.borderLight, backgroundColor: colors.surface, minHeight: tapMin },
+                ]}
+                accessibilityRole="button"
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                  {t('settings:experience.peekMoreAboutField')}
+                </Text>
+              </Pressable>
+            )
+          ) : null}
           <FieldTodaySummary
             fieldId={field.id}
             tasks={tasks}
@@ -217,7 +246,6 @@ const FieldDetailScreen = () => {
             onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id })}
           />
           <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setMode('chronologio')} />
-          <FieldDetailMap field={field} height={220} showDataLayers={false} />
           <FieldFacts field={field} />
         </ScrollView>
       )}
@@ -251,6 +279,12 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: spacing['3xl'],
+  },
+  peekBtn: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
   },
 });
 

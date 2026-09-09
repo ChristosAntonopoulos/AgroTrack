@@ -4,54 +4,88 @@ import {
   HarvestRecord,
   ProfitLossData,
   FieldComparisonRow,
+  MonthlyWeatherReport,
+  YearlyWeatherReport,
+  FieldMonthlyWeather,
+  FieldYearlyOperations,
+  DailyWeatherRow,
+  ReportInsight,
 } from '../data/mockReportData';
 import { CATEGORY_TO_PNL_KEY, FINANCIAL_CATEGORIES } from '../data/financialCategories';
 
-const seasonParams = (season?: string) => (season ? { params: { season } } : undefined);
+const seasonParams = (season?: string, extra?: Record<string, string | number | undefined>) => ({
+  params: { season, ...extra },
+});
+
+const asInsights = (raw?: Array<{ code: string; count?: number; value?: number }>): ReportInsight[] =>
+  (raw ?? []).map((item) => ({
+    code: item.code,
+    count: item.count,
+    value: item.value,
+  }));
 
 export const reportsService = {
   getFieldSummaries: async (season?: string): Promise<FieldSummaryData[]> => {
     const response = await api.get<Array<{
       fieldId: string;
       fieldName: string;
+      location?: string;
       areaHa: number;
+      treeCount?: number;
       variety?: string;
       treeAge?: number;
+      irrigationType?: string;
+      soilType?: string;
+      lastPruningDate?: string;
+      lastHarvestDate?: string;
       tasksCompleted: number;
       tasksPending: number;
       tasksOverdue: number;
       totalCost: number;
+      costPerHa?: number;
+      revenue?: number;
+      profit?: number;
       totalProductionKg: number;
       yieldPerHa: number;
+      yieldPerTree?: number;
+      oilProducedKg?: number;
+      oilYieldPercent?: number;
     }>>('/api/v1/reports/field-summaries', seasonParams(season));
 
-    return response.data.map((row) => ({
-      fieldId: row.fieldId,
-      fieldName: row.fieldName,
-      location: '',
-      areaHa: row.areaHa,
-      treeCount: 0,
-      treeAge: row.treeAge ?? 0,
-      variety: row.variety ?? '',
-      productionType: 'Oil' as const,
-      irrigationType: '',
-      soilType: '',
-      lastPruningDate: '',
-      lastSoilAnalysis: '',
-      lastHarvestDate: '',
-      tasksCompleted: row.tasksCompleted,
-      tasksPending: row.tasksPending,
-      tasksOverdue: row.tasksOverdue,
-      totalProductionKg: row.totalProductionKg,
-      yieldPerTree: 0,
-      yieldPerHa: row.yieldPerHa,
-      totalCost: Number(row.totalCost),
-      costPerHa: row.areaHa > 0 ? Number(row.totalCost) / row.areaHa : 0,
-      revenue: 0,
-      profit: -Number(row.totalCost),
-      issues: [],
-      recommendations: [],
-    }));
+    return response.data.map((row) => {
+      const totalCost = Number(row.totalCost) || 0;
+      const revenue = Number(row.revenue) || 0;
+      const profit = row.profit != null ? Number(row.profit) : revenue - totalCost;
+      return {
+        fieldId: row.fieldId,
+        fieldName: row.fieldName,
+        location: row.location ?? '',
+        areaHa: Number(row.areaHa) || 0,
+        treeCount: row.treeCount ?? 0,
+        treeAge: row.treeAge ?? 0,
+        variety: row.variety ?? '',
+        productionType: 'Oil' as const,
+        irrigationType: row.irrigationType ?? '',
+        soilType: row.soilType ?? '',
+        lastPruningDate: row.lastPruningDate ?? '',
+        lastSoilAnalysis: '',
+        lastHarvestDate: row.lastHarvestDate ?? '',
+        tasksCompleted: row.tasksCompleted,
+        tasksPending: row.tasksPending,
+        tasksOverdue: row.tasksOverdue,
+        totalProductionKg: row.totalProductionKg,
+        yieldPerTree: row.yieldPerTree ?? 0,
+        yieldPerHa: row.yieldPerHa,
+        totalCost,
+        costPerHa: row.costPerHa != null ? Number(row.costPerHa) : (row.areaHa > 0 ? totalCost / row.areaHa : 0),
+        revenue,
+        profit,
+        oilProducedKg: row.oilProducedKg,
+        oilYieldPercent: row.oilYieldPercent,
+        issues: [],
+        recommendations: [],
+      };
+    });
   },
 
   getHarvestRecords: async (season?: string): Promise<HarvestRecord[]> => {
@@ -191,4 +225,50 @@ export const reportsService = {
       issueCount: s.issues.length || undefined,
     }));
   },
+
+  getMonthlyWeather: async (season?: string, month?: number): Promise<MonthlyWeatherReport> => {
+    const response = await api.get<MonthlyWeatherReport>(
+      '/api/v1/reports/weather-month',
+      seasonParams(season, { month })
+    );
+    return {
+      season: response.data.season,
+      month: response.data.month,
+      fields: (response.data.fields ?? []).map(mapMonthlyField),
+    };
+  },
+
+  getYearlyWeather: async (season?: string): Promise<YearlyWeatherReport> => {
+    const response = await api.get<YearlyWeatherReport>('/api/v1/reports/weather-year', seasonParams(season));
+    return {
+      season: response.data.season,
+      fields: (response.data.fields ?? []).map(mapYearlyField),
+    };
+  },
 };
+
+function mapMonthlyField(row: FieldMonthlyWeather): FieldMonthlyWeather {
+  return {
+    ...row,
+    days: (row.days ?? []).map((d: DailyWeatherRow) => ({
+      day: d.day,
+      minTemperatureC: d.minTemperatureC,
+      maxTemperatureC: d.maxTemperatureC,
+      rainTotalMm: d.rainTotalMm ?? 0,
+      et0Mm: d.et0Mm,
+    })),
+    insights: asInsights(row.insights),
+  };
+}
+
+function mapYearlyField(row: FieldYearlyOperations): FieldYearlyOperations {
+  return {
+    ...row,
+    monthlyRainMm: row.monthlyRainMm ?? Array(12).fill(0),
+    monthlyCost: row.monthlyCost ?? Array(12).fill(0),
+    monthlyRevenue: row.monthlyRevenue ?? Array(12).fill(0),
+    monthlyTasksCompleted: row.monthlyTasksCompleted ?? Array(12).fill(0),
+    tasksByType: row.tasksByType ?? [],
+    insights: asInsights(row.insights),
+  };
+}

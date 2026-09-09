@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleProvider';
 import { useTheme } from '../context/ThemeContext';
@@ -29,11 +29,16 @@ import './LoginPage.css';
 
 const SUPPORT_EMAIL = 'hello@oleachron.app';
 
+const safeNextPath = (value: string | null) =>
+  value && value.startsWith('/') && !value.startsWith('//') ? value : null;
+
 const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors', 'settings']);
   const { locale, setLocale } = useLocale();
   const { resolvedTheme, setTheme } = useTheme();
   const isDarkTheme = resolvedTheme === 'dark';
+  const [searchParams] = useSearchParams();
+  const redirectTo = safeNextPath(searchParams.get('redirect'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +48,10 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const navigateAfterLogin = (role: string) => {
+    if (redirectTo) {
+      navigate(redirectTo);
+      return;
+    }
     const prefs = settingsService.getPreferences();
     navigate(roleHomePath(role as AppRole, prefs.experienceModeChosen ? prefs.experienceMode : undefined));
   };
@@ -248,7 +257,15 @@ const LoginPage: React.FC = () => {
 
             <p className="login-register">
               {t('auth:login.noAccount')}{' '}
-              <Link to="/register">{t('auth:login.registerLink')}</Link>
+              <Link
+                to={
+                  redirectTo
+                    ? `/register?redirect=${encodeURIComponent(redirectTo)}`
+                    : '/register'
+                }
+              >
+                {t('auth:login.registerLink')}
+              </Link>
             </p>
           </div>
 

@@ -31,6 +31,8 @@ public class Field : BaseEntity
     public string? SoilType { get; set; }
     public string? Slope { get; set; }
     public string? AccessNotes { get; set; }
+    /// <summary>UI accent color as #RRGGBB. Used in Chronologio and field cards.</summary>
+    public string? Color { get; set; }
     public GreekCadastreInfo? GreekCadastre { get; set; }
     public List<FieldDocumentAttachment> Documents { get; set; } = new();
 

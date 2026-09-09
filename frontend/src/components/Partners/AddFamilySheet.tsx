@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import Button from '../Common/Button';
 import PartnersSheet from './PartnersSheet';
 import FamilySharePanel from './FamilySharePanel';
+import FamilyAccessFields from './FamilyAccessFields';
 import {
   CreateFamilyInvitePayload,
   DEFAULT_FAMILY_MODULES,
-  FAMILY_MODULES,
   FamilyAccessLevel,
   FamilyInviteShare,
   FamilyModule,
@@ -36,9 +36,11 @@ const AddFamilySheet: React.FC<Props> = ({ onClose, onCreated }) => {
     );
   };
 
+  const canSubmit = Boolean(name.trim() && (phone.trim() || email.trim()) && modules.length > 0);
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!name.trim() || (!phone.trim() && !email.trim()) || modules.length === 0) return;
+    if (!canSubmit) return;
     const payload: CreateFamilyInvitePayload = {
       displayName: name.trim(),
       phone: phone.trim() || undefined,
@@ -64,80 +66,66 @@ const AddFamilySheet: React.FC<Props> = ({ onClose, onCreated }) => {
       title={t('partners:family.addMember')}
       subtitle={invite ? t('partners:family.inviteReady') : t('partners:family.addHint')}
       onClose={onClose}
-    >
-      {invite ? (
-        <FamilySharePanel invite={invite} onDone={onClose} />
-      ) : (
-        <form className="partners-form" onSubmit={submit}>
-          <label>
-            <span>{t('partners:inviteName')}</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
-          </label>
-          <label>
-            <span>{t('partners:invitePhone')}</span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              autoComplete="tel"
-              inputMode="tel"
-            />
-          </label>
-          <label>
-            <span>{t('partners:inviteEmail')}</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-          </label>
-
-          <fieldset className="family-fieldset">
-            <legend>{t('partners:family.partsTitle')}</legend>
-            <p className="partners-inline-hint">{t('partners:family.partsHint')}</p>
-            <div className="partners-toggle-list" role="group">
-              {FAMILY_MODULES.map((module) => {
-                const on = modules.includes(module);
-                return (
-                  <label key={module} className={`partner-toggle ${on ? 'is-on' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() => toggleModule(module)}
-                    />
-                    <span>{t(`partners:family.modules.${module}`)}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <fieldset className="family-fieldset">
-            <legend>{t('partners:family.levelTitle')}</legend>
-            <div className="partners-toggle-list" role="radiogroup">
-              {(['view', 'help', 'work'] as FamilyAccessLevel[]).map((level) => (
-                <label key={level} className={`partner-toggle ${accessLevel === level ? 'is-on' : ''}`}>
-                  <input
-                    type="radio"
-                    name="family-level"
-                    checked={accessLevel === level}
-                    onChange={() => setAccessLevel(level)}
-                  />
-                  <span>{t(`partners:family.levels.${level}`)}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          {error ? <div className="error-message">{error}</div> : null}
+      footer={
+        invite ? undefined : (
           <div className="partners-sheet-actions">
-            <Button
-              type="submit"
-              loading={saving}
-              disabled={!name.trim() || (!phone.trim() && !email.trim()) || modules.length === 0}
-            >
-              {t('partners:createInvite')}
+            <Button type="submit" form="add-family-form" loading={saving} disabled={!canSubmit}>
+              {t('partners:family.sendInvite')}
             </Button>
             <Button type="button" variant="ghost" onClick={onClose}>
               {t('common:cancel')}
             </Button>
           </div>
+        )
+      }
+    >
+      {invite ? (
+        <FamilySharePanel invite={invite} onDone={onClose} />
+      ) : (
+        <form id="add-family-form" className="partners-form family-invite-form" onSubmit={submit}>
+          <div className="family-form-section">
+            <label>
+              <span>{t('partners:inviteName')}</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                autoFocus
+                required
+              />
+            </label>
+            <div className="partners-form-row">
+              <label>
+                <span>{t('partners:invitePhone')}</span>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
+                  inputMode="tel"
+                />
+              </label>
+              <label>
+                <span>{t('partners:inviteEmail')}</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </label>
+            </div>
+            <p className="family-form-hint">{t('partners:family.contactHint')}</p>
+          </div>
+
+          <FamilyAccessFields
+            modules={modules}
+            accessLevel={accessLevel}
+            onToggleModule={toggleModule}
+            onSetLevel={setAccessLevel}
+          />
+
+          {error ? <div className="error-message">{error}</div> : null}
         </form>
       )}
     </PartnersSheet>

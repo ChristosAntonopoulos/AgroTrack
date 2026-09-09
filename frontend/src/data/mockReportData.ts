@@ -1,8 +1,4 @@
-export type ReportTypeId =
-  | 'field-summary'
-  | 'production-harvest'
-  | 'profit-loss'
-  | 'field-comparison';
+export type ReportTypeId = 'weather-month' | 'weather-year' | 'year-overview';
 
 export interface FieldSummaryData {
   fieldId: string;
@@ -121,10 +117,9 @@ export const REPORT_TYPES: {
   icon: string;
   default?: boolean;
 }[] = [
-  { id: 'field-summary', icon: 'leaf', default: true },
-  { id: 'production-harvest', icon: 'wheat' },
-  { id: 'profit-loss', icon: 'euro' },
-  { id: 'field-comparison', icon: 'bar-chart' },
+  { id: 'weather-month', icon: 'cloud-rain', default: true },
+  { id: 'weather-year', icon: 'cloud-sun' },
+  { id: 'year-overview', icon: 'leaf' },
 ];
 
 export const MOCK_FIELD_SUMMARIES: FieldSummaryData[] = [
@@ -200,45 +195,6 @@ export const MOCK_FIELD_SUMMARIES: FieldSummaryData[] = [
       'Apply preventive copper spray in spring',
     ],
   },
-  {
-    fieldId: 'field3',
-    fieldName: 'East Hill Plantation',
-    location: 'Messenia, Greece',
-    areaHa: 15.7,
-    treeCount: 520,
-    treeAge: 20,
-    variety: 'Picual',
-    productionType: 'Both',
-    irrigationType: 'Drip',
-    soilType: 'Loam',
-    lastPruningDate: '2024-11-10',
-    lastSoilAnalysis: '2025-01-20',
-    lastHarvestDate: '2025-10-15',
-    tasksCompleted: 52,
-    tasksPending: 12,
-    tasksOverdue: 6,
-    totalProductionKg: 3900,
-    yieldPerTree: 7.5,
-    yieldPerHa: 248,
-    totalCost: 4120,
-    costPerHa: 262,
-    revenue: 5520,
-    profit: 1400,
-    oilProducedKg: 620,
-    oilYieldPercent: 15.9,
-    issues: [
-      'High pest pressure from olive moth',
-      'Soil analysis overdue',
-      '6 overdue pruning tasks',
-      'Water usage 18% above average',
-    ],
-    recommendations: [
-      'Priority pest management program for next season',
-      'Schedule soil analysis before spring fertilization',
-      'Complete overdue pruning by end of March',
-      'Audit drip lines for leaks',
-    ],
-  },
 ];
 
 export const MOCK_HARVEST_RECORDS: HarvestRecord[] = [
@@ -278,31 +234,13 @@ export const MOCK_HARVEST_RECORDS: HarvestRecord[] = [
     rejectedKg: 42,
     notes: 'Fewer olives than last year but higher oil yield — lower fruit load, better oil accumulation.',
   },
-  {
-    fieldId: 'field3',
-    fieldName: 'East Hill Plantation',
-    harvestDate: '2025-10-15',
-    harvestMethod: 'Hand harvest',
-    workersUsed: 18,
-    oliveKg: 3900,
-    kgPerTree: 7.5,
-    kgPerHa: 248,
-    millName: 'Peloponnese Olive Mill',
-    deliveryTime: '5 hours',
-    oilKg: 620,
-    oilYieldPercent: 15.9,
-    oilAcidity: 0.45,
-    qualityGrade: 'Virgin',
-    rejectedKg: 210,
-    notes: 'Pest damage affected quality. Consider earlier harvest next year.',
-  },
 ];
 
 export const MOCK_PROFIT_LOSS: ProfitLossData = {
   season: '2025',
   income: {
-    oliveOilSales: 10800,
-    tableOliveSales: 1200,
+    oliveOilSales: 14000,
+    tableOliveSales: 800,
     bulkOliveSales: 400,
     subsidies: 400,
     other: 0,
@@ -324,9 +262,9 @@ export const MOCK_PROFIT_LOSS: ProfitLossData = {
     agronomist: 200,
     other: 150,
   },
-  totalIncome: 12800,
-  totalExpenses: 5450,
-  netProfit: 7350,
+  totalIncome: 15600,
+  totalExpenses: 5380,
+  netProfit: 10220,
   costPerKgOlives: 0.42,
   costPerKgOil: 2.65,
   revenuePerKgOil: 7.8,
@@ -336,7 +274,6 @@ export const MOCK_PROFIT_LOSS: ProfitLossData = {
   profitByField: [
     { fieldId: 'field1', fieldName: 'North Olive Grove', profit: 5150, profitPerHa: 412 },
     { fieldId: 'field2', fieldName: 'South Valley Fields', profit: 5070, profitPerHa: 611 },
-    { fieldId: 'field3', fieldName: 'East Hill Plantation', profit: 1400, profitPerHa: 89 },
   ],
 };
 
@@ -371,30 +308,15 @@ export const MOCK_FIELD_COMPARISON: FieldComparisonRow[] = [
     pestPressure: 'Low',
     waterUsageM3: 310,
   },
-  {
-    fieldId: 'field3',
-    fieldName: 'East Hill Plantation',
-    oliveKg: 3900,
-    oilKg: 620,
-    oilYieldPercent: 15.9,
-    kgPerTree: 7.5,
-    kgPerHa: 248,
-    costPerHa: 262,
-    profitPerHa: 89,
-    tasksCompleted: 52,
-    issueCount: 4,
-    pestPressure: 'High',
-    waterUsageM3: 580,
-  },
 ];
 
 export const MOCK_COMPARISON_INSIGHTS: ComparisonInsights = {
   bestYieldField: 'South Valley Fields',
   bestOilYieldField: 'South Valley Fields',
   mostProfitableField: 'South Valley Fields',
-  mostExpensiveField: 'East Hill Plantation',
-  mostOverdueTasksField: 'East Hill Plantation',
-  highestPestField: 'East Hill Plantation',
+  mostExpensiveField: 'North Olive Grove',
+  mostOverdueTasksField: 'North Olive Grove',
+  highestPestField: 'North Olive Grove',
 };
 
 export const HARVEST_INSIGHT =
@@ -408,19 +330,225 @@ export function filterByFields<T extends { fieldId: string }>(
   return items.filter(item => selectedFieldIds.includes(item.fieldId));
 }
 
-export function formatCurrency(value: number): string {
-  return `€${value.toLocaleString('en-EU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+export type ReportInsight = { code: string; count?: number; value?: number };
+
+export interface DailyWeatherRow {
+  day: number;
+  minTemperatureC?: number;
+  maxTemperatureC?: number;
+  rainTotalMm: number;
+  et0Mm?: number;
 }
 
-export function formatNumber(value: number | undefined, decimals = 0): string {
+export interface FieldMonthlyWeather {
+  fieldId: string;
+  fieldName: string;
+  location: string;
+  areaHa: number;
+  dayCount: number;
+  rainTotalMm: number;
+  avgMinTemperatureC?: number;
+  avgMaxTemperatureC?: number;
+  minTemperatureC?: number;
+  maxTemperatureC?: number;
+  frostNights: number;
+  heatDays: number;
+  heavyRainDays: number;
+  dryDays: number;
+  rainyDays: number;
+  longestDryStreakDays: number;
+  rainVsPreviousPercent?: number;
+  et0TotalMm: number;
+  waterBalanceMm: number;
+  ndviMean?: number;
+  ndviDeltaPercent?: number;
+  days: DailyWeatherRow[];
+  insights: ReportInsight[];
+}
+
+export interface MonthlyWeatherReport {
+  season: string;
+  month: number;
+  fields: FieldMonthlyWeather[];
+}
+
+export interface TaskTypeCount {
+  type: string;
+  completed: number;
+  total: number;
+  cost: number;
+}
+
+export interface FieldYearlyOperations {
+  fieldId: string;
+  fieldName: string;
+  location: string;
+  areaHa: number;
+  rainTotalMm: number;
+  minTemperatureC?: number;
+  maxTemperatureC?: number;
+  frostNights: number;
+  heatDays: number;
+  heavyRainDays: number;
+  longestDryStreakDays: number;
+  wettestMonth?: number;
+  rainVsPreviousPercent?: number;
+  ndviMean?: number;
+  monthlyRainMm: number[];
+  totalCost: number;
+  revenue: number;
+  profit: number;
+  costPerHa: number;
+  monthlyCost: number[];
+  monthlyRevenue: number[];
+  tasksCompleted: number;
+  tasksPending: number;
+  tasksOverdue: number;
+  monthlyTasksCompleted: number[];
+  tasksByType: TaskTypeCount[];
+  insights: ReportInsight[];
+}
+
+export interface YearlyWeatherReport {
+  season: string;
+  fields: FieldYearlyOperations[];
+}
+
+function mockMonthDays(rainPeakDay = 12): DailyWeatherRow[] {
+  return Array.from({ length: 31 }, (_, i) => {
+    const day = i + 1;
+    const rain = day === rainPeakDay ? 28 : day % 7 === 0 ? 4.5 : day % 5 === 0 ? 1.2 : 0;
+    return {
+      day,
+      minTemperatureC: 6 + (day % 4) * 0.5,
+      maxTemperatureC: 16 + (day % 5),
+      rainTotalMm: rain,
+      et0Mm: 1.4 + (day % 3) * 0.2,
+    };
+  });
+}
+
+export const MOCK_MONTHLY_WEATHER: MonthlyWeatherReport = {
+  season: '2024',
+  month: 3,
+  fields: [
+    {
+      fieldId: 'field1',
+      fieldName: 'North Olive Grove',
+      location: 'Messenia',
+      areaHa: 12.5,
+      dayCount: 31,
+      rainTotalMm: 86.4,
+      avgMinTemperatureC: 7.2,
+      avgMaxTemperatureC: 17.8,
+      minTemperatureC: 2.1,
+      maxTemperatureC: 24.6,
+      frostNights: 0,
+      heatDays: 0,
+      heavyRainDays: 2,
+      dryDays: 18,
+      rainyDays: 13,
+      longestDryStreakDays: 9,
+      rainVsPreviousPercent: 22,
+      et0TotalMm: 54.2,
+      waterBalanceMm: 32.2,
+      ndviMean: 0.412,
+      ndviDeltaPercent: 8.5,
+      days: mockMonthDays(12),
+      insights: [
+        { code: 'heavyRain', count: 2 },
+        { code: 'wetter', value: 22 },
+        { code: 'waterSurplus', value: 32 },
+      ],
+    },
+  ],
+};
+
+export const MOCK_YEARLY_WEATHER: YearlyWeatherReport = {
+  season: '2024',
+  fields: [
+    {
+      fieldId: 'field1',
+      fieldName: 'North Olive Grove',
+      location: 'Messenia',
+      areaHa: 12.5,
+      rainTotalMm: 612.4,
+      minTemperatureC: -1.2,
+      maxTemperatureC: 38.4,
+      frostNights: 4,
+      heatDays: 18,
+      heavyRainDays: 7,
+      longestDryStreakDays: 24,
+      wettestMonth: 11,
+      rainVsPreviousPercent: -12,
+      ndviMean: 0.388,
+      monthlyRainMm: [82, 64, 86, 41, 22, 8, 2, 4, 18, 54, 128, 103],
+      totalCost: 18400,
+      revenue: 24600,
+      profit: 6200,
+      costPerHa: 1472,
+      monthlyCost: [900, 1100, 2400, 1800, 900, 600, 400, 500, 1200, 2100, 4300, 2200],
+      monthlyRevenue: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1800, 16200, 6600],
+      tasksCompleted: 47,
+      tasksPending: 8,
+      tasksOverdue: 3,
+      monthlyTasksCompleted: [2, 4, 8, 6, 4, 3, 2, 2, 3, 5, 6, 2],
+      tasksByType: [
+        { type: 'Pruning', completed: 6, total: 6, cost: 2400 },
+        { type: 'Spray', completed: 9, total: 11, cost: 1800 },
+        { type: 'Harvest', completed: 4, total: 4, cost: 6200 },
+      ],
+      insights: [
+        { code: 'frost', count: 4 },
+        { code: 'heat', count: 18 },
+        { code: 'dryStreak', count: 24 },
+        { code: 'overdueTasks', count: 3 },
+        { code: 'profit', value: 6200 },
+      ],
+    },
+  ],
+};
+
+export function formatCurrency(value: number, locale = 'el-GR'): string {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `€${Math.round(value).toLocaleString()}`;
+  }
+}
+
+export function formatNumber(value: number | undefined, decimals = 0, locale = 'el-GR'): string {
   if (value == null || Number.isNaN(value)) return '—';
-  return value.toLocaleString('en-EU', {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
-export function formatPercent(value: number | undefined): string {
+export function formatPercent(value: number | undefined, locale = 'el-GR'): string {
   if (value == null || Number.isNaN(value)) return '—';
-  return `${value.toFixed(1)}%`;
+  return `${formatNumber(value, 1, locale)}%`;
+}
+
+export function formatHa(value: number | undefined, locale = 'el-GR'): string {
+  return `${formatNumber(value, 2, locale)} ha`;
+}
+
+export function formatMm(value: number | undefined, locale = 'el-GR'): string {
+  return `${formatNumber(value, 1, locale)} mm`;
+}
+
+export function formatTemp(value: number | undefined, locale = 'el-GR'): string {
+  if (value == null || Number.isNaN(value)) return '—';
+  return `${formatNumber(value, 1, locale)} °C`;
+}
+
+export function displayOrDash(value: string | number | null | undefined): string {
+  if (value == null || value === '') return '—';
+  return String(value);
 }

@@ -43,6 +43,7 @@ const RegisterScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const isLoading = Boolean(loading);
 
@@ -61,7 +62,13 @@ const RegisterScreen = () => {
     }
     try {
       setLoading(true);
-      await register({ email, password, firstName, lastName });
+      await register({
+        email,
+        password,
+        firstName,
+        lastName,
+        inviteCode: inviteCode.trim() || undefined,
+      });
     } catch (error: any) {
       Alert.alert(t('auth:register.failed'), error.message || t('auth:register.failed'));
     } finally {
@@ -170,6 +177,17 @@ const RegisterScreen = () => {
                   editable={!isLoading}
                   leftIcon={<LockIcon />}
                 />
+
+                <AuthTextField
+                  label={t('auth:register.inviteCode')}
+                  placeholder={t('auth:register.inviteCodePlaceholder')}
+                  value={inviteCode}
+                  onChangeText={(value) => setInviteCode(value.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                />
+                <Text style={styles.hint}>{t('auth:register.inviteCodeHint')}</Text>
 
                 <TouchableOpacity
                   style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}

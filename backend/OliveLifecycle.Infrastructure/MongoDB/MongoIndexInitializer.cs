@@ -192,6 +192,9 @@ public class MongoIndexInitializer : IHostedService
                 Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Token),
                 new CreateIndexOptions { Unique = true }));
             familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
+                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Code),
+                new CreateIndexOptions { Unique = true, Sparse = true }));
+            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
                 Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.CircleId).Ascending(i => i.Status)));
 
             EnsureGeospatialIndexes();
@@ -228,6 +231,20 @@ public class MongoIndexInitializer : IHostedService
             Builders<FieldDailyWeatherSnapshotDocument>.IndexKeys
                 .Ascending(s => s.FieldId)
                 .Ascending(s => s.Date),
+            new CreateIndexOptions { Unique = true }));
+
+        // One compiled review per field + period (month yyyyMM or year yyyy); Id is the upsert key.
+        var weatherReviews = _context.GetCollection<FieldWeatherPeriodReviewDocument>("field_weather_period_reviews");
+        weatherReviews.Indexes.CreateOne(new CreateIndexModel<FieldWeatherPeriodReviewDocument>(
+            Builders<FieldWeatherPeriodReviewDocument>.IndexKeys
+                .Ascending(r => r.FieldId)
+                .Descending(r => r.OccurredAt)));
+        weatherReviews.Indexes.CreateOne(new CreateIndexModel<FieldWeatherPeriodReviewDocument>(
+            Builders<FieldWeatherPeriodReviewDocument>.IndexKeys
+                .Ascending(r => r.FieldId)
+                .Ascending(r => r.PeriodType)
+                .Ascending(r => r.Year)
+                .Ascending(r => r.Month),
             new CreateIndexOptions { Unique = true }));
 
         var observations = _context.GetCollection<FieldSatelliteObservationDocument>("field_satellite_observations");

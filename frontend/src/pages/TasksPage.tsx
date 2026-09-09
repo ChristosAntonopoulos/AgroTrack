@@ -26,8 +26,8 @@ import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import EmptyState from '../components/Common/EmptyState';
-import TaskCard from '../components/Task/TaskCard';
 import TasksBoardView from '../components/Task/TasksBoardView';
+import TasksCategoryBrowse from '../components/Task/TasksCategoryBrowse';
 import {
   AlertCircle,
   CalendarClock,
@@ -101,6 +101,11 @@ const TasksPage: React.FC = () => {
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((f) => [f.id, f.name])),
+    [fields]
+  );
+
+  const fieldColors = useMemo(
+    () => Object.fromEntries(fields.map((f) => [f.id, f.color ?? null])),
     [fields]
   );
 
@@ -357,17 +362,17 @@ const TasksPage: React.FC = () => {
                 description={t('tasks:emptySearchDescription')}
               />
             ) : !isEveryday && viewMode === 'board' ? (
-              <TasksBoardView tasks={filteredTasks} fieldNames={fieldNames} />
+              <TasksBoardView
+                tasks={filteredTasks}
+                fieldNames={fieldNames}
+                fieldColors={fieldColors}
+              />
             ) : (
-              <div className="tasks-grid">
-                {filteredTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    fieldName={fieldNames[task.fieldId] || task.fieldId}
-                  />
-                ))}
-              </div>
+              <TasksCategoryBrowse
+                tasks={filteredTasks}
+                fieldNames={fieldNames}
+                fieldColors={fieldColors}
+              />
             )}
           </>
         )}

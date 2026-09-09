@@ -28,9 +28,23 @@ public class FamilyInviteRepository
         string token,
         CancellationToken cancellationToken = default)
     {
-        var document = await Collection
-            .Find(i => i.Token == token)
-            .FirstOrDefaultAsync(cancellationToken);
+        var raw = (token ?? string.Empty).Trim();
+        if (raw.Length == 0)
+        {
+            return null;
+        }
+
+        var tokenLower = raw.ToLowerInvariant();
+        var code = FamilyInviteCodes.Normalize(raw);
+        var filter = Builders<FamilyInviteDocument>.Filter.Eq(i => i.Token, tokenLower);
+        if (code.Length == FamilyInviteCodes.Length)
+        {
+            filter = Builders<FamilyInviteDocument>.Filter.Or(
+                filter,
+                Builders<FamilyInviteDocument>.Filter.Eq(i => i.Code, code));
+        }
+
+        var document = await Collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
         return document == null ? null : ToEntity(document);
     }
 

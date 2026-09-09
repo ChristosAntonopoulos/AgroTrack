@@ -36,5 +36,9 @@ public class UpdateFieldDto
     public string? Slope { get; set; }
     public string? AccessNotes { get; set; }
 
+    /// <summary>UI accent as #RRGGBB.</summary>
+    [RegularExpression("^#[0-9A-Fa-f]{6}$")]
+    public string? Color { get; set; }
+
     public GreekCadastreInfoDto? GreekCadastre { get; set; }
 }

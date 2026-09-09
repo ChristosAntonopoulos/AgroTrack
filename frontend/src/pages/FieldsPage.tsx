@@ -232,6 +232,15 @@ const FieldsPage: React.FC = () => {
                   />
                 ) : viewMode === 'map' ? (
                   <div className="fields-split">
+                    <div className="fields-split-map">
+                      <FieldsMap
+                        fields={filteredFields}
+                        selectedFieldId={selectedFieldId || undefined}
+                        onFieldSelect={(fieldId) => setSelectedFieldId(fieldId)}
+                        onFieldPress={(fieldId) => navigate(`/fields/${fieldId}`)}
+                        heightPx={560}
+                      />
+                    </div>
                     <div className="fields-split-list">
                       {filteredFields.map((field) => (
                         <FieldCard
@@ -242,15 +251,6 @@ const FieldsPage: React.FC = () => {
                           selected={selectedFieldId === field.id}
                         />
                       ))}
-                    </div>
-                    <div className="fields-split-map">
-                      <FieldsMap
-                        fields={filteredFields}
-                        selectedFieldId={selectedFieldId || undefined}
-                        onFieldSelect={(fieldId) => setSelectedFieldId(fieldId)}
-                        onFieldPress={(fieldId) => navigate(`/fields/${fieldId}`)}
-                        heightPx={560}
-                      />
                     </div>
                   </div>
                 ) : (

@@ -22,6 +22,7 @@ public class FieldSpatialController : BaseApiController
     private readonly IFieldRepository _fieldRepository;
     private readonly IFieldSpatialProfileService _spatialProfileService;
     private readonly IWeatherIntelligenceService _weatherService;
+    private readonly IWeatherReviewCompiler _weatherReviewCompiler;
     private readonly IFieldDailyWeatherSnapshotRepository _snapshotRepository;
     private readonly IFieldEnvironmentalAlertRepository _alertRepository;
     private readonly IFieldSatelliteObservationRepository _satelliteRepository;
@@ -35,6 +36,7 @@ public class FieldSpatialController : BaseApiController
         IFieldRepository fieldRepository,
         IFieldSpatialProfileService spatialProfileService,
         IWeatherIntelligenceService weatherService,
+        IWeatherReviewCompiler weatherReviewCompiler,
         IFieldDailyWeatherSnapshotRepository snapshotRepository,
         IFieldEnvironmentalAlertRepository alertRepository,
         IFieldSatelliteObservationRepository satelliteRepository,
@@ -48,6 +50,7 @@ public class FieldSpatialController : BaseApiController
         _fieldRepository = fieldRepository;
         _spatialProfileService = spatialProfileService;
         _weatherService = weatherService;
+        _weatherReviewCompiler = weatherReviewCompiler;
         _snapshotRepository = snapshotRepository;
         _alertRepository = alertRepository;
         _satelliteRepository = satelliteRepository;
@@ -186,6 +189,18 @@ public class FieldSpatialController : BaseApiController
         await RequireFieldAccess(fieldId, ct);
         await _jobQueue.EnqueueFieldHistoryBackfillAsync(fieldId, ct);
         return Accepted();
+    }
+
+    /// <summary>
+    /// Recompiles month/year weather review cards from already-stored snapshots
+    /// (no external API calls). Useful after backfill finished or for existing fields.
+    /// </summary>
+    [HttpPost("weather-reviews/rebuild")]
+    public async Task<IActionResult> RebuildWeatherReviews(string fieldId, CancellationToken ct)
+    {
+        await RequireFieldAccess(fieldId, ct);
+        var written = await _weatherReviewCompiler.RebuildForFieldAsync(fieldId, ct);
+        return Ok(new { fieldId, written });
     }
 
     [HttpGet("map-data")]

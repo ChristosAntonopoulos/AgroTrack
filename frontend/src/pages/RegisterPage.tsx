@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleProvider';
 import { useTheme } from '../context/ThemeContext';
@@ -22,22 +22,30 @@ import {
   Globe,
   Sun,
   Moon,
+  Ticket,
 } from 'lucide-react';
 import './LoginPage.css';
 import './RegisterPage.css';
 
 const MIN_PASSWORD_LENGTH = 8;
 
+const safeNextPath = (value: string | null) =>
+  value && value.startsWith('/') && !value.startsWith('//') ? value : null;
+
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors', 'settings']);
   const { locale, setLocale } = useLocale();
   const { resolvedTheme, setTheme } = useTheme();
   const isDarkTheme = resolvedTheme === 'dark';
+  const [searchParams] = useSearchParams();
+  const inviteFromQuery = searchParams.get('code') || '';
+  const redirectTo = safeNextPath(searchParams.get('redirect'));
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState(inviteFromQuery);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,7 +58,15 @@ const RegisterPage: React.FC = () => {
     setTheme(isDarkTheme ? 'light' : 'dark');
   };
 
-  const navigateAfterRegister = (userRole: string) => {
+  const navigateAfterRegister = (userRole: string, joinedFamily: boolean) => {
+    if (joinedFamily) {
+      navigate('/partners');
+      return;
+    }
+    if (redirectTo) {
+      navigate(redirectTo);
+      return;
+    }
     const prefs = settingsService.getPreferences();
     navigate(roleHomePath(userRole as AppRole, prefs.experienceModeChosen ? prefs.experienceMode : undefined));
   };
@@ -74,9 +90,9 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName);
+      await register(email, password, firstName, lastName, inviteCode.trim() || undefined);
       const stored = authService.getStoredUser();
-      navigateAfterRegister(stored?.role || 'FieldOwner');
+      navigateAfterRegister(stored?.role || 'FieldOwner', Boolean(inviteCode.trim()));
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('auth:register.failed'));
     } finally {
@@ -246,6 +262,24 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
 
+              <div className="login-field">
+                <label htmlFor="inviteCode">{t('auth:register.inviteCode')}</label>
+                <div className="login-input-wrap">
+                  <Ticket size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    type="text"
+                    id="inviteCode"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    placeholder={t('auth:register.inviteCodePlaceholder')}
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={loading}
+                  />
+                </div>
+                <p className="register-hint">{t('auth:register.inviteCodeHint')}</p>
+              </div>
+
               <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
                 {t('auth:register.button')}
               </Button>
@@ -253,7 +287,9 @@ const RegisterPage: React.FC = () => {
 
             <p className="login-register">
               {t('auth:register.hasAccount')}{' '}
-              <Link to="/login">{t('auth:register.loginLink')}</Link>
+              <Link to={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : '/login'}>
+                {t('auth:register.loginLink')}
+              </Link>
             </p>
           </div>
 

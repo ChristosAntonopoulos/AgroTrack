@@ -35,7 +35,7 @@ const FamilySection: React.FC<Props> = ({ circle, loading, canManage, onAdd, onC
             {t('partners:family.lead', { used: seatsUsed, max: seatsMax })}
           </p>
         </div>
-        {canAdd ? (
+        {canAdd && members.length > 0 ? (
           <Button onClick={onAdd} icon={<Plus size={18} aria-hidden />}>
             {t('partners:family.addMember')}
           </Button>
@@ -45,8 +45,8 @@ const FamilySection: React.FC<Props> = ({ circle, loading, canManage, onAdd, onC
       {!loading && members.length === 0 ? (
         <div className="family-empty">
           <p className="partners-inline-hint">{t('partners:family.empty')}</p>
-          {canManage ? (
-            <Button variant="outline" onClick={onAdd} icon={<Plus size={18} aria-hidden />}>
+          {canManage && canAdd ? (
+            <Button onClick={onAdd} icon={<Plus size={18} aria-hidden />}>
               {t('partners:family.addMember')}
             </Button>
           ) : null}

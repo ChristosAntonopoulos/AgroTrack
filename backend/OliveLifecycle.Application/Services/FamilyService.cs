@@ -86,6 +86,7 @@ public class FamilyService : IFamilyService
         var level = NormalizeLevel(dto.AccessLevel);
         var now = _clock.UtcNow;
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+        var code = await AllocateInviteCodeAsync(cancellationToken);
 
         var member = await _members.CreateAsync(new FamilyMember
         {
@@ -104,6 +105,7 @@ public class FamilyService : IFamilyService
         var invite = await _invites.CreateAsync(new FamilyInvite
         {
             Token = token,
+            Code = code,
             CircleId = circle.Id,
             MemberId = member.Id,
             OwnerUserId = ownerUserId,
@@ -454,6 +456,14 @@ public class FamilyService : IFamilyService
                 && !string.IsNullOrEmpty(member.InviteId))
             {
                 pending = await _invites.GetByIdAsync(member.InviteId, cancellationToken);
+                if (pending != null
+                    && string.Equals(pending.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase)
+                    && string.IsNullOrWhiteSpace(pending.Code))
+                {
+                    pending.Code = await AllocateInviteCodeAsync(cancellationToken);
+                    pending.UpdatedAt = _clock.UtcNow;
+                    await _invites.UpdateAsync(pending, cancellationToken);
+                }
             }
 
             dtos.Add(ToMemberDto(member, pending, publicAppBaseUrl, ownerName));
@@ -515,9 +525,11 @@ public class FamilyService : IFamilyService
             ? "https://app.oleachron.local"
             : publicAppBaseUrl.TrimEnd('/');
         var shareUrl = $"{baseUrl}/family-invite/{invite.Token}";
+        var code = FamilyInviteCodes.FormatDisplay(invite.Code);
         var ownerLabel = string.IsNullOrWhiteSpace(ownerDisplayName) ? "Oleachron" : ownerDisplayName.Trim();
-        var message =
-            $"Σε προσκάλεσαν στην οικογένεια του {ownerLabel} στο Oleachron. Άνοιξε: {shareUrl}";
+        var message = string.IsNullOrWhiteSpace(code)
+            ? $"Σε προσκάλεσαν στην οικογένεια του {ownerLabel} στο Oleachron. Άνοιξε: {shareUrl}"
+            : $"Σε προσκάλεσαν στην οικογένεια του {ownerLabel} στο Oleachron. Κωδικός πρόσκλησης: {code}. Άνοιξε: {shareUrl} ή γράψε τον κωδικό στην εγγραφή.";
         var subject = "Πρόσκληση οικογένειας Oleachron";
         var mailto = string.IsNullOrWhiteSpace(invite.Email)
             ? $"mailto:?subject={Uri.EscapeDataString(subject)}&body={Uri.EscapeDataString(message)}"
@@ -530,6 +542,7 @@ public class FamilyService : IFamilyService
         {
             Id = invite.Id,
             Token = invite.Token,
+            Code = FamilyInviteCodes.FormatDisplay(invite.Code),
             MemberId = invite.MemberId,
             DisplayName = invite.DisplayName,
             Phone = invite.Phone,
@@ -588,6 +601,21 @@ public class FamilyService : IFamilyService
         }
 
         return value.Trim();
+    }
+
+    private async Task<string> AllocateInviteCodeAsync(CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var code = FamilyInviteCodes.Generate();
+            var existing = await _invites.GetByTokenAsync(code, cancellationToken);
+            if (existing == null)
+            {
+                return code;
+            }
+        }
+
+        throw new InvalidOperationException("Could not allocate a unique invitation code.");
     }
 
     private static string? OwnerDisplayName(User? user)

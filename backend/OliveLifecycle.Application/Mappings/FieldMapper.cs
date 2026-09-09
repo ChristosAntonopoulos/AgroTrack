@@ -43,6 +43,7 @@ public static class FieldMapper
         Slope = field.Slope,
         AccessNotes = field.AccessNotes,
         GreekCadastre = field.GreekCadastre == null ? null : ToCadastreDto(field.GreekCadastre),
+        Color = field.Color,
         Documents = includeDocuments
             ? field.Documents.Select(ToDocumentDto).ToList()
             : new List<FieldDocumentAttachmentDto>()

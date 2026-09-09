@@ -1188,17 +1188,153 @@
   font-weight: 600;
 }
 
-.family-fieldset {
-  border: 1px solid color-mix(in srgb, var(--color-primary, #2d5016) 12%, var(--color-border, #d5d8d0));
-  border-radius: var(--radius-md, 10px);
-  padding: 0.75rem 0.9rem 0.9rem;
-  margin: 0.35rem 0;
+.family-form-section {
+  display: grid;
+  gap: 0.55rem;
 }
 
-.family-fieldset legend {
-  padding: 0 0.35rem;
+.family-form-label {
+  margin: 0;
+  font-size: 0.92rem;
   font-weight: 700;
-  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+
+.family-form-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.family-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.partners-form input.family-input-hidden {
+  position: absolute;
+  width: 1px;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  background: transparent;
+}
+
+.family-module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.family-module-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min, 44px);
+  padding: 0.45rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, #d5d8d0);
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-align: center;
+  color: inherit;
+}
+
+.partners-form label.family-module-chip {
+  flex-direction: row;
+  gap: 0;
+  font-size: 0.88rem;
+}
+
+.family-module-chip.is-on {
+  border-color: var(--color-primary, #2d5016);
+  background: color-mix(in srgb, var(--color-primary, #2d5016) 18%, #fff);
+  color: var(--color-primary, #2d5016);
+  font-weight: 750;
+}
+
+.family-module-chip:focus-within,
+.family-level-card:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--color-primary, #2d5016) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.family-level-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+}
+
+.family-level-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: var(--tap-min, 44px);
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid var(--color-border, #d5d8d0);
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.partners-form label.family-level-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.family-level-card strong {
+  font-size: 0.98rem;
+  font-weight: 750;
+}
+
+.family-level-card span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}
+
+.family-level-card.is-on {
+  border-color: var(--color-primary, #2d5016);
+  background: color-mix(in srgb, var(--color-primary, #2d5016) 8%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary, #2d5016) 35%, transparent);
+}
+
+.family-invite-form {
+  gap: 1.15rem;
+}
+
+@media (min-width: 520px) {
+  .family-level-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .family-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .family-qr-wrap {
@@ -1212,6 +1348,44 @@
   border: 1px solid var(--color-border, #d5d8d0);
   background: #fff;
   padding: 0.5rem;
+}
+
+.family-invite-code {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--bg-card));
+  text-align: center;
+}
+
+.family-invite-code-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.family-invite-code-value {
+  font-size: 1.65rem;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.family-invite-code-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.family-member-code {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
 }
 
 .family-share-actions {

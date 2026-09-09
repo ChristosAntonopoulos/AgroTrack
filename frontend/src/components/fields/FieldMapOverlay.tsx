@@ -14,6 +14,8 @@ interface Props {
   /** When set, the map shows a draggable seam between the two dates. */
   compareImageUrl?: string;
   compareBounds?: OverlayBounds;
+  leftLabel?: string;
+  rightLabel?: string;
 }
 
 interface ScreenRect {
@@ -68,6 +70,8 @@ const FieldMapOverlay: React.FC<Props> = ({
   opacity,
   compareImageUrl,
   compareBounds,
+  leftLabel,
+  rightLabel,
 }) => {
   const resolvedImageUrl = resolvePublicAssetUrl(imageUrl) ?? imageUrl;
   const resolvedCompareUrl = resolvePublicAssetUrl(compareImageUrl);
@@ -140,21 +144,39 @@ const FieldMapOverlay: React.FC<Props> = ({
   const seam =
     comparing && rect
       ? createPortal(
-          <div
-            className="field-map-seam"
-            style={{
-              left: rect.left + rect.width * split,
-              top: rect.top,
-              height: rect.height,
-            }}
-            onMouseDown={startDrag}
-            onTouchStart={startDrag}
-            role="separator"
-            aria-orientation="vertical"
-            aria-valuenow={Math.round(split * 100)}
-          >
-            <span className="field-map-seam-handle" aria-hidden="true" />
-          </div>,
+          <>
+            {leftLabel ? (
+              <div
+                className="field-map-seam-label field-map-seam-label--left"
+                style={{ left: rect.left + 8, top: rect.top + 8 }}
+              >
+                {leftLabel}
+              </div>
+            ) : null}
+            {rightLabel ? (
+              <div
+                className="field-map-seam-label field-map-seam-label--right"
+                style={{ left: rect.left + rect.width - 8, top: rect.top + 8 }}
+              >
+                {rightLabel}
+              </div>
+            ) : null}
+            <div
+              className="field-map-seam"
+              style={{
+                left: rect.left + rect.width * split,
+                top: rect.top,
+                height: rect.height,
+              }}
+              onMouseDown={startDrag}
+              onTouchStart={startDrag}
+              role="separator"
+              aria-orientation="vertical"
+              aria-valuenow={Math.round(split * 100)}
+            >
+              <span className="field-map-seam-handle" aria-hidden="true" />
+            </div>
+          </>,
           map.getContainer()
         )
       : null;

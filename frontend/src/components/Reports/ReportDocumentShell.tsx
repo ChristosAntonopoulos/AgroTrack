@@ -1,5 +1,5 @@
 import React from 'react';
-import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import BrandLogo from '../Common/BrandLogo';
 import './ReportDocument.css';
 
@@ -7,6 +7,7 @@ interface ReportDocumentShellProps {
   title: string;
   subtitle?: string;
   season?: string;
+  periodLabel?: string;
   children: React.ReactNode;
   id?: string;
 }
@@ -15,32 +16,42 @@ const ReportDocumentShell: React.FC<ReportDocumentShellProps> = ({
   title,
   subtitle,
   season,
+  periodLabel,
   children,
   id,
-}) => (
-  <div className="report-document" id={id}>
-    <div className="report-document-inner">
-      <header className="report-doc-header">
-        <div className="report-doc-brand">
-          <BrandLogo variant="horizontal" size="sm" className="report-doc-logo" />
-          <div className="report-doc-brand-text">
-            <h2>{title}</h2>
-            {subtitle && <p>{subtitle}</p>}
+}) => {
+  const { t, i18n } = useTranslation('reports');
+  const generated = new Date().toLocaleDateString(i18n.language, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return (
+    <div className="report-document" id={id}>
+      <div className="report-document-inner">
+        <header className="report-doc-header">
+          <div className="report-doc-brand">
+            <BrandLogo variant="horizontal" size="sm" className="report-doc-logo" />
+            <div className="report-doc-brand-text">
+              <h2>{title}</h2>
+              {subtitle && <p>{subtitle}</p>}
+            </div>
           </div>
-        </div>
-        <div className="report-doc-meta">
-          <strong>Oleachron</strong>
-          {season && <span>Season {season}</span>}
-          <span>Generated {format(new Date(), 'dd MMM yyyy')}</span>
-        </div>
-      </header>
-      {children}
-      <footer className="report-doc-footer">
-        <span>Oleachron — The story of every olive tree lives on</span>
-        <span>Confidential</span>
-      </footer>
+          <div className="report-doc-meta">
+            <strong>Oleachron</strong>
+            {periodLabel ? <span>{periodLabel}</span> : season ? <span>{t('seasonLabel', { season })}</span> : null}
+            <span>{t('generated')} {generated}</span>
+          </div>
+        </header>
+        {children}
+        <footer className="report-doc-footer">
+          <span>{t('brandLine')}</span>
+          <span>{t('confidential')}</span>
+        </footer>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default ReportDocumentShell;

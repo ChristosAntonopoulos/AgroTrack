@@ -192,6 +192,127 @@ public class FieldDailyWeatherSnapshotRepository : IFieldDailyWeatherSnapshotRep
     };
 }
 
+public class FieldWeatherPeriodReviewRepository : IFieldWeatherPeriodReviewRepository
+{
+    private readonly IMongoCollection<FieldWeatherPeriodReviewDocument> _collection;
+
+    public FieldWeatherPeriodReviewRepository(MongoDbContext context)
+        => _collection = context.GetCollection<FieldWeatherPeriodReviewDocument>("field_weather_period_reviews");
+
+    public async Task<IReadOnlyList<FieldWeatherPeriodReview>> GetByFieldIdsAsync(
+        IReadOnlyList<string> fieldIds,
+        DateTime? from,
+        DateTime? to,
+        CancellationToken cancellationToken = default)
+    {
+        if (fieldIds.Count == 0) return Array.Empty<FieldWeatherPeriodReview>();
+
+        var filter = Builders<FieldWeatherPeriodReviewDocument>.Filter.In(x => x.FieldId, fieldIds);
+        if (from.HasValue)
+        {
+            filter &= Builders<FieldWeatherPeriodReviewDocument>.Filter.Gte(x => x.OccurredAt, from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            filter &= Builders<FieldWeatherPeriodReviewDocument>.Filter.Lte(x => x.OccurredAt, to.Value);
+        }
+
+        var docs = await _collection.Find(filter).SortByDescending(x => x.OccurredAt).ToListAsync(cancellationToken);
+        return docs.Select(ToEntity).ToList();
+    }
+
+    public async Task<FieldWeatherPeriodReview?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var doc = await _collection.Find(x => x.Id == id).FirstOrDefaultAsync(cancellationToken);
+        return doc == null ? null : ToEntity(doc);
+    }
+
+    public async Task<FieldWeatherPeriodReview> UpsertAsync(FieldWeatherPeriodReview review, CancellationToken cancellationToken = default)
+    {
+        var doc = ToDocument(review);
+        await _collection.ReplaceOneAsync(x => x.Id == review.Id, doc, new ReplaceOptions { IsUpsert = true }, cancellationToken);
+        return review;
+    }
+
+    public async Task<int> UpsertManyAsync(IReadOnlyList<FieldWeatherPeriodReview> reviews, CancellationToken cancellationToken = default)
+    {
+        if (reviews.Count == 0) return 0;
+
+        var models = reviews.Select(review =>
+        {
+            var doc = ToDocument(review);
+            return new ReplaceOneModel<FieldWeatherPeriodReviewDocument>(
+                Builders<FieldWeatherPeriodReviewDocument>.Filter.Eq(x => x.Id, review.Id),
+                doc)
+            {
+                IsUpsert = true
+            };
+        }).ToList();
+
+        var result = await _collection.BulkWriteAsync(models, new BulkWriteOptions { IsOrdered = false }, cancellationToken);
+        return (int)(result.InsertedCount + result.ModifiedCount + result.Upserts.Count);
+    }
+
+    private static FieldWeatherPeriodReview ToEntity(FieldWeatherPeriodReviewDocument d) => new()
+    {
+        Id = d.Id,
+        FieldId = d.FieldId,
+        PeriodType = d.PeriodType,
+        Year = d.Year,
+        Month = d.Month,
+        OccurredAt = d.OccurredAt,
+        RainTotalMm = d.RainTotalMm,
+        MinTemperatureC = d.MinTemperatureC,
+        MaxTemperatureC = d.MaxTemperatureC,
+        FrostNights = d.FrostNights,
+        HeatDays = d.HeatDays,
+        HeavyRainDays = d.HeavyRainDays,
+        LongestDryStreakDays = d.LongestDryStreakDays,
+        RainVsPreviousPercent = d.RainVsPreviousPercent,
+        WettestMonth = d.WettestMonth,
+        NdviMean = d.NdviMean,
+        NdviDeltaPercent = d.NdviDeltaPercent,
+        RainSeries = d.RainSeries ?? new List<double>(),
+        RainLabels = d.RainLabels ?? new List<string>(),
+        DayCount = d.DayCount,
+        UsableSatelliteCount = d.UsableSatelliteCount,
+        WeatherProvider = d.WeatherProvider,
+        SatelliteSource = d.SatelliteSource,
+        CreatedAt = d.CreatedAt,
+        UpdatedAt = d.UpdatedAt
+    };
+
+    private static FieldWeatherPeriodReviewDocument ToDocument(FieldWeatherPeriodReview e) => new()
+    {
+        Id = e.Id,
+        FieldId = e.FieldId,
+        PeriodType = e.PeriodType,
+        Year = e.Year,
+        Month = e.Month,
+        OccurredAt = e.OccurredAt,
+        RainTotalMm = e.RainTotalMm,
+        MinTemperatureC = e.MinTemperatureC,
+        MaxTemperatureC = e.MaxTemperatureC,
+        FrostNights = e.FrostNights,
+        HeatDays = e.HeatDays,
+        HeavyRainDays = e.HeavyRainDays,
+        LongestDryStreakDays = e.LongestDryStreakDays,
+        RainVsPreviousPercent = e.RainVsPreviousPercent,
+        WettestMonth = e.WettestMonth,
+        NdviMean = e.NdviMean,
+        NdviDeltaPercent = e.NdviDeltaPercent,
+        RainSeries = e.RainSeries?.ToList() ?? new List<double>(),
+        RainLabels = e.RainLabels?.ToList() ?? new List<string>(),
+        DayCount = e.DayCount,
+        UsableSatelliteCount = e.UsableSatelliteCount,
+        WeatherProvider = e.WeatherProvider,
+        SatelliteSource = e.SatelliteSource,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt
+    };
+}
+
 public class FieldSatelliteObservationRepository : IFieldSatelliteObservationRepository
 {
     private readonly IMongoCollection<FieldSatelliteObservationDocument> _collection;

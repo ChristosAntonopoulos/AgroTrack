@@ -1,8 +1,23 @@
-.task-card-v2 {
+.task-card-v2-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.task-card-v2-link .accent-card.task-card-v2 {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   height: 100%;
+}
+
+.task-card-v2-link:hover .accent-card.task-card-v2 {
+  /* AccentCard interactive hover already; keep link chrome clean */
+}
+
+.task-card-v2.is-overdue {
+  --accent-secondary: color-mix(in srgb, var(--color-error, #c0392b) 70%, #3a6ea5);
 }
 
 .task-card-v2-top {
@@ -41,7 +56,7 @@
 
 .task-card-v2-template {
   display: inline-flex;
-  color: var(--color-primary);
+  color: var(--category-accent, #3a6ea5);
 }
 
 .task-card-v2-title {
@@ -78,6 +93,10 @@
   gap: 6px;
   font-size: 0.8rem;
   color: var(--color-text-secondary);
+}
+
+.task-card-v2-meta-item.accent-card-field-chip {
+  margin-top: 0;
 }
 
 .task-card-v2-meta-item--warn {

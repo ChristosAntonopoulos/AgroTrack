@@ -65,4 +65,34 @@ public class ReportsController : BaseApiController
             cancellationToken);
         return Ok(report);
     }
+
+    [HttpGet("weather-month")]
+    [Authorize(Policy = PolicyNames.RequireFieldOwner)]
+    public async Task<IActionResult> GetMonthlyWeather(
+        [FromQuery] string? season,
+        [FromQuery] int? month,
+        CancellationToken cancellationToken)
+    {
+        var report = await _reportsService.GetMonthlyWeatherAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            season,
+            month,
+            cancellationToken);
+        return Ok(report);
+    }
+
+    [HttpGet("weather-year")]
+    [Authorize(Policy = PolicyNames.RequireFieldOwner)]
+    public async Task<IActionResult> GetYearlyWeather(
+        [FromQuery] string? season,
+        CancellationToken cancellationToken)
+    {
+        var report = await _reportsService.GetYearlyWeatherAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            season,
+            cancellationToken);
+        return Ok(report);
+    }
 }

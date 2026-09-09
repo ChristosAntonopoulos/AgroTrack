@@ -44,9 +44,13 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   showDataLayers,
 }) => {
   const { colors } = useTheme();
-  const { showWidget, isEveryday } = usePreferences();
+  const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
   const { t } = useTranslation(['fields', 'common', 'settings']);
-  const allowDataLayers = showDataLayers ?? showWidget('mapLayerPanel');
+  const [layersPeeked, setLayersPeeked] = useState(false);
+  const allowDataLayers =
+    showDataLayers === false
+      ? false
+      : Boolean(showDataLayers) || showWidget('mapLayerPanel') || layersPeeked;
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [opacity, setOpacity] = useState(0.5);
@@ -243,6 +247,20 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         />
       ) : null}
     </View>
+    {showDataLayers !== false && isEveryday && !allowDataLayers ? (
+      <Pressable
+        onPress={() => {
+          setLayersPeeked(true);
+          void recordIntelligenceOpen();
+        }}
+        style={[styles.peekBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
+        accessibilityRole="button"
+      >
+        <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+          {t('settings:experience.peekMoreAboutField')}
+        </Text>
+      </Pressable>
+    ) : null}
     {overlayChips ? (
       <View style={styles.chipBlock}>
         <View style={styles.chipRow}>
@@ -341,6 +359,14 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.styles.bodySmall,
     textAlign: 'center',
+  },
+  peekBtn: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
   },
 });
 

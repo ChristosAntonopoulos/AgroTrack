@@ -12,6 +12,9 @@ public class FamilyInviteDocument
     [BsonElement("token")]
     public string Token { get; set; } = string.Empty;
 
+    [BsonElement("code")]
+    public string Code { get; set; } = string.Empty;
+
     [BsonElement("circleId")]
     public string CircleId { get; set; } = string.Empty;
 

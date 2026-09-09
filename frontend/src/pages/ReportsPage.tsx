@@ -14,24 +14,24 @@ import {
   FieldSummaryData,
   HarvestRecord,
   ProfitLossData,
-  FieldComparisonRow,
-  ComparisonInsights,
+  MonthlyWeatherReport,
+  YearlyWeatherReport,
   MOCK_FIELD_SUMMARIES,
   MOCK_HARVEST_RECORDS,
   MOCK_PROFIT_LOSS,
-  MOCK_FIELD_COMPARISON,
-  MOCK_COMPARISON_INSIGHTS,
+  MOCK_MONTHLY_WEATHER,
+  MOCK_YEARLY_WEATHER,
   filterByFields,
+  formatHa,
+  formatNumber,
 } from '../data/mockReportData';
-import FieldSummaryReportView from '../components/Reports/FieldSummaryReportView';
-import ProductionHarvestReportView from '../components/Reports/ProductionHarvestReportView';
-import ProfitLossReportView from '../components/Reports/ProfitLossReportView';
-import FieldComparisonReportView from '../components/Reports/FieldComparisonReportView';
+import MonthlyWeatherReportView from '../components/Reports/MonthlyWeatherReportView';
+import YearlyWeatherReportView from '../components/Reports/YearlyWeatherReportView';
+import YearOverviewReportView from '../components/Reports/YearOverviewReportView';
 import {
+  CloudRain,
+  CloudSun,
   Leaf,
-  Wheat,
-  Euro,
-  BarChart3,
   Download,
   FileText,
   FileSpreadsheet,
@@ -42,39 +42,39 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { format as formatDate } from 'date-fns';
+import { numberLocaleFor } from '../utils/fieldDisplay';
 import './ReportsPage.css';
 
 const REPORT_PREVIEW_ID = 'report-preview-document';
 const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_MONTH = new Date().getMonth() + 1;
 const SEASON_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map(String);
 
-const REPORT_META: Record<
-  ReportTypeId,
-  { icon: React.ReactNode; descriptionKey: string }
-> = {
-  'field-summary': {
+const REPORT_META: Record<ReportTypeId, { icon: React.ReactNode; descriptionKey: string; labelKey: string }> = {
+  'weather-month': {
+    icon: <CloudRain size={22} />,
+    descriptionKey: 'weatherMonthDesc',
+    labelKey: 'weatherMonth',
+  },
+  'weather-year': {
+    icon: <CloudSun size={22} />,
+    descriptionKey: 'weatherYearDesc',
+    labelKey: 'weatherYear',
+  },
+  'year-overview': {
     icon: <Leaf size={22} />,
-    descriptionKey: 'fieldSummaryDesc',
-  },
-  'production-harvest': {
-    icon: <Wheat size={22} />,
-    descriptionKey: 'productionHarvestDesc',
-  },
-  'profit-loss': {
-    icon: <Euro size={22} />,
-    descriptionKey: 'profitLossDesc',
-  },
-  'field-comparison': {
-    icon: <BarChart3 size={22} />,
-    descriptionKey: 'fieldComparisonDesc',
+    descriptionKey: 'yearOverviewDesc',
+    labelKey: 'yearOverview',
   },
 };
 
 const ReportsPage: React.FC = () => {
-  const { t } = useTranslation('reports');
+  const { t, i18n } = useTranslation('reports');
+  const locale = numberLocaleFor(i18n.language);
   const { user } = useAuth();
-  const [reportType, setReportType] = useState<ReportTypeId>('field-summary');
+  const [reportType, setReportType] = useState<ReportTypeId>('weather-month');
   const [season, setSeason] = useState(String(CURRENT_YEAR));
+  const [month, setMonth] = useState(CURRENT_MONTH);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -82,7 +82,8 @@ const ReportsPage: React.FC = () => {
   const [apiSummaries, setApiSummaries] = useState<FieldSummaryData[]>([]);
   const [apiHarvest, setApiHarvest] = useState<HarvestRecord[]>([]);
   const [apiProfitLoss, setApiProfitLoss] = useState<ProfitLossData | null>(null);
-  const [apiComparison, setApiComparison] = useState<FieldComparisonRow[]>([]);
+  const [apiMonthly, setApiMonthly] = useState<MonthlyWeatherReport | null>(null);
+  const [apiYearly, setApiYearly] = useState<YearlyWeatherReport | null>(null);
   const [reportsLoading, setReportsLoading] = useState(false);
 
   useEffect(() => {
@@ -93,22 +94,24 @@ const ReportsPage: React.FC = () => {
     if (!isMockMode()) {
       loadReportData();
     }
-  }, [season]);
+  }, [season, month]);
 
   const loadReportData = async () => {
     try {
       setReportsLoading(true);
       const reports = getReportsService();
-      const [summaries, harvest, profitLoss, comparison] = await Promise.all([
+      const [summaries, harvest, profitLoss, monthly, yearly] = await Promise.all([
         reports.getFieldSummaries(season),
         reports.getHarvestRecords(season),
         reports.getProfitLoss(season),
-        reports.getFieldComparison(season),
+        reports.getMonthlyWeather(season, month).catch(() => ({ season, month, fields: [] })),
+        reports.getYearlyWeather(season).catch(() => ({ season, fields: [] })),
       ]);
       setApiSummaries(summaries);
       setApiHarvest(harvest);
       setApiProfitLoss(profitLoss);
-      setApiComparison(comparison);
+      setApiMonthly(monthly);
+      setApiYearly(yearly);
     } catch (error) {
       console.error('Error loading reports:', error);
     } finally {
@@ -134,9 +137,7 @@ const ReportsPage: React.FC = () => {
 
   const handleFieldToggle = (fieldId: string) => {
     setSelectedFields(prev =>
-      prev.includes(fieldId)
-        ? prev.filter(id => id !== fieldId)
-        : [...prev, fieldId]
+      prev.includes(fieldId) ? prev.filter(id => id !== fieldId) : [...prev, fieldId]
     );
   };
 
@@ -145,21 +146,24 @@ const ReportsPage: React.FC = () => {
 
   const sourceSummaries = isMockMode() ? MOCK_FIELD_SUMMARIES : apiSummaries;
   const sourceHarvest = isMockMode() ? MOCK_HARVEST_RECORDS : apiHarvest;
-  const sourceComparison = isMockMode() ? MOCK_FIELD_COMPARISON : apiComparison;
+  const sourceMonthly = isMockMode() ? { ...MOCK_MONTHLY_WEATHER, season, month } : apiMonthly;
+  const sourceYearly = isMockMode() ? { ...MOCK_YEARLY_WEATHER, season } : apiYearly;
 
   const filteredSummaries = useMemo(
     () => filterByFields(sourceSummaries, selectedFields),
     [sourceSummaries, selectedFields]
   );
-
   const filteredHarvest = useMemo(
     () => filterByFields(sourceHarvest, selectedFields),
     [sourceHarvest, selectedFields]
   );
-
-  const filteredComparison = useMemo(
-    () => filterByFields(sourceComparison, selectedFields),
-    [sourceComparison, selectedFields]
+  const filteredMonthly = useMemo(
+    () => filterByFields(sourceMonthly?.fields ?? [], selectedFields),
+    [sourceMonthly, selectedFields]
+  );
+  const filteredYearly = useMemo(
+    () => filterByFields(sourceYearly?.fields ?? [], selectedFields),
+    [sourceYearly, selectedFields]
   );
 
   const filteredProfitLoss = useMemo(() => {
@@ -168,53 +172,14 @@ const ReportsPage: React.FC = () => {
       pl.profitByField = filterByFields(MOCK_PROFIT_LOSS.profitByField, selectedFields);
       return pl;
     }
-    if (!apiProfitLoss) {
-      return null;
-    }
+    if (!apiProfitLoss) return null;
     const pl = { ...apiProfitLoss };
     pl.profitByField = filterByFields(apiProfitLoss.profitByField, selectedFields);
     return pl;
   }, [apiProfitLoss, selectedFields]);
 
-  const comparisonInsights = useMemo((): ComparisonInsights => {
-    if (isMockMode()) {
-      return MOCK_COMPARISON_INSIGHTS;
-    }
-    if (filteredComparison.length === 0) {
-      return {
-        bestYieldField: '',
-        bestOilYieldField: '',
-        mostProfitableField: '',
-        mostExpensiveField: '',
-        mostOverdueTasksField: '',
-        highestPestField: '',
-      };
-    }
-    const bestYield = filteredComparison.reduce((a, b) => ((a.kgPerHa ?? 0) >= (b.kgPerHa ?? 0) ? a : b));
-    const bestOil = filteredComparison.reduce((a, b) => ((a.oilYieldPercent ?? 0) >= (b.oilYieldPercent ?? 0) ? a : b));
-    const mostProfitable = filteredComparison.reduce((a, b) => ((a.profitPerHa ?? 0) >= (b.profitPerHa ?? 0) ? a : b));
-    const mostExpensive = filteredComparison.reduce((a, b) => (a.costPerHa >= b.costPerHa ? a : b));
-    return {
-      bestYieldField: bestYield.fieldName,
-      bestOilYieldField: bestOil.fieldName,
-      mostProfitableField: mostProfitable.fieldName,
-      mostExpensiveField: mostExpensive.fieldName,
-      mostOverdueTasksField: filteredComparison[0]?.fieldName ?? '',
-      highestPestField: filteredComparison[0]?.fieldName ?? '',
-    };
-  }, [filteredComparison]);
-
-  const reportTitle = t(
-    reportType === 'field-summary'
-      ? 'fieldSummary'
-      : reportType === 'production-harvest'
-        ? 'productionHarvest'
-        : reportType === 'profit-loss'
-          ? 'profitLoss'
-          : 'fieldComparison'
-  );
-
-  const filename = `${reportType}-${season}-${formatDate(new Date(), 'yyyy-MM-dd')}`;
+  const reportTitle = t(REPORT_META[reportType].labelKey);
+  const filename = `${reportType}-${season}${reportType === 'weather-month' ? `-${String(month).padStart(2, '0')}` : ''}-${formatDate(new Date(), 'yyyy-MM-dd')}`;
 
   const exportPdf = useCallback(async () => {
     try {
@@ -231,82 +196,69 @@ const ReportsPage: React.FC = () => {
     let headers: string[] = [];
     let rows: (string | number)[][] = [];
 
-    switch (reportType) {
-      case 'field-summary':
-        headers = ['Field', 'Area (ha)', 'Trees', 'Olives (kg)', 'Oil (kg)', 'Oil Yield %', 'Cost', 'Revenue', 'Profit'];
-        rows = filteredSummaries.map(f => [
-          f.fieldName, f.areaHa, f.treeCount, f.totalProductionKg,
-          f.oilProducedKg ?? '', f.oilYieldPercent ?? '', f.totalCost, f.revenue, f.profit,
-        ]);
-        break;
-      case 'production-harvest':
-        headers = ['Field', 'Date', 'Olive Kg', 'Oil Kg', 'Oil Yield %', 'Kg/Tree', 'Kg/Ha', 'Mill', 'Quality'];
-        rows = filteredHarvest.map(r => [
-          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg ?? '', r.oilYieldPercent ?? '',
-          r.kgPerTree ?? '', r.kgPerHa ?? '', r.millName ?? '', r.qualityGrade ?? '',
-        ]);
-        break;
-      case 'profit-loss':
-        headers = ['Category', 'Amount (€)'];
-        rows = filteredProfitLoss
-          ? [
-              ['Total Income', filteredProfitLoss.totalIncome],
-              ['Total Expenses', filteredProfitLoss.totalExpenses],
-              ['Net Profit', filteredProfitLoss.netProfit],
-            ]
-          : [];
-        break;
-      case 'field-comparison':
-        headers = ['Field', 'Olive Kg', 'Kg/Ha', 'Cost/Ha'];
-        rows = filteredComparison.map(r => [
-          r.fieldName, r.oliveKg, r.kgPerHa ?? '', r.costPerHa,
-        ]);
-        break;
+    if (reportType === 'weather-month') {
+      headers = ['Field', 'Day', 'Min °C', 'Max °C', 'Rain mm', 'ET0 mm'];
+      rows = filteredMonthly.flatMap((field) =>
+        field.days.map((d) => [
+          field.fieldName,
+          d.day,
+          d.minTemperatureC ?? '',
+          d.maxTemperatureC ?? '',
+          d.rainTotalMm,
+          d.et0Mm ?? '',
+        ])
+      );
+    } else if (reportType === 'weather-year') {
+      headers = ['Field', 'Rain mm', 'Cost', 'Revenue', 'Profit', 'Tasks done', 'Overdue'];
+      rows = filteredYearly.map((f) => [
+        f.fieldName,
+        f.rainTotalMm,
+        f.totalCost,
+        f.revenue,
+        f.profit,
+        f.tasksCompleted,
+        f.tasksOverdue,
+      ]);
+    } else {
+      headers = ['Field', 'Area ha', 'Olives kg', 'Kg/ha', 'Cost', 'Revenue', 'Profit', 'Tasks done'];
+      rows = filteredSummaries.map((f) => [
+        f.fieldName,
+        f.areaHa,
+        f.totalProductionKg,
+        f.yieldPerHa,
+        f.totalCost,
+        f.revenue,
+        f.profit,
+        f.tasksCompleted,
+      ]);
     }
 
     exportService.exportToCSV({ headers, rows, title: reportTitle }, filename);
-  }, [reportType, filteredSummaries, filteredHarvest, filteredProfitLoss, filteredComparison, reportTitle, filename]);
+  }, [reportType, filteredMonthly, filteredYearly, filteredSummaries, reportTitle, filename]);
 
   const exportExcel = useCallback(() => {
-    let headers: string[] = [];
-    let rows: (string | number)[][] = [];
-
-    switch (reportType) {
-      case 'field-summary':
-        headers = ['Field', 'Area (ha)', 'Trees', 'Olives (kg)', 'Oil (kg)', 'Oil Yield %', 'Cost', 'Revenue', 'Profit'];
-        rows = filteredSummaries.map(f => [
-          f.fieldName, f.areaHa, f.treeCount, f.totalProductionKg,
-          f.oilProducedKg ?? '', f.oilYieldPercent ?? '', f.totalCost, f.revenue, f.profit,
-        ]);
-        break;
-      case 'production-harvest':
-        headers = ['Field', 'Date', 'Olive Kg', 'Oil Kg', 'Oil Yield %', 'Kg/Tree', 'Kg/Ha', 'Mill', 'Quality'];
-        rows = filteredHarvest.map(r => [
-          r.fieldName, r.harvestDate, r.oliveKg, r.oilKg ?? '', r.oilYieldPercent ?? '',
-          r.kgPerTree ?? '', r.kgPerHa ?? '', r.millName ?? '', r.qualityGrade ?? '',
-        ]);
-        break;
-      case 'profit-loss':
-        headers = ['Category', 'Amount (€)'];
-        rows = filteredProfitLoss
-          ? [
-              ['Total Income', filteredProfitLoss.totalIncome],
-              ['Total Expenses', filteredProfitLoss.totalExpenses],
-              ['Net Profit', filteredProfitLoss.netProfit],
-              ...filteredProfitLoss.profitByField.map(f => [`Profit — ${f.fieldName}`, f.profit]),
-            ]
-          : [];
-        break;
-      case 'field-comparison':
-        headers = ['Field', 'Olive Kg', 'Kg/Ha', 'Cost/Ha'];
-        rows = filteredComparison.map(r => [
-          r.fieldName, r.oliveKg, r.kgPerHa ?? '', r.costPerHa,
-        ]);
-        break;
+    if (reportType === 'year-overview') {
+      const headers = ['Field', 'Area ha', 'Olives kg', 'Kg/ha', 'Cost', 'Revenue', 'Profit', 'Tasks done'];
+      const rows = filteredSummaries.map((f) => [
+        f.fieldName, f.areaHa, f.totalProductionKg, f.yieldPerHa, f.totalCost, f.revenue, f.profit, f.tasksCompleted,
+      ]);
+      exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
+      return;
     }
-
+    if (reportType === 'weather-year') {
+      const headers = ['Field', 'Rain mm', 'Cost', 'Revenue', 'Profit', 'Tasks done', 'Overdue'];
+      const rows = filteredYearly.map((f) => [
+        f.fieldName, f.rainTotalMm, f.totalCost, f.revenue, f.profit, f.tasksCompleted, f.tasksOverdue,
+      ]);
+      exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
+      return;
+    }
+    const headers = ['Field', 'Day', 'Min C', 'Max C', 'Rain mm', 'ET0 mm'];
+    const rows = filteredMonthly.flatMap((field) =>
+      field.days.map((d) => [field.fieldName, d.day, d.minTemperatureC ?? '', d.maxTemperatureC ?? '', d.rainTotalMm, d.et0Mm ?? ''])
+    );
     exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
-  }, [reportType, filteredSummaries, filteredHarvest, filteredProfitLoss, filteredComparison, reportTitle, filename]);
+  }, [reportType, filteredSummaries, filteredYearly, filteredMonthly, reportTitle, filename]);
 
   const renderPreview = () => {
     if (selectedFields.length === 0) {
@@ -319,32 +271,34 @@ const ReportsPage: React.FC = () => {
       );
     }
 
-    switch (reportType) {
-      case 'field-summary':
-        return <FieldSummaryReportView id={REPORT_PREVIEW_ID} data={filteredSummaries} />;
-      case 'production-harvest':
-        return <ProductionHarvestReportView id={REPORT_PREVIEW_ID} data={filteredHarvest} season={season} />;
-      case 'profit-loss':
-        return filteredProfitLoss
-          ? <ProfitLossReportView id={REPORT_PREVIEW_ID} data={filteredProfitLoss} />
-          : (
-            <div className="report-empty-state">
-              <Euro size={40} strokeWidth={1.5} />
-              <h3>{t('selectFieldsPrompt')}</h3>
-            </div>
-          );
-      case 'field-comparison':
-        return (
-          <FieldComparisonReportView
-            id={REPORT_PREVIEW_ID}
-            data={filteredComparison}
-            insights={comparisonInsights}
-            season={season}
-          />
-        );
-      default:
-        return null;
+    if (reportType === 'weather-month') {
+      return (
+        <MonthlyWeatherReportView
+          id={REPORT_PREVIEW_ID}
+          data={filteredMonthly}
+          season={season}
+          month={month}
+        />
+      );
     }
+    if (reportType === 'weather-year') {
+      return (
+        <YearlyWeatherReportView
+          id={REPORT_PREVIEW_ID}
+          data={filteredYearly}
+          season={season}
+        />
+      );
+    }
+    return (
+      <YearOverviewReportView
+        id={REPORT_PREVIEW_ID}
+        summaries={filteredSummaries}
+        harvest={filteredHarvest}
+        profitLoss={filteredProfitLoss}
+        season={season}
+      />
+    );
   };
 
   if (user?.role !== 'FieldOwner' && user?.role !== 'Administrator') {
@@ -377,22 +331,12 @@ const ReportsPage: React.FC = () => {
         </header>
 
         <div className="reports-layout">
-          {/* Sidebar — report type picker */}
           <aside className="reports-sidebar">
             <h2 className="reports-sidebar-title">{t('reportType')}</h2>
             <div className="report-type-list">
-              {(Object.keys(REPORT_META) as ReportTypeId[]).map(type => {
+              {(Object.keys(REPORT_META) as ReportTypeId[]).map((type) => {
                 const meta = REPORT_META[type];
                 const isActive = reportType === type;
-                const labelKey =
-                  type === 'field-summary'
-                    ? 'fieldSummary'
-                    : type === 'production-harvest'
-                      ? 'productionHarvest'
-                      : type === 'profit-loss'
-                        ? 'profitLoss'
-                        : 'fieldComparison';
-
                 return (
                   <button
                     key={type}
@@ -402,10 +346,10 @@ const ReportsPage: React.FC = () => {
                   >
                     <div className="report-type-icon">{meta.icon}</div>
                     <div className="report-type-text">
-                      <span className="report-type-name">{t(labelKey)}</span>
+                      <span className="report-type-name">{t(meta.labelKey)}</span>
                       <span className="report-type-desc">{t(meta.descriptionKey)}</span>
                     </div>
-                    {type === 'field-summary' && (
+                    {type === 'weather-month' && (
                       <span className="report-type-default">{t('default')}</span>
                     )}
                   </button>
@@ -419,12 +363,25 @@ const ReportsPage: React.FC = () => {
                   <Calendar size={14} />
                   {t('season')}
                 </label>
-                <select value={season} onChange={e => setSeason(e.target.value)}>
+                <select value={season} onChange={(e) => setSeason(e.target.value)}>
                   {SEASON_OPTIONS.map((year) => (
                     <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
               </div>
+
+              {reportType === 'weather-month' && (
+                <div className="filter-group">
+                  <label>{t('month')}</label>
+                  <select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <option key={m} value={m}>
+                        {new Date(2000, m - 1, 1).toLocaleDateString(i18n.language, { month: 'long' })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="filter-group">
                 <div className="filter-group-header">
@@ -435,7 +392,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="field-select-list">
-                  {fields.map(field => {
+                  {fields.map((field) => {
                     const checked = selectedFields.includes(field.id);
                     return (
                       <button
@@ -446,7 +403,7 @@ const ReportsPage: React.FC = () => {
                       >
                         {checked ? <CheckSquare size={16} /> : <Square size={16} />}
                         <span>{field.name}</span>
-                        <span className="field-area">{field.area} ha</span>
+                        <span className="field-area">{formatHa(field.area, locale)}</span>
                       </button>
                     );
                   })}
@@ -455,22 +412,20 @@ const ReportsPage: React.FC = () => {
             </div>
           </aside>
 
-          {/* Main — preview + actions */}
           <main className="reports-main">
             <div className="reports-toolbar">
               <div className="reports-toolbar-left">
                 <h2>{reportTitle}</h2>
                 <span className="reports-toolbar-meta">
-                  {selectedFields.length} {t('fieldsSelected')} · {t('season')} {season}
+                  {formatNumber(selectedFields.length, 0, locale)} {t('fieldsSelected')} · {t('season')} {season}
+                  {reportType === 'weather-month'
+                    ? ` · ${new Date(Number(season), month - 1, 1).toLocaleDateString(i18n.language, { month: 'long' })}`
+                    : ''}
+                  {reportsLoading ? ' · …' : ''}
                 </span>
               </div>
               <div className="reports-toolbar-actions">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={<Eye size={16} />}
-                  onClick={() => setShowPreview(v => !v)}
-                >
+                <Button variant="ghost" size="sm" icon={<Eye size={16} />} onClick={() => setShowPreview((v) => !v)}>
                   {showPreview ? t('hidePreview') : t('showPreview')}
                 </Button>
                 <Button
