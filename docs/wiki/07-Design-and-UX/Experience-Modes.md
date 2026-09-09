@@ -5,7 +5,7 @@
 
 ## Purpose
 
-OliveCycle serves people with very different comfort levels around software — from field owners who mainly use WhatsApp, to producers completing tasks in the grove, to agronomists who want maps and numbers. We support both with **one app, two presentation modes**, not two separate products.
+Oleachron serves people with very different comfort levels around software — from field owners who mainly use WhatsApp, to producers completing tasks in the grove, to agronomists who want maps and numbers. We support both with **one app, two presentation modes**, not two separate products.
 
 ## Modes
 

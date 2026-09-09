@@ -81,7 +81,7 @@ type DemoState = {
   fieldUiPrefsByUserId: Record<string, DemoFieldUiPrefs>;
 };
 
-const STORAGE_KEY = 'agrotrack_demo_state_v1';
+const STORAGE_KEY = 'Oleachron_demo_state_v1';
 const SCHEMA_VERSION = 9;
 
 export type DemoRouteState = {

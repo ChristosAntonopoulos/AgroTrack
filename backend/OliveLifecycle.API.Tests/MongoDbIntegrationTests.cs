@@ -79,6 +79,12 @@ public class AuthAndFieldIntegrationTests : IClassFixture<MongoDbIntegrationFixt
         var registerBody = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>(JsonOptions);
         Assert.NotNull(registerBody);
         Assert.False(string.IsNullOrWhiteSpace(registerBody.Token));
+        Assert.False(string.IsNullOrWhiteSpace(registerBody.UserId));
+
+        var listWithRegisterToken = new HttpRequestMessage(HttpMethod.Get, "/api/v1/fields");
+        listWithRegisterToken.Headers.Authorization = new AuthenticationHeaderValue("Bearer", registerBody.Token);
+        var listWithRegisterResponse = await _client.SendAsync(listWithRegisterToken);
+        Assert.Equal(HttpStatusCode.OK, listWithRegisterResponse.StatusCode);
 
         var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new
         {

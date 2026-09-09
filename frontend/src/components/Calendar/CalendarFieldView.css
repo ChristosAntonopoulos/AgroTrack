@@ -94,7 +94,7 @@
   text-align: left;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .cal-field-item {
     grid-template-columns: 1fr;
   }

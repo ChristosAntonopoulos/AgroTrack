@@ -49,6 +49,7 @@ public class TaskTemplateService : ITaskTemplateService
                 StartDay = template.DefaultSchedulingWindow.StartDay,
                 EndMonth = template.DefaultSchedulingWindow.EndMonth,
                 EndDay = template.DefaultSchedulingWindow.EndDay
-            }
+            },
+        ServiceCategorySlug = template.ServiceCategorySlug
     };
 }

@@ -1,9 +1,36 @@
 .brand-logo {
   display: block;
   object-fit: contain;
+  object-position: left center;
   flex-shrink: 0;
 }
 
-.brand-logo--rounded {
-  border-radius: var(--radius-md);
+.brand-logo--horizontal {
+  max-width: 100%;
+}
+
+.brand-logo--mark,
+.brand-logo--favicon,
+.brand-logo--app-icon {
+  object-position: center;
+}
+
+.brand-logo--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.brand-logo-stacked-mark {
+  display: block;
+  object-fit: contain;
+}
+
+.brand-logo-stacked-wordmark {
+  display: block;
+  height: auto;
+  width: min(100%, 260px);
+  object-fit: contain;
 }

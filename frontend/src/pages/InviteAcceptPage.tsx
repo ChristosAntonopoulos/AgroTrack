@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { fieldPeopleService, FieldInvite } from '../services/fieldPeopleService';
 import { useAuth } from '../context/AuthContext';
 import PageContainer from '../components/Common/PageContainer';
+import PageHeader from '../components/Common/PageHeader';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import './InviteAcceptPage.css';
 
 const InviteAcceptPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -40,7 +42,7 @@ const InviteAcceptPage: React.FC = () => {
     setAccepting(true);
     try {
       await fieldPeopleService.acceptInvite(token);
-      navigate(invite ? `/fields/${invite.fieldId}` : '/fields');
+      navigate(invite ? `/partners?fieldId=${invite.fieldId}` : '/partners');
     } catch (e: any) {
       setError(e?.response?.data?.message || t('fields:people.inviteAcceptFailed'));
     } finally {
@@ -51,22 +53,22 @@ const InviteAcceptPage: React.FC = () => {
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth="sm" className="invite-accept-page">
       <Card>
-        <h1>{t('fields:people.inviteAcceptTitle')}</h1>
-        {error ? <p>{error}</p> : null}
+        <PageHeader title={t('fields:people.inviteAcceptTitle')} />
+        {error ? <p className="invite-accept-error">{error}</p> : null}
         {invite ? (
-          <>
+          <div className="invite-accept-body">
             <p>
               {t('fields:people.inviteAcceptBody', {
                 field: invite.fieldName,
                 capacities: invite.capacities.join(', '),
               })}
             </p>
-            <Button onClick={accept} loading={accepting} variant="primary">
+            <Button onClick={accept} loading={accepting} variant="primary" className="btn-full-width">
               {t('fields:people.acceptInvite')}
             </Button>
-          </>
+          </div>
         ) : (
           <Link to="/login">{t('auth:login.title')}</Link>
         )}

@@ -14,3 +14,7 @@ export function isNetworkError(error: unknown): boolean {
 export function createTempTaskId(): string {
   return `temp-task-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
 }
+
+export function createTempNoteId(): string {
+  return `temp-note-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
+}

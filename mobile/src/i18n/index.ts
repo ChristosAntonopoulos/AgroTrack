@@ -13,6 +13,10 @@ import enErrors from '../locales/en/errors.json';
 import enCalendar from '../locales/en/calendar.json';
 import enToday from '../locales/en/today.json';
 import enTutorial from '../locales/en/tutorial.json';
+import enPartners from '../locales/en/partners.json';
+import enChronologio from '../locales/en/chronologio.json';
+import enCapture from '../locales/en/capture.json';
+import enEconomics from '../locales/en/economics.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -25,6 +29,10 @@ import elErrors from '../locales/el/errors.json';
 import elCalendar from '../locales/el/calendar.json';
 import elToday from '../locales/el/today.json';
 import elTutorial from '../locales/el/tutorial.json';
+import elPartners from '../locales/el/partners.json';
+import elChronologio from '../locales/el/chronologio.json';
+import elCapture from '../locales/el/capture.json';
+import elEconomics from '../locales/el/economics.json';
 
 const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
 const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
@@ -44,6 +52,10 @@ i18n.use(initReactI18next).init({
       calendar: enCalendar,
       today: enToday,
       tutorial: enTutorial,
+      partners: enPartners,
+      chronologio: enChronologio,
+      capture: enCapture,
+      economics: enEconomics,
     },
     el: {
       auth: elAuth,
@@ -57,6 +69,10 @@ i18n.use(initReactI18next).init({
       calendar: elCalendar,
       today: elToday,
       tutorial: elTutorial,
+      partners: elPartners,
+      chronologio: elChronologio,
+      capture: elCapture,
+      economics: elEconomics,
     },
   },
   lng: defaultLng,

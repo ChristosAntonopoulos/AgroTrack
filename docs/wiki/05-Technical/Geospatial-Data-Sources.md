@@ -6,7 +6,7 @@
 
 ## Σκοπός
 
-Πού καλεί το AgroTrack για καιρό, δορυφόρο, έδαφος, έδαφος/κάλυψη, φωτιές και Natura· πότε τρέχει κάθε κλήση· ποια config/secret χρειάζεται· τι σπάει όταν ένας provider είναι down.
+Πού καλεί το Oleachron για καιρό, δορυφόρο, έδαφος, έδαφος/κάλυψη, φωτιές και Natura· πότε τρέχει κάθε κλήση· ποια config/secret χρειάζεται· τι σπάει όταν ένας provider είναι down.
 
 Αυτή η σελίδα είναι για **operators**. Δεν εξηγεί NDVI. Εξηγεί egress, jobs, storage, και πώς να διαγνώσεις ένα άδειο πεδίο.
 
@@ -24,7 +24,7 @@
 |---|---|
 | **API pod μόνο** (`olive-lifecycle-api`) | Open-Meteo, Earth Search STAC, Sentinel-2 COGs (HTTPS range), ISRIC SoilGrids, Terrascope WMS, NASA FIRMS |
 | **Browser / mobile** | Basemap tiles (OpenFreeMap, Esri, OSM) και Terrascope **WMTS** όταν ο χρήστης ανοίξει land-cover. Overlay PNG (`truecolor`, `ndvi`, …) από το **API** `/uploads` |
-| **Frontend pod** | Δεν καλεί providers. Το `nginx.conf` κάνει proxy `/uploads/` → `api.agrotrack.conceptatlas.eu` |
+| **Frontend pod** | Δεν καλεί providers. Το `nginx.conf` κάνει proxy `/uploads/` → `api.Oleachron.conceptatlas.eu` |
 
 Αν μπει NetworkPolicy, άνοιξε **outbound HTTPS 443** από το API namespace προς τα hosts του πίνακα allowlist παρακάτω. Μην ανοίγεις egress από το frontend.
 
@@ -40,12 +40,12 @@
 Grower (web / mobile)
         |
         v
-Caddy agrotrack.conceptatlas.eu
+Caddy Oleachron.conceptatlas.eu
   /uploads*  --> NodePort 31847  API
   *          --> NodePort 31848  frontend
         |
         v
-API  api.agrotrack.conceptatlas.eu  (replicas: 1)
+API  api.Oleachron.conceptatlas.eu  (replicas: 1)
   - GeospatialJobHost (in-process)
   - MongoDB  OliveLifecycle
   - PVC olive-lifecycle-uploads  ->  /app/uploads
@@ -56,7 +56,7 @@ API  api.agrotrack.conceptatlas.eu  (replicas: 1)
 | Setting | Production value | Config |
 |---|---|---|
 | Raster files | `/app/uploads/geospatial/fields/{fieldId}/satellite/...` | `Storage__LocalPath=uploads`, `Geospatial__Storage__RasterRoot=geospatial` |
-| Public overlay URL | `https://api.agrotrack.conceptatlas.eu/uploads/...` | `Storage__PublicBasePath` — **must be the API host**, not the website |
+| Public overlay URL | `https://api.Oleachron.conceptatlas.eu/uploads/...` | `Storage__PublicBasePath` — **must be the API host**, not the website |
 | Overlay 404 on the website | Caddy `handle /uploads*` missing or `PublicBasePath` points at the SPA | See [Overlay PNGs 404](#overlay-pngs-404-on-the-website) |
 
 ---
@@ -156,7 +156,7 @@ Client-only (not API):
 
 ## Secrets and ConfigMap
 
-### Secret `backend-secrets` (namespace `agrotrack-backend`)
+### Secret `backend-secrets` (namespace `Oleachron-backend`)
 
 | Key | Required | Pipeline variable | If missing |
 |---|---|---|---|
@@ -179,7 +179,7 @@ No other geospatial API keys exist today (Open-Meteo, Earth Search, SoilGrids, T
 | `Geospatial__Satellite__RetentionDays` | `400` | Overlay prune |
 | `Geospatial__Satellite__MaxRasterDimension` | `2048` | Large fields coarsen |
 | `Geospatial__Storage__RasterRoot` | `geospatial` | Under `/app/uploads` |
-| `Storage__PublicBasePath` | `https://api.agrotrack.conceptatlas.eu/uploads` | Absolute URLs in satellite DTOs |
+| `Storage__PublicBasePath` | `https://api.Oleachron.conceptatlas.eu/uploads` | Absolute URLs in satellite DTOs |
 
 Code defaults (not all in ConfigMap): `Weather:HistoryYears=3`, `ArchiveLagDays=5`, `Satellite:HistoryYears=3`, `MaxCloudCover=20`, `HistoryMaxCloudCover=40`, `DiscoveryIntervalHours=24`, `SearchWindowDays=30`.
 
@@ -343,8 +343,8 @@ GET /api/v1/admin/data-sources/natura
 From the cluster:
 
 ```bash
-kubectl -n agrotrack-backend logs deploy/olive-lifecycle-api --tail=200 | grep -E "WeatherRefreshJob|FireRefreshJob|SatelliteDiscovery|Queued geospatial|FIRMS|Open-Meteo|SoilGrids"
-kubectl -n agrotrack-backend exec deploy/olive-lifecycle-api -- ls /app/uploads/geospatial/fields
+kubectl -n Oleachron-backend logs deploy/olive-lifecycle-api --tail=200 | grep -E "WeatherRefreshJob|FireRefreshJob|SatelliteDiscovery|Queued geospatial|FIRMS|Open-Meteo|SoilGrids"
+kubectl -n Oleachron-backend exec deploy/olive-lifecycle-api -- ls /app/uploads/geospatial/fields
 ```
 
 Expect log lines `{JobName} completed in {DurationMs} ms`. History COG work is slow; long duration is normal.
@@ -355,12 +355,12 @@ Expect log lines `{JobName} completed in {DurationMs} ms`. History COG work is s
 
 ### Overlay PNGs 404 on the website
 
-Browser requests `https://agrotrack.conceptatlas.eu/uploads/geospatial/.../ndvi.png` and gets HTML 404.
+Browser requests `https://Oleachron.conceptatlas.eu/uploads/geospatial/.../ndvi.png` and gets HTML 404.
 
-1. Same path on `https://api.agrotrack.conceptatlas.eu/uploads/...` should be **200 image/png**.
+1. Same path on `https://api.Oleachron.conceptatlas.eu/uploads/...` should be **200 image/png**.
 2. Caddy must `handle /uploads*` → API NodePort **before** the SPA proxy (`deploy/caddy/Caddyfile`).
 3. Frontend nginx `location ^~ /uploads/` must beat the `*.png` cache regex (`frontend/nginx.conf`).
-4. `Storage__PublicBasePath` must be `https://api.agrotrack.conceptatlas.eu/uploads` (do not strip `https://` to `https:/`).
+4. `Storage__PublicBasePath` must be `https://api.Oleachron.conceptatlas.eu/uploads` (do not strip `https://` to `https:/`).
 
 ### History stays at 2 days after activate
 
@@ -375,7 +375,7 @@ Browser requests `https://agrotrack.conceptatlas.eu/uploads/geospatial/.../ndvi.
 Almost always missing `Geospatial__Fires__MapKey`. Confirm secret:
 
 ```bash
-kubectl -n agrotrack-backend get secret backend-secrets -o jsonpath="{.data.Geospatial__Fires__MapKey}" | wc -c
+kubectl -n Oleachron-backend get secret backend-secrets -o jsonpath="{.data.Geospatial__Fires__MapKey}" | wc -c
 ```
 
 Zero length → set `FIRMS_MAP_KEY` in the pipeline library and redeploy.

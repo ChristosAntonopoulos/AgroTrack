@@ -2,7 +2,7 @@
 # Install this product's Caddy site into /etc/caddy/sites/ and reload Caddy.
 set -euo pipefail
 
-SITE_NAME="agrotrack"
+SITE_NAME="oleachron"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SITES_DIR="/etc/caddy/sites"
 MAIN_FILE="/etc/caddy/Caddyfile"
@@ -37,5 +37,5 @@ caddy validate --config "$MAIN_FILE"
 systemctl reload caddy || systemctl restart caddy
 
 echo "Installed ${SITE_NAME}.caddy"
-echo "  https://agrotrack.conceptatlas.eu"
-echo "  https://api.agrotrack.conceptatlas.eu"
+echo "  https://oleachron.conceptatlas.eu"
+echo "  https://api.oleachron.conceptatlas.eu"

@@ -149,7 +149,8 @@
   gap: var(--spacing-md);
 }
 
-@media (max-width: 900px) {
+/* md = 768 */
+@media (max-width: 768px) {
   .calendar-workspace--with-panel {
     grid-template-columns: 1fr;
   }
@@ -167,14 +168,19 @@
     flex: 1 1 25%;
     justify-content: center;
     padding: 8px 6px;
+    min-height: var(--tap-min, 44px);
   }
 
   .calendar-view-toggle button span {
     display: none;
   }
+
+  .calendar-season-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-@media (min-width: 901px) {
+@media (min-width: 769px) {
   .calendar-drawer-backdrop {
     display: none;
   }

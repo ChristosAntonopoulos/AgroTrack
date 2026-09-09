@@ -24,7 +24,7 @@ Epic
 | **Product Backlog Item (PBI)** | Αποτέλεσμα χρήστη ή επιχείρησης που μπορούμε να παραδώσουμε. Έχει acceptance criteria. | «An owner can create a field with name, size and crop» |
 | **Task** | Συγκεκριμένη υλοποίηση, έρευνα ή σχεδιαστική ενέργεια. Ώρες δουλειάς, όχι ημέρες. | «Build the create-field form» |
 
-## Παραδείγματα για AgroTrack MVP
+## Παραδείγματα για Oleachron MVP
 
 ### Epic: Launch MVP with first pilots
 

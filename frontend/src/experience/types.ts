@@ -26,7 +26,11 @@ export type ExperienceWidget =
   | 'fieldCosts'
   // Phase 4 Full-picture people depth
   | 'advisorComments'
-  | 'peopleStats';
+  | 'peopleStats'
+  // Action dashboards
+  | 'myActions'
+  | 'myActionsDetail'
+  | 'recentNotes';
 
 export const FONT_SCALE_VALUES: Record<FontScale, number> = {
   default: 1,

@@ -69,6 +69,15 @@ public class TasksController : BaseApiController
         return CreatedResult(nameof(GetTask), new { id = task.Id }, task);
     }
 
+    [HttpPost("recorded")]
+    public async Task<ActionResult<TaskDto>> RecordCompletedWork(
+        [FromBody] RecordCompletedWorkDto dto,
+        CancellationToken cancellationToken)
+    {
+        var task = await _taskService.RecordCompletedWorkAsync(dto, UserContext.UserId, UserContext.Role, cancellationToken);
+        return CreatedResult(nameof(GetTask), new { id = task.Id }, task);
+    }
+
     [HttpPut("{id}/status")]
     public async Task<ActionResult<TaskDto>> UpdateTaskStatus(string id, [FromBody] UpdateTaskStatusDto updateDto, CancellationToken cancellationToken)
     {

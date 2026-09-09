@@ -73,7 +73,7 @@ export const mockAuthService = {
       token,
       userId,
       email: data.email,
-      role: data.role || 'Producer',
+      role: data.role || 'FieldOwner',
       expiresAt,
     };
   },

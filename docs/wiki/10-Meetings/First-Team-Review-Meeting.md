@@ -6,7 +6,7 @@
 
 ## Σκοπός
 
-Αυτή είναι η πρώτη επίσημη ομαδική ανασκόπηση της επιχείρησης, του προϊόντος και της διαδικασίας AgroTrack. Όλοι διαβάζουν το wiki εκ των προτέρων και έρχονται έτοιμοι για ευθυγράμμιση, αποφάσεις και ανάθεση επόμενων βημάτων.
+Αυτή είναι η πρώτη επίσημη ομαδική ανασκόπηση της επιχείρησης, του προϊόντος και της διαδικασίας Oleachron. Όλοι διαβάζουν το wiki εκ των προτέρων και έρχονται έτοιμοι για ευθυγράμμιση, αποφάσεις και ανάθεση επόμενων βημάτων.
 
 ## Πότε
 
@@ -26,7 +26,7 @@
 
 Κάθε συμμετέχων διαβάζει, τουλάχιστον:
 
-1. [Welcome to AgroTrack](../00-Start-Here/Welcome-to-AgroTrack.md)
+1. [Welcome to Oleachron](../00-Start-Here/Welcome-to-Oleachron.md)
 2. [Current Priorities](../00-Start-Here/Current-Priorities.md)
 3. [Business Plan](../02-Business/Business-Plan.md)
 4. [Problem Statement](../02-Business/Problem-Statement.md)

@@ -6,7 +6,7 @@
 
 ## Σκοπός
 
-Πώς βγάζει χρήμα το AgroTrack. Περιγράφει το μοντέλο, όχι τις ακριβείς τιμές (αυτές στο [Pricing Strategy](./Pricing-Strategy.md)).
+Πώς βγάζει χρήμα το Oleachron. Περιγράφει το μοντέλο, όχι τις ακριβείς τιμές (αυτές στο [Pricing Strategy](./Pricing-Strategy.md)).
 
 ## Μοντέλο
 

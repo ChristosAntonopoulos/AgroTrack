@@ -34,9 +34,10 @@ public class AuthService : IAuthService
     {
         registerDto.Email = NormalizeEmail(registerDto.Email);
 
-        if (!Roles.IsPublicRegistrationRole(registerDto.Role))
+        if (!string.IsNullOrWhiteSpace(registerDto.Role) &&
+            !Roles.IsPublicRegistrationRole(registerDto.Role))
         {
-            throw new ValidationException("Registration is only allowed for FieldOwner or Producer roles.");
+            throw new ValidationException("Registration cannot assign a privileged role.");
         }
 
         if (await _userRepository.ExistsByEmailAsync(registerDto.Email, cancellationToken))
@@ -49,15 +50,15 @@ public class AuthService : IAuthService
         {
             Email = registerDto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
-            Role = UserRoleExtensions.FromRoleName(registerDto.Role),
+            Role = UserRole.FieldOwner,
             FirstName = registerDto.FirstName,
             LastName = registerDto.LastName,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        await _userRepository.CreateAsync(user, cancellationToken);
-        return GenerateAuthResponse(user);
+        var created = await _userRepository.CreateAsync(user, cancellationToken);
+        return GenerateAuthResponse(created);
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)

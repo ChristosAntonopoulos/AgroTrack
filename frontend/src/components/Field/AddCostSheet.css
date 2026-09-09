@@ -220,7 +220,7 @@
   gap: var(--spacing-sm);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .add-cost-sheet-row,
   .add-cost-sheet-row--three {
     grid-template-columns: 1fr;

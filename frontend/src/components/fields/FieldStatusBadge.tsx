@@ -20,7 +20,7 @@ const FieldStatusBadge: React.FC<Props> = ({ status = 'Active' }) => {
 
   return (
     <span className={`field-status-badge ${statusClass[key] || 'status-active'}`}>
-      {t(`addField.statuses.${key}`, { defaultValue: key })}
+      {t(`fieldStatus.${key}`, { defaultValue: t(`addField.statuses.${key}`, { defaultValue: '' }) })}
     </span>
   );
 };

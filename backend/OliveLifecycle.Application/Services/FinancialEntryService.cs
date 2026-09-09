@@ -5,6 +5,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Financial;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -46,6 +47,7 @@ public class FinancialEntryService : IFinancialEntryService
         CancellationToken cancellationToken = default)
     {
         await EnsureFieldAccessAsync(dto.FieldId, userId, userRole, cancellationToken);
+        await EnsureMoneyModuleAsync(dto.FieldId, userId, userRole, write: true, cancellationToken);
 
         var field = await _fieldRepository.GetByIdAsync(dto.FieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
@@ -129,6 +131,7 @@ public class FinancialEntryService : IFinancialEntryService
         CancellationToken cancellationToken = default)
     {
         await EnsureFieldAccessAsync(fieldId, userId, userRole, cancellationToken);
+        await EnsureMoneyModuleAsync(fieldId, userId, userRole, write: false, cancellationToken);
         var entries = await _financialEntryRepository.GetByFieldIdAsync(fieldId, includeVoided, 200, cancellationToken);
         return entries.Select(FinancialEntryMapper.ToDto);
     }
@@ -141,6 +144,7 @@ public class FinancialEntryService : IFinancialEntryService
         CancellationToken cancellationToken = default)
     {
         await EnsureFieldAccessAsync(fieldId, userId, userRole, cancellationToken);
+        await EnsureMoneyModuleAsync(fieldId, userId, userRole, write: false, cancellationToken);
         var entries = (await _financialEntryRepository.GetByFieldIdAsync(fieldId, includeVoided: false, 500, cancellationToken))
             .Where(e => e.Status == FinancialEntryStatus.Posted)
             .Where(e => string.IsNullOrWhiteSpace(lifecycleYear) || e.LifecycleYear == lifecycleYear)
@@ -350,6 +354,36 @@ public class FinancialEntryService : IFinancialEntryService
         if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to this field.");
+        }
+    }
+
+    private async Task EnsureMoneyModuleAsync(
+        string fieldId,
+        string userId,
+        string userRole,
+        bool write,
+        CancellationToken cancellationToken)
+    {
+        if (userRole == Roles.Administrator
+            || await _fieldAccessService.CanUserModifyFieldAsync(fieldId, userId, cancellationToken))
+        {
+            return;
+        }
+
+        var family = await _fieldAccessService.GetFamilyAccessForFieldAsync(fieldId, userId, cancellationToken);
+        if (family == null)
+        {
+            return;
+        }
+
+        if (!family.Modules.Any(m => string.Equals(m, FamilyModules.Money, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ForbiddenException("You do not have access to money for this field.");
+        }
+
+        if (write && !FamilyAccessLevels.CanCreateContent(family.AccessLevel))
+        {
+            throw new ForbiddenException("You can only view money on this field.");
         }
     }
 

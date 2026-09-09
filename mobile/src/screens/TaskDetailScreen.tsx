@@ -20,6 +20,7 @@ import { getTaskService, getFieldService } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useCaptureOptional } from '../context/CaptureContext';
 import Card from '../components/ui/Card';
 import Section from '../components/layout/Section';
 import StatusBadge from '../components/StatusBadge';
@@ -65,7 +66,8 @@ const TaskDetailScreen = () => {
   const { isFieldOwner, user } = useAuth();
   const { colors } = useTheme();
   const { isEveryday, tapMin, fontScaleMultiplier } = usePreferences();
-  const { t } = useTranslation(['tasks', 'common']);
+  const capture = useCaptureOptional();
+  const { t } = useTranslation(['tasks', 'common', 'partners', 'capture']);
   const [task, setTask] = useState<Task | null>(null);
   const [field, setField] = useState<Field | null>(null);
   const [loading, setLoading] = useState(true);
@@ -337,6 +339,45 @@ const TaskDetailScreen = () => {
           ) : null}
           {!isEveryday ? <TaskStatusStepper status={task.status} /> : null}
         </View>
+
+        {isFieldOwner() ? (
+          <Button
+            title={t('partners:findPartner')}
+            variant="outline"
+            onPress={() =>
+              navigation.navigate('Partners', { fieldId: task.fieldId, taskId: task.id, category: task.type })
+            }
+          />
+        ) : null}
+
+        {capture ? (
+          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.sm }}>
+            <Button
+              title={t('capture:types.expense.title')}
+              variant="outline"
+              style={{ flex: 1, minHeight: tapMin }}
+              onPress={() =>
+                capture.openCapture({
+                  fieldId: task.fieldId,
+                  taskId: task.id,
+                  preferredType: 'expense',
+                })
+              }
+            />
+            <Button
+              title={t('capture:types.observation.title')}
+              variant="outline"
+              style={{ flex: 1, minHeight: tapMin }}
+              onPress={() =>
+                capture.openCapture({
+                  fieldId: task.fieldId,
+                  taskId: task.id,
+                  preferredType: 'observation',
+                })
+              }
+            />
+          </View>
+        ) : null}
 
         {phase === 'prepare' && checklist.length > 0 ? (
           <Section title={t('tasks:harvest.checklist')}>

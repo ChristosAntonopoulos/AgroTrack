@@ -17,7 +17,6 @@ interface AuthContextType {
     password: string;
     firstName?: string;
     lastName?: string;
-    role: string;
   }) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -104,7 +103,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string;
     firstName?: string;
     lastName?: string;
-    role: string;
   }): Promise<AuthResponse> => {
     const service = getAuthService();
     const authResponse = await service.register(data);

@@ -1,32 +1,94 @@
 {
   "title": "Settings",
+  "subtitle": "Make OLEACHRON work the way you like.",
+  "autosaveHint": "Changes save automatically",
+  "saved": "Saved",
+  "saveError": "Could not save.",
+  "retry": "Try again",
+  "sections": {
+    "account": "Account",
+    "appearance": "Appearance",
+    "locale": "Language & region",
+    "startup": "Startup",
+    "technical": "Technical details",
+    "demo": "Demo"
+  },
+  "account": {
+    "editProfile": "Edit profile",
+    "myServices": "My services",
+    "userId": "User ID",
+    "appVersion": "App version"
+  },
+  "appearance": {
+    "theme": "Theme",
+    "themes": {
+      "system": "Automatic",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "themeHints": {
+      "system": "Follows your device setting.",
+      "light": "Uses a light look.",
+      "dark": "Uses a dark look."
+    },
+    "detailLevel": "Level of detail",
+    "simple": "Simple",
+    "simpleShort": "Simple",
+    "simpleDesc": "Shows only the basics you need day to day.",
+    "full": "Full",
+    "fullShort": "Full",
+    "fullDesc": "Shows more data, tools, and options.",
+    "fontScale": "Text size",
+    "fontScales": {
+      "default": "Normal",
+      "large": "Large",
+      "xl": "Extra large"
+    },
+    "largeControls": "Larger buttons",
+    "largeControlsDesc": "Bigger tap targets for easier use."
+  },
+  "locale": {
+    "language": "Language",
+    "dateFormat": "Date format"
+  },
+  "startup": {
+    "label": "When I open OLEACHRON",
+    "options": {
+      "today": "Today",
+      "dashboard": "Dashboard",
+      "fields": "Fields",
+      "chronologio": "Chronologio"
+    }
+  },
   "profile": {
     "title": "Profile",
     "email": "Email",
-    "role": "Role",
     "userId": "User ID"
   },
   "preferences": {
     "title": "Preferences",
     "theme": "Theme",
     "themes": {
+      "system": "Automatic",
       "light": "Light",
       "dark": "Dark",
-      "white": "White"
+      "white": "Light"
     },
-    "dateFormat": "Date Format",
+    "dateFormat": "Date format",
     "dateFormats": {
-      "MM/dd/yyyy": "MM/DD/YYYY",
-      "dd/MM/yyyy": "DD/MM/YYYY",
-      "yyyy-MM-dd": "YYYY-MM-DD"
+      "MM/dd/yyyy": "09/04/2026",
+      "dd/MM/yyyy": "09/09/2026",
+      "yyyy-MM-dd": "2026-09-09",
+      "medium": "9 Sep 2026"
     },
-    "defaultView": "Default View",
+    "defaultView": "When I open OLEACHRON",
     "defaultViews": {
       "dashboard": "Dashboard",
       "fields": "Fields",
       "tasks": "Tasks",
       "calendar": "Calendar",
-      "today": "Today"
+      "today": "Today",
+      "chronologio": "Chronologio"
     },
     "language": "Language",
     "fontScale": "Text size",
@@ -35,7 +97,7 @@
       "large": "Large",
       "xl": "Extra large"
     },
-    "largeControls": "Large buttons"
+    "largeControls": "Larger buttons"
   },
   "notifications": {
     "title": "Notifications",
@@ -52,30 +114,30 @@
     "resetConfirm": "Reset demo data? This will restore the original demo fields, tasks, and assignments."
   },
   "experience": {
-    "label": "How AgroTrack looks",
-    "everyday": "Everyday",
-    "everydayShort": "Day",
-    "everydayDesc": "What to do now — large actions, fewer numbers.",
+    "label": "Level of detail",
+    "everyday": "Simple",
+    "everydayShort": "Simple",
+    "everydayDesc": "Shows only the basics you need day to day.",
     "everydayHint": "Recommended for most people",
-    "full": "Full picture",
+    "full": "Full",
     "fullShort": "Full",
-    "fullDesc": "Maps, satellite, soil, analytics, and denser history.",
+    "fullDesc": "Shows more data, tools, and options.",
     "fullHint": "For agronomists and detailed planning",
-    "chooserTitle": "How should AgroTrack look?",
+    "chooserTitle": "How should Oleachron look?",
     "chooserSubtitle": "Same fields and tasks. You choose the density.",
     "chooserFooter": "You can change this later in Settings.",
     "comfortTitle": "How large should text be?",
     "comfortSubtitle": "You can change this anytime. Large helps outdoors.",
     "comfortSkip": "Keep normal size",
-    "onrampTitle": "Want the full picture?",
+    "onrampTitle": "Want more detail?",
     "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
-    "onrampSwitch": "Switch to Full picture",
+    "onrampSwitch": "Switch to Full",
     "onrampDismiss": "Not now",
     "peekMoreAboutField": "More about this field",
-    "switchForDetails": "Switch to Full picture for details",
+    "switchForDetails": "Switch to Full for details",
     "setupPhoneTitle": "Set up this phone",
-    "setupPhoneBody": "Everyday · Large text · Large buttons · Today is home"
+    "setupPhoneBody": "Simple · Large text · Larger buttons · Daybrief is home"
   },
-  "saveButton": "Save Preferences",
-  "saved": "Preferences saved!"
+  "saveButton": "Save changes",
+  "savedLegacy": "Changes saved"
 }

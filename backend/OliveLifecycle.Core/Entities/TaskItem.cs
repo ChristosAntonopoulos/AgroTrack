@@ -12,6 +12,12 @@ public class TaskItem : BaseEntity
     public string LifecycleYear { get; set; } = "low";
     public HarvestPhase? HarvestPhase { get; set; }
     public string? AssignedTo { get; set; }
+    /// <summary>
+    /// Partner helping with this task after an accepted contact request.
+    /// Must not grant field membership or document access.
+    /// </summary>
+    public string? PartnerUserId { get; set; }
+    public string? ServiceContactRequestId { get; set; }
     public WorkTaskStatus Status { get; set; } = WorkTaskStatus.Pending;
     public DateTime? ScheduledStart { get; set; }
     public DateTime? ScheduledEnd { get; set; }

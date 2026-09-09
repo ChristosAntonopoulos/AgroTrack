@@ -14,6 +14,7 @@ public class CreateHarvestRecordDto
     public string? Notes { get; set; }
     public decimal? SaleAmount { get; set; }
     public decimal? MillCost { get; set; }
+    public List<string>? MediaUrls { get; set; }
 }
 
 public class HarvestRecordDetailDto

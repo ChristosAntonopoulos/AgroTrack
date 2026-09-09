@@ -1,34 +1,33 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Sprout, Users, MapPin, ListTodo, Droplets, Activity } from 'lucide-react';
-import BrandLogo from '../Common/BrandLogo';
+import { History, Wallet, BookOpen } from 'lucide-react';
 import './LoginHero.css';
 
 const LoginHero: React.FC = () => {
   const { t } = useTranslation('auth');
 
   const features = [
-    { icon: CalendarDays, text: t('login.featurePlanning') },
-    { icon: Sprout, text: t('login.featureMonitoring') },
-    { icon: Users, text: t('login.featureCollaboration') },
-  ];
-
-  const stats = [
-    { icon: MapPin, label: t('login.statFields'), value: '12', tone: 'olive' },
-    { icon: ListTodo, label: t('login.statTasks'), value: '8', tone: 'amber' },
-    { icon: Droplets, label: t('login.statIrrigation'), value: '3', tone: 'blue' },
-    { icon: Activity, label: t('login.statHealth'), value: '94%', tone: 'green' },
+    {
+      icon: History,
+      title: t('login.featureTimelineTitle'),
+      text: t('login.featureTimelineText'),
+      prominent: true,
+    },
+    {
+      icon: Wallet,
+      title: t('login.featureCostsTitle'),
+      text: t('login.featureCostsText'),
+    },
+    {
+      icon: BookOpen,
+      title: t('login.featureKnowledgeTitle'),
+      text: t('login.featureKnowledgeText'),
+    },
   ];
 
   return (
     <div className="login-hero">
-      <div className="login-hero-brand">
-        <BrandLogo size="sm" className="login-hero-logo" alt="" />
-        <div>
-          <p className="login-hero-app">{t('login.appName')}</p>
-          <p className="login-hero-tagline">{t('login.platformTagline')}</p>
-        </div>
-      </div>
+      <p className="login-hero-eyebrow">{t('login.heroEyebrow')}</p>
 
       <div className="login-hero-copy">
         <h1>{t('login.heroTitle')}</h1>
@@ -36,32 +35,18 @@ const LoginHero: React.FC = () => {
       </div>
 
       <ul className="login-hero-features">
-        {features.map(({ icon: Icon, text }) => (
-          <li key={text}>
-            <Icon size={18} aria-hidden />
-            <span>{text}</span>
+        {features.map(({ icon: Icon, title, text, prominent }) => (
+          <li key={title} className={prominent ? 'login-hero-feature login-hero-feature--primary' : 'login-hero-feature'}>
+            <span className="login-hero-feature-icon" aria-hidden>
+              <Icon size={20} />
+            </span>
+            <div>
+              <strong>{title}</strong>
+              <span>{text}</span>
+            </div>
           </li>
         ))}
       </ul>
-
-      <div className="login-hero-summary">
-        <p className="login-hero-summary-label">{t('login.summaryTitle')}</p>
-        <div className="login-hero-stats">
-          {stats.map(({ icon: Icon, label, value, tone }) => (
-            <div key={label} className={`login-hero-stat login-hero-stat--${tone}`}>
-              <Icon size={16} aria-hidden />
-              <div>
-                <strong>{value}</strong>
-                <span>{label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="login-hero-activity">
-          <span className="login-hero-activity-dot" aria-hidden />
-          <p>{t('login.recentActivity')}</p>
-        </div>
-      </div>
     </div>
   );
 };

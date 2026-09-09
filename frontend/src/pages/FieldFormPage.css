@@ -91,7 +91,8 @@
   display: none;
 }
 
-@media (min-width: 540px) {
+/* sm = 480 */
+@media (min-width: 481px) {
   .field-form-step-label {
     display: inline;
   }

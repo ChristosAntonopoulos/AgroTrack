@@ -2,8 +2,6 @@
   "title": "Dashboard",
   "welcome": "Welcome, {{name}}",
   "welcomeFallback": "Welcome back",
-  "roleOwner": "Field Owner",
-  "roleProducer": "Producer",
   "todayDate": "{{date}}",
   "onboarding": {
     "title": "Quick start",
@@ -11,12 +9,12 @@
     "dismiss": "Dismiss",
     "stepOf": "Step {{current}} of {{total}}",
     "completeTitle": "All done! Onboarding complete",
-    "completeHint": "Explore the app freely. Switch roles on the login page to see your partner's experience.",
+    "completeHint": "Explore the app freely. Use quick login to try another demo account.",
     "producer": {
       "step1": {
-        "label": "Open the Today page",
-        "hint": "See your route and today's priorities.",
-        "action": "Go to Today"
+        "label": "Open Daybrief",
+        "hint": "See your route and this morning’s priorities.",
+        "action": "Open Daybrief"
       },
       "step2": {
         "label": "Start a task",
@@ -60,7 +58,9 @@
     "fields": "Fields",
     "fieldsSub": "View all",
     "tasks": "Tasks",
-    "tasksSub": "All tasks"
+    "tasksSub": "All tasks",
+    "partners": "Need a partner?",
+    "partnersSub": "Find nearby help for your grove"
   },
   "alerts": {
     "title": "Needs attention",
@@ -104,11 +104,81 @@
     "recentTitle": "Recent tasks",
     "emptyProducer": "No tasks assigned yet.",
     "emptyDefault": "No tasks available yet.",
-    "viewToday": "See all on Today"
+    "viewToday": "See all in Daybrief"
   },
   "producerHero": {
-    "title": "Start with Today",
-    "subtitle": "See today's tasks and your field route.",
-    "cta": "Go to Today"
+    "title": "Start with Daybrief",
+    "subtitle": "See this morning’s work and your field route.",
+    "cta": "Open Daybrief"
+  },
+  "myActions": {
+    "stripTitle": "Your actions",
+    "recentTitle": "Recent activity",
+    "recentEmpty": "No activity yet. Finish a job to see it here.",
+    "seeMore": "See more",
+    "sparklineTitle": "Activity this period",
+    "sparklineSeries": "Actions",
+    "period": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month"
+    },
+    "tiles": {
+      "tasksCompleted": "Jobs done",
+      "tasksStarted": "Started",
+      "evidenceAdded": "Photos added",
+      "harvestsRecorded": "Harvests",
+      "expensesLogged": "Costs logged",
+      "contactsSent": "Partner contacts",
+      "dueToday": "Due today",
+      "overdue": "Overdue",
+      "open": "Still open"
+    },
+    "hero": {
+      "defaultTitle": "Ready when you are",
+      "defaultSubtitle": "Open Daybrief for your next job.",
+      "defaultCta": "Open Daybrief",
+      "overdueTitle": "{{count}} overdue jobs",
+      "overdueSubtitle": "Clear these first so nothing slips.",
+      "overdueCta": "Show overdue",
+      "approvalTitle": "{{count}} waiting for your OK",
+      "approvalSubtitle": "Review completed work from your team.",
+      "approvalCta": "Review now",
+      "completeTaskTitle": "Keep finishing jobs",
+      "completeTaskSubtitle": "You have been completing work lately — keep going.",
+      "completeTaskCta": "Open tasks",
+      "addEvidenceTitle": "Add a photo",
+      "addEvidenceSubtitle": "You often attach evidence — capture the next one.",
+      "addEvidenceCta": "Open tasks",
+      "logHarvestTitle": "Log a harvest",
+      "logHarvestSubtitle": "Record olives when the picking is done.",
+      "logHarvestCta": "Open fields",
+      "logExpenseTitle": "Log a cost",
+      "logExpenseSubtitle": "Keep your money notes up to date.",
+      "logExpenseCta": "Open money",
+      "contactPartnerTitle": "Find a partner",
+      "contactPartnerSubtitle": "Reach out for help nearby.",
+      "contactPartnerCta": "Open partners",
+      "ownerDefaultTitle": "Schedule the next job",
+      "ownerDefaultSubtitle": "Create a task for your grove.",
+      "ownerDefaultCta": "New task"
+    }
+  },
+  "notes": {
+    "title": "Notes",
+    "seeAll": "See all",
+    "placeholder": "Quick note…",
+    "save": "Save",
+    "pinField": "Pin to grove",
+    "noField": "No grove",
+    "pinTop": "Keep at top",
+    "bodyLabel": "Note",
+    "bodyRequired": "Write a short note first.",
+    "newTitle": "New note",
+    "editTitle": "Edit note",
+    "subtitle": "Private to you — optional grove pin for context.",
+    "pageSubtitle": "Your private scratchpad. Pin a grove when it helps.",
+    "emptyTitle": "No notes yet",
+    "emptyDescription": "Capture a quick reminder from Daybrief or here."
   }
 }

@@ -10,7 +10,7 @@ export interface UseDashboardWeatherResult {
 
 /**
  * Dashboard weather uses the first field the user has, so the reading always
- * comes from AgroTrack's cache for a field they can actually access.
+ * comes from Oleachron's cache for a field they can actually access.
  */
 export const useDashboardWeather = (fields: Field[]): UseDashboardWeatherResult => {
   const [weather, setWeather] = useState<WeatherData | null>(null);

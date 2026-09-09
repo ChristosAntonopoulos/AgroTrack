@@ -10,7 +10,7 @@ cd "${MOBILE_DIR}"
 
 API_URL="${BACKEND_API_URL:-http://185.193.66.50:31847}"
 BUILD_ID="${BUILD_BUILDID:-${BUILD_ID:-1}}"
-OUTPUT_APK="${MOBILE_DIR}/agrotrack-mobile.apk"
+OUTPUT_APK="${MOBILE_DIR}/oleachron-mobile.apk"
 BUILD_INFO="${MOBILE_DIR}/build-info.json"
 GRADLE_LOG="${MOBILE_DIR}/gradle-build.log"
 
@@ -117,7 +117,7 @@ echo "Building release APK with embedded JS bundle (no Metro, no EAS)..."
 
 rm -f "${OUTPUT_APK}" "${BUILD_INFO}" "${GRADLE_LOG}"
 
-PREBUILD_STAMP="${ANDROID_DIR}/.agrotrack-prebuild-stamp"
+PREBUILD_STAMP="${ANDROID_DIR}/.oleachron-prebuild-stamp"
 CURRENT_STAMP="$(cat "${MOBILE_DIR}/app.json" "${MOBILE_DIR}/package-lock.json" "${MOBILE_DIR}/package.json" | sha256sum | awk '{print $1}')"
 if [ ! -d "${ANDROID_DIR}" ] || [ ! -x "${ANDROID_DIR}/gradlew" ] || [ ! -f "${PREBUILD_STAMP}" ] || [ "$(cat "${PREBUILD_STAMP}")" != "${CURRENT_STAMP}" ]; then
   echo "Native project missing or Expo plugins changed — expo prebuild --clean"

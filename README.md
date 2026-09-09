@@ -1,4 +1,4 @@
-# Olive Lifecycle Platform
+# Oleachron
 
 A comprehensive platform for managing olive cultivation through a biennial (2-year) lifecycle with repeatable annual operations.
 
@@ -19,7 +19,7 @@ The platform consists of three main components:
 ## Project Structure
 
 ```
-AgroTrack/
+Oleachron/
 ├── backend/              # C# ASP.NET Core API
 │   ├── OliveLifecycle.API/
 │   ├── OliveLifecycle.Core/

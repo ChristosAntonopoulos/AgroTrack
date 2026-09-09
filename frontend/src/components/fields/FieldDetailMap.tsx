@@ -19,6 +19,7 @@ interface Props {
   heightPx?: number;
   /** Set to false for contexts where only the boundary matters, such as previews. */
   showDataLayers?: boolean;
+  compact?: boolean;
 }
 
 /** Create custom panes before ImageOverlay mounts (pane="field-overlay"). */
@@ -43,7 +44,7 @@ const FitFieldBounds: React.FC<{ polygon?: [number, number][]; center: [number, 
   const map = useMap();
   useEffect(() => {
     if (polygon?.length) {
-      map.fitBounds(polygon, { padding: [16, 16], maxZoom: 18 });
+      map.fitBounds(polygon, { padding: [16, 16], maxZoom: 18, animate: false });
     } else {
       map.setView(center, 16);
     }
@@ -60,7 +61,7 @@ const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
   ];
 };
 
-const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers = true }) => {
+const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers = true, compact = false }) => {
   const { t } = useTranslation(['fields', 'common', 'settings']);
   const { showWidget, recordIntelligenceOpen, isEveryday } = useExperienceMode();
   const allowDataLayers = showDataLayers && showWidget('satelliteLayers') && showWidget('mapLayerPanel');
@@ -114,7 +115,7 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
 
   return (
     <div className="field-detail-map-wrap">
-      <div className="field-detail-map" style={{ height: heightPx }}>
+      <div className={`field-detail-map${compact ? ' field-detail-map--compact' : ''}`} style={{ height: heightPx }}>
         {allowDataLayers || layersPeeked ? (
           <MapLayerPanel
             baseLayer={baseLayer}
@@ -135,14 +136,14 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
               className={baseLayer === 'satellite' ? 'active' : ''}
               onClick={() => setBaseLayer('satellite')}
             >
-              {t('fields:addField.mapLayerSatellite')}
+              {t('fields:mapLayerSatellite')}
             </button>
             <button
               type="button"
               className={baseLayer === 'street' ? 'active' : ''}
               onClick={() => setBaseLayer('street')}
             >
-              {t('fields:addField.mapLayerStreet')}
+              {t('fields:mapLayerStreet')}
             </button>
           </div>
         )}
@@ -224,7 +225,7 @@ const FieldDetailMap: React.FC<Props> = ({ field, heightPx = 240, showDataLayers
           </div>
         </div>
         ) : null
-      ) : isEveryday && showWidget('fieldMapDefault') ? (
+      ) : isEveryday && showWidget('fieldMapDefault') && !compact ? (
         <div className="field-detail-map-overlays-wrap">
           <button
             type="button"

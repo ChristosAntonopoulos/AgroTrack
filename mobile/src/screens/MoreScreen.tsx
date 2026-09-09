@@ -10,7 +10,7 @@ import { usePreferences } from '../context/PreferencesContext';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { createElevation } from '../theme/elevation';
-import { getMinistryService } from '../services/serviceFactory';
+import { getPartnerService } from '../services/serviceFactory';
 import type { ExperienceMode } from '../experience/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -33,17 +33,21 @@ interface MenuSection {
 const MoreScreen = () => {
   const { user, isFieldOwner } = useAuth();
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier, experienceMode, setExperienceMode } = usePreferences();
-  const { t } = useTranslation(['settings', 'common', 'nav', 'fields']);
+  const { tapMin, fontScaleMultiplier, experienceMode, setExperienceMode, isFullPicture } = usePreferences();
+  const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
   const navigation = useNavigation<Nav>();
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const rowHeight = Math.max(tapMin, 64);
+  const role = user?.role || '';
+  const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
+  const canInsights = isFullPicture && (role === 'FieldOwner' || role === 'Administrator');
 
   useEffect(() => {
     if (!user) return;
-    getMinistryService()
-      .getNotifications(user.role)
-      .then((items) => setUnreadAlerts(items.filter((n) => !n.read).length))
+    void getPartnerService()
+      .getNotifications()
+      .then((items) => items.filter((n) => !n.isRead).length)
+      .then(setUnreadAlerts)
       .catch(() => setUnreadAlerts(0));
   }, [user]);
 
@@ -54,6 +58,38 @@ const MoreScreen = () => {
       id: 'work',
       title: t('nav:sections.work'),
       items: [
+        {
+          id: 'tasks',
+          icon: 'list-outline' as const,
+          label: t('nav:tasks'),
+          onPress: () => navigation.navigate('Main', { screen: 'Tasks' }),
+          showArrow: true,
+        },
+        {
+          id: 'chronologio',
+          icon: 'book-outline' as const,
+          label: t('nav:chronologio', { defaultValue: t('chronologio:title') }),
+          onPress: () => navigation.navigate('Main', { screen: 'ChronologioTab' }),
+          showArrow: true,
+        },
+        {
+          id: 'partners',
+          icon: 'people-circle-outline' as const,
+          label: t('nav:partners'),
+          onPress: () => navigation.navigate('Partners'),
+          showArrow: true,
+        },
+        ...(canMoney
+          ? [
+              {
+                id: 'money',
+                icon: 'wallet-outline' as const,
+                label: t('nav:money', { defaultValue: 'Costs' }),
+                onPress: () => navigation.navigate('Money'),
+                showArrow: true,
+              },
+            ]
+          : []),
         ...(isFieldOwner()
           ? [
               {
@@ -64,28 +100,28 @@ const MoreScreen = () => {
                 showArrow: true,
               },
               {
-                id: 'people',
-                icon: 'people-outline' as const,
-                label: t('fields:people.title'),
-                onPress: () => navigation.navigate('People'),
+                id: 'apologismos',
+                icon: 'book-outline' as const,
+                label: t('fields:apologismos.title'),
+                onPress: () => navigation.navigate('ThisHarvestReview'),
                 showArrow: true,
               },
             ]
           : []),
-        {
-          id: 'week',
-          icon: 'calendar-outline',
-          label: t('nav:thisWeek'),
-          onPress: () => navigation.navigate('Main', { screen: 'Calendar' }),
-          showArrow: true,
-        },
-        ...(isFieldOwner()
+        ...(canInsights
           ? [
               {
-                id: 'dashboard',
-                icon: 'grid-outline' as const,
-                label: t('nav:dashboard'),
-                onPress: () => navigation.navigate('Main', { screen: 'Dashboard' }),
+                id: 'analytics',
+                icon: 'bar-chart-outline' as const,
+                label: t('nav:analytics', { defaultValue: 'Analytics' }),
+                onPress: () => navigation.navigate('Analytics'),
+                showArrow: true,
+              },
+              {
+                id: 'reports',
+                icon: 'document-outline' as const,
+                label: t('nav:reports', { defaultValue: 'Reports' }),
+                onPress: () => navigation.navigate('Reports'),
                 showArrow: true,
               },
             ]
@@ -96,17 +132,28 @@ const MoreScreen = () => {
       id: 'account',
       title: t('nav:sections.account'),
       items: [
+        ...(isFieldOwner()
+          ? [
+              {
+                id: 'myservices',
+                icon: 'briefcase-outline' as const,
+                label: t('partners:myServices'),
+                onPress: () => navigation.navigate('MyServices'),
+                showArrow: true,
+              },
+            ]
+          : []),
         {
-          id: 'ministry',
-          icon: 'document-text-outline',
-          label: t('nav:notifications'),
+          id: 'inbox',
+          icon: 'notifications-outline' as const,
+          label: t('nav:inbox', { defaultValue: 'Inbox' }),
           onPress: () => navigation.navigate('Notifications'),
           badge: unreadAlerts || undefined,
           showArrow: true,
         },
         {
           id: 'settings',
-          icon: 'settings-outline',
+          icon: 'settings-outline' as const,
           label: t('nav:settings'),
           onPress: () => navigation.navigate('Main', { screen: 'Settings' }),
           showArrow: true,

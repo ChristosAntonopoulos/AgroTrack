@@ -21,6 +21,13 @@ import { financialEntryService } from './financialEntryService';
 import { mockFinancialEntryService } from './mockFinancialEntryService';
 import { harvestService } from './harvestService';
 import { mockHarvestService } from './mockHarvestService';
+import { partnerService } from './partnerService';
+import { meDashboardService } from './meDashboardService';
+import { mockMeDashboardService } from './mockMeDashboardService';
+import { noteService } from './noteService';
+import { mockNoteService } from './mockNoteService';
+import { chronologioService } from './chronologioService';
+import { mockChronologioService } from './mockChronologioService';
 import { isMockDataEnabled } from '../config/env';
 
 const useMock = () => isMockDataEnabled();
@@ -38,5 +45,11 @@ export const getCalendarService = () => calendarService;
 export const getFinancialEntryService = () =>
   useMock() ? mockFinancialEntryService : financialEntryService;
 export const getHarvestService = () => (useMock() ? mockHarvestService : harvestService);
+export const getPartnerService = () => partnerService;
+export const getMeDashboardService = () =>
+  useMock() ? mockMeDashboardService : meDashboardService;
+export const getNoteService = () => (useMock() ? mockNoteService : noteService);
+export const getChronologioService = () =>
+  useMock() ? mockChronologioService : chronologioService;
 
 export const isMockMode = () => isMockDataEnabled();

@@ -74,4 +74,18 @@ export const reportsService = {
     const response = await api.get<ProfitLossReport>('/api/v1/reports/profit-loss', reportParams(query));
     return response.data;
   },
+
+  getFieldComparison: async (query?: ReportQuery) => {
+    const summaries = await reportsService.getFieldSummaries(query);
+    return summaries.map((s) => ({
+      fieldId: s.fieldId,
+      fieldName: s.fieldName,
+      oliveKg: s.totalProductionKg,
+      kgPerHa: s.yieldPerHa,
+      cost: s.totalCost,
+      tasksCompleted: s.tasksCompleted,
+      tasksPending: s.tasksPending,
+      tasksOverdue: s.tasksOverdue,
+    }));
+  },
 };

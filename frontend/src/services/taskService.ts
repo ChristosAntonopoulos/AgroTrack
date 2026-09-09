@@ -30,6 +30,8 @@ export interface Task {
   description?: string;
   status: string;
   assignedTo?: string;
+  partnerUserId?: string;
+  serviceContactRequestId?: string;
   approvalStatus?: 'not_required' | 'pending' | 'approved' | 'rejected';
   approvalNote?: string;
   priority?: 'Low' | 'Medium' | 'High' | 'Critical';
@@ -63,6 +65,21 @@ export interface CreateTaskDto {
   repetition?: string;
   completionFields?: string[];
   notes?: string;
+}
+
+export interface RecordCompletedWorkDto {
+  fieldId: string;
+  templateId?: string;
+  type: string;
+  title: string;
+  description?: string;
+  lifecycleYear?: string;
+  assignedTo?: string;
+  occurredAt?: string;
+  costAmount?: number;
+  currency?: string;
+  costCategory?: string;
+  mediaUrls?: string[];
 }
 
 export const taskService = {
@@ -181,6 +198,12 @@ export const taskService = {
       }
       throw err;
     }
+  },
+
+  recordCompletedWork: async (data: RecordCompletedWorkDto): Promise<Task> => {
+    const response = await api.post<Task>('/api/v1/tasks/recorded', data);
+    EntityCache.setTask(response.data);
+    return response.data;
   },
 
   updateTaskStatus: async (id: string, status: string): Promise<Task> => {

@@ -151,7 +151,7 @@ const FieldCostsCard: React.FC<Props> = ({
     Alert.alert(t('fields:costs.wrongTitle'), t('fields:costs.wrongConfirm'), [
       { text: t('common:cancel'), style: 'cancel' },
       {
-        text: t('fields:costs.thatWasWrong'),
+        text: t('common:delete', { defaultValue: 'Delete' }),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -184,18 +184,21 @@ const FieldCostsCard: React.FC<Props> = ({
 
       {hasMoney ? (
         <View style={[styles.hero, { backgroundColor: colors.surfaceMuted }]}>
-          <Text style={[styles.heroAmount, { color: colors.textPrimary }]}>
-            {formatMoney(left, currency)}
-          </Text>
           <Text style={[styles.heroLabel, { color: colors.textSecondary }]}>
             {t('fields:costs.left')}
           </Text>
+          <Text style={[styles.heroAmount, { color: colors.textPrimary }]}>
+            {left > 0 ? '+' : left < 0 ? '−' : ''}
+            {formatMoney(Math.abs(left), currency)}
+          </Text>
           <View style={styles.heroSplit}>
-            <Text style={[styles.heroSide, { color: colors.textSecondary }]}>
-              {t('fields:costs.spent')} {formatMoney(spent, currency)}
-            </Text>
             <Text style={[styles.heroSide, { color: colors.successDark }]}>
-              {t('fields:costs.received')} {formatMoney(received, currency)}
+              {t('fields:costs.income', { defaultValue: t('fields:costs.received') })}{' '}
+              {received > 0 ? formatMoney(received, currency) : '—'}
+            </Text>
+            <Text style={[styles.heroSide, { color: colors.textSecondary }]}>
+              {t('fields:costs.expenses', { defaultValue: t('fields:costs.spent') })}{' '}
+              {spent > 0 ? formatMoney(spent, currency) : '—'}
             </Text>
           </View>
         </View>
@@ -210,11 +213,6 @@ const FieldCostsCard: React.FC<Props> = ({
               amount: formatMoney(saved.amount, saved.currency),
             })}
           </Text>
-          {canVoid && onVoid ? (
-            <Pressable onPress={() => confirmVoid(saved.id)} style={{ minHeight: tapMin, justifyContent: 'center' }}>
-              <Text style={[styles.undo, { color: colors.primaryDark }]}>{t('fields:costs.thatWasWrong')}</Text>
-            </Pressable>
-          ) : null}
         </View>
       ) : null}
 
@@ -450,6 +448,15 @@ const FieldCostsCard: React.FC<Props> = ({
             {entry.kind === 'income' ? '+' : '−'}
             {formatMoney(entry.amount, entry.currency)}
           </Text>
+          {canVoid && onVoid ? (
+            <Pressable
+              onPress={() => confirmVoid(entry.id)}
+              accessibilityLabel={t('common:delete', { defaultValue: 'Delete' })}
+              style={{ minWidth: tapMin, minHeight: tapMin, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: 22, lineHeight: 22 }}>⋯</Text>
+            </Pressable>
+          ) : null}
         </View>
       ))}
     </View>

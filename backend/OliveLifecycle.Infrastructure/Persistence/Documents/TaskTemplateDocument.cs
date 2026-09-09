@@ -28,6 +28,10 @@ public class TaskTemplateDocument
     [BsonElement("defaultSchedulingWindow")]
     public SchedulingWindowDocument? DefaultSchedulingWindow { get; set; }
 
+    [BsonElement("serviceCategorySlug")]
+    [BsonIgnoreIfNull]
+    public string? ServiceCategorySlug { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -12,6 +12,8 @@ const EVERYDAY_WIDGETS: ReadonlySet<ExperienceWidget> = new Set([
   'peopleStrip',
   'alertsPlain',
   'fieldCosts',
+  'myActions',
+  'recentNotes',
 ]);
 
 /**
@@ -31,15 +33,16 @@ export const EVERYDAY_PRIMARY_PATHS: ReadonlySet<string> = new Set([
   '/today',
   '/fields',
   '/tasks',
-  '/people',
   '/money',
+  '/partners',
+  '/this-harvest',
   '/settings',
 ]);
 
 /** Reachable in Everyday but not primary (Settings / More). */
 export const EVERYDAY_MORE_PATHS: ReadonlySet<string> = new Set([
-  '/calendar',
-  '/ministry',
+  '/notes',
+  '/chronologio',
 ]);
 
 export const isEverydayPrimaryPath = (path: string): boolean =>

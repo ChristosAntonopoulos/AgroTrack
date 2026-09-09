@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -10,6 +10,8 @@ import { Activity } from '../../services/activityService';
 export interface ActivityTimelineProps {
   activities: Activity[];
   fieldNames?: Record<string, string>;
+  onPressActivity?: (activity: Activity) => void;
+  limit?: number;
 }
 
 function formatTimeAgo(iso: string, locale: string): string {
@@ -22,9 +24,15 @@ function formatTimeAgo(iso: string, locale: string): string {
   return locale.startsWith('el') ? `${days} ημέρες` : `${days}d ago`;
 }
 
-const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, fieldNames = {} }) => {
+const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
+  activities,
+  fieldNames = {},
+  onPressActivity,
+  limit = 4,
+}) => {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('dashboard');
+  const items = activities.slice(0, limit);
 
   return (
     <View
@@ -39,30 +47,55 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, fieldNa
     >
       <View style={styles.header}>
         <Ionicons name="time-outline" size={16} color={colors.primaryDark} />
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('recentActivity')}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          {t('myActions.recentTitle', { defaultValue: t('recentActivity') })}
+        </Text>
       </View>
-      {activities.length === 0 ? (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>{t('noRecentActivity')}</Text>
+      {items.length === 0 ? (
+        <Text style={[styles.empty, { color: colors.textSecondary }]}>
+          {t('myActions.recentEmpty', { defaultValue: t('noRecentActivity') })}
+        </Text>
       ) : (
-        activities.slice(0, 4).map((act, idx) => (
-          <View key={act.id} style={styles.row}>
-            <View style={styles.timeline}>
-              <View style={[styles.dot, { backgroundColor: colors.success }]} />
-              {idx < Math.min(activities.length, 4) - 1 ? (
-                <View style={[styles.line, { backgroundColor: colors.border }]} />
-              ) : null}
+        items.map((act, idx) => {
+          const body = (
+            <>
+              <View style={styles.timeline}>
+                <View style={[styles.dot, { backgroundColor: colors.success }]} />
+                {idx < items.length - 1 ? (
+                  <View style={[styles.line, { backgroundColor: colors.border }]} />
+                ) : null}
+              </View>
+              <View style={styles.content}>
+                <Text style={[styles.message, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {act.message}
+                </Text>
+                <Text style={[styles.time, { color: colors.textTertiary }]}>
+                  {fieldNames[act.fieldId] ? `${fieldNames[act.fieldId]} · ` : ''}
+                  {formatTimeAgo(act.timestamp, i18n.language)}
+                </Text>
+              </View>
+            </>
+          );
+
+          if (onPressActivity) {
+            return (
+              <TouchableOpacity
+                key={act.id}
+                style={styles.row}
+                onPress={() => onPressActivity(act)}
+                accessibilityRole="button"
+              >
+                {body}
+              </TouchableOpacity>
+            );
+          }
+
+          return (
+            <View key={act.id} style={styles.row}>
+              {body}
             </View>
-            <View style={styles.content}>
-              <Text style={[styles.message, { color: colors.textPrimary }]} numberOfLines={2}>
-                {act.message}
-              </Text>
-              <Text style={[styles.time, { color: colors.textTertiary }]}>
-                {fieldNames[act.fieldId] ? `${fieldNames[act.fieldId]} · ` : ''}
-                {formatTimeAgo(act.timestamp, i18n.language)}
-              </Text>
-            </View>
-          </View>
-        ))
+          );
+        })
       )}
     </View>
   );

@@ -225,14 +225,14 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
           className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
           onClick={() => setMapLayer('satellite')}
         >
-          {t('addField.mapLayerSatellite')}
+          {t('mapLayerSatellite')}
         </button>
         <button
           type="button"
           className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
           onClick={() => setMapLayer('street')}
         >
-          {t('addField.mapLayerStreet')}
+          {t('mapLayerStreet')}
         </button>
       </div>
 

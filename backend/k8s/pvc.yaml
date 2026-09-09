@@ -2,10 +2,10 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: olive-lifecycle-uploads
-  namespace: agrotrack-backend
+  namespace: oleachron-backend
   labels:
     app: olive-lifecycle-api
-    app.kubernetes.io/part-of: agrotrack
+    app.kubernetes.io/part-of: oleachron
     app.kubernetes.io/component: storage
 spec:
   accessModes:

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -8,14 +8,31 @@ import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import Button from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useRefresh } from '../hooks/useRefresh';
-import { reportsService, FieldProfit, FieldSummaryReport } from '../services/reportsService';
-import { currentHarvestSeason, formatKg } from '../utils/harvestUtils';
+import { useFields } from '../hooks/useFields';
+import { reportsService, HarvestReportRecord } from '../services/reportsService';
+import { getTaskService, getNoteService } from '../services/serviceFactory';
+import { Task } from '../services/taskService';
+import { Note, notePreviewTitle } from '../services/noteService';
+import { formatKg } from '../utils/harvestUtils';
+import {
+  formatSeasonLabel,
+  getSeasonBounds,
+  getSeasonStartYear,
+  overlappingCalendarYears,
+} from '../ravdos/season';
+import {
+  buildSeasonMilestones,
+  computeRodProgress,
+  noteInSeasonBounds,
+  ROD_PHASE_ORDER,
+  type RodPhaseId,
+} from '../ravdos/progressModel';
 import { RootStackParamList } from '../navigation/types';
 import { spacing, typography } from '../theme';
-import { createElevation } from '../theme/elevation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,61 +41,53 @@ const formatMoney = (amount: number) =>
 
 const ThisHarvestScreen = () => {
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier } = usePreferences();
+  const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
   const { t } = useTranslation(['fields', 'common']);
   const navigation = useNavigation<Nav>();
-  const season = useMemo(() => currentHarvestSeason(), []);
+  const { fields } = useFields();
+  const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
+  const bounds = useMemo(() => getSeasonBounds(seasonStartYear), [seasonStartYear]);
+
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [oliveKg, setOliveKg] = useState(0);
   const [spent, setSpent] = useState(0);
-  const [received, setReceived] = useState(0);
-  const [net, setNet] = useState(0);
-  const [cards, setCards] = useState<
-    Array<{ fieldId: string; fieldName: string; oliveKg: number; spent: number; received: number }>
-  >([]);
+  const [showAll, setShowAll] = useState(false);
+
+  const anyIrrigated = useMemo(() => fields.some((f) => Boolean(f.irrigationStatus)), [fields]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const query = { season };
-      const [harvests, pnl, summaries] = await Promise.all([
-        reportsService.getHarvestRecords(query).catch(() => []),
-        reportsService.getProfitLoss(query).catch(() => null),
-        reportsService.getFieldSummaries(query).catch(() => [] as FieldSummaryReport[]),
+      const years = overlappingCalendarYears(seasonStartYear);
+      const [allTasks, allNotes, harvestChunks, pnlChunks] = await Promise.all([
+        getTaskService().getAllTasks().catch(() => [] as Task[]),
+        getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
+        Promise.all(
+          years.map((y) => reportsService.getHarvestRecords({ season: y }).catch(() => [] as HarvestReportRecord[]))
+        ),
+        Promise.all(years.map((y) => reportsService.getProfitLoss({ season: y }).catch(() => null))),
       ]);
 
-      const kgByField = new Map<string, number>();
-      let totalKg = 0;
-      for (const row of harvests) {
-        totalKg += row.oliveKg || 0;
-        kgByField.set(row.fieldId, (kgByField.get(row.fieldId) ?? 0) + (row.oliveKg || 0));
-      }
-
-      const profitByField = new Map<string, FieldProfit>();
-      (pnl?.profitByField ?? []).forEach((row) => profitByField.set(row.fieldId, row));
-
-      const nextCards = summaries
-        .map((summary) => {
-          const profit = profitByField.get(summary.fieldId);
-          return {
-            fieldId: summary.fieldId,
-            fieldName: summary.fieldName,
-            oliveKg: kgByField.get(summary.fieldId) ?? summary.totalProductionKg ?? 0,
-            spent: profit?.cost ?? summary.totalCost ?? 0,
-            received: profit?.revenue ?? 0,
-          };
-        })
-        .filter((card) => card.oliveKg > 0 || card.spent > 0 || card.received > 0);
-
-      setOliveKg(totalKg);
-      setSpent(Number(pnl?.totalExpenses ?? 0));
-      setReceived(Number(pnl?.totalIncome ?? 0));
-      setNet(Number(pnl?.netProfit ?? 0));
-      setCards(nextCards);
+      const harvests = harvestChunks.flat().filter((h) => {
+        const d = new Date(h.harvestDate);
+        return !Number.isNaN(d.getTime()) && d >= bounds.from && d <= bounds.to;
+      });
+      setOliveKg(harvests.reduce((s, h) => s + (h.oliveKg || 0), 0));
+      setSpent(pnlChunks.reduce((s, p) => s + Number(p?.totalExpenses ?? 0), 0));
+      setTasks(allTasks);
+      setNotes(
+        allNotes
+          .filter((n) => noteInSeasonBounds(n, bounds))
+          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+          .slice(0, isEveryday ? 4 : 12)
+      );
     } finally {
       setLoading(false);
     }
-  }, [season]);
+  }, [bounds, isEveryday, seasonStartYear]);
 
   useEffect(() => {
     void load();
@@ -86,13 +95,40 @@ const ThisHarvestScreen = () => {
 
   const { refreshing, onRefresh } = useRefresh(load);
 
-  if (loading && cards.length === 0 && oliveKg === 0 && spent === 0 && received === 0) {
-    return <LoadingSpinner fullScreen />;
-  }
+  const progress = useMemo(() => {
+    const milestones = buildSeasonMilestones(tasks, {
+      anyIrrigatedField: anyIrrigated,
+      seasonStartYear,
+    });
+    return computeRodProgress(milestones);
+  }, [tasks, anyIrrigated, seasonStartYear]);
 
-  const hasHeroKg = oliveKg > 0;
-  const hasMoney = spent > 0 || received > 0;
-  const empty = !hasHeroKg && !hasMoney && cards.length === 0;
+  const visible = useMemo(() => {
+    if (showAll || !isEveryday) return progress.milestones;
+    return progress.milestones.filter((m) => !m.done).slice(0, 5);
+  }, [progress.milestones, showAll, isEveryday]);
+
+  const toggle = async (taskId: string | undefined, done: boolean) => {
+    if (!taskId || togglingId) return;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const next = done ? 'pending' : 'completed';
+    setTogglingId(taskId);
+    setTasks((prev) => prev.map((r) => (r.id === taskId ? { ...r, status: next } : r)));
+    try {
+      await getTaskService().updateTaskStatus(taskId, next);
+    } catch {
+      setTasks((prev) => prev.map((r) => (r.id === taskId ? { ...r, status: task.status } : r)));
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  if (loading && tasks.length === 0) return <LoadingSpinner fullScreen />;
+
+  const phaseLabel = (id: RodPhaseId) => t(`fields:thisHarvest.phases.${id}`);
+  const empty =
+    progress.milestones.length === 0 && notes.length === 0 && oliveKg === 0 && spent === 0;
 
   return (
     <ScreenLayout
@@ -100,124 +136,192 @@ const ThisHarvestScreen = () => {
       refreshControl={{ refreshing, onRefresh }}
       contentContainerStyle={styles.content}
     >
-      <ScreenHeader title={t('fields:thisHarvest.title')} subtitle={t('fields:thisHarvest.season', { year: season })} />
+      <ScreenHeader
+        title={t('fields:thisHarvest.title')}
+        subtitle={t('fields:thisHarvest.subtitle')}
+      />
+      <Text style={[styles.season, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
+        {t('fields:thisHarvest.season', { year: formatSeasonLabel(seasonStartYear) })}
+      </Text>
 
       {empty ? (
         <EmptyState
-          icon={<Ionicons name="basket-outline" size={36} color={colors.textTertiary} />}
+          icon={<Ionicons name="leaf-outline" size={36} color={colors.textTertiary} />}
           title={t('fields:thisHarvest.emptyTitle')}
           description={t('fields:thisHarvest.emptyHint')}
         />
-      ) : (
-        <View style={[styles.hero, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
-          {hasHeroKg ? (
-            <>
-              <Text style={[styles.heroLabel, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
-                {t('fields:thisHarvest.olives')}
-              </Text>
-              <Text style={[styles.heroValue, { color: colors.textPrimary, fontSize: 32 * fontScaleMultiplier }]}>
-                {t('fields:thisHarvest.kgValue', { kg: formatKg(oliveKg) })}
-              </Text>
-            </>
-          ) : hasMoney ? (
-            <>
-              <Text style={[styles.heroLabel, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
-                {t('fields:thisHarvest.net')}
-              </Text>
-              <Text style={[styles.heroValue, { color: colors.textPrimary, fontSize: 32 * fontScaleMultiplier }]}>
-                {formatMoney(net)}
-              </Text>
-            </>
-          ) : null}
+      ) : null}
 
-          {hasMoney ? (
-            <View style={styles.moneyRow}>
-              {spent > 0 ? (
-                <Text style={{ color: colors.textSecondary, fontSize: 15 * fontScaleMultiplier }}>
-                  {t('fields:costs.spent')}: {formatMoney(spent)}
+      <View style={[styles.card, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+        <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
+          {t('fields:thisHarvest.progressLabel')}
+        </Text>
+        <Text style={[styles.percent, { color: colors.textPrimary, fontSize: 40 * fontScaleMultiplier }]}>
+          {progress.percent}%
+        </Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }}>
+          {t('fields:thisHarvest.inProgress')} ·{' '}
+          {t('fields:thisHarvest.phaseFocus', { phase: phaseLabel(progress.activePhaseId) })}
+        </Text>
+        {!isEveryday ? (
+          <View style={styles.phases}>
+            {ROD_PHASE_ORDER.map((id) => {
+              const phase = progress.phases.find((p) => p.id === id);
+              return (
+                <View key={id} style={[styles.phase, { borderColor: colors.border }]}>
+                  <Text style={{ color: colors.textPrimary, fontSize: 11 * fontScaleMultiplier, fontWeight: '700' }}>
+                    {phaseLabel(id)}
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 * fontScaleMultiplier }}>
+                    {phase?.percent ?? 0}%
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+      </View>
+
+      <View style={[styles.section, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 17 * fontScaleMultiplier }]}>
+          {t('fields:thisHarvest.milestonesTitle')}
+        </Text>
+        {visible.length === 0 ? (
+          <Text style={{ color: colors.textSecondary }}>{t('fields:thisHarvest.milestonesEmpty')}</Text>
+        ) : (
+          visible.map((m) => (
+            <View key={m.id} style={[styles.checkRow, { minHeight: Math.max(44, tapMin), borderColor: colors.borderLight }]}>
+              <Pressable
+                onPress={() => void toggle(m.taskId, m.done)}
+                disabled={!m.taskId || togglingId === m.taskId}
+                style={styles.checkBtn}
+              >
+                <Ionicons
+                  name={m.done ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={24}
+                  color={m.done ? colors.primaryDark : colors.textSecondary}
+                />
+              </Pressable>
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                disabled={!m.taskId}
+                onPress={() => m.taskId && navigation.navigate('TaskDetail', { taskId: m.taskId })}
+              >
+                <Text
+                  style={{
+                    color: m.done ? colors.textSecondary : colors.textPrimary,
+                    textDecorationLine: m.done ? 'line-through' : 'none',
+                    fontWeight: '600',
+                    fontSize: 15 * fontScaleMultiplier,
+                  }}
+                >
+                  {m.title}
                 </Text>
-              ) : null}
-              {received > 0 ? (
-                <Text style={{ color: colors.textSecondary, fontSize: 15 * fontScaleMultiplier }}>
-                  {t('fields:costs.received')}: {formatMoney(received)}
-                </Text>
-              ) : null}
+              </TouchableOpacity>
             </View>
-          ) : null}
-        </View>
-      )}
+          ))
+        )}
+        {isEveryday && progress.milestones.filter((m) => !m.done).length > 5 ? (
+          <Button
+            title={
+              showAll
+                ? t('fields:thisHarvest.milestonesLess')
+                : t('fields:thisHarvest.milestonesMore', {
+                    count: progress.milestones.filter((m) => !m.done).length,
+                  })
+            }
+            variant="ghost"
+            onPress={() => setShowAll((v) => !v)}
+          />
+        ) : null}
+      </View>
 
-      {cards.map((card) => (
-        <TouchableOpacity
-          key={card.fieldId}
-          style={[
-            styles.fieldCard,
-            {
-              backgroundColor: colors.surfaceElevated,
-              borderColor: colors.borderLight,
-              minHeight: tapMin,
-              ...createElevation(colors, 'sm'),
-            },
-          ]}
-          onPress={() => navigation.navigate('FieldDetail', { fieldId: card.fieldId, focus: 'harvest' })}
-        >
-          <Text style={[styles.fieldName, { color: colors.textPrimary, fontSize: 17 * fontScaleMultiplier }]}>
-            {card.fieldName}
-          </Text>
-          {card.oliveKg > 0 ? (
-            <Text style={{ color: colors.textSecondary, fontSize: 15 * fontScaleMultiplier }}>
-              {t('fields:thisHarvest.kgValue', { kg: formatKg(card.oliveKg) })}
-            </Text>
-          ) : null}
-          {card.spent > 0 || card.received > 0 ? (
-            <Text style={{ color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }}>
-              {[
-                card.spent > 0 ? `${t('fields:costs.spent')} ${formatMoney(card.spent)}` : null,
-                card.received > 0 ? `${t('fields:costs.received')} ${formatMoney(card.received)}` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-          ) : null}
-        </TouchableOpacity>
-      ))}
+      <View style={[styles.section, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 17 * fontScaleMultiplier }]}>
+          {t('fields:thisHarvest.notesTitle')}
+        </Text>
+        {notes.length === 0 ? (
+          <Text style={{ color: colors.textSecondary }}>{t('fields:thisHarvest.notesEmpty')}</Text>
+        ) : (
+          notes.map((note) => (
+            <TouchableOpacity
+              key={note.id}
+              style={{ minHeight: Math.max(44, tapMin), justifyContent: 'center' }}
+              onPress={() =>
+                note.fieldId
+                  ? navigation.navigate('FieldDetail', { fieldId: note.fieldId })
+                  : navigation.navigate('Chronologio')
+              }
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+                {(note.pinned ? '★ ' : '') +
+                  (notePreviewTitle(note.body) || t('fields:thisHarvest.untitledNote'))}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      <View style={[styles.section, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 17 * fontScaleMultiplier }]}>
+          {t('fields:thisHarvest.liveTitle')}
+        </Text>
+        <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+          {t('fields:thisHarvest.liveHint')}
+        </Text>
+        <Text style={{ color: colors.textPrimary }}>
+          {t('fields:thisHarvest.olivesSoFar')}: {t('fields:thisHarvest.kgValue', { kg: formatKg(oliveKg) })}
+        </Text>
+        <Text style={{ color: colors.textPrimary, marginBottom: spacing.sm }}>
+          {t('fields:thisHarvest.spentSoFar')}: {formatMoney(spent)}
+        </Text>
+        <Button
+          title={t('fields:thisHarvest.openMoney')}
+          variant="outline"
+          onPress={() => navigation.navigate('Money')}
+          fullWidth
+        />
+      </View>
+
+      <Button
+        title={t('fields:thisHarvest.reviewLink')}
+        variant="ghost"
+        onPress={() => navigation.navigate('ThisHarvestReview')}
+        style={{ marginHorizontal: spacing.base }}
+      />
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing['3xl'] },
-  hero: {
+  season: { marginHorizontal: spacing.base, marginBottom: spacing.sm, fontWeight: '600' },
+  card: {
     marginHorizontal: spacing.base,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     borderRadius: 16,
     borderWidth: 1,
     padding: spacing.base,
-    gap: spacing.xs,
   },
-  heroLabel: {
-    ...typography.styles.caption,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  heroValue: {
-    fontWeight: '800',
-  },
-  moneyRow: {
-    marginTop: spacing.sm,
-    gap: 4,
-  },
-  fieldCard: {
+  eyebrow: { ...typography.styles.caption, fontWeight: '700', textTransform: 'uppercase' },
+  percent: { fontWeight: '800', marginVertical: 4 },
+  phases: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.sm },
+  phase: { borderWidth: 1, borderRadius: 10, padding: 6, minWidth: '30%' },
+  section: {
     marginHorizontal: spacing.base,
-    marginBottom: spacing.sm,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: spacing.md,
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 4,
   },
-  fieldName: {
-    fontWeight: '700',
+  sectionTitle: { fontWeight: '700', marginBottom: spacing.xs },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  checkBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });
 
 export default ThisHarvestScreen;

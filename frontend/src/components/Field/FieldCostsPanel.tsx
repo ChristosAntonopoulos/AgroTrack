@@ -90,14 +90,19 @@ const FieldCostsPanel: React.FC<Props> = ({
           <h2>{t('fields:costs.title')}</h2>
           {hasMoney ? (
             <div className="field-costs-totals">
-              <p className="field-costs-hero">{formatMoney(left, currency)}</p>
-              <p className="field-costs-left">{t('fields:costs.left')}</p>
+              <p className="field-costs-left">{t('fields:costs.result')}</p>
+              <p className="field-costs-hero">
+                {left > 0 ? '+' : left < 0 ? '−' : ''}
+                {formatMoney(Math.abs(left), currency)}
+              </p>
               <div className="field-costs-split">
                 <p>
-                  {t('fields:costs.spent')} {formatMoney(spent, currency)}
+                  {t('fields:costs.income')}{' '}
+                  {received > 0 ? formatMoney(received, currency) : t('fields:costs.dash')}
                 </p>
-                <p className="is-income">
-                  {t('fields:costs.received')} {formatMoney(received, currency)}
+                <p>
+                  {t('fields:costs.expenses')}{' '}
+                  {spent > 0 ? formatMoney(spent, currency) : t('fields:costs.dash')}
                 </p>
               </div>
             </div>
@@ -114,11 +119,6 @@ const FieldCostsPanel: React.FC<Props> = ({
               amount: formatMoney(saved.amount || 0, saved.currency),
             })}
           </p>
-          {canVoid && onVoid ? (
-            <button type="button" className="field-costs-void" onClick={() => requestVoid(saved.id)}>
-              {t('fields:costs.thatWasWrong')}
-            </button>
-          ) : null}
         </div>
       ) : null}
 
@@ -172,8 +172,13 @@ const FieldCostsPanel: React.FC<Props> = ({
                   {formatMoney(entry.amount, entry.currency)}
                 </strong>
                 {canVoid && onVoid ? (
-                  <button type="button" className="field-costs-void" onClick={() => requestVoid(entry.id)}>
-                    {t('fields:costs.thatWasWrong')}
+                  <button
+                    type="button"
+                    className="field-costs-void"
+                    aria-label={t('fields:costs.actions.delete')}
+                    onClick={() => requestVoid(entry.id)}
+                  >
+                    ⋯
                   </button>
                 ) : null}
               </div>

@@ -17,15 +17,17 @@ import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle, Handshake, Plus, Wallet, StickyNote } from 'lucide-react';
+import { useCaptureOptional } from '../context/CaptureContext';
 import './TaskDetailPage.css';
 
 const TaskDetailPage: React.FC = () => {
-  const { t } = useTranslation(['tasks', 'common', 'errors']);
+  const { t } = useTranslation(['tasks', 'common', 'errors', 'partners', 'capture']);
   const { formatDateTime } = useLocaleFormatters();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const capture = useCaptureOptional();
   const [task, setTask] = useState<Task | null>(null);
   const [field, setField] = useState<Field | null>(null);
   const [assignedUser, setAssignedUser] = useState<User | null>(null);
@@ -239,9 +241,53 @@ const TaskDetailPage: React.FC = () => {
               Edit Task
             </Button>
           )}
+          {capture && task ? (
+            <>
+              <Button
+                variant="outline"
+                icon={<Wallet size={16} />}
+                onClick={() =>
+                  capture.openCapture({
+                    fieldId: task.fieldId,
+                    taskId: task.id,
+                    preferredType: 'expense',
+                  })
+                }
+              >
+                {t('capture:types.expense.title')}
+              </Button>
+              <Button
+                variant="outline"
+                icon={<StickyNote size={16} />}
+                onClick={() =>
+                  capture.openCapture({
+                    fieldId: task.fieldId,
+                    preferredType: 'observation',
+                  })
+                }
+              >
+                {t('capture:types.observation.title')}
+              </Button>
+            </>
+          ) : null}
         </div>
 
         {error && <div className="error-message">{error}</div>}
+
+        {isFieldOwner && (
+          <Card className="task-partner-cta">
+            <h2>{t('partners:needHelp')}</h2>
+            <p>{t('partners:fromTaskHint')}</p>
+            <Button
+              icon={<Handshake />}
+              to={`/partners?fieldId=${task.fieldId}&taskId=${task.id}&from=task&taskType=${encodeURIComponent(task.type || '')}${
+                task.scheduledStart ? `&start=${task.scheduledStart.slice(0, 10)}` : ''
+              }${task.scheduledEnd ? `&end=${task.scheduledEnd.slice(0, 10)}` : ''}`}
+            >
+              {t('partners:findPartner')}
+            </Button>
+          </Card>
+        )}
 
         <div className="task-content">
           <Card className="task-main">

@@ -1,95 +1,70 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Card from '../ui/Card';
-import Badge from '../ui/Badge';
-import { colors, typography, spacing, spacingPatterns } from '../../theme';
-import { TestUser } from '../../services/mockUsers';
+import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { typography, spacing, radii } from '../../theme';
+import { loginTheme } from '../../theme/loginTheme';
 
 export interface UserCardProps {
-  user: TestUser;
-  selected?: boolean;
+  title: string;
+  subtitle: string;
   onPress?: () => void;
+  disabled?: boolean;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user, selected = false, onPress }) => {
-  // Prop is already correct type, use directly
-  const getRoleColor = (role: string): 'primary' | 'success' | 'warning' | 'error' | 'info' | 'default' => {
-    switch (role) {
-      case 'FieldOwner':
-        return 'primary';
-      case 'Producer':
-        return 'success';
-      case 'Agronomist':
-        return 'info';
-      case 'Administrator':
-        return 'error';
-      case 'ServiceProvider':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'FieldOwner':
-        return '🏡';
-      case 'Producer':
-        return '👨‍🌾';
-      case 'Agronomist':
-        return '🔬';
-      case 'Administrator':
-        return '👤';
-      case 'ServiceProvider':
-        return '🔧';
-      default:
-        return '👤';
-    }
-  };
-
+const UserCard: React.FC<UserCardProps> = ({ title, subtitle, onPress, disabled }) => {
   return (
-    <Card
+    <TouchableOpacity
       onPress={onPress}
-      variant="elevated"
-      style={[
-        styles.card,
-        selected && styles.cardSelected,
-        selected && { borderColor: colors.primary, borderWidth: 3 },
-      ]}
+      disabled={disabled || !onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      style={[styles.card, disabled && styles.cardDisabled]}
     >
-      <Text style={styles.icon}>{getRoleIcon(user.role)}</Text>
-      <Text style={styles.userName} numberOfLines={1}>
-        {user.displayName}
-      </Text>
-      <Badge
-        label={user.role}
-        variant={getRoleColor(user.role)}
-        size="small"
-      />
-    </Card>
+      <Text style={styles.icon}>👤</Text>
+      <View style={styles.textWrap}>
+        <Text style={styles.userName} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.userSubtitle} numberOfLines={2}>
+          {subtitle}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    width: 120,
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.border,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: loginTheme.inputBorder,
+    backgroundColor: loginTheme.inputBg,
+    minHeight: 56,
   },
-  cardSelected: {
-    transform: [{ scale: 1.05 }],
+  cardDisabled: {
+    opacity: 0.65,
   },
   icon: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
+    fontSize: 18,
+  },
+  textWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   userName: {
     ...typography.styles.bodySmall,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.medium,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
+    color: loginTheme.textPrimary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  userSubtitle: {
+    ...typography.styles.caption,
+    color: loginTheme.textSecondary,
+    marginTop: 2,
   },
 });
 

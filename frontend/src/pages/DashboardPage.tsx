@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
-import { getFieldService, getTaskService, getFinancialEntryService, isMockMode } from '../services/serviceFactory';
+import { getFieldService, getTaskService, getFinancialEntryService, getMeDashboardService, isMockMode } from '../services/serviceFactory';
 import { FinancialOverview } from '../services/financialEntryService';
+import type { MeDashboard, MeDashboardPeriod } from '../services/meDashboardService';
+import { emptyMeDashboard } from '../services/meDashboardService';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { isDeviceOnline } from '../utils/networkStatus';
@@ -19,11 +21,16 @@ import Badge from '../components/Common/Badge';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DemoTourPanel from '../components/Demo/DemoTourPanel';
+import HeroActionCard from '../components/Dashboard/HeroActionCard';
+import MyActionsStrip from '../components/Dashboard/MyActionsStrip';
+import NotesWidget from '../components/Dashboard/NotesWidget';
+import RecentActivityFeed from '../components/Dashboard/RecentActivityFeed';
+import ActionSparkline from '../components/Dashboard/ActionSparkline';
 import {
   Layers,
   MapPin,
   AlertTriangle,
-  CalendarDays,
+  Wheat,
   FileText,
   Euro,
   PlusCircle,
@@ -33,21 +40,25 @@ import {
   Clock,
   ListTodo,
   Leaf,
+  Handshake,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { el, enUS } from 'date-fns/locale';
 import './DashboardPage.css';
+import '../components/Dashboard/DashboardWidgets.css';
 
 const DashboardPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['dashboard', 'common']);
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'partners', 'fields']);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isEveryday } = useExperienceMode();
+  const { isEveryday, showWidget } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const [fields, setFields] = useState<Field[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [moneyOverview, setMoneyOverview] = useState<FinancialOverview | null>(null);
+  const [period, setPeriod] = useState<MeDashboardPeriod>('week');
+  const [meDashboard, setMeDashboard] = useState<MeDashboard>(emptyMeDashboard('week'));
 
   const dateLocale = i18n.language === 'el' ? el : enUS;
   const isFieldOwner = user?.role === 'FieldOwner' || user?.role === 'Administrator';
@@ -66,14 +77,14 @@ const DashboardPage: React.FC = () => {
     if (isEveryday) return;
     loadDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.userId, isEveryday, refreshGeneration]);
+  }, [user?.userId, isEveryday, refreshGeneration, period]);
 
   const loadDashboardData = async () => {
     try {
       if (fields.length === 0) setLoading(true);
       const fieldService = getFieldService();
       const taskService = getTaskService();
-      const [fieldsData, tasksData, overview] = await Promise.all([
+      const [fieldsData, tasksData, overview, dash] = await Promise.all([
         fieldService.getFields().catch(() => []),
         (isProducer
           ? taskService.getTasks(undefined, user?.userId)
@@ -82,10 +93,12 @@ const DashboardPage: React.FC = () => {
         isFieldOwner
           ? getFinancialEntryService().getOverview().catch(() => null)
           : Promise.resolve(null),
+        getMeDashboardService().getDashboard(period).catch(() => emptyMeDashboard(period)),
       ]);
       setFields(fieldsData);
       setTasks(tasksData);
       setMoneyOverview(overview);
+      setMeDashboard(dash);
       setShowingCachedData(!isDeviceOnline());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -192,10 +205,33 @@ const DashboardPage: React.FC = () => {
               {format(new Date(), 'EEEE, d MMMM yyyy', { locale: dateLocale })}
             </p>
           </div>
-          <Badge variant={isFieldOwner ? 'primary' : 'success'} size="sm" className="dashboard-role-badge">
-            {isFieldOwner ? t('dashboard:roleOwner') : t('dashboard:roleProducer')}
-          </Badge>
         </header>
+
+        {showWidget('myActionsDetail') && (
+          <div className="period-chips" role="tablist" aria-label={t('dashboard:myActions.period.week')}>
+            {(['today', 'week', 'month'] as MeDashboardPeriod[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                role="tab"
+                aria-selected={period === p}
+                className={`period-chip${period === p ? ' is-active' : ''}`}
+                onClick={() => setPeriod(p)}
+              >
+                {t(`dashboard:myActions.period.${p}`)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {showWidget('myActions') && (
+          <HeroActionCard
+            topAction={meDashboard.topAction}
+            pending={meDashboard.pending}
+            role={user?.role}
+            density="full"
+          />
+        )}
 
         {isProducer && (
           <Card className="producer-hero-card" hover onClick={() => navigate('/today')}>
@@ -226,10 +262,10 @@ const DashboardPage: React.FC = () => {
             )}
             {isFieldOwner && (
               <>
-                <button type="button" className="quick-action-card" onClick={() => navigate('/calendar')}>
-                  <CalendarDays size={20} />
-                  <span className="quick-action-title">{t('dashboard:quickActions.calendar')}</span>
-                  <span className="quick-action-sub">{t('dashboard:quickActions.calendarSub')}</span>
+                <button type="button" className="quick-action-card" onClick={() => navigate('/this-harvest')}>
+                  <Wheat size={20} />
+                  <span className="quick-action-title">{t('fields:thisHarvest.title')}</span>
+                  <span className="quick-action-sub">{t('fields:thisHarvest.season', { year: new Date().getFullYear() })}</span>
                 </button>
                 <button type="button" className="quick-action-card" onClick={() => navigate('/reports')}>
                   <FileText size={20} />
@@ -252,6 +288,11 @@ const DashboardPage: React.FC = () => {
               <ListTodo size={20} />
               <span className="quick-action-title">{t('dashboard:quickActions.tasks')}</span>
               <span className="quick-action-sub">{t('dashboard:quickActions.tasksSub')}</span>
+            </button>
+            <button type="button" className="quick-action-card" onClick={() => navigate('/partners')}>
+              <Handshake size={20} />
+              <span className="quick-action-title">{t('partners:dashboardCta')}</span>
+              <span className="quick-action-sub">{t('partners:dashboardCtaSub')}</span>
             </button>
           </div>
         </section>
@@ -293,21 +334,44 @@ const DashboardPage: React.FC = () => {
           </div>
         ) : null}
 
+        {showWidget('myActions') && (
+          <MyActionsStrip data={meDashboard} density="full" period={period} />
+        )}
+
+        {showWidget('recentNotes') && (
+          <NotesWidget
+            limit={5}
+            fieldNames={Object.fromEntries(fields.map((f) => [f.id, f.name]))}
+            fields={fields.map((f) => ({ id: f.id, name: f.name }))}
+            showSeeMore
+          />
+        )}
+
+        {showWidget('myActionsDetail') && <ActionSparkline series={meDashboard.series} />}
+
         <div className="dashboard-stats">
           {isFieldOwner && (
             <>
-              <StatsCard title={t('dashboard:stats.totalFields')} value={fields.length} icon={<Layers />} color="primary" />
+              <StatsCard
+                title={t('dashboard:stats.totalFields')}
+                value={fields.length}
+                icon={<Layers />}
+                color="primary"
+                onClick={() => navigate('/fields')}
+              />
               <StatsCard
                 title={t('dashboard:stats.totalArea')}
                 value={`${totalArea.toFixed(1)} ${t('common:hectaresUnit')}`}
                 icon={<MapPin />}
                 color="info"
+                onClick={() => navigate('/fields')}
               />
               <StatsCard
                 title={t('dashboard:stats.overdue')}
                 value={taskInsights.overdueCount}
                 icon={<AlertTriangle />}
                 color={taskInsights.overdueCount > 0 ? 'warning' : 'success'}
+                onClick={() => navigate('/tasks?focus=action')}
               />
               <StatsCard
                 title={t('dashboard:stats.thisWeekCost')}
@@ -317,18 +381,52 @@ const DashboardPage: React.FC = () => {
                 }).format(moneyOverview?.thisWeekExpenses ?? 0)}
                 icon={<Euro />}
                 color="info"
+                onClick={() => navigate('/money')}
               />
             </>
           )}
           {isProducer && (
             <>
-              <StatsCard title={t('dashboard:stats.dueToday')} value={taskInsights.dueTodayCount} icon={<Clock />} color="warning" />
-              <StatsCard title={t('dashboard:stats.inProgress')} value={inProgressTasks} icon={<ListTodo />} color="info" />
-              <StatsCard title={t('dashboard:stats.pendingTasks')} value={pendingTasks} icon={<Clock />} color="warning" />
-              <StatsCard title={t('dashboard:stats.completed')} value={completedTasks} icon={<CheckCircle2 />} color="success" />
+              <StatsCard
+                title={t('dashboard:stats.dueToday')}
+                value={taskInsights.dueTodayCount}
+                icon={<Clock />}
+                color="warning"
+                onClick={() => navigate('/today')}
+              />
+              <StatsCard
+                title={t('dashboard:stats.inProgress')}
+                value={inProgressTasks}
+                icon={<ListTodo />}
+                color="info"
+                onClick={() => navigate('/tasks?status=in_progress')}
+              />
+              <StatsCard
+                title={t('dashboard:stats.pendingTasks')}
+                value={pendingTasks}
+                icon={<Clock />}
+                color="warning"
+                onClick={() => navigate('/tasks')}
+              />
+              <StatsCard
+                title={t('dashboard:stats.completed')}
+                value={completedTasks}
+                icon={<CheckCircle2 />}
+                color="success"
+                onClick={() => navigate('/tasks?status=completed')}
+              />
             </>
           )}
         </div>
+
+        {showWidget('myActions') && (
+          <RecentActivityFeed
+            activities={meDashboard.recent}
+            limit={10}
+            fieldNames={Object.fromEntries(fields.map((f) => [f.id, f.name]))}
+            showSeeMore={showWidget('myActionsDetail')}
+          />
+        )}
 
         <div className="dashboard-main-grid">
           <section className="dashboard-panel">

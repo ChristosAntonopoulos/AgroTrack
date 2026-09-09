@@ -1,5 +1,5 @@
 {
-  "appName": "AgroTrack",
+  "appName": "Oleachron",
   "home": "Home",
   "loading": "Caricamento...",
   "refresh": "Aggiorna",
@@ -36,6 +36,9 @@
   "due": "Scadenza",
   "nextTask": "Prossimo",
   "toggleMenu": "Apri/chiudi menu",
+  "moreNav": "Altro",
+  "moreMenu": "Altre opzioni",
+  "mobileNav": "Navigazione principale",
   "logout": "Esci",
   "logoutAria": "Esci",
   "roles": {

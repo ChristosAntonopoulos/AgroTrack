@@ -1,0 +1,24 @@
+.invite-accept-page {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.invite-accept-body {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.invite-accept-error {
+  color: var(--color-error);
+}
+
+/* md = 768 */
+@media (max-width: 768px) {
+  .invite-accept-page {
+    padding: var(--spacing-md);
+    align-items: flex-start;
+    padding-top: calc(var(--spacing-xl) + var(--safe-top));
+  }
+}

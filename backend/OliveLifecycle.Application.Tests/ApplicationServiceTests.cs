@@ -16,11 +16,14 @@ public class FieldAccessServiceTests
 {
     private readonly Mock<IFieldRepository> _fieldRepository = new();
     private readonly Mock<ITaskRepository> _taskRepository = new();
+    private readonly Mock<IFamilyMemberRepository> _familyMembers = new();
     private readonly FieldAccessService _service;
 
     public FieldAccessServiceTests()
     {
-        _service = new FieldAccessService(_fieldRepository.Object, _taskRepository.Object);
+        _familyMembers.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FamilyMember>());
+        _service = new FieldAccessService(_fieldRepository.Object, _taskRepository.Object, _familyMembers.Object);
     }
 
     [Fact]
@@ -140,6 +143,130 @@ public class AuthServiceTests
             FirstName = "Agro",
             LastName = "User"
         }));
+    }
+
+    [Fact]
+    public async Task RegisterAsync_UsesPersistedUserId()
+    {
+        const string persistedId = "507f1f77bcf86cd799439011";
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.ExistsByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        userRepository
+            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) => new User
+            {
+                Id = persistedId,
+                Email = u.Email,
+                PasswordHash = u.PasswordHash,
+                Role = u.Role,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt
+            });
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(userRepository.Object, configuration, new SystemDateTimeProvider());
+        var response = await service.RegisterAsync(new RegisterDto
+        {
+            Email = "grower@test.com",
+            Password = "password123",
+            Role = Roles.FieldOwner,
+            FirstName = "Maria",
+            LastName = "Grower"
+        });
+
+        Assert.Equal(persistedId, response.UserId);
+        Assert.False(string.IsNullOrWhiteSpace(response.Token));
+    }
+
+    [Fact]
+    public async Task RegisterAsync_AssignsFieldOwner_WhenProducerRequested()
+    {
+        var created = default(User);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.ExistsByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        userRepository
+            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Callback<User, CancellationToken>((u, _) => created = u)
+            .ReturnsAsync((User u, CancellationToken _) =>
+            {
+                u.Id = "507f1f77bcf86cd799439012";
+                return u;
+            });
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(userRepository.Object, configuration, new SystemDateTimeProvider());
+        var response = await service.RegisterAsync(new RegisterDto
+        {
+            Email = "worker@test.com",
+            Password = "password123",
+            Role = Roles.Producer,
+            FirstName = "Kostas",
+            LastName = "Worker"
+        });
+
+        Assert.Equal(UserRole.FieldOwner, created!.Role);
+        Assert.Equal(Roles.FieldOwner, response.Role);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_AssignsFieldOwner_WhenRoleOmitted()
+    {
+        var created = default(User);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.ExistsByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        userRepository
+            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Callback<User, CancellationToken>((u, _) => created = u)
+            .ReturnsAsync((User u, CancellationToken _) =>
+            {
+                u.Id = "507f1f77bcf86cd799439013";
+                return u;
+            });
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(userRepository.Object, configuration, new SystemDateTimeProvider());
+        var response = await service.RegisterAsync(new RegisterDto
+        {
+            Email = "user@test.com",
+            Password = "password123",
+            FirstName = "Maria",
+            LastName = "User"
+        });
+
+        Assert.Equal(UserRole.FieldOwner, created!.Role);
+        Assert.Equal(Roles.FieldOwner, response.Role);
     }
 }
 

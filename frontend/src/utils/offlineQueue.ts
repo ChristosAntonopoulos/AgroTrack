@@ -2,7 +2,7 @@ import axios from 'axios';
 import api from '../services/api';
 import { isDeviceOnline } from './networkStatus';
 
-export type SyncEntityType = 'task' | 'field';
+export type SyncEntityType = 'task' | 'field' | 'note';
 
 export interface SyncOperation {
   id: string;
@@ -23,7 +23,7 @@ export type SyncSuccessListener = (op: SyncOperation, responseData: unknown) => 
 export type SyncDropListener = (op: SyncOperation, reason: string) => void;
 
 const MAX_RETRIES = 5;
-const QUEUE_KEY = 'agrotrack_offline_sync_queue_v1';
+const QUEUE_KEY = 'Oleachron_offline_sync_queue_v1';
 
 const listeners = new Set<OfflineQueueListener>();
 const successListeners = new Set<SyncSuccessListener>();

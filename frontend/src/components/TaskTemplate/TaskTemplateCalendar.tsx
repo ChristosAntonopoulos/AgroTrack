@@ -11,6 +11,7 @@ import {
   isRecommendedNow,
 } from '../../utils/taskTemplateUtils';
 import { useTaskTemplateLabels } from '../../hooks/useLocalizedTaskTemplate';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Field } from '../../services/fieldService';
 import { Task } from '../../services/taskService';
 import './TaskTemplateCalendar.css';
@@ -38,6 +39,7 @@ const TaskTemplateCalendar: React.FC<TaskTemplateCalendarProps> = ({
 }) => {
   const { t } = useTranslation('taskTemplates');
   const labels = useTaskTemplateLabels();
+  const isCompact = useBreakpoint('lg');
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
 
   const monthHeaders = Array.from({ length: 12 }, (_, idx) => labels.monthShort(idx + 1));
@@ -53,6 +55,73 @@ const TaskTemplateCalendar: React.FC<TaskTemplateCalendarProps> = ({
   };
 
   const hideTooltip = () => setTooltip(null);
+
+  if (isCompact) {
+    return (
+      <div className="tt-calendar tt-calendar--list">
+        <ul className="tt-calendar-list">
+          {templates.map((template) => {
+            const style = CATEGORY_STYLES[template.category];
+            const recommended = isRecommendedNow(template, currentMonth, field, tasks, fieldId);
+            const timing = getTimingStatus(template, currentMonth);
+            const isSelected = selectedId === template.id;
+            const range = formatPrimaryMonthRange(template, labels.monthShort);
+
+            return (
+              <li key={template.id}>
+                <button
+                  type="button"
+                  className={[
+                    'tt-calendar-list-item',
+                    isSelected && 'tt-calendar-list-item-selected',
+                    recommended && 'tt-calendar-list-item-recommended',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => onSelect(template)}
+                >
+                  <div className="tt-calendar-task-name">{template.title}</div>
+                  <div className="tt-calendar-task-badges">
+                    <span
+                      className="tt-category-badge"
+                      style={{
+                        background: style.chipBg,
+                        color: style.text,
+                        borderColor: style.border,
+                      }}
+                    >
+                      {labels.categoryLabel(template.category)}
+                    </span>
+                    <Badge variant={PRIORITY_VARIANT[template.priority]} size="sm">
+                      {labels.priorityLabel(template.priority)}
+                    </Badge>
+                    {recommended && (
+                      <span className="tt-now-badge">
+                        <Sparkles size={12} />
+                        {t('calendar.now')}
+                      </span>
+                    )}
+                    {timing === 'passed' && !recommended && (
+                      <span className="tt-passed-badge">{t('calendar.passed')}</span>
+                    )}
+                  </div>
+                  <div className="tt-calendar-list-range">{range}</div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="tt-calendar-legend">
+          <span className="tt-legend-item">
+            <span className="tt-legend-bar tt-legend-primary" /> {t('calendar.legendPrimary')}
+          </span>
+          <span className="tt-legend-item">
+            <span className="tt-legend-bar tt-legend-optional" /> {t('calendar.legendOptional')}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tt-calendar">

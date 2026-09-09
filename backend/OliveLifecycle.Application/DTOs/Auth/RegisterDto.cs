@@ -16,6 +16,9 @@ public class RegisterDto
 
     public string? LastName { get; set; }
 
-    [Required]
-    public string Role { get; set; } = "Producer";
+    /// <summary>
+    /// Ignored for new accounts (always FieldOwner). Kept so older clients can still send it.
+    /// Privileged values (Administrator, Agronomist, ServiceProvider) are rejected.
+    /// </summary>
+    public string? Role { get; set; }
 }

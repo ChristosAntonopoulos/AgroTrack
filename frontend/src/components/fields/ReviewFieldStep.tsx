@@ -48,7 +48,7 @@ const ReviewFieldStep: React.FC<Props> = ({
         </div>
         {formData.locationText && (
           <div>
-            <dt>{t('addField.locationText')}</dt>
+            <dt>{t('locationLabel')}</dt>
             <dd>{formData.locationText}</dd>
           </div>
         )}

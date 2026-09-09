@@ -42,6 +42,12 @@ public class FieldInviteRepository : IFieldInviteRepository
         return documents.Select(ToEntity);
     }
 
+    public async Task<IEnumerable<FieldInvite>> GetByInvitedByAsync(string invitedBy, CancellationToken cancellationToken = default)
+    {
+        var documents = await _collection.Find(x => x.InvitedBy == invitedBy).ToListAsync(cancellationToken);
+        return documents.Select(ToEntity);
+    }
+
     private static FieldInvite ToEntity(FieldInviteDocument doc) => new()
     {
         Id = doc.Id,

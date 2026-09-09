@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -19,8 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { usePreferences, AppLanguage } from '../context/PreferencesContext';
 import { mobileDemoUsers, TestUser } from '../services/mockUsers';
-import { getApiConnectionInfo } from '../services/api';
-import { showDemoLogin, isMockDataEnabled } from '../config/env';
+import { showDemoLogin } from '../config/env';
 import BrandLogo from '../components/ui/BrandLogo';
 import AuthTextField from '../components/auth/AuthTextField';
 import UserCard from '../components/domain/UserCard';
@@ -44,7 +44,6 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const isLoading = Boolean(loading);
-  const apiInfo = showDemoLogin() ? getApiConnectionInfo() : null;
 
   const handleDemoLogin = async (user: TestUser) => {
     try {
@@ -90,9 +89,7 @@ const LoginScreen = () => {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.hero}>
-                <BrandLogo size={80} rounded={false} style={styles.logo} />
-                <Text style={styles.appName}>{t('auth:login.appName')}</Text>
-                <Text style={styles.tagline}>{t('auth:login.platformTagline')}</Text>
+                <BrandLogo variant="stacked" tone="on-dark" size={72} />
               </View>
 
               <View style={styles.card}>
@@ -144,6 +141,18 @@ const LoginScreen = () => {
                 />
 
                 <TouchableOpacity
+                  onPress={() =>
+                    void Linking.openURL(
+                      `mailto:hello@oleachron.app?subject=${encodeURIComponent(t('auth:login.forgotPassword'))}`
+                    )
+                  }
+                  style={styles.registerLink}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.registerAccent}>{t('auth:login.forgotPassword')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
                   onPress={handleLogin}
                   disabled={isLoading}
@@ -171,16 +180,14 @@ const LoginScreen = () => {
               {showDemoLogin() ? (
                 <View style={styles.demoSection}>
                   <Text style={styles.demoTitle}>{t('auth:login.demoTitle')}</Text>
-                  <Text style={styles.demoHint}>
-                    {isMockDataEnabled()
-                      ? t('auth:login.demoHint')
-                      : t('auth:login.demoHintBackend', { url: apiInfo?.url ?? '' })}
-                  </Text>
+                  <Text style={styles.demoHint}>{t('auth:login.demoHint')}</Text>
                   <View style={styles.demoRow}>
                     {mobileDemoUsers.map((u) => (
                       <UserCard
                         key={u.userId}
-                        user={u}
+                        title={t(`auth:${u.nameKey}`)}
+                        subtitle={t(`auth:${u.subtitleKey}`)}
+                        disabled={isLoading}
                         onPress={isLoading ? undefined : () => handleDemoLogin(u)}
                       />
                     ))}
@@ -332,10 +339,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   demoRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
-    justifyContent: 'center',
   },
   version: {
     ...typography.styles.caption,

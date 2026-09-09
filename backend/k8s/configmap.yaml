@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: olive-lifecycle-api-config
-  namespace: agrotrack-backend
+  namespace: oleachron-backend
 data:
   ASPNETCORE_ENVIRONMENT: "Production"
   ASPNETCORE_URLS: "http://+:8080"
@@ -11,8 +11,8 @@ data:
   JWT__Audience: "OliveLifecycleClients"
   JWT__ExpirationMinutes: "60"
   Storage__LocalPath: "uploads"
-  Storage__PublicBasePath: "https://api.agrotrack.conceptatlas.eu/uploads"
-  Cors__AllowedHost: "agrotrack.conceptatlas.eu"
+  Storage__PublicBasePath: "https://api.oleachron.conceptatlas.eu/uploads"
+  Cors__AllowedHost: "oleachron.conceptatlas.eu"
   Auth__AllowAnonymous: "false"
   DemoAccounts__Seed: "true"
   DemoAccounts__ReseedFarmData: "false"

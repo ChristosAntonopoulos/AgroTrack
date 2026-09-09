@@ -30,7 +30,10 @@ public class DataSeeder : IHostedService
         await SeedTaskTemplatesAsync(cancellationToken);
         await EnsureHarvestPhaseTemplatesAsync(cancellationToken);
         await SeedMinistryNotificationsAsync(cancellationToken);
+        await ServiceCategorySeeder.SeedAsync(_context, _logger, cancellationToken);
         await DemoFarmDataSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await ChronologioDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await PartnerDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

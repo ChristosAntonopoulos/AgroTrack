@@ -4,6 +4,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Financial;
 using OliveLifecycle.Application.DTOs.Harvest;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -16,6 +17,7 @@ public class HarvestService : IHarvestService
     private readonly IFieldRepository _fieldRepository;
     private readonly IFieldAccessService _fieldAccessService;
     private readonly IFinancialEntryService _financialEntryService;
+    private readonly IMediaAttachmentService _mediaAttachmentService;
     private readonly IActivityService _activityService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<HarvestService> _logger;
@@ -25,6 +27,7 @@ public class HarvestService : IHarvestService
         IFieldRepository fieldRepository,
         IFieldAccessService fieldAccessService,
         IFinancialEntryService financialEntryService,
+        IMediaAttachmentService mediaAttachmentService,
         IActivityService activityService,
         IDateTimeProvider dateTimeProvider,
         ILogger<HarvestService> logger)
@@ -33,6 +36,7 @@ public class HarvestService : IHarvestService
         _fieldRepository = fieldRepository;
         _fieldAccessService = fieldAccessService;
         _financialEntryService = financialEntryService;
+        _mediaAttachmentService = mediaAttachmentService;
         _activityService = activityService;
         _dateTimeProvider = dateTimeProvider;
         _logger = logger;
@@ -48,6 +52,8 @@ public class HarvestService : IHarvestService
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
+
+        await EnsureHarvestModuleAsync(dto.FieldId, userId, userRole, write: true, cancellationToken);
 
         var field = await _fieldRepository.GetByIdAsync(dto.FieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
@@ -108,6 +114,24 @@ public class HarvestService : IHarvestService
             }, userId, userRole, cancellationToken);
         }
 
+        var mediaUrls = (dto.MediaUrls ?? new List<string>())
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MediaAttachmentService.MaxImagesPerOwner)
+            .ToList();
+        if (mediaUrls.Count > 0)
+        {
+            await _mediaAttachmentService.AttachUrlsAsync(
+                MediaOwnerType.Harvest.ToApiString(),
+                created.Id,
+                created.FieldId,
+                mediaUrls,
+                userId,
+                userRole,
+                cancellationToken);
+        }
+
         await _activityService.RecordAsync(
             dto.FieldId,
             "harvest_recorded",
@@ -135,6 +159,8 @@ public class HarvestService : IHarvestService
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
+
+        await EnsureHarvestModuleAsync(fieldId, userId, userRole, write: false, cancellationToken);
 
         var records = await _harvestRecordRepository.GetByFieldIdAsync(fieldId, cancellationToken);
         return records
@@ -208,6 +234,36 @@ public class HarvestService : IHarvestService
 
         _logger.LogInformation("Harvest {HarvestId} voided on field {FieldId}", updated.Id, record.FieldId);
         return ToDto(updated);
+    }
+
+    private async Task EnsureHarvestModuleAsync(
+        string fieldId,
+        string userId,
+        string userRole,
+        bool write,
+        CancellationToken cancellationToken)
+    {
+        if (userRole == Roles.Administrator
+            || await _fieldAccessService.CanUserModifyFieldAsync(fieldId, userId, cancellationToken))
+        {
+            return;
+        }
+
+        var family = await _fieldAccessService.GetFamilyAccessForFieldAsync(fieldId, userId, cancellationToken);
+        if (family == null)
+        {
+            return;
+        }
+
+        if (!family.Modules.Any(m => string.Equals(m, FamilyModules.Harvest, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ForbiddenException("You do not have access to harvest for this field.");
+        }
+
+        if (write && !FamilyAccessLevels.CanCreateContent(family.AccessLevel))
+        {
+            throw new ForbiddenException("You can only view harvest on this field.");
+        }
     }
 
     private static HarvestRecordDetailDto ToDto(HarvestRecord record) => new()

@@ -1,9 +1,9 @@
 /** Semantic light palette. Read the active set via `useTheme().colors`. */
 export const colors = {
-  // Primary — olive oil green
-  primary: '#5C7A1F',
-  primaryDark: '#3D5214',
-  primaryLight: '#8BA84A',
+  // Primary — Oleachron
+  primary: '#6B7F4E',
+  primaryDark: '#2E4A2E',
+  primaryLight: '#A7B38A',
 
   // Secondary — warm olive brown
   secondary: '#7A6B4F',
@@ -15,7 +15,7 @@ export const colors = {
   successLight: '#D8EBC4',
   successDark: '#4A7028',
 
-  warning: '#C4923A',
+  warning: '#C9A257',
   warningLight: '#F5E6C8',
   warningDark: '#9A7030',
 
@@ -43,27 +43,27 @@ export const colors = {
   gray900: '#1A2016',
 
   // Surfaces — olive oil wash + ivory cards
-  background: '#E4EBD8',
-  backgroundLight: '#FFFCF6',
-  backgroundDark: '#283020',
+  background: '#F8F7EE',
+  backgroundLight: '#F8F7EE',
+  backgroundDark: '#2E4A2E',
   surface: '#FFFCF6',
   surfaceElevated: '#FFFFFF',
   surfaceMuted: '#EFF4E8',
 
   // Text
-  textPrimary: '#283020',
+  textPrimary: '#3C3C2E',
   textSecondary: '#5A6B50',
   textTertiary: '#8A9A7E',
   textInverse: '#FFFCF6',
 
   // Chrome — header & tab bar (semantic; overridden in dark theme)
-  headerBackground: '#3D5214',
-  headerForeground: '#FFFCF6',
-  headerForegroundMuted: 'rgba(255, 252, 246, 0.72)',
-  headerAccent: '#A8C46E',
-  headerBorder: 'rgba(255, 252, 246, 0.14)',
-  tabBarBackground: '#3D5214',
-  tabBarForeground: '#FFFCF6',
+  headerBackground: '#2E4A2E',
+  headerForeground: '#F8F7EE',
+  headerForegroundMuted: 'rgba(248, 247, 238, 0.72)',
+  headerAccent: '#C9A257',
+  headerBorder: 'rgba(248, 247, 238, 0.14)',
+  tabBarBackground: '#2E4A2E',
+  tabBarForeground: '#F8F7EE',
   tabBarForegroundInactive: 'rgba(255, 252, 246, 0.55)',
   tabBarBorder: 'rgba(255, 252, 246, 0.12)',
   tabBarActivePill: 'rgba(255, 252, 246, 0.22)',

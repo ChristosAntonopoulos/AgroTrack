@@ -25,6 +25,7 @@
   "scheduled": "Προγραμματισμένη",
   "due": "Προθεσμία",
   "overdue": "Εκπρόθεσμη",
+  "searchPlaceholder": "Αναζήτηση εργασιών",
   "showAll": "Όλες",
   "showing": "Εμφάνιση {{count}} εργασιών",
   "summaryOpen": "Ανοιχτές",

@@ -27,6 +27,7 @@ import ScreenHeader from '../components/layout/ScreenHeader';
 import Section from '../components/layout/Section';
 import CalendarEventRow from '../components/calendar/CalendarEventRow';
 import CalendarWeekStrip from '../components/calendar/CalendarWeekStrip';
+import CalendarMonthGrid from '../components/calendar/CalendarMonthGrid';
 import CalendarFilterSheet from '../components/calendar/CalendarFilterSheet';
 import {
   AGENDA_GROUP_ORDER,
@@ -42,7 +43,7 @@ import { MainTabParamList, RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type CalRoute = RouteProp<MainTabParamList, 'Calendar'>;
-type ViewMode = 'agenda' | 'week' | 'field';
+type ViewMode = 'agenda' | 'week' | 'month' | 'field';
 
 const CalendarScreen = () => {
   const route = useRoute<CalRoute>();
@@ -74,7 +75,7 @@ const CalendarScreen = () => {
   }, [route.params?.date, route.params?.fieldId]);
 
   useEffect(() => {
-    if (isEveryday && viewMode !== 'agenda') {
+    if (isEveryday && viewMode !== 'agenda' && viewMode !== 'month') {
       setViewMode('agenda');
     }
   }, [isEveryday, viewMode]);
@@ -100,6 +101,7 @@ const CalendarScreen = () => {
   const viewModeLabels: Record<ViewMode, string> = {
     agenda: t('viewAgenda'),
     week: t('viewWeek'),
+    month: t('viewMonth', { defaultValue: 'Month' }),
     field: t('viewField'),
   };
 
@@ -157,7 +159,9 @@ const CalendarScreen = () => {
       ? AGENDA_GROUP_ORDER.some(g => agendaGroups[g].length > 0)
       : viewMode === 'week'
         ? events.some(e => isSameDay(new Date(e.start), anchorDate))
-        : fieldGroups.length > 0;
+        : viewMode === 'month'
+          ? events.length > 0
+          : fieldGroups.length > 0;
 
   return (
     <ScreenLayout style={styles.safe}>
@@ -211,7 +215,7 @@ const CalendarScreen = () => {
 
       {!isEveryday ? (
       <View style={styles.viewToggle}>
-        {(['agenda', 'week', 'field'] as ViewMode[]).map(mode => (
+        {(['agenda', 'week', 'month', 'field'] as ViewMode[]).map(mode => (
           <TouchableOpacity
             key={mode}
             style={[
@@ -237,9 +241,51 @@ const CalendarScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
+      ) : (
+      <View style={styles.viewToggle}>
+        {(['agenda', 'month'] as ViewMode[]).map(mode => (
+          <TouchableOpacity
+            key={mode}
+            style={[
+              styles.toggleChip,
+              {
+                flex: 1,
+                backgroundColor: viewMode === mode ? colors.primaryDark : colors.surface,
+                borderColor: viewMode === mode ? colors.primaryDark : colors.border,
+              },
+            ]}
+            onPress={() => setViewMode(mode)}
+          >
+            <Text
+              style={{
+                color: viewMode === mode ? colors.textInverse : colors.textSecondary,
+                fontWeight: '600',
+                fontSize: 12,
+                textAlign: 'center',
+              }}
+            >
+              {viewModeLabels[mode]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      )}
+
+      {viewMode === 'month' ? (
+        <CalendarMonthGrid
+          month={anchorDate}
+          events={events}
+          language={i18n.language}
+          onSelectDate={(date) => {
+            setAnchorDate(date);
+            setDaySheetDate(date);
+            setViewMode('agenda');
+          }}
+          onChangeMonth={setAnchorDate}
+        />
       ) : null}
 
-      {viewMode !== 'field' ? (
+      {viewMode !== 'field' && viewMode !== 'month' ? (
         <CalendarWeekStrip
           anchorDate={anchorDate}
           events={events}

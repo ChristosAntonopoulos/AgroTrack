@@ -1,17 +1,29 @@
-import React from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  Switch,
+  Pressable,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences, AppLanguage } from '../context/PreferencesContext';
+import {
+  usePreferences,
+  AppLanguage,
+  DefaultStartView,
+  DateFormatPref,
+} from '../context/PreferencesContext';
 import { ThemeMode } from '../theme/themes';
 import type { ExperienceMode, FontScale } from '../experience/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
-import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
@@ -19,8 +31,25 @@ import { changeAppLanguage } from '../i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const THEME_OPTIONS: ThemeMode[] = ['system', 'light', 'dark'];
+const START_VIEWS: DefaultStartView[] = ['today', 'fields', 'chronologio'];
+const DATE_FORMATS: DateFormatPref[] = ['dd/MM/yyyy', 'yyyy-MM-dd', 'medium'];
+const SAMPLE = new Date(2026, 8, 9);
+
+const formatSample = (format: DateFormatPref, language: AppLanguage) => {
+  const d = SAMPLE;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  if (format === 'dd/MM/yyyy') return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  if (format === 'yyyy-MM-dd') return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return d.toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 const SettingsScreen = () => {
-  const { user, logout, isFieldOwner } = useAuth();
+  const { user, logout } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation(['settings', 'common', 'nav']);
   const {
@@ -34,10 +63,29 @@ const SettingsScreen = () => {
     setFontScale,
     largeControls,
     setLargeControls,
+    defaultView,
+    setDefaultView,
+    dateFormat,
+    setDateFormat,
     tapMin,
     fontScaleMultiplier,
   } = usePreferences();
   const navigation = useNavigation<Nav>();
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [techOpen, setTechOpen] = useState(false);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+    };
+  }, []);
+
+  const flashSaved = () => {
+    setSavedFlash(true);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setSavedFlash(false), 2000);
+  };
 
   const handleLogout = () => {
     Alert.alert(t('settings:logout'), t('settings:logoutConfirm'), [
@@ -49,10 +97,7 @@ const SettingsScreen = () => {
   const handleLanguage = async (lang: AppLanguage) => {
     await setLanguage(lang);
     await changeAppLanguage(lang);
-  };
-
-  const handleTheme = async (mode: ThemeMode) => {
-    await setThemeMode(mode);
+    flashSaved();
   };
 
   const OptionRow = ({
@@ -67,10 +112,11 @@ const SettingsScreen = () => {
     <TouchableOpacity
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityState={{ selected }}
       style={[
         styles.option,
         {
-          minHeight: tapMin,
+          minHeight: Math.max(44, tapMin),
           backgroundColor: selected ? colors.primaryDark : colors.surfaceMuted,
           borderColor: selected ? colors.primaryDark : colors.border,
         },
@@ -90,42 +136,88 @@ const SettingsScreen = () => {
     </TouchableOpacity>
   );
 
-  const roleLabel = user?.role ? t(`common:roles.${user.role}`, { defaultValue: user.role }) : '';
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <View style={[styles.section, { borderBottomColor: colors.border }]}>
+      <Text
+        style={[
+          styles.sectionTitle,
+          { color: colors.textSecondary, fontSize: 12 * fontScaleMultiplier },
+        ]}
+      >
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.email || '—';
 
   return (
     <ScreenLayout scroll contentContainerStyle={styles.content}>
-      <ScreenHeader title={t('settings:title')} subtitle={user?.email} />
+      <ScreenHeader title={t('settings:title')} subtitle={t('settings:subtitle')} />
 
-      <Card variant="elevated" style={styles.section}>
-        <View style={styles.profileHeader}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary + '25' }]}>
-            <Ionicons name="person" size={24} color={colors.primaryDark} />
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
-              {user?.firstName} {user?.lastName}
-            </Text>
-            <Text style={[styles.profileRole, { color: colors.primaryDark, fontSize: 14 * fontScaleMultiplier }]}>
-              {roleLabel}
-            </Text>
-          </View>
+      {savedFlash ? (
+        <Text style={[styles.saved, { color: colors.success }]}>
+          ✓ {t('settings:saved')}
+        </Text>
+      ) : (
+        <Text style={[styles.autosave, { color: colors.textTertiary }]}>
+          {t('settings:autosaveHint')}
+        </Text>
+      )}
+
+      <Section title={t('settings:sections.account')}>
+        <Text style={[styles.name, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
+          {displayName}
+        </Text>
+        <Text style={[styles.email, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
+          {user?.email}
+        </Text>
+        <Button
+          title={t('settings:myServices')}
+          variant="outline"
+          onPress={() => navigation.navigate('MyServices')}
+          fullWidth
+          style={styles.actionBtn}
+        />
+      </Section>
+
+      <Section title={t('settings:sections.appearance')}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{t('settings:theme')}</Text>
+        <Text style={[styles.hint, { color: colors.textTertiary }]}>
+          {t(`settings:themeHints.${themeMode}`)}
+        </Text>
+        <View style={styles.optionRow}>
+          {THEME_OPTIONS.map((mode) => (
+            <OptionRow
+              key={mode}
+              label={t(`settings:themes.${mode}`)}
+              selected={themeMode === mode}
+              onPress={() => {
+                void setThemeMode(mode).then(flashSaved);
+              }}
+            />
+          ))}
         </View>
-      </Card>
 
-      <Card variant="outlined" style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+        <Text style={[styles.label, { color: colors.textPrimary, marginTop: spacing.md }]}>
           {t('settings:experience.label')}
         </Text>
         <View style={styles.optionRow}>
           <OptionRow
             label={t('settings:experience.everyday')}
             selected={experienceMode === 'everyday'}
-            onPress={() => void setExperienceMode('everyday' as ExperienceMode)}
+            onPress={() => {
+              void setExperienceMode('everyday' as ExperienceMode).then(flashSaved);
+            }}
           />
           <OptionRow
             label={t('settings:experience.full')}
             selected={experienceMode === 'full'}
-            onPress={() => void setExperienceMode('full' as ExperienceMode)}
+            onPress={() => {
+              void setExperienceMode('full' as ExperienceMode).then(flashSaved);
+            }}
           />
         </View>
         <Text style={[styles.hint, { color: colors.textTertiary }]}>
@@ -133,10 +225,8 @@ const SettingsScreen = () => {
             ? t('settings:experience.everydayDesc')
             : t('settings:experience.fullDesc')}
         </Text>
-      </Card>
 
-      <Card variant="outlined" style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+        <Text style={[styles.label, { color: colors.textPrimary, marginTop: spacing.md }]}>
           {t('settings:experience.fontScale')}
         </Text>
         <View style={styles.optionRow}>
@@ -145,74 +235,101 @@ const SettingsScreen = () => {
               key={scale}
               label={t(`settings:experience.fontScales.${scale}`)}
               selected={fontScale === scale}
-              onPress={() => void setFontScale(scale)}
+              onPress={() => {
+                void setFontScale(scale).then(flashSaved);
+              }}
             />
           ))}
         </View>
-        <TouchableOpacity
-          onPress={() => void setLargeControls(!largeControls)}
-          style={[
-            styles.option,
-            {
-              minHeight: tapMin,
-              marginTop: spacing.sm,
-              backgroundColor: largeControls ? colors.primaryDark : colors.surfaceMuted,
-              borderColor: largeControls ? colors.primaryDark : colors.border,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.optionText,
-              { color: largeControls ? colors.textInverse : colors.textPrimary },
-            ]}
-          >
-            {t('settings:experience.largeControls')}
+
+        <View style={[styles.switchRow, { minHeight: Math.max(44, tapMin) }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>
+              {t('settings:experience.largeControls')}
+            </Text>
+            <Text style={[styles.hint, { color: colors.textTertiary }]}>
+              {t('settings:experience.largeControlsDesc')}
+            </Text>
+          </View>
+          <Switch
+            value={largeControls}
+            onValueChange={(v) => {
+              void setLargeControls(v).then(flashSaved);
+            }}
+            trackColor={{ false: colors.border, true: colors.primaryDark }}
+            thumbColor={colors.textInverse}
+          />
+        </View>
+      </Section>
+
+      <Section title={t('settings:sections.locale')}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{t('settings:language')}</Text>
+        <View style={styles.optionRow}>
+          <OptionRow
+            label={t('common:greek')}
+            selected={language === 'el'}
+            onPress={() => void handleLanguage('el')}
+          />
+          <OptionRow
+            label={t('common:english')}
+            selected={language === 'en'}
+            onPress={() => void handleLanguage('en')}
+          />
+        </View>
+
+        <Text style={[styles.label, { color: colors.textPrimary, marginTop: spacing.md }]}>
+          {t('settings:dateFormat')}
+        </Text>
+        <View style={styles.optionRow}>
+          {DATE_FORMATS.map((fmt) => (
+            <OptionRow
+              key={fmt}
+              label={formatSample(fmt, language)}
+              selected={dateFormat === fmt}
+              onPress={() => {
+                void setDateFormat(fmt).then(flashSaved);
+              }}
+            />
+          ))}
+        </View>
+      </Section>
+
+      <Section title={t('settings:sections.startup')}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{t('settings:startup')}</Text>
+        <View style={styles.optionRow}>
+          {START_VIEWS.map((view) => (
+            <OptionRow
+              key={view}
+              label={t(`settings:startupOptions.${view}`)}
+              selected={defaultView === view}
+              onPress={() => {
+                void setDefaultView(view).then(flashSaved);
+              }}
+            />
+          ))}
+        </View>
+      </Section>
+
+      <Pressable
+        onPress={() => setTechOpen((v) => !v)}
+        style={[styles.techToggle, { minHeight: Math.max(44, tapMin) }]}
+      >
+        <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>
+          {t('settings:sections.technical')}
+        </Text>
+        <Ionicons
+          name={techOpen ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.textSecondary}
+        />
+      </Pressable>
+      {techOpen ? (
+        <View style={styles.techBody}>
+          <Text style={{ color: colors.textTertiary }}>
+            {t('settings:userId')}: {user?.id || '—'}
           </Text>
-        </TouchableOpacity>
-        <Button
-          title={t('settings:experience.setupPhone')}
-          variant="outline"
-          onPress={() => {
-            void setExperienceMode('everyday');
-            void setFontScale('large');
-            void setLargeControls(true);
-          }}
-          fullWidth
-          style={styles.actionBtn}
-        />
-      </Card>
-
-      <Card variant="outlined" style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          {t('settings:language')}
-        </Text>
-        <View style={styles.optionRow}>
-          <OptionRow label={t('common:english')} selected={language === 'en'} onPress={() => handleLanguage('en')} />
-          <OptionRow label={t('common:greek')} selected={language === 'el'} onPress={() => handleLanguage('el')} />
+          <Text style={{ color: colors.textTertiary }}>{t('settings:appVersion')}: 1.0.0</Text>
         </View>
-      </Card>
-
-      <Card variant="outlined" style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          {t('settings:theme')}
-        </Text>
-        <View style={styles.optionRow}>
-          <OptionRow label={t('settings:themes.system')} selected={themeMode === 'system'} onPress={() => handleTheme('system')} />
-          <OptionRow label={t('settings:themes.light')} selected={themeMode === 'light'} onPress={() => handleTheme('light')} />
-          <OptionRow label={t('settings:themes.dark')} selected={themeMode === 'dark'} onPress={() => handleTheme('dark')} />
-        </View>
-      </Card>
-
-      {isFieldOwner() ? (
-        <Button
-          title={t('nav:notifications', { defaultValue: 'Notifications' })}
-          variant="outline"
-          onPress={() => navigation.navigate('Notifications')}
-          fullWidth
-          style={styles.actionBtn}
-          icon={<Ionicons name="notifications-outline" size={18} color={colors.primaryDark} />}
-        />
       ) : null}
 
       <Button
@@ -220,42 +337,31 @@ const SettingsScreen = () => {
         variant="ghost"
         onPress={handleLogout}
         fullWidth
-        style={{ marginTop: spacing.sm, borderColor: colors.error + '60' }}
+        style={{ marginTop: spacing.lg, borderColor: colors.error + '60' }}
         icon={<Ionicons name="log-out-outline" size={18} color={colors.error} />}
       />
-
-      <Text style={[styles.version, { color: colors.textTertiary }]}>
-        {t('common:version')} 1.0.0
-      </Text>
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.base, paddingBottom: spacing['2xl'] },
-  section: { marginBottom: spacing.md },
+  section: {
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   sectionTitle: {
     ...typography.styles.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: spacing.md,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  hint: {
-    ...typography.styles.bodySmall,
-    marginTop: spacing.sm,
-  },
-  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileInfo: { flex: 1 },
-  profileName: { ...typography.styles.h4, fontWeight: '700' },
-  profileRole: { ...typography.styles.bodySmall, fontWeight: '600', marginTop: 2 },
+  name: { ...typography.styles.h4, fontWeight: '700' },
+  email: { ...typography.styles.bodySmall, marginTop: 2, marginBottom: spacing.sm },
+  label: { ...typography.styles.body, fontWeight: '600', marginBottom: spacing.xs },
+  hint: { ...typography.styles.bodySmall, marginBottom: spacing.sm, lineHeight: 20 },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   option: {
     paddingHorizontal: spacing.md,
@@ -265,7 +371,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionText: { ...typography.styles.bodySmall, fontWeight: '600' },
-  help: { marginTop: spacing.sm, lineHeight: 20 },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -273,9 +378,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     gap: spacing.md,
   },
-  switchLabel: { flex: 1, fontWeight: '500' },
   actionBtn: { marginTop: spacing.sm },
-  version: { ...typography.styles.caption, textAlign: 'center', marginTop: spacing.xl },
+  autosave: { ...typography.styles.caption, marginBottom: spacing.sm },
+  saved: { ...typography.styles.bodySmall, fontWeight: '700', marginBottom: spacing.sm },
+  techToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+  techBody: { gap: spacing.xs, marginBottom: spacing.md },
 });
 
 export default SettingsScreen;

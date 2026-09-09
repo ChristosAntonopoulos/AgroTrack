@@ -19,6 +19,18 @@
   background: var(--bg-hover);
 }
 
+.field-detail-map--compact {
+  min-height: 0;
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .field-detail-map--compact {
+    height: 220px !important;
+    min-height: 220px;
+  }
+}
+
 .field-detail-map--empty {
   display: grid;
   place-items: center;
@@ -57,8 +69,8 @@
 }
 
 .field-detail-map-overlays button {
-  min-height: 1.85rem;
-  padding: 0.25rem 0.65rem;
+  min-height: var(--tap-min, 44px);
+  padding: 0.35rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--bg-elevated);
@@ -119,6 +131,10 @@
   background-color: var(--bg-elevated) !important;
   color: var(--color-text-primary) !important;
   border-bottom-color: var(--color-border) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
 }
 
 .field-detail-map .leaflet-control-attribution {
@@ -134,4 +150,15 @@
   color: var(--color-primary) !important;
   font-weight: 650 !important;
   text-align: left;
+}
+
+/* md = 768 */
+@media (max-width: 768px) {
+  .field-detail-map {
+    min-height: 240px;
+  }
+
+  .field-detail-map-canvas {
+    min-height: 240px;
+  }
 }

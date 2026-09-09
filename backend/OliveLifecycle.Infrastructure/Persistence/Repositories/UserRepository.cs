@@ -50,4 +50,20 @@ public class UserRepository : MongoRepositoryBase<UserDocument, User>, IUserRepo
         var documents = await Collection.Find(u => u.Role == role).ToListAsync(cancellationToken);
         return documents.Select(ToEntity);
     }
+
+    public async Task<IEnumerable<User>> GetByIdsAsync(IEnumerable<string> userIds, CancellationToken cancellationToken = default)
+    {
+        var ids = userIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (ids.Count == 0)
+        {
+            return Enumerable.Empty<User>();
+        }
+
+        var filter = Builders<UserDocument>.Filter.In(u => u.Id, ids);
+        var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
+        return documents.Select(ToEntity);
+    }
 }

@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=setup-java.sh
 source "${SCRIPT_DIR}/setup-java.sh"
 
-export ANDROID_HOME="${ANDROID_HOME:-${HOME}/.agrotrack/android-sdk}"
+export ANDROID_HOME="${ANDROID_HOME:-${HOME}/.oleachron/android-sdk}"
 export ANDROID_SDK_ROOT="${ANDROID_HOME}"
 export PATH="${PATH}:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/cmdline-tools/latest/bin"
 

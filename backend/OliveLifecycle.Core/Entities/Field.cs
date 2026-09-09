@@ -33,6 +33,50 @@ public class Field : BaseEntity
     public string? AccessNotes { get; set; }
     public GreekCadastreInfo? GreekCadastre { get; set; }
     public List<FieldDocumentAttachment> Documents { get; set; } = new();
+
+    public bool TryGetCoordinates(out double latitude, out double longitude)
+    {
+        if (CenterPoint?.Coordinates is { Count: >= 2 })
+        {
+            longitude = CenterPoint.Coordinates[0];
+            latitude = CenterPoint.Coordinates[1];
+            return true;
+        }
+
+        if (Location != null)
+        {
+            latitude = Location.Latitude;
+            longitude = Location.Longitude;
+            return true;
+        }
+
+        latitude = 0;
+        longitude = 0;
+        return false;
+    }
+
+    /// <summary>Public-safe area label. Never returns coordinates.</summary>
+    public string GetApproximateAreaLabel()
+    {
+        if (!string.IsNullOrWhiteSpace(LocationText))
+        {
+            return LocationText.Trim();
+        }
+
+        var municipality = GreekCadastre?.Municipality;
+        if (!string.IsNullOrWhiteSpace(municipality))
+        {
+            return municipality.Trim();
+        }
+
+        var prefecture = GreekCadastre?.Prefecture;
+        if (!string.IsNullOrWhiteSpace(prefecture))
+        {
+            return prefecture.Trim();
+        }
+
+        return Name;
+    }
 }
 
 public class Location

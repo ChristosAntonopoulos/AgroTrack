@@ -1,14 +1,14 @@
 export type SupportedLocale = 'en' | 'el' | 'it';
 
-export const DEFAULT_LOCALE: SupportedLocale = 'en';
-export const FALLBACK_LOCALE: SupportedLocale = 'en';
+export const DEFAULT_LOCALE: SupportedLocale = 'el';
+export const FALLBACK_LOCALE: SupportedLocale = 'el';
 
 export const SUPPORTED_LOCALES: ReadonlyArray<{
   code: SupportedLocale;
   nativeLabel: string;
 }> = [
-  { code: 'en', nativeLabel: 'English' },
   { code: 'el', nativeLabel: 'Ελληνικά' },
+  { code: 'en', nativeLabel: 'English' },
   { code: 'it', nativeLabel: 'Italiano' },
 ];
 
@@ -29,6 +29,10 @@ export const NAMESPACES = [
   'taskTemplates',
   'landing',
   'admin',
+  'partners',
+  'chronologio',
+  'capture',
+  'economics',
 ] as const;
 
 export type AppNamespace = (typeof NAMESPACES)[number];
@@ -38,7 +42,5 @@ export const isSupportedLocale = (value: string): value is SupportedLocale =>
 
 export const normalizeLocale = (value: string | undefined): SupportedLocale => {
   if (value && isSupportedLocale(value)) return value;
-  const browser = typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : '';
-  if (browser && isSupportedLocale(browser)) return browser;
   return DEFAULT_LOCALE;
 };

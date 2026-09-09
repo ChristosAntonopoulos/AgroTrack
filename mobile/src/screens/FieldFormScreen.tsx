@@ -16,7 +16,9 @@ import FieldPreviewHero from '../components/domain/FieldPreviewHero';
 import AddFieldMethodStep, { AddFieldMethod } from '../components/fields/AddFieldMethodStep';
 import WizardStepIndicator, { WizardStepKey } from '../components/fields/WizardStepIndicator';
 import FieldBoundaryDrawMap, { BoundaryPoint } from '../components/fields/FieldBoundaryDrawMap';
-import { CreateFieldDto, Field, GeoJsonPolygon } from '../services/fieldService';
+import CadastreUploadStep from '../components/fields/CadastreUploadStep';
+import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
+import { CreateFieldDto, Field, GeoJsonPolygon, GreekCadastreInfo, ImportGreekCadastreFieldResponse } from '../services/fieldService';
 import { geoJsonToPoints, pointsToGeoJsonPolygon } from '../utils/polygonArea';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import {
@@ -36,8 +38,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
 type WizardStep = WizardStepKey | 'basics-edit';
 
 const NEW_DRAW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'crop', 'review'];
+const NEW_CADASTRE_STEPS: WizardStepKey[] = ['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'];
 const EVERYDAY_NEW_STEPS: WizardStepKey[] = ['basics', 'method', 'boundary'];
 const EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
+const KAEK_REGEX = /^(?:\d{12}|\d{2}\s*\d{3}\s*\d{2}\s*\d{2}\s*\d{3})\s*\/\s*\d+\s*\/\s*\d+$/;
 
 const emptyForm = (): CreateFieldDto => ({
   name: '',
@@ -54,7 +58,7 @@ const FieldFormScreen = () => {
   const navigation = useNavigation<Nav>();
   const { fieldId } = route.params || {};
   const { colors } = useTheme();
-  const { isEveryday, tapMin } = usePreferences();
+  const { isEveryday } = usePreferences();
   const { t } = useTranslation(['fields', 'common']);
   const isEdit = !!fieldId;
 
@@ -70,12 +74,16 @@ const FieldFormScreen = () => {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
+  const [kaekInput, setKaekInput] = useState('');
+  const [cadastre, setCadastre] = useState<GreekCadastreInfo | undefined>();
+  const [cadastreAcknowledged, setCadastreAcknowledged] = useState(false);
 
   const activeSteps = useMemo(() => {
     if (isEdit) return EDIT_STEPS;
     if (isEveryday) {
       return method === 'later' ? (['basics', 'method'] as WizardStepKey[]) : EVERYDAY_NEW_STEPS;
     }
+    if (method === 'cadastre') return NEW_CADASTRE_STEPS;
     return NEW_DRAW_STEPS;
   }, [isEdit, isEveryday, method]);
 
@@ -158,6 +166,10 @@ const FieldFormScreen = () => {
           setBoundaryConfirmed(true);
         }
         if (f.appMeasuredAreaSqm) setMeasuredAreaSqm(f.appMeasuredAreaSqm);
+        if (f.greekCadastre) {
+          setCadastre(f.greekCadastre);
+          setKaekInput(f.greekCadastre.normalizedKaek || f.greekCadastre.kaek || '');
+        }
         setStep('basics');
       })
       .catch(() => setError(t('fields:form.failedLoad')))
@@ -175,6 +187,11 @@ const FieldFormScreen = () => {
       name: formData.name.trim(),
       area: formData.area || 0,
       status: 'Draft',
+      greekCadastre: cadastre
+        ? { ...cadastre, kaek: kaekInput || cadastre.kaek, normalizedKaek: kaekInput || cadastre.normalizedKaek }
+        : kaekInput
+          ? { kaek: kaekInput, source: 'Manual' }
+          : undefined,
     });
     setDraftFieldId(created.id);
     return created.id;
@@ -182,9 +199,13 @@ const FieldFormScreen = () => {
 
   const validateStep = (): string | null => {
     if (step === 'method' && !method) return t('fields:addField.errors.methodRequired');
+    if (step === 'cadastre' && !draftFieldId) return t('fields:addField.cadastre.bothRequired');
     if (step === 'basics' || step === 'basics-edit') {
       if (!formData.name.trim() || formData.name.trim().length < 2) {
         return t('fields:form.errors.nameRequired');
+      }
+      if (method === 'kaek' && kaekInput && !KAEK_REGEX.test(kaekInput.replace(/\s/g, ' ').trim())) {
+        return t('fields:addField.errors.kaekInvalid');
       }
     }
     if (step === 'boundary' && method !== 'later') {
@@ -195,6 +216,7 @@ const FieldFormScreen = () => {
       if (isEdit && boundaryChanged && !boundaryConfirmed) {
         return t('fields:addField.errors.confirmBoundary');
       }
+      if (cadastre && !cadastreAcknowledged) return t('fields:addField.errors.confirmCadastre');
     }
     return null;
   };
@@ -204,6 +226,23 @@ const FieldFormScreen = () => {
     if (!boundary) return;
     await getFieldService().updateBoundary(fieldIdToUse, boundary as GeoJsonPolygon);
     patchForm({ area: measuredAreaSqm });
+    try {
+      await getFieldService().validateArea(fieldIdToUse);
+    } catch {
+      /* best-effort, same as web */
+    }
+  };
+
+  const handleCadastreImported = (response: ImportGreekCadastreFieldResponse) => {
+    setDraftFieldId(response.draftFieldId);
+    setCadastre(response.greekCadastre);
+    patchForm({
+      name: response.suggestedName || formData.name,
+      locationText: response.greekCadastre.locationFromCadastre || formData.locationText,
+      area: response.greekCadastre.officialAreaSqm || formData.area,
+      status: 'NeedsBoundaryConfirmation',
+    });
+    setKaekInput(response.greekCadastre.normalizedKaek || response.greekCadastre.kaek || '');
   };
 
   const goNext = async () => {
@@ -216,7 +255,7 @@ const FieldFormScreen = () => {
 
     try {
       setSaving(true);
-      if (step === 'basics') {
+      if (step === 'basics' && method !== 'cadastre') {
         await ensureDraftField();
       }
       if (step === 'boundary' && draftFieldId) {
@@ -302,6 +341,11 @@ const FieldFormScreen = () => {
         slope: formData.slope,
         accessNotes: formData.accessNotes,
         area: measuredAreaSqm || formData.area,
+        greekCadastre: cadastre
+          ? { ...cadastre, kaek: kaekInput || cadastre.kaek }
+          : kaekInput
+            ? { kaek: kaekInput, source: 'Manual' }
+            : undefined,
       });
       if (method !== 'later' && boundaryPoints.length >= 3) {
         await persistBoundary(id);
@@ -317,7 +361,7 @@ const FieldFormScreen = () => {
       }
       const result = await getFieldService().activateField(id, {
         boundaryConfirmed: boundaryConfirmed || boundaryPoints.length >= 3,
-        cadastreReferenceAcknowledged: true,
+        cadastreReferenceAcknowledged: cadastre ? cadastreAcknowledged : true,
       });
       navigation.replace('FieldDetail', { fieldId: result.field.id });
     } catch (e: unknown) {
@@ -424,6 +468,10 @@ const FieldFormScreen = () => {
           />
         ) : null}
 
+        {step === 'cadastre' ? (
+          <CadastreUploadStep onImported={handleCadastreImported} parsedCadastre={cadastre} />
+        ) : null}
+
         {(step === 'basics' || step === 'basics-edit') ? (
           <View style={styles.stepBody}>
             <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
@@ -455,6 +503,15 @@ const FieldFormScreen = () => {
                   editable={!saving}
                 />
               </>
+            ) : null}
+            {method === 'kaek' || kaekInput ? (
+              <FormField
+                label="KAEK"
+                value={kaekInput}
+                onChangeText={setKaekInput}
+                placeholder="123456789012 / 0 / 0"
+                editable={!saving}
+              />
             ) : null}
           </View>
         ) : null}
@@ -589,6 +646,21 @@ const FieldFormScreen = () => {
                 />
               </View>
             ) : null}
+            {cadastre ? (
+              <>
+                <GreekCadastreInfoCard cadastre={cadastre} />
+                <View style={[styles.confirmRow, { borderTopColor: colors.borderLight }]}>
+                  <Text style={[styles.confirmLabel, { color: colors.textPrimary }]}>
+                    {t('fields:addField.confirmCadastre')}
+                  </Text>
+                  <Switch
+                    value={cadastreAcknowledged}
+                    onValueChange={setCadastreAcknowledged}
+                    trackColor={{ true: colors.primary }}
+                  />
+                </View>
+              </>
+            ) : null}
           </View>
         ) : null}
 
@@ -618,7 +690,7 @@ const FieldFormScreen = () => {
               }
               onPress={isEdit ? handleSaveEdit : handleActivate}
               loading={saving}
-              style={[styles.navBtn, { minHeight: tapMin }]}
+              style={styles.navBtn}
             />
           )}
         </View>

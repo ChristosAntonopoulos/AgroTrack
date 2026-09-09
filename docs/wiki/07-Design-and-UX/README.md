@@ -6,7 +6,7 @@
 
 ## Σκοπός
 
-Οι αρχές και οι κανόνες που καθοδηγούν κάθε απόφαση σχεδιασμού στο AgroTrack, συν τα user flows, wireframes, branding και σημειώσεις accessibility μας.
+Οι αρχές και οι κανόνες που καθοδηγούν κάθε απόφαση σχεδιασμού στο Oleachron, συν τα user flows, wireframes, branding και σημειώσεις accessibility μας.
 
 ## Σελίδες σε αυτή την ενότητα
 

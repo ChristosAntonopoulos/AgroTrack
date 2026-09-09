@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CreateHarvestRecordInput, HarvestRecord, harvestService } from './harvestService';
 
-const STORAGE_KEY = 'agrotrack_demo_harvest_records_v1';
+const STORAGE_KEY = 'Oleachron_demo_harvest_records_v1';
 
 const readRecords = async (): Promise<HarvestRecord[]> => {
   try {

@@ -3,33 +3,34 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useExperienceMode } from '../../context/ExperienceModeContext';
+import { useFamilyMembershipModules } from '../../hooks/useFamilyMembershipModules';
 import { isMockMode } from '../../services/serviceFactory';
-import { isEverydayAllowedPath, isEverydayPrimaryPath } from '../../experience/catalog';
-import { navItems, navSections, isNavActive, AppRole, resolveNavItemLabel } from '../../navigation/navConfig';
+import {
+  navItems,
+  navSections,
+  isNavActive,
+  AppRole,
+  resolveNavItemLabel,
+  filterNavItemsForUser,
+} from '../../navigation/navConfig';
 import './Sidebar.css';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const { t } = useTranslation(['nav', 'common']);
   const { user } = useAuth();
   const { isEveryday } = useExperienceMode();
+  const familyModules = useFamilyMembershipModules();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
-  const filteredItems = useMemo(() => {
-    return navItems.filter((item) => {
-      if (!item.roles.includes(userRole)) return false;
-      if (item.mockOnly && !isMockMode()) return false;
-      if (isEveryday) {
-        if (item.path === '/dashboard') return false;
-        if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
-          return false;
-        }
-        if (item.path === '/people' || item.path === '/money') return true;
-        return isEverydayAllowedPath(item.path) || isEverydayPrimaryPath(item.path);
-      }
-      return true;
-    });
-  }, [userRole, isEveryday]);
+  const filteredItems = useMemo(
+    () => filterNavItemsForUser(navItems, userRole, isEveryday, isMockMode(), familyModules),
+    [userRole, isEveryday, familyModules]
+  );
 
   const visibleSections = navSections.filter((s) => filteredItems.some((i) => i.section === s.id));
 
@@ -47,7 +48,9 @@ const Sidebar: React.FC = () => {
                   <li key={item.path} className="nav-item">
                     <Link
                       to={item.path}
+                      reloadDocument={false}
                       className={`nav-link ${isNavActive(location.pathname, item.path) ? 'active' : ''}`}
+                      onClick={onNavigate}
                     >
                       <span className="nav-icon">{item.icon}</span>
                       <span className="nav-label">{resolveNavItemLabel(item, userRole, t)}</span>

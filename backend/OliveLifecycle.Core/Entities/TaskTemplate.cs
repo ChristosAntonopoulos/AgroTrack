@@ -10,6 +10,8 @@ public class TaskTemplate : BaseEntity
     public string LifecycleYear { get; set; } = "low";
     public HarvestPhase? HarvestPhase { get; set; }
     public SchedulingWindow? DefaultSchedulingWindow { get; set; }
+    /// <summary>Optional map onto a ServiceCategory.Slug for "Find a partner" from a task.</summary>
+    public string? ServiceCategorySlug { get; set; }
 }
 
 public class SchedulingWindow

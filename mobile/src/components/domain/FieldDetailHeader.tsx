@@ -6,6 +6,7 @@ import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, spacing } from '../../theme';
 import { formatFieldArea } from '../../utils/fieldGeo';
+import { getFieldShortLocation } from '../../utils/shortLocation';
 import { normalizeStage } from '../../utils/lifecycleUtils';
 
 interface FieldDetailHeaderProps {
@@ -98,10 +99,10 @@ const FieldDetailHeader: React.FC<FieldDetailHeaderProps> = ({
           tint={overdueCount > 0 ? colors.error : colors.textSecondary}
           emphasize={overdueCount > 0}
         />
-        {field.locationText ? (
+        {getFieldShortLocation(field) ? (
           <FactChip
             icon="location-outline"
-            label={field.locationText}
+            label={getFieldShortLocation(field)}
             colors={colors}
             tint={colors.textSecondary}
             flex

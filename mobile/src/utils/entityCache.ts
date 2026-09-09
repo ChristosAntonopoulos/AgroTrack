@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
+import type { Note } from '../services/noteService';
 import { SyncOperation } from './offlineQueue';
 
 const STALE_MS = 24 * 60 * 60 * 1000;
@@ -13,8 +14,10 @@ export interface CacheEntry<T> {
 
 const fieldsKey = (userId: string) => `${KEY_PREFIX}fields:${userId}`;
 const tasksKey = (userId: string) => `${KEY_PREFIX}tasks:${userId}`;
+const notesKey = (userId: string) => `${KEY_PREFIX}notes:${userId}`;
 const fieldKey = (id: string) => `${KEY_PREFIX}field:${id}`;
 const taskKey = (id: string) => `${KEY_PREFIX}task:${id}`;
+const noteKey = (id: string) => `${KEY_PREFIX}note:${id}`;
 
 async function readEntry<T>(key: string): Promise<CacheEntry<T> | null> {
   try {
@@ -160,6 +163,55 @@ export class EntityCache {
     );
   }
 
+  static async setNotes(userId: string, notes: Note[]): Promise<void> {
+    await writeEntry(notesKey(userId), notes);
+    await Promise.all(notes.map((n) => writeEntry(noteKey(n.id), n)));
+  }
+
+  static async getNotes(userId: string): Promise<CacheEntry<Note[]> | null> {
+    return readEntry<Note[]>(notesKey(userId));
+  }
+
+  static async setNote(note: Note): Promise<void> {
+    await writeEntry(noteKey(note.id), note);
+    const userId = await getUserId();
+    if (!userId) return;
+    const list = await this.getNotes(userId);
+    if (!list) {
+      await writeEntry(notesKey(userId), [note]);
+      return;
+    }
+    const idx = list.data.findIndex((n) => n.id === note.id);
+    const next =
+      idx >= 0 ? list.data.map((n) => (n.id === note.id ? note : n)) : [note, ...list.data];
+    await writeEntry(notesKey(userId), next);
+  }
+
+  static async getNote(id: string): Promise<CacheEntry<Note> | null> {
+    const direct = await readEntry<Note>(noteKey(id));
+    if (direct) return direct;
+
+    const userId = await getUserId();
+    if (!userId) return null;
+    const list = await this.getNotes(userId);
+    if (!list) return null;
+    const found = list.data.find((n) => n.id === id);
+    if (!found) return null;
+    return { data: found, cachedAt: list.cachedAt };
+  }
+
+  static async removeNote(id: string): Promise<void> {
+    await AsyncStorage.removeItem(noteKey(id));
+    const userId = await getUserId();
+    if (!userId) return;
+    const list = await this.getNotes(userId);
+    if (!list) return;
+    await writeEntry(
+      notesKey(userId),
+      list.data.filter((n) => n.id !== id)
+    );
+  }
+
   /** Apply server response after a queued mutation succeeds (server-wins). */
   static async applySyncSuccess(op: SyncOperation, responseData: unknown): Promise<void> {
     if (op.entityType === 'task') {
@@ -182,6 +234,22 @@ export class EntityCache {
     if (op.entityType === 'field') {
       if (responseData && typeof responseData === 'object' && 'id' in (responseData as object)) {
         await this.setField(responseData as Field);
+      }
+      return;
+    }
+
+    if (op.entityType === 'note') {
+      if (op.method === 'delete' && op.entityId) {
+        await this.removeNote(op.entityId);
+        return;
+      }
+      if (op.tempEntityId && responseData && typeof responseData === 'object') {
+        await this.removeNote(op.tempEntityId);
+        await this.setNote(responseData as Note);
+        return;
+      }
+      if (responseData && typeof responseData === 'object' && 'id' in (responseData as object)) {
+        await this.setNote(responseData as Note);
       }
     }
   }

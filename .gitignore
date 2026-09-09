@@ -61,7 +61,7 @@ coverage/
 backend/OliveLifecycle.API/uploads/
 
 # Mobile CI artifacts (APK served via frontend Docker image)
-mobile/agrotrack-mobile.apk
+mobile/oleachron-mobile.apk
 mobile/build-info.json
 mobile/gradle-build.log
 mobile/android/

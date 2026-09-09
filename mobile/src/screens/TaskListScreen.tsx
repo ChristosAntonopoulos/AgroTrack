@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   StyleSheet,
   RefreshControl,
   View,
   Text,
+  TextInput,
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -49,13 +50,24 @@ const TaskListScreen = () => {
     fieldId,
   });
   const { refreshing, onRefresh } = useRefresh(refresh);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (initialFilter === 'approval') setFilter('approval');
   }, [initialFilter, setFilter]);
 
   const counts = useMemo(() => getTaskFilterCounts(tasks), [tasks]);
-  const sortedTasks = useMemo(() => sortTasksForList(filteredTasks), [filteredTasks]);
+  const sortedTasks = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const searched = needle
+      ? filteredTasks.filter(
+          (task) =>
+            task.title.toLowerCase().includes(needle) ||
+            (task.description || '').toLowerCase().includes(needle)
+        )
+      : filteredTasks;
+    return sortTasksForList(searched);
+  }, [filteredTasks, query]);
   const overdueCount = useMemo(
     () => tasks.filter(tk => tk.status !== 'completed' && isTaskOverdue(tk)).length,
     [tasks]
@@ -84,7 +96,9 @@ const TaskListScreen = () => {
         : t('tasks:emptyProducer')
       : t('tasks:emptyFilter', { filter: t(`tasks:filters.${filter}`) });
 
-  const handleCreate = () => navigation.navigate('CreateTask', { fieldId });
+  const handleCreate = () => {
+    navigation.navigate('CreateTask', { fieldId });
+  };
 
   if (loading && tasks.length === 0) return <LoadingSpinner fullScreen />;
 
@@ -161,6 +175,21 @@ const TaskListScreen = () => {
 
             <FilterChips options={filterOptions} selected={filter} onSelect={setFilter} />
 
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('tasks:searchPlaceholder', { defaultValue: 'Search tasks' })}
+              placeholderTextColor={colors.textTertiary}
+              style={[
+                styles.search,
+                {
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                },
+              ]}
+            />
+
             {sortedTasks.length > 0 ? (
               <Text style={[styles.resultsLabel, { color: colors.textTertiary }]}>
                 {t('tasks:showing', { count: sortedTasks.length })}
@@ -229,6 +258,14 @@ const SummaryPill = ({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   headerBlock: { paddingBottom: spacing.xs },
+  search: {
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
+  },
   fieldBanner: {
     flexDirection: 'row',
     alignItems: 'center',

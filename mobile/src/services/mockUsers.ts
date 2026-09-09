@@ -6,6 +6,8 @@ export interface TestUser {
   userId: string;
   firstName: string;
   lastName: string;
+  nameKey?: string;
+  subtitleKey?: string;
 }
 
 export const testUsers: TestUser[] = [
@@ -17,6 +19,8 @@ export const testUsers: TestUser[] = [
     firstName: 'Giorgos',
     lastName: 'Papadakis',
     userId: '675555555555555555555501',
+    nameKey: 'login.demoGroveName',
+    subtitleKey: 'login.demoGroveSubtitle',
   },
   {
     email: 'producer1@olivefarm.com',
@@ -26,6 +30,8 @@ export const testUsers: TestUser[] = [
     firstName: 'Kostas',
     lastName: 'Manousakis',
     userId: '675555555555555555555502',
+    nameKey: 'login.demoServicesName',
+    subtitleKey: 'login.demoServicesSubtitle',
   },
   {
     email: 'producer2@olivefarm.com',
@@ -84,6 +90,8 @@ export const getUserByEmail = (email: string): TestUser | undefined => {
 };
 
 /** Owner + primary producer — shown on mobile demo login */
-export const mobileDemoUsers: TestUser[] = testUsers.filter(
-  u => u.role === 'FieldOwner' || u.email === 'producer1@olivefarm.com'
+export const mobileDemoUsers = testUsers.filter(
+  (u): u is TestUser & { nameKey: string; subtitleKey: string } =>
+    Boolean(u.nameKey && u.subtitleKey) &&
+    (u.role === 'FieldOwner' || u.email === 'producer1@olivefarm.com')
 );

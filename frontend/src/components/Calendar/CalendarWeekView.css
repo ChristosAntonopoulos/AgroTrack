@@ -90,7 +90,7 @@
   padding: 2px 4px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .cal-week-grid {
     grid-template-columns: 1fr;
   }

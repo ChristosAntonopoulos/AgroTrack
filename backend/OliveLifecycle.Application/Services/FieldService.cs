@@ -31,6 +31,7 @@ public class FieldService : IFieldService
     private readonly ILifecycleService _lifecycleService;
     private readonly ILifecycleRepository _lifecycleRepository;
     private readonly IGeospatialJobQueue _geospatialJobQueue;
+    private readonly IFamilyMemberRepository _familyMembers;
     private readonly ILogger<FieldService> _logger;
 
     public FieldService(
@@ -48,6 +49,7 @@ public class FieldService : IFieldService
         ILifecycleService lifecycleService,
         ILifecycleRepository lifecycleRepository,
         IGeospatialJobQueue geospatialJobQueue,
+        IFamilyMemberRepository familyMembers,
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
@@ -64,6 +66,7 @@ public class FieldService : IFieldService
         _lifecycleService = lifecycleService;
         _lifecycleRepository = lifecycleRepository;
         _geospatialJobQueue = geospatialJobQueue;
+        _familyMembers = familyMembers;
         _logger = logger;
     }
 
@@ -196,11 +199,25 @@ public class FieldService : IFieldService
             }
         }
 
+        var familyAccesses = await _familyMembers.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
+        foreach (var access in familyAccesses.Where(a =>
+                     a.Modules.Any(m => string.Equals(m, FamilyModules.Fields, StringComparison.OrdinalIgnoreCase))))
+        {
+            fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(access.OwnerUserId, cancellationToken));
+        }
+
         var includeDocuments = userRole == Roles.FieldOwner || userRole == Roles.Administrator;
         return fields.DistinctBy(f => f.Id).Select(f =>
         {
             FieldMembershipSync.EnsureBackfilled(f);
-            return FieldMapper.ToDto(f, includeDocuments || FieldMembershipSync.HasCapacity(f, userId, FieldCapacities.Own));
+            var familyDocs = familyAccesses.Any(a =>
+                string.Equals(a.OwnerUserId, f.OwnerId, StringComparison.Ordinal)
+                && a.Modules.Any(m => string.Equals(m, FamilyModules.Documents, StringComparison.OrdinalIgnoreCase)));
+            return FieldMapper.ToDto(
+                f,
+                includeDocuments
+                || FieldMembershipSync.HasCapacity(f, userId, FieldCapacities.Own)
+                || familyDocs);
         });
     }
 
@@ -572,7 +589,10 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (field.OwnerId != userId)
+        var isOwner = field.OwnerId == userId || userRole == Roles.Administrator;
+        var familyCanUpload = await _fieldAccessService.CanFamilyWriteModuleAsync(
+            id, userId, FamilyModules.Documents, requireCreateLevel: true, cancellationToken);
+        if (!isOwner && !familyCanUpload)
         {
             throw new ForbiddenException("You do not have permission to upload documents for this field.");
         }

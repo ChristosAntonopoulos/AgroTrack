@@ -9,13 +9,11 @@
   },
   "items": {
     "dashboard": "Dashboard",
-    "today": "Oggi",
+    "today": "Sguardo",
     "fields": "Campi",
-    "fieldsOwner": "I miei campi",
     "tasks": "Attività",
-    "tasksProducer": "Le mie attività",
-    "people": "Persone",
-    "money": "Costi",
+    "partners": "Partner",
+    "money": "Finanze",
     "approvals": "Approvazioni",
     "issues": "Problemi",
     "calendar": "Calendario",
@@ -23,12 +21,16 @@
     "reports": "Report",
     "ministry": "Ministero",
     "dataSources": "Fonti dati",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "thisHarvest": "Questa stagione",
+    "chronologio": "Cronologio"
   },
   "breadcrumb": {
     "new": "Nuovo",
     "edit": "Modifica",
     "details": "Dettagli",
-    "history": "Cronologia"
+    "chronologio": "Cronologio",
+    "notes": "Note",
+    "apologismos": "Bilancio"
   }
 }

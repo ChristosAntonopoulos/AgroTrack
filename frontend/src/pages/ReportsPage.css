@@ -352,7 +352,8 @@
   }
 }
 
-@media (max-width: 640px) {
+/* md = 768 */
+@media (max-width: 768px) {
   .reports-toolbar {
     flex-direction: column;
     align-items: stretch;

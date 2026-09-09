@@ -18,6 +18,8 @@ public static class TaskMapper
         HarvestPhase = task.HarvestPhase?.ToApiString()
             ?? HarvestPhaseCatalog.FromTypeOrTitle(task.Type, task.Title)?.ToApiString(),
         AssignedTo = task.AssignedTo,
+        PartnerUserId = task.PartnerUserId,
+        ServiceContactRequestId = task.ServiceContactRequestId,
         Status = task.Status.ToApiString(),
         ScheduledStart = task.ScheduledStart,
         ScheduledEnd = task.ScheduledEnd,

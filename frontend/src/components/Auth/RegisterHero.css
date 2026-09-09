@@ -1,0 +1,148 @@
+.register-hero {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  max-width: 560px;
+  color: #f5f0e6;
+}
+
+.register-hero-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.register-hero-logo {
+  flex-shrink: 0;
+  max-width: min(100%, 420px);
+  height: auto;
+}
+
+.register-hero-app {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #faf6ef;
+}
+
+.register-hero-tagline {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, #f5f0e6 75%, transparent);
+}
+
+.register-hero-copy h1 {
+  margin: 0 0 var(--spacing-md);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: #faf6ef;
+  text-wrap: balance;
+}
+
+.register-hero-copy p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, #f5f0e6 82%, transparent);
+  max-width: 480px;
+}
+
+.register-hero-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.register-hero-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.9375rem;
+  color: color-mix(in srgb, #f5f0e6 88%, transparent);
+}
+
+.register-hero-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, #d4c4a0 28%, transparent);
+  color: #faf6ef;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.register-hero-steps svg {
+  color: #d4c4a0;
+  flex-shrink: 0;
+}
+
+.register-hero-panel {
+  margin-top: auto;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--login-card-bg) 94%, transparent);
+  border: 1px solid var(--login-card-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  color: var(--login-text);
+}
+
+.register-hero-panel-label {
+  margin: 0 0 var(--spacing-md);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--login-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.register-hero-benefits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.register-hero-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--login-text);
+}
+
+.register-hero-benefits svg {
+  color: var(--color-success);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.login-page--light .register-hero-benefits svg {
+  color: var(--color-primary);
+}
+
+@media (max-width: 1024px) {
+  .register-hero-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-hero-copy h1 {
+    font-size: 1.5rem;
+  }
+}

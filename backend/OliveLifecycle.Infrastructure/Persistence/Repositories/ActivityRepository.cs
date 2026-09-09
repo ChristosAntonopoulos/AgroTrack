@@ -33,4 +33,64 @@ public class ActivityRepository : IActivityRepository
 
         return documents.Select(ActivityMapper.ToEntity);
     }
+
+    public async Task<IEnumerable<Activity>> GetByActorUserIdAsync(
+        string actorUserId,
+        DateTime? fromUtc = null,
+        DateTime? toUtc = null,
+        int limit = 200,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<ActivityDocument>.Filter.Eq(a => a.ActorUserId, actorUserId);
+        if (fromUtc.HasValue)
+        {
+            filter &= Builders<ActivityDocument>.Filter.Gte(a => a.Timestamp, fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            filter &= Builders<ActivityDocument>.Filter.Lt(a => a.Timestamp, toUtc.Value);
+        }
+
+        var documents = await _collection
+            .Find(filter)
+            .SortByDescending(a => a.Timestamp)
+            .Limit(limit)
+            .ToListAsync(cancellationToken);
+
+        return documents.Select(ActivityMapper.ToEntity);
+    }
+
+    public async Task<IEnumerable<Activity>> GetByFieldIdsAsync(
+        IEnumerable<string> fieldIds,
+        DateTime? fromUtc = null,
+        DateTime? toUtc = null,
+        int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = fieldIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return Enumerable.Empty<Activity>();
+        }
+
+        var filter = Builders<ActivityDocument>.Filter.In(a => a.FieldId, ids);
+        if (fromUtc.HasValue)
+        {
+            filter &= Builders<ActivityDocument>.Filter.Gte(a => a.Timestamp, fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            filter &= Builders<ActivityDocument>.Filter.Lt(a => a.Timestamp, toUtc.Value);
+        }
+
+        var documents = await _collection
+            .Find(filter)
+            .SortByDescending(a => a.Timestamp)
+            .Limit(limit)
+            .ToListAsync(cancellationToken);
+
+        return documents.Select(ActivityMapper.ToEntity);
+    }
 }

@@ -6,7 +6,7 @@
 
 ## Σκοπός
 
-Συνεχές ευρετήριο meeting notes για το AgroTrack. Κάθε συνάντηση παίρνει ενότητα εδώ, με βάση το [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
+Συνεχές ευρετήριο meeting notes για το Oleachron. Κάθε συνάντηση παίρνει ενότητα εδώ, με βάση το [Meeting Notes Template](../11-Templates/Meeting-Notes-Template.md).
 
 ## Συμβάσεις
 

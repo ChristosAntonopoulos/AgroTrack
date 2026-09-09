@@ -5,6 +5,7 @@ namespace OliveLifecycle.Application.Services;
 public interface ITaskService
 {
     Task<TaskDto> CreateTaskAsync(CreateTaskDto createTaskDto, string userId, string userRole, CancellationToken cancellationToken = default);
+    Task<TaskDto> RecordCompletedWorkAsync(RecordCompletedWorkDto dto, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<TaskDto?> GetTaskByIdAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<IEnumerable<TaskDto>> GetTasksByFieldIdAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<IEnumerable<TaskDto>> GetTasksByAssignedToAsync(string assignedTo, CancellationToken cancellationToken = default);

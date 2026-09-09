@@ -3,7 +3,7 @@ import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../services/api';
 
-export type SyncEntityType = 'task' | 'field';
+export type SyncEntityType = 'task' | 'field' | 'note';
 
 export interface SyncOperation {
   id: string;

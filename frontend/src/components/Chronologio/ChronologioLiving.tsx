@@ -1,0 +1,487 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { BookOpen, ArrowUp } from 'lucide-react';
+import Button from '../Common/Button';
+import EmptyState from '../Common/EmptyState';
+import Breadcrumbs from '../Layout/Breadcrumbs';
+import ChronologioSkeleton from './ChronologioSkeleton';
+import ChronologioChrome from './ChronologioChrome';
+import ChronologioYearsView from './ChronologioYearsView';
+import ChronologioYearView from './ChronologioYearView';
+import ChronologioMonthView from './ChronologioMonthView';
+import ChronologioEventDrawer from './ChronologioEventDrawer';
+import ChronologioDateRail from './ChronologioDateRail';
+import ChronologioCompare from './ChronologioCompare';
+import { getChronologioService, getFieldService } from '../../services/serviceFactory';
+import type {
+  ChronologioEntry,
+  ChronologioMonthSummary,
+  ChronologioPeriodSummary,
+} from '../../services/chronologioService';
+import type { Field } from '../../services/fieldService';
+import { calendarMonthBounds, focusDateForPeriod, toIsoDate } from '../../chronologio/livingTypes';
+import { useChronologioLivingState } from '../../chronologio/useChronologioLivingState';
+import type { SupportedLocale } from '../../i18n/config';
+import { useCaptureOptional } from '../../context/CaptureContext';
+import { CAPTURE_SAVED_EVENT } from '../../capture/types';
+import './Chronologio.css';
+
+type Props = {
+  fieldId?: string;
+  embedded?: boolean;
+};
+
+/**
+ * The single Chronologio living timeline. Used on /chronologio (all fields)
+ * and the field-page Χρονολόγιο tab (one field) — same UI, different data.
+ */
+const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
+  const fieldMode = Boolean(fieldId);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'capture']);
+  const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
+  const capture = useCaptureOptional();
+  const locale = (i18n.language?.slice(0, 2) || 'el') as SupportedLocale;
+  const numberLocale = i18n.language?.startsWith('el')
+    ? 'el-GR'
+    : i18n.language?.startsWith('it')
+      ? 'it-IT'
+      : 'en-US';
+
+  const living = useChronologioLivingState(fieldId);
+
+  const [fields, setFields] = useState<Field[]>([]);
+  const [fieldName, setFieldName] = useState('');
+  const [yearSummaries, setYearSummaries] = useState<ChronologioPeriodSummary[]>([]);
+  const [monthSummaries, setMonthSummaries] = useState<ChronologioMonthSummary[]>([]);
+  const [compareLeftMonths, setCompareLeftMonths] = useState<ChronologioMonthSummary[]>([]);
+  const [compareRightMonths, setCompareRightMonths] = useState<ChronologioMonthSummary[]>([]);
+  const [monthEntries, setMonthEntries] = useState<ChronologioEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [showReturnToday, setShowReturnToday] = useState(false);
+
+  const scopedFieldId = fieldMode ? fieldId : living.filters.fieldId;
+  const todayIso = toIsoDate(new Date());
+  const nowYear = new Date().getFullYear();
+  const nowMonth = new Date().getMonth() + 1;
+
+  useEffect(() => {
+    void getFieldService()
+      .getFields()
+      .then(setFields)
+      .catch(() => setFields([]));
+  }, []);
+
+  useEffect(() => {
+    if (!fieldId) {
+      setFieldName('');
+      return;
+    }
+    void getFieldService()
+      .getField(fieldId)
+      .then((f) => setFieldName(f.name))
+      .catch(() => setFieldName(''));
+  }, [fieldId]);
+
+  const loadErrorMessage = useCallback(
+    (err: unknown) => {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      const status =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { status?: number } }).response?.status
+          : undefined;
+      return (
+        message ||
+        (status === 404
+          ? t('chronologio:loadFailedUnavailable')
+          : t('chronologio:loadFailed'))
+      );
+    },
+    [t]
+  );
+
+  const fetchYears = useCallback(async () => {
+    const svc = getChronologioService();
+    const filters = {
+      axis: living.axis,
+      category: living.filters.category === 'all' ? undefined : living.filters.category,
+      fieldId: !fieldMode ? living.filters.fieldId : undefined,
+    };
+    if (scopedFieldId) return svc.getFieldYearSummaries(scopedFieldId, filters);
+    return svc.getMyYearSummaries(filters);
+  }, [fieldMode, living.axis, living.filters.category, living.filters.fieldId, scopedFieldId]);
+
+  const fetchMonths = useCallback(
+    async (periodYear: number) => {
+      const svc = getChronologioService();
+      const filters = {
+        axis: living.axis,
+        category: living.filters.category === 'all' ? undefined : living.filters.category,
+        fieldId: !fieldMode ? living.filters.fieldId : undefined,
+        year: living.axis === 'calendar' ? periodYear : undefined,
+        season: living.axis === 'season' ? periodYear : undefined,
+      };
+      if (scopedFieldId) return svc.getFieldMonthSummaries(scopedFieldId, filters);
+      return svc.getMyMonthSummaries(filters);
+    },
+    [fieldMode, living.axis, living.filters.category, living.filters.fieldId, scopedFieldId]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const years = await fetchYears();
+        if (cancelled) return;
+        setYearSummaries(years);
+
+        if (living.zoom === 'year' || living.zoom === 'month' || living.compareOpen) {
+          const months = await fetchMonths(living.periodYear);
+          if (cancelled) return;
+          setMonthSummaries(months);
+        } else {
+          setMonthSummaries([]);
+        }
+
+        if (living.zoom === 'month') {
+          const { from, to } = calendarMonthBounds(living.monthYear, living.month);
+          const filters = {
+            from,
+            to,
+            category: living.filters.category === 'all' ? undefined : living.filters.category,
+            lifecycleYear: living.filters.lifecycleYear || undefined,
+            fieldId: !fieldMode ? living.filters.fieldId : undefined,
+            limit: 200,
+            offset: 0,
+          };
+          const svc = getChronologioService();
+          const entries = scopedFieldId
+            ? await svc.getFieldChronologio(scopedFieldId, filters)
+            : await svc.getMyChronologio(filters);
+          if (cancelled) return;
+          setMonthEntries(entries);
+        } else {
+          setMonthEntries([]);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(loadErrorMessage(err));
+          setYearSummaries([]);
+          setMonthSummaries([]);
+          setMonthEntries([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    fetchMonths,
+    fetchYears,
+    fieldMode,
+    living.compareOpen,
+    living.filters.category,
+    living.filters.fieldId,
+    living.filters.lifecycleYear,
+    living.month,
+    living.monthYear,
+    living.periodYear,
+    living.zoom,
+    loadErrorMessage,
+    reloadToken,
+    scopedFieldId,
+  ]);
+
+  useEffect(() => {
+    if (!living.compareOpen || !living.compareYears) {
+      setCompareLeftMonths([]);
+      setCompareRightMonths([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const [l, r] = await Promise.all([
+          fetchMonths(living.compareYears![0]),
+          fetchMonths(living.compareYears![1]),
+        ]);
+        if (!cancelled) {
+          setCompareLeftMonths(l);
+          setCompareRightMonths(r);
+        }
+      } catch {
+        if (!cancelled) {
+          setCompareLeftMonths([]);
+          setCompareRightMonths([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchMonths, living.compareOpen, living.compareYears]);
+
+  useEffect(() => {
+    const onSaved = () => setReloadToken((n) => n + 1);
+    window.addEventListener(CAPTURE_SAVED_EVENT, onSaved);
+    return () => window.removeEventListener(CAPTURE_SAVED_EVENT, onSaved);
+  }, []);
+
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      living.zoomBy(e.deltaY > 0 ? -1 : 1);
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, [living]);
+
+  useEffect(() => {
+    const away =
+      living.periodYear !== nowYear ||
+      (living.zoom === 'month' &&
+        (living.monthYear !== nowYear || living.month !== nowMonth));
+    setShowReturnToday(away);
+  }, [living.month, living.monthYear, living.periodYear, living.zoom, nowMonth, nowYear]);
+
+  const activePeriod = useMemo(
+    () => yearSummaries.find((y) => y.periodYear === living.periodYear) || null,
+    [living.periodYear, yearSummaries]
+  );
+
+  const selectedEntry = useMemo(
+    () => monthEntries.find((e) => e.id === living.selectedEntryId) || null,
+    [living.selectedEntryId, monthEntries]
+  );
+
+  const availableCompareYears = useMemo(() => {
+    const fromSummaries = yearSummaries.map((y) => y.periodYear);
+    if (fromSummaries.length) return fromSummaries;
+    const y = living.periodYear;
+    return [y - 1, y, y + 1];
+  }, [living.periodYear, yearSummaries]);
+
+  const compareLeft = useMemo(
+    () =>
+      living.compareYears
+        ? yearSummaries.find((y) => y.periodYear === living.compareYears![0]) || null
+        : null,
+    [living.compareYears, yearSummaries]
+  );
+  const compareRight = useMemo(
+    () =>
+      living.compareYears
+        ? yearSummaries.find((y) => y.periodYear === living.compareYears![1]) || null
+        : null,
+    [living.compareYears, yearSummaries]
+  );
+
+  const monthTitle = useMemo(() => {
+    const d = new Date(Date.UTC(living.monthYear, living.month - 1, 1));
+    return d.toLocaleDateString(i18n.language, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }, [i18n.language, living.month, living.monthYear]);
+
+  const empty =
+    !loading &&
+    !error &&
+    yearSummaries.length === 0 &&
+    (living.zoom !== 'month' || monthEntries.length === 0);
+
+  const cta =
+    fieldMode && fieldId ? (
+      <Button variant="primary" onClick={() => capture?.openCapture({ fieldId })}>
+        {t('capture:cta')}
+      </Button>
+    ) : (
+      <Button to="/fields" variant="primary">
+        {t('chronologio:ctaViewFields')}
+      </Button>
+    );
+
+  const scrollToYearChapter = useCallback(
+    (periodYear: number) => {
+      living.setFocusDate(focusDateForPeriod(periodYear, living.axis));
+      const el = document.getElementById(`chrono-year-${periodYear}`);
+      el?.scrollIntoView({
+        block: 'center',
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+    },
+    [living, reduceMotion]
+  );
+
+  const returnToToday = useCallback(() => {
+    living.setFocusDate(todayIso);
+    if (living.zoom === 'years') {
+      const el = document.getElementById(`chrono-year-${nowYear}`);
+      el?.scrollIntoView({
+        block: 'center',
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+    }
+  }, [living, nowYear, reduceMotion, todayIso]);
+
+  const transition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.26, ease: 'easeOut' as const };
+
+  return (
+    <div className={`chronologio-shell chrono-living${embedded ? ' chronologio-shell--embedded' : ''}`}>
+      {embedded ? null : <Breadcrumbs />}
+      <ChronologioChrome
+        fieldMode={fieldMode}
+        fieldName={fieldName}
+        fields={fields}
+        filters={living.filters}
+        axis={living.axis}
+        zoom={living.zoom}
+        compareOpen={living.compareOpen}
+        embedded={embedded}
+        onBack={embedded || !fieldId ? undefined : () => navigate(`/fields/${fieldId}`)}
+        onSetZoom={living.setZoom}
+        onSetAxis={living.setAxis}
+        onSetFilters={living.setFilters}
+        onClearFilters={living.clearFilters}
+        onCompareToggle={() => living.setCompareOpen(!living.compareOpen)}
+      />
+
+      {loading ? <ChronologioSkeleton /> : null}
+
+      {!loading && error ? (
+        <EmptyState
+          icon={<BookOpen size={28} />}
+          title={t('chronologio:loadFailedTitle')}
+          description={error}
+          action={
+            <Button variant="primary" onClick={() => setReloadToken((n) => n + 1)}>
+              {t('common:retry', { defaultValue: 'Retry' })}
+            </Button>
+          }
+        />
+      ) : null}
+
+      {!loading && !error && living.compareOpen && living.compareYears ? (
+        <ChronologioCompare
+          left={compareLeft}
+          right={compareRight}
+          leftMonths={compareLeftMonths}
+          rightMonths={compareRightMonths}
+          leftYear={living.compareYears[0]}
+          rightYear={living.compareYears[1]}
+          availableYears={availableCompareYears}
+          numberLocale={numberLocale}
+          onChangeYears={living.setCompare}
+          onClose={() => living.setCompareOpen(false)}
+        />
+      ) : null}
+
+      {!loading && !error && !living.compareOpen && empty ? (
+        <EmptyState
+          icon={<BookOpen size={28} />}
+          title={
+            fieldMode ? t('chronologio:emptyFieldTitle') : t('chronologio:emptyGlobalTitle')
+          }
+          description={
+            fieldMode
+              ? t('chronologio:emptyFieldDescription')
+              : t('chronologio:emptyGlobalDescription')
+          }
+          action={cta}
+        />
+      ) : null}
+
+      {!loading && !error && !living.compareOpen && !empty ? (
+        <div className="chronologio-layout chrono-living-layout">
+          <div className="chronologio-main chrono-living-main">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={living.zoom}
+                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={transition}
+              >
+                {living.zoom === 'years' ? (
+                  <ChronologioYearsView
+                    summaries={yearSummaries}
+                    activePeriodYear={living.periodYear}
+                    numberLocale={numberLocale}
+                    onOpenPeriod={living.openPeriod}
+                  />
+                ) : null}
+                {living.zoom === 'year' ? (
+                  <ChronologioYearView
+                    period={activePeriod}
+                    months={monthSummaries}
+                    focusMonth={living.month}
+                    focusMonthYear={living.monthYear}
+                    numberLocale={numberLocale}
+                    onOpenMonth={living.openMonth}
+                  />
+                ) : null}
+                {living.zoom === 'month' ? (
+                  monthEntries.length === 0 ? (
+                    <EmptyState
+                      icon={<BookOpen size={28} />}
+                      title={t('chronologio:living.emptyMonthTitle', {
+                        month: monthTitle,
+                      })}
+                      description={t('chronologio:living.emptyMonthDescription')}
+                      action={cta}
+                    />
+                  ) : (
+                    <ChronologioMonthView
+                      entries={monthEntries}
+                      showField={!fieldMode}
+                      locale={locale}
+                      monthTitle={monthTitle}
+                      selectedEntryId={living.selectedEntryId}
+                      onSelect={(e) => living.setSelectedEntry(e.id)}
+                    />
+                  )
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <ChronologioDateRail
+            summaries={yearSummaries}
+            activePeriodYear={living.periodYear}
+            axis={living.axis}
+            zoom={living.zoom}
+            onScrollToYear={scrollToYearChapter}
+            onJumpToYear={(iso) => {
+              living.setFocusDate(iso);
+              if (living.zoom === 'years') living.setZoom('year');
+            }}
+          />
+        </div>
+      ) : null}
+
+      {showReturnToday && !loading && !error && !living.compareOpen ? (
+        <button type="button" className="chrono-return-today" onClick={returnToToday}>
+          <ArrowUp size={14} aria-hidden />
+          {t('chronologio:living.returnToday')}
+        </button>
+      ) : null}
+
+      <ChronologioEventDrawer
+        entry={selectedEntry}
+        onClose={() => living.setSelectedEntry(null)}
+      />
+    </div>
+  );
+};
+
+export default ChronologioLiving;

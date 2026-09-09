@@ -4,6 +4,7 @@
   background: var(--bg-page);
   min-height: 100%;
   transition: background var(--transition-base);
+  min-width: 0;
 }
 
 /* Max Width Variants */
@@ -27,7 +28,7 @@
   max-width: 100%;
 }
 
-/* Padding Variants */
+/* Padding Variants — main-content already pads on mobile, so keep page padding light */
 .page-container-padding-none {
   padding: 0;
 }
@@ -44,12 +45,11 @@
   padding: var(--spacing-2xl);
 }
 
+/* md breakpoint = 768 (breakpoints.ts) */
 @media (max-width: 768px) {
-  .page-container-padding-md {
-    padding: var(--spacing-md);
-  }
-
+  .page-container-padding-sm,
+  .page-container-padding-md,
   .page-container-padding-lg {
-    padding: var(--spacing-lg);
+    padding: 0;
   }
 }

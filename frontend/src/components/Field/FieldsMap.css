@@ -34,6 +34,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
+  min-height: var(--tap-min, 44px);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
@@ -61,6 +62,10 @@
   background-color: var(--bg-elevated) !important;
   color: var(--color-text-primary) !important;
   border-bottom-color: var(--color-border) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
 }
 
 .fields-map .leaflet-bar a:hover {
@@ -148,4 +153,44 @@
 [data-theme='dark'] .leaflet-popup-tip {
   background: var(--bg-elevated);
   color: var(--color-text-primary);
+}
+
+.fields-map-preview {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1000;
+  max-width: min(320px, calc(100% - 24px));
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--bg-card) 92%, #1a1f16);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.fields-map-preview:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 75%, var(--color-border));
+}
+
+.fields-map-preview-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.fields-map-preview-place,
+.fields-map-preview-meta {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.fields-map-preview-open {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: color-mix(in srgb, var(--color-primary-light) 80%, var(--color-text-secondary));
 }

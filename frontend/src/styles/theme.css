@@ -2,11 +2,18 @@
    BASE VARIABLES (Shared across all themes)
    ============================================ */
 :root {
-  /* Primary Colors - Olive Theme */
-  --color-primary: #2d5016;
-  --color-primary-light: #4a7c2a;
-  --color-primary-lighter: #6b9a3f;
-  --color-accent: #8b9a46;
+  /* Primary Colors — Oleachron */
+  --oleachron-deep-olive: #2E4A2E;
+  --oleachron-olive: #6B7F5E;
+  --oleachron-sage: #6B7F5E;
+  --oleachron-cream: #F8F7EE;
+  --oleachron-warm-stone: #D9D5C3;
+  --oleachron-heritage-gold: #B8A373;
+  --oleachron-charcoal: #3C3C2E;
+  --color-primary: #2E4A2E;
+  --color-primary-light: #6B7F5E;
+  --color-primary-lighter: #A7B38A;
+  --color-accent: #B8A373;
   
   /* Status Colors */
   --color-success: #28a745;
@@ -30,8 +37,8 @@
   --color-secondary-dark: #5a6268;
   
   /* Lifecycle Colors */
-  --color-lifecycle-low: #4a7c2a;
-  --color-lifecycle-high: #8b9a46;
+  --color-lifecycle-low: #6B7F4E;
+  --color-lifecycle-high: #C9A257;
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -72,6 +79,18 @@
 
   /* Header */
   --header-height: 64px;
+
+  /* Bottom nav (phones; overridden in responsive.css) */
+  --bottom-nav-height: 0px;
+
+  /*
+   * Breakpoint documentation tokens (CSS vars cannot be used in @media).
+   * Numeric source of truth: styles/breakpoints.ts
+   * sm 480 | md 768 | lg 1024
+   */
+  --bp-sm: 480;
+  --bp-md: 768;
+  --bp-lg: 1024;
 
   /* Experience modes (Wong palette — color-blind safe) */
   --experience-everyday: #0072b2;
@@ -118,7 +137,7 @@ html[data-large-controls='true'] .offline-banner-action {
 :root,
 [data-theme="light"] {
   /* Background Layers (Semantic) */
-  --bg-page: #f0f2f5;
+  --bg-page: #F8F7EE;
   --color-bg: var(--bg-page);
   --bg-page-gradient: var(--bg-page);
   --bg-surface: #ffffff;
@@ -141,11 +160,11 @@ html[data-large-controls='true'] .offline-banner-action {
   --bg-section-alt: #fafbfc;
   
   /* Text Colors */
-  --color-text-primary: #212529;
+  --color-text-primary: #3C3C2E;
   --color-text: var(--color-text-primary);
-  --color-text-secondary: #6c757d;
-  --color-text-muted: #adb5bd;
-  --color-text-inverse: #ffffff;
+  --color-text-secondary: #6B7F4E;
+  --color-text-muted: #8C7F64;
+  --color-text-inverse: #F8F7EE;
   
   /* Border Colors */
   --color-border: #dee2e6;
@@ -164,12 +183,12 @@ html[data-large-controls='true'] .offline-banner-action {
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 2px 8px rgba(45, 80, 22, 0.08), 0 1px 3px rgba(45, 80, 22, 0.12);
-  --shadow-card-hover: 0 8px 24px rgba(45, 80, 22, 0.12), 0 4px 8px rgba(45, 80, 22, 0.16);
+  --shadow-card: 0 2px 8px rgba(46, 74, 46, 0.08), 0 1px 3px rgba(46, 74, 46, 0.12);
+  --shadow-card-hover: 0 8px 24px rgba(46, 74, 46, 0.12), 0 4px 8px rgba(46, 74, 46, 0.16);
   
   /* Lifecycle Backgrounds */
-  --color-lifecycle-low-bg: #e8f5e9;
-  --color-lifecycle-high-bg: #f1f8e9;
+  --color-lifecycle-low-bg: #E8EDE0;
+  --color-lifecycle-high-bg: #F3EBD4;
 }
 
 /* ============================================

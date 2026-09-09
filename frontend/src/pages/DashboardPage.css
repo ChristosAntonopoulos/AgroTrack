@@ -38,10 +38,6 @@
   text-transform: capitalize;
 }
 
-.dashboard-role-badge {
-  margin-top: 0.25rem;
-}
-
 /* Producer hero CTA */
 .producer-hero-card {
   display: flex;
@@ -328,7 +324,7 @@
   }
 
   .dashboard-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
   }
 
   .field-row,
@@ -340,5 +336,11 @@
   .field-row-badges,
   .task-row-badges {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
   }
 }

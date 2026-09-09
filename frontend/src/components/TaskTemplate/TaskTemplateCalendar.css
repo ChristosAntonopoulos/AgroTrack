@@ -250,3 +250,42 @@
     grid-template-columns: 160px repeat(12, minmax(44px, 1fr));
   }
 }
+
+/* Compact list fallback (used below lg via JS) */
+.tt-calendar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.tt-calendar-list-item {
+  display: grid;
+  gap: var(--spacing-xs);
+  width: 100%;
+  text-align: left;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--tap-min, 44px);
+}
+
+.tt-calendar-list-item-selected {
+  border-color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--bg-card));
+}
+
+.tt-calendar-list-item-recommended {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+}
+
+.tt-calendar-list-range {
+  font-size: calc(0.8rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+}

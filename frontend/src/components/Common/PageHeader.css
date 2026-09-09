@@ -1,0 +1,5 @@
+/* PageHeader uses shared .u-page-header utilities from responsive.css.
+   Local file kept for any page-header-specific tweaks. */
+.page-header {
+  /* inherits .u-page-header */
+}

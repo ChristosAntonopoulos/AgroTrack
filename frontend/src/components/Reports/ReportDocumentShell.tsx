@@ -22,21 +22,21 @@ const ReportDocumentShell: React.FC<ReportDocumentShellProps> = ({
     <div className="report-document-inner">
       <header className="report-doc-header">
         <div className="report-doc-brand">
-          <BrandLogo size="sm" className="report-doc-logo" rounded />
+          <BrandLogo variant="horizontal" size="sm" className="report-doc-logo" />
           <div className="report-doc-brand-text">
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
         </div>
         <div className="report-doc-meta">
-          <strong>AgroTrack</strong>
+          <strong>Oleachron</strong>
           {season && <span>Season {season}</span>}
           <span>Generated {format(new Date(), 'dd MMM yyyy')}</span>
         </div>
       </header>
       {children}
       <footer className="report-doc-footer">
-        <span>AgroTrack — Olive Farm Management</span>
+        <span>Oleachron — The story of every olive tree lives on</span>
         <span>Confidential</span>
       </footer>
     </div>

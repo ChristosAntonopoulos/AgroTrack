@@ -68,7 +68,7 @@ const GreekCadastreInfoCard: React.FC<Props> = ({ cadastre, hideTitle }) => {
         ) : (
           cadastre.locationFromCadastre && (
             <div>
-              <dt>{t('addField.locationText')}</dt>
+              <dt>{t('locationLabel')}</dt>
               <dd>{cadastre.locationFromCadastre}</dd>
             </div>
           )

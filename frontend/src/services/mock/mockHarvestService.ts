@@ -1,7 +1,7 @@
 import { CreateHarvestInput, HarvestRecord, harvestService } from '../harvestService';
 import { mockFinancialEntryService } from './mockFinancialEntryService';
 
-const STORAGE_KEY = 'agrotrack_demo_harvest_records_v1';
+const STORAGE_KEY = 'Oleachron_demo_harvest_records_v1';
 
 const read = (): HarvestRecord[] => {
   try {
@@ -31,6 +31,7 @@ export const mockHarvestService: typeof harvestService = {
       oilYieldPercent: input.oilKg && input.oliveKg ? (input.oilKg / input.oliveKg) * 100 : undefined,
       qualityGrade: '',
       notes: input.notes,
+      status: 'posted',
     };
     write([record, ...read()]);
     if (input.saleAmount) {
@@ -52,5 +53,15 @@ export const mockHarvestService: typeof harvestService = {
       });
     }
     return record;
+  },
+
+  void: async (id, reason) => {
+    const next = read().map((record) =>
+      record.id === id
+        ? { ...record, status: 'voided' as const, voidReason: reason, voidedAt: new Date().toISOString() }
+        : record
+    );
+    write(next);
+    return next.find((record) => record.id === id)!;
   },
 };

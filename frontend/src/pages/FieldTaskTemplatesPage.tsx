@@ -15,6 +15,7 @@ import {
   sortTemplates,
 } from '../utils/taskTemplateUtils';
 import { useLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
@@ -49,15 +50,9 @@ const FieldTaskTemplatesPage: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const isMobile = useBreakpoint('lg');
 
   const currentMonth = new Date().getMonth() + 1;
-
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   useEffect(() => {
     if (fieldId) {

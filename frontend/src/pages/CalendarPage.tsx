@@ -10,7 +10,7 @@ import { CalendarEvent, CalendarFilters } from '../services/calendarService';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
 import { useAllLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { getRecommendedForMonth } from '../utils/calendarRecommendations';
 import { isEventOverdue } from '../utils/calendarViewUtils';
 import { demoStore } from '../services/demo/demoStore';
@@ -60,7 +60,7 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const localizedTemplates = useAllLocalizedTemplates();
   const dateLocale = i18n.language === 'el' ? el : enUS;
-  const isMobile = useMediaQuery('(max-width: 900px)');
+  const isMobile = useBreakpoint('md');
 
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     isMobile || !showWidget('calendarMonthView') ? 'agenda' : 'month'

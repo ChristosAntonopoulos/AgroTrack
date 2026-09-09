@@ -10,6 +10,7 @@ import {
 } from '../services/geospatialService';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
+import PageHeader from '../components/Common/PageHeader';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import './DataSourcesPage.css';
@@ -86,21 +87,21 @@ const DataSourcesPage: React.FC = () => {
       <div className="data-sources-page">
         <Breadcrumbs />
 
-        <div className="data-sources-header">
-          <div>
-            <h1>{t('admin:dataSources.title')}</h1>
-            <p>{t('admin:dataSources.subtitle')}</p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={load}
-            disabled={loading}
-            icon={<RefreshCw size={14} aria-hidden />}
-          >
-            {t('common:refresh')}
-          </Button>
-        </div>
+        <PageHeader
+          title={t('admin:dataSources.title')}
+          subtitle={t('admin:dataSources.subtitle')}
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={load}
+              disabled={loading}
+              icon={<RefreshCw size={14} aria-hidden />}
+            >
+              {t('common:refresh')}
+            </Button>
+          }
+        />
 
         {loading ? <LoadingSpinner size="sm" /> : null}
         {failed ? <div className="error-message">{t('admin:dataSources.loadFailed')}</div> : null}
@@ -164,28 +165,30 @@ const DataSourcesPage: React.FC = () => {
               </div>
 
               {jobs && jobs.recentFailures.length > 0 ? (
-                <table className="data-sources-failures">
-                  <thead>
-                    <tr>
-                      <th>{t('admin:dataSources.jobType')}</th>
-                      <th>{t('admin:dataSources.field')}</th>
-                      <th>{t('admin:dataSources.attempts')}</th>
-                      <th>{t('admin:dataSources.failedAt')}</th>
-                      <th>{t('admin:dataSources.lastError')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobs.recentFailures.map((failure, index) => (
-                      <tr key={`${failure.jobType}-${failure.fieldId ?? index}-${failure.failedAt}`}>
-                        <td>{failure.jobType}</td>
-                        <td>{failure.fieldId ?? '—'}</td>
-                        <td>{failure.attempts}</td>
-                        <td>{formatDateTime(failure.failedAt)}</td>
-                        <td className="data-source-error">{failure.lastError ?? '—'}</td>
+                <div className="u-scroll-x">
+                  <table className="data-sources-failures">
+                    <thead>
+                      <tr>
+                        <th>{t('admin:dataSources.jobType')}</th>
+                        <th>{t('admin:dataSources.field')}</th>
+                        <th>{t('admin:dataSources.attempts')}</th>
+                        <th>{t('admin:dataSources.failedAt')}</th>
+                        <th>{t('admin:dataSources.lastError')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {jobs.recentFailures.map((failure, index) => (
+                        <tr key={`${failure.jobType}-${failure.fieldId ?? index}-${failure.failedAt}`}>
+                          <td>{failure.jobType}</td>
+                          <td>{failure.fieldId ?? '—'}</td>
+                          <td>{failure.attempts}</td>
+                          <td>{formatDateTime(failure.failedAt)}</td>
+                          <td className="data-source-error">{failure.lastError ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p className="data-sources-empty">{t('admin:dataSources.noFailures')}</p>
               )}

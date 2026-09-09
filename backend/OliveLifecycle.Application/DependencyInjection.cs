@@ -32,6 +32,14 @@ public static class DependencyInjection
         services.AddScoped<IReportsService, ReportsService>();
         services.AddScoped<IFinancialEntryService, FinancialEntryService>();
         services.AddScoped<IHarvestService, HarvestService>();
+        services.AddScoped<IPartnerService, PartnerService>();
+        services.AddScoped<ISavedContactService, SavedContactService>();
+        services.AddScoped<INoteService, NoteService>();
+        services.AddScoped<IMediaAttachmentService, MediaAttachmentService>();
+        services.AddScoped<IUserNotificationService, UserNotificationService>();
+        services.AddScoped<IMeDashboardService, MeDashboardService>();
+        services.AddScoped<IFamilyService, FamilyService>();
+        services.AddScoped<IChronologioService, ChronologioService>();
 
         return services;
     }

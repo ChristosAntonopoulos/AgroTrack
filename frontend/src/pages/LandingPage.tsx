@@ -135,8 +135,13 @@ const LandingPage: React.FC = () => {
               scrollTo('top');
             }}
           >
-            <BrandLogo size="sm" alt={t('brand')} rounded />
-            <span>{t('brand')}</span>
+            <BrandLogo
+              className="landing-brand-lockup"
+              variant="horizontal"
+              tone={scrolled ? 'on-light' : 'on-dark'}
+              size="sm"
+              alt={t('brand')}
+            />
             <span className="landing-alpha-pill">{t('alphaBadge')}</span>
           </a>
 
@@ -355,7 +360,9 @@ const LandingPage: React.FC = () => {
             </div>
             <article className="landing-apk-card">
               <div className="landing-apk-head">
-                <BrandLogo size="md" alt={t('brand')} rounded />
+                <span className="landing-app-icon" aria-hidden>
+                  <BrandLogo variant="app-icon" tone="on-light" size="md" alt="" />
+                </span>
                 <div>
                   <h3>{t('alpha.cardTitle')}</h3>
                   <p className="landing-price-amount">{t('alpha.price')}</p>
@@ -464,8 +471,13 @@ const LandingPage: React.FC = () => {
         <div className="landing-container landing-footer-grid">
           <div>
             <div className="landing-footer-brand">
-              <BrandLogo size="sm" alt={t('brand')} rounded />
-              <span>{t('brand')}</span>
+              <BrandLogo
+                className="landing-footer-lockup"
+                variant="horizontal"
+                tone="on-dark"
+                size="sm"
+                alt={t('brand')}
+              />
               <span className="landing-alpha-pill">{t('footer.version')}</span>
             </div>
             <p>{t('footer.description')}</p>

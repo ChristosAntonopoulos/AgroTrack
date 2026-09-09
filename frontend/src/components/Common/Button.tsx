@@ -59,6 +59,7 @@ const Button: React.FC<ButtonProps> = ({
     return (
       <Component
         to={to}
+        reloadDocument={false}
         className={buttonClasses}
         {...(props as any)}
       >

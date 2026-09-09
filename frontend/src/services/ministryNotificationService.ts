@@ -15,7 +15,7 @@ export interface MinistryNotification {
   targetRoles?: string[];
 }
 
-const READ_IDS_KEY = 'agrotrack_ministry_notification_read_ids_v1';
+const READ_IDS_KEY = 'Oleachron_ministry_notification_read_ids_v1';
 
 const loadReadIds = (): Set<string> => {
   try {

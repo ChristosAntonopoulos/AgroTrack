@@ -1,7 +1,7 @@
-# Azure DevOps Build and Deploy Pipeline for AgroTrack (Olive Lifecycle Platform)
+# Azure DevOps Build and Deploy Pipeline for Oleachron (Olive Lifecycle Platform)
 # Builds Docker images, pushes to Docker Hub, deploys to Kubernetes.
 # Mobile APK: built from mobile/ (Gradle on agent, no EAS), staged into frontend/public/downloads,
-# then baked into the frontend Docker image for nginx to serve at /downloads/olivecycle-alpha.apk.
+# then baked into the frontend Docker image for nginx to serve at /downloads/oleachron-alpha.apk.
 # Maps use MapLibre Native + free Esri/OSM tiles (no Google API key).
 
 trigger:
@@ -25,7 +25,7 @@ parameters:
     default: true
 
 variables:
-  - group: AgroTrack-Secrets
+  - group: Oleachron-Secrets
   - name: solution
     value: 'backend/OliveLifecycle.sln'
   - name: buildConfiguration
@@ -33,7 +33,7 @@ variables:
   - name: dockerRegistry
     value: '$(DOCKER_USERNAME)'
   - name: imageName
-    value: 'agrotrack-backend'
+    value: 'oleachron-backend'
   - name: fullImageName
     value: '$(dockerRegistry)/$(imageName)'
   - name: imageTag
@@ -43,21 +43,21 @@ variables:
   - name: dockerContext
     value: 'backend'
   - name: backendNamespace
-    value: 'agrotrack-backend'
+    value: 'oleachron-backend'
   - name: frontendNamespace
-    value: 'agrotrack-frontend'
+    value: 'oleachron-frontend'
   - name: backendNodePort
     value: '31847'
   - name: frontendNodePort
     value: '31848'
   - name: backendApiUrl
-    value: 'https://api.agrotrack.conceptatlas.eu'
+    value: 'https://api.oleachron.conceptatlas.eu'
   - name: frontendBaseUrl
-    value: 'https://agrotrack.conceptatlas.eu'
+    value: 'https://oleachron.conceptatlas.eu'
   - name: kubernetesNodeIp
     value: '185.193.66.50'
   - name: frontendImageName
-    value: 'agrotrack-frontend'
+    value: 'oleachron-frontend'
   - name: fullFrontendImageName
     value: '$(dockerRegistry)/$(frontendImageName)'
   - name: frontendDockerfilePath
@@ -65,7 +65,7 @@ variables:
   - name: frontendDockerContext
     value: 'frontend'
   - name: apkFilename
-    value: 'olivecycle-alpha.apk'
+    value: 'oleachron-alpha.apk'
 
 stages:
 - stage: Build
@@ -171,7 +171,7 @@ stages:
         source mobile/scripts/setup-java.sh
         echo "##vso[task.setvariable variable=JAVA_HOME]${JAVA_HOME}"
         mobile/scripts/build-and-stage-apk.sh
-        test -f mobile/agrotrack-mobile.apk
+        test -f mobile/oleachron-mobile.apk
         test -f frontend/public/downloads/$(apkFilename)
       displayName: 'Build and stage APK for frontend /downloads'
       env:
@@ -208,7 +208,7 @@ stages:
       displayName: 'Publish APK as artifact'
       condition: succeeded()
       inputs:
-        pathToPublish: 'mobile/agrotrack-mobile.apk'
+        pathToPublish: 'mobile/oleachron-mobile.apk'
         artifactName: 'mobile-apk'
         publishLocation: 'Container'
 
@@ -302,7 +302,7 @@ stages:
                     echo "  - $var"
                   done
                   echo ""
-                  echo "Please set these in the AgroTrack-Secrets variable group."
+                  echo "Please set these in the Oleachron-Secrets variable group."
                   exit 1
                 fi
 
@@ -393,7 +393,7 @@ stages:
                 echo "Caddy not available on this agent; overlays use API PublicBasePath and frontend nginx /uploads proxy."
                 exit 0
               fi
-              SITE=/etc/caddy/sites/agrotrack.caddy
+              SITE=/etc/caddy/sites/oleachron.caddy
               cp deploy/caddy/Caddyfile "$SITE"
               caddy validate --config /etc/caddy/Caddyfile
               systemctl reload caddy || caddy reload --config /etc/caddy/Caddyfile

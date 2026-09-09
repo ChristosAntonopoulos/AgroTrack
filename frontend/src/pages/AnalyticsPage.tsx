@@ -253,6 +253,7 @@ const AnalyticsPage: React.FC = () => {
           {fieldMetrics.length > 0 && (
             <div className="field-metrics-table">
               <h2>Field Performance</h2>
+              <div className="u-scroll-x">
               <table>
                 <thead>
                   <tr>
@@ -277,6 +278,7 @@ const AnalyticsPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </>

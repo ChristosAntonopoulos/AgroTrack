@@ -28,8 +28,8 @@ public class MapLayerCatalog : IMapLayerCatalog
 
         var layers = new List<MapLayerDefinition>
         {
-            new() { Id = "field-boundary", Name = "Field boundary", Category = "FIELD", LayerType = "vector", Provider = "AgroTrack", Attribution = "AgroTrack", DefaultVisible = true },
-            new() { Id = "tasks", Name = "Tasks", Category = "FIELD", LayerType = "vector", Provider = "AgroTrack", Attribution = "AgroTrack", DefaultVisible = true },
+            new() { Id = "field-boundary", Name = "Field boundary", Category = "FIELD", LayerType = "vector", Provider = "Oleachron", Attribution = "Oleachron", DefaultVisible = true },
+            new() { Id = "tasks", Name = "Tasks", Category = "FIELD", LayerType = "vector", Provider = "Oleachron", Attribution = "Oleachron", DefaultVisible = true },
 
             new() { Id = "truecolor", Name = "True colour", Category = "SATELLITE", LayerType = "raster", Provider = "Sentinel-2", Attribution = CopernicusAttribution, Licence = "Copernicus Open Access", SourceUrl = CopernicusUrl, SpatialResolution = "10 m" },
             new() { Id = "ndvi", Name = "Vegetation — NDVI", Category = "SATELLITE", LayerType = "raster", Provider = "Sentinel-2", Attribution = CopernicusAttribution, Licence = "Copernicus Open Access", SourceUrl = CopernicusUrl, SpatialResolution = "10 m" },

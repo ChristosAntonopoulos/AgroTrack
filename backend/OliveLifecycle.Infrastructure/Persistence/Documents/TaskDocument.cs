@@ -34,6 +34,14 @@ public class TaskDocument
     [BsonElement("assignedTo")]
     public string? AssignedTo { get; set; }
 
+    [BsonElement("partnerUserId")]
+    [BsonIgnoreIfNull]
+    public string? PartnerUserId { get; set; }
+
+    [BsonElement("serviceContactRequestId")]
+    [BsonIgnoreIfNull]
+    public string? ServiceContactRequestId { get; set; }
+
     [BsonElement("status")]
     public string Status { get; set; } = "pending";
 

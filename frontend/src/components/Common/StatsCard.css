@@ -12,6 +12,19 @@
   box-shadow: var(--shadow-lg);
 }
 
+.stats-card-interactive {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  min-height: 44px;
+}
+
+.stats-card-interactive:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .stats-card-primary {
   border-left-color: var(--color-primary);
 }

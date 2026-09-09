@@ -20,6 +20,20 @@ export const FIELD_POLYGON_STYLE: PathOptions = {
   fillOpacity: 0.22,
 };
 
+export const FIELD_POLYGON_HOVER_STYLE: PathOptions = {
+  color: '#d9f99d',
+  weight: 3,
+  fillColor: '#a3e635',
+  fillOpacity: 0.32,
+};
+
+export const FIELD_POLYGON_SELECTED_STYLE: PathOptions = {
+  color: '#f4ff9a',
+  weight: 3,
+  fillColor: '#84cc16',
+  fillOpacity: 0.38,
+};
+
 /** Outline only — used when a data overlay must stay visible under the boundary. */
 export const FIELD_BOUNDARY_OUTLINE: PathOptions = {
   color: '#f4ff9a',

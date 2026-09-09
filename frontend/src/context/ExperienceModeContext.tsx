@@ -124,11 +124,7 @@ export const ExperienceModeProvider: React.FC<{ children: ReactNode }> = ({ chil
     applyDocumentComfort(fontScale, largeControls, experienceMode);
   }, [fontScale, largeControls, experienceMode]);
 
-  const rehomePathForMode = useCallback((mode: ExperienceMode, role?: string) => {
-    if (mode === 'everyday') return '/today';
-    if (role === 'Producer') return '/today';
-    return '/dashboard';
-  }, []);
+  const rehomePathForMode = useCallback((_mode: ExperienceMode, _role?: string) => '/today', []);
 
   const setExperienceMode = useCallback((mode: ExperienceMode) => {
     setExperienceModeState(mode);

@@ -91,10 +91,16 @@ export const fieldPeopleService = {
     }
 
     try {
-      const response = await api.get<FieldMembership[]>(`/api/v1/fields/${fieldId}/people`);
+      const response = await api.get<FieldMembership[]>(`/api/v1/fields/${fieldId}/people`, {
+        skipUnauthorizedHandler: true,
+      });
       EntityCache.setPeople(fieldId, response.data);
       return response.data;
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 404) {
+        return EntityCache.getPeople(fieldId)?.data || [];
+      }
       if (isNetworkError(err)) {
         const cached = EntityCache.getPeople(fieldId);
         if (cached) return cached.data;

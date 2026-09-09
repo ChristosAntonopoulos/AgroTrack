@@ -7,15 +7,17 @@ import './ExperienceModeToggle.css';
 
 interface ExperienceModeToggleProps {
   compact?: boolean;
+  onChanged?: () => void;
 }
 
-const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = false }) => {
+const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = false, onChanged }) => {
   const { t } = useTranslation('settings');
   const { experienceMode, setExperienceMode } = useExperienceMode();
 
   const select = (mode: ExperienceMode) => {
     if (mode === experienceMode) return;
     setExperienceMode(mode);
+    onChanged?.();
   };
 
   return (

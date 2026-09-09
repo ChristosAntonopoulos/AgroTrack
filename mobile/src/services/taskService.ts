@@ -47,6 +47,21 @@ type CreateTaskData = {
   scheduledEnd?: string;
 };
 
+export type RecordCompletedWorkData = {
+  fieldId: string;
+  templateId?: string;
+  type: string;
+  title: string;
+  description?: string;
+  lifecycleYear?: string;
+  assignedTo?: string;
+  occurredAt?: string;
+  costAmount?: number;
+  currency?: string;
+  costCategory?: string;
+  mediaUrls?: string[];
+};
+
 async function resolveUserId(): Promise<string | null> {
   try {
     const userStr = await AsyncStorage.getItem('user');
@@ -334,6 +349,12 @@ export const taskService = {
       if (isNetworkError(error)) return enqueue();
       throw error;
     }
+  },
+
+  recordCompletedWork: async (data: RecordCompletedWorkData): Promise<Task> => {
+    const response = await api.post<Task>('/api/v1/tasks/recorded', data);
+    await EntityCache.setTask(response.data);
+    return response.data;
   },
 
   assignTask: async (taskId: string, userId: string): Promise<Task> => {

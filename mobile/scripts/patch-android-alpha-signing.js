@@ -16,7 +16,7 @@ if (!file) {
   process.exit(1);
 }
 
-const marker = '// agrotrack-alpha-release-signing';
+const marker = '// oleachron-alpha-release-signing';
 let content = fs.readFileSync(file, 'utf8');
 
 if (content.includes(marker)) {

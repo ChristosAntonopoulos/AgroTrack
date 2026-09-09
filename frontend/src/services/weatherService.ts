@@ -55,7 +55,7 @@ export const toWeatherData = (weather: FieldWeather): WeatherData | null => {
 };
 
 /**
- * Weather is served from the AgroTrack backend cache. The browser never calls
+ * Weather is served from the Oleachron backend cache. The browser never calls
  * an external weather provider directly.
  */
 export const weatherService = {

@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, AuthResponse } from '../services/authService';
 import { mockAuthService } from '../services/mock/mockAuthService';
 import { isMockDataEnabled } from '../config/apiConfig';
+import { setUnauthorizedHandler } from '../services/api';
 
 interface AuthContextType {
   user: AuthResponse | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName?: string, lastName?: string, role?: string) => Promise<void>;
+  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -40,17 +41,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string,
-    role: string = 'Producer'
+    lastName?: string
   ) => {
     const service = isMockDataEnabled() ? mockAuthService : authService;
-    const response = await service.register({ email, password, firstName, lastName, role });
+    const response = await service.register({ email, password, firstName, lastName });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response));
     setUser(response);
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     try {
       // Clear entity cache on logout so the next user never sees stale data.
       void import('../utils/entityCache').then(({ EntityCache }) => EntityCache.clearAll());
@@ -60,7 +60,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     authService.logout();
     setUser(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(logout);
+    return () => setUnauthorizedHandler(null);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, loading }}>

@@ -51,5 +51,5 @@ public static class UserMapper
     };
 
     private static UserRole ParseRole(string role) =>
-        Enum.TryParse<UserRole>(role, out var parsed) ? parsed : UserRole.Producer;
+        Enum.TryParse<UserRole>(role, out var parsed) ? parsed : UserRole.FieldOwner;
 }

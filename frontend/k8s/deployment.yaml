@@ -2,14 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: olive-lifecycle-frontend
-  namespace: agrotrack-frontend
+  namespace: oleachron-frontend
   labels:
     app: olive-lifecycle-frontend
-    app.kubernetes.io/part-of: agrotrack
-    app.kubernetes.io/instance: agrotrack-prod
+    app.kubernetes.io/part-of: oleachron
+    app.kubernetes.io/instance: oleachron-prod
     app.kubernetes.io/component: frontend
   annotations:
-    control-panel.kubernetes.io/display-name: "AgroTrack"
+    control-panel.kubernetes.io/display-name: "Oleachron"
     control-panel.kubernetes.io/description: "Olive lifecycle management for olive farms — field maps, harvests, and farm operations."
     control-panel.kubernetes.io/environment: "Production"
     control-panel.kubernetes.io/icon: "🫒"
@@ -25,8 +25,8 @@ spec:
     metadata:
       labels:
         app: olive-lifecycle-frontend
-        app.kubernetes.io/part-of: agrotrack
-        app.kubernetes.io/instance: agrotrack-prod
+        app.kubernetes.io/part-of: oleachron
+        app.kubernetes.io/instance: oleachron-prod
         app.kubernetes.io/component: frontend
     spec:
       containers:

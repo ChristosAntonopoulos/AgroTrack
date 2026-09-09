@@ -10,6 +10,8 @@ import { isMockMode } from '../services/serviceFactory';
 import { userPreferencesService } from '../services/userPreferencesService';
 
 export type AppLanguage = 'en' | 'el';
+export type DefaultStartView = 'today' | 'dashboard' | 'fields' | 'chronologio';
+export type DateFormatPref = 'dd/MM/yyyy' | 'yyyy-MM-dd' | 'medium';
 
 interface PreferencesContextType {
   language: AppLanguage;
@@ -20,12 +22,16 @@ interface PreferencesContextType {
   experienceModeChosen: boolean;
   everydayTutorialSeen: boolean;
   fullTutorialSeen: boolean;
+  defaultView: DefaultStartView;
+  dateFormat: DateFormatPref;
   setLanguage: (lang: AppLanguage) => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   setExperienceMode: (mode: ExperienceMode) => Promise<void>;
   chooseExperienceMode: (mode: ExperienceMode) => Promise<void>;
   setFontScale: (scale: FontScale) => Promise<void>;
   setLargeControls: (enabled: boolean) => Promise<void>;
+  setDefaultView: (view: DefaultStartView) => Promise<void>;
+  setDateFormat: (format: DateFormatPref) => Promise<void>;
   markEverydayTutorialSeen: () => Promise<void>;
   markFullTutorialSeen: () => Promise<void>;
   applyRoleDefaultIfNeeded: (role: string | undefined | null) => Promise<void>;
@@ -42,16 +48,18 @@ interface PreferencesContextType {
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
 
-const LANG_KEY = '@agrotrack_language';
-const THEME_KEY = '@agrotrack_theme';
-const EXPERIENCE_KEY = '@agrotrack_experience_mode';
-const EXPERIENCE_CHOSEN_KEY = '@agrotrack_experience_chosen';
-const FONT_SCALE_KEY = '@agrotrack_font_scale';
-const LARGE_CONTROLS_KEY = '@agrotrack_large_controls';
-const INTELLIGENCE_OPENS_KEY = '@agrotrack_everyday_intelligence_opens';
-const ONRAMP_DISMISSED_KEY = '@agrotrack_full_picture_onramp_dismissed';
-const EVERYDAY_TUTORIAL_SEEN_KEY = '@agrotrack_everyday_tutorial_seen';
-const FULL_TUTORIAL_SEEN_KEY = '@agrotrack_full_tutorial_seen';
+const LANG_KEY = '@Oleachron_language';
+const THEME_KEY = '@Oleachron_theme';
+const EXPERIENCE_KEY = '@Oleachron_experience_mode';
+const EXPERIENCE_CHOSEN_KEY = '@Oleachron_experience_chosen';
+const FONT_SCALE_KEY = '@Oleachron_font_scale';
+const LARGE_CONTROLS_KEY = '@Oleachron_large_controls';
+const INTELLIGENCE_OPENS_KEY = '@Oleachron_everyday_intelligence_opens';
+const ONRAMP_DISMISSED_KEY = '@Oleachron_full_picture_onramp_dismissed';
+const EVERYDAY_TUTORIAL_SEEN_KEY = '@Oleachron_everyday_tutorial_seen';
+const FULL_TUTORIAL_SEEN_KEY = '@Oleachron_full_tutorial_seen';
+const DEFAULT_VIEW_KEY = '@Oleachron_default_view';
+const DATE_FORMAT_KEY = '@Oleachron_date_format';
 
 export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -65,6 +73,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [fullTutorialSeen, setFullTutorialSeen] = useState(false);
   const [everydayIntelligenceOpens, setEverydayIntelligenceOpens] = useState(0);
   const [fullPictureOnrampDismissed, setFullPictureOnrampDismissed] = useState(false);
+  const [defaultView, setDefaultViewState] = useState<DefaultStartView>('today');
+  const [dateFormat, setDateFormatState] = useState<DateFormatPref>('dd/MM/yyyy');
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -81,6 +91,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           storedFullTut,
           storedOpens,
           storedOnramp,
+          storedDefaultView,
+          storedDateFormat,
         ] = await Promise.all([
           AsyncStorage.getItem(LANG_KEY),
           AsyncStorage.getItem(THEME_KEY),
@@ -92,6 +104,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           AsyncStorage.getItem(FULL_TUTORIAL_SEEN_KEY),
           AsyncStorage.getItem(INTELLIGENCE_OPENS_KEY),
           AsyncStorage.getItem(ONRAMP_DISMISSED_KEY),
+          AsyncStorage.getItem(DEFAULT_VIEW_KEY),
+          AsyncStorage.getItem(DATE_FORMAT_KEY),
         ]);
         if (storedLang === 'en' || storedLang === 'el') setLanguageState(storedLang);
         if (storedTheme === 'system' || storedTheme === 'light' || storedTheme === 'dark') {
@@ -106,6 +120,22 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           setFontScaleState(storedFont);
         }
         if (storedLarge === 'true') setLargeControlsState(true);
+        if (storedDefaultView === 'dashboard') {
+          setDefaultViewState('today');
+        } else if (
+          storedDefaultView === 'today' ||
+          storedDefaultView === 'fields' ||
+          storedDefaultView === 'chronologio'
+        ) {
+          setDefaultViewState(storedDefaultView);
+        }
+        if (
+          storedDateFormat === 'dd/MM/yyyy' ||
+          storedDateFormat === 'yyyy-MM-dd' ||
+          storedDateFormat === 'medium'
+        ) {
+          setDateFormatState(storedDateFormat);
+        }
 
         // Existing users who already chose a mode should not see new first-run tutorials.
         const everydaySeen = storedEverydayTut === 'true' || alreadyChosen;
@@ -226,6 +256,16 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     await pushServerPrefs({ largeControls: enabled });
   };
 
+  const setDefaultView = async (view: DefaultStartView) => {
+    setDefaultViewState(view);
+    await AsyncStorage.setItem(DEFAULT_VIEW_KEY, view);
+  };
+
+  const setDateFormat = async (format: DateFormatPref) => {
+    setDateFormatState(format);
+    await AsyncStorage.setItem(DATE_FORMAT_KEY, format);
+  };
+
   const recordIntelligenceOpen = useCallback(async () => {
     setEverydayIntelligenceOpens((prev) => {
       const next = prev + 1;
@@ -284,6 +324,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       chooseExperienceMode,
       setFontScale,
       setLargeControls,
+      setDefaultView,
+      setDateFormat,
       markEverydayTutorialSeen,
       markFullTutorialSeen,
       applyRoleDefaultIfNeeded,
@@ -295,6 +337,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       dismissFullPictureOnramp,
       tapMin: largeControls ? TAP_MIN_PX.large : TAP_MIN_PX.default,
       fontScaleMultiplier: FONT_SCALE_VALUES[fontScale] ?? 1,
+      defaultView,
+      dateFormat,
     }),
     [
       language,
@@ -306,6 +350,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       experienceModeChosen,
       everydayTutorialSeen,
       fullTutorialSeen,
+      defaultView,
+      dateFormat,
       showWidget,
       recordIntelligenceOpen,
       shouldShowFullPictureOnramp,

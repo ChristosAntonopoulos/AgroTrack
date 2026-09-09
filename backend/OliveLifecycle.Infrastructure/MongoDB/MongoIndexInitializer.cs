@@ -77,6 +77,10 @@ public class MongoIndexInitializer : IHostedService
                 Builders<ActivityDocument>.IndexKeys
                     .Ascending(a => a.FieldId)
                     .Descending(a => a.Timestamp)));
+            activities.Indexes.CreateOne(new CreateIndexModel<ActivityDocument>(
+                Builders<ActivityDocument>.IndexKeys
+                    .Ascending(a => a.ActorUserId)
+                    .Descending(a => a.Timestamp)));
 
             var templates = _context.GetCollection<TaskTemplateDocument>("task_templates");
             templates.Indexes.CreateOne(new CreateIndexModel<TaskTemplateDocument>(
@@ -111,6 +115,84 @@ public class MongoIndexInitializer : IHostedService
             financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
                 Builders<FinancialEntryDocument>.IndexKeys.Ascending(e => e.HarvestId),
                 new CreateIndexOptions { Sparse = true }));
+
+            var serviceCategories = _context.GetCollection<ServiceCategoryDocument>("service_categories");
+            serviceCategories.Indexes.CreateOne(new CreateIndexModel<ServiceCategoryDocument>(
+                Builders<ServiceCategoryDocument>.IndexKeys.Ascending(c => c.Slug),
+                new CreateIndexOptions { Unique = true }));
+            serviceCategories.Indexes.CreateOne(new CreateIndexModel<ServiceCategoryDocument>(
+                Builders<ServiceCategoryDocument>.IndexKeys.Ascending(c => c.SortOrder)));
+
+            var providerProfiles = _context.GetCollection<ServiceProviderProfileDocument>("service_provider_profiles");
+            providerProfiles.Indexes.CreateOne(new CreateIndexModel<ServiceProviderProfileDocument>(
+                Builders<ServiceProviderProfileDocument>.IndexKeys.Ascending(p => p.UserId),
+                new CreateIndexOptions { Unique = true }));
+            providerProfiles.Indexes.CreateOne(new CreateIndexModel<ServiceProviderProfileDocument>(
+                Builders<ServiceProviderProfileDocument>.IndexKeys.Geo2DSphere("baseLocation")));
+            providerProfiles.Indexes.CreateOne(new CreateIndexModel<ServiceProviderProfileDocument>(
+                Builders<ServiceProviderProfileDocument>.IndexKeys
+                    .Ascending(p => p.IsListed)
+                    .Ascending(p => p.IsPaused)));
+
+            var contactRequests = _context.GetCollection<ServiceContactRequestDocument>("service_contact_requests");
+            contactRequests.Indexes.CreateOne(new CreateIndexModel<ServiceContactRequestDocument>(
+                Builders<ServiceContactRequestDocument>.IndexKeys.Ascending(r => r.ProviderUserId).Descending(r => r.CreatedAt)));
+            contactRequests.Indexes.CreateOne(new CreateIndexModel<ServiceContactRequestDocument>(
+                Builders<ServiceContactRequestDocument>.IndexKeys.Ascending(r => r.RequesterUserId).Descending(r => r.CreatedAt)));
+
+            var userNotifications = _context.GetCollection<UserNotificationDocument>("user_notifications");
+            userNotifications.Indexes.CreateOne(new CreateIndexModel<UserNotificationDocument>(
+                Builders<UserNotificationDocument>.IndexKeys.Ascending(n => n.UserId).Descending(n => n.CreatedAt)));
+
+            var savedContacts = _context.GetCollection<SavedContactDocument>("saved_contacts");
+            savedContacts.Indexes.CreateOne(new CreateIndexModel<SavedContactDocument>(
+                Builders<SavedContactDocument>.IndexKeys.Ascending(c => c.OwnerUserId).Ascending(c => c.DisplayName)));
+            savedContacts.Indexes.CreateOne(new CreateIndexModel<SavedContactDocument>(
+                Builders<SavedContactDocument>.IndexKeys.Ascending(c => c.OwnerUserId).Ascending(c => c.FieldIds)));
+
+            var notes = _context.GetCollection<NoteDocument>("notes");
+            notes.Indexes.CreateOne(new CreateIndexModel<NoteDocument>(
+                Builders<NoteDocument>.IndexKeys
+                    .Ascending(n => n.OwnerUserId)
+                    .Descending(n => n.Pinned)
+                    .Descending(n => n.UpdatedAt)));
+            notes.Indexes.CreateOne(new CreateIndexModel<NoteDocument>(
+                Builders<NoteDocument>.IndexKeys
+                    .Ascending(n => n.OwnerUserId)
+                    .Ascending(n => n.FieldId)
+                    .Descending(n => n.OccurredAt)));
+
+            var mediaAttachments = _context.GetCollection<MediaAttachmentDocument>("media_attachments");
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.OwnerType)
+                    .Ascending(m => m.OwnerId)
+                    .Ascending(m => m.CreatedAt)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.FieldId)
+                    .Descending(m => m.CreatedAt)));
+
+            var familyCircles = _context.GetCollection<FamilyCircleDocument>("family_circles");
+            familyCircles.Indexes.CreateOne(new CreateIndexModel<FamilyCircleDocument>(
+                Builders<FamilyCircleDocument>.IndexKeys.Ascending(c => c.OwnerUserId),
+                new CreateIndexOptions { Unique = true }));
+
+            var familyMembers = _context.GetCollection<FamilyMemberDocument>("family_members");
+            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
+                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.OwnerUserId).Ascending(m => m.Status)));
+            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
+                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.CircleId)));
+            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
+                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.LinkedUserId),
+                new CreateIndexOptions { Sparse = true }));
+
+            var familyInvites = _context.GetCollection<FamilyInviteDocument>("family_invites");
+            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
+                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Token),
+                new CreateIndexOptions { Unique = true }));
+            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
+                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.CircleId).Ascending(i => i.Status)));
 
             EnsureGeospatialIndexes();
 

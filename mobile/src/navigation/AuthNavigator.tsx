@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import SessionExpiredScreen from '../screens/SessionExpiredScreen';
+import InviteAcceptScreen from '../screens/InviteAcceptScreen';
+import FamilyInviteAcceptScreen from '../screens/FamilyInviteAcceptScreen';
 import { AuthStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -20,6 +22,8 @@ const AuthNavigator = () => {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="InviteAccept" component={InviteAcceptScreen} />
+      <Stack.Screen name="FamilyInviteAccept" component={FamilyInviteAcceptScreen} />
       <Stack.Screen
         name="SessionExpired"
         component={SessionExpiredScreen}

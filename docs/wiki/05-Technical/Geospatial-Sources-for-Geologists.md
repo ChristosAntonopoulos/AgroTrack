@@ -8,7 +8,7 @@ Paste this page into Azure DevOps Wiki as-is. For operators (jobs, secrets, host
 
 ---
 
-AgroTrack does **not** put a weather station or soil pit on the grove. It downloads **public scientific datasets**, clips them to the drawn polygon (or its centroid), and stores the result. The phone and website only read that stored result.
+Oleachron does **not** put a weather station or soil pit on the grove. It downloads **public scientific datasets**, clips them to the drawn polygon (or its centroid), and stores the result. The phone and website only read that stored result.
 
 On a typical Messinian olive block (~0.3 ha): Sentinel-2 and WorldCover still give **tens of 10 m pixels**. Soil and weather are **one model cell for the neighbourhood**.
 
@@ -46,7 +46,7 @@ On a typical Messinian olive block (~0.3 ha): Sentinel-2 and WorldCover still gi
 
 ---
 
-## When AgroTrack fetches (grower actions)
+## When Oleachron fetches (grower actions)
 
 | Grower action | What is fetched |
 |---|---|
@@ -164,7 +164,7 @@ History overlays are kept about **400 days**. Monthly history aims at ~**36** sc
 
 | | |
 |---|---|
-| **Provider** | User PDFs. AgroTrack does not call ktimatologio.gr |
+| **Provider** | User PDFs. Oleachron does not call ktimatologio.gr |
 | **Caveat** | Not legal proof. No official polygon is downloaded |
 
 ### Basemap (context only)

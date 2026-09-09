@@ -1,0 +1,233 @@
+/* ============================================
+   Responsive utilities — breakpoints:
+   sm 480 | md 768 | lg 1024
+   Keep numeric values in sync with breakpoints.ts
+   ============================================ */
+
+:root {
+  /* Safe-area insets (iPhone notch / home indicator) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Bottom nav height (phones only; 0 on desktop via media query below) */
+  --bottom-nav-height: 0px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --bottom-nav-height: 56px;
+  }
+}
+
+/* ---------- Touch-friendly form controls (app shell only; leave auth pages alone) ---------- */
+.main-layout input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']),
+.main-layout select,
+.main-layout textarea {
+  font-size: max(16px, calc(0.875rem * var(--font-scale, 1)));
+  min-height: var(--tap-min, 44px);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.main-layout textarea {
+  min-height: calc(var(--tap-min, 44px) * 2.5);
+}
+
+.main-layout select {
+  width: 100%;
+}
+
+/* ---------- Layout stack ---------- */
+.u-stack-md,
+.u-stack-lg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .u-stack-md {
+    flex-direction: column;
+  }
+
+  .u-stack-md.u-stack-md-grid,
+  .u-grid-stack-md {
+    display: grid;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .u-stack-lg {
+    flex-direction: column;
+  }
+
+  .u-stack-lg.u-stack-lg-grid,
+  .u-grid-stack-lg {
+    display: grid;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---------- Visibility ---------- */
+@media (max-width: 768px) {
+  .u-hide-below-md {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .u-hide-above-md {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .u-hide-below-lg {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .u-hide-above-lg {
+    display: none !important;
+  }
+}
+
+/* ---------- Page chrome ---------- */
+.u-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-lg);
+}
+
+.u-page-header-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.u-page-header-text h1,
+.u-page-header-title {
+  margin: 0;
+  font-size: calc(1.5rem * var(--font-scale, 1));
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+}
+
+.u-page-header-subtitle {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--color-text-secondary);
+  font-size: calc(0.9rem * var(--font-scale, 1));
+  line-height: 1.4;
+}
+
+.u-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.u-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+.u-toolbar-left,
+.u-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .u-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .u-page-header-text h1,
+  .u-page-header-title {
+    font-size: calc(1.25rem * var(--font-scale, 1));
+  }
+
+  .u-page-header-actions {
+    width: 100%;
+  }
+
+  .u-page-header-actions > .btn,
+  .u-page-header-actions > a.btn,
+  .u-page-header-actions > button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .u-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .u-toolbar-left,
+  .u-toolbar-right {
+    width: 100%;
+  }
+
+  .u-toolbar-right > .btn,
+  .u-toolbar-right > a.btn,
+  .u-toolbar-right > button {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---------- Horizontal scroll (named containers only) ---------- */
+.u-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
+}
+
+.u-scroll-x > table {
+  min-width: 480px;
+}
+
+/* ---------- Forms ---------- */
+.u-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 481px) {
+  .u-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .u-form-grid .u-form-span-2,
+  .u-form-grid .form-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-overlay,
+  .mobile-bottom-nav,
+  .header-overflow-menu {
+    transition: none !important;
+  }
+}

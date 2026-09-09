@@ -9,25 +9,27 @@
   },
   "items": {
     "dashboard": "Dashboard",
-    "today": "Today",
+    "today": "Daybrief",
     "fields": "Fields",
-    "fieldsOwner": "My Fields",
     "tasks": "Tasks",
-    "tasksProducer": "My Tasks",
-    "people": "People",
-    "money": "Costs",
+    "partners": "Partners",
+    "money": "Economics",
     "calendar": "Calendar",
     "analytics": "Analytics",
     "reports": "Reports",
     "ministry": "Ministry",
     "dataSources": "Data sources",
-    "settings": "Settings"
+    "settings": "Settings",
+    "thisHarvest": "This Rod",
+    "chronologio": "Chronologio"
   },
   "breadcrumb": {
     "new": "New",
     "edit": "Edit",
     "details": "Details",
     "taskTemplates": "Task Templates",
-    "history": "History"
+    "chronologio": "Chronologio",
+    "notes": "Notes",
+    "apologismos": "Year review"
   }
 }

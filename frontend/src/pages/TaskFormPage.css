@@ -442,7 +442,8 @@
   flex: 1;
 }
 
-@media (max-width: 640px) {
+/* md = 768 */
+@media (max-width: 768px) {
   .task-form-row {
     grid-template-columns: 1fr;
   }

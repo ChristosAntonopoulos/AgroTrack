@@ -1,0 +1,78 @@
+{
+  "cta": "Record",
+  "title": "Record",
+  "whatToRecord": "What do you want to record?",
+  "types": {
+    "observation": {
+      "title": "Observation",
+      "description": "A note or photos from the grove"
+    },
+    "work": {
+      "title": "Work",
+      "description": "Pruning, spraying, fertilizing…"
+    },
+    "expense": {
+      "title": "Expense",
+      "description": "Labor, materials, fuel…"
+    },
+    "harvest": {
+      "title": "Harvest",
+      "description": "Olives, oil, and yield"
+    }
+  },
+  "fieldLabel": "Grove",
+  "fieldPrompt": "Which grove?",
+  "dateLabel": "When",
+  "today": "Today",
+  "more": "More details",
+  "less": "Less",
+  "save": "Save",
+  "saving": "Saving…",
+  "cancel": "Cancel",
+  "discardTitle": "Discard this record?",
+  "discardConfirm": "Discard",
+  "discardKeep": "Keep editing",
+  "back": "Back",
+  "scheduleLater": "Schedule for later",
+  "observation": {
+    "placeholder": "What did you notice?",
+    "addPhoto": "Add photo",
+    "saved": "Observation recorded."
+  },
+  "work": {
+    "whatWork": "What work was done?",
+    "optionalCost": "Cost (optional)",
+    "optionalNote": "Note (optional)",
+    "saved": "Work recorded."
+  },
+  "expense": {
+    "amount": "Amount",
+    "category": "Category",
+    "description": "Description (optional)",
+    "relatedWork": "Related work",
+    "saved": "Expense recorded."
+  },
+  "harvest": {
+    "olives": "Olives",
+    "oil": "Oil",
+    "yield": "Yield",
+    "mill": "Mill",
+    "quality": "Quality",
+    "workers": "Workers",
+    "method": "Method",
+    "notes": "Notes",
+    "saved": "Harvest recorded."
+  },
+  "photos": {
+    "limit": "Up to {{count}} photos",
+    "remove": "Remove photo"
+  },
+  "errors": {
+    "fieldRequired": "Choose a grove.",
+    "observationEmpty": "Add a note or a photo.",
+    "workTypeRequired": "Choose the work that was done.",
+    "amountRequired": "Enter an amount.",
+    "oliveRequired": "Enter olive kilograms.",
+    "saveFailed": "Could not save. Try again."
+  }
+}

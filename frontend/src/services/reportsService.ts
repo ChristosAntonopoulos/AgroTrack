@@ -148,6 +148,8 @@ export const reportsService = {
       fieldName: f.fieldName,
       profit: Number(f.profit),
       profitPerHa: 0,
+      cost: Number(f.cost),
+      revenue: Number(f.revenue),
     }));
 
     return {

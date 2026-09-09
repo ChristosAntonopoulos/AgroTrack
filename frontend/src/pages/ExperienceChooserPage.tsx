@@ -33,7 +33,7 @@ const ExperienceChooserPage: React.FC = () => {
   return (
     <div className="experience-chooser">
       <div className="experience-chooser-card">
-        <BrandLogo size="md" />
+        <BrandLogo variant="horizontal" size="md" alt="Oleachron" />
         {step === 'mode' ? (
           <>
             <h1>{t('experience.chooserTitle')}</h1>

@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: olive-lifecycle-api-service
-  namespace: agrotrack-backend
+  namespace: oleachron-backend
   labels:
     app: olive-lifecycle-api
-    app.kubernetes.io/part-of: agrotrack
+    app.kubernetes.io/part-of: oleachron
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: api.agrotrack.conceptatlas.eu
+    external-dns.alpha.kubernetes.io/hostname: api.oleachron.conceptatlas.eu
 spec:
   type: NodePort
   selector:

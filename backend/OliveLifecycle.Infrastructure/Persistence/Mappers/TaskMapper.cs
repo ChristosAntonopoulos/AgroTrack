@@ -18,6 +18,8 @@ public static class TaskMapper
         HarvestPhase = HarvestPhaseExtensions.FromApiString(document.HarvestPhase)
             ?? HarvestPhaseCatalog.FromTypeOrTitle(document.Type, document.Title),
         AssignedTo = document.AssignedTo,
+        PartnerUserId = document.PartnerUserId,
+        ServiceContactRequestId = document.ServiceContactRequestId,
         Status = WorkTaskStatusExtensions.FromApiString(document.Status),
         ScheduledStart = document.ScheduledStart,
         ScheduledEnd = document.ScheduledEnd,
@@ -49,6 +51,8 @@ public static class TaskMapper
         LifecycleYear = entity.LifecycleYear,
         HarvestPhase = entity.HarvestPhase?.ToApiString(),
         AssignedTo = entity.AssignedTo,
+        PartnerUserId = entity.PartnerUserId,
+        ServiceContactRequestId = entity.ServiceContactRequestId,
         Status = entity.Status.ToApiString(),
         ScheduledStart = entity.ScheduledStart,
         ScheduledEnd = entity.ScheduledEnd,

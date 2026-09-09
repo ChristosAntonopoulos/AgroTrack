@@ -7,13 +7,12 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import FormField from './FormField';
 import Button from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { useOfflineMode } from '../../context/OfflineContext';
-import { getFileService } from '../../services/serviceFactory';
+import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/photos';
 import { typography, spacing } from '../../theme';
 
 export interface EvidenceFormData {
@@ -42,27 +41,14 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
   const [uploading, setUploading] = useState(false);
 
   const pickImage = async (useCamera: boolean) => {
-    if (!isOnline) {
-      Alert.alert(t('common:offline.photosRequireConnection'));
-      return;
-    }
-
-    const permission = useCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert(t('errors:generic'));
-      return;
-    }
-
-    const result = useCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: true });
-
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-    }
+    const uris = await pickCapturePhotoUris({
+      camera: useCamera,
+      remainingSlots: 1,
+      isOnline,
+      offlineMessage: t('common:offline.photosRequireConnection'),
+      permissionDeniedMessage: t('errors:generic'),
+    });
+    if (uris[0]) setPhotoUri(uris[0]);
   };
 
   const handleSubmit = async () => {
@@ -80,7 +66,8 @@ const EvidenceForm: React.FC<EvidenceFormProps> = ({
       setUploading(true);
       let photoUrl: string | undefined;
       if (photoUri) {
-        photoUrl = await getFileService().uploadImage(photoUri);
+        const urls = await uploadCapturePhotoUris([photoUri]);
+        photoUrl = urls[0];
       }
       await onSubmit({ notes: notes.trim() || undefined, photoUrl });
       setNotes('');

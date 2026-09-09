@@ -22,11 +22,15 @@ const dateFormatToOptions = (
       return { day: '2-digit', month: '2-digit', year: 'numeric' };
     case 'yyyy-MM-dd':
       return { year: 'numeric', month: '2-digit', day: '2-digit' };
+    case 'medium':
+      return { day: 'numeric', month: 'short', year: 'numeric' };
     case 'MM/dd/yyyy':
     default:
       return { month: '2-digit', day: '2-digit', year: 'numeric' };
   }
 };
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export const formatDate = (
   date: Date | string | number,
@@ -34,6 +38,15 @@ export const formatDate = (
 ): string => {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return '';
+  if (options.dateFormat === 'yyyy-MM-dd') {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+  if (options.dateFormat === 'dd/MM/yyyy') {
+    return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+  if (options.dateFormat === 'MM/dd/yyyy') {
+    return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+  }
   return d.toLocaleDateString(localeTag(options.locale), dateFormatToOptions(options.dateFormat));
 };
 

@@ -20,13 +20,18 @@ public class TaskHarvestPhaseTests
     private readonly Mock<ILifecycleService> _lifecycle = new();
     private readonly Mock<IActivityService> _activities = new();
     private readonly Mock<IFieldRepository> _fields = new();
+    private readonly Mock<IFamilyMemberRepository> _familyMembers = new();
     private readonly Mock<IGeospatialJobQueue> _jobs = new();
+    private readonly Mock<IFinancialEntryService> _finance = new();
+    private readonly Mock<IMediaAttachmentService> _media = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
     private readonly TaskService _service;
 
     public TaskHarvestPhaseTests()
     {
         _clock.Setup(c => c.UtcNow).Returns(new DateTime(2026, 9, 7, 12, 0, 0, DateTimeKind.Utc));
+        _familyMembers.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FamilyMember>());
         _service = new TaskService(
             _tasks.Object,
             _templates.Object,
@@ -34,7 +39,10 @@ public class TaskHarvestPhaseTests
             _lifecycle.Object,
             _activities.Object,
             _fields.Object,
+            _familyMembers.Object,
             _jobs.Object,
+            _finance.Object,
+            _media.Object,
             _clock.Object,
             NullLogger<TaskService>.Instance);
     }

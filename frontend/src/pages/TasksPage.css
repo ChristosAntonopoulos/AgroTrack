@@ -328,7 +328,25 @@
   gap: var(--spacing-md);
 }
 
-@media (max-width: 640px) {
+/* md = 768 */
+@media (max-width: 768px) {
+  .tasks-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tasks-page-header-actions {
+    width: 100%;
+  }
+
+  .tasks-page-header-actions .btn {
+    flex: 1;
+  }
+
+  .tasks-grid {
+    grid-template-columns: 1fr;
+  }
+
   .tasks-toolbar-row {
     flex-direction: column;
     align-items: stretch;

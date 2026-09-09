@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
+import PageHeader from '../components/Common/PageHeader';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
@@ -71,37 +72,36 @@ const MinistryNotificationsPage: React.FC = () => {
       <div className="ministry-page">
         <Breadcrumbs />
 
-        <div className="ministry-page-header">
-          <div>
-            <h1>{t('ministry:title')}</h1>
-            <p className="ministry-subtitle">Role-targeted regulations, subsidies, deadlines, and alerts</p>
-          </div>
+        <PageHeader
+          title={t('ministry:title')}
+          subtitle="Role-targeted regulations, subsidies, deadlines, and alerts"
+          actions={
+            <>
+              <Button
+                variant={urgentOnly ? 'secondary' : 'outline'}
+                size="sm"
+                icon={<Filter />}
+                onClick={() => setUrgentOnly((v) => !v)}
+              >
+                {urgentOnly ? t('ministry:urgentOnly') : t('common:all')}
+              </Button>
 
-          <div className="ministry-actions">
-            <Button
-              variant={urgentOnly ? 'secondary' : 'outline'}
-              size="sm"
-              icon={<Filter />}
-              onClick={() => setUrgentOnly((v) => !v)}
-            >
-              {urgentOnly ? t('ministry:urgentOnly') : t('common:all')}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<CheckCircle2 />}
+                onClick={handleMarkAllAsRead}
+                disabled={loading || notifications.length === 0 || unreadCount === 0}
+              >
+                {t('ministry:markAllRead')}
+              </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<CheckCircle2 />}
-              onClick={handleMarkAllAsRead}
-              disabled={loading || notifications.length === 0 || unreadCount === 0}
-            >
-              {t('ministry:markAllRead')}
-            </Button>
-
-            <Badge variant={unreadCount > 0 ? 'warning' : 'info'} size="md">
-              {unreadCount} unread
-            </Badge>
-          </div>
-        </div>
+              <Badge variant={unreadCount > 0 ? 'warning' : 'info'} size="md">
+                {unreadCount} unread
+              </Badge>
+            </>
+          }
+        />
 
         {error ? <div className="error-message">{error}</div> : null}
 

@@ -1,0 +1,78 @@
+{
+  "cta": "Registra",
+  "title": "Registra",
+  "whatToRecord": "Cosa vuoi registrare?",
+  "types": {
+    "observation": {
+      "title": "Osservazione",
+      "description": "Nota o foto dall’oliveto"
+    },
+    "work": {
+      "title": "Lavoro",
+      "description": "Potatura, trattamento, concimazione…"
+    },
+    "expense": {
+      "title": "Spesa",
+      "description": "Manodopera, materiali, carburante…"
+    },
+    "harvest": {
+      "title": "Raccolta",
+      "description": "Olive, olio e resa"
+    }
+  },
+  "fieldLabel": "Oliveto",
+  "fieldPrompt": "In quale oliveto?",
+  "dateLabel": "Quando",
+  "today": "Oggi",
+  "more": "Altri dettagli",
+  "less": "Meno",
+  "save": "Salva",
+  "saving": "Salvataggio…",
+  "cancel": "Annulla",
+  "discardTitle": "Scartare questa registrazione?",
+  "discardConfirm": "Scarta",
+  "discardKeep": "Continua",
+  "back": "Indietro",
+  "scheduleLater": "Programma per dopo",
+  "observation": {
+    "placeholder": "Cosa hai notato?",
+    "addPhoto": "Aggiungi foto",
+    "saved": "Osservazione registrata."
+  },
+  "work": {
+    "whatWork": "Che lavoro è stato fatto?",
+    "optionalCost": "Costo (opzionale)",
+    "optionalNote": "Nota (opzionale)",
+    "saved": "Lavoro registrato."
+  },
+  "expense": {
+    "amount": "Importo",
+    "category": "Categoria",
+    "description": "Descrizione (opzionale)",
+    "relatedWork": "Lavoro collegato",
+    "saved": "Spesa registrata."
+  },
+  "harvest": {
+    "olives": "Olive",
+    "oil": "Olio",
+    "yield": "Resa",
+    "mill": "Frantoio",
+    "quality": "Qualità",
+    "workers": "Operai",
+    "method": "Metodo",
+    "notes": "Note",
+    "saved": "Raccolta registrata."
+  },
+  "photos": {
+    "limit": "Fino a {{count}} foto",
+    "remove": "Rimuovi"
+  },
+  "errors": {
+    "fieldRequired": "Scegli un oliveto.",
+    "observationEmpty": "Aggiungi una nota o una foto.",
+    "workTypeRequired": "Scegli il lavoro svolto.",
+    "amountRequired": "Inserisci un importo.",
+    "oliveRequired": "Inserisci i chili di olive.",
+    "saveFailed": "Salvataggio non riuscito. Riprova."
+  }
+}

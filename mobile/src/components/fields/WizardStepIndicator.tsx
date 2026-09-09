@@ -5,10 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, spacing } from '../../theme';
 
-export type WizardStepKey = 'method' | 'basics' | 'boundary' | 'crop' | 'review';
+export type WizardStepKey = 'method' | 'cadastre' | 'basics' | 'boundary' | 'crop' | 'review';
 
 const STEP_ICONS: Record<WizardStepKey, React.ComponentProps<typeof Ionicons>['name']> = {
   method: 'layers-outline',
+  cadastre: 'document-text-outline',
   basics: 'leaf-outline',
   boundary: 'map-outline',
   crop: 'nutrition-outline',

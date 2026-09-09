@@ -122,7 +122,7 @@ const deriveAlerts = (weather: FieldWeather): WeatherAlert[] => {
 };
 
 /**
- * Weather is served from the AgroTrack backend cache; the device never calls an
+ * Weather is served from the Oleachron backend cache; the device never calls an
  * external weather provider directly.
  */
 export const weatherService = {

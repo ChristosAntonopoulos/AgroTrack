@@ -1,10 +1,11 @@
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
+import type { Note } from '../services/noteService';
 import type { FieldMembership } from '../services/fieldPeopleService';
 import type { SyncOperation } from './offlineQueue';
 
 const STALE_MS = 24 * 60 * 60 * 1000;
-const KEY_PREFIX = 'agrotrack_cache:';
+const KEY_PREFIX = 'Oleachron_cache:';
 
 export interface CacheEntry<T> {
   data: T;
@@ -13,8 +14,10 @@ export interface CacheEntry<T> {
 
 const fieldsKey = (userId: string) => `${KEY_PREFIX}fields:${userId}`;
 const tasksKey = (userId: string) => `${KEY_PREFIX}tasks:${userId}`;
+const notesKey = (userId: string) => `${KEY_PREFIX}notes:${userId}`;
 const fieldKey = (id: string) => `${KEY_PREFIX}field:${id}`;
 const taskKey = (id: string) => `${KEY_PREFIX}task:${id}`;
+const noteKey = (id: string) => `${KEY_PREFIX}note:${id}`;
 const peopleKey = (fieldId: string) => `${KEY_PREFIX}people:${fieldId}`;
 
 function readEntry<T>(key: string): CacheEntry<T> | null {
@@ -168,6 +171,55 @@ export class EntityCache {
     );
   }
 
+  static setNotes(userId: string, notes: Note[]): void {
+    writeEntry(notesKey(userId), notes);
+    notes.forEach((n) => writeEntry(noteKey(n.id), n));
+  }
+
+  static getNotes(userId: string): CacheEntry<Note[]> | null {
+    return readEntry<Note[]>(notesKey(userId));
+  }
+
+  static setNote(note: Note): void {
+    writeEntry(noteKey(note.id), note);
+    const userId = getUserId();
+    if (!userId) return;
+    const list = this.getNotes(userId);
+    if (!list) {
+      writeEntry(notesKey(userId), [note]);
+      return;
+    }
+    const idx = list.data.findIndex((n) => n.id === note.id);
+    const next =
+      idx >= 0 ? list.data.map((n) => (n.id === note.id ? note : n)) : [note, ...list.data];
+    writeEntry(notesKey(userId), next);
+  }
+
+  static getNote(id: string): CacheEntry<Note> | null {
+    const direct = readEntry<Note>(noteKey(id));
+    if (direct) return direct;
+
+    const userId = getUserId();
+    if (!userId) return null;
+    const list = this.getNotes(userId);
+    if (!list) return null;
+    const found = list.data.find((n) => n.id === id);
+    if (!found) return null;
+    return { data: found, cachedAt: list.cachedAt };
+  }
+
+  static removeNote(id: string): void {
+    removeKey(noteKey(id));
+    const userId = getUserId();
+    if (!userId) return;
+    const list = this.getNotes(userId);
+    if (!list) return;
+    writeEntry(
+      notesKey(userId),
+      list.data.filter((n) => n.id !== id)
+    );
+  }
+
   static setPeople(fieldId: string, people: FieldMembership[]): void {
     writeEntry(peopleKey(fieldId), people);
   }
@@ -198,6 +250,22 @@ export class EntityCache {
       }
       if (responseData && typeof responseData === 'object' && 'id' in (responseData as object)) {
         this.setField(responseData as Field);
+      }
+      return;
+    }
+
+    if (op.entityType === 'note') {
+      if (op.method === 'delete' && op.entityId) {
+        this.removeNote(op.entityId);
+        return;
+      }
+      if (op.tempEntityId && responseData && typeof responseData === 'object') {
+        this.removeNote(op.tempEntityId);
+        this.setNote(responseData as Note);
+        return;
+      }
+      if (responseData && typeof responseData === 'object' && 'id' in (responseData as object)) {
+        this.setNote(responseData as Note);
       }
     }
   }

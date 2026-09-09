@@ -60,14 +60,14 @@ const MapLayerPanel: React.FC<Props> = ({
                 className={baseLayer === 'satellite' ? 'active' : ''}
                 onClick={() => onBaseLayerChange('satellite')}
               >
-                {t('fields:addField.mapLayerSatellite')}
+                {t('fields:mapLayerSatellite')}
               </button>
               <button
                 type="button"
                 className={baseLayer === 'street' ? 'active' : ''}
                 onClick={() => onBaseLayerChange('street')}
               >
-                {t('fields:addField.mapLayerStreet')}
+                {t('fields:mapLayerStreet')}
               </button>
             </div>
           </fieldset>

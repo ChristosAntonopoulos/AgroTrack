@@ -55,7 +55,7 @@ const repoRoot = process.env.BUILD_SOURCESDIRECTORY
   : path.resolve(__dirname, '../..');
 const mobileDir = path.join(repoRoot, 'mobile');
 const downloadsDir = path.join(repoRoot, 'frontend', 'public', 'downloads');
-const defaultApk = path.join(mobileDir, 'agrotrack-mobile.apk');
+const defaultApk = path.join(mobileDir, 'oleachron-mobile.apk');
 const gradleApkRoot = path.join(mobileDir, 'android', 'app', 'build', 'outputs', 'apk');
 const gradleApkCandidates = [
   path.join(gradleApkRoot, 'release', 'app-release.apk'),
@@ -63,7 +63,7 @@ const gradleApkCandidates = [
   path.join(gradleApkRoot, 'debug', 'app-debug.apk'),
 ];
 const buildInfoPath = path.join(mobileDir, 'build-info.json');
-const latestFilename = process.env.APK_FILENAME || 'olivecycle-alpha.apk';
+const latestFilename = process.env.APK_FILENAME || 'oleachron-alpha.apk';
 const pipelineBuildId = process.env.BUILD_ID || '';
 
 let apkSource = process.env.APK_SOURCE ? path.resolve(process.env.APK_SOURCE) : defaultApk;

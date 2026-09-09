@@ -1,146 +1,71 @@
-.register-container {
+.register-page {
+  --login-overlay-left: rgba(46, 30, 8, 0.46);
+  --login-overlay-mid: rgba(28, 36, 14, 0.26);
+  --login-overlay-right: rgba(14, 22, 10, 0.82);
+}
+
+.register-page.login-page--dark {
+  --login-overlay-left: rgba(32, 18, 4, 0.68);
+  --login-overlay-mid: rgba(16, 20, 8, 0.48);
+  --login-overlay-right: rgba(6, 10, 4, 0.9);
+}
+
+.register-page-layout {
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.register-page .login-page-panel {
+  border-left: none;
+  border-right: 1px solid var(--login-panel-border);
+  overflow-y: auto;
+  justify-content: safe center;
+}
+
+.register-page .login-card,
+.register-page .login-panel-top,
+.register-page .login-security {
+  max-width: 480px;
+}
+
+.register-name-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 100vh;
-  width: 100%;
-  overflow: hidden;
+  gap: var(--spacing-sm);
 }
 
-.register-left {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 50%, var(--color-success) 100%);
-  background-attachment: fixed;
-  position: relative;
-  overflow: hidden;
+.register-hint {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  color: var(--login-text-muted);
 }
 
-.register-right {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-page-gradient);
-  background-attachment: fixed;
-  padding: var(--spacing-xl);
-  overflow-y: auto;
-}
-
-.register-card {
-  padding: 2.5rem;
-  width: 100%;
-  max-width: 450px;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-card);
-}
-
-.register-card h1 {
-  margin: 0 0 0.5rem 0;
-  color: var(--color-text-primary);
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.register-card h2 {
-  margin: 0 0 2rem 0;
-  color: var(--color-text-secondary);
-  font-size: 1rem;
-  font-weight: 400;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.error-message {
-  background: var(--color-error-light);
-  color: var(--color-error-dark);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
-  border-left: 4px solid var(--color-error);
-}
-
-.login-link {
-  margin-top: 1rem;
-  text-align: center;
-  color: #666;
-}
-
-.login-link a {
-  color: #667eea;
-  text-decoration: none;
-}
-
-.login-link a:hover {
-  text-decoration: underline;
-}
-
-/* Responsive Design */
 @media (max-width: 1024px) {
-  .register-container {
+  .register-page-layout {
     grid-template-columns: 1fr;
   }
-  
-  .register-left {
-    min-height: 300px;
-    max-height: 400px;
-  }
-  
-  .register-right {
-    padding: var(--spacing-lg);
-  }
-}
 
-@media (max-width: 768px) {
-  .register-container {
-    grid-template-columns: 1fr;
+  .register-page .login-page-panel {
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid var(--login-panel-border);
   }
-  
-  .register-left {
-    min-height: 250px;
-    max-height: 300px;
-  }
-  
-  .register-card {
-    padding: 2rem;
-    max-width: 100%;
-  }
-  
-  .register-card h1 {
-    font-size: 1.75rem;
+
+  .register-page .login-page-hero {
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
-  .register-right {
-    padding: var(--spacing-md);
+  .register-name-row {
+    grid-template-columns: 1fr;
   }
-  
-  .register-card {
-    padding: 1.5rem;
+
+  .register-page .login-page-panel {
+    padding: calc(var(--spacing-md) + var(--safe-top)) var(--spacing-md)
+      calc(var(--spacing-lg) + var(--safe-bottom));
+  }
+
+  .register-page .login-card {
+    padding: var(--spacing-lg) var(--spacing-md);
   }
 }

@@ -70,6 +70,18 @@ export interface CreateFinancialEntryInput {
   notes?: string;
 }
 
+export interface UpdateFinancialEntryInput {
+  amount?: number;
+  description?: string;
+  bucket?: FinancialBucket;
+  category?: string;
+  occurredOn?: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice?: number;
+  notes?: string;
+}
+
 export const financialEntryService = {
   listByField: async (fieldId: string, includeVoided = false): Promise<FinancialEntry[]> => {
     const response = await api.get<FinancialEntry[]>('/api/v1/financial-entries', {
@@ -92,6 +104,11 @@ export const financialEntryService = {
 
   create: async (input: CreateFinancialEntryInput): Promise<FinancialEntry> => {
     const response = await api.post<FinancialEntry>('/api/v1/financial-entries', input);
+    return response.data;
+  },
+
+  update: async (id: string, input: UpdateFinancialEntryInput): Promise<FinancialEntry> => {
+    const response = await api.patch<FinancialEntry>(`/api/v1/financial-entries/${id}`, input);
     return response.data;
   },
 

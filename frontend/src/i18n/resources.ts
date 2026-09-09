@@ -16,6 +16,10 @@ import enToday from '../locales/en/today.json';
 import enTaskTemplates from '../locales/en/taskTemplates.json';
 import enLanding from '../locales/en/landing.json';
 import enAdmin from '../locales/en/admin.json';
+import enPartners from '../locales/en/partners.json';
+import enChronologio from '../locales/en/chronologio.json';
+import enCapture from '../locales/en/capture.json';
+import enEconomics from '../locales/en/economics.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -34,6 +38,10 @@ import elTaskTemplates from '../locales/el/taskTemplates.json';
 import elTaskTemplateEntries from '../locales/el/taskTemplateEntries.json';
 import elLanding from '../locales/el/landing.json';
 import elAdmin from '../locales/el/admin.json';
+import elPartners from '../locales/el/partners.json';
+import elChronologio from '../locales/el/chronologio.json';
+import elCapture from '../locales/el/capture.json';
+import elEconomics from '../locales/el/economics.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -48,6 +56,10 @@ import itAnalytics from '../locales/it/analytics.json';
 import itReports from '../locales/it/reports.json';
 import itMinistry from '../locales/it/ministry.json';
 import itToday from '../locales/it/today.json';
+import itPartners from '../locales/it/partners.json';
+import itChronologio from '../locales/it/chronologio.json';
+import itCapture from '../locales/it/capture.json';
+import itEconomics from '../locales/it/economics.json';
 
 const bundle = (
   common: object,
@@ -65,7 +77,10 @@ const bundle = (
   today: object,
   taskTemplates: object,
   landing: object,
-  admin: object
+  admin: object,
+  partners: object,
+  chronologio: object,
+  capture: object
 ) => ({
   common,
   nav,
@@ -83,64 +98,86 @@ const bundle = (
   taskTemplates,
   landing,
   admin,
+  partners,
+  chronologio,
+  capture,
 });
 
 export const resources: Record<
   SupportedLocale,
   Record<string, object>
 > = {
-  en: bundle(
-    enCommon,
-    enNav,
-    enAuth,
-    enSettings,
-    enErrors,
-    enDashboard,
-    enFields,
-    enTasks,
-    enCalendar,
-    enAnalytics,
-    enReports,
-    enMinistry,
-    enToday,
-    enTaskTemplates,
-    enLanding,
-    enAdmin
-  ),
-  el: bundle(
-    elCommon,
-    elNav,
-    elAuth,
-    elSettings,
-    elErrors,
-    elDashboard,
-    elFields,
-    elTasks,
-    elCalendar,
-    elAnalytics,
-    elReports,
-    elMinistry,
-    elToday,
-    { ...elTaskTemplates, templates: elTaskTemplateEntries },
-    elLanding,
-    elAdmin
-  ),
-  it: bundle(
-    itCommon,
-    itNav,
-    itAuth,
-    itSettings,
-    itErrors,
-    itDashboard,
-    itFields,
-    itTasks,
-    itCalendar,
-    itAnalytics,
-    itReports,
-    itMinistry,
-    itToday,
-    enTaskTemplates,
-    enLanding,
-    enAdmin
-  ),
+  en: {
+    ...bundle(
+      enCommon,
+      enNav,
+      enAuth,
+      enSettings,
+      enErrors,
+      enDashboard,
+      enFields,
+      enTasks,
+      enCalendar,
+      enAnalytics,
+      enReports,
+      enMinistry,
+      enToday,
+      enTaskTemplates,
+      enLanding,
+      enAdmin,
+      enPartners,
+      enChronologio,
+      enCapture
+    ),
+    economics: enEconomics,
+  },
+  el: {
+    ...bundle(
+      elCommon,
+      elNav,
+      elAuth,
+      elSettings,
+      elErrors,
+      elDashboard,
+      elFields,
+      elTasks,
+      elCalendar,
+      elAnalytics,
+      elReports,
+      elMinistry,
+      elToday,
+      { ...elTaskTemplates, templates: elTaskTemplateEntries },
+      elLanding,
+      elAdmin,
+      elPartners,
+      elChronologio,
+      elCapture
+    ),
+    economics: elEconomics,
+  },
+  it: {
+    ...bundle(
+      itCommon,
+      itNav,
+      itAuth,
+      itSettings,
+      itErrors,
+      itDashboard,
+      itFields,
+      itTasks,
+      itCalendar,
+      itAnalytics,
+      itReports,
+      itMinistry,
+      itToday,
+      enTaskTemplates,
+      enLanding,
+      enAdmin,
+      itPartners,
+      itChronologio,
+      itCapture
+    ),
+    economics: itEconomics,
+  },
 };
+

@@ -4,6 +4,8 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   SessionExpired: undefined;
+  InviteAccept: { token: string };
+  FamilyInviteAccept: { token: string };
 };
 
 export type MainTabParamList = {
@@ -11,6 +13,8 @@ export type MainTabParamList = {
   Today: undefined;
   Calendar: { date?: string; fieldId?: string } | undefined;
   Fields: undefined;
+  Capture: undefined;
+  ChronologioTab: undefined;
   Tasks: { fieldId?: string; filter?: string } | undefined;
   More: undefined;
   Settings: undefined;
@@ -19,15 +23,27 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  FieldDetail: { fieldId: string; focus?: 'harvest' | 'harvest-final' | 'money' };
+  FieldDetail: { fieldId: string; focus?: 'harvest' | 'harvest-final' | 'money'; mode?: 'overview' | 'chronologio' };
+  InviteAccept: { token: string };
+  FamilyInviteAccept: { token: string };
   ThisHarvest: undefined;
-  People: undefined;
-  FieldHistory: { fieldId: string };
+  ThisHarvestReview: undefined;
+  Money: { fieldId?: string } | undefined;
+  Analytics: undefined;
+  Reports: undefined;
+  Partners: { fieldId?: string; category?: string; taskId?: string; addContact?: boolean } | undefined;
+  PartnerSearch: { fieldId: string; categoryId?: string; category?: string; radiusKm?: number; taskId?: string };
+  PartnerProfile: { userId: string; fieldId?: string; categoryId?: string; taskId?: string };
+  MyServices: undefined;
+  ServiceRequests: undefined;
+  FieldWeatherVegetation: { fieldId: string };
+  Chronologio: { fieldId?: string } | undefined;
   TaskDetail: { taskId: string };
   FieldForm: { fieldId?: string };
   FieldMapBoundary: { fieldId: string };
   CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string };
   Notifications: undefined;
+  NotesList: undefined;
 };
 
 declare global {

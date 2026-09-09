@@ -9,6 +9,7 @@ public class TaskTemplateDto
     public string LifecycleYear { get; set; } = "low";
     public string? HarvestPhase { get; set; }
     public SchedulingWindowDto? DefaultSchedulingWindow { get; set; }
+    public string? ServiceCategorySlug { get; set; }
 }
 
 public class SchedulingWindowDto

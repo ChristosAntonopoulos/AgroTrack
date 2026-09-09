@@ -28,6 +28,16 @@ public static class DependencyInjection
         services.AddScoped<IMinistryNotificationRepository, MinistryNotificationRepository>();
         services.AddScoped<IHarvestRecordRepository, HarvestRecordRepository>();
         services.AddScoped<IFinancialEntryRepository, FinancialEntryRepository>();
+        services.AddScoped<IServiceCategoryRepository, ServiceCategoryRepository>();
+        services.AddScoped<IServiceProviderProfileRepository, ServiceProviderProfileRepository>();
+        services.AddScoped<IServiceContactRequestRepository, ServiceContactRequestRepository>();
+        services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
+        services.AddScoped<ISavedContactRepository, SavedContactRepository>();
+        services.AddScoped<INoteRepository, NoteRepository>();
+        services.AddScoped<IMediaAttachmentRepository, MediaAttachmentRepository>();
+        services.AddScoped<IFamilyCircleRepository, FamilyCircleRepository>();
+        services.AddScoped<IFamilyMemberRepository, FamilyMemberRepository>();
+        services.AddScoped<IFamilyInviteRepository, FamilyInviteRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
 

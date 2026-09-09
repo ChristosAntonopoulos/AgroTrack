@@ -9,25 +9,27 @@
   },
   "items": {
     "dashboard": "Πίνακας ελέγχου",
-    "today": "Σήμερα",
+    "today": "Πρωινή ματιά",
     "fields": "Αγροτεμάχια",
-    "fieldsOwner": "Τα αγροτεμάχιά μου",
     "tasks": "Εργασίες",
-    "tasksProducer": "Οι εργασίες μου",
-    "people": "Άνθρωποι",
-    "money": "Έξοδα",
+    "partners": "Συνεργάτες",
+    "money": "Οικονομικά",
     "calendar": "Ημερολόγιο",
     "analytics": "Αναλυτικά",
     "reports": "Αναφορές",
     "ministry": "Υπουργείο",
     "dataSources": "Πηγές δεδομένων",
-    "settings": "Ρυθμίσεις"
+    "settings": "Ρυθμίσεις",
+    "thisHarvest": "Αυτός ο ράβδος",
+    "chronologio": "Χρονολόγιο"
   },
   "breadcrumb": {
     "new": "Νέο",
     "edit": "Επεξεργασία",
     "details": "Λεπτομέρειες",
     "taskTemplates": "Πρότυπα εργασιών",
-    "history": "Ιστορικό"
+    "chronologio": "Χρονολόγιο",
+    "notes": "Σημειώσεις",
+    "apologismos": "Απολογισμός"
   }
 }

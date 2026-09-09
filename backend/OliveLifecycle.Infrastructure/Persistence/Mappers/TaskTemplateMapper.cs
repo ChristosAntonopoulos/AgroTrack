@@ -24,6 +24,7 @@ public static class TaskTemplateMapper
                 EndMonth = document.DefaultSchedulingWindow.EndMonth,
                 EndDay = document.DefaultSchedulingWindow.EndDay
             },
+        ServiceCategorySlug = document.ServiceCategorySlug,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -45,6 +46,7 @@ public static class TaskTemplateMapper
                 EndMonth = entity.DefaultSchedulingWindow.EndMonth,
                 EndDay = entity.DefaultSchedulingWindow.EndDay
             },
+        ServiceCategorySlug = entity.ServiceCategorySlug,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

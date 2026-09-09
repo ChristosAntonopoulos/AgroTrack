@@ -2,7 +2,7 @@
 # Install or locate JDK 17 without sudo (for self-hosted CI agents).
 set -euo pipefail
 
-JDK_INSTALL_DIR="${AGROTRACK_JDK_HOME:-${HOME}/.agrotrack/jdk-17}"
+JDK_INSTALL_DIR="${OLEACHRON_JDK_HOME:-${HOME}/.oleachron/jdk-17}"
 
 try_java_home() {
   local candidate="$1"

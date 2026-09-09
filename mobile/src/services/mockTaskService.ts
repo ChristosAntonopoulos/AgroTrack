@@ -24,6 +24,11 @@ const getTasks = async (): Promise<Task[]> => {
 };
 
 export const mockTaskService = {
+  getAllTasks: async (): Promise<Task[]> => {
+    await simulateDelay();
+    return getTasks();
+  },
+
   getAssignedTasks: async (userId: string, userRole: string): Promise<Task[]> => {
     await simulateDelay();
     const allTasks = await getTasks();
@@ -114,6 +119,38 @@ export const mockTaskService = {
       scheduledStart: data.scheduledStart,
       scheduledEnd: data.scheduledEnd,
       lifecycleYear: 'low',
+      evidence: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    allTasks.push(newTask);
+    persistedTasks = allTasks;
+    return newTask;
+  },
+
+  recordCompletedWork: async (data: {
+    fieldId: string;
+    type: string;
+    title: string;
+    description?: string;
+    occurredAt?: string;
+    costAmount?: number;
+  }): Promise<Task> => {
+    await simulateDelay();
+    const allTasks = await getTasks();
+    const now = data.occurredAt || new Date().toISOString();
+    const newTask: Task = {
+      id: `task_${Date.now()}`,
+      fieldId: data.fieldId,
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      status: 'completed',
+      scheduledStart: now,
+      scheduledEnd: now,
+      actualEnd: now,
+      lifecycleYear: 'low',
+      cost: data.costAmount,
       evidence: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

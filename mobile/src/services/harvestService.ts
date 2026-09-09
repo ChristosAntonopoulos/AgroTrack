@@ -30,6 +30,7 @@ export interface CreateHarvestRecordInput {
   notes?: string;
   saleAmount?: number;
   millCost?: number;
+  mediaUrls?: string[];
 }
 
 export const harvestService = {

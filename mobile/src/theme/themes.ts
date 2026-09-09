@@ -45,18 +45,18 @@ export const darkColors: AppColors = {
   shadowDark: 'rgba(0, 0, 0, 0.65)',
 
   // Header — deep olive with gold accent (readable on dark backgrounds)
-  headerBackground: '#1A2016',
-  headerForeground: '#EFF4E8',
-  headerForegroundMuted: 'rgba(239, 244, 232, 0.65)',
-  headerAccent: '#A8C46E',
-  headerBorder: 'rgba(168, 196, 110, 0.35)',
+  headerBackground: '#2E4A2E',
+  headerForeground: '#F8F7EE',
+  headerForegroundMuted: 'rgba(248, 247, 238, 0.65)',
+  headerAccent: '#C9A257',
+  headerBorder: 'rgba(201, 162, 87, 0.35)',
 
   // Tab bar — elevated surface, high-contrast icons
-  tabBarBackground: '#283020',
-  tabBarForeground: '#EFF4E8',
-  tabBarForegroundInactive: 'rgba(168, 184, 154, 0.75)',
-  tabBarBorder: 'rgba(168, 196, 110, 0.25)',
-  tabBarActivePill: 'rgba(168, 196, 110, 0.22)',
+  tabBarBackground: '#243824',
+  tabBarForeground: '#F8F7EE',
+  tabBarForegroundInactive: 'rgba(167, 179, 138, 0.75)',
+  tabBarBorder: 'rgba(201, 162, 87, 0.25)',
+  tabBarActivePill: 'rgba(201, 162, 87, 0.22)',
 
   successLight: '#2A3D20',
   warningLight: '#3D3420',

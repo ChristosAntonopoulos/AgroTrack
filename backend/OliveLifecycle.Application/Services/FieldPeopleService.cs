@@ -19,6 +19,7 @@ public class FieldPeopleService : IFieldPeopleService
     private readonly IFieldInviteRepository _inviteRepository;
     private readonly IFieldAccessService _fieldAccessService;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISavedContactService _savedContacts;
     private readonly ILogger<FieldPeopleService> _logger;
 
     public FieldPeopleService(
@@ -29,6 +30,7 @@ public class FieldPeopleService : IFieldPeopleService
         IFieldInviteRepository inviteRepository,
         IFieldAccessService fieldAccessService,
         IDateTimeProvider dateTimeProvider,
+        ISavedContactService savedContacts,
         ILogger<FieldPeopleService> logger)
     {
         _fieldRepository = fieldRepository;
@@ -38,6 +40,7 @@ public class FieldPeopleService : IFieldPeopleService
         _inviteRepository = inviteRepository;
         _fieldAccessService = fieldAccessService;
         _dateTimeProvider = dateTimeProvider;
+        _savedContacts = savedContacts;
         _logger = logger;
     }
 
@@ -189,6 +192,13 @@ public class FieldPeopleService : IFieldPeopleService
             dto.Email = user.Email;
         }
 
+        await _savedContacts.LinkOnInviteAcceptedAsync(
+            invite.InvitedBy,
+            userId,
+            invite.Phone,
+            invite.Email ?? user?.Email,
+            cancellationToken);
+
         return dto;
     }
 
@@ -317,9 +327,9 @@ public class FieldPeopleService : IFieldPeopleService
 
     private static FieldInviteDto ToInviteDto(FieldInvite invite, string? publicAppBaseUrl)
     {
-        var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.olivecycle.local" : publicAppBaseUrl.TrimEnd('/');
+        var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.oleachron.local" : publicAppBaseUrl.TrimEnd('/');
         var shareUrl = $"{baseUrl}/invite/{invite.Token}";
-        var message = $"You were invited to {invite.FieldName} on OliveCycle. Open: {shareUrl}";
+        var message = $"You were invited to {invite.FieldName} on Oleachron. Open: {shareUrl}";
         var whatsApp = $"https://wa.me/?text={Uri.EscapeDataString(message)}";
         return new FieldInviteDto
         {

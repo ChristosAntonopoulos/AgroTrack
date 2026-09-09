@@ -19,3 +19,7 @@ export function createTempTaskId(): string {
 export function createTempFieldId(): string {
   return `temp-field-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
 }
+
+export function createTempNoteId(): string {
+  return `temp-note-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
+}

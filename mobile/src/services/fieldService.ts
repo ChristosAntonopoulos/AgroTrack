@@ -69,6 +69,7 @@ export interface Field {
   slope?: string;
   accessNotes?: string;
   greekCadastre?: GreekCadastreInfo;
+  advisorComments?: import('./fieldPeopleService').AdvisorComment[];
 }
 
 export interface CreateFieldDto {
@@ -93,6 +94,25 @@ export interface CreateFieldDto {
 }
 
 export interface UpdateFieldDto extends Partial<CreateFieldDto> {}
+
+export interface ImportGreekCadastreFieldResponse {
+  draftFieldId: string;
+  suggestedName?: string;
+  greekCadastre: GreekCadastreInfo;
+  warnings: string[];
+  missingRequiredConfirmation: string[];
+  duplicateKaekFieldIds: string[];
+}
+
+export interface FieldAreaValidationResponse {
+  officialAreaSqm?: number;
+  appMeasuredAreaSqm: number;
+  differenceSqm?: number;
+  differencePercent?: number;
+  severity: 'Ok' | 'Warning' | 'Critical';
+  message: string;
+  warnings: string[];
+}
 
 export interface ActivateFieldRequest {
   boundaryConfirmed: boolean;
@@ -196,8 +216,35 @@ export const fieldService = {
     }
   },
 
+  importGreekCadastre: async (
+    kdFile: { uri: string; name: string; type: string },
+    kfFile: { uri: string; name: string; type: string }
+  ): Promise<ImportGreekCadastreFieldResponse> => {
+    const formData = new FormData();
+    formData.append('kdFile', {
+      uri: kdFile.uri,
+      name: kdFile.name,
+      type: kdFile.type || 'application/pdf',
+    } as unknown as Blob);
+    formData.append('kfFile', {
+      uri: kfFile.uri,
+      name: kfFile.name,
+      type: kfFile.type || 'application/pdf',
+    } as unknown as Blob);
+    const response = await api.post<ImportGreekCadastreFieldResponse>(
+      '/api/v1/fields/import/greek-cadastre',
+      formData
+    );
+    return response.data;
+  },
+
   updateBoundary: async (id: string, boundary: GeoJsonPolygon): Promise<Field> => {
     const response = await api.put<Field>(`/api/v1/fields/${id}/boundary`, { boundary });
+    return response.data;
+  },
+
+  validateArea: async (id: string): Promise<FieldAreaValidationResponse> => {
+    const response = await api.post<FieldAreaValidationResponse>(`/api/v1/fields/${id}/validate-area`);
     return response.data;
   },
 

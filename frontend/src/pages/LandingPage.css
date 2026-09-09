@@ -1,18 +1,18 @@
-/* OliveCycle public landing — notebook-simple, olive agricultural palette */
+/* Oleachron public landing — notebook-simple, olive agricultural palette */
 
 .landing {
-  --lp-bg: #f7f5f0;
-  --lp-bg-muted: #eeeadf;
-  --lp-bg-olive: #1e2d14;
-  --lp-cream: #faf8f4;
-  --lp-text: #1a1f16;
-  --lp-text-muted: #5c6356;
-  --lp-text-light: #f5f0e6;
-  --lp-text-light-muted: color-mix(in srgb, #f5f0e6 78%, transparent);
-  --lp-primary: #2d5016;
-  --lp-primary-light: #4a7c2a;
-  --lp-accent: #8b9a46;
-  --lp-border: rgba(45, 80, 22, 0.12);
+  --lp-bg: #F8F7EE;
+  --lp-bg-muted: #EFECE3;
+  --lp-bg-olive: #2E4A2E;
+  --lp-cream: #F8F7EE;
+  --lp-text: #3C3C2E;
+  --lp-text-muted: #6B7F5E;
+  --lp-text-light: #F8F7EE;
+  --lp-text-light-muted: color-mix(in srgb, #F8F7EE 78%, transparent);
+  --lp-primary: #2E4A2E;
+  --lp-primary-light: #6B7F5E;
+  --lp-accent: #B8A373;
+  --lp-border: rgba(46, 74, 46, 0.12);
   --lp-shadow: 0 8px 32px rgba(26, 38, 18, 0.08);
   --lp-shadow-lg: 0 20px 50px rgba(26, 38, 18, 0.12);
   --lp-radius: 12px;
@@ -139,6 +139,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.landing-brand .landing-brand-lockup,
+.landing-brand .brand-logo {
+  height: 34px;
+  width: auto;
+  max-width: min(220px, 42vw);
+}
+
+.landing-app-icon {
+  display: block;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.landing-app-icon .brand-logo {
+  width: 56px;
+  height: 56px;
 }
 
 .landing-alpha-pill {
@@ -901,7 +922,7 @@
 
 /* Footer */
 .landing-footer {
-  background: #141a10;
+  background: #2E4A2E;
   color: var(--lp-text-light-muted);
   padding: 2.5rem 0 1.5rem;
 }
@@ -920,6 +941,18 @@
   color: var(--lp-text-light);
   font-weight: 700;
   margin-bottom: 0.65rem;
+}
+
+.landing-footer .landing-alpha-pill {
+  background: rgba(248, 247, 238, 0.14);
+  color: var(--lp-text-light);
+}
+
+.landing-footer-brand .landing-footer-lockup,
+.landing-footer-brand .brand-logo {
+  height: 30px;
+  width: auto;
+  max-width: 200px;
 }
 
 .landing-footer p {
@@ -1138,7 +1171,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .landing-header-signin span,
   .landing-header-download {
     display: none;

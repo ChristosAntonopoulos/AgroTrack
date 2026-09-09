@@ -3,10 +3,11 @@ import {
   CreateFinancialEntryInput,
   FieldFinancialSummary,
   FinancialEntry,
+  UpdateFinancialEntryInput,
   financialEntryService,
 } from './financialEntryService';
 
-const STORAGE_KEY = 'agrotrack_demo_financial_entries_v1';
+const STORAGE_KEY = 'Oleachron_demo_financial_entries_v1';
 
 const readEntries = async (): Promise<FinancialEntry[]> => {
   try {
@@ -54,6 +55,27 @@ export const mockFinancialEntryService: typeof financialEntryService = {
     };
   },
 
+  getOverview: async () => {
+    const entries = (await readEntries()).filter((e) => e.status === 'posted');
+    const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const expenses = entries.filter((e) => e.kind === 'expense');
+    const income = entries.filter((e) => e.kind === 'income');
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = income.reduce((sum, e) => sum + e.amount, 0);
+    return {
+      currency: entries[0]?.currency || 'EUR',
+      thisWeekExpenses: expenses
+        .filter((e) => new Date(e.occurredOn).getTime() >= weekStart)
+        .reduce((sum, e) => sum + e.amount, 0),
+      totalExpenses,
+      totalIncome,
+      net: totalIncome - totalExpenses,
+      postedCount: entries.length,
+      fieldCount: new Set(entries.map((e) => e.fieldId)).size,
+      topFields: [],
+    };
+  },
+
   create: async (input: CreateFinancialEntryInput) => {
     const now = new Date().toISOString();
     const entry: FinancialEntry = {
@@ -71,6 +93,23 @@ export const mockFinancialEntryService: typeof financialEntryService = {
     const existing = await readEntries();
     await writeEntries([entry, ...existing]);
     return entry;
+  },
+
+  update: async (id, input: UpdateFinancialEntryInput) => {
+    const entries = await readEntries();
+    const index = entries.findIndex((e) => e.id === id);
+    if (index < 0) {
+      throw new Error('Financial entry not found.');
+    }
+    const updated: FinancialEntry = {
+      ...entries[index],
+      ...input,
+      description: input.description?.trim() || entries[index].description,
+      amount: input.amount ?? entries[index].amount,
+    };
+    entries[index] = updated;
+    await writeEntries(entries);
+    return updated;
   },
 
   void: async (id, reason) => {

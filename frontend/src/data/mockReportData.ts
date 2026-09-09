@@ -88,7 +88,7 @@ export interface ProfitLossData {
   breakEvenPrice: number;
   profitPerHa: number;
   profitPerTree: number;
-  profitByField: { fieldId: string; fieldName: string; profit: number; profitPerHa: number }[];
+  profitByField: { fieldId: string; fieldName: string; profit: number; profitPerHa: number; cost?: number; revenue?: number }[];
 }
 
 export interface FieldComparisonRow {

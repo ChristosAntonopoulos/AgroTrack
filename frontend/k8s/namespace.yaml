@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: agrotrack-frontend
+  name: oleachron-frontend
   labels:
-    name: agrotrack-frontend
+    name: oleachron-frontend
     app: olive-lifecycle-frontend

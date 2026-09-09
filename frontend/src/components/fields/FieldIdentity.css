@@ -1,0 +1,46 @@
+.field-identity {
+  min-width: 0;
+}
+
+.field-identity-name {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.field-identity--card .field-identity-name {
+  font-size: 1.05rem;
+}
+
+.field-identity--page .field-identity-name {
+  font-size: clamp(1.45rem, 3.4vw, 1.9rem);
+}
+
+.field-identity-place {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.field-identity--page .field-identity-place {
+  font-size: 0.95rem;
+}
+
+.field-identity-meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.field-identity--page .field-identity-meta {
+  margin-top: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.field-identity-dot {
+  color: var(--color-text-muted);
+}

@@ -322,7 +322,7 @@ const withPublicLayerUrls = (data: FieldMapData): FieldMapData => ({
 });
 
 /**
- * All geospatial data comes from the AgroTrack backend. The device never calls
+ * All geospatial data comes from the Oleachron backend. The device never calls
  * Open-Meteo, Copernicus or FIRMS directly, and responses are cached so field
  * screens keep working offline.
  */

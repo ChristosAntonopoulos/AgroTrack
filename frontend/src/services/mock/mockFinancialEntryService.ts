@@ -6,7 +6,7 @@ import {
   financialEntryService,
 } from '../financialEntryService';
 
-const STORAGE_KEY = 'agrotrack_demo_financial_entries_v1';
+const STORAGE_KEY = 'Oleachron_demo_financial_entries_v1';
 
 const readEntries = (): FinancialEntry[] => {
   try {
@@ -111,6 +111,22 @@ export const mockFinancialEntryService: typeof financialEntryService = {
     };
     writeEntries([entry, ...readEntries()]);
     return entry;
+  },
+
+  update: async (id, input) => {
+    const entries = readEntries();
+    const index = entries.findIndex((e) => e.id === id);
+    if (index < 0) {
+      throw new Error('Financial entry not found');
+    }
+    const now = new Date().toISOString();
+    entries[index] = {
+      ...entries[index],
+      ...input,
+      updatedAt: now,
+    };
+    writeEntries(entries);
+    return entries[index];
   },
 
   void: async (id, reason) => {

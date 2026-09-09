@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -11,9 +11,11 @@ import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
 import MoreScreen from '../screens/MoreScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ChronologioScreen from '../screens/ChronologioScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
+import { usePreferences } from '../context/PreferencesContext';
+import { useCaptureOptional } from '../context/CaptureContext';
 import { useTasks } from '../hooks/useTasks';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import { typography, spacing } from '../theme';
@@ -55,25 +57,23 @@ const TabIcon = ({
   </View>
 );
 
-/** Keep screen mounted for deep links; hide from Everyday thumb bar. */
 const hiddenTabOptions = {
   tabBarButton: () => null as unknown as React.ReactElement,
   tabBarItemStyle: { display: 'none' as const },
 };
 
+const CapturePlaceholder = () => <View />;
+
 const MainTabs = () => {
   const { colors, isDark, tapMin, fontScaleMultiplier } = useTheme();
+  const { defaultView } = usePreferences();
+  const capture = useCaptureOptional();
   const { t } = useTranslation('nav');
-  const { isFieldOwner } = useAuth();
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
-  const owner = isFieldOwner();
 
   const taskBadgeCount = useMemo(
-    () =>
-      tasks.filter(
-        (tk) => isTaskOverdue(tk) || tk.approvalStatus === 'pending'
-      ).length,
+    () => tasks.filter((tk) => isTaskOverdue(tk) || tk.approvalStatus === 'pending').length,
     [tasks]
   );
 
@@ -81,10 +81,17 @@ const MainTabs = () => {
   const tabBarHeight =
     Math.max(64, tapMin + 20) + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
   const tabAccent = colors.headerAccent;
+  const startMap = {
+    today: 'Today',
+    dashboard: 'Today',
+    fields: 'Fields',
+    chronologio: 'ChronologioTab',
+  } as const;
+  const initialRouteName = startMap[defaultView] ?? 'Today';
 
   return (
     <Tab.Navigator
-      initialRouteName="Today"
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.tabBarForeground,
@@ -114,125 +121,87 @@ const MainTabs = () => {
         },
       }}
     >
-      <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreen}
-        options={{
-          tabBarLabel: t('dashboard'),
-          ...hiddenTabOptions,
-        }}
-      />
-
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: t('dashboard'), ...hiddenTabOptions }} />
       <Tab.Screen
         name="Today"
         component={TodayScreen}
         options={{
           tabBarLabel: t('today'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon
-              name={focused ? 'sunny' : 'sunny-outline'}
-              focused={focused}
-              color={color}
-              pillColor={colors.tabBarActivePill}
-              accentColor={tabAccent}
-              tapMin={tapMin}
-            />
+            <TabIcon name={focused ? 'sunny' : 'sunny-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
           ),
         }}
       />
-
       <Tab.Screen
         name="Fields"
         component={FieldsListScreen}
         options={{
-          tabBarLabel: owner ? t('fieldsOwner') : t('fields'),
+          tabBarLabel: t('fields'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon
-              name={focused ? 'leaf' : 'leaf-outline'}
-              focused={focused}
-              color={color}
-              pillColor={colors.tabBarActivePill}
-              accentColor={tabAccent}
-              tapMin={tapMin}
-            />
+            <TabIcon name={focused ? 'leaf' : 'leaf-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
           ),
         }}
       />
-
+      <Tab.Screen
+        name="Capture"
+        component={CapturePlaceholder}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            capture?.openCapture();
+          },
+        }}
+        options={{
+          tabBarLabel: () => null,
+          tabBarIcon: () => (
+            <View style={{ width: Math.max(52, tapMin), height: Math.max(52, tapMin), borderRadius: 999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <Ionicons name="add" size={28} color="#fff" />
+            </View>
+          ),
+          tabBarButton: (props) => (
+            <Pressable accessibilityRole="button" accessibilityLabel="Capture" onPress={() => capture?.openCapture()} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {props.children}
+            </Pressable>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ChronologioTab"
+        component={ChronologioScreen}
+        options={{
+          tabBarLabel: t('chronologio'),
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon name={focused ? 'time' : 'time-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Tasks"
         component={TaskListScreen}
         options={{
-          tabBarLabel: owner ? t('tasks') : t('tasksProducer'),
-          tabBarBadge:
-            taskBadgeCount > 0 ? (taskBadgeCount > 99 ? '99+' : String(taskBadgeCount)) : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: colors.error,
-            color: colors.textInverse,
-            fontSize: Math.max(10, labelSize - 2),
-            fontWeight: '700',
-            minWidth: 18,
-            height: 18,
-            lineHeight: 18,
-          },
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon
-              name={focused ? 'list' : 'list-outline'}
-              focused={focused}
-              color={color}
-              pillColor={colors.tabBarActivePill}
-              accentColor={tabAccent}
-              tapMin={tapMin}
-            />
-          ),
-        }}
-      />
-
-      <Tab.Screen
-        name="Calendar"
-        component={CalendarScreen}
-        options={{
-          tabBarLabel: t('calendar'),
+          tabBarLabel: t('tasks'),
+          tabBarBadge: taskBadgeCount > 0 ? (taskBadgeCount > 99 ? '99+' : String(taskBadgeCount)) : undefined,
           ...hiddenTabOptions,
         }}
       />
-
+      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: t('calendar'), ...hiddenTabOptions }} />
       <Tab.Screen
         name="More"
         component={MoreScreen}
         options={{
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon
-              name={focused ? 'menu' : 'menu-outline'}
-              focused={focused}
-              color={color}
-              pillColor={colors.tabBarActivePill}
-              accentColor={tabAccent}
-              tapMin={tapMin}
-            />
+            <TabIcon name={focused ? 'menu' : 'menu-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
           ),
         }}
       />
-
-      {/* Settings: opened from More hub; keep mounted for typed navigation. */}
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarLabel: t('settings'),
-          ...hiddenTabOptions,
-        }}
-      />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('settings'), ...hiddenTabOptions }} />
     </Tab.Navigator>
   );
 };
 
 const styles = StyleSheet.create({
-  iconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  iconWrap: { alignItems: 'center', justifyContent: 'center' },
 });
 
 export default MainTabs;

@@ -37,7 +37,7 @@ const valueTypeLabel = (valueType?: string): string | undefined => {
     case 'satellite derived':
       return 'Satellite derived';
     case 'derived':
-      return 'Derived by AgroTrack';
+      return 'Derived by Oleachron';
     default:
       return valueType;
   }

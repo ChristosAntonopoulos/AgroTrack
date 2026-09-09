@@ -18,6 +18,7 @@ public class HarvestServiceTests
     private readonly Mock<IFieldRepository> _fields = new();
     private readonly Mock<IFieldAccessService> _access = new();
     private readonly Mock<IFinancialEntryService> _finance = new();
+    private readonly Mock<IMediaAttachmentService> _media = new();
     private readonly Mock<IActivityService> _activities = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
     private readonly HarvestService _service;
@@ -30,6 +31,7 @@ public class HarvestServiceTests
             _fields.Object,
             _access.Object,
             _finance.Object,
+            _media.Object,
             _activities.Object,
             _clock.Object,
             NullLogger<HarvestService>.Instance);

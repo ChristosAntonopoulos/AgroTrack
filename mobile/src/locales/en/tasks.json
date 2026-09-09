@@ -25,6 +25,7 @@
   "scheduled": "Scheduled",
   "due": "Due",
   "overdue": "Overdue",
+  "searchPlaceholder": "Search tasks",
   "showAll": "Show all",
   "showing": "Showing {{count}} tasks",
   "summaryOpen": "Open",

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Pressable, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useCaptureOptional } from '../context/CaptureContext';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useRefresh } from '../hooks/useRefresh';
 import { useTasks } from '../hooks/useTasks';
@@ -22,10 +23,14 @@ import AgendaTaskRow from '../components/domain/AgendaTaskRow';
 import DashboardFieldCard from '../components/domain/DashboardFieldCard';
 import WeatherWidget from '../components/domain/WeatherWidget';
 import ActivityTimeline from '../components/domain/ActivityTimeline';
+import HeroActionCard from '../components/dashboard/HeroActionCard';
+import MyActionsStrip from '../components/dashboard/MyActionsStrip';
+import NotesWidget from '../components/dashboard/NotesWidget';
+import ActionSparkline from '../components/dashboard/ActionSparkline';
+import PeriodChips from '../components/dashboard/PeriodChips';
 import EmptyState from '../components/EmptyState';
 import TutorialOverlay, { TutorialStep } from '../components/TutorialOverlay';
 import { spacing } from '../theme';
-import { createElevation } from '../theme/elevation';
 import { RootStackParamList, MainTabParamList } from '../navigation/types';
 import { formatLocaleDate } from '../utils/formatters';
 import { isTaskOverdue } from '../utils/taskListUtils';
@@ -34,23 +39,59 @@ import {
   countHighPriorityDueWeek,
   getAgendaTasks,
 } from '../utils/dashboardUtils';
+import { getMeDashboardService, getFinancialEntryService } from '../services/serviceFactory';
+import { FinancialOverview } from '../services/financialEntryService';
+import {
+  emptyMeDashboard,
+  MeDashboard,
+  MeDashboardPeriod,
+} from '../services/meDashboardService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const DashboardScreen = () => {
   const { user, isFieldOwner } = useAuth();
+  const capture = useCaptureOptional();
   const { colors } = useTheme();
-  const { isFullPicture, fullTutorialSeen, markFullTutorialSeen } = usePreferences();
-  const { t, i18n } = useTranslation(['dashboard', 'common', 'nav', 'tutorial']);
+  const { isFullPicture, fullTutorialSeen, markFullTutorialSeen, showWidget, tapMin } = usePreferences();
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'nav', 'tutorial', 'partners', 'fields']);
   const navigation = useNavigation<Nav>();
   const { stats, loading, refresh } = useDashboardStats();
-  const { refreshing, onRefresh } = useRefresh(refresh);
   const { tasks } = useTasks();
   const { fields } = useFields();
   const { weather, loading: weatherLoading } = useDashboardWeather(fields);
   const { activities } = useRecentActivities(fields, tasks);
+  const [period, setPeriod] = useState<MeDashboardPeriod>('week');
+  const [meDashboard, setMeDashboard] = useState<MeDashboard>(emptyMeDashboard('week'));
+  const [moneyOverview, setMoneyOverview] = useState<FinancialOverview | null>(null);
+
+  const loadMeDashboard = async (p: MeDashboardPeriod = period) => {
+    try {
+      const dash = await getMeDashboardService().getDashboard(p);
+      setMeDashboard(dash);
+    } catch {
+      // keep cached/empty
+    }
+    if (isFullPicture && isFieldOwner()) {
+      try {
+        setMoneyOverview(await getFinancialEntryService().getOverview());
+      } catch {
+        setMoneyOverview(null);
+      }
+    }
+  };
+
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await refresh();
+    await loadMeDashboard(period);
+  });
 
   const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    void loadMeDashboard(period);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, user?.id]);
 
   useEffect(() => {
     if (isFullPicture && !fullTutorialSeen && !loading) {
@@ -169,15 +210,11 @@ const DashboardScreen = () => {
           onPress: () => goTab('Fields'),
         },
         {
-          id: 'calendar',
-          icon: 'calendar',
-          label: t('dashboard:quickNav.calendar'),
-          hint:
-            tasksDueWeek > 0
-              ? t('dashboard:quickNav.scheduledHint', { count: tasksDueWeek })
-              : t('dashboard:quickNav.nothingScheduled'),
-          badge: highPriorityWeek > 0 ? highPriorityWeek : tasksDueWeek > 0 ? tasksDueWeek : undefined,
-          onPress: () => goTab('Calendar', { date: new Date().toISOString() }),
+          id: 'harvest',
+          icon: 'basket',
+          label: t('fields:thisHarvest.title'),
+          hint: t('fields:thisHarvest.season', { year: new Date().getFullYear() }),
+          onPress: () => navigation.navigate('ThisHarvest'),
         },
         {
           id: 'tasks',
@@ -191,6 +228,13 @@ const DashboardScreen = () => {
           urgent: needsAttentionCount > 0,
           onPress: () => goTab('Tasks'),
         },
+        {
+          id: 'partners',
+          icon: 'people-circle-outline',
+          label: t('partners:dashboardCta'),
+          hint: t('partners:findPartner'),
+          onPress: () => navigation.navigate('Partners'),
+        },
       ];
     }
     return [
@@ -201,17 +245,6 @@ const DashboardScreen = () => {
         hint: t('dashboard:quickNav.inProgressHint', { count: stats.inProgressTasks || 0 }),
         badge: stats.inProgressTasks || undefined,
         onPress: () => goTab('Tasks', { filter: 'in_progress' }),
-      },
-      {
-        id: 'calendar',
-        icon: 'calendar',
-        label: t('dashboard:quickNav.calendar'),
-        hint:
-          tasksDueWeek > 0
-            ? t('dashboard:quickNav.scheduledHint', { count: tasksDueWeek })
-            : t('dashboard:quickNav.nothingScheduled'),
-        badge: tasksDueWeek > 0 ? tasksDueWeek : undefined,
-        onPress: () => goTab('Calendar', { date: new Date().toISOString() }),
       },
       {
         id: 'overdue',
@@ -264,6 +297,97 @@ const DashboardScreen = () => {
         refreshControl={{ refreshing, onRefresh }}
         contentContainerStyle={styles.scrollContent}
       >
+        {showWidget('myActionsDetail') ? (
+          <View style={styles.actionsWrap}>
+            <PeriodChips period={period} onChange={setPeriod} tapMin={tapMin} />
+          </View>
+        ) : null}
+
+        {showWidget('myActions') ? (
+          <View style={styles.actionsWrap}>
+            <HeroActionCard
+              topAction={meDashboard.topAction}
+              pending={meDashboard.pending}
+              role={user.role}
+              tapMin={tapMin}
+              onPress={(target) => {
+                if (target === 'CreateTask') {
+                  if (capture) capture.openCapture();
+                  else navigation.navigate('CreateTask', {});
+                  return;
+                }
+                if (target === 'Partners') {
+                  navigation.navigate('Partners');
+                  return;
+                }
+                if (target === 'Today') {
+                  navigation.navigate('Main', { screen: 'Today' });
+                  return;
+                }
+                goTab(target === 'Fields' ? 'Fields' : 'Tasks');
+              }}
+            />
+            <MyActionsStrip
+              data={meDashboard}
+              density="full"
+              period={period}
+              tapMin={tapMin}
+              onPressTile={(target) => {
+                if (target === 'Partners') {
+                  navigation.navigate('Partners');
+                  return;
+                }
+                if (target === 'Today') {
+                  navigation.navigate('Main', { screen: 'Today' });
+                  return;
+                }
+                goTab(target === 'Fields' ? 'Fields' : 'Tasks');
+              }}
+            />
+          </View>
+        ) : null}
+
+        {showWidget('recentNotes') ? (
+          <View style={styles.actionsWrap}>
+            <NotesWidget
+              limit={5}
+              tapMin={tapMin}
+              fieldNames={fieldNamesMap}
+              fields={fields.map((f) => ({ id: f.id, name: f.name }))}
+            />
+          </View>
+        ) : null}
+
+        {showWidget('myActionsDetail') ? (
+          <View style={styles.actionsWrap}>
+            <ActionSparkline series={meDashboard.series} />
+          </View>
+        ) : null}
+
+        {isFullPicture && owner && moneyOverview ? (
+          <Pressable
+            onPress={() => navigation.navigate('Money')}
+            style={[
+              styles.moneyCard,
+              {
+                backgroundColor: colors.surfaceElevated,
+                borderColor: colors.borderLight,
+                minHeight: tapMin,
+              },
+            ]}
+          >
+            <Text style={[styles.moneyLabel, { color: colors.textSecondary }]}>
+              {t('dashboard:stats.thisWeekCost', { defaultValue: "This week's cost" })}
+            </Text>
+            <Text style={[styles.moneyValue, { color: colors.textPrimary }]}>
+              {new Intl.NumberFormat(undefined, {
+                style: 'currency',
+                currency: moneyOverview.currency || 'EUR',
+              }).format(moneyOverview.thisWeekExpenses ?? 0)}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {owner && overdueCount > 0 ? (
           <View style={styles.bannerSection}>
             <AlertBanner
@@ -341,23 +465,21 @@ const DashboardScreen = () => {
         {owner ? (
           <View style={styles.widgetRow}>
             <WeatherWidget weather={weather} loading={weatherLoading} />
-            <ActivityTimeline activities={activities} fieldNames={fieldNamesMap} />
+            <ActivityTimeline
+              activities={showWidget('myActions') ? (meDashboard.recent as any) : activities}
+              fieldNames={fieldNamesMap}
+              limit={showWidget('myActionsDetail') ? 8 : 4}
+              onPressActivity={(act) => {
+                if (act.taskId) {
+                  navigation.navigate('TaskDetail', { taskId: act.taskId });
+                } else if (act.fieldId) {
+                  navigation.navigate('FieldDetail', { fieldId: act.fieldId });
+                }
+              }}
+            />
           </View>
         ) : null}
       </ScreenLayout>
-
-      {owner ? (
-        <TouchableOpacity
-          style={[
-            styles.fab,
-            { backgroundColor: colors.primaryDark, ...createElevation(colors, 'lg') },
-          ]}
-          onPress={() => navigation.navigate('CreateTask', {})}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="add" size={28} color={colors.textInverse} />
-        </TouchableOpacity>
-      ) : null}
 
       <TutorialOverlay
         visible={showTutorial}
@@ -373,6 +495,16 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   scrollContent: { paddingBottom: spacing['3xl'], paddingTop: spacing.xs },
+  actionsWrap: { paddingHorizontal: spacing.base },
+  moneyCard: {
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: spacing.base,
+  },
+  moneyLabel: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
+  moneyValue: { fontSize: 22, fontWeight: '800' },
   bannerSection: { paddingHorizontal: spacing.base, marginBottom: spacing.sm },
   widgetRow: {
     flexDirection: 'row',
@@ -380,16 +512,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     marginTop: spacing.sm,
     flexWrap: 'wrap',
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.base,
-    bottom: spacing.base,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
 

@@ -1,5 +1,5 @@
 {
-  "appName": "AgroTrack",
+  "appName": "Oleachron",
   "home": "Αρχική",
   "loading": "Φόρτωση...",
   "retry": "Δοκιμή ξανά",
@@ -37,6 +37,9 @@
   "due": "Προθεσμία",
   "nextTask": "Επόμενο",
   "toggleMenu": "Εναλλαγή μενού",
+  "moreNav": "Περισσότερα",
+  "moreMenu": "Περισσότερες επιλογές",
+  "mobileNav": "Κύρια πλοήγηση",
   "logout": "Αποσύνδεση",
   "logoutAria": "Αποσύνδεση",
   "roles": {
@@ -62,7 +65,7 @@
     "high": "Υψηλό"
   },
   "lifecycleStage": {
-    "dormancy": "Αδράνεια",
+    "dormancy": "Περίοδος ηρεμίας",
     "bud_break": "Έκρηξη οφθαλμού",
     "flowering": "Άνθηση",
     "fruit_set": "Δέσμευση καρπού",

@@ -53,14 +53,14 @@ const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = fals
           icon: 'document-text-outline',
           title: t('addField.methods.cadastre.title'),
           desc: t('addField.methods.cadastre.desc'),
-          enabled: false,
+          enabled: true,
         },
         {
           id: 'kaek',
           icon: 'barcode-outline',
           title: t('addField.methods.kaek.title'),
           desc: t('addField.methods.kaek.desc'),
-          enabled: false,
+          enabled: true,
         },
       ];
 
@@ -70,11 +70,6 @@ const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = fals
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {t('addField.methods.subtitle')}
       </Text>
-      {everyday ? (
-        <Text style={[styles.cardDesc, { color: colors.textTertiary }]}>
-          {t('addField.methods.computerOnly')}
-        </Text>
-      ) : null}
       <View style={styles.grid}>
         {cards.map((card) => {
           const active = method === card.id;
@@ -97,11 +92,6 @@ const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = fals
               </View>
               <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{card.title}</Text>
               <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{card.desc}</Text>
-              {!card.enabled ? (
-                <Text style={[styles.badge, { color: colors.textTertiary }]}>
-                  {t('addField.methods.webOnly')}
-                </Text>
-              ) : null}
             </Pressable>
           );
         })}
@@ -131,7 +121,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { ...typography.styles.body, fontWeight: '700' },
   cardDesc: { ...typography.styles.caption, lineHeight: 18 },
-  badge: { ...typography.styles.caption, fontWeight: '600', marginTop: 4 },
 });
 
 export default AddFieldMethodStep;

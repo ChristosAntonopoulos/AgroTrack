@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   ScrollView,
@@ -7,6 +7,7 @@ import {
   View,
   Text,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,96 +18,95 @@ import { useRefresh } from '../hooks/useRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
-import FieldsSummaryHeader from '../components/fields/FieldsSummaryHeader';
-import DashboardFieldCard from '../components/domain/DashboardFieldCard';
+import FieldCard from '../components/domain/FieldCard';
 import FieldsMap from '../components/domain/FieldsMap';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import { spacing, typography } from '../theme';
+import { spacing, typography, radii } from '../theme';
 import { RootStackParamList } from '../navigation/types';
-import { countFieldLocations } from '../utils/dashboardUtils';
-import { formatTotalFieldsArea } from '../utils/fieldAreaTotals';
+import { fieldSearchHaystack } from '../utils/fieldDisplay';
+import { getFieldShortLocation } from '../utils/shortLocation';
+import { resolveFieldCenter } from '../utils/fieldGeo';
+import { locationService } from '../services/locationService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ViewMode = 'list' | 'map';
+type SortKey = 'name' | 'area' | 'activity' | 'distance';
 
 const FieldsListScreen = () => {
   const navigation = useNavigation<Nav>();
-  const { isFieldOwner } = useAuth();
-  const { colors } = useTheme();
+  const { isFieldOwner, user } = useAuth();
+  const { colors, tapMin } = useTheme();
   const { isEveryday } = usePreferences();
-  const { t } = useTranslation(['fields', 'common', 'nav']);
+  const { t } = useTranslation(['fields', 'common']);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const {
-    fields,
-    loading,
-    fieldOpenTaskCounts,
-    fieldHasOverdue,
-    fieldNextJobTitle,
-    refresh,
-  } = useFields();
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const { fields, loading, fieldTodayTaskCounts, refresh } = useFields();
   const { refreshing, onRefresh } = useRefresh(refresh);
 
-  const totalAreaLabel = useMemo(() => formatTotalFieldsArea(fields), [fields]);
-  const totalOpenTasks = useMemo(
-    () => Object.values(fieldOpenTaskCounts).reduce((sum, n) => sum + n, 0),
-    [fieldOpenTaskCounts]
-  );
-  const irrigatedCount = useMemo(
-    () => fields.filter((f) => f.irrigationStatus).length,
-    [fields]
-  );
-  const locationCount = useMemo(() => countFieldLocations(fields), [fields]);
-  const overdueFields = useMemo(
-    () => Object.values(fieldHasOverdue).filter(Boolean).length,
-    [fieldHasOverdue]
-  );
+  useEffect(() => {
+    let cancelled = false;
+    locationService
+      .getCurrentLocation()
+      .then((loc) => {
+        if (!cancelled) setUserCoords({ lat: loc.latitude, lng: loc.longitude });
+      })
+      .catch(() => {
+        if (!cancelled) setUserCoords(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const summaryChips = useMemo(() => {
-    if (fields.length === 0) return [];
-    return [
-      {
-        icon: 'leaf' as const,
-        value: fields.length,
-        label: t('fields:summaryFields'),
-        accentColor: colors.success,
-      },
-      {
-        icon: 'resize-outline' as const,
-        value: totalAreaLabel,
-        label: t('fields:summaryArea'),
-        accentColor: colors.primary,
-      },
-      {
-        icon: 'clipboard-outline' as const,
-        value: totalOpenTasks,
-        label: t('fields:openTasks'),
-        accentColor: colors.warning,
-        badge: overdueFields > 0 ? overdueFields : undefined,
-        onPress: () => navigation.navigate('Main', { screen: 'Tasks' }),
-      },
-      {
-        icon: 'water-outline' as const,
-        value: irrigatedCount,
-        label: t('fields:irrigatedFields'),
-        accentColor: colors.info,
-      },
-    ];
-  }, [
-    fields.length,
-    totalAreaLabel,
-    totalOpenTasks,
-    overdueFields,
-    irrigatedCount,
-    colors,
-    t,
-    navigation,
-  ]);
+  const canSortByDistance = Boolean(userCoords && fields.some((field) => resolveFieldCenter(field)));
+
+  const filteredFields = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = fields;
+    if (q) {
+      list = list.filter((f) => {
+        const short = getFieldShortLocation(f).toLowerCase();
+        return fieldSearchHaystack(f).includes(q) || short.includes(q);
+      });
+    }
+    return [...list].sort((a, b) => {
+      if (sortBy === 'area') {
+        const areaA = a.appMeasuredAreaSqm || a.area || 0;
+        const areaB = b.appMeasuredAreaSqm || b.area || 0;
+        return areaB - areaA;
+      }
+      if (sortBy === 'activity') {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+      if (sortBy === 'distance' && userCoords) {
+        const centerA = resolveFieldCenter(a);
+        const centerB = resolveFieldCenter(b);
+        const distA = centerA
+          ? locationService.calculateDistance(userCoords.lat, userCoords.lng, centerA.latitude, centerA.longitude)
+          : Number.POSITIVE_INFINITY;
+        const distB = centerB
+          ? locationService.calculateDistance(userCoords.lat, userCoords.lng, centerB.latitude, centerB.longitude)
+          : Number.POSITIVE_INFINITY;
+        return distA - distB;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [fields, search, sortBy, userCoords]);
+
+  const subtitle =
+    user?.role === 'Producer'
+      ? t('fields:subtitleProducer')
+      : user?.role === 'FieldOwner'
+        ? t('fields:subtitleOwner')
+        : t('fields:subtitleDefault');
 
   if (loading && fields.length === 0) {
     return (
-      <ScreenLayout style={styles.screen}>
+      <ScreenLayout>
         <LoadingSpinner fullScreen />
       </ScreenLayout>
     );
@@ -116,81 +116,103 @@ const FieldsListScreen = () => {
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryDark} />
   );
 
-  const listTitle = isFieldOwner() ? t('fields:titleOwner') : t('fields:title');
-  const listSubtitle = t('fields:summarySubtitle', {
-    count: fields.length,
-    locations: locationCount,
-    area: totalAreaLabel,
-  });
+  const sortKeys: SortKey[] = canSortByDistance
+    ? ['name', 'area', 'activity', 'distance']
+    : ['name', 'area', 'activity'];
 
-  const viewToggle = fields.length > 0 ? (
-    <View style={[styles.viewToggle, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-      <Pressable
-        style={[
-          styles.viewBtn,
-          { minHeight: 48 },
-          viewMode === 'list' && { backgroundColor: colors.primaryDark },
-        ]}
-        onPress={() => setViewMode('list')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: viewMode === 'list' }}
-      >
-        <Ionicons
-          name="list"
-          size={16}
-          color={viewMode === 'list' ? colors.textInverse : colors.textSecondary}
-        />
-        <Text
+  const listHeader =
+    fields.length > 0 ? (
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{t('fields:title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+          </View>
+          {isFieldOwner() ? (
+            <Pressable
+              onPress={() => navigation.navigate('FieldForm', {})}
+              style={[
+                styles.addBtn,
+                { backgroundColor: colors.primaryDark, minHeight: tapMin },
+              ]}
+            >
+              <Ionicons name="add" size={18} color={colors.textInverse} />
+              <Text style={{ color: colors.textInverse, fontWeight: '700' }}>{t('fields:addFieldLabel')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t('fields:searchPlaceholder')}
+          placeholderTextColor={colors.textTertiary}
           style={[
-            styles.viewBtnText,
-            { color: viewMode === 'list' ? colors.textInverse : colors.textSecondary },
+            styles.search,
+            {
+              borderColor: colors.border,
+              color: colors.textPrimary,
+              backgroundColor: colors.surfaceElevated,
+              minHeight: tapMin,
+            },
           ]}
-        >
-          {t('fields:viewList')}
-        </Text>
-      </Pressable>
-      <Pressable
-        style={[
-          styles.viewBtn,
-          { minHeight: 48 },
-          viewMode === 'map' && { backgroundColor: colors.primaryDark },
-        ]}
-        onPress={() => setViewMode('map')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: viewMode === 'map' }}
-      >
-        <Ionicons
-          name="map"
-          size={16}
-          color={viewMode === 'map' ? colors.textInverse : colors.textSecondary}
         />
-        <Text
-          style={[
-            styles.viewBtnText,
-            { color: viewMode === 'map' ? colors.textInverse : colors.textSecondary },
-          ]}
-        >
-          {t('fields:viewMap')}
-        </Text>
-      </Pressable>
-    </View>
-  ) : null;
-
-  const listHeader = fields.length > 0 ? (
-    <>
-      <FieldsSummaryHeader
-        title={listTitle}
-        subtitle={listSubtitle}
-        chips={summaryChips}
-        onAddPress={isFieldOwner() ? () => navigation.navigate('FieldForm', {}) : undefined}
-        addLabel={t('fields:addFieldLabel')}
-      />
-      {viewToggle ? <View style={styles.toggleWrap}>{viewToggle}</View> : null}
-    </>
-  ) : null;
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
+          {sortKeys.map((key) => (
+            <Pressable
+              key={key}
+              onPress={() => setSortBy(key)}
+              style={[
+                styles.sortChip,
+                {
+                  minHeight: tapMin,
+                  borderColor: sortBy === key ? colors.primary : colors.border,
+                  backgroundColor: sortBy === key ? colors.primary + '18' : colors.surfaceElevated,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  fontWeight: '600',
+                  color: sortBy === key ? colors.primaryDark : colors.textSecondary,
+                }}
+              >
+                {t(`fields:sort${key.charAt(0).toUpperCase()}${key.slice(1)}`)}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={[styles.viewToggle, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+          {(['list', 'map'] as const).map((mode) => (
+            <Pressable
+              key={mode}
+              onPress={() => setViewMode(mode)}
+              style={[
+                styles.viewBtn,
+                { minHeight: tapMin },
+                viewMode === mode && { backgroundColor: colors.primaryDark },
+              ]}
+            >
+              <Ionicons
+                name={mode === 'list' ? 'list' : 'map'}
+                size={16}
+                color={viewMode === mode ? colors.textInverse : colors.textSecondary}
+              />
+              <Text
+                style={{
+                  fontWeight: '600',
+                  color: viewMode === mode ? colors.textInverse : colors.textSecondary,
+                }}
+              >
+                {mode === 'list' ? t('fields:viewList') : t('fields:viewMap')}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    ) : null;
 
   return (
-    <ScreenLayout style={styles.screen}>
+    <ScreenLayout>
       {viewMode === 'map' && fields.length > 0 ? (
         <ScrollView
           style={styles.flex}
@@ -200,27 +222,29 @@ const FieldsListScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           {listHeader}
-          <View style={styles.mapFlex}>
-            <FieldsMap
-              fields={fields}
-              fillScreen
-              compact={isEveryday}
-              onFieldPress={(id) => navigation.navigate('FieldDetail', { fieldId: id })}
-            />
-          </View>
+          {filteredFields.length === 0 ? (
+            <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
+          ) : (
+            <View style={styles.mapFlex}>
+              <FieldsMap
+                fields={filteredFields}
+                fillScreen
+                compact={isEveryday}
+                onFieldPress={(id) => navigation.navigate('FieldDetail', { fieldId: id })}
+              />
+            </View>
+          )}
         </ScrollView>
       ) : (
         <FlatList
           style={styles.flex}
-          data={fields}
+          data={filteredFields}
           ListHeaderComponent={listHeader}
           renderItem={({ item }) => (
             <View style={styles.cardWrap}>
-              <DashboardFieldCard
+              <FieldCard
                 field={item}
-                openTaskCount={fieldOpenTaskCounts[item.id] ?? 0}
-                hasOverdue={fieldHasOverdue[item.id]}
-                nextJobTitle={fieldNextJobTitle[item.id]}
+                stats={{ todayTaskCount: fieldTodayTaskCounts[item.id] ?? 0 }}
                 onPress={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
               />
             </View>
@@ -230,16 +254,20 @@ const FieldsListScreen = () => {
           refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <EmptyState
-              icon={<Ionicons name="leaf-outline" size={36} color={colors.primaryDark} />}
-              title={t('common:empty.noFields')}
-              description={isFieldOwner() ? t('fields:emptyOwner') : t('fields:emptyWorker')}
-              action={
-                isFieldOwner()
-                  ? { label: t('fields:addFieldLabel'), onPress: () => navigation.navigate('FieldForm', {}) }
-                  : undefined
-              }
-            />
+            search.trim() ? (
+              <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
+            ) : (
+              <EmptyState
+                icon={<Ionicons name="leaf-outline" size={36} color={colors.primaryDark} />}
+                title={t('fields:emptyTitle')}
+                description={isFieldOwner() ? t('fields:emptyDescription') : t('fields:emptyWorker')}
+                action={
+                  isFieldOwner()
+                    ? { label: t('fields:addFieldLabel'), onPress: () => navigation.navigate('FieldForm', {}) }
+                    : undefined
+                }
+              />
+            )
           }
         />
       )}
@@ -248,19 +276,29 @@ const FieldsListScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   flex: { flex: 1 },
-  mapScrollContent: { flexGrow: 1 },
-  mapFlex: {
-    flex: 1,
-    minHeight: 320,
-    paddingHorizontal: spacing.base,
-    paddingBottom: spacing.base,
+  header: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  title: { ...typography.styles.h2, fontWeight: '800', fontSize: 26 },
+  subtitle: { marginTop: 4, ...typography.styles.bodySmall },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.md,
   },
-  toggleWrap: {
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
+  search: {
+    borderWidth: 1,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+  },
+  sortRow: { gap: spacing.sm, paddingVertical: 2 },
+  sortChip: {
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
   },
   viewToggle: {
     flexDirection: 'row',
@@ -277,11 +315,13 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 8,
-    minHeight: 48,
   },
-  viewBtnText: {
-    ...typography.styles.caption,
-    fontWeight: '600',
+  mapScrollContent: { flexGrow: 1 },
+  mapFlex: {
+    flex: 1,
+    minHeight: 320,
+    paddingHorizontal: spacing.base,
+    paddingBottom: spacing.base,
   },
   cardWrap: { paddingHorizontal: spacing.base },
   listContent: { paddingBottom: spacing['3xl'] },

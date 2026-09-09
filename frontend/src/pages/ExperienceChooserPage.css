@@ -25,6 +25,13 @@
   gap: var(--spacing-md);
 }
 
+.experience-chooser-card > .brand-logo {
+  margin-bottom: var(--spacing-sm);
+  height: 40px;
+  width: auto;
+  max-width: 240px;
+}
+
 .experience-chooser-card h1 {
   margin: 0;
   font-size: calc(1.75rem * var(--font-scale, 1));
@@ -131,7 +138,8 @@
   text-decoration: underline;
 }
 
-@media (max-width: 700px) {
+/* md = 768 */
+@media (max-width: 768px) {
   .experience-chooser-options {
     grid-template-columns: 1fr;
   }

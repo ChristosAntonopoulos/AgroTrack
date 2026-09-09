@@ -2,18 +2,18 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: agrotrack-frontend-ingress
-  namespace: agrotrack-frontend
+  name: oleachron-frontend-ingress
+  namespace: oleachron-frontend
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - agrotrack.conceptatlas.eu
-      secretName: agrotrack-web-tls
+        - oleachron.conceptatlas.eu
+      secretName: oleachron-web-tls
   rules:
-    - host: agrotrack.conceptatlas.eu
+    - host: oleachron.conceptatlas.eu
       http:
         paths:
           - path: /

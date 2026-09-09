@@ -1,920 +1,257 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Linking, Alert, Pressable } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  DeviceEventEmitter,
+} from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../services/fieldService';
 import { Task } from '../services/taskService';
-import { Lifecycle } from '../services/lifecycleService';
-import { Activity } from '../services/activityService';
+import { FieldFinancialSummary } from '../services/financialEntryService';
+import type { ChronologioEntry } from '../services/chronologioService';
 import {
   getFieldService,
   getTaskService,
-  getLifecycleService,
-  getActivityService,
   getFinancialEntryService,
-  getHarvestService,
+  getChronologioService,
 } from '../services/serviceFactory';
-import {
-  CreateFinancialEntryInput,
-  FieldFinancialSummary,
-  FinancialEntry,
-} from '../services/financialEntryService';
-import { CreateHarvestRecordInput, HarvestRecord } from '../services/harvestService';
-import FieldCostsCard from '../components/domain/FieldCostsCard';
-import FieldHarvestCard from '../components/domain/FieldHarvestCard';
-import WhoWorksHere from '../components/domain/WhoWorksHere';
-import { fieldPeopleService, FieldMembership } from '../services/fieldPeopleService';
-import { LIFECYCLE_STAGES } from '../utils/lifecycleUtils';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
+import { useCaptureOptional } from '../context/CaptureContext';
+import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import Section from '../components/layout/Section';
-import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import InfoRow from '../components/ui/InfoRow';
-import FieldDetailHeader from '../components/domain/FieldDetailHeader';
-import FieldDetailToolbar from '../components/domain/FieldDetailToolbar';
-import FieldPreviewHero from '../components/domain/FieldPreviewHero';
-import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
-import FullPictureOnrampBanner from '../components/Experience/FullPictureOnrampBanner';
-import AlertBanner from '../components/ui/AlertBanner';
-import LifecycleStageStepper from '../components/domain/LifecycleStageStepper';
-import AgendaTaskRow from '../components/domain/AgendaTaskRow';
-import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
-import ActivityTimeline from '../components/domain/ActivityTimeline';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
-import OfflineBanner from '../components/OfflineBanner';
-import { geospatialService, FieldEnvironmentalAlert } from '../services/geospatialService';
-import { typography, spacing } from '../theme';
-import { formatLocaleDate } from '../utils/formatters';
-import { fieldHealthStatus, getAgendaTasks } from '../utils/dashboardUtils';
-import { resolveFieldCenter, formatFieldArea } from '../utils/fieldGeo';
-import { normalizeStage } from '../utils/lifecycleUtils';
-import { isTaskOverdue } from '../utils/taskListUtils';
+import FieldIdentity from '../components/fields/FieldIdentity';
+import FieldMoreMenu from '../components/fields/FieldMoreMenu';
+import FieldTodaySummary from '../components/fields/FieldTodaySummary';
+import FieldFinanceSummary from '../components/fields/FieldFinanceSummary';
+import FieldRecentChronologio from '../components/fields/FieldRecentChronologio';
+import FieldAttentionCard from '../components/fields/FieldAttentionCard';
+import FieldFacts from '../components/fields/FieldFacts';
+import FieldDetailMap from '../components/domain/FieldDetailMap';
+import ChronologioScreen from './ChronologioScreen';
+import { spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
-
-const ALERT_ICONS: Record<string, React.ComponentProps<typeof AlertBanner>['icon']> = {
-  frost: 'snow',
-  heat: 'sunny',
-  fireproximity: 'flame',
-  vegetationchange: 'leaf',
-  taskwarning: 'clipboard',
-};
-
-const SEVERE_ALERT_LEVELS = ['critical', 'high'];
+type FieldMode = 'overview' | 'chronologio';
 
 const FieldDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { fieldId, focus } = route.params;
+  const { fieldId, focus, mode: modeParam } = route.params;
   const { isFieldOwner, user } = useAuth();
-  const { colors } = useTheme();
-  const {
-    isEveryday,
-    isFullPicture,
-    showWidget,
-    recordIntelligenceOpen,
-    tapMin,
-    fontScaleMultiplier,
-  } = usePreferences();
-  const { t, i18n } = useTranslation(['fields', 'common', 'dashboard', 'tasks', 'settings']);
+  const capture = useCaptureOptional();
+  const { colors, tapMin } = useTheme();
+  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
 
   const [field, setField] = useState<Field | null>(null);
-  const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [alerts, setAlerts] = useState<FieldEnvironmentalAlert[]>([]);
-  const [cadastreExpanded, setCadastreExpanded] = useState(false);
-  const [intelligencePeek, setIntelligencePeek] = useState(false);
-  const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [lifecycleLoading, setLifecycleLoading] = useState(false);
-  const [costEntries, setCostEntries] = useState<FinancialEntry[]>([]);
   const [costSummary, setCostSummary] = useState<FieldFinancialSummary | null>(null);
-  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
-  const [people, setPeople] = useState<FieldMembership[]>([]);
-  const [correcting, setCorrecting] = useState(false);
+  const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadFieldDetails = useCallback(async () => {
+  const mode: FieldMode = modeParam === 'chronologio' ? 'chronologio' : 'overview';
+
+  const load = useCallback(async () => {
     try {
-      setLoading(true);
-      const [fieldData, lifecycleData, tasksData] = await Promise.all([
+      const [fieldData, taskData, summary, chrono] = await Promise.all([
         getFieldService().getField(fieldId),
-        getLifecycleService().getLifecycle(fieldId),
         getTaskService().getTasksByField(fieldId),
+        getFinancialEntryService().getSummary(fieldId).catch(() => null),
+        getChronologioService()
+          .getFieldChronologio(fieldId, { limit: 8 })
+          .catch(() => [] as ChronologioEntry[]),
       ]);
-
       setField(fieldData);
-      setLifecycle(lifecycleData);
-      setTasks(tasksData);
-
-      try {
-        const acts = await getActivityService().getActivities(fieldId, 10);
-        setActivities(acts);
-      } catch {
-        setActivities([]);
-      }
-
-      try {
-        const money = getFinancialEntryService();
-        const year = lifecycleData?.currentYear ?? fieldData.currentLifecycleYear;
-        const [entries, summary] = await Promise.all([
-          money.listByField(fieldId),
-          money.getSummary(fieldId, year),
-        ]);
-        setCostEntries(entries);
-        setCostSummary(summary);
-      } catch {
-        setCostEntries([]);
-        setCostSummary(null);
-      }
-
-      try {
-        setHarvestRecords(await getHarvestService().listByField(fieldId));
-      } catch {
-        setHarvestRecords([]);
-      }
-
-      try {
-        setPeople(await fieldPeopleService.getPeople(fieldId, fieldData));
-      } catch {
-        setPeople([]);
-      }
-
-      // Warnings are raised and de-duplicated by the backend, so the device shows
-      // exactly what the web app shows rather than re-deriving thresholds.
-      setAlerts(resolveFieldCenter(fieldData) ? await geospatialService.getAlerts(fieldId) : []);
-    } catch (error) {
-      console.error('Error loading field details:', error);
-      setField(null);
+      setTasks(taskData);
+      setCostSummary(summary);
+      setRecentEntries(chrono);
+      setError(null);
+    } catch {
+      setError(t('fields:form.failedLoad'));
     } finally {
       setLoading(false);
     }
-  }, [fieldId]);
+  }, [fieldId, t]);
 
   useEffect(() => {
-    loadFieldDetails();
-  }, [loadFieldDetails]);
+    void load();
+  }, [load]);
 
-  const openTasks = useMemo(
-    () => tasks.filter(tk => tk.status !== 'completed'),
-    [tasks]
-  );
-  const overdueCount = useMemo(
-    () => openTasks.filter(tk => isTaskOverdue(tk)).length,
-    [openTasks]
-  );
-  const agendaTasks = useMemo(() => getAgendaTasks(tasks, 5), [tasks]);
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(CAPTURE_SAVED_EVENT, () => {
+      void load();
+    });
+    return () => sub.remove();
+  }, [load]);
 
-  const handleLifecycleAction = async (action: 'advance' | 'revert' | 'progress' | 'init') => {
-    try {
-      setLifecycleLoading(true);
-      let updated: Lifecycle | null = null;
-      if (action === 'advance') updated = await getLifecycleService().advanceStage(fieldId);
-      else if (action === 'revert') updated = await getLifecycleService().revertStage(fieldId);
-      else if (action === 'progress') updated = await getLifecycleService().progressCycle(fieldId);
-      else updated = await getLifecycleService().initializeLifecycle(fieldId);
-      setLifecycle(updated);
-      const refreshed = await getFieldService().getField(fieldId);
-      setField(refreshed);
-    } catch (error: any) {
-      Alert.alert(t('fields:lifecycle'), error.message);
-    } finally {
-      setLifecycleLoading(false);
+  useEffect(() => {
+    if (focus === 'money') {
+      navigation.setParams({ focus: undefined });
+      navigation.navigate('Money', { fieldId });
     }
+  }, [fieldId, focus, navigation]);
+
+  useEffect(() => {
+    if (field?.name) {
+      navigation.setOptions({ title: field.name });
+    }
+  }, [field?.name, navigation]);
+
+  const canOwn = isFieldOwner() || field?.ownerId === user?.id;
+  const setMode = (next: FieldMode) => {
+    navigation.setParams({ mode: next === 'overview' ? undefined : next });
   };
 
-  const goTab = (screen: 'Tasks' | 'Calendar') => {
-    const params = { fieldId, date: new Date().toISOString() };
-    if (screen === 'Tasks') {
-      navigation.navigate('Main', { screen: 'Tasks', params: { fieldId } });
-    } else {
-      navigation.navigate('Main', { screen: 'Calendar', params });
-    }
+  const handleDelete = () => {
+    Alert.alert(t('fields:deleteField'), t('fields:deleteConfirm'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('common:delete'),
+        style: 'destructive',
+        onPress: () => {
+          void getFieldService()
+            .deleteField(fieldId)
+            .then(() => navigation.navigate('Main', { screen: 'Fields' }))
+            .catch(() => Alert.alert(t('fields:form.failedDelete')));
+        },
+      },
+    ]);
   };
 
-  const openMaps = () => {
-    const center = field ? resolveFieldCenter(field) : null;
-    if (center) {
-      Linking.openURL(`https://www.google.com/maps?q=${center.latitude},${center.longitude}`);
-    }
-  };
-
-  if (loading) return <LoadingSpinner fullScreen />;
-
-  if (!field) {
+  if (loading && !field) {
     return (
-      <ScreenLayout padded style={styles.centered}>
-        <EmptyState
-          icon={<Ionicons name="alert-circle-outline" size={36} color={colors.error} />}
-          title={t('fields:notFound')}
-          action={{ label: t('common:back'), onPress: () => navigation.goBack() }}
-        />
+      <ScreenLayout>
+        <LoadingSpinner fullScreen />
       </ScreenLayout>
     );
   }
 
-  const health = fieldHealthStatus(field, openTasks.length, overdueCount > 0);
-  const fieldCenter = resolveFieldCenter(field);
-  const hasMappableLocation = fieldCenter != null;
-  const hasCadastre = Boolean(field.greekCadastre?.kaek || field.greekCadastre?.normalizedKaek);
-
-  const currentUserId = user?.id;
-  const canOwn = isFieldOwner() || field?.ownerId === currentUserId;
-  const canWork =
-    canOwn ||
-    user?.role === 'Producer' ||
-    (field?.assignedProducerIds || []).includes(currentUserId || '');
-
-  const currentStage =
-    lifecycle?.currentStage ?? field?.currentLifecycleStage ?? 'dormancy';
-  const currentYear = lifecycle?.currentYear ?? field?.currentLifecycleYear ?? 'low';
-
-  const refreshMoney = async () => {
-    const money = getFinancialEntryService();
-    const [entries, summary] = await Promise.all([
-      money.listByField(fieldId),
-      money.getSummary(fieldId, currentYear),
-    ]);
-    setCostEntries(entries);
-    setCostSummary(summary);
-  };
-
-  const handleCreateCost = async (input: CreateFinancialEntryInput) => {
-    const created = await getFinancialEntryService().create(input);
-    await refreshMoney();
-    return created;
-  };
-
-  const handleVoidCost = async (id: string) => {
-    await getFinancialEntryService().void(id);
-    await refreshMoney();
-  };
-
-  const handleCreateHarvest = async (input: CreateHarvestRecordInput) => {
-    const created = await getHarvestService().create(input);
-    try {
-      setHarvestRecords(await getHarvestService().listByField(fieldId));
-    } catch {
-      setHarvestRecords((prev) => [created, ...prev]);
-    }
-    await refreshMoney();
-    return created;
-  };
-
-  const handleVoidHarvest = async (id: string) => {
-    await getHarvestService().void(id);
-    try {
-      setHarvestRecords(await getHarvestService().listByField(fieldId));
-    } catch {
-      setHarvestRecords((prev) => prev.filter((r) => r.id !== id));
-    }
-    await refreshMoney();
-  };
-
-  const harvestMode = focus === 'harvest-final' ? 'final' : focus === 'harvest' ? 'daily' : 'default';
-
-  const harvestCard = (
-    <View style={styles.everydayNextWrap}>
-      <FieldHarvestCard
-        fieldId={fieldId}
-        records={harvestRecords}
-        canAdd={canWork}
-        canVoid={canOwn}
-        compact={isEveryday && harvestMode !== 'final'}
-        autoFocus={focus === 'harvest' || focus === 'harvest-final'}
-        mode={harvestMode}
-        onCreate={handleCreateHarvest}
-        onVoid={handleVoidHarvest}
-        onWriteMoneyIn={() => navigation.setParams({ focus: 'money' })}
-      />
-    </View>
-  );
-
-  const costsCard = showWidget('fieldCosts') ? (
-    <View style={styles.everydayNextWrap}>
-      <FieldCostsCard
-        fieldId={fieldId}
-        lifecycleYear={currentYear}
-        entries={costEntries}
-        summary={costSummary}
-        canAdd={canWork}
-        canVoid={canOwn}
-        tasks={tasks}
-        autoFocus={focus === 'money'}
-        onCreate={handleCreateCost}
-        onVoid={handleVoidCost}
-      />
-    </View>
-  ) : null;
-
-  const toolbarActions = [
-    {
-      id: 'tasks',
-      icon: 'list-outline' as const,
-      label: t('fields:viewTasks'),
-      onPress: () => goTab('Tasks'),
-      badge: overdueCount > 0 ? overdueCount : openTasks.length > 0 ? openTasks.length : undefined,
-    },
-    {
-      id: 'calendar',
-      icon: 'calendar-outline' as const,
-      label: t('fields:viewCalendar'),
-      onPress: () => goTab('Calendar'),
-    },
-    {
-      id: 'money',
-      icon: 'wallet-outline' as const,
-      label: t('fields:costs.toolbar'),
-      onPress: () => navigation.setParams({ focus: 'money' }),
-    },
-    {
-      id: 'maps',
-      icon: 'navigate-outline' as const,
-      label: t('fields:openMaps'),
-      onPress: openMaps,
-      disabled: !hasMappableLocation,
-    },
-    {
-      id: 'history',
-      icon: 'time-outline' as const,
-      label: t('fields:history.button'),
-      onPress: () => navigation.navigate('FieldHistory', { fieldId }),
-    },
-    ...(canOwn
-      ? [
-          {
-            id: 'edit',
-            icon: 'create-outline' as const,
-            label: t('fields:editField'),
-            onPress: () => navigation.navigate('FieldForm', { fieldId }),
-          },
-        ]
-      : []),
-  ];
-
-  const nextTask = agendaTasks[0];
-  const seasonLine = t('fields:everydaySeasonLine', {
-    stage: t(`common:lifecycleStage.${normalizeStage(currentStage)}`),
-    year: t(`common:lifecycleYear.${currentYear}`),
-    defaultValue: `${t(`common:lifecycleStage.${normalizeStage(currentStage)}`)} · ${t(`common:lifecycleYear.${currentYear}`)}`,
-  });
-
-  const confirmCorrectLifecycle = (year: string, stage: string) => {
-    Alert.alert(
-      t('fields:thisIsWrongTitle'),
-      t('fields:thisIsWrongConfirm', {
-        stage: t(`common:lifecycleStage.${normalizeStage(stage)}`),
-        year: t(`common:lifecycleYear.${year}`),
-      }),
-      [
-        { text: t('common:cancel'), style: 'cancel' },
-        {
-          text: t('common:confirm'),
-          onPress: async () => {
-            try {
-              setCorrecting(true);
-              const updated = await getLifecycleService().correctLifecycle(fieldId, {
-                currentYear: year,
-                currentStage: stage,
-              });
-              setLifecycle(updated);
-              const refreshed = await getFieldService().getField(fieldId);
-              setField(refreshed);
-            } catch (error: any) {
-              Alert.alert(t('fields:lifecycle'), error.message);
-            } finally {
-              setCorrecting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const openThisIsWrong = () => {
-    Alert.alert(t('fields:thisIsWrongTitle'), t('fields:thisIsWrongPick'), [
-      { text: t('common:cancel'), style: 'cancel' },
-      {
-        text: t('common:lifecycleYear.low'),
-        onPress: () => confirmCorrectLifecycle('low', currentStage),
-      },
-      {
-        text: t('common:lifecycleYear.high'),
-        onPress: () => confirmCorrectLifecycle('high', currentStage),
-      },
-      {
-        text: t('fields:thisIsWrongStage'),
-        onPress: () => {
-          Alert.alert(
-            t('fields:thisIsWrongStage'),
-            undefined,
-            [
-              { text: t('common:cancel'), style: 'cancel' },
-              ...LIFECYCLE_STAGES.map((stage) => ({
-                text: t(`common:lifecycleStage.${stage}`),
-                onPress: () => confirmCorrectLifecycle(currentYear, stage),
-              })),
-            ]
-          );
-        },
-      },
-    ]);
-  };
-
-  // Everyday: name → next job → alerts → small map → tasks → one in-place peek.
-  // Full: existing control-room density.
-  if (isEveryday) {
+  if (error || !field) {
     return (
-      <ScreenLayout scroll scrollEnabled={parentScrollEnabled} contentContainerStyle={styles.content}>
-        <OfflineBanner />
-        <View style={styles.everydayHeader}>
-          <Text style={[styles.everydayTitle, { color: colors.textPrimary }]}>{field.name}</Text>
-          <Text style={[styles.everydaySeason, { color: colors.textSecondary }]}>{seasonLine}</Text>
-          {canOwn ? (
-            <Pressable
-              onPress={openThisIsWrong}
-              disabled={correcting}
-              style={{ minHeight: tapMin, justifyContent: 'center' }}
-            >
-              <Text style={{ color: colors.primaryDark, fontWeight: '700', fontSize: 15 * fontScaleMultiplier }}>
-                {t('fields:thisIsWrong')}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {overdueCount > 0 ? (
-          <View style={styles.bannerWrap}>
-            <AlertBanner
-              variant="error"
-              icon="alert-circle"
-              message={t('fields:overdueOnField', { count: overdueCount })}
-              onPress={() => goTab('Tasks')}
-            />
-          </View>
-        ) : null}
-
-        {showWidget('alertsPlain')
-          ? alerts.slice(0, 2).map((alert) => (
-              <View key={alert.id} style={styles.bannerWrap}>
-                <AlertBanner
-                  variant={
-                    SEVERE_ALERT_LEVELS.includes(alert.severity?.toLowerCase()) ? 'error' : 'warning'
-                  }
-                  icon={ALERT_ICONS[alert.alertType?.toLowerCase()] ?? 'warning'}
-                  message={alert.message || alert.title}
-                />
-              </View>
-            ))
-          : null}
-
-        {canWork && nextTask ? (
-          <View style={styles.everydayNextWrap}>
-            <Text style={[styles.everydayNextLabel, { color: colors.textSecondary }]}>
-              {t('fields:everydayDoHere', { defaultValue: 'What to do here today' })}
-            </Text>
-            <Button
-              title={nextTask.title}
-              onPress={() => navigation.navigate('TaskDetail', { taskId: nextTask.id })}
-              fullWidth
-              style={{ minHeight: Math.max(tapMin + 8, 56) }}
-            />
-          </View>
-        ) : null}
-
-        {harvestCard}
-
-        {costsCard}
-
-        {showWidget('peopleStrip') ? (
-          <View style={styles.everydayNextWrap}>
-            <WhoWorksHere people={people} />
-          </View>
-        ) : null}
-
-        {hasMappableLocation ? (
-          <View style={styles.everydayNextWrap}>
-            <Button
-              title={t('fields:openMapsDirections')}
-              onPress={openMaps}
-              fullWidth
-              style={{ minHeight: Math.max(tapMin + 8, 56) }}
-            />
-          </View>
-        ) : null}
-
-        {showWidget('fieldMapDefault') ? (
-          <View style={styles.heroMapBlock}>
-            <FieldPreviewHero
-              field={field}
-              mapHeight={160}
-              onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
-            />
-          </View>
-        ) : null}
-
-        {showWidget('nextTasks') ? (
-          <Section title={t('fields:upcomingTasks')}>
-            {agendaTasks.length > 0 ? (
-              agendaTasks.map((task) => (
-                <AgendaTaskRow
-                  key={task.id}
-                  task={task}
-                  onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
-                />
-              ))
-            ) : (
-              <EmptyState
-                icon={<Ionicons name="clipboard-outline" size={32} color={colors.textTertiary} />}
-                title={t('fields:noOpenTasks')}
-                description={t('fields:noOpenTasksHint')}
-              />
-            )}
-          </Section>
-        ) : null}
-
-        <View style={styles.everydayPeekWrap}>
-          {!intelligencePeek ? (
-            <Button
-              title={t('settings:experience.peekMoreAboutField')}
-              variant="outline"
-              onPress={() => {
-                setIntelligencePeek(true);
-                void recordIntelligenceOpen();
-              }}
-              fullWidth
-              style={{ minHeight: tapMin }}
-            />
-          ) : (
-            <>
-              {field.boundary ? <FieldIntelligenceCard fieldId={field.id} /> : null}
-              {hasMappableLocation ? (
-                <Button
-                  title={t('fields:openMapsDirections')}
-                  variant="outline"
-                  onPress={openMaps}
-                  fullWidth
-                  style={{ marginTop: spacing.sm, minHeight: tapMin }}
-                />
-              ) : null}
-              {canOwn ? (
-                <Button
-                  title={t('fields:editField')}
-                  variant="ghost"
-                  onPress={() => navigation.navigate('FieldForm', { fieldId })}
-                  fullWidth
-                  style={{ marginTop: spacing.sm, minHeight: tapMin }}
-                />
-              ) : null}
-              <FullPictureOnrampBanner />
-            </>
-          )}
-        </View>
+      <ScreenLayout padded>
+        <EmptyState
+          title={error || t('fields:form.failedLoad')}
+          action={{ label: t('fields:title'), onPress: () => navigation.navigate('Main', { screen: 'Fields' }) }}
+        />
       </ScreenLayout>
     );
   }
 
   return (
-    <ScreenLayout scroll scrollEnabled={parentScrollEnabled} contentContainerStyle={styles.content}>
-      <OfflineBanner />
-      <FieldDetailHeader
-        field={field}
-        currentYear={currentYear}
-        currentStage={currentStage}
-        openTaskCount={openTasks.length}
-        overdueCount={overdueCount}
-        health={health}
-      />
-
-      <View style={styles.heroMapBlock}>
-        <FieldPreviewHero
-          field={field}
-          mapHeight={300}
-          onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
-        />
+    <ScreenLayout>
+      <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
+        <View style={styles.identityRow}>
+          <FieldIdentity field={field} size="page" />
+          <FieldMoreMenu
+            field={field}
+            canOwn={Boolean(canOwn)}
+            onDelete={canOwn ? handleDelete : undefined}
+            onOpenChronologio={() => setMode('chronologio')}
+          />
+        </View>
+        {capture ? (
+          <Button
+            title={t('capture:cta')}
+            size="small"
+            onPress={() => capture.openCapture({ fieldId: field.id })}
+            style={{ alignSelf: 'flex-start', marginTop: spacing.sm }}
+          />
+        ) : null}
+        <View style={[styles.modeSwitch, { backgroundColor: colors.surfaceMuted }]}>
+          {(['overview', 'chronologio'] as const).map((next) => (
+            <Pressable
+              key={next}
+              onPress={() => setMode(next)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: mode === next }}
+              style={[
+                styles.modeBtn,
+                {
+                  minHeight: tapMin,
+                  backgroundColor: mode === next ? colors.surface : 'transparent',
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  fontWeight: '700',
+                  color: mode === next ? colors.textPrimary : colors.textSecondary,
+                }}
+              >
+                {next === 'overview' ? t('fields:detail.overview') : t('fields:detail.timeline')}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.toolbarWrap}>
-        <FieldDetailToolbar actions={toolbarActions} />
-      </View>
-
-      {harvestCard}
-
-      {costsCard}
-
-      {showWidget('peopleStrip') ? (
-        <View style={styles.everydayNextWrap}>
-          <WhoWorksHere people={people} />
+      {mode === 'chronologio' ? (
+        <View style={styles.flex}>
+          <ChronologioScreen fieldId={field.id} embedded />
         </View>
-      ) : null}
-
-      {overdueCount > 0 ? (
-        <View style={styles.bannerWrap}>
-          <AlertBanner
-            variant="error"
-            icon="alert-circle"
-            message={t('fields:overdueOnField', { count: overdueCount })}
-            onPress={() => goTab('Tasks')}
+      ) : (
+        <ScrollView contentContainerStyle={styles.overview} showsVerticalScrollIndicator={false}>
+          <FieldTodaySummary
+            fieldId={field.id}
+            tasks={tasks}
+            onOpenWeather={() => navigation.navigate('FieldWeatherVegetation', { fieldId: field.id })}
           />
-        </View>
-      ) : null}
-
-      {alerts.map((alert) => (
-        <View key={alert.id} style={styles.bannerWrap}>
-          <AlertBanner
-            variant={SEVERE_ALERT_LEVELS.includes(alert.severity?.toLowerCase()) ? 'error' : 'warning'}
-            icon={ALERT_ICONS[alert.alertType?.toLowerCase()] ?? 'warning'}
-            message={`${alert.title}: ${alert.message}`}
+          <FieldAttentionCard
+            entries={recentEntries}
+            onSeeObservation={() => setMode('chronologio')}
           />
-        </View>
-      ))}
-
-      {field.boundary && showWidget('fieldIntelligence') ? (
-        <Section title={t('fields:intelligence.title')}>
-          <FieldIntelligenceCard fieldId={field.id} />
-        </Section>
-      ) : null}
-
-      <FullPictureOnrampBanner />
-
-      <Section
-        title={t('fields:upcomingTasks')}
-        actionLabel={tasks.length > 0 ? t('fields:viewAllTasks', { count: tasks.length }) : undefined}
-        onActionPress={tasks.length > 0 ? () => goTab('Tasks') : undefined}
-      >
-        {agendaTasks.length > 0 ? (
-          agendaTasks.map(task => (
-            <AgendaTaskRow
-              key={task.id}
-              task={task}
-              onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
-            />
-          ))
-        ) : (
-          <EmptyState
-            icon={<Ionicons name="clipboard-outline" size={32} color={colors.textTertiary} />}
-            title={t('fields:noOpenTasks')}
-            description={t('fields:noOpenTasksHint')}
-            action={
-              canOwn || canWork
-                ? {
-                    label: t('tasks:createTask'),
-                    onPress: () => navigation.navigate('CreateTask', { fieldId }),
-                  }
-                : undefined
-            }
+          <FieldFinanceSummary
+            summary={costSummary}
+            onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id })}
           />
-        )}
-      </Section>
-
-      {isFullPicture ? (
-      <Section title={t('fields:lifecycle')}>
-        <Card>
-          <View style={styles.lifecycleHeader}>
-            <Text style={[styles.lifecycleTitle, { color: colors.textPrimary }]}>
-              {t(`common:lifecycleYear.${currentYear}`)}
-            </Text>
-            <Text style={[styles.lifecycleSub, { color: colors.textSecondary }]}>
-              {t('fields:currentStage')}: {t(`common:lifecycleStage.${normalizeStage(currentStage)}`)}
-            </Text>
-          </View>
-          <LifecycleStageStepper currentStage={currentStage} />
-          {lifecycle ? (
-            <View style={[styles.dateRow, { borderTopColor: colors.borderLight }]}>
-              <DateBlock
-                label={t('fields:cycleStart')}
-                value={formatLocaleDate(new Date(lifecycle.cycleStartDate), i18n.language)}
-                colors={colors}
-              />
-              {lifecycle.lastProgressionDate ? (
-                <DateBlock
-                  label={t('fields:lastProgression')}
-                  value={formatLocaleDate(new Date(lifecycle.lastProgressionDate), i18n.language)}
-                  colors={colors}
-                />
-              ) : null}
-            </View>
-          ) : (
-            <Text style={[styles.noLifecycle, { color: colors.textSecondary }]}>
-              {t('fields:noLifecycleYet')}
-            </Text>
-          )}
-        </Card>
-      </Section>
-      ) : null}
-
-      {isFullPicture && hasCadastre && showWidget('cadastreDetails') ? (
-        <View style={styles.cadastreSection}>
-          <Pressable
-            onPress={() => setCadastreExpanded((v) => !v)}
-            style={[styles.cadastreHeader, { borderColor: colors.borderLight, minHeight: tapMin }]}
-          >
-            <Text style={[styles.cadastreHeaderText, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
-              {t('fields:addField.cadastre.referenceTitle')}
-            </Text>
-            <Ionicons
-              name={cadastreExpanded ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={colors.textSecondary}
-            />
-          </Pressable>
-          {cadastreExpanded && field.greekCadastre ? (
-            <GreekCadastreInfoCard cadastre={field.greekCadastre} hideTitle />
-          ) : null}
-        </View>
-      ) : null}
-
-      {isFullPicture ? (
-      <Section title={t('fields:fieldDetails')}>
-        <Card>
-          <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={field.name} />
-          {field.status ? (
-            <InfoRow icon="flag-outline" label={t('fields:status')} value={field.status} />
-          ) : null}
-          {field.variety ? (
-            <InfoRow icon="nutrition-outline" label={t('fields:variety')} value={field.variety} />
-          ) : null}
-          <InfoRow icon="resize-outline" label={t('fields:area')} value={formatFieldArea(field)} />
-          {field.groundType ? (
-            <InfoRow icon="earth-outline" label={t('fields:groundType')} value={field.groundType} />
-          ) : null}
-          <InfoRow
-            icon="water-outline"
-            label={t('fields:irrigation')}
-            value={field.irrigationStatus ? t('fields:irrigated') : t('fields:dry')}
-          />
-          {field.treeAge ? (
-            <InfoRow
-              icon="time-outline"
-              label={t('fields:treeAge')}
-              value={`${field.treeAge} ${t('fields:yearsUnit')}`}
-            />
-          ) : null}
-          {fieldCenter ? (
-            <InfoRow
-              icon="location-outline"
-              label={t('fields:coordinates')}
-              value={`${fieldCenter.latitude.toFixed(4)}, ${fieldCenter.longitude.toFixed(4)}`}
-            />
-          ) : null}
-          <InfoRow
-            icon="calendar-outline"
-            label={t('fields:created')}
-            value={formatLocaleDate(new Date(field.createdAt), i18n.language)}
-          />
-          <InfoRow
-            icon="refresh-outline"
-            label={t('fields:lastUpdated')}
-            value={formatLocaleDate(new Date(field.updatedAt), i18n.language)}
-            showDivider={false}
-          />
-        </Card>
-      </Section>
-      ) : null}
-
-      {isFullPicture && activities.length > 0 ? (
-        <Section title={t('fields:activity')}>
-          <ActivityTimeline activities={activities} fieldNames={{ [field.id]: field.name }} />
-        </Section>
-      ) : null}
-
-      {isFullPicture && canOwn ? (
-        <Section title={t('fields:manageField')}>
-          <View style={styles.ownerActions}>
-            {!lifecycle ? (
-              <Button
-                title={t('fields:initializeLifecycle')}
-                onPress={() => handleLifecycleAction('init')}
-                loading={lifecycleLoading}
-              />
-            ) : (
-              <>
-                <Button
-                  title={t('fields:advanceStage')}
-                  onPress={() => handleLifecycleAction('advance')}
-                  loading={lifecycleLoading}
-                />
-                <Button
-                  title={t('fields:revertStage')}
-                  variant="outline"
-                  onPress={() => handleLifecycleAction('revert')}
-                  loading={lifecycleLoading}
-                />
-                <Button
-                  title={t('fields:toggleYear')}
-                  variant="outline"
-                  onPress={() => handleLifecycleAction('progress')}
-                  loading={lifecycleLoading}
-                />
-              </>
-            )}
-            <Button
-              title={t('tasks:createTask')}
-              variant="outline"
-              onPress={() => navigation.navigate('CreateTask', { fieldId })}
-            />
-          </View>
-        </Section>
-      ) : null}
+          <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setMode('chronologio')} />
+          <FieldDetailMap field={field} height={220} showDataLayers={false} />
+          <FieldFacts field={field} />
+        </ScrollView>
+      )}
     </ScreenLayout>
   );
 };
 
-const DateBlock = ({
-  label,
-  value,
-  colors,
-}: {
-  label: string;
-  value: string;
-  colors: ReturnType<typeof useTheme>['colors'];
-}) => (
-  <View style={styles.dateBlock}>
-    <Text style={[styles.dateLabel, { color: colors.textTertiary }]}>{label}</Text>
-    <Text style={[styles.dateValue, { color: colors.textPrimary }]}>{value}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  content: { paddingBottom: spacing['3xl'] },
-  centered: { flex: 1, justifyContent: 'center' },
-  bannerWrap: { paddingHorizontal: spacing.base, marginBottom: spacing.xs },
-  everydayHeader: {
+  flex: { flex: 1 },
+  header: {
     paddingHorizontal: spacing.base,
     paddingTop: spacing.sm,
-    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  everydayTitle: {
-    ...typography.styles.h2,
-    fontWeight: '800',
-  },
-  everydaySeason: {
-    ...typography.styles.body,
-    marginTop: 4,
-  },
-  everydayNextWrap: {
-    paddingHorizontal: spacing.base,
-    marginBottom: spacing.md,
-  },
-  everydayNextLabel: {
-    ...typography.styles.caption,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: spacing.sm,
-  },
-  everydayPeekWrap: {
-    paddingHorizontal: spacing.base,
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  heroMapBlock: {
-    paddingHorizontal: spacing.base,
-    marginBottom: spacing.sm,
-  },
-  toolbarWrap: {
-    paddingHorizontal: spacing.base,
-    marginBottom: spacing.md,
-  },
-  cadastreSection: {
-    paddingHorizontal: spacing.base,
-    marginBottom: spacing.md,
-  },
-  cadastreHeader: {
+  identityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  modeSwitch: {
     flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: spacing.md,
+    gap: 4,
+  },
+  modeBtn: {
+    flex: 1,
+    borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    marginBottom: spacing.sm,
+    justifyContent: 'center',
   },
-  cadastreHeaderText: {
-    ...typography.styles.body,
-    fontWeight: '700',
-  },
-  lifecycleHeader: { marginBottom: spacing.sm },
-  lifecycleTitle: { ...typography.styles.body, fontWeight: '700' },
-  lifecycleSub: { ...typography.styles.caption, marginTop: 2 },
-  dateRow: {
-    flexDirection: 'row',
+  overview: {
+    padding: spacing.base,
     gap: spacing.md,
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
+    paddingBottom: spacing['3xl'],
   },
-  dateBlock: { flex: 1 },
-  dateLabel: { ...typography.styles.caption, fontSize: 10 },
-  dateValue: { ...typography.styles.bodySmall, fontWeight: '600', marginTop: 2 },
-  noLifecycle: { ...typography.styles.caption, marginTop: spacing.sm },
-  ownerActions: { gap: spacing.sm },
 });
 
 export default FieldDetailScreen;

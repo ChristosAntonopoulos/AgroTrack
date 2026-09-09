@@ -4,7 +4,7 @@ set -euo pipefail
 
 REPO_ROOT="${BUILD_SOURCESDIRECTORY:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APK_FILENAME="${APK_FILENAME:-olivecycle-alpha.apk}"
+APK_FILENAME="${APK_FILENAME:-oleachron-alpha.apk}"
 STAGED_APK="${REPO_ROOT}/frontend/public/downloads/${APK_FILENAME}"
 
 export BUILD_SOURCESDIRECTORY="${REPO_ROOT}"
@@ -17,7 +17,7 @@ chmod +x "${SCRIPT_DIR}/setup-java.sh" \
 echo "=== Build + stage APK (repo: ${REPO_ROOT}) ==="
 "${SCRIPT_DIR}/build-android-apk.sh"
 
-CANONICAL_APK="${REPO_ROOT}/mobile/agrotrack-mobile.apk"
+CANONICAL_APK="${REPO_ROOT}/mobile/oleachron-mobile.apk"
 if [ ! -f "${CANONICAL_APK}" ]; then
   echo "ERROR: Build finished but APK missing at ${CANONICAL_APK}"
   ls -la "${REPO_ROOT}/mobile/" || true

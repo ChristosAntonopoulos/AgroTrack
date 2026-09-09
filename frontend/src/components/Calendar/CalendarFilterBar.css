@@ -44,7 +44,7 @@
   border-color: var(--color-border-hover);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .cal-filter-bar-item {
     flex: 1 1 calc(50% - var(--spacing-sm));
     min-width: 0;

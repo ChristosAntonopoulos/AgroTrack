@@ -1,21 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import BrandLogo from '../ui/BrandLogo';
-import { typography, spacing, radii, createElevation } from '../../theme';
+import { typography, spacing, createElevation } from '../../theme';
 
 const AppHeader = () => {
   const { user } = useAuth();
   const { colors, isDark, fontScaleMultiplier } = useTheme();
-  const { t } = useTranslation('common');
-
-  const roleLabel = user?.role
-    ? t(`roles.${user.role}`, { defaultValue: user.role })
-    : '';
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
   return (
     <SafeAreaView
@@ -37,40 +32,8 @@ const AppHeader = () => {
       ) : null}
 
       <View style={styles.inner}>
-        <View style={styles.left}>
-          <View
-            style={[
-              styles.logoWrap,
-              {
-                backgroundColor: isDark
-                  ? colors.headerAccent + '28'
-                  : colors.headerForeground + '20',
-                borderColor: isDark ? colors.headerAccent + '50' : 'transparent',
-              },
-            ]}
-          >
-            <BrandLogo size={24} />
-          </View>
-          <View>
-            <Text
-              style={[
-                styles.title,
-                { color: colors.headerForeground, fontSize: 17 * fontScaleMultiplier },
-              ]}
-            >
-              {t('appName')}
-            </Text>
-            <Text
-              style={[
-                styles.tagline,
-                { color: colors.headerForegroundMuted, fontSize: 10 * fontScaleMultiplier },
-              ]}
-            >
-              {t('tagline')}
-            </Text>
-          </View>
-        </View>
-        {roleLabel ? (
+        <BrandLogo variant="horizontal" tone="on-dark" size={22} />
+        {displayName ? (
           <View
             style={[
               styles.badge,
@@ -86,7 +49,7 @@ const AppHeader = () => {
             <Text
               style={[styles.badgeText, { color: colors.headerForeground, fontSize: 10 * fontScaleMultiplier }]}
             >
-              {roleLabel}
+              {displayName}
             </Text>
           </View>
         ) : null}
@@ -115,30 +78,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     minHeight: 52,
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.sm,
-  },
-  logoWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  title: {
-    ...typography.styles.h3,
-    fontWeight: '700',
-    fontSize: 17,
-    letterSpacing: -0.3,
-  },
-  tagline: {
-    ...typography.styles.caption,
-    fontSize: 10,
-    marginTop: -2,
   },
   badge: {
     flexDirection: 'row',
@@ -148,13 +88,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
+    maxWidth: '42%',
   },
   badgeText: {
     ...typography.styles.caption,
     fontWeight: '600',
     fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.2,
   },
 });
 

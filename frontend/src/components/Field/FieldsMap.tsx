@@ -9,6 +9,8 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Field } from '../../services/fieldService';
 import { locationService, Location } from '../../services/locationService';
 import {
+  FIELD_POLYGON_HOVER_STYLE,
+  FIELD_POLYGON_SELECTED_STYLE,
   FIELD_POLYGON_STYLE,
   MapLayerType,
   SATELLITE_LABELS_TILE,
@@ -16,6 +18,9 @@ import {
   SATELLITE_TILE,
   STREET_TILE,
 } from '../../utils/mapLayers';
+import { formatFieldArea } from '../../utils/fieldGeo';
+import { getFieldShortLocation } from '../../utils/shortLocation';
+import { getFieldStatusLabel } from '../../utils/fieldDisplay';
 import './FieldsMap.css';
 
 L.Icon.Default.mergeOptions({
@@ -27,9 +32,9 @@ L.Icon.Default.mergeOptions({
 type FieldsMapProps = {
   fields: Field[];
   heightPx?: number;
+  selectedFieldId?: string;
+  onFieldSelect?: (fieldId: string) => void;
   onFieldPress?: (fieldId: string) => void;
-  onStartNextTask?: (fieldId: string) => void;
-  onReportIssue?: (fieldId: string) => void;
 };
 
 type MappableField = {
@@ -37,8 +42,6 @@ type MappableField = {
   center: [number, number];
   polygon?: [number, number][];
 };
-
-const ASSUMED_TRAVEL_SPEED_KMH = 25;
 
 const polygonCentroid = (latlngs: [number, number][]): [number, number] => {
   let latSum = 0;
@@ -87,37 +90,24 @@ const FitBounds: React.FC<{ bounds: L.LatLngBoundsExpression | null }> = ({ boun
   const map = useMap();
   useEffect(() => {
     if (bounds) {
-      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 17 });
+      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 17, animate: false });
     }
   }, [map, bounds]);
   return null;
 };
 
-const formatArea = (field: Field): string => {
-  if (field.appMeasuredAreaSqm != null && field.appMeasuredAreaSqm > 0) {
-    return `${Math.round(field.appMeasuredAreaSqm)} m²`;
-  }
-  if (field.greekCadastre?.officialAreaSqm != null) {
-    return `${Math.round(field.greekCadastre.officialAreaSqm)} m²`;
-  }
-  if (field.area > 0) {
-    return field.area < 1000 ? `${Math.round(field.area)} m²` : `${field.area} ha`;
-  }
-  return '—';
-};
-
 const FieldsMap: React.FC<FieldsMapProps> = ({
   fields,
   heightPx = 420,
+  selectedFieldId,
+  onFieldSelect,
   onFieldPress,
-  onStartNextTask,
-  onReportIssue,
 }) => {
   const { t } = useTranslation('fields');
   const mappableFields = useMemo(() => resolveMappableFields(fields), [fields]);
   const [mapLayer, setMapLayer] = useState<MapLayerType>('satellite');
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,10 +115,8 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
       try {
         const loc = await locationService.getCurrentLocation({ enableHighAccuracy: false, timeoutMs: 6000 });
         if (!cancelled) setCurrentLocation(loc);
-      } catch (e: unknown) {
-        if (!cancelled) {
-          setLocationError(e instanceof Error ? e.message : 'Failed to get current location');
-        }
+      } catch {
+        if (!cancelled) setCurrentLocation(null);
       }
     })();
     return () => {
@@ -145,83 +133,43 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
   }, [mappableFields]);
 
   const defaultCenter = mappableFields[0]?.center ?? [37.05, 21.85];
+  const selected = fields.find((f) => f.id === selectedFieldId) || null;
+
+  const selectField = (fieldId: string) => {
+    onFieldSelect?.(fieldId);
+  };
 
   if (mappableFields.length === 0) {
     return (
       <div className="fields-map-empty">
-        <div className="fields-map-empty-icon" aria-hidden>
-          🗺️
-        </div>
         <div className="fields-map-empty-title">{t('mapEmptyTitle')}</div>
         <div className="fields-map-empty-subtitle">{t('mapEmptyDescription')}</div>
       </div>
     );
   }
 
-  const renderPopup = (field: Field, distanceKm: number | null, etaMinutes: number | null) => (
-    <Popup>
-      <div className="fields-map-popup">
-        <div className="fields-map-popup-title">{field.name}</div>
-        <div className="fields-map-popup-row">
-          <strong>{t('card.area')}:</strong> {formatArea(field)}
-        </div>
-        {field.locationText ? (
-          <div className="fields-map-popup-row">
-            <strong>{t('addField.locationText')}:</strong> {field.locationText}
-          </div>
-        ) : null}
-        <div className="fields-map-popup-row">
-          <strong>Lifecycle:</strong> {field.currentLifecycleYear}
-        </div>
-        {distanceKm != null ? (
-          <div className="fields-map-popup-row">
-            <strong>Distance:</strong> {Math.round(distanceKm * 10) / 10} km
-          </div>
-        ) : null}
-        {etaMinutes != null ? (
-          <div className="fields-map-popup-row">
-            <strong>ETA:</strong> ~{etaMinutes} min
-          </div>
-        ) : null}
-
-        <div className="fields-map-popup-actions">
-          <button type="button" onClick={() => onFieldPress?.(field.id)}>
-            {t('card.view')}
-          </button>
-          {onStartNextTask ? (
-            <button type="button" onClick={() => onStartNextTask(field.id)}>
-              Start next task
-            </button>
-          ) : null}
-          {onReportIssue ? (
-            <button type="button" onClick={() => onReportIssue(field.id)}>
-              Report issue
-            </button>
-          ) : null}
-        </div>
-        {locationError ? (
-          <div className="fields-map-popup-hint">{t('mapLocationHint')}</div>
-        ) : null}
-      </div>
-    </Popup>
-  );
+  const polygonStyle = (fieldId: string) => {
+    if (fieldId === selectedFieldId) return FIELD_POLYGON_SELECTED_STYLE;
+    if (fieldId === hoveredId) return FIELD_POLYGON_HOVER_STYLE;
+    return FIELD_POLYGON_STYLE;
+  };
 
   return (
     <div className="fields-map" style={{ height: `${heightPx}px` }}>
-      <div className="fields-map-layer-toggle" role="group" aria-label="Map layer">
+      <div className="fields-map-layer-toggle" role="group" aria-label={t('mapLayers.baseLayer')}>
         <button
           type="button"
           className={`fields-map-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
           onClick={() => setMapLayer('satellite')}
         >
-          {t('addField.mapLayerSatellite')}
+          {t('mapLayerSatellite')}
         </button>
         <button
           type="button"
           className={`fields-map-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
           onClick={() => setMapLayer('street')}
         >
-          {t('addField.mapLayerStreet')}
+          {t('mapLayerStreet')}
         </button>
       </div>
 
@@ -247,48 +195,53 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         {currentLocation ? (
           <Marker position={[currentLocation.latitude, currentLocation.longitude]}>
             <Popup>
-              <strong>{t('addField.useCurrentLocation')}</strong>
+              <strong>{t('addField.useCurrentLocation', { defaultValue: t('mapLocationHint') })}</strong>
             </Popup>
           </Marker>
         ) : null}
 
         {mappableFields.map(({ field, center, polygon }) => {
-          const distanceKm =
-            currentLocation && center
-              ? locationService.calculateDistance(
-                  currentLocation.latitude,
-                  currentLocation.longitude,
-                  center[0],
-                  center[1]
-                )
-              : null;
-          const etaMinutes =
-            distanceKm != null ? Math.max(1, Math.round((distanceKm / ASSUMED_TRAVEL_SPEED_KMH) * 60)) : null;
+          const handlers = {
+            click: () => selectField(field.id),
+            mouseover: () => setHoveredId(field.id),
+            mouseout: () => setHoveredId((id) => (id === field.id ? null : id)),
+          };
 
           if (polygon?.length) {
             return (
               <Polygon
                 key={field.id}
                 positions={polygon}
-                pathOptions={FIELD_POLYGON_STYLE}
-                eventHandlers={{ click: () => onFieldPress?.(field.id) }}
-              >
-                {renderPopup(field, distanceKm, etaMinutes)}
-              </Polygon>
+                pathOptions={polygonStyle(field.id)}
+                eventHandlers={handlers}
+              />
             );
           }
 
           return (
-            <Marker
-              key={field.id}
-              position={center}
-              eventHandlers={{ click: () => onFieldPress?.(field.id) }}
-            >
-              {renderPopup(field, distanceKm, etaMinutes)}
-            </Marker>
+            <Marker key={field.id} position={center} eventHandlers={handlers} />
           );
         })}
       </MapContainer>
+
+      {selected ? (
+        <button
+          type="button"
+          className="fields-map-preview"
+          onClick={() => onFieldPress?.(selected.id)}
+        >
+          <div className="fields-map-preview-name">{selected.name}</div>
+          {getFieldShortLocation(selected) ? (
+            <div className="fields-map-preview-place">{getFieldShortLocation(selected)}</div>
+          ) : null}
+          <div className="fields-map-preview-meta">
+            {[getFieldStatusLabel(selected.status, t), selected.variety, formatFieldArea(selected)]
+              .filter(Boolean)
+              .join(' · ')}
+          </div>
+          <span className="fields-map-preview-open">{t('card.open')}</span>
+        </button>
+      ) : null}
     </div>
   );
 };

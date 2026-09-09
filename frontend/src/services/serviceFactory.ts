@@ -34,6 +34,14 @@ import { financialEntryService } from './financialEntryService';
 import { mockFinancialEntryService } from './mock/mockFinancialEntryService';
 import { harvestService } from './harvestService';
 import { mockHarvestService } from './mock/mockHarvestService';
+import { partnerService } from './partnerService';
+import { mockPartnerService } from './mock/mockPartnerService';
+import { meDashboardService } from './meDashboardService';
+import { mockMeDashboardService } from './mock/mockMeDashboardService';
+import { noteService } from './noteService';
+import { mockNoteService } from './mock/mockNoteService';
+import { chronologioService } from './chronologioService';
+import { mockChronologioService } from './mock/mockChronologioService';
 import { isMockDataEnabled } from '../config/apiConfig';
 
 const useMockData = isMockDataEnabled();
@@ -50,6 +58,12 @@ export const getReportsService = () => reportsService;
 export const getFinancialEntryService = () =>
   useMockData ? mockFinancialEntryService : financialEntryService;
 export const getHarvestService = () => (useMockData ? mockHarvestService : harvestService);
+export const getPartnerService = () => (useMockData ? mockPartnerService : partnerService);
+export const getMeDashboardService = () =>
+  useMockData ? mockMeDashboardService : meDashboardService;
+export const getNoteService = () => (useMockData ? mockNoteService : noteService);
+export const getChronologioService = () =>
+  useMockData ? mockChronologioService : chronologioService;
 
 // Export a helper to check if mock mode is active
 export const isMockMode = () => useMockData;

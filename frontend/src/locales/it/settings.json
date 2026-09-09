@@ -1,32 +1,94 @@
 {
   "title": "Impostazioni",
+  "subtitle": "Adatta OLEACHRON come ti è comodo.",
+  "autosaveHint": "Le modifiche vengono salvate automaticamente",
+  "saved": "Salvato",
+  "saveError": "Impossibile salvare.",
+  "retry": "Riprova",
+  "sections": {
+    "account": "Account",
+    "appearance": "Aspetto",
+    "locale": "Lingua e area",
+    "startup": "Avvio",
+    "technical": "Informazioni tecniche",
+    "demo": "Demo"
+  },
+  "account": {
+    "editProfile": "Modifica profilo",
+    "myServices": "I miei servizi",
+    "userId": "ID utente",
+    "appVersion": "Versione app"
+  },
+  "appearance": {
+    "theme": "Tema",
+    "themes": {
+      "system": "Automatico",
+      "light": "Chiaro",
+      "dark": "Scuro"
+    },
+    "themeHints": {
+      "system": "Segue l'impostazione del dispositivo.",
+      "light": "Usa un aspetto chiaro.",
+      "dark": "Usa un aspetto scuro."
+    },
+    "detailLevel": "Livello di dettaglio",
+    "simple": "Semplice",
+    "simpleShort": "Semplice",
+    "simpleDesc": "Mostra solo le informazioni e azioni essenziali.",
+    "full": "Completo",
+    "fullShort": "Completo",
+    "fullDesc": "Mostra più dati, strumenti e opzioni.",
+    "fontScale": "Dimensione testo",
+    "fontScales": {
+      "default": "Normale",
+      "large": "Grande",
+      "xl": "Extra grande"
+    },
+    "largeControls": "Pulsanti più grandi",
+    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile."
+  },
+  "locale": {
+    "language": "Lingua",
+    "dateFormat": "Formato data"
+  },
+  "startup": {
+    "label": "Quando apro OLEACHRON",
+    "options": {
+      "today": "Oggi",
+      "dashboard": "Dashboard",
+      "fields": "Campi",
+      "chronologio": "Cronologio"
+    }
+  },
   "profile": {
     "title": "Profilo",
     "email": "Email",
-    "role": "Ruolo",
     "userId": "ID utente"
   },
   "preferences": {
     "title": "Preferenze",
     "theme": "Tema",
     "themes": {
+      "system": "Automatico",
       "light": "Chiaro",
       "dark": "Scuro",
-      "white": "Bianco"
+      "white": "Chiaro"
     },
     "dateFormat": "Formato data",
     "dateFormats": {
-      "MM/dd/yyyy": "MM/GG/AAAA",
-      "dd/MM/yyyy": "GG/MM/AAAA",
-      "yyyy-MM-dd": "AAAA-MM-GG"
+      "MM/dd/yyyy": "09/04/2026",
+      "dd/MM/yyyy": "09/09/2026",
+      "yyyy-MM-dd": "2026-09-09",
+      "medium": "9 set 2026"
     },
-    "defaultView": "Vista predefinita",
+    "defaultView": "Quando apro OLEACHRON",
     "defaultViews": {
       "dashboard": "Dashboard",
       "fields": "Campi",
       "tasks": "Attività",
       "calendar": "Calendario",
-      "today": "Oggi"
+      "today": "Oggi",
+      "chronologio": "Cronologio"
     },
     "language": "Lingua",
     "fontScale": "Dimensione testo",
@@ -35,7 +97,7 @@
       "large": "Grande",
       "xl": "Extra grande"
     },
-    "largeControls": "Pulsanti grandi"
+    "largeControls": "Pulsanti più grandi"
   },
   "notifications": {
     "title": "Notifiche",
@@ -52,30 +114,30 @@
     "resetConfirm": "Ripristinare i dati demo? Verranno ripristinati campi, attività e assegnazioni originali."
   },
   "experience": {
-    "label": "Come appare AgroTrack",
-    "everyday": "Quotidiano",
-    "everydayShort": "Giorno",
-    "everydayDesc": "Cosa fare ora — azioni grandi, meno numeri.",
+    "label": "Livello di dettaglio",
+    "everyday": "Semplice",
+    "everydayShort": "Semplice",
+    "everydayDesc": "Mostra solo le informazioni e azioni essenziali.",
     "everydayHint": "Consigliato per la maggior parte delle persone",
-    "full": "Quadro completo",
-    "fullShort": "Pieno",
-    "fullDesc": "Mappe, satellite, suolo, analitiche e cronologia più densa.",
+    "full": "Completo",
+    "fullShort": "Completo",
+    "fullDesc": "Mostra più dati, strumenti e opzioni.",
     "fullHint": "Per agronomi e pianificazione dettagliata",
-    "chooserTitle": "Come vuoi che appaia AgroTrack?",
+    "chooserTitle": "Come vuoi che appaia Oleachron?",
     "chooserSubtitle": "Stessi campi e attività. Tu scegli la densità.",
     "chooserFooter": "Puoi cambiarlo dopo nelle Impostazioni.",
     "comfortTitle": "Quanto grande deve essere il testo?",
     "comfortSubtitle": "Puoi cambiarlo in qualsiasi momento. Grande aiuta all'aperto.",
     "comfortSkip": "Mantieni dimensione normale",
-    "onrampTitle": "Vuoi il quadro completo?",
+    "onrampTitle": "Vuoi più dettaglio?",
     "onrampBody": "Hai aperto i dettagli del campo alcune volte. Passa quando vuoi mappe e strumenti più densi.",
-    "onrampSwitch": "Passa al Quadro completo",
+    "onrampSwitch": "Passa a Completo",
     "onrampDismiss": "Non ora",
     "peekMoreAboutField": "Altro su questo campo",
-    "switchForDetails": "Passa al Quadro completo per i dettagli",
+    "switchForDetails": "Passa a Completo per i dettagli",
     "setupPhoneTitle": "Configura questo telefono",
-    "setupPhoneBody": "Quotidiano · Testo grande · Pulsanti grandi · Oggi è la home"
+    "setupPhoneBody": "Semplice · Testo grande · Pulsanti più grandi · Lo sguardo del giorno è la home"
   },
-  "saveButton": "Salva preferenze",
-  "saved": "Preferenze salvate!"
+  "saveButton": "Salva modifiche",
+  "savedLegacy": "Modifiche salvate"
 }

@@ -14,12 +14,12 @@
 
 - [Business Plan](./Business-Plan.md) — η περίληψη μίας σελίδας για ολόκληρη την επιχείρηση
 - [Problem Statement](./Problem-Statement.md) — το πρόβλημα του πελάτη με δικές του λέξεις
-- [Solution](./Solution.md) — πώς το AgroTrack το λύνει
+- [Solution](./Solution.md) — πώς το Oleachron το λύνει
 - [Target Customers](./Target-Customers.md) — ποιους εξυπηρετούμε πρώτα
 - [Customer Segments](./Customer-Segments.md) — η ανάλυση της αγοράς
 - [Market Research](./Market-Research.md) — τι ξέρουμε για το μέγεθος και το σχήμα της αγοράς
 - [Competitor Research](./Competitor-Research.md) — άμεσοι, έμμεσοι και ανταγωνιστές του status quo
-- [Business Model](./Business-Model.md) — πώς βγάζει χρήμα το AgroTrack
+- [Business Model](./Business-Model.md) — πώς βγάζει χρήμα το Oleachron
 - [Pricing Strategy](./Pricing-Strategy.md) — επίπεδα, υποθέσεις και δοκιμές
 - [Go To Market Strategy](./Go-To-Market-Strategy.md) — πώς φτάνουμε στους πελάτες
 - [Sales Strategy](./Sales-Strategy.md) — πώς μετατρέπουμε το ενδιαφέρον σε έσοδα

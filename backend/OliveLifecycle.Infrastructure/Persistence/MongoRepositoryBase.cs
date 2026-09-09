@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Infrastructure.MongoDB;
@@ -25,6 +26,11 @@ public abstract class MongoRepositoryBase<TDocument, TEntity> where TEntity : Ba
 
     public virtual async Task<TEntity> CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(entity.Id))
+        {
+            entity.Id = ObjectId.GenerateNewId().ToString();
+        }
+
         var document = ToDocument(entity);
         await Collection.InsertOneAsync(document, cancellationToken: cancellationToken);
         return ToEntity(document);

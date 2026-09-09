@@ -5,8 +5,8 @@ function Get-JavaMajorVersion([string]$JdkPath) {
   $java = Join-Path $JdkPath 'bin\java.exe'
   if (-not (Test-Path $java)) { return 0 }
 
-  $errFile = Join-Path $env:TEMP "agrotrack-java-ver-$PID.txt"
-  $outFile = Join-Path $env:TEMP "agrotrack-java-out-$PID.txt"
+  $errFile = Join-Path $env:TEMP "oleachron-java-ver-$PID.txt"
+  $outFile = Join-Path $env:TEMP "oleachron-java-out-$PID.txt"
   try {
     foreach ($f in @($errFile, $outFile)) {
       if (Test-Path $f) { Remove-Item $f -Force }

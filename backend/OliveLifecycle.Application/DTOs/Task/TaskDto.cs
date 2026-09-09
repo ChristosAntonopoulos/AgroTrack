@@ -11,6 +11,8 @@ public class TaskDto
     public string LifecycleYear { get; set; } = "low";
     public string? HarvestPhase { get; set; }
     public string? AssignedTo { get; set; }
+    public string? PartnerUserId { get; set; }
+    public string? ServiceContactRequestId { get; set; }
     public string Status { get; set; } = "pending";
     public DateTime? ScheduledStart { get; set; }
     public DateTime? ScheduledEnd { get; set; }

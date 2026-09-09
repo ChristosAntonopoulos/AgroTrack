@@ -60,7 +60,11 @@ export const harvestJobType = (task: Task): string =>
 export const isFieldInHarvest = (field?: Field | null): boolean =>
   normalizeStage(field?.currentLifecycleStage) === 'harvest';
 
-export const currentHarvestSeason = (now = new Date()): string => String(now.getFullYear());
+export const currentHarvestSeason = (now = new Date()): string => {
+  const month = now.getMonth() + 1;
+  const year = month >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+  return String(year);
+};
 
 export const formatKg = (kg: number): string =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(kg);

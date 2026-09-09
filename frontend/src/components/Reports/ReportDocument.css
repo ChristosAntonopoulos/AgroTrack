@@ -20,7 +20,7 @@
   align-items: flex-start;
   padding-bottom: 1.25rem;
   margin-bottom: 1.5rem;
-  border-bottom: 2px solid #2d5016;
+  border-bottom: 2px solid #2E4A2E;
 }
 
 .report-doc-brand {
@@ -37,7 +37,7 @@
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
-  color: #2d5016;
+  color: #2E4A2E;
 }
 
 .report-doc-brand-text p {
@@ -74,7 +74,7 @@
   gap: 0.5rem;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #2d5016;
+  color: #2E4A2E;
   margin: 0 0 0.85rem;
   padding-bottom: 0.4rem;
   border-bottom: 1px solid #e5e7eb;
@@ -134,7 +134,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   background: #e8f0e0;
-  color: #2d5016;
+  color: #2E4A2E;
 }
 
 .report-badge-oil {
@@ -197,7 +197,7 @@
 .report-metric-value {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #2d5016;
+  color: #2E4A2E;
   line-height: 1.2;
 }
 
@@ -266,7 +266,7 @@
 
 .report-table th {
   background: #f0f4ec;
-  color: #2d5016;
+  color: #2E4A2E;
   font-weight: 700;
   text-align: left;
   padding: 0.65rem 0.85rem;
@@ -295,7 +295,7 @@
 
 .report-table .highlight-cell {
   font-weight: 700;
-  color: #2d5016;
+  color: #2E4A2E;
 }
 
 /* Pest pressure badges in table */
@@ -359,7 +359,7 @@
 
 .report-pl-card.income .report-pl-card-value { color: #16a34a; }
 .report-pl-card.expense .report-pl-card-value { color: #dc2626; }
-.report-pl-card.profit .report-pl-card-value { color: #2d5016; }
+.report-pl-card.profit .report-pl-card-value { color: #2E4A2E; }
 
 .report-pl-card-label {
   font-size: 0.72rem;
@@ -498,7 +498,7 @@
   min-width: 28px;
 }
 
-.report-bar-fill.labor { background: #2d5016; }
+.report-bar-fill.labor { background: #2E4A2E; }
 .report-bar-fill.fertilizer { background: #4a7c2a; }
 .report-bar-fill.harvest { background: #6b9a3f; }
 .report-bar-fill.irrigation { background: #8b9a46; }

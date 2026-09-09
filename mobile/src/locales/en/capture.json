@@ -1,0 +1,55 @@
+{
+  "cta": "Record",
+  "title": "Record",
+  "whatToRecord": "What do you want to record?",
+  "types": {
+    "observation": { "title": "Observation", "description": "A note or photos from the grove" },
+    "work": { "title": "Work", "description": "Pruning, spraying, fertilizing…" },
+    "expense": { "title": "Expense", "description": "Labor, materials, fuel…" },
+    "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" }
+  },
+  "fieldLabel": "Grove",
+  "fieldPrompt": "Which grove?",
+  "dateLabel": "When",
+  "more": "More details",
+  "less": "Less",
+  "save": "Save",
+  "saving": "Saving…",
+  "back": "Back",
+  "scheduleLater": "Schedule for later",
+  "takePhoto": "Take photo",
+  "chooseLibrary": "Choose from library",
+  "observation": {
+    "placeholder": "What did you notice?",
+    "addPhoto": "Add photo",
+    "saved": "Observation recorded."
+  },
+  "work": {
+    "whatWork": "What work was done?",
+    "optionalCost": "Cost (optional)",
+    "optionalNote": "Note (optional)",
+    "saved": "Work recorded."
+  },
+  "expense": {
+    "amount": "Amount",
+    "category": "Category",
+    "description": "Description (optional)",
+    "saved": "Expense recorded."
+  },
+  "harvest": {
+    "olives": "Olives (kg)",
+    "oil": "Oil (kg)",
+    "yield": "Yield",
+    "mill": "Mill",
+    "notes": "Notes",
+    "saved": "Harvest recorded."
+  },
+  "errors": {
+    "fieldRequired": "Choose a grove.",
+    "observationEmpty": "Add a note or a photo.",
+    "workTypeRequired": "Choose the work that was done.",
+    "amountRequired": "Enter an amount.",
+    "oliveRequired": "Enter olive kilograms.",
+    "saveFailed": "Could not save. Try again."
+  }
+}

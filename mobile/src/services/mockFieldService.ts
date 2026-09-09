@@ -93,4 +93,33 @@ export const mockFieldService = {
   getProducers: async (_fieldId: string): Promise<string[]> => [],
   assignProducer: async (): Promise<void> => { await simulateDelay(); },
   unassignProducer: async (): Promise<void> => { await simulateDelay(); },
+
+  importGreekCadastre: async () => {
+    await simulateDelay();
+    const created = await mockFieldService.createField({
+      name: 'Cadastre draft',
+      area: 0,
+      status: 'NeedsBoundaryConfirmation',
+    });
+    return {
+      draftFieldId: created.id,
+      suggestedName: 'Cadastre draft',
+      greekCadastre: { kaek: '123456789012 / 0 / 0', source: 'Mock' },
+      warnings: [] as string[],
+      missingRequiredConfirmation: [] as string[],
+      duplicateKaekFieldIds: [] as string[],
+    };
+  },
+
+  validateArea: async (id: string) => {
+    await simulateDelay();
+    const field = mockFields.find((f) => f.id === id);
+    return {
+      appMeasuredAreaSqm: field?.area ?? 0,
+      officialAreaSqm: undefined,
+      severity: 'Ok' as const,
+      message: '',
+      warnings: [] as string[],
+    };
+  },
 };

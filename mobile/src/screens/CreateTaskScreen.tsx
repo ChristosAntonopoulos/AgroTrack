@@ -27,6 +27,7 @@ import InfoRow from '../components/ui/InfoRow';
 import LoadingSpinner from '../components/LoadingSpinner';
 import TaskWizardStepIndicator, { TaskWizardStep } from '../components/tasks/TaskWizardStepIndicator';
 import { formatFieldArea } from '../utils/fieldGeo';
+import { getFieldShortLocation } from '../utils/shortLocation';
 import { getTaskCategoryColor } from '../utils/calendarCategoryColors';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
@@ -353,9 +354,9 @@ const CreateTaskScreen = () => {
                     <Text style={[styles.fieldName, { color: colors.textPrimary }]} numberOfLines={1}>
                       {f.name}
                     </Text>
-                    {f.locationText ? (
+                    {getFieldShortLocation(f) ? (
                       <Text style={[styles.fieldMeta, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {f.locationText}
+                        {getFieldShortLocation(f)}
                       </Text>
                     ) : null}
                     <Text style={[styles.fieldMeta, { color: colors.textTertiary }]}>

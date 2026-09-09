@@ -38,7 +38,7 @@ const BasicFieldDetailsStep: React.FC<Props> = ({ formData, kaekInput, onChange,
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor="locationText">{t('addField.locationText')}</label>
+          <label htmlFor="locationText">{t('locationLabel')}</label>
           <input
             type="text"
             id="locationText"
