@@ -8,21 +8,23 @@ trigger:
   - master
   - main
 
+# Manual run (Pipelines → Run pipeline): check the boxes you want.
+# CI on main uses these defaults — website + API, no APK.
 parameters:
-  - name: buildMobileApk
-    displayName: 'Build Android APK from mobile/ (Gradle, no EAS) and serve from /downloads'
-    type: boolean
-    default: true
-
   - name: deployBackend
-    displayName: 'Deploy backend to Kubernetes'
+    displayName: 'Deploy backend (API)'
     type: boolean
     default: true
 
   - name: deployFrontend
-    displayName: 'Deploy frontend to Kubernetes'
+    displayName: 'Deploy frontend (website)'
     type: boolean
     default: true
+
+  - name: buildMobileApk
+    displayName: 'Also build and publish Android APK to /downloads'
+    type: boolean
+    default: false
 
 variables:
   # Library variable group (Pipelines → Library → Agrotrack-Secrets).
