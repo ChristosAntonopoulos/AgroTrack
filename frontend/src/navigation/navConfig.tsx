@@ -20,7 +20,7 @@ import { settingsService, pathForDefaultView } from '../services/settingsService
 
 export type AppRole = 'FieldOwner' | 'Producer' | 'Agronomist' | 'Administrator' | 'ServiceProvider' | '';
 
-export type NavSectionId = 'command' | 'work' | 'operations' | 'insights' | 'compliance' | 'account';
+export type NavSectionId = 'primary' | 'secondary' | 'account';
 
 export type NavSection = {
   id: NavSectionId;
@@ -30,6 +30,7 @@ export type NavSection = {
 export type NavItem = {
   path: string;
   labelKey: string;
+  mobileLabelKey?: string;
   icon: React.ReactNode;
   roles: AppRole[];
   section: NavSectionId;
@@ -39,36 +40,19 @@ export type NavItem = {
 };
 
 export const navSections: NavSection[] = [
-  { id: 'command', labelKey: 'sections.command' },
-  { id: 'work', labelKey: 'sections.work' },
-  { id: 'operations', labelKey: 'sections.operations' },
-  { id: 'insights', labelKey: 'sections.insights' },
-  { id: 'compliance', labelKey: 'sections.compliance' },
+  { id: 'primary', labelKey: 'sections.primary' },
+  { id: 'secondary', labelKey: 'sections.secondary' },
   { id: 'account', labelKey: 'sections.account' },
 ];
 
 export const navItems: NavItem[] = [
   {
-    path: '/dashboard',
-    labelKey: 'items.dashboard',
-    icon: <Home />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
-    section: 'command',
-  },
-  {
     path: '/today',
     labelKey: 'items.today',
+    mobileLabelKey: 'items.todayMobile',
     icon: <Route />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
-    section: 'work',
-    mobilePrimary: true,
-  },
-  {
-    path: '/fields',
-    labelKey: 'items.fields',
-    icon: <Layers />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist'],
-    section: 'operations',
+    section: 'primary',
     mobilePrimary: true,
   },
   {
@@ -76,58 +60,73 @@ export const navItems: NavItem[] = [
     labelKey: 'items.chronologio',
     icon: <BookOpen />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
-    section: 'work',
+    section: 'primary',
+    mobilePrimary: true,
+  },
+  {
+    path: '/fields',
+    labelKey: 'items.fields',
+    icon: <Layers />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist'],
+    section: 'primary',
+    mobilePrimary: true,
   },
   {
     path: '/tasks',
     labelKey: 'items.tasks',
     icon: <CheckSquare />,
     roles: ['FieldOwner', 'Producer', 'Agronomist'],
-    section: 'operations',
+    section: 'primary',
     mobilePrimary: true,
-  },
-  {
-    path: '/partners',
-    labelKey: 'items.partners',
-    icon: <Handshake />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
-    section: 'operations',
-    mobilePrimary: true,
-  },
-  {
-    path: '/money',
-    labelKey: 'items.money',
-    icon: <Wallet />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
-    section: 'operations',
-  },
-  {
-    path: '/calendar',
-    labelKey: 'items.calendar',
-    icon: <Calendar />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
-    section: 'operations',
   },
   {
     path: '/this-harvest',
     labelKey: 'items.thisHarvest',
     icon: <Wheat />,
     roles: ['FieldOwner', 'Administrator'],
-    section: 'operations',
+    section: 'primary',
+  },
+  {
+    path: '/money',
+    labelKey: 'items.money',
+    icon: <Wallet />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
+    section: 'primary',
+  },
+  {
+    path: '/partners',
+    labelKey: 'items.partners',
+    icon: <Handshake />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
+    section: 'secondary',
   },
   {
     path: '/reports',
     labelKey: 'items.reports',
     icon: <FileText />,
     roles: ['FieldOwner', 'Administrator'],
-    section: 'insights',
+    section: 'secondary',
+  },
+  {
+    path: '/dashboard',
+    labelKey: 'items.dashboard',
+    icon: <Home />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
+    section: 'primary',
+  },
+  {
+    path: '/calendar',
+    labelKey: 'items.calendar',
+    icon: <Calendar />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
+    section: 'secondary',
   },
   {
     path: '/ministry',
     labelKey: 'items.ministry',
     icon: <Bell />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
-    section: 'compliance',
+    section: 'secondary',
   },
   {
     path: '/data-sources',
@@ -145,8 +144,8 @@ export const navItems: NavItem[] = [
   },
 ];
 
-export const resolveNavItemLabel = (item: NavItem, _role: AppRole, t: TFunction<'nav'>): string =>
-  t(item.labelKey);
+export const resolveNavItemLabel = (item: NavItem, _role: AppRole, t: TFunction<'nav'>, opts?: { mobile?: boolean }): string =>
+  t(opts?.mobile && item.mobileLabelKey ? item.mobileLabelKey : item.labelKey);
 
 /** Shared visibility filter for sidebar and mobile bottom nav. */
 export const filterNavItemsForUser = (
@@ -165,7 +164,9 @@ export const filterNavItemsForUser = (
       if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
         return false;
       }
-      if (item.path === '/money' || item.path === '/partners') return true;
+      if (item.path === '/money' || item.path === '/partners' || item.path === '/chronologio' || item.path === '/this-harvest') {
+        return true;
+      }
       return isEverydayAllowedPath(item.path) || isEverydayPrimaryPath(item.path);
     }
 

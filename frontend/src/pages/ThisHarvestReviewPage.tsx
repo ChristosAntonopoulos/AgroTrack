@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Wallet, BookOpen, ArrowLeft } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
@@ -18,6 +18,7 @@ import { Task } from '../services/taskService';
 import { Note, notePreviewTitle } from '../services/noteService';
 import {
   formatSeasonLabel,
+  formatSeasonRange,
   getSeasonBounds,
   getSeasonStartYear,
   listRecentSeasonYears,
@@ -36,18 +37,25 @@ import {
 import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
 import { useExperienceMode } from '../context/ExperienceModeContext';
-import { formatDate } from '../utils/localeFormatters';
+import { formatEconomicsMoney } from '../utils/economics';
+import { formatDate, formatNumber } from '../utils/localeFormatters';
+import { useAllLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
 import './ThisHarvestPage.css';
 
-const formatMoney = (amount: number) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(amount);
-
-const formatKg = (kg: number) => kg.toLocaleString(undefined, { maximumFractionDigits: 1 });
+const formatMoney = (amount: number, locale: string) => formatEconomicsMoney(amount, 'EUR', locale);
+const formatKg = (kg: number, locale: string) =>
+  formatNumber(kg, { locale: locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en', maximumFractionDigits: 1 });
 
 const ThisHarvestReviewPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { locale } = useLocale();
   const { isEveryday } = useExperienceMode();
+  const localizedTemplates = useAllLocalizedTemplates();
+  const titleByTemplateId = useMemo(
+    () => Object.fromEntries(localizedTemplates.map((tpl) => [tpl.id, tpl.title])),
+    [localizedTemplates]
+  );
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -58,7 +66,8 @@ const ThisHarvestReviewPage: React.FC = () => {
   const [finance, setFinance] = useState(() =>
     buildSeasonFinance([], null, [], getSeasonBounds(getSeasonStartYear() - 1))
   );
-  const [progressPercent, setProgressPercent] = useState(0);
+  const [progressDone, setProgressDone] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
   const [doneTitles, setDoneTitles] = useState<string[]>([]);
 
   const discoverClosed = useCallback(async () => {
@@ -74,14 +83,16 @@ const ThisHarvestReviewPage: React.FC = () => {
       const candidates = listRecentSeasonYears(8);
       const closed = candidates.filter((y) => isSeasonClosedForReview(y, tasks));
       setClosedYears(closed);
+      const fromUrl = Number(searchParams.get('season'));
       setSelectedYear((prev) => {
+        if (fromUrl && closed.includes(fromUrl)) return fromUrl;
         if (prev && closed.includes(prev)) return prev;
         return closed[0] ?? null;
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     void discoverClosed();
@@ -138,8 +149,13 @@ const ThisHarvestReviewPage: React.FC = () => {
       const progress = computeRodProgress(milestones);
 
       setFinance(buildSeasonFinance(harvests, mergedPnl, summaries, bounds));
-      setProgressPercent(progress.percent);
-      setDoneTitles(progress.milestones.filter((m) => m.done).map((m) => m.title));
+      setProgressDone(progress.milestones.filter((m) => m.done).length);
+      setProgressTotal(progress.milestones.length);
+      setDoneTitles(
+        progress.milestones
+          .filter((m) => m.done)
+          .map((m) => titleByTemplateId[m.templateId] || m.title)
+      );
       setNotes(
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
@@ -147,7 +163,7 @@ const ThisHarvestReviewPage: React.FC = () => {
           .slice(0, isEveryday ? 4 : 12)
       );
     },
-    [allTasks, anyIrrigated, isEveryday]
+    [allTasks, anyIrrigated, isEveryday, titleByTemplateId]
   );
 
   useEffect(() => {
@@ -180,7 +196,11 @@ const ThisHarvestReviewPage: React.FC = () => {
                 id="ravdos-year"
                 className="ravdos-select"
                 value={selectedYear ?? ''}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                onChange={(e) => {
+                  const year = Number(e.target.value);
+                  setSelectedYear(year);
+                  setSearchParams({ season: String(year) }, { replace: true });
+                }}
               >
                 {closedYears.map((y) => (
                   <option key={y} value={y}>
@@ -193,32 +213,41 @@ const ThisHarvestReviewPage: React.FC = () => {
             <section className="ravdos-section" aria-labelledby="ravdos-result">
               <h2 id="ravdos-result">{t('fields:apologismos.resultTitle')}</h2>
               <p className="ravdos-help">
-                {t('fields:apologismos.progressDone', { percent: progressPercent })}
+                {progressTotal > 0
+                  ? t('fields:apologismos.progressDone', { done: progressDone, total: progressTotal })
+                  : t('fields:apologismos.progressNone')}
+                {selectedYear != null
+                  ? ` · ${formatSeasonLabel(selectedYear)} · ${formatSeasonRange(selectedYear, locale === 'el' ? 'el-GR' : locale)}`
+                  : ''}
               </p>
               <div className="ravdos-money-grid">
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.olives')}</span>
-                  <strong>{formatKg(finance.oliveKg)} kg</strong>
+                  <strong>{formatKg(finance.oliveKg, locale)} kg</strong>
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.oil')}</span>
-                  <strong>{formatKg(finance.oilKg)} kg</strong>
+                  <strong>{formatKg(finance.oilKg, locale)} kg</strong>
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.spent')}</span>
-                  <strong>{formatMoney(finance.spent)}</strong>
+                  <strong>{formatMoney(finance.spent, locale)}</strong>
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.received')}</span>
-                  <strong>{formatMoney(finance.received)}</strong>
+                  <strong>{formatMoney(finance.received, locale)}</strong>
                 </div>
                 <div className="ravdos-money-stat ravdos-money-net">
                   <span>{t('fields:apologismos.net')}</span>
-                  <strong>{formatMoney(finance.net)}</strong>
+                  <strong>{formatMoney(finance.net, locale)}</strong>
                 </div>
               </div>
               <div className="ravdos-money-actions">
-                <Button to="/money" variant="outline" icon={<Wallet size={16} />}>
+                <Button
+                  to={selectedYear ? `/money?year=${selectedYear}` : '/money'}
+                  variant="outline"
+                  icon={<Wallet size={16} />}
+                >
                   {t('fields:apologismos.openMoney')}
                 </Button>
               </div>
@@ -275,9 +304,9 @@ const ThisHarvestReviewPage: React.FC = () => {
                       <Link to={`/fields/${card.fieldId}`} className="ravdos-field-link">
                         <span className="ravdos-field-name">{card.fieldName}</span>
                         <span className="ravdos-field-meta">
-                          {formatKg(card.oliveKg)} kg
-                          {card.oilKg > 0 ? ` · ${formatKg(card.oilKg)} kg oil` : ''}
-                          {card.spent > 0 ? ` · ${formatMoney(card.spent)}` : ''}
+                          {formatKg(card.oliveKg, locale)} kg
+                          {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
+                          {card.spent > 0 ? ` · ${formatMoney(card.spent, locale)}` : ''}
                         </span>
                       </Link>
                     </li>

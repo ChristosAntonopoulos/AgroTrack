@@ -15,6 +15,10 @@
       "title": "Expense",
       "description": "Labor, materials, fuel…"
     },
+    "income": {
+      "title": "Income",
+      "description": "Oil, fruit, or subsidy…"
+    },
     "harvest": {
       "title": "Harvest",
       "description": "Olives, oil, and yield"
@@ -52,9 +56,17 @@
     "relatedWork": "Related work",
     "saved": "Expense recorded."
   },
+  "income": {
+    "amount": "Amount",
+    "category": "Category",
+    "description": "Description (optional)",
+    "saved": "Income recorded."
+  },
   "harvest": {
     "olives": "Olives",
+    "olivesKg": "Olives (kg)",
     "oil": "Oil",
+    "oilKg": "Oil (kg)",
     "yield": "Yield",
     "mill": "Mill",
     "quality": "Quality",

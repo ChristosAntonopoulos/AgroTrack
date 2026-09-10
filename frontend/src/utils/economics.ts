@@ -2,6 +2,8 @@ import type { FinancialEntry, FinancialEntryKind } from '../services/financialEn
 import type { HarvestRecord } from '../services/harvestService';
 import { friendlyFieldLabel } from './fieldLabels';
 import { formatChronologioMoney } from './chronologioGrouping';
+import { athensCalendarYear } from './athensDate';
+import { HARVEST_COST_CATEGORIES } from './categoryNormalize';
 
 export type EconomicsGroupId =
   | 'workers'
@@ -60,7 +62,7 @@ export const ECONOMICS_GROUP_ORDER: EconomicsGroupId[] = [
   'other',
 ];
 
-export const entryYear = (entry: FinancialEntry): number => new Date(entry.occurredOn).getFullYear();
+export const entryYear = (entry: FinancialEntry): number => athensCalendarYear(entry.occurredOn);
 
 export const isPosted = (entry: FinancialEntry): boolean => entry.status === 'posted';
 
@@ -268,9 +270,18 @@ export const harvestKgInYear = (
   return harvests
     .filter((h) => h.status !== 'voided')
     .filter((h) => scoped.has(h.fieldId))
-    .filter((h) => new Date(h.harvestDate).getFullYear() === year)
+    .filter((h) => athensCalendarYear(h.harvestDate) === year)
     .reduce((sum, h) => sum + (h.oliveKg || 0), 0);
 };
+
+export const harvestCostInYear = (
+  entries: FinancialEntry[],
+  year: number
+): number =>
+  filterByYear(entries, year)
+    .filter((e) => e.kind === 'expense')
+    .filter((e) => HARVEST_COST_CATEGORIES.has(e.category || '') || Boolean(e.harvestId) || e.bucket === 'harvest')
+    .reduce((sum, e) => sum + e.amount, 0);
 
 export const matchesSearch = (
   entry: FinancialEntry,

@@ -1,4 +1,5 @@
 import { Field } from '../services/fieldService';
+import { formatFieldArea as formatFieldAreaCanonical, formatFieldAreaSqm as resolveAreaSqm, resolveFieldAreaSqm } from './area';
 
 export const polygonCentroid = (ring: [number, number][]): [number, number] => {
   let latSum = 0;
@@ -37,30 +38,11 @@ export const resolveFieldPolygon = (field: Field): [number, number][] | undefine
   return ring.map(([lng, lat]) => [lat, lng] as [number, number]);
 };
 
-export const formatFieldArea = (field: Field): string => {
-  const sqm =
-    field.appMeasuredAreaSqm ??
-    (field.area > 0 && field.area < 500 ? field.area : field.area > 0 ? field.area * 10000 : undefined);
+export { resolveFieldAreaSqm };
 
-  if (sqm != null && sqm > 0) {
-    if (sqm >= 10000) {
-      return `${(sqm / 10000).toFixed(2)} ha`;
-    }
-    return `${Math.round(sqm)} m²`;
-  }
+export const formatFieldArea = (
+  field: Field,
+  locale: 'el' | 'en' | 'it' = 'el'
+): string => formatFieldAreaCanonical(field, { locale });
 
-  return '—';
-};
-
-export const formatFieldAreaSqm = (field: Field): number | undefined => {
-  if (field.appMeasuredAreaSqm != null && field.appMeasuredAreaSqm > 0) {
-    return field.appMeasuredAreaSqm;
-  }
-  if (field.area > 0 && field.area < 500) {
-    return field.area;
-  }
-  if (field.area > 0) {
-    return field.area * 10000;
-  }
-  return undefined;
-};
+export const formatFieldAreaSqm = (field: Field): number | undefined => resolveAreaSqm(field);

@@ -14,9 +14,10 @@ import '../Capture/Capture.css';
 
 interface HeaderProps {
   onMenuClick?: () => void;
+  hideMenuButton?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const { t } = useTranslation('nav');
   const { t: tCommon } = useTranslation('common');
   const { t: tSettings } = useTranslation('settings');
@@ -67,9 +68,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   return (
     <header className="app-header">
       <div className="header-brand-slot">
+        {!hideMenuButton ? (
         <button className="menu-button" onClick={onMenuClick} aria-label={tCommon('toggleMenu')}>
           <Menu />
         </button>
+        ) : null}
         <div className="header-brand">
           <BrandLogo
             className="header-logo-lockup"
@@ -144,6 +147,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   <User size={18} aria-hidden />
                   <span className="header-overflow-user-name">{displayName}</span>
                 </div>
+                <button
+                  type="button"
+                  className="header-overflow-logout"
+                  onClick={() => {
+                    setOverflowOpen(false);
+                    navigate('/settings');
+                  }}
+                  role="menuitem"
+                >
+                  {t('items.settings')}
+                </button>
                 <button
                   type="button"
                   className="header-overflow-logout"

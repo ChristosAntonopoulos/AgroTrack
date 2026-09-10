@@ -2,7 +2,8 @@
   "title": "Πρωινή ματιά",
   "subtitle": "Ο ελαιώνας σου σε μια ματιά.",
   "brief": {
-    "todaySection": "Στο πρόγραμμα",
+    "todaySection": "Σήμερα",
+    "overdueSection": "Εκπρόθεσμες",
     "todaySummary": "{{tasks}} εργασίες · {{fields}} αγροτεμάχια",
     "noTodayTasks": "Τίποτα προγραμματισμένο για σήμερα.",
     "worthDoingNow": "Αξίζει τώρα",

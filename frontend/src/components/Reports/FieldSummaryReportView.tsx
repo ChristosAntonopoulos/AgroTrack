@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   MapPin,
   ClipboardList,
@@ -14,20 +15,26 @@ import {
   formatNumber,
   formatPercent,
 } from '../../data/mockReportData';
+import { formatAreaFromSqm, sqmFromHectares } from '../../utils/area';
 import ReportDocumentShell from './ReportDocumentShell';
 import './ReportDocument.css';
 
 interface Props {
   data: FieldSummaryData[];
   id?: string;
+  season?: string;
 }
 
-const FieldSummaryReportView: React.FC<Props> = ({ data, id }) => (
+const FieldSummaryReportView: React.FC<Props> = ({ data, id, season }) => {
+  const { t, i18n } = useTranslation('reports');
+  const locale = i18n.language.startsWith('el') ? 'el' : i18n.language.startsWith('it') ? 'it' : 'en';
+
+  return (
   <ReportDocumentShell
     id={id}
-    title="Field Summary Report"
-    subtitle="Complete field health overview"
-    season="2025"
+    title={t('doc.yearTitle')}
+    subtitle={t('doc.yearSubtitle')}
+    season={season}
   >
     {data.map(field => (
       <article key={field.fieldId} className="report-field-card">
@@ -48,12 +55,14 @@ const FieldSummaryReportView: React.FC<Props> = ({ data, id }) => (
 
         <section className="report-section">
           <h4 className="report-section-title">
-            <TreePine size={16} /> Field Information
+            <TreePine size={16} /> {t('doc.fieldInfo')}
           </h4>
           <div className="report-info-grid">
             <div className="report-info-item">
-              <label>Area</label>
-              <span>{field.areaHa} ha</span>
+              <label>{t('doc.area')}</label>
+              <span>
+                {formatAreaFromSqm(sqmFromHectares(field.areaHa || 0), { locale, style: 'withConversions' })}
+              </span>
             </div>
             <div className="report-info-item">
               <label>Trees</label>
@@ -84,20 +93,20 @@ const FieldSummaryReportView: React.FC<Props> = ({ data, id }) => (
 
         <section className="report-section">
           <h4 className="report-section-title">
-            <ClipboardList size={16} /> Task Activity
+            <ClipboardList size={16} /> {t('doc.taskActivity')}
           </h4>
           <div className="report-metrics-row">
             <div className="report-metric">
               <div className="report-metric-value">{field.tasksCompleted}</div>
-              <div className="report-metric-label">Completed</div>
+              <div className="report-metric-label">{t('doc.completed')}</div>
             </div>
             <div className="report-metric">
               <div className="report-metric-value">{field.tasksPending}</div>
-              <div className="report-metric-label">Pending</div>
+              <div className="report-metric-label">{t('doc.pending')}</div>
             </div>
             <div className="report-metric">
               <div className="report-metric-value negative">{field.tasksOverdue}</div>
-              <div className="report-metric-label">Overdue</div>
+              <div className="report-metric-label">{t('doc.overdue')}</div>
             </div>
           </div>
         </section>
@@ -192,6 +201,7 @@ const FieldSummaryReportView: React.FC<Props> = ({ data, id }) => (
       </article>
     ))}
   </ReportDocumentShell>
-);
+  );
+};
 
 export default FieldSummaryReportView;

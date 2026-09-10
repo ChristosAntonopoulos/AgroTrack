@@ -114,5 +114,21 @@
     "overdueTasks": "{{count}} overdue task(s).",
     "loss": "The year closed at a loss.",
     "profit": "The year closed with a profit."
+  },
+  "csv": {
+    "field": "Field",
+    "day": "Day",
+    "minC": "Min °C",
+    "maxC": "Max °C",
+    "rainMm": "Rain mm",
+    "et0Mm": "ET₀ mm",
+    "areaStremmata": "Area (stremmata)",
+    "olivesKg": "Olives kg",
+    "kgPerHa": "kg/ha",
+    "cost": "Cost",
+    "revenue": "Revenue",
+    "profit": "Result",
+    "tasksDone": "Tasks done",
+    "overdue": "Overdue"
   }
 }

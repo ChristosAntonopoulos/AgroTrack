@@ -16,8 +16,13 @@ public class CreateFieldDto
 
     public double? Longitude { get; set; }
 
+    /// <summary>Area in hectares. When <see cref="AppMeasuredAreaSqm"/> is set, hectares are derived from it.</summary>
     [Range(0, double.MaxValue)]
     public double Area { get; set; }
+
+    /// <summary>Canonical measured area in square metres.</summary>
+    [Range(0, double.MaxValue)]
+    public double? AppMeasuredAreaSqm { get; set; }
 
     public GeoJsonPolygonDto? Boundary { get; set; }
 

@@ -1,3 +1,5 @@
+using OliveLifecycle.Core.Time;
+
 namespace OliveLifecycle.Application.DTOs.Chronologio;
 
 /// <summary>
@@ -24,32 +26,30 @@ public static class ChronologioSeasonCalendar
 
     public static (DateTime From, DateTime To) GetCalendarYearBounds(int year)
     {
-        var from = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var to = new DateTime(year, 12, 31, 23, 59, 59, DateTimeKind.Utc);
-        return (from, to);
+        var fromAthens = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        var toAthens = new DateTime(year + 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        var from = TimeZoneInfo.ConvertTimeToUtc(fromAthens, AthensTime.TimeZone);
+        var toExclusive = TimeZoneInfo.ConvertTimeToUtc(toAthens, AthensTime.TimeZone);
+        return (from, toExclusive.AddTicks(-1));
     }
 
     /// <summary>
-    /// Season start year YYYY means 1 Sep YYYY → 31 Aug YYYY+1.
+    /// Season start year YYYY means 1 Sep YYYY → 31 Aug YYYY+1 in Europe/Athens.
     /// </summary>
     public static (DateTime From, DateTime To) GetSeasonBounds(int seasonStartYear)
     {
-        var from = new DateTime(seasonStartYear, SeasonStartMonth, 1, 0, 0, 0, DateTimeKind.Utc);
-        var to = new DateTime(seasonStartYear + 1, SeasonStartMonth, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(-1);
-        return (from, to);
+        var (from, toExclusive) = CultivationSeason.BoundsUtc(seasonStartYear);
+        return (from, toExclusive.AddTicks(-1));
     }
 
     public static int GetCalendarYearKey(DateTime utc) =>
-        EnsureUtc(utc).Year;
+        AthensTime.CalendarYear(EnsureUtc(utc));
 
     /// <summary>
-    /// Returns the season start year for a UTC instant (Sep–Dec → same year; Jan–Aug → previous year).
+    /// Returns the season start year for an instant (Sep–Dec → same year; Jan–Aug → previous year) in Europe/Athens.
     /// </summary>
-    public static int GetSeasonStartYear(DateTime utc)
-    {
-        var d = EnsureUtc(utc);
-        return d.Month >= SeasonStartMonth ? d.Year : d.Year - 1;
-    }
+    public static int GetSeasonStartYear(DateTime utc) =>
+        CultivationSeason.StartYearFor(EnsureUtc(utc));
 
     public static string FormatCalendarKey(int year) => year.ToString("D4");
 

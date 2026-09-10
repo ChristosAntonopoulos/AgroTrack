@@ -5,6 +5,7 @@ import type { WeatherData } from '../services/weatherService';
 import type { Location } from '../services/locationService';
 import { OLIVE_TASK_TEMPLATES } from '../data/oliveTaskTemplates';
 import { isRecommendedNow } from '../utils/taskTemplateUtils';
+import { isTaskDueToday, isTaskOverdue, taskDueDate } from '../utils/taskListUtils';
 import { calculateDistance } from '../services/locationService';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 
@@ -66,13 +67,6 @@ const endOfDay = (d: Date) => {
   return x;
 };
 
-const taskDueDate = (task: Task): Date | null => {
-  const raw = task.scheduledStart || task.scheduledEnd;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-
 export const kmhToBeaufort = (kmh: number): number => {
   const ms = kmh / 3.6;
   if (ms < 0.3) return 0;
@@ -91,21 +85,13 @@ export const kmhToBeaufort = (kmh: number): number => {
 };
 
 export const partitionTasks = (openTasks: Task[], now = new Date()) => {
-  const dayStart = startOfDay(now);
-  const dayEnd = endOfDay(now);
-
   const overdue: Task[] = [];
   const today: Task[] = [];
   const upcoming: Task[] = [];
 
   for (const task of openTasks) {
-    const due = taskDueDate(task);
-    if (!due) {
-      upcoming.push(task);
-      continue;
-    }
-    if (due < dayStart) overdue.push(task);
-    else if (due <= dayEnd) today.push(task);
+    if (isTaskOverdue(task, now)) overdue.push(task);
+    else if (isTaskDueToday(task, now)) today.push(task);
     else upcoming.push(task);
   }
 

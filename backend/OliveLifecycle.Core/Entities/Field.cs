@@ -9,6 +9,7 @@ public class Field : BaseEntity
     public string OwnerId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public Location? Location { get; set; }
+    /// <summary>Field area in hectares. Canonical measured area is <see cref="AppMeasuredAreaSqm"/> (m²).</summary>
     public double Area { get; set; }
     public string? Variety { get; set; }
     public int? TreeAge { get; set; }

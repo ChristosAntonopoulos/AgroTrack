@@ -31,22 +31,25 @@ export const isWidgetVisible = (
 /** Nav paths that stay in the primary Everyday sidebar (others move under More / Settings). */
 export const EVERYDAY_PRIMARY_PATHS: ReadonlySet<string> = new Set([
   '/today',
+  '/chronologio',
   '/fields',
   '/tasks',
   '/money',
-  '/partners',
   '/this-harvest',
+  '/partners',
   '/settings',
 ]);
 
-/** Reachable in Everyday but not primary (Settings / More). */
+/** Reachable in Everyday but not primary (More). */
 export const EVERYDAY_MORE_PATHS: ReadonlySet<string> = new Set([
   '/notes',
-  '/chronologio',
 ]);
 
 export const isEverydayPrimaryPath = (path: string): boolean =>
   EVERYDAY_PRIMARY_PATHS.has(path);
 
-export const isEverydayAllowedPath = (path: string): boolean =>
-  EVERYDAY_PRIMARY_PATHS.has(path) || EVERYDAY_MORE_PATHS.has(path);
+export const isEverydayAllowedPath = (path: string): boolean => {
+  if (EVERYDAY_PRIMARY_PATHS.has(path) || EVERYDAY_MORE_PATHS.has(path)) return true;
+  const first = `/${path.split('/').filter(Boolean)[0] || ''}`;
+  return EVERYDAY_PRIMARY_PATHS.has(first) || EVERYDAY_MORE_PATHS.has(first);
+};

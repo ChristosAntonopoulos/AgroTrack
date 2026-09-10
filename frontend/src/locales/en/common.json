@@ -1,6 +1,7 @@
 {
   "appName": "Oleachron",
   "home": "Home",
+  "breadcrumb": "Breadcrumb",
   "loading": "Loading...",
   "retry": "Retry",
   "refresh": "Refresh",

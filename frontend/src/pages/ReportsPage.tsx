@@ -22,9 +22,9 @@ import {
   MOCK_MONTHLY_WEATHER,
   MOCK_YEARLY_WEATHER,
   filterByFields,
-  formatHa,
   formatNumber,
 } from '../data/mockReportData';
+import { formatFieldArea } from '../utils/fieldGeo';
 import MonthlyWeatherReportView from '../components/Reports/MonthlyWeatherReportView';
 import YearlyWeatherReportView from '../components/Reports/YearlyWeatherReportView';
 import YearOverviewReportView from '../components/Reports/YearOverviewReportView';
@@ -197,7 +197,14 @@ const ReportsPage: React.FC = () => {
     let rows: (string | number)[][] = [];
 
     if (reportType === 'weather-month') {
-      headers = ['Field', 'Day', 'Min °C', 'Max °C', 'Rain mm', 'ET0 mm'];
+      headers = [
+        t('csv.field'),
+        t('csv.day'),
+        t('csv.minC'),
+        t('csv.maxC'),
+        t('csv.rainMm'),
+        t('csv.et0Mm'),
+      ];
       rows = filteredMonthly.flatMap((field) =>
         field.days.map((d) => [
           field.fieldName,
@@ -209,7 +216,15 @@ const ReportsPage: React.FC = () => {
         ])
       );
     } else if (reportType === 'weather-year') {
-      headers = ['Field', 'Rain mm', 'Cost', 'Revenue', 'Profit', 'Tasks done', 'Overdue'];
+      headers = [
+        t('csv.field'),
+        t('csv.rainMm'),
+        t('csv.cost'),
+        t('csv.revenue'),
+        t('csv.profit'),
+        t('csv.tasksDone'),
+        t('csv.overdue'),
+      ];
       rows = filteredYearly.map((f) => [
         f.fieldName,
         f.rainTotalMm,
@@ -220,10 +235,19 @@ const ReportsPage: React.FC = () => {
         f.tasksOverdue,
       ]);
     } else {
-      headers = ['Field', 'Area ha', 'Olives kg', 'Kg/ha', 'Cost', 'Revenue', 'Profit', 'Tasks done'];
+      headers = [
+        t('csv.field'),
+        t('csv.areaStremmata'),
+        t('csv.olivesKg'),
+        t('csv.kgPerHa'),
+        t('csv.cost'),
+        t('csv.revenue'),
+        t('csv.profit'),
+        t('csv.tasksDone'),
+      ];
       rows = filteredSummaries.map((f) => [
         f.fieldName,
-        f.areaHa,
+        Math.round((f.areaHa || 0) * 10 * 100) / 100,
         f.totalProductionKg,
         f.yieldPerHa,
         f.totalCost,
@@ -234,31 +258,55 @@ const ReportsPage: React.FC = () => {
     }
 
     exportService.exportToCSV({ headers, rows, title: reportTitle }, filename);
-  }, [reportType, filteredMonthly, filteredYearly, filteredSummaries, reportTitle, filename]);
+  }, [reportType, filteredMonthly, filteredYearly, filteredSummaries, reportTitle, filename, t]);
 
   const exportExcel = useCallback(() => {
     if (reportType === 'year-overview') {
-      const headers = ['Field', 'Area ha', 'Olives kg', 'Kg/ha', 'Cost', 'Revenue', 'Profit', 'Tasks done'];
+      const headers = [
+        t('csv.field'),
+        t('csv.areaStremmata'),
+        t('csv.olivesKg'),
+        t('csv.kgPerHa'),
+        t('csv.cost'),
+        t('csv.revenue'),
+        t('csv.profit'),
+        t('csv.tasksDone'),
+      ];
       const rows = filteredSummaries.map((f) => [
-        f.fieldName, f.areaHa, f.totalProductionKg, f.yieldPerHa, f.totalCost, f.revenue, f.profit, f.tasksCompleted,
+        f.fieldName,
+        Math.round((f.areaHa || 0) * 10 * 100) / 100,
+        f.totalProductionKg,
+        f.yieldPerHa,
+        f.totalCost,
+        f.revenue,
+        f.profit,
+        f.tasksCompleted,
       ]);
       exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
       return;
     }
     if (reportType === 'weather-year') {
-      const headers = ['Field', 'Rain mm', 'Cost', 'Revenue', 'Profit', 'Tasks done', 'Overdue'];
+      const headers = [
+        t('csv.field'),
+        t('csv.rainMm'),
+        t('csv.cost'),
+        t('csv.revenue'),
+        t('csv.profit'),
+        t('csv.tasksDone'),
+        t('csv.overdue'),
+      ];
       const rows = filteredYearly.map((f) => [
         f.fieldName, f.rainTotalMm, f.totalCost, f.revenue, f.profit, f.tasksCompleted, f.tasksOverdue,
       ]);
       exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
       return;
     }
-    const headers = ['Field', 'Day', 'Min C', 'Max C', 'Rain mm', 'ET0 mm'];
+    const headers = [t('csv.field'), t('csv.day'), t('csv.minC'), t('csv.maxC'), t('csv.rainMm'), t('csv.et0Mm')];
     const rows = filteredMonthly.flatMap((field) =>
       field.days.map((d) => [field.fieldName, d.day, d.minTemperatureC ?? '', d.maxTemperatureC ?? '', d.rainTotalMm, d.et0Mm ?? ''])
     );
     exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
-  }, [reportType, filteredSummaries, filteredYearly, filteredMonthly, reportTitle, filename]);
+  }, [reportType, filteredSummaries, filteredYearly, filteredMonthly, reportTitle, filename, t]);
 
   const renderPreview = () => {
     if (selectedFields.length === 0) {
@@ -403,7 +451,7 @@ const ReportsPage: React.FC = () => {
                       >
                         {checked ? <CheckSquare size={16} /> : <Square size={16} />}
                         <span>{field.name}</span>
-                        <span className="field-area">{formatHa(field.area, locale)}</span>
+                        <span className="field-area">{formatFieldArea(field)}</span>
                       </button>
                     );
                   })}

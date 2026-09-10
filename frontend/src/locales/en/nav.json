@@ -1,15 +1,18 @@
 {
   "sections": {
+    "primary": "Main",
+    "secondary": "More",
+    "account": "Account",
     "command": "Command center",
     "work": "Work",
     "operations": "Operations",
     "insights": "Insights",
-    "compliance": "Compliance",
-    "account": "Account"
+    "compliance": "Compliance"
   },
   "items": {
     "dashboard": "Dashboard",
-    "today": "Daybrief",
+    "today": "Morning look",
+    "todayMobile": "Today",
     "fields": "Fields",
     "tasks": "Tasks",
     "partners": "Partners",
@@ -20,7 +23,7 @@
     "ministry": "Ministry",
     "dataSources": "Data sources",
     "settings": "Settings",
-    "thisHarvest": "This Rod",
+    "thisHarvest": "Harvest",
     "chronologio": "Chronologio"
   },
   "breadcrumb": {

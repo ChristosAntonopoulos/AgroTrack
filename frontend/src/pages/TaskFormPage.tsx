@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import { getTaskService, getFieldService, getUserService } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
 import { CreateTaskDto } from '../services/taskService';
@@ -18,6 +19,7 @@ import {
   PRIORITY_VARIANT,
   isRecommendedNow,
 } from '../utils/taskTemplateUtils';
+import { formatFieldArea } from '../utils/fieldGeo';
 import {
   useAllLocalizedTemplates,
   useLocalizedTemplate,
@@ -102,6 +104,7 @@ const TaskFormPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isEveryday } = useExperienceMode();
   const labels = useTaskTemplateLabels();
   const localizedTemplates = useAllLocalizedTemplates();
 
@@ -112,7 +115,7 @@ const TaskFormPage: React.FC = () => {
 
   const getInitialStep = (): FormStep => {
     if (templateIdParam && fieldIdParam) return 'schedule';
-    if (fieldIdParam) return 'template';
+    if (fieldIdParam) return isEveryday && !templateIdParam ? 'schedule' : 'template';
     return 'field';
   };
 
@@ -126,7 +129,7 @@ const TaskFormPage: React.FC = () => {
   const [templateSearch, setTemplateSearch] = useState('');
   const [recommendedOnly, setRecommendedOnly] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(templateIdParam);
-  const [manualMode, setManualMode] = useState(false);
+  const [manualMode, setManualMode] = useState(!templateIdParam);
   const [initialTemplateApplied, setInitialTemplateApplied] = useState(false);
 
   const [formData, setFormData] = useState<CreateTaskDto>({
@@ -291,9 +294,12 @@ const TaskFormPage: React.FC = () => {
     formData.fieldId,
   ]);
 
-  const stepIndex = STEPS.indexOf(step);
+  const formSteps: FormStep[] =
+    isEveryday && !templateIdParam ? ['field', 'schedule', 'review'] : STEPS;
+
+  const stepIndex = formSteps.indexOf(step);
   const isFirst = stepIndex === 0;
-  const isLast = stepIndex === STEPS.length - 1;
+  const isLast = stepIndex === formSteps.length - 1;
 
   const validateStep = (s: FormStep): string | null => {
     if (s === 'field' && !formData.fieldId) return t('tasks:form.errors.fieldRequired');
@@ -314,16 +320,17 @@ const TaskFormPage: React.FC = () => {
       return;
     }
     setError(null);
-    if (step === 'field' && templateIdParam) {
+    if (step === 'field' && (templateIdParam || isEveryday)) {
+      if (isEveryday && !templateIdParam) setManualMode(true);
       setStep('schedule');
       return;
     }
-    if (!isLast) setStep(STEPS[stepIndex + 1]);
+    if (!isLast) setStep(formSteps[stepIndex + 1]);
   };
 
   const goBack = () => {
     setError(null);
-    if (!isFirst) setStep(STEPS[stepIndex - 1]);
+    if (!isFirst) setStep(formSteps[stepIndex - 1]);
   };
 
   const handleFieldSelect = (fieldId: string) => {
@@ -448,12 +455,14 @@ const TaskFormPage: React.FC = () => {
           </Button>
           <div>
             <h1>{isEditMode ? t('tasks:form.editTitle') : t('tasks:form.newTitle')}</h1>
-            <p className="task-form-subtitle">{t('tasks:form.subtitle')}</p>
+            <p className="task-form-subtitle">
+              {t(isEveryday ? 'tasks:form.subtitleSimple' : 'tasks:form.subtitle')}
+            </p>
           </div>
         </header>
 
         <nav className="task-form-steps" aria-label={t('tasks:form.stepsAria')}>
-          {STEPS.map((s, idx) => (
+          {formSteps.map((s, idx) => (
             <button
               key={s}
               type="button"
@@ -494,7 +503,7 @@ const TaskFormPage: React.FC = () => {
                     >
                       <strong>{field.name}</strong>
                       <span>
-                        {field.area} {t('tasks:form.hectares')} · {t(`common:lifecycleYear.${field.currentLifecycleYear}`)}
+                        {formatFieldArea(field)} · {t(`common:lifecycleYear.${field.currentLifecycleYear}`)}
                       </span>
                       {field.variety && <span className="task-field-variety">{field.variety}</span>}
                     </button>

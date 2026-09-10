@@ -10,5 +10,10 @@
   "statusDistribution": "Task Status Distribution",
   "costByField": "Cost by Field",
   "costByTaskType": "Cost by Task Type",
-  "monthlyCompletion": "Monthly Completion Rate"
+  "monthlyCompletion": "Monthly Completion Rate",
+  "fieldPerformance": "Field performance",
+  "field": "Field",
+  "completed": "Completed",
+  "avgCostTask": "Avg cost / task",
+  "noPermission": "You do not have permission to view analytics."
 }

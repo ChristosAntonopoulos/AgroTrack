@@ -17,13 +17,16 @@ import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle, Handshake, Plus, Wallet, StickyNote } from 'lucide-react';
+import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle, Handshake, Wallet, StickyNote } from 'lucide-react';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useExperienceMode } from '../context/ExperienceModeContext';
+import { taskStatusI18nKey } from '../utils/categoryNormalize';
 import './TaskDetailPage.css';
 
 const TaskDetailPage: React.FC = () => {
-  const { t } = useTranslation(['tasks', 'common', 'errors', 'partners', 'capture']);
+  const { t } = useTranslation(['tasks', 'common', 'errors', 'partners', 'capture', 'taskTemplates']);
   const { formatDateTime } = useLocaleFormatters();
+  const { isEveryday } = useExperienceMode();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -75,7 +78,7 @@ const TaskDetailPage: React.FC = () => {
         }
       }
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || 'Failed to load task');
+      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -110,7 +113,7 @@ const TaskDetailPage: React.FC = () => {
       const updatedTask = await taskService.updateTaskStatus(id, newStatus);
       setTask(updatedTask);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || 'Failed to update task status');
+      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedStatus'));
     } finally {
       setUpdatingStatus(false);
     }
@@ -127,7 +130,7 @@ const TaskDetailPage: React.FC = () => {
       setSelectedProducerId('');
       await loadAssignedUser(selectedProducerId);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || 'Failed to assign task');
+      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedAssign'));
     } finally {
       setAssigning(false);
     }
@@ -140,7 +143,7 @@ const TaskDetailPage: React.FC = () => {
       const updatedTask = await getTaskService().approveTask(id);
       setTask(updatedTask);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || 'Failed to approve task');
+      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedApprove'));
     } finally {
       setApproving(false);
     }
@@ -148,14 +151,14 @@ const TaskDetailPage: React.FC = () => {
 
   const handleReject = async () => {
     if (!task || !id) return;
-    const note = window.prompt(t('tasks:detail.rejectNotePrompt', { defaultValue: 'Reason for rejection (optional)' }));
+    const note = window.prompt(t('tasks:detail.rejectNotePrompt'));
     if (note === null) return;
     try {
       setApproving(true);
       const updatedTask = await getTaskService().rejectTask(id, note || undefined);
       setTask(updatedTask);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || 'Failed to reject task');
+      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedReject'));
     } finally {
       setApproving(false);
     }
@@ -204,7 +207,7 @@ const TaskDetailPage: React.FC = () => {
           <Breadcrumbs />
           <div className="error-message">{error}</div>
           <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
-            Back to Tasks
+            {t('tasks:detail.backToTasks')}
           </Button>
         </div>
       </PageContainer>
@@ -216,9 +219,9 @@ const TaskDetailPage: React.FC = () => {
       <PageContainer>
         <div className="task-detail-page">
           <Breadcrumbs />
-          <div className="error-message">Task not found</div>
+          <div className="error-message">{t('tasks:detail.notFound')}</div>
           <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
-            Back to Tasks
+            {t('tasks:detail.backToTasks')}
           </Button>
         </div>
       </PageContainer>
@@ -234,11 +237,11 @@ const TaskDetailPage: React.FC = () => {
         
         <div className="task-header">
           <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
-            Back to Tasks
+            {t('tasks:detail.backToTasks')}
           </Button>
-          {isFieldOwner && (
+          {isFieldOwner && !isEveryday && (
             <Button to={`/tasks/${id}/edit`} icon={<Edit />} variant="success">
-              Edit Task
+              {t('tasks:detail.editTask')}
             </Button>
           )}
           {capture && task ? (
@@ -274,7 +277,7 @@ const TaskDetailPage: React.FC = () => {
 
         {error && <div className="error-message">{error}</div>}
 
-        {isFieldOwner && (
+        {isFieldOwner && !isEveryday && (
           <Card className="task-partner-cta">
             <h2>{t('partners:needHelp')}</h2>
             <p>{t('partners:fromTaskHint')}</p>
@@ -295,7 +298,7 @@ const TaskDetailPage: React.FC = () => {
               <h1>{task.title}</h1>
               <div className="task-badges">
                 <Badge variant={getStatusColor(task.status) as any} size="md">
-                  {task.status.replace('_', ' ')}
+                  {t(taskStatusI18nKey(task.status))}
                 </Badge>
                 {task.approvalStatus && task.approvalStatus !== 'not_required' && (
                   <Badge
@@ -330,7 +333,7 @@ const TaskDetailPage: React.FC = () => {
                     {field.name}
                   </Link>
                 ) : (
-                  <span>Loading...</span>
+                  <span>{t('common:loading')}</span>
                 )}
               </div>
             </div>
@@ -342,9 +345,9 @@ const TaskDetailPage: React.FC = () => {
                 {assignedUser ? (
                   <span>{assignedUser.firstName} {assignedUser.lastName} ({assignedUser.email})</span>
                 ) : task.assignedTo ? (
-                  <span>Loading...</span>
+                  <span>{t('common:loading')}</span>
                 ) : (
-                  <span className="not-assigned">Not assigned</span>
+                  <span className="not-assigned">{t('tasks:form.notAssigned')}</span>
                 )}
               </div>
             </div>
@@ -388,16 +391,20 @@ const TaskDetailPage: React.FC = () => {
             <div className="info-item">
               <div>
                 <label>{t('tasks:detail.type')}</label>
-                <span>{task.type}</span>
+                <span>{t(`taskTemplates:categories.${task.type}`, { defaultValue: task.type })}</span>
               </div>
             </div>
 
+            {!isEveryday ? (
             <div className="info-item">
               <div>
-                <label>{t('tasks:detail.lifecycleYear')}</label>
-                <span className="lifecycle-year">{task.lifecycleYear}</span>
+                <label>{t('common:lifecycleYear.label')}</label>
+                <span className="lifecycle-year">
+                  {t(`common:lifecycleYear.${task.lifecycleYear}`, { defaultValue: task.lifecycleYear })}
+                </span>
               </div>
             </div>
+            ) : null}
           </div>
 
             {canEdit && (
@@ -407,7 +414,7 @@ const TaskDetailPage: React.FC = () => {
                   task.approvalStatus === 'pending' && (
                     <>
                       <Button onClick={handleApprove} disabled={approving} loading={approving} variant="success">
-                        {t('tasks:detail.approve', { defaultValue: 'Approve' })}
+                        {t('tasks:detail.approve')}
                       </Button>
                       <Button
                         onClick={handleReject}
@@ -415,7 +422,7 @@ const TaskDetailPage: React.FC = () => {
                         loading={approving}
                         variant="error"
                       >
-                        {t('tasks:detail.reject', { defaultValue: 'Reject' })}
+                        {t('tasks:detail.reject')}
                       </Button>
                     </>
                   )}
@@ -427,18 +434,18 @@ const TaskDetailPage: React.FC = () => {
                     loading={updatingStatus}
                     variant={nextStatus === 'completed' ? 'success' : nextStatus === 'in_progress' ? 'secondary' : 'warning'}
                   >
-                    Mark as {nextStatus.replace('_', ' ')}
+                    {t(`tasks:detail.markAs.${nextStatus}`)}
                   </Button>
                 )}
 
-                {isFieldOwner && !task.assignedTo && (
+                {isFieldOwner && !isEveryday && !task.assignedTo && (
                   <div className="assign-section">
                     <select
                       value={selectedProducerId}
                       onChange={(e) => setSelectedProducerId(e.target.value)}
                       className="producer-select"
                     >
-                      <option value="">Select Producer</option>
+                      <option value="">{t('tasks:detail.selectProducer')}</option>
                       {producers.map((producer) => (
                         <option key={producer.id} value={producer.id}>
                           {producer.firstName} {producer.lastName} ({producer.email})
@@ -451,12 +458,12 @@ const TaskDetailPage: React.FC = () => {
                       loading={assigning}
                       variant="primary"
                     >
-                      Assign Task
+                      {t('tasks:detail.assignTask')}
                     </Button>
                   </div>
                 )}
 
-                {isFieldOwner && task.assignedTo && (
+                {isFieldOwner && !isEveryday && task.assignedTo && (
                   <div className="assign-section">
                     <select
                       value={selectedProducerId || task.assignedTo}
@@ -464,7 +471,7 @@ const TaskDetailPage: React.FC = () => {
                       className="producer-select"
                     >
                       <option value={task.assignedTo}>
-                        {assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Current'}
+                        {assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : t('tasks:detail.currentAssignee')}
                       </option>
                       {producers
                         .filter((p) => p.id !== task.assignedTo)
@@ -480,7 +487,7 @@ const TaskDetailPage: React.FC = () => {
                       loading={assigning}
                       variant="primary"
                     >
-                      Reassign Task
+                      {t('tasks:detail.reassignTask')}
                     </Button>
                   </div>
                 )}

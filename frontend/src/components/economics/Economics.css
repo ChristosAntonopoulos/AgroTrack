@@ -1,3 +1,9 @@
+.eco-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 .eco-page {
   display: flex;
   flex-direction: column;
@@ -95,8 +101,25 @@
   gap: 0.75rem;
 }
 
-.eco-hero-split p {
+.eco-hero-split p,
+.eco-hero-kind {
   margin: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 0.35rem 0.15rem;
+  min-height: var(--tap-min, 44px);
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.eco-hero-kind:focus-visible,
+.eco-bar-row:focus-visible {
+  outline: 2px solid var(--color-primary, #2d5016);
+  outline-offset: 2px;
 }
 
 .eco-hero-split span {
@@ -129,6 +152,16 @@
 .eco-bar-row {
   display: grid;
   gap: 0.25rem;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0.2rem 0;
+  cursor: pointer;
+  min-height: var(--tap-min, 44px);
 }
 
 .eco-bar-meta {

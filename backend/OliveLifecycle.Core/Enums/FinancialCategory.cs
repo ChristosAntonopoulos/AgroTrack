@@ -16,6 +16,9 @@ public enum FinancialCategory
     Packaging,
     Storage,
     Agronomist,
+    FruitSale,
+    OilSale,
+    Subsidy,
     Other
 }
 
@@ -37,6 +40,9 @@ public static class FinancialCategoryExtensions
         FinancialCategory.Packaging => "packaging",
         FinancialCategory.Storage => "storage",
         FinancialCategory.Agronomist => "agronomist",
+        FinancialCategory.FruitSale => "fruit_sale",
+        FinancialCategory.OilSale => "oil_sale",
+        FinancialCategory.Subsidy => "subsidy",
         _ => "other"
     };
 
@@ -56,6 +62,9 @@ public static class FinancialCategoryExtensions
         "packaging" => FinancialCategory.Packaging,
         "storage" => FinancialCategory.Storage,
         "agronomist" => FinancialCategory.Agronomist,
+        "fruit_sale" => FinancialCategory.FruitSale,
+        "oil_sale" => FinancialCategory.OilSale,
+        "subsidy" => FinancialCategory.Subsidy,
         "other" => FinancialCategory.Other,
         _ => null
     };
@@ -69,6 +78,8 @@ public static class FinancialCategoryExtensions
         FinancialCategory.HarvestWorkers or FinancialCategory.MillCost
             or FinancialCategory.Transport or FinancialCategory.Packaging
             or FinancialCategory.Storage => FinancialCategoryBucket.Harvest,
+        FinancialCategory.FruitSale or FinancialCategory.OilSale or FinancialCategory.Subsidy
+            => FinancialCategoryBucket.Other,
         _ => FinancialCategoryBucket.Other
     };
 }

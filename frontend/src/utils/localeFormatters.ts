@@ -5,14 +5,19 @@ export interface FormatOptions {
   dateFormat?: string;
 }
 
-const localeTag = (locale: SupportedLocale): string => {
-  const map: Record<SupportedLocale, string> = {
+export const localeTagFor = (locale: SupportedLocale | string): string => {
+  const map: Record<string, string> = {
     en: 'en-US',
     el: 'el-GR',
     it: 'it-IT',
   };
-  return map[locale] ?? 'en-US';
+  if (locale.startsWith('el')) return 'el-GR';
+  if (locale.startsWith('it')) return 'it-IT';
+  if (locale.startsWith('en')) return 'en-US';
+  return map[locale] ?? locale;
 };
+
+const localeTag = (locale: SupportedLocale): string => localeTagFor(locale);
 
 const dateFormatToOptions = (
   dateFormat: string | undefined
@@ -77,11 +82,47 @@ export const formatTime = (
 
 export const formatNumber = (
   value: number,
-  options: FormatOptions & { maximumFractionDigits?: number }
+  options: FormatOptions & { maximumFractionDigits?: number; minimumFractionDigits?: number }
 ): string => {
+  if (!Number.isFinite(value)) return '—';
   return value.toLocaleString(localeTag(options.locale), {
     maximumFractionDigits: options.maximumFractionDigits ?? 2,
+    minimumFractionDigits: options.minimumFractionDigits,
   });
+};
+
+export const formatCurrency = (
+  amount: number,
+  options: FormatOptions & { currency?: string }
+): string => {
+  if (!Number.isFinite(amount)) return '—';
+  return amount.toLocaleString(localeTag(options.locale), {
+    style: 'currency',
+    currency: options.currency || 'EUR',
+    maximumFractionDigits: 2,
+  });
+};
+
+export const formatPercent = (
+  value: number | null | undefined,
+  options: FormatOptions & { maximumFractionDigits?: number }
+): string => {
+  if (value == null || !Number.isFinite(value)) return '—';
+  return `${formatNumber(value, {
+    locale: options.locale,
+    maximumFractionDigits: options.maximumFractionDigits ?? 1,
+  })}%`;
+};
+
+export const formatKg = (
+  value: number | null | undefined,
+  options: FormatOptions & { maximumFractionDigits?: number }
+): string => {
+  if (value == null || !Number.isFinite(value)) return '—';
+  return `${formatNumber(value, {
+    locale: options.locale,
+    maximumFractionDigits: options.maximumFractionDigits ?? 1,
+  })} kg`;
 };
 
 export const formatRelativeTime = (

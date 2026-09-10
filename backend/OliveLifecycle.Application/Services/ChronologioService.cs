@@ -460,12 +460,6 @@ public class ChronologioService : IChronologioService
             if (string.Equals(category, ChronologioCategory.Task.ToApiString(), StringComparison.OrdinalIgnoreCase))
             {
                 stats.TaskCount++;
-                if (e.Amount != null)
-                {
-                    stats.ExpenseTotal += e.Amount.Value;
-                    stats.Currency = e.Amount.Currency;
-                }
-
                 if (!string.IsNullOrWhiteSpace(e.Title))
                 {
                     taskTitles[e.Title] = taskTitles.TryGetValue(e.Title, out var c) ? c + 1 : 1;

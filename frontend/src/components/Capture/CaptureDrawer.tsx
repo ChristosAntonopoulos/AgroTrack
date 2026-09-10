@@ -7,6 +7,7 @@ import {
   Camera,
   CheckSquare,
   StickyNote,
+  TrendingUp,
   Wallet,
   Wheat,
   X,
@@ -48,6 +49,8 @@ const EXPENSE_CATEGORIES = [
   'mill_cost',
   'other',
 ] as const;
+
+const INCOME_CATEGORIES = ['oil_sale', 'fruit_sale', 'subsidy', 'other'] as const;
 
 type Props = {
   open: boolean;
@@ -200,6 +203,8 @@ const CaptureDrawer: React.FC<Props> = ({
   const selectType = (type: CaptureType) => {
     setStep(type);
     setError(null);
+    if (type === 'income') setCategory('oil_sale');
+    if (type === 'expense') setCategory('labor');
   };
 
   const goBack = () => {
@@ -302,24 +307,25 @@ const CaptureDrawer: React.FC<Props> = ({
           mediaUrls,
         });
         onSaved({ type: 'work', fieldId, sourceId: task.id }, t('capture:work.saved'));
-      } else if (step === 'expense') {
+      } else if (step === 'expense' || step === 'income') {
         const value = Number(amount.replace(',', '.'));
         if (!value || Number.isNaN(value)) {
           setError(t('capture:errors.amountRequired'));
           setSubmitting(false);
           return;
         }
+        const kind = step === 'income' ? 'income' : 'expense';
         const entry = await financialEntryService.create({
           fieldId,
           amount: value,
-          kind: 'expense',
+          kind,
           category,
           description: expenseDesc.trim() || t(`fields:financial.categories.${category}`, { defaultValue: category }),
           occurredOn: when,
           taskId: taskId || undefined,
           currency: 'EUR',
         });
-        onSaved({ type: 'expense', fieldId, sourceId: entry.id }, t('capture:expense.saved'));
+        onSaved({ type: kind, fieldId, sourceId: entry.id }, t(`capture:${kind}.saved`));
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
         if (!olives || Number.isNaN(olives)) {
@@ -359,6 +365,7 @@ const CaptureDrawer: React.FC<Props> = ({
     },
     { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
     { type: 'expense', icon: <Wallet size={22} />, enabled: permissions.canRecordExpense },
+    { type: 'income', icon: <TrendingUp size={22} />, enabled: permissions.canRecordIncome },
     { type: 'harvest', icon: <Wheat size={22} />, enabled: permissions.canRecordHarvest },
   ];
 
@@ -537,10 +544,10 @@ const CaptureDrawer: React.FC<Props> = ({
                     </>
                   ) : null}
 
-                  {step === 'expense' ? (
+                  {step === 'expense' || step === 'income' ? (
                     <>
                       <label className="capture-label capture-amount-label">
-                        {t('capture:expense.amount')}
+                        {t(`capture:${step}.amount`)}
                         <input
                           className="capture-amount-input"
                           inputMode="decimal"
@@ -552,9 +559,9 @@ const CaptureDrawer: React.FC<Props> = ({
                           placeholder="0,00 €"
                         />
                       </label>
-                      <div className="capture-label">{t('capture:expense.category')}</div>
+                      <div className="capture-label">{t(`capture:${step}.category`)}</div>
                       <div className="capture-chip-grid">
-                        {EXPENSE_CATEGORIES.map((c) => (
+                        {(step === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((c) => (
                           <button
                             key={c}
                             type="button"
@@ -564,7 +571,9 @@ const CaptureDrawer: React.FC<Props> = ({
                               markDirty();
                             }}
                           >
-                            {t(`fields:financial.categories.${c}`, { defaultValue: c })}
+                            {t(`fields:financial.categories.${c}`, {
+                              defaultValue: t(`economics:groups.${c}`, { defaultValue: c }),
+                            })}
                           </button>
                         ))}
                       </div>
@@ -577,7 +586,7 @@ const CaptureDrawer: React.FC<Props> = ({
                       </button>
                       {moreOpen ? (
                         <label className="capture-label">
-                          {t('capture:expense.description')}
+                          {t(`capture:${step}.description`)}
                           <input
                             value={expenseDesc}
                             onChange={(e) => {
@@ -587,18 +596,13 @@ const CaptureDrawer: React.FC<Props> = ({
                           />
                         </label>
                       ) : null}
-                      {taskId ? (
-                        <p className="capture-hint">
-                          {t('capture:expense.relatedWork')}: {taskId}
-                        </p>
-                      ) : null}
                     </>
                   ) : null}
 
                   {step === 'harvest' ? (
                     <>
                       <label className="capture-label">
-                        {t('capture:harvest.olives')} (kg)
+                        {t('capture:harvest.olivesKg')}
                         <input
                           inputMode="decimal"
                           value={oliveKg}
@@ -609,7 +613,7 @@ const CaptureDrawer: React.FC<Props> = ({
                         />
                       </label>
                       <label className="capture-label">
-                        {t('capture:harvest.oil')} (kg)
+                        {t('capture:harvest.oilKg')}
                         <input
                           inputMode="decimal"
                           value={oilKg}

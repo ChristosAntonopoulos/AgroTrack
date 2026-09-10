@@ -34,7 +34,7 @@ const MainLayout: React.FC = () => {
   return (
     <CaptureProvider>
       <div className="main-layout">
-        <Header onMenuClick={toggleSidebar} />
+        <Header onMenuClick={toggleSidebar} hideMenuButton={isMobile} />
         <div className="layout-content">
           <div className={`sidebar-wrapper ${sidebarOpen ? 'open' : ''}`}>
             <Sidebar onNavigate={closeSidebar} />

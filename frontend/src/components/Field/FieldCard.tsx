@@ -8,6 +8,7 @@ import './FieldCard.css';
 
 export interface FieldCardStats {
   todayTaskCount: number;
+  tasksReady?: boolean;
 }
 
 interface FieldCardProps {
@@ -22,6 +23,11 @@ const FieldCard: React.FC<FieldCardProps> = ({ field, stats, compact, selected }
   const navigate = useNavigate();
 
   const open = () => navigate(`/fields/${field.id}`);
+  const todayLine = !stats.tasksReady
+    ? t('fields:card.todayTasksLoading')
+    : stats.todayTaskCount === 0
+      ? t('fields:card.todayTasks_zero')
+      : t('fields:card.todayTasks', { count: stats.todayTaskCount });
 
   return (
     <article
@@ -38,9 +44,7 @@ const FieldCard: React.FC<FieldCardProps> = ({ field, stats, compact, selected }
     >
       <div className="field-card-v2-main">
         <FieldIdentity field={field} size="card" />
-        <p className="field-card-v2-today">
-          {t('fields:card.todayTasks', { count: stats.todayTaskCount })}
-        </p>
+        <p className="field-card-v2-today">{todayLine}</p>
         <span className="field-card-v2-open-hint">{t('fields:card.open')}</span>
       </div>
       <FieldPolygonThumbnail field={field} />

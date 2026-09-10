@@ -224,10 +224,10 @@ const MoneyPage: React.FC = () => {
     patch({ edit: null });
   };
 
-  const openCapture = () => {
+  const openCapture = (kind: 'expense' | 'income' = 'expense') => {
     capture?.openCapture({
       fieldId: fieldId || fields[0]?.id,
-      preferredType: 'expense',
+      preferredType: kind,
     });
   };
 
@@ -258,6 +258,12 @@ const MoneyPage: React.FC = () => {
         <PageHeader title={t('economics:title')} subtitle={t('economics:subtitle')} />
 
         <div className="eco-toolbar">
+          <Button variant="primary" onClick={() => openCapture('expense')}>
+            {t('economics:captureExpense')}
+          </Button>
+          <Button variant="primary" onClick={() => openCapture('income')}>
+            {t('economics:captureIncome')}
+          </Button>
           <label className="sr-only" htmlFor="eco-field">
             {t('economics:fieldAria')}
           </label>
@@ -317,9 +323,14 @@ const MoneyPage: React.FC = () => {
             title={t('economics:emptyTitle')}
             description={t('economics:emptyHint')}
             action={
-              <Button variant="primary" onClick={openCapture}>
-                {t('economics:captureCta')}
-              </Button>
+              <div className="eco-empty-actions">
+                <Button variant="primary" onClick={() => openCapture('expense')}>
+                  {t('economics:captureExpense')}
+                </Button>
+                <Button variant="outline" onClick={() => openCapture('income')}>
+                  {t('economics:captureIncome')}
+                </Button>
+              </div>
             }
           />
         ) : view === 'summary' ? (
@@ -338,9 +349,11 @@ const MoneyPage: React.FC = () => {
             previous={previous}
             costPerKg={unit.costPerKg}
             harvestCostPerKg={unit.harvestCostPerKg}
-            onSelectField={(id) => patch({ fieldId: id })}
+            onSelectField={(id) => patch({ fieldId: id, view: 'movements' })}
             onOpenMovements={() => patch({ view: 'movements' })}
             onOpenEntry={(id) => patch({ entry: id })}
+            onOpenKind={(next) => patch({ view: 'movements', kind: next })}
+            onOpenCategory={(group) => patch({ view: 'movements', category: group, kind: 'expense' })}
           />
         ) : (
           <EconomicsMovements

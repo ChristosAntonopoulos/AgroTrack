@@ -1,13 +1,19 @@
 using OliveLifecycle.Application.DTOs.Field;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
+using OliveLifecycle.Core.Units;
 using OliveLifecycle.Core.ValueObjects;
 
 namespace OliveLifecycle.Application.Mappings;
 
 public static class FieldMapper
 {
-    public static FieldDto ToDto(Field field, bool includeDocuments = true) => new()
+    public static FieldDto ToDto(Field field, bool includeDocuments = true)
+    {
+        field.NormalizeStoredArea();
+        var areaSqm = field.ResolveAreaSqm();
+        var areaHectares = areaSqm is > 0 ? FieldArea.HectaresFromSqm(areaSqm.Value) : (double?)null;
+        return new()
     {
         Id = field.Id,
         OwnerId = field.OwnerId,
@@ -18,7 +24,9 @@ public static class FieldMapper
         Longitude = field.CenterPoint?.Coordinates.Count >= 2
             ? field.CenterPoint.Coordinates[0]
             : field.Location?.Longitude,
-        Area = field.AppMeasuredAreaSqm ?? field.Area,
+        Area = areaHectares ?? 0,
+        AreaSqm = areaSqm,
+        AreaHectares = areaHectares,
         Variety = field.Variety,
         TreeAge = field.TreeAge,
         GroundType = field.SoilType ?? field.GroundType,
@@ -35,7 +43,7 @@ public static class FieldMapper
         LocationText = field.LocationText,
         Boundary = field.Boundary == null ? null : ToPolygonDto(field.Boundary),
         CenterPoint = field.CenterPoint == null ? null : ToPointDto(field.CenterPoint),
-        AppMeasuredAreaSqm = field.AppMeasuredAreaSqm ?? (field.Boundary == null ? field.Area : null),
+        AppMeasuredAreaSqm = field.AppMeasuredAreaSqm,
         TreeCount = field.TreeCount,
         OliveVariety = field.Variety,
         IrrigationType = field.IrrigationType ?? (field.IrrigationStatus ? "Drip irrigation" : "Rainfed"),
@@ -48,6 +56,7 @@ public static class FieldMapper
             ? field.Documents.Select(ToDocumentDto).ToList()
             : new List<FieldDocumentAttachmentDto>()
     };
+    }
 
     public static FieldMembershipDto ToMembershipDto(FieldMembership membership) => new()
     {

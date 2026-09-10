@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { financialCategoryI18nKey, taskStatusI18nKey } from '../../utils/categoryNormalize';
 import type { SupportedLocale } from '../../i18n/config';
 import {
   resolveFieldColor,
@@ -76,7 +77,7 @@ const categoryTone = (category: string, importance: string): string => {
 };
 
 const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, weatherTile = false }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'common']);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'fields']);
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const [expanded, setExpanded] = useState(false);
@@ -106,11 +107,11 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
       return;
     }
     if (entry.sourceType === 'Expense') {
-      navigate(`/money?fieldId=${encodeURIComponent(entry.fieldId)}`);
+      navigate(`/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&entry=${encodeURIComponent(entry.sourceId)}` : ''}`);
       return;
     }
     if (entry.sourceType === 'Harvest') {
-      navigate(`/fields/${entry.fieldId}`);
+      navigate('/this-harvest');
       return;
     }
     if (entry.sourceType === 'Note') {
@@ -234,7 +235,11 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
                 </span>
               ) : null}
               {expense?.expenseCategory ? (
-                <span className="chronologio-expense-cat">{expense.expenseCategory}</span>
+                <span className="chronologio-expense-cat">
+                  {t(financialCategoryI18nKey(expense.expenseCategory), {
+                    defaultValue: expense.expenseCategory,
+                  })}
+                </span>
               ) : null}
             </div>
           ) : null}
@@ -242,7 +247,11 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
           {category === 'task' ? (
             <>
               {entry.summary ? <p className="chronologio-card-summary">{entry.summary}</p> : null}
-              <span className="chronologio-task-status">{t('chronologio:completed')}</span>
+              {entry.details.task?.status ? (
+                <span className="chronologio-task-status">
+                  {t(taskStatusI18nKey(entry.details.task.status))}
+                </span>
+              ) : null}
             </>
           ) : null}
 

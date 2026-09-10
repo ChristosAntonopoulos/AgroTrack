@@ -14,8 +14,13 @@ public class UpdateFieldDto
 
     public double? Longitude { get; set; }
 
+    /// <summary>Area in hectares. Ignored when <see cref="AppMeasuredAreaSqm"/> is provided.</summary>
     [Range(0, double.MaxValue)]
     public double? Area { get; set; }
+
+    /// <summary>Canonical measured area in square metres.</summary>
+    [Range(0, double.MaxValue)]
+    public double? AppMeasuredAreaSqm { get; set; }
 
     public GeoJsonPolygonDto? Boundary { get; set; }
 

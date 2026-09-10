@@ -18,6 +18,7 @@ import { Task } from '../services/taskService';
 import { Note, notePreviewTitle } from '../services/noteService';
 import {
   formatSeasonLabel,
+  formatSeasonRange,
   getSeasonBounds,
   getSeasonStartYear,
 } from '../utils/harvestSeason';
@@ -26,7 +27,6 @@ import {
   computeRodProgress,
   noteInSeasonBounds,
   isTaskCompleted,
-  ROD_PHASE_ORDER,
   type RodPhaseId,
 } from '../ravdos/progressModel';
 import {
@@ -37,18 +37,25 @@ import {
 import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
 import { useExperienceMode } from '../context/ExperienceModeContext';
-import { formatDate } from '../utils/localeFormatters';
+import { formatEconomicsMoney } from '../utils/economics';
+import { useAllLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
+import { normalizeTaskCategory, taskStatusI18nKey } from '../utils/categoryNormalize';
+import { formatNumber } from '../utils/localeFormatters';
 import './ThisHarvestPage.css';
 
-const formatMoney = (amount: number) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(amount);
-
-const formatKg = (kg: number) => kg.toLocaleString(undefined, { maximumFractionDigits: 1 });
+const formatMoney = (amount: number, locale: string) => formatEconomicsMoney(amount, 'EUR', locale);
+const formatKg = (kg: number, locale: string) =>
+  formatNumber(kg, { locale: locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en', maximumFractionDigits: 1 });
 
 const ThisHarvestPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { locale } = useLocale();
   const { isEveryday } = useExperienceMode();
+  const localizedTemplates = useAllLocalizedTemplates();
+  const titleByTemplateId = useMemo(
+    () => Object.fromEntries(localizedTemplates.map((tpl) => [tpl.id, tpl.title])),
+    [localizedTemplates]
+  );
   const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
   const bounds = useMemo(() => getSeasonBounds(seasonStartYear), [seasonStartYear]);
 
@@ -135,10 +142,28 @@ const ThisHarvestPage: React.FC = () => {
   const progress = useMemo(() => computeRodProgress(milestones), [milestones]);
 
   const visibleMilestones = useMemo(() => {
-    if (showAllMilestones || !isEveryday) return progress.milestones;
-    const open = progress.milestones.filter((m) => !m.done);
-    return open.slice(0, 5);
-  }, [progress.milestones, showAllMilestones, isEveryday]);
+    const withTitles = progress.milestones.map((m) => ({
+      ...m,
+      title: titleByTemplateId[m.templateId] || m.title,
+    }));
+    const relevant = isEveryday ? withTitles.filter((m) => Boolean(m.taskId)) : withTitles;
+    if (showAllMilestones || !isEveryday) return relevant;
+    return relevant.filter((m) => !m.done).slice(0, 5);
+  }, [progress.milestones, showAllMilestones, isEveryday, titleByTemplateId]);
+
+  const upcomingHarvest = useMemo(
+    () =>
+      tasks
+        .filter((task) => {
+          if (task.status === 'completed' || task.status === 'cancelled') return false;
+          return normalizeTaskCategory(task.type) === 'harvest';
+        })
+        .slice(0, isEveryday ? 5 : 12),
+    [tasks, isEveryday]
+  );
+
+  const oilYield =
+    finance.oliveKg > 0 && finance.oilKg > 0 ? (finance.oilKg / finance.oliveKg) * 100 : null;
 
   const toggleMilestone = async (taskId: string | undefined, currentlyDone: boolean) => {
     if (!taskId || togglingId) return;
@@ -187,47 +212,17 @@ const ThisHarvestPage: React.FC = () => {
         <section className="ravdos-section ravdos-hero" aria-labelledby="ravdos-progress">
           <div className="ravdos-hero-top">
             <div>
-              <p className="ravdos-eyebrow">{t('fields:thisHarvest.progressLabel')}</p>
-              <h2 id="ravdos-progress" className="ravdos-percent">
-                {progress.percent}%
+              <p className="ravdos-eyebrow">{t('fields:thisHarvest.liveTitle')}</p>
+              <h2 id="ravdos-progress">
+                {finance.oliveKg > 0
+                  ? `${formatKg(finance.oliveKg, locale)} kg`
+                  : t('fields:thisHarvest.emptyTitle')}
               </h2>
               <p className="ravdos-status">
-                {t('fields:thisHarvest.inProgress')} ·{' '}
-                {t('fields:thisHarvest.phaseFocus', {
-                  phase: phaseLabel(progress.activePhaseId),
-                })}
+                {formatSeasonLabel(seasonStartYear)} · {formatSeasonRange(seasonStartYear, locale === 'el' ? 'el-GR' : locale)}
               </p>
             </div>
-            <div
-              className="ravdos-ring"
-              style={{ ['--ravdos-pct' as string]: `${progress.percent}` }}
-              aria-hidden
-            />
           </div>
-
-          {!isEveryday ? (
-            <div className="ravdos-phases" role="list">
-              {ROD_PHASE_ORDER.map((id) => {
-                const phase = progress.phases.find((p) => p.id === id);
-                const active = progress.activePhaseId === id;
-                return (
-                  <div
-                    key={id}
-                    role="listitem"
-                    className={`ravdos-phase ${active ? 'is-active' : ''} ${
-                      (phase?.percent ?? 0) >= 100 ? 'is-done' : ''
-                    }`}
-                  >
-                    <span className="ravdos-phase-name">{phaseLabel(id)}</span>
-                    <span className="ravdos-phase-pct">{phase?.percent ?? 0}%</span>
-                    <div className="ravdos-phase-bar">
-                      <i style={{ width: `${phase?.percent ?? 0}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
         </section>
 
         <section className="ravdos-section" aria-labelledby="ravdos-milestones">
@@ -253,16 +248,12 @@ const ThisHarvestPage: React.FC = () => {
                   {m.taskId ? (
                     <Link to={`/tasks/${m.taskId}`} className="ravdos-check-body">
                       <span className="ravdos-check-title">{m.title}</span>
-                      <span className="ravdos-check-meta">
-                        {phaseLabel(m.phase)} · {m.weight}
-                      </span>
+                      <span className="ravdos-check-meta">{phaseLabel(m.phase)}</span>
                     </Link>
                   ) : (
                     <div className="ravdos-check-body">
                       <span className="ravdos-check-title">{m.title}</span>
-                      <span className="ravdos-check-meta">
-                        {phaseLabel(m.phase)} · {m.weight}
-                      </span>
+                      <span className="ravdos-check-meta">{phaseLabel(m.phase)}</span>
                     </div>
                   )}
                 </li>
@@ -285,6 +276,26 @@ const ThisHarvestPage: React.FC = () => {
           <Link to="/tasks" className="ravdos-section-link">
             {t('fields:thisHarvest.seeAllTasks')} <ChevronRight size={16} aria-hidden />
           </Link>
+        </section>
+
+        <section className="ravdos-section" aria-labelledby="ravdos-upcoming">
+          <div className="ravdos-section-head">
+            <h2 id="ravdos-upcoming">{t('fields:thisHarvest.upcomingTitle')}</h2>
+          </div>
+          {upcomingHarvest.length === 0 ? (
+            <p className="ravdos-empty-line">{t('fields:thisHarvest.upcomingEmpty')}</p>
+          ) : (
+            <ul className="ravdos-checklist">
+              {upcomingHarvest.map((task) => (
+                <li key={task.id} className="ravdos-check-item">
+                  <Link to={`/tasks/${task.id}`} className="ravdos-check-body">
+                    <span className="ravdos-check-title">{task.title}</span>
+                    <span className="ravdos-check-meta">{t(taskStatusI18nKey(task.status))}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="ravdos-section" aria-labelledby="ravdos-notes">
@@ -328,11 +339,21 @@ const ThisHarvestPage: React.FC = () => {
           <div className="ravdos-money-grid ravdos-live-grid">
             <div className="ravdos-money-stat">
               <span>{t('fields:thisHarvest.olivesSoFar')}</span>
-              <strong>{formatKg(finance.oliveKg)} kg</strong>
+              <strong>{formatKg(finance.oliveKg, locale)} kg</strong>
             </div>
             <div className="ravdos-money-stat">
+              <span>{t('fields:thisHarvest.oilSoFar')}</span>
+              <strong>{formatKg(finance.oilKg, locale)} kg</strong>
+            </div>
+            {oilYield != null ? (
+              <div className="ravdos-money-stat">
+                <span>{t('fields:thisHarvest.oilYieldSoFar')}</span>
+                <strong>{formatKg(oilYield, locale)}%</strong>
+              </div>
+            ) : null}
+            <div className="ravdos-money-stat">
               <span>{t('fields:thisHarvest.spentSoFar')}</span>
-              <strong>{formatMoney(finance.spent)}</strong>
+              <strong>{formatMoney(finance.spent, locale)}</strong>
             </div>
           </div>
           <div className="ravdos-money-actions">
@@ -349,8 +370,9 @@ const ThisHarvestPage: React.FC = () => {
                     <Link to={`/fields/${card.fieldId}`} className="ravdos-field-link">
                       <span className="ravdos-field-name">{card.fieldName}</span>
                       <span className="ravdos-field-meta">
-                        {formatKg(card.oliveKg)} kg
-                        {card.spent > 0 ? ` · ${formatMoney(card.spent)}` : ''}
+                        {formatKg(card.oliveKg, locale)} kg
+                        {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
+                        {card.spent > 0 ? ` · ${formatMoney(card.spent, locale)}` : ''}
                       </span>
                     </Link>
                   </li>

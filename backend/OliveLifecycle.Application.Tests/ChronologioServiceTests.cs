@@ -456,7 +456,7 @@ public class ChronologioServiceTests
 
     [Theory]
     [InlineData("2026-09-01T00:00:00Z", 2026)]
-    [InlineData("2026-08-31T23:00:00Z", 2025)]
+    [InlineData("2026-08-31T20:00:00Z", 2025)]
     [InlineData("2025-12-15T12:00:00Z", 2025)]
     public void SeasonCalendar_GetSeasonStartYear(string iso, int expected)
     {
@@ -468,9 +468,10 @@ public class ChronologioServiceTests
     public void SeasonCalendar_SeasonBounds_SepToAug()
     {
         var (from, to) = ChronologioSeasonCalendar.GetSeasonBounds(2025);
-        Assert.Equal(new DateTime(2025, 9, 1, 0, 0, 0, DateTimeKind.Utc), from);
-        Assert.Equal(8, to.Month);
-        Assert.Equal(2026, to.Year);
+        Assert.Equal(9, TimeZoneInfo.ConvertTimeFromUtc(from, OliveLifecycle.Core.Time.AthensTime.TimeZone).Month);
+        Assert.Equal(2025, TimeZoneInfo.ConvertTimeFromUtc(from, OliveLifecycle.Core.Time.AthensTime.TimeZone).Year);
+        Assert.Equal(8, TimeZoneInfo.ConvertTimeFromUtc(to, OliveLifecycle.Core.Time.AthensTime.TimeZone).Month);
+        Assert.Equal(2026, TimeZoneInfo.ConvertTimeFromUtc(to, OliveLifecycle.Core.Time.AthensTime.TimeZone).Year);
     }
 
     [Fact]
@@ -534,7 +535,7 @@ public class ChronologioServiceTests
         Assert.Equal(1000, y2026.OliveKg);
         Assert.Equal(180, y2026.OilKg);
         Assert.Equal(18.0, y2026.OilYieldPercent);
-        Assert.Equal(100m, y2026.ExpenseTotal);
+        Assert.Equal(0m, y2026.ExpenseTotal);
 
         var y2025 = Assert.Single(years, y => y.Key == "2025");
         Assert.Equal(1, y2025.TaskCount);

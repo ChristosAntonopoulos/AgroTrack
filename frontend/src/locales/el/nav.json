@@ -1,15 +1,18 @@
 {
   "sections": {
+    "primary": "Κύρια",
+    "secondary": "Άλλα",
+    "account": "Λογαριασμός",
     "command": "Κέντρο ελέγχου",
     "work": "Εργασία",
     "operations": "Λειτουργίες",
     "insights": "Αναλύσεις",
-    "compliance": "Συμμόρφωση",
-    "account": "Λογαριασμός"
+    "compliance": "Συμμόρφωση"
   },
   "items": {
     "dashboard": "Πίνακας ελέγχου",
     "today": "Πρωινή ματιά",
+    "todayMobile": "Σήμερα",
     "fields": "Αγροτεμάχια",
     "tasks": "Εργασίες",
     "partners": "Συνεργάτες",
@@ -20,7 +23,7 @@
     "ministry": "Υπουργείο",
     "dataSources": "Πηγές δεδομένων",
     "settings": "Ρυθμίσεις",
-    "thisHarvest": "Αυτός ο ράβδος",
+    "thisHarvest": "Συγκομιδή",
     "chronologio": "Χρονολόγιο"
   },
   "breadcrumb": {

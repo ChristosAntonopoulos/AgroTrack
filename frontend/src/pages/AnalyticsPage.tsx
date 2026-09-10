@@ -20,7 +20,7 @@ import './AnalyticsPage.css';
 type TimePeriod = 'week' | 'month' | 'quarter' | 'year';
 
 const AnalyticsPage: React.FC = () => {
-  const { t } = useTranslation('analytics');
+  const { t } = useTranslation(['analytics', 'common']);
   const { user } = useAuth();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('month');
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -122,16 +122,16 @@ const AnalyticsPage: React.FC = () => {
       <PageContainer>
         <div className="analytics-page">
           <Breadcrumbs />
-          <div className="error-message">You do not have permission to view analytics.</div>
+          <div className="error-message">{t('noPermission')}</div>
         </div>
       </PageContainer>
     );
   }
 
   const statusDistributionData = statusDistribution ? [
-    { name: 'Pending', value: statusDistribution.pending },
-    { name: 'In Progress', value: statusDistribution.inProgress },
-    { name: 'Completed', value: statusDistribution.completed },
+    { name: t('common:taskStatus.pending'), value: statusDistribution.pending },
+    { name: t('common:taskStatus.in_progress'), value: statusDistribution.inProgress },
+    { name: t('common:taskStatus.completed'), value: statusDistribution.completed },
   ] : [];
 
   const costByFieldData = costAnalysis?.costByField.map(item => ({
@@ -252,17 +252,17 @@ const AnalyticsPage: React.FC = () => {
 
           {fieldMetrics.length > 0 && (
             <div className="field-metrics-table">
-              <h2>Field Performance</h2>
+              <h2>{t('fieldPerformance')}</h2>
               <div className="u-scroll-x">
               <table>
                 <thead>
                   <tr>
-                    <th>Field</th>
-                    <th>Total Tasks</th>
-                    <th>Completed</th>
-                    <th>Completion Rate</th>
-                    <th>Total Cost</th>
-                    <th>Avg Cost/Task</th>
+                    <th>{t('field')}</th>
+                    <th>{t('totalTasks')}</th>
+                    <th>{t('completed')}</th>
+                    <th>{t('completionRate')}</th>
+                    <th>{t('totalCost')}</th>
+                    <th>{t('avgCostTask')}</th>
                   </tr>
                 </thead>
                 <tbody>

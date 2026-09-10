@@ -270,6 +270,7 @@ const TodayPage: React.FC = () => {
   };
 
   const uniqueFieldCount = new Set(todayWork.map((x) => x.fieldId)).size;
+  const dueTodayOnly = todayWork.filter((task) => !overdue.some((o) => o.id === task.id));
   const hasToday = todayWork.length > 0;
   const hasProposals = Boolean(ranked.featured);
   const calmEmpty = !hasToday && !hasProposals && nextTasks.length === 0;
@@ -431,19 +432,62 @@ const TodayPage: React.FC = () => {
           </p>
         ) : null}
 
-        {hasToday ? (
+        {overdue.length > 0 ? (
+          <section className="today-brief-section" aria-labelledby="today-overdue-heading">
+            <div className="today-brief-section-head">
+              <h2 id="today-overdue-heading">{t('today:brief.overdueSection')}</h2>
+              <p className="today-brief-section-meta">
+                {t('today:brief.todaySummary', {
+                  tasks: overdue.length,
+                  fields: new Set(overdue.map((x) => x.fieldId)).size,
+                })}
+              </p>
+            </div>
+            <div className="today-brief-list">
+              {overdue.map((task) => {
+                return (
+                  <div key={task.id} className="today-brief-row">
+                    <div className="today-brief-row-main">
+                      <div className="today-brief-row-time">
+                        <span className="today-brief-overdue">{t('today:brief.overdueTag')}</span>
+                      </div>
+                      <div>
+                        <div className="today-brief-row-title">{task.title}</div>
+                        <div className="today-brief-row-meta">{names[task.fieldId] || '—'}</div>
+                      </div>
+                    </div>
+                    <div className="today-brief-row-actions">
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/tasks/${task.id}`)}>
+                        {t('today:brief.open')}
+                      </Button>
+                      <button
+                        type="button"
+                        className="today-text-action"
+                        onClick={() => void completeTask(task.id)}
+                      >
+                        {t('today:brief.complete')}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {dueTodayOnly.length > 0 ? (
           <section className="today-brief-section" aria-labelledby="today-work-heading">
             <div className="today-brief-section-head">
               <h2 id="today-work-heading">{t('today:brief.todaySection')}</h2>
               <p className="today-brief-section-meta">
                 {t('today:brief.todaySummary', {
-                  tasks: todayWork.length,
+                  tasks: dueTodayOnly.length,
                   fields: uniqueFieldCount,
                 })}
               </p>
             </div>
             <div className="today-brief-list">
-              {todayWork.map((task) => {
+              {dueTodayOnly.map((task) => {
                 const due = task.scheduledStart || task.scheduledEnd;
                 const time =
                   due &&
@@ -452,17 +496,10 @@ const TodayPage: React.FC = () => {
                     minute: '2-digit',
                     hour12: false,
                   });
-                const isOver = overdue.some((o) => o.id === task.id);
                 return (
                   <div key={task.id} className="today-brief-row">
                     <div className="today-brief-row-main">
-                      <div className="today-brief-row-time">
-                        {isOver ? (
-                          <span className="today-brief-overdue">{t('today:brief.overdueTag')}</span>
-                        ) : (
-                          time || '—'
-                        )}
-                      </div>
+                      <div className="today-brief-row-time">{time || '—'}</div>
                       <div>
                         <div className="today-brief-row-title">{task.title}</div>
                         <div className="today-brief-row-meta">{names[task.fieldId] || '—'}</div>

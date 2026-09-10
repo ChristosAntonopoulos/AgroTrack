@@ -6,14 +6,16 @@ using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
+using OliveLifecycle.Core.Time;
+using OliveLifecycle.Core.Units;
 
 namespace OliveLifecycle.Application.Services;
 
 public interface IReportsService
 {
-    Task<IEnumerable<FieldSummaryReportDto>> GetFieldSummariesAsync(string userId, string userRole, string? lifecycleYear = null, string? season = null, CancellationToken cancellationToken = default);
-    Task<IEnumerable<HarvestRecordDto>> GetHarvestRecordsAsync(string userId, string userRole, string? lifecycleYear = null, string? season = null, CancellationToken cancellationToken = default);
-    Task<ProfitLossReportDto> GetProfitLossAsync(string userId, string userRole, string? lifecycleYear = null, string? season = null, CancellationToken cancellationToken = default);
+    Task<IEnumerable<FieldSummaryReportDto>> GetFieldSummariesAsync(string userId, string userRole, string? lifecycleYear = null, string? season = null, string? periodBasis = null, CancellationToken cancellationToken = default);
+    Task<IEnumerable<HarvestRecordDto>> GetHarvestRecordsAsync(string userId, string userRole, string? lifecycleYear = null, string? season = null, string? periodBasis = null, CancellationToken cancellationToken = default);
+    Task<ProfitLossReportDto> GetProfitLossAsync(string userId, string userRole, string? lifecycleYear = null, string? season = null, string? periodBasis = null, CancellationToken cancellationToken = default);
     Task<MonthlyWeatherReportDto> GetMonthlyWeatherAsync(string userId, string userRole, string? season = null, int? month = null, CancellationToken cancellationToken = default);
     Task<YearlyWeatherReportDto> GetYearlyWeatherAsync(string userId, string userRole, string? season = null, CancellationToken cancellationToken = default);
 }
@@ -55,6 +57,7 @@ public class ReportsService : IReportsService
         string userRole,
         string? lifecycleYear = null,
         string? season = null,
+        string? periodBasis = null,
         CancellationToken cancellationToken = default)
     {
         var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
@@ -74,17 +77,20 @@ public class ReportsService : IReportsService
         {
             var fieldTasks = tasks.Where(t => t.FieldId == field.Id).ToList();
             var fieldHarvests = harvests
-                .Where(h => h.FieldId == field.Id && MatchesSeason(h.HarvestDate, season) && h.Status != FinancialEntryStatus.Voided)
+                .Where(h => h.FieldId == field.Id && MatchesSeason(h.HarvestDate, season, periodBasis) && h.Status != FinancialEntryStatus.Voided)
                 .ToList();
             var fieldEntries = ledger
-                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season) && MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
+                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
+                .ToList();
+            var fieldTasksInPeriod = fieldTasks
+                .Where(t => MatchesSeason(TaskDate(t), season, periodBasis))
                 .ToList();
             var totalProduction = fieldHarvests.Sum(h => h.OliveKg);
             var oilKg = fieldHarvests.Where(h => h.OilKg.HasValue).Sum(h => h.OilKg ?? 0);
             var hasOil = fieldHarvests.Any(h => h.OilKg.HasValue);
-            var totalCost = SumFieldCost(fieldEntries, fieldTasks);
+            var totalCost = SumFieldCost(fieldEntries, fieldTasksInPeriod);
             var revenue = SumFieldRevenue(fieldEntries);
-            var areaHa = RoundHa(field.Area);
+            var areaHa = RoundHa(field.ResolveAreaHectares() ?? 0);
             var treeCount = field.TreeCount ?? 0;
             var lastHarvest = fieldHarvests.OrderByDescending(h => h.HarvestDate).FirstOrDefault();
             var lastPruning = fieldTasks
@@ -105,9 +111,9 @@ public class ReportsService : IReportsService
                 SoilType = field.SoilType ?? field.GroundType,
                 LastPruningDate = FormatDate(lastPruning?.ActualEnd ?? lastPruning?.ScheduledEnd),
                 LastHarvestDate = lastHarvest == null ? null : FormatDate(lastHarvest.HarvestDate),
-                TasksCompleted = fieldTasks.Count(t => t.Status == WorkTaskStatus.Completed),
-                TasksPending = fieldTasks.Count(t => t.Status is WorkTaskStatus.Pending or WorkTaskStatus.InProgress),
-                TasksOverdue = fieldTasks.Count(t =>
+                TasksCompleted = fieldTasksInPeriod.Count(t => t.Status == WorkTaskStatus.Completed),
+                TasksPending = fieldTasksInPeriod.Count(t => t.Status is WorkTaskStatus.Pending or WorkTaskStatus.InProgress),
+                TasksOverdue = fieldTasksInPeriod.Count(t =>
                     t.Status != WorkTaskStatus.Completed &&
                     t.Status != WorkTaskStatus.Cancelled &&
                     t.ScheduledEnd.HasValue &&
@@ -130,6 +136,7 @@ public class ReportsService : IReportsService
         string userRole,
         string? lifecycleYear = null,
         string? season = null,
+        string? periodBasis = null,
         CancellationToken cancellationToken = default)
     {
         var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
@@ -139,11 +146,11 @@ public class ReportsService : IReportsService
             : await _harvestRecordRepository.GetByFieldIdsAsync(fieldMap.Keys, cancellationToken);
 
         return records
-            .Where(r => r.Status != FinancialEntryStatus.Voided && MatchesSeason(r.HarvestDate, season))
+            .Where(r => r.Status != FinancialEntryStatus.Voided && MatchesSeason(r.HarvestDate, season, periodBasis))
             .Select(r =>
             {
                 fieldMap.TryGetValue(r.FieldId, out var field);
-                var area = field?.Area ?? 0;
+                var areaHa = field?.ResolveAreaHectares() ?? 0;
                 return new HarvestRecordDto
                 {
                     Id = r.Id,
@@ -153,7 +160,7 @@ public class ReportsService : IReportsService
                     HarvestMethod = r.HarvestMethod,
                     WorkersUsed = r.WorkersUsed,
                     OliveKg = RoundKg(r.OliveKg),
-                    KgPerHa = area > 0 ? RoundKg(r.OliveKg / RoundHa(area)) : 0,
+                    KgPerHa = areaHa > 0 ? RoundKg(r.OliveKg / areaHa) : 0,
                     MillName = r.MillName,
                     OilKg = r.OilKg.HasValue ? RoundKg(r.OilKg.Value) : null,
                     OilYieldPercent = r.OilYieldPercent.HasValue ? RoundOne(r.OilYieldPercent.Value) : null,
@@ -169,6 +176,7 @@ public class ReportsService : IReportsService
         string userRole,
         string? lifecycleYear = null,
         string? season = null,
+        string? periodBasis = null,
         CancellationToken cancellationToken = default)
     {
         if (userRole != Roles.FieldOwner && userRole != Roles.Administrator)
@@ -188,9 +196,9 @@ public class ReportsService : IReportsService
         var profitByField = fields.Select(field =>
         {
             var fieldEntries = ledger
-                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season) && MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
+                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
                 .ToList();
-            var fieldTasks = tasks.Where(t => t.FieldId == field.Id);
+            var fieldTasks = tasks.Where(t => t.FieldId == field.Id && MatchesSeason(TaskDate(t), season, periodBasis));
             var cost = SumFieldCost(fieldEntries, fieldTasks);
             var revenue = SumFieldRevenue(fieldEntries);
             return new FieldProfitDto
@@ -209,7 +217,7 @@ public class ReportsService : IReportsService
             .Where(e =>
                 e.Kind == FinancialEntryKind.Expense &&
                 e.Status == FinancialEntryStatus.Posted &&
-                MatchesSeason(e.OccurredOn, season) &&
+                MatchesSeason(e.OccurredOn, season, periodBasis) &&
                 MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
             .ToList();
         var expensesByBucket = postedExpenses
@@ -367,7 +375,7 @@ public class ReportsService : IReportsService
             FieldId = field.Id,
             FieldName = field.Name,
             Location = field.GetApproximateAreaLabel(),
-            AreaHa = RoundHa(field.Area),
+            AreaHa = RoundHa(field.ResolveAreaHectares() ?? 0),
             DayCount = days.Count,
             RainTotalMm = rainTotal,
             AvgMinTemperatureC = mins.Count > 0 ? RoundOne(mins.Average()) : null,
@@ -453,7 +461,7 @@ public class ReportsService : IReportsService
             FieldId = field.Id,
             FieldName = field.Name,
             Location = field.GetApproximateAreaLabel(),
-            AreaHa = RoundHa(field.Area),
+            AreaHa = RoundHa(field.ResolveAreaHectares() ?? 0),
             RainTotalMm = rainTotal,
             MinTemperatureC = mins.Count > 0 ? RoundOne(mins.Min()) : null,
             MaxTemperatureC = maxs.Count > 0 ? RoundOne(maxs.Max()) : null,
@@ -468,7 +476,7 @@ public class ReportsService : IReportsService
             TotalCost = RoundMoney(totalCost),
             Revenue = RoundMoney(revenue),
             Profit = RoundMoney(revenue - totalCost),
-            CostPerHa = field.Area > 0 ? RoundMoney(totalCost / (decimal)RoundHa(field.Area)) : 0,
+            CostPerHa = (field.ResolveAreaHectares() ?? 0) > 0 ? RoundMoney(totalCost / (decimal)RoundHa(field.ResolveAreaHectares() ?? 0)) : 0,
             MonthlyCost = monthlyCost,
             MonthlyRevenue = monthlyRevenue,
             TasksCompleted = seasonTasks.Count(t => t.Status == WorkTaskStatus.Completed),
@@ -558,11 +566,11 @@ public class ReportsService : IReportsService
         return Math.Round((currentMm - previousMm) / previousMm * 100.0, 0, MidpointRounding.AwayFromZero);
     }
 
-    private static bool TaskInYear(TaskItem task, int year)
-    {
-        var date = task.ActualEnd ?? task.ScheduledEnd ?? task.ScheduledStart ?? task.UpdatedAt;
-        return date.Year == year;
-    }
+    private static DateTime TaskDate(TaskItem task) =>
+        task.ActualEnd ?? task.ScheduledEnd ?? task.ScheduledStart ?? task.UpdatedAt;
+
+    private static bool TaskInYear(TaskItem task, int year) =>
+        CultivationSeason.MatchesPeriod(TaskDate(task), year, "calendar");
 
     private static bool IsPruning(TaskItem task) =>
         ContainsIgnoreCase(task.Type, "prun") ||
@@ -599,22 +607,28 @@ public class ReportsService : IReportsService
         return string.Equals(entryYear, filterYear.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool MatchesSeason(DateTime date, string? season)
+    private static bool MatchesSeason(DateTime date, string? season, string? periodBasis = null)
     {
         if (string.IsNullOrWhiteSpace(season))
         {
             return true;
         }
 
-        return int.TryParse(season.Trim(), out var year) && date.Year == year;
+        return int.TryParse(season.Trim(), out var year) && CultivationSeason.MatchesPeriod(date, year, periodBasis);
     }
 
+    /// <summary>
+    /// Recorded expenses prefer the ledger. Completed task costs are used only when the field
+    /// has no posted expense rows, so a linked task+ledger pair is never summed twice.
+    /// </summary>
     private static decimal SumFieldCost(IEnumerable<FinancialEntry> entries, IEnumerable<TaskItem> fieldTasks)
     {
-        var posted = entries.Where(e => e.Status == FinancialEntryStatus.Posted).ToList();
-        if (posted.Count > 0)
+        var postedExpenses = entries
+            .Where(e => e.Status == FinancialEntryStatus.Posted && e.Kind == FinancialEntryKind.Expense)
+            .ToList();
+        if (postedExpenses.Count > 0)
         {
-            return posted.Where(e => e.Kind == FinancialEntryKind.Expense).Sum(e => e.Amount);
+            return postedExpenses.Sum(e => e.Amount);
         }
 
         return fieldTasks.Where(t => t.Status == WorkTaskStatus.Completed).Sum(t => t.Cost ?? 0);

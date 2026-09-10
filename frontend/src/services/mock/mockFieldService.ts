@@ -195,7 +195,7 @@ export const mockFieldService = {
 
   updateBoundary: async (id: string, boundary: GeoJsonPolygon): Promise<Field> => {
     await simulateDelay();
-    return mockFieldService.updateField(id, { boundary, area: 500 } as UpdateFieldDto);
+    return mockFieldService.updateField(id, { boundary, appMeasuredAreaSqm: 500 } as UpdateFieldDto);
   },
 
   validateArea: async (id: string): Promise<FieldAreaValidationResponse> => {
@@ -203,7 +203,7 @@ export const mockFieldService = {
     const field = await mockFieldService.getField(id);
     return {
       officialAreaSqm: field.greekCadastre?.officialAreaSqm,
-      appMeasuredAreaSqm: field.appMeasuredAreaSqm ?? field.area,
+      appMeasuredAreaSqm: field.appMeasuredAreaSqm,
       severity: 'Ok',
       message: 'Mock area validation',
       warnings: [],

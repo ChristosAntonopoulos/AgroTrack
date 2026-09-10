@@ -32,6 +32,8 @@ type Props = {
   onSelectField: (fieldId: string) => void;
   onOpenMovements: () => void;
   onOpenEntry: (id: string) => void;
+  onOpenKind?: (kind: 'income' | 'expense') => void;
+  onOpenCategory?: (group: CategorySpend['group']) => void;
 };
 
 const dashOrMoney = (
@@ -60,6 +62,8 @@ const EconomicsSummary: React.FC<Props> = ({
   onSelectField,
   onOpenMovements,
   onOpenEntry,
+  onOpenKind,
+  onOpenCategory,
 }) => {
   const { t } = useTranslation('economics');
   const visibleBars = showAllCategories ? breakdown : breakdown.slice(0, 5);
@@ -69,23 +73,33 @@ const EconomicsSummary: React.FC<Props> = ({
   return (
     <div className="eco-summary">
       <section className="eco-card">
-        <h2>{t('resultYear', { year })}</h2>
+        <h2>{t('recordedResult')}</h2>
         <p className={`eco-hero-value${totals.result < 0 ? ' is-negative' : ''}`}>
           {formatSignedEconomics(totals.result, totals.currency, locale)}
         </p>
+        <p className="eco-help">{t('recordedResultHint')}</p>
         <div className="eco-hero-split">
-          <p>
+          <button
+            type="button"
+            className="eco-hero-kind"
+            onClick={() => onOpenKind?.('income')}
+          >
             <span>{t('income')}</span>
             <strong className="is-in">
               {dashOrMoney(totals.hasIncome, totals.income, totals.currency, locale, t('dash'))}
             </strong>
-          </p>
-          <p>
+            {!totals.hasIncome ? <small>{t('noIncomeRecorded')}</small> : null}
+          </button>
+          <button
+            type="button"
+            className="eco-hero-kind"
+            onClick={() => onOpenKind?.('expense')}
+          >
             <span>{t('expenses')}</span>
             <strong>
               {dashOrMoney(totals.hasExpenses, totals.expenses, totals.currency, locale, t('dash'))}
             </strong>
-          </p>
+          </button>
         </div>
         {fullMode && previous && previous.count > 0 ? (
           <p className="eco-prev-year">
@@ -99,7 +113,12 @@ const EconomicsSummary: React.FC<Props> = ({
           <h2>{t('whereMoneyWent')}</h2>
           <div className="eco-bars">
             {visibleBars.map((row) => (
-              <div key={row.group} className="eco-bar-row">
+              <button
+                key={row.group}
+                type="button"
+                className="eco-bar-row"
+                onClick={() => onOpenCategory?.(row.group)}
+              >
                 <div className="eco-bar-meta">
                   <span>{t(`groups.${row.group}`)}</span>
                   <strong>{formatEconomicsMoney(row.amount, totals.currency, locale)}</strong>
@@ -107,7 +126,7 @@ const EconomicsSummary: React.FC<Props> = ({
                 <div className="eco-bar-track">
                   <div className="eco-bar-fill" style={{ width: `${Math.max(6, (row.amount / maxBar) * 100)}%` }} />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
           {breakdown.length > 5 ? (

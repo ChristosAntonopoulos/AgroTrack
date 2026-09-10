@@ -68,6 +68,10 @@ export interface Field {
   latitude?: number;
   longitude?: number;
   area: number;
+  /** Canonical area in square metres when provided by the API. */
+  areaSqm?: number;
+  /** Canonical area in hectares when provided by the API. */
+  areaHectares?: number;
   variety?: string;
   treeAge?: number;
   groundType?: string;
@@ -104,6 +108,7 @@ export interface CreateFieldDto {
   latitude?: number;
   longitude?: number;
   area: number;
+  appMeasuredAreaSqm?: number;
   boundary?: GeoJsonPolygon;
   variety?: string;
   treeAge?: number;
@@ -128,6 +133,7 @@ export interface UpdateFieldDto {
   latitude?: number;
   longitude?: number;
   area?: number;
+  appMeasuredAreaSqm?: number;
   boundary?: GeoJsonPolygon;
   variety?: string;
   treeAge?: number;

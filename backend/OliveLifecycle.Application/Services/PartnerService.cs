@@ -5,6 +5,7 @@ using OliveLifecycle.Application.DTOs.Partners;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
+using OliveLifecycle.Core.Units;
 using OliveLifecycle.Core.ValueObjects;
 
 namespace OliveLifecycle.Application.Services;
@@ -344,9 +345,8 @@ public class PartnerService : IPartnerService
             var field = await _fields.GetByIdAsync(fieldId, cancellationToken)
                 ?? throw new NotFoundException("Field not found.");
             approximateArea = field.GetApproximateAreaLabel();
-            areaHectares = field.Area > 0 ? field.Area : field.AppMeasuredAreaSqm is > 0
-                ? Math.Round(field.AppMeasuredAreaSqm.Value / 10_000d, 2)
-                : null;
+            var hectares = field.ResolveAreaHectares();
+            areaHectares = hectares is > 0 ? Math.Round(hectares.Value, 2) : null;
         }
 
         string? taskId = NullIfEmpty(dto.TaskId);

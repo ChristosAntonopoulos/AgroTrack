@@ -6,10 +6,9 @@ import {
   formatCurrency,
   formatNumber,
   formatPercent,
-  formatHa,
   displayOrDash,
 } from '../../data/mockReportData';
-import { numberLocaleFor } from '../../utils/fieldDisplay';
+import { formatAreaFromSqm, sqmFromHectares } from '../../utils/area';
 import './ReportDocument.css';
 
 interface Props {
@@ -48,7 +47,12 @@ const FieldSummaryCards: React.FC<Props> = ({ data, locale: localeProp }) => {
             <div className="report-info-grid">
               <div className="report-info-item">
                 <label>{t('doc.area')}</label>
-                <span>{formatHa(field.areaHa, locale)}</span>
+                <span>
+                  {formatAreaFromSqm(sqmFromHectares(field.areaHa || 0), {
+                    locale: i18n.language.startsWith('el') ? 'el' : i18n.language.startsWith('it') ? 'it' : 'en',
+                    style: 'withConversions',
+                  })}
+                </span>
               </div>
               <div className="report-info-item">
                 <label>{t('doc.trees')}</label>

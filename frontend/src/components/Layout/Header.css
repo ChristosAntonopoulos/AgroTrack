@@ -334,8 +334,7 @@
   }
 
   .page-title {
-    font-size: 1rem;
-    flex: 1 1 auto;
+    display: none;
   }
 
   .header-main {

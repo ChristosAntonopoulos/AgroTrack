@@ -4,7 +4,8 @@ import { fileUploadService } from '../../services/fileUploadService';
 import { Evidence } from '../../services/taskService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import { useTranslation } from 'react-i18next';
-import { Upload, X, Image } from 'lucide-react';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
+import { Upload, X } from 'lucide-react';
 import './EvidenceUpload.css';
 
 interface EvidenceUploadProps {
@@ -18,7 +19,8 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
   existingEvidence,
   onEvidenceAdded,
 }) => {
-  const { t } = useTranslation('errors');
+  const { t } = useTranslation(['tasks', 'errors']);
+  const { formatDateTime } = useLocaleFormatters();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -30,17 +32,16 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        setError('Image size must be less than 2MB');
+        setError(t('tasks:evidence.tooLarge'));
         return;
       }
       if (!file.type.startsWith('image/')) {
-        setError('Please select an image file');
+        setError(t('tasks:evidence.notImage'));
         return;
       }
       setPhotoFile(file);
       setError(null);
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result as string);
@@ -68,7 +69,7 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
   const handleUpload = async () => {
     if (!photoFile && !notes.trim()) {
-      setError('Please add a photo or notes');
+      setError(t('tasks:evidence.needContent'));
       return;
     }
 
@@ -85,18 +86,17 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
       const taskService = getTaskService();
       await taskService.addEvidence(taskId, photoUrl, notes.trim() || undefined, 'general');
-      
-      // Reset form
+
       setPhotoFile(null);
       setPhotoPreview(null);
       setNotes('');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       onEvidenceAdded();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || 'Failed to upload evidence');
+      setError(getApiErrorMessage(err, t) || t('tasks:evidence.failed'));
     } finally {
       setUploading(false);
     }
@@ -104,8 +104,8 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
   return (
     <div className="evidence-upload">
-      <h3>Add Evidence</h3>
-      
+      <h3>{t('tasks:evidence.add')}</h3>
+
       <div className="evidence-form">
         <div className="photo-upload-section">
           <label className="upload-label">
@@ -118,18 +118,18 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
             />
             <div className="upload-button">
               <Upload />
-              <span>{photoFile ? 'Change Photo' : 'Select Photo'}</span>
+              <span>{photoFile ? t('tasks:evidence.changePhoto') : t('tasks:evidence.selectPhoto')}</span>
             </div>
           </label>
-          
+
           {photoPreview && (
             <div className="photo-preview">
-              <img src={photoPreview} alt="Preview" />
+              <img src={photoPreview} alt="" />
               <button
                 type="button"
                 onClick={handleRemovePhoto}
                 className="remove-photo-btn"
-                aria-label="Remove photo"
+                aria-label={t('tasks:evidence.removePhoto')}
               >
                 <X />
               </button>
@@ -138,12 +138,12 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
         </div>
 
         <div className="notes-section">
-          <label htmlFor="evidence-notes">Notes</label>
+          <label htmlFor="evidence-notes">{t('tasks:evidence.notes')}</label>
           <textarea
             id="evidence-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this evidence..."
+            placeholder={t('tasks:evidence.notesPlaceholder')}
             rows={4}
           />
         </div>
@@ -156,19 +156,19 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
           disabled={uploading || (!photoFile && !notes.trim())}
           className="upload-evidence-btn"
         >
-          {uploading ? 'Uploading...' : 'Upload Evidence'}
+          {uploading ? t('tasks:evidence.uploading') : t('tasks:evidence.upload')}
         </button>
       </div>
 
       {existingEvidence.length > 0 && (
         <div className="existing-evidence">
-          <h4>Existing Evidence</h4>
+          <h4>{t('tasks:evidence.existing')}</h4>
           <div className="evidence-gallery">
             {existingEvidence.map((evidence, index) => (
               <div key={index} className="evidence-item">
                 {evidence.photoUrl && (
                   <div className="evidence-photo">
-                    <img src={evidence.photoUrl} alt={`Evidence ${index + 1}`} />
+                    <img src={evidence.photoUrl} alt="" />
                   </div>
                 )}
                 {evidence.notes && (
@@ -176,9 +176,7 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                     <p>{evidence.notes}</p>
                   </div>
                 )}
-                <div className="evidence-timestamp">
-                  {new Date(evidence.timestamp).toLocaleString()}
-                </div>
+                <div className="evidence-timestamp">{formatDateTime(evidence.timestamp)}</div>
               </div>
             ))}
           </div>

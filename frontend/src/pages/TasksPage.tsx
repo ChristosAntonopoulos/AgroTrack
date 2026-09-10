@@ -8,9 +8,11 @@ import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Task } from '../services/taskService';
 import { Field } from '../services/fieldService';
 import { getApiErrorMessage } from '../utils/translateApiError';
+import TaskCard from '../components/Task/TaskCard';
 import {
   filterTasks,
   getTaskSummary,
+  groupOpenTasks,
   sortTasks,
   TaskFocusFilter,
   TaskSort,
@@ -159,8 +161,8 @@ const TasksPage: React.FC = () => {
           </div>
           {isOwner && (
             <div className="tasks-page-header-actions">
-              <Button to="/tasks/new" icon={<Sparkles />} variant="primary">
-                {t('tasks:addFromTemplate')}
+              <Button to="/tasks/new" icon={<Plus />} variant="primary">
+                {t('tasks:addTask')}
               </Button>
             </div>
           )}
@@ -188,7 +190,7 @@ const TasksPage: React.FC = () => {
           )}
         </div>
 
-        {isOwner && fields.length > 0 && (
+        {!isEveryday && isOwner && fields.length > 0 && (
           <section className="tasks-recommended-section">
             <div className="tasks-recommended-header">
               <div>
@@ -278,15 +280,18 @@ const TasksPage: React.FC = () => {
 
               <div className="tasks-toolbar-row">
                 <div className="tasks-focus-pills" role="group" aria-label={t('tasks:focusLabel')}>
-                  {(['all', 'action', 'active', 'completed'] as TaskFocusFilter[]).map((key) => (
+                  {(isEveryday
+                    ? (['all', 'completed'] as TaskFocusFilter[])
+                    : (['all', 'action', 'active', 'completed'] as TaskFocusFilter[])
+                  ).map((key) => (
                     <button
                       key={key}
                       type="button"
                       className={focus === key ? 'active' : ''}
-                      onClick={() => setFocus(key)}
+                      onClick={() => setFocus(key === 'all' && isEveryday ? 'all' : key)}
                     >
                       {key === 'action' && <AlertCircle size={14} />}
-                      {t(`tasks:focus.${key}`)}
+                      {isEveryday && key === 'all' ? t('tasks:focus.open') : t(`tasks:focus.${key}`)}
                     </button>
                   ))}
                 </div>
@@ -339,7 +344,7 @@ const TasksPage: React.FC = () => {
                 </div>
               </div>
 
-              {statusFilter !== 'all' || focus !== 'all' ? null : (
+              {!isEveryday && (statusFilter !== 'all' || focus !== 'all') ? null : !isEveryday ? (
                 <div className="tasks-status-pills">
                   {['all', 'pending', 'in_progress', 'completed'].map((s) => (
                     <button
@@ -352,7 +357,7 @@ const TasksPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
 
             {filteredTasks.length === 0 ? (
@@ -367,6 +372,32 @@ const TasksPage: React.FC = () => {
                 fieldNames={fieldNames}
                 fieldColors={fieldColors}
               />
+            ) : isEveryday && focus !== 'completed' ? (
+              <div className="tasks-simple-groups">
+                {(['overdue', 'today', 'upcoming'] as const).map((group) => {
+                  const grouped = groupOpenTasks(filteredTasks);
+                  const list = grouped[group];
+                  if (list.length === 0) return null;
+                  return (
+                    <section key={group} className="tasks-simple-group">
+                      <h2>
+                        {t(`tasks:groups.${group}`)}
+                        <span>{list.length}</span>
+                      </h2>
+                      <div className="tasks-simple-list">
+                        {list.map((task) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            fieldName={fieldNames[task.fieldId]}
+                            fieldColor={fieldColors[task.fieldId]}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
             ) : (
               <TasksCategoryBrowse
                 tasks={filteredTasks}

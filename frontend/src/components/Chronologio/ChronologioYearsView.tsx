@@ -50,11 +50,11 @@ const ChronologioYearsView: React.FC<Props> = ({
             onClick={() => onPeekYear(s.periodYear)}
             aria-label={t('living.seeYear', { year: s.periodYear })}
           >
-            <div className="chrono-history-media">
+            <div className={`chrono-history-media${hero ? '' : ' is-text-only'}`}>
               {hero ? (
                 <ChronologioThumbnail src={hero} className="chrono-history-hero" />
               ) : (
-                <div className="chrono-history-placeholder" aria-hidden />
+                <p className="chrono-history-no-photo">{t('living.noPhoto')}</p>
               )}
               <div className="chrono-history-overlay">
                 <h2 className="chrono-year-title">{s.periodYear}</h2>

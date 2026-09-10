@@ -47,7 +47,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
             aria-current={active ? 'page' : undefined}
           >
             <span className="mobile-bottom-nav-icon">{item.icon}</span>
-            <span className="mobile-bottom-nav-label">{resolveNavItemLabel(item, userRole, t)}</span>
+            <span className="mobile-bottom-nav-label">{resolveNavItemLabel(item, userRole, t, { mobile: true })}</span>
           </Link>
         );
       })}
@@ -60,7 +60,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
         <span className="mobile-bottom-nav-icon">
           <MoreHorizontal />
         </span>
-        <span className="mobile-bottom-nav-label">{t('common:moreNav', { defaultValue: 'More' })}</span>
+        <span className="mobile-bottom-nav-label">{t('common:moreNav')}</span>
       </button>
     </nav>
   );

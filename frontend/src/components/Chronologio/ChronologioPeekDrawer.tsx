@@ -93,10 +93,28 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     if (!entry) return;
     if (entry.sourceType === 'Task') navigate(`/tasks/${entry.sourceId}`);
     else if (entry.sourceType === 'Expense')
-      navigate(`/money?fieldId=${encodeURIComponent(entry.fieldId)}`);
-    else if (entry.sourceType === 'Harvest') navigate(`/fields/${entry.fieldId}`);
+      navigate(
+        `/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&entry=${encodeURIComponent(entry.sourceId)}` : ''}`
+      );
+    else if (entry.sourceType === 'Harvest') navigate('/this-harvest');
     else if (entry.sourceType === 'WeatherReview') navigate(`/fields/${entry.fieldId}/weather`);
   };
+
+  const canOpenFull =
+    entry &&
+    (entry.sourceType === 'Task' ||
+      entry.sourceType === 'Expense' ||
+      entry.sourceType === 'Harvest' ||
+      entry.sourceType === 'WeatherReview');
+
+  const openFullLabel =
+    entry?.sourceType === 'Task'
+      ? t('living.openTask')
+      : entry?.sourceType === 'Expense'
+        ? t('living.openExpense')
+        : entry?.sourceType === 'Harvest'
+          ? t('living.openHarvest')
+          : t('living.openFull');
 
   const monthTitle = (m: ChronologioMonthSummary) =>
     new Date(Date.UTC(m.year, m.month - 1, 1)).toLocaleDateString(i18n.language, {
@@ -480,11 +498,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
             </div>
 
             <footer className="chrono-drawer-footer">
-              {peek.mode === 'event' ? (
+              {peek.mode === 'event' && (isPeriodReview || canOpenFull) ? (
                 <Button variant="outline" icon={<ExternalLink size={14} />} onClick={openFull}>
-                  {isPeriodReview
-                    ? t('weatherReview.openCharts')
-                    : t('living.openFull')}
+                  {isPeriodReview ? t('weatherReview.openCharts') : openFullLabel}
                 </Button>
               ) : null}
               {peek.mode === 'month' ? (

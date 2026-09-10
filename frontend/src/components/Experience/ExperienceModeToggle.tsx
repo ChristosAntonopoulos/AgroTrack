@@ -1,7 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Layers, ListChecks } from 'lucide-react';
 import { useExperienceMode } from '../../context/ExperienceModeContext';
+import { isEverydayAllowedPath } from '../../experience/catalog';
 import type { ExperienceMode } from '../../experience/types';
 import './ExperienceModeToggle.css';
 
@@ -13,10 +15,15 @@ interface ExperienceModeToggleProps {
 const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = false, onChanged }) => {
   const { t } = useTranslation('settings');
   const { experienceMode, setExperienceMode } = useExperienceMode();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const select = (mode: ExperienceMode) => {
     if (mode === experienceMode) return;
     setExperienceMode(mode);
+    if (mode === 'everyday' && !isEverydayAllowedPath(location.pathname)) {
+      navigate('/today');
+    }
     onChanged?.();
   };
 

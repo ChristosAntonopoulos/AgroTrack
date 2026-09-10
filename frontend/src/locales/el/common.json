@@ -1,6 +1,7 @@
 {
   "appName": "Oleachron",
   "home": "Αρχική",
+  "breadcrumb": "Διαδρομή",
   "loading": "Φόρτωση...",
   "retry": "Δοκιμή ξανά",
   "refresh": "Ανανέωση",
@@ -61,8 +62,9 @@
     "rejected": "Απορρίφθηκε"
   },
   "lifecycleYear": {
-    "low": "Χαμηλό",
-    "high": "Υψηλό"
+    "low": "Χρονιά χαμηλής καρποφορίας",
+    "high": "Χρονιά υψηλής καρποφορίας",
+    "label": "Καρποφορία"
   },
   "lifecycleStage": {
     "dormancy": "Περίοδος ηρεμίας",

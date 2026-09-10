@@ -23,6 +23,7 @@ public class ReportsController : BaseApiController
     public async Task<IActionResult> GetFieldSummaries(
         [FromQuery] string? lifecycleYear,
         [FromQuery] string? season,
+        [FromQuery] string? periodBasis,
         CancellationToken cancellationToken)
     {
         var summaries = await _reportsService.GetFieldSummariesAsync(
@@ -30,6 +31,7 @@ public class ReportsController : BaseApiController
             UserContext.Role,
             lifecycleYear,
             season,
+            periodBasis,
             cancellationToken);
         return Ok(summaries);
     }
@@ -39,6 +41,7 @@ public class ReportsController : BaseApiController
     public async Task<IActionResult> GetHarvestRecords(
         [FromQuery] string? lifecycleYear,
         [FromQuery] string? season,
+        [FromQuery] string? periodBasis,
         CancellationToken cancellationToken)
     {
         var records = await _reportsService.GetHarvestRecordsAsync(
@@ -46,6 +49,7 @@ public class ReportsController : BaseApiController
             UserContext.Role,
             lifecycleYear,
             season,
+            periodBasis,
             cancellationToken);
         return Ok(records);
     }
@@ -55,6 +59,7 @@ public class ReportsController : BaseApiController
     public async Task<IActionResult> GetProfitLoss(
         [FromQuery] string? lifecycleYear,
         [FromQuery] string? season,
+        [FromQuery] string? periodBasis,
         CancellationToken cancellationToken)
     {
         var report = await _reportsService.GetProfitLossAsync(
@@ -62,6 +67,7 @@ public class ReportsController : BaseApiController
             UserContext.Role,
             lifecycleYear,
             season,
+            periodBasis,
             cancellationToken);
         return Ok(report);
     }

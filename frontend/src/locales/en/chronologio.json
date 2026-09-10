@@ -145,7 +145,11 @@
     "field": "Grove",
     "actor": "Person",
     "photos": "Photos",
-    "openFull": "Open full record",
+    "openFull": "Open record",
+    "openTask": "Open task",
+    "openExpense": "Open movement",
+    "openHarvest": "Open harvest",
+    "noPhoto": "No photo",
     "returnToday": "Return to today",
     "emptyMonthTitle": "Nothing in the journal yet.",
     "emptyMonthDescription": "Use Record to add work, an observation, an expense, or a harvest."

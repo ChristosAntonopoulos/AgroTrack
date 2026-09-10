@@ -10,6 +10,7 @@ using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
+using OliveLifecycle.Core.Units;
 using OliveLifecycle.Core.ValueObjects;
 using FieldEntity = OliveLifecycle.Core.Entities.Field;
 
@@ -85,7 +86,7 @@ public class FieldService : IFieldService
             Name = createFieldDto.Name,
             CropType = string.IsNullOrWhiteSpace(createFieldDto.CropType) ? "Olive" : createFieldDto.CropType,
             LocationText = createFieldDto.LocationText,
-            Area = createFieldDto.Area,
+            Area = 0,
             Variety = createFieldDto.Variety,
             TreeAge = createFieldDto.TreeAge,
             TreeCount = createFieldDto.TreeCount,
@@ -129,6 +130,22 @@ public class FieldService : IFieldService
                 Type = "Point",
                 Coordinates = new List<double> { createFieldDto.Longitude.Value, createFieldDto.Latitude.Value }
             };
+        }
+
+        if (createFieldDto.Boundary == null)
+        {
+            if (createFieldDto.AppMeasuredAreaSqm is > 0)
+            {
+                field.SetFromSquareMetres(createFieldDto.AppMeasuredAreaSqm.Value);
+            }
+            else if (createFieldDto.Area > 0)
+            {
+                field.SetFromHectares(createFieldDto.Area);
+            }
+            else if (field.GreekCadastre?.OfficialAreaSqm is > 0)
+            {
+                field.SetFromSquareMetres(field.GreekCadastre.OfficialAreaSqm.Value);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(createFieldDto.ProducerUserId) &&
@@ -375,13 +392,17 @@ public class FieldService : IFieldService
             LocationText = parseResult.LocationText,
             Status = FieldStatus.NeedsBoundaryConfirmation,
             GreekCadastre = cadastre,
-            Area = parseResult.OfficialAreaSqm ?? 0,
             CurrentLifecycleYear = "low",
             CurrentLifecycleStage = OliveLifecycleStage.Dormancy,
             Color = PickDefaultFieldColor(suggestedName),
             CreatedAt = now,
             UpdatedAt = now
         };
+
+        if (parseResult.OfficialAreaSqm is > 0)
+        {
+            field.SetFromSquareMetres(parseResult.OfficialAreaSqm.Value);
+        }
 
         var created = await _fieldRepository.CreateAsync(field, cancellationToken);
 
@@ -617,8 +638,7 @@ public class FieldService : IFieldService
     {
         var areaResult = _fieldAreaCalculator.Calculate(polygon);
         field.Boundary = polygon;
-        field.AppMeasuredAreaSqm = areaResult.AreaSqm;
-        field.Area = areaResult.AreaSqm;
+        field.SetFromSquareMetres(areaResult.AreaSqm);
         field.CenterPoint = areaResult.CenterPoint;
         field.Location = new Location
         {
@@ -644,12 +664,16 @@ public class FieldService : IFieldService
             field.LocationText = updateFieldDto.LocationText;
         }
 
-        if (updateFieldDto.Area.HasValue)
+        if (updateFieldDto.AppMeasuredAreaSqm.HasValue && field.Boundary == null)
         {
-            field.Area = updateFieldDto.Area.Value;
-            if (field.Boundary == null)
+            field.SetFromSquareMetres(updateFieldDto.AppMeasuredAreaSqm.Value);
+        }
+        else if (updateFieldDto.Area.HasValue)
+        {
+            field.SetFromHectares(updateFieldDto.Area.Value);
+            if (field.Boundary == null && updateFieldDto.AppMeasuredAreaSqm is not > 0)
             {
-                field.AppMeasuredAreaSqm = updateFieldDto.Area.Value;
+                // Manual hectares only — do not copy hectares into AppMeasuredAreaSqm.
             }
         }
 

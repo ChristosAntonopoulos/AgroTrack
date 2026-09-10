@@ -42,7 +42,7 @@ const Breadcrumbs: React.FC = () => {
   };
 
   return (
-    <nav className="breadcrumbs" aria-label="Breadcrumb">
+    <nav className="breadcrumbs" aria-label={t('common:breadcrumb')}>
       <ol className="breadcrumb-list">
         <li className="breadcrumb-item">
           <Link to={roleHomePath(role)} className="breadcrumb-link">

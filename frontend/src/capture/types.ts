@@ -1,4 +1,4 @@
-export type CaptureType = 'observation' | 'work' | 'expense' | 'harvest';
+export type CaptureType = 'observation' | 'work' | 'expense' | 'income' | 'harvest';
 
 export type CaptureContext = {
   fieldId?: string;
@@ -11,6 +11,7 @@ export type CapturePermissions = {
   canRecordObservation: boolean;
   canRecordWork: boolean;
   canRecordExpense: boolean;
+  canRecordIncome: boolean;
   canRecordHarvest: boolean;
 };
 

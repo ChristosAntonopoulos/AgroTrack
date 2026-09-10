@@ -34,6 +34,7 @@ const FieldsPage: React.FC = () => {
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldTasks, setFieldTasks] = useState<Map<string, Task[]>>(new Map());
+  const [tasksReady, setTasksReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -89,11 +90,14 @@ const FieldsPage: React.FC = () => {
       setFieldTasks(tasksMap);
     } catch (err) {
       console.error('Error loading field tasks:', err);
+    } finally {
+      setTasksReady(true);
     }
   };
 
   const getFieldCardStats = (fieldId: string): FieldCardStats => ({
     todayTaskCount: countTasksToday(fieldTasks.get(fieldId) || []),
+    tasksReady,
   });
 
   const canSortByDistance = Boolean(

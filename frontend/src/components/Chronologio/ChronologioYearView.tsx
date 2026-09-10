@@ -125,9 +125,7 @@ const ChronologioYearView: React.FC<Props> = ({
                 </span>
                 {hero ? (
                   <ChronologioThumbnail src={hero} className="chrono-month-chapter-hero" />
-                ) : (
-                  <span className="chrono-month-chapter-wash" aria-hidden />
-                )}
+                ) : null}
               </button>
             </li>
           );

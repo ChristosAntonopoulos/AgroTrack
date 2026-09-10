@@ -2,23 +2,14 @@ import type { TFunction } from 'i18next';
 import type { ChronologioEntry } from '../services/chronologioService';
 import type { Field } from '../services/fieldService';
 import type { Task } from '../services/taskService';
+import { isTaskDueToday } from './taskListUtils';
 import { formatChronologioMoney } from './chronologioGrouping';
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-export const countTasksToday = (tasks: Task[], now: Date = new Date()): number => {
-  const start = startOfLocalDay(now);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return tasks.filter((task) => {
-    if (task.status === 'completed') return false;
-    const raw = task.scheduledStart || task.scheduledEnd;
-    if (!raw) return false;
-    const when = new Date(raw);
-    return when >= start && when < end;
-  }).length;
-};
+export const countTasksToday = (tasks: Task[], now: Date = new Date()): number =>
+  tasks.filter((task) => isTaskDueToday(task, now)).length;
 
 export const getNextUpcomingTask = (tasks: Task[], now: Date = new Date()): Task | undefined => {
   const start = startOfLocalDay(now).getTime();

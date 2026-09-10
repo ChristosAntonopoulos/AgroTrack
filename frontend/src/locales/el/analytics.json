@@ -1,6 +1,19 @@
 {
-  "title": "Analytics",
-  "subtitle": "Insights across fields, tasks, and costs",
-  "loading": "Loading analytics...",
-  "noData": "No data available for the selected period"
+  "title": "Αναλυτικά",
+  "subtitle": "Εικόνα για αγροτεμάχια, εργασίες και κόστη",
+  "loading": "Φόρτωση…",
+  "noData": "Δεν υπάρχουν δεδομένα για την επιλεγμένη περίοδο",
+  "totalTasks": "Σύνολο εργασιών",
+  "completionRate": "Ολοκλήρωση",
+  "totalCost": "Συνολικό κόστος",
+  "avgCompletionTime": "Μέσος χρόνος ολοκλήρωσης",
+  "statusDistribution": "Κατανομή κατάστασης",
+  "costByField": "Κόστος ανά αγροτεμάχιο",
+  "costByTaskType": "Κόστος ανά τύπο εργασίας",
+  "monthlyCompletion": "Μηνιαία ολοκλήρωση",
+  "fieldPerformance": "Απόδοση αγροτεμαχίων",
+  "field": "Αγροτεμάχιο",
+  "completed": "Ολοκληρωμένες",
+  "avgCostTask": "Μέσο κόστος / εργασία",
+  "noPermission": "Δεν έχετε δικαίωμα προβολής αναλυτικών."
 }

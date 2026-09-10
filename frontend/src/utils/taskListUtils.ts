@@ -1,10 +1,19 @@
 import { Task } from '../services/taskService';
+import { parseBusinessDate, startOfLocalDay } from './athensDate';
+import { normalizeTaskStatus } from './categoryNormalize';
 
 export type TaskFocusFilter = 'all' | 'action' | 'active' | 'completed';
 export type TaskSort = 'due' | 'priority' | 'field' | 'recent';
 export type TaskBoardColumn = 'overdue' | 'today' | 'thisWeek' | 'done';
 
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const startOfDay = (d: Date) => startOfLocalDay(d);
+
+const taskDueDate = (task: Task): Date | null => {
+  const raw = task.scheduledEnd || task.scheduledStart;
+  if (!raw) return null;
+  const d = parseBusinessDate(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
 
 const priorityWeight: Record<string, number> = {
   Critical: 4,
@@ -13,16 +22,24 @@ const priorityWeight: Record<string, number> = {
   Low: 1,
 };
 
+export { taskDueDate };
+
 export const isTaskOverdue = (task: Task, now = new Date()): boolean => {
-  if (task.status === 'completed') return false;
-  if (!task.scheduledEnd) return false;
-  return new Date(task.scheduledEnd) < startOfDay(now);
+  if (normalizeTaskStatus(task.status) === 'completed' || normalizeTaskStatus(task.status) === 'cancelled') {
+    return false;
+  }
+  const due = taskDueDate(task);
+  if (!due) return false;
+  return due < startOfDay(now);
 };
 
 export const isTaskDueToday = (task: Task, now = new Date()): boolean => {
-  if (task.status === 'completed') return false;
-  if (!task.scheduledEnd) return false;
-  return startOfDay(new Date(task.scheduledEnd)).getTime() === startOfDay(now).getTime();
+  if (normalizeTaskStatus(task.status) === 'completed' || normalizeTaskStatus(task.status) === 'cancelled') {
+    return false;
+  }
+  const due = taskDueDate(task);
+  if (!due) return false;
+  return startOfDay(due).getTime() === startOfDay(now).getTime();
 };
 
 export const needsAction = (task: Task, now = new Date()): boolean => {
@@ -30,8 +47,10 @@ export const needsAction = (task: Task, now = new Date()): boolean => {
   return isTaskOverdue(task, now) || isTaskDueToday(task, now);
 };
 
-export const isActiveTask = (task: Task): boolean =>
-  task.status === 'pending' || task.status === 'in_progress';
+export const isActiveTask = (task: Task): boolean => {
+  const status = normalizeTaskStatus(task.status);
+  return status === 'pending' || status === 'in_progress';
+};
 
 export type TaskSummary = {
   total: number;
@@ -49,7 +68,7 @@ export const getTaskSummary = (tasks: Task[], now = new Date()): TaskSummary => 
 
   for (const task of tasks) {
     if (isActiveTask(task)) active += 1;
-    if (task.status === 'in_progress') inProgress += 1;
+    if (normalizeTaskStatus(task.status) === 'in_progress') inProgress += 1;
     if (isTaskOverdue(task, now)) overdue += 1;
     if (isTaskDueToday(task, now)) dueToday += 1;
   }
@@ -78,9 +97,9 @@ export const filterTasks = (tasks: Task[], filters: TaskListFilters, now = new D
 
     if (filters.focus === 'action' && !needsAction(task, now)) return false;
     if (filters.focus === 'active' && !isActiveTask(task)) return false;
-    if (filters.focus === 'completed' && task.status !== 'completed') return false;
+    if (filters.focus === 'completed' && normalizeTaskStatus(task.status) !== 'completed') return false;
 
-    if (filters.status !== 'all' && task.status !== filters.status) return false;
+    if (filters.status !== 'all' && normalizeTaskStatus(task.status) !== filters.status) return false;
 
     if (search) {
       const haystack = [task.title, task.type, task.description || ''].join(' ').toLowerCase();
@@ -124,6 +143,19 @@ export const sortTasks = (
   });
 };
 
+export const groupOpenTasks = (tasks: Task[], now = new Date()) => {
+  const overdue: Task[] = [];
+  const today: Task[] = [];
+  const upcoming: Task[] = [];
+  for (const task of tasks) {
+    if (!isActiveTask(task)) continue;
+    if (isTaskOverdue(task, now)) overdue.push(task);
+    else if (isTaskDueToday(task, now)) today.push(task);
+    else upcoming.push(task);
+  }
+  return { overdue, today, upcoming };
+};
+
 export const groupTasksForBoard = (tasks: Task[], now = new Date()): Record<TaskBoardColumn, Task[]> => {
   const today = startOfDay(now);
   const weekEnd = new Date(today);
@@ -137,8 +169,8 @@ export const groupTasksForBoard = (tasks: Task[], now = new Date()): Record<Task
   };
 
   for (const task of tasks) {
-    const due = task.scheduledEnd ? new Date(task.scheduledEnd) : null;
-    const isDone = task.status === 'completed';
+    const due = taskDueDate(task);
+    const isDone = normalizeTaskStatus(task.status) === 'completed';
 
     if (isDone) {
       cols.done.push(task);

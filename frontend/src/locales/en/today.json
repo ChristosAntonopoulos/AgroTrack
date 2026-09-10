@@ -2,7 +2,8 @@
   "title": "Daybrief",
   "subtitle": "Your grove, this morning.",
   "brief": {
-    "todaySection": "On the calendar",
+    "todaySection": "Today",
+    "overdueSection": "Overdue",
     "todaySummary": "{{tasks}} tasks · {{fields}} fields",
     "noTodayTasks": "Nothing scheduled for today.",
     "worthDoingNow": "Worth doing now",

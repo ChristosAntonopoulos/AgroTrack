@@ -7,7 +7,12 @@ public class FieldDto
     public string Name { get; set; } = string.Empty;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    /// <summary>Area in hectares (legacy). Prefer <see cref="AreaSqm"/>.</summary>
     public double Area { get; set; }
+    /// <summary>Canonical area in square metres.</summary>
+    public double? AreaSqm { get; set; }
+    /// <summary>Canonical area in hectares, derived from <see cref="AreaSqm"/>.</summary>
+    public double? AreaHectares { get; set; }
     public string? Variety { get; set; }
     public int? TreeAge { get; set; }
     public string? GroundType { get; set; }

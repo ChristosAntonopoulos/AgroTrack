@@ -32,6 +32,8 @@ import {
   Layers,
 } from 'lucide-react';
 import { getApiErrorMessage } from '../utils/translateApiError';
+import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
+import { useExperienceMode } from '../context/ExperienceModeContext';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
@@ -44,6 +46,7 @@ const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isEveryday } = useExperienceMode();
   const isEdit = !!id;
 
   const [step, setStep] = useState<WizardStep | 'basics-edit'>('method');
@@ -82,7 +85,7 @@ const FieldFormPage: React.FC = () => {
         locationText: field.locationText,
         latitude: field.latitude,
         longitude: field.longitude,
-        area: field.appMeasuredAreaSqm ?? field.area,
+        area: resolveFieldAreaSqm(field) ?? 0,
         variety: field.oliveVariety || field.variety || '',
         treeAge: field.treeAge,
         treeCount: field.treeCount,
@@ -108,10 +111,16 @@ const FieldFormPage: React.FC = () => {
   };
 
   const activeSteps = isEdit
-    ? (['basics-edit', 'boundary', 'crop', 'review'] as const)
+    ? isEveryday
+      ? (['basics-edit', 'boundary', 'review'] as const)
+      : (['basics-edit', 'boundary', 'crop', 'review'] as const)
     : method === 'cadastre'
-      ? (['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'] as const)
-      : WIZARD_STEPS;
+      ? isEveryday
+        ? (['method', 'cadastre', 'basics', 'boundary', 'review'] as const)
+        : (['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'] as const)
+      : isEveryday
+        ? (['method', 'basics', 'boundary', 'review'] as const)
+        : WIZARD_STEPS;
 
   const stepIndex = activeSteps.indexOf(step as never);
   const isFirst = stepIndex <= 0;
@@ -139,7 +148,8 @@ const FieldFormPage: React.FC = () => {
     if (draftFieldId) return draftFieldId;
     const created = await getFieldService().createField({
       ...formData,
-      area: formData.area || 0,
+      appMeasuredAreaSqm: formData.area || undefined,
+      area: formData.area ? hectaresFromSqm(formData.area) : 0,
       status: 'Draft',
       greekCadastre: cadastre
         ? { ...cadastre, kaek: kaekInput || cadastre.kaek, normalizedKaek: kaekInput || cadastre.normalizedKaek }
@@ -186,9 +196,9 @@ const FieldFormPage: React.FC = () => {
         return t('fields:addField.errors.kaekInvalid');
       }
     }
-    if (step === 'boundary' && !boundary) return t('fields:addField.errors.boundaryRequired');
+    if (step === 'boundary' && !boundary && !isEveryday) return t('fields:addField.errors.boundaryRequired');
     if (step === 'review') {
-      if (!boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (boundary && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
       if (cadastre && !cadastreAcknowledged) return t('fields:addField.errors.confirmCadastre');
     }
     return null;

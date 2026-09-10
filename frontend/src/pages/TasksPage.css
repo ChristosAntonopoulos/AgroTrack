@@ -1,3 +1,28 @@
+.tasks-simple-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.tasks-simple-group h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0 0 var(--spacing-sm);
+  font-size: 1rem;
+}
+
+.tasks-simple-group h2 span {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.tasks-simple-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
 .tasks-page {
   width: 100%;
   display: flex;
