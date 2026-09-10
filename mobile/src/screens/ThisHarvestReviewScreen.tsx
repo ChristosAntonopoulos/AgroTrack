@@ -13,9 +13,9 @@ import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useRefresh } from '../hooks/useRefresh';
 import { useFields } from '../hooks/useFields';
-import { reportsService, HarvestReportRecord, FieldSummaryReport } from '../services/reportsService';
-import { getTaskService, getNoteService } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
+import { reportsService, HarvestReportRecord } from '../services/reportsService';
+import { getFieldWorkService, getNoteService, getFinancialSummaryService } from '../services/serviceFactory';
+import { FieldTask } from '../services/fieldWorkService';
 import { Note, notePreviewTitle } from '../services/noteService';
 import { formatKg } from '../utils/harvestUtils';
 import {
@@ -33,39 +33,37 @@ import {
 import { RootStackParamList } from '../navigation/types';
 import { spacing } from '../theme';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+import { formatOfficialAmount } from '../finance/format';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
 
-const formatMoney = (amount: number) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(amount);
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const ThisHarvestReviewScreen = () => {
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
-  const { t } = useTranslation(['fields', 'common']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const navigation = useNavigation<Nav>();
   const { fields } = useFields();
   const anyIrrigated = useMemo(() => fields.some((f) => Boolean(f.irrigationStatus)), [fields]);
 
   const [loading, setLoading] = useState(true);
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<FieldTask[]>([]);
   const [closedYears, setClosedYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [oliveKg, setOliveKg] = useState(0);
   const [oilKg, setOilKg] = useState(0);
-  const [spent, setSpent] = useState(0);
-  const [received, setReceived] = useState(0);
-  const [net, setNet] = useState(0);
+  const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
   const [percent, setPercent] = useState(0);
   const [doneTitles, setDoneTitles] = useState<string[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [cards, setCards] = useState<
-    Array<{ fieldId: string; fieldName: string; oliveKg: number; spent: number }>
+    Array<{ fieldId: string; fieldName: string; oliveKg: number }>
   >([]);
 
   const discover = useCallback(async () => {
     setLoading(true);
     try {
-      const tasks = await getTaskService().getAllTasks().catch(() => [] as Task[]);
+      const tasks = await getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]);
       setAllTasks(tasks);
       const closed = listRecentSeasonYears(8).filter((y) => isSeasonClosedForReview(y, tasks));
       setClosedYears(closed);
@@ -83,15 +81,14 @@ const ThisHarvestReviewScreen = () => {
     async (year: number) => {
       const bounds = getSeasonBounds(year);
       const years = overlappingCalendarYears(year);
-      const [allNotes, harvestChunks, pnlChunks, summaryChunks] = await Promise.all([
+      const [allNotes, harvestChunks, officialYear] = await Promise.all([
         getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
         Promise.all(
           years.map((y) => reportsService.getHarvestRecords({ season: y }).catch(() => [] as HarvestReportRecord[]))
         ),
-        Promise.all(years.map((y) => reportsService.getProfitLoss({ season: y }).catch(() => null))),
-        Promise.all(
-          years.map((y) => reportsService.getFieldSummaries({ season: y }).catch(() => [] as FieldSummaryReport[]))
-        ),
+        getFinancialSummaryService()
+          .getYear(year + 1, undefined, i18n.language)
+          .catch(() => null),
       ]);
 
       const harvests = harvestChunks.flat().filter((h) => {
@@ -100,41 +97,18 @@ const ThisHarvestReviewScreen = () => {
       });
       const olives = harvests.reduce((s, h) => s + (h.oliveKg || 0), 0);
       const oil = harvests.reduce((s, h) => s + (h.oilKg || 0), 0);
-      let spentSum = 0;
-      let receivedSum = 0;
-      const profitByField = new Map<string, { fieldName: string; cost: number; revenue: number }>();
-      for (const pnl of pnlChunks) {
-        if (!pnl) continue;
-        spentSum += Number(pnl.totalExpenses ?? 0);
-        receivedSum += Number(pnl.totalIncome ?? 0);
-        for (const row of pnl.profitByField ?? []) {
-          const prev = profitByField.get(row.fieldId);
-          profitByField.set(row.fieldId, {
-            fieldName: row.fieldName,
-            cost: (prev?.cost ?? 0) + Number(row.cost ?? 0),
-            revenue: (prev?.revenue ?? 0) + Number(row.revenue ?? 0),
-          });
-        }
-      }
 
-      const kgByField = new Map<string, number>();
+      const kgByField = new Map<string, { fieldName: string; oliveKg: number }>();
       for (const h of harvests) {
-        kgByField.set(h.fieldId, (kgByField.get(h.fieldId) ?? 0) + (h.oliveKg || 0));
+        const prev = kgByField.get(h.fieldId);
+        kgByField.set(h.fieldId, {
+          fieldName: h.fieldName || prev?.fieldName || h.fieldId,
+          oliveKg: (prev?.oliveKg ?? 0) + (h.oliveKg || 0),
+        });
       }
-      const summaries = new Map<string, FieldSummaryReport>();
-      summaryChunks.flat().forEach((s) => summaries.set(s.fieldId, s));
-
-      const nextCards = Array.from(
-        new Set([...kgByField.keys(), ...profitByField.keys(), ...summaries.keys()])
-      )
-        .map((fieldId) => ({
-          fieldId,
-          fieldName:
-            summaries.get(fieldId)?.fieldName || profitByField.get(fieldId)?.fieldName || fieldId,
-          oliveKg: kgByField.get(fieldId) ?? 0,
-          spent: profitByField.get(fieldId)?.cost ?? 0,
-        }))
-        .filter((c) => c.oliveKg > 0 || c.spent > 0);
+      const nextCards = Array.from(kgByField.entries())
+        .map(([fieldId, row]) => ({ fieldId, fieldName: row.fieldName, oliveKg: row.oliveKg }))
+        .filter((c) => c.oliveKg > 0);
 
       const milestones = buildSeasonMilestones(allTasks, {
         anyIrrigatedField: anyIrrigated,
@@ -144,9 +118,7 @@ const ThisHarvestReviewScreen = () => {
 
       setOliveKg(olives);
       setOilKg(oil);
-      setSpent(spentSum);
-      setReceived(receivedSum);
-      setNet(receivedSum - spentSum);
+      setYearMoney(officialYear);
       setPercent(progress.percent);
       setDoneTitles(progress.milestones.filter((m) => m.done).map((m) => m.title));
       setCards(nextCards);
@@ -156,7 +128,7 @@ const ThisHarvestReviewScreen = () => {
           .slice(0, isEveryday ? 4 : 12)
       );
     },
-    [allTasks, anyIrrigated, isEveryday]
+    [allTasks, anyIrrigated, isEveryday, i18n.language]
   );
 
   useEffect(() => {
@@ -238,13 +210,31 @@ const ThisHarvestReviewScreen = () => {
               {t('fields:apologismos.oil')}: {formatKg(oilKg)} kg
             </Text>
             <Text style={{ color: colors.textPrimary }}>
-              {t('fields:apologismos.spent')}: {formatMoney(spent)}
+              {t('fields:apologismos.spent')}:{' '}
+              {formatOfficialAmount(
+                yearMoney?.totalExpenses,
+                yearMoney?.currency || 'EUR',
+                i18n.language,
+                t('money:unknownAmount')
+              )}
             </Text>
             <Text style={{ color: colors.textPrimary }}>
-              {t('fields:apologismos.received')}: {formatMoney(received)}
+              {t('fields:apologismos.received')}:{' '}
+              {formatOfficialAmount(
+                yearMoney?.totalIncome,
+                yearMoney?.currency || 'EUR',
+                i18n.language,
+                t('money:unknownAmount')
+              )}
             </Text>
             <Text style={{ color: colors.textPrimary, fontWeight: '800', marginTop: 6, fontSize: 18 * fontScaleMultiplier }}>
-              {t('fields:apologismos.net')}: {formatMoney(net)}
+              {t('fields:apologismos.net')}:{' '}
+              {formatOfficialAmount(
+                yearMoney?.netResult,
+                yearMoney?.currency || 'EUR',
+                i18n.language,
+                yearMoney?.resultLabel || t('money:unknownAmount')
+              )}
             </Text>
             <Button
               title={t('fields:apologismos.openMoney')}
@@ -298,7 +288,6 @@ const ThisHarvestReviewScreen = () => {
                   <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{card.fieldName}</Text>
                   <Text style={{ color: colors.textSecondary }}>
                     {formatKg(card.oliveKg)} kg
-                    {card.spent > 0 ? ` · ${formatMoney(card.spent)}` : ''}
                   </Text>
                 </TouchableOpacity>
               ))

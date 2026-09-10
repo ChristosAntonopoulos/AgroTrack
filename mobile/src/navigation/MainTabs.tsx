@@ -73,7 +73,7 @@ const MainTabs = () => {
   const insets = useSafeAreaInsets();
 
   const taskBadgeCount = useMemo(
-    () => tasks.filter((tk) => isTaskOverdue(tk) || tk.approvalStatus === 'pending').length,
+    () => tasks.filter((tk) => isTaskOverdue(tk)).length,
     [tasks]
   );
 

@@ -15,9 +15,17 @@
       "title": "Spesa",
       "description": "Manodopera, materiali, carburante…"
     },
+    "income": {
+      "title": "Entrata",
+      "description": "Vendita di olio, olive o contributo…"
+    },
     "harvest": {
       "title": "Raccolta",
       "description": "Olive, olio e resa"
+    },
+    "money": {
+      "title": "Denaro",
+      "description": "Entrata o spesa"
     }
   },
   "fieldLabel": "Oliveto",
@@ -52,6 +60,12 @@
     "relatedWork": "Lavoro collegato",
     "saved": "Spesa registrata."
   },
+  "income": {
+    "amount": "Importo",
+    "category": "Categoria",
+    "description": "Descrizione (opzionale)",
+    "saved": "Entrata registrata."
+  },
   "harvest": {
     "olives": "Olive",
     "oil": "Olio",
@@ -74,5 +88,68 @@
     "amountRequired": "Inserisci un importo.",
     "oliveRequired": "Inserisci i chili di olive.",
     "saveFailed": "Salvataggio non riuscito. Riprova."
+  },
+  "money": {
+    "cta": "Registra denaro",
+    "ctaPlus": "+ Registra denaro",
+    "chooserTitle": "Entrata o spesa?",
+    "amount": "Importo",
+    "category": "Categoria",
+    "description": "Descrizione",
+    "descriptionRequired": "Aggiungi una breve descrizione.",
+    "relatedTask": "Lavoro collegato",
+    "relatedHarvest": "Raccolta collegata",
+    "none": "Nessuno",
+    "paymentMethod": "Metodo di pagamento",
+    "counterparty": "Da / a",
+    "addReceipt": "Aggiungi ricevuta",
+    "notes": "Note",
+    "resultYear": "Anno di risultato",
+    "saveDraft": "Salva come bozza",
+    "saveIncome": "Registra entrata",
+    "saveExpense": "Registra spesa",
+    "changeType": "Cambia tipo",
+    "draftSaved": "Bozza salvata.",
+    "confirmSummary": "Stai per registrare {{type}} {{amount}} € per «{{field}}» il {{date}} (anno di risultato {{year}}). Continuare?",
+    "undo": "Annulla",
+    "addAnother": "Aggiungi un altro",
+    "undoReason": "Annullamento registrazione",
+    "noPermission": "Non puoi registrare denaro qui.",
+    "whatAbout": "Di cosa si tratta?",
+    "moreCategories": "Altro",
+    "howToEnter": "Come vuoi inserirlo?",
+    "qtyTimesPrice": "Quantità × prezzo",
+    "totalOnly": "Solo il totale",
+    "quantity": "Quantità",
+    "unit": "Unità",
+    "unitPrice": "Prezzo per {{unit}}",
+    "total": "Totale",
+    "oliveOilTitle": "Vendita di olio d'oliva",
+    "litresTimesPrice": "Litri × prezzo",
+    "howManyLitres": "Quanti litri?",
+    "pricePerLitre": "Prezzo al litro",
+    "totalAmount": "Importo totale",
+    "addLitresAndPrice": "Aggiungi litri e prezzo",
+    "fromWhichHarvest": "Da quale raccolta?",
+    "noLink": "Nessun collegamento",
+    "linkLater": "Lo collegherò più tardi",
+    "recordedAvailable": "Disponibile registrato: {{quantity}}",
+    "saleExceedsHarvest": "La vendita supera i litri registrati di questa raccolta.",
+    "whichField": "In quale uliveto?",
+    "whenDidItHappen": "Quando è successo?",
+    "yesterday": "Ieri",
+    "pickDate": "Scegli la data",
+    "linkTaskOrHarvest": "Collega a un lavoro o a una raccolta",
+    "linkedTo": "Collegato a",
+    "possibleLink": "Possibile collegamento",
+    "connect": "Collega",
+    "pickTask": "Lavoro",
+    "pickHarvest": "Raccolta",
+    "moreDetails": "Altri dettagli",
+    "resultYearLabel": "Anno di risultato",
+    "incomeTotal": "Entrata",
+    "expenseTotal": "Uscita",
+    "needPositiveAmount": "Inserisci un importo positivo.",
+    "shortDescription": "Breve descrizione"
   }
 }

@@ -48,7 +48,8 @@
     "total": "Σύνολο",
     "inProgress": "Σε εξέλιξη",
     "completed": "Ολοκληρωμένες",
-    "thisWeekCost": "Κόστος εβδομάδας"
+    "thisWeekCost": "Κόστος εβδομάδας",
+    "thisYearCost": "Έξοδα χρονιάς"
   },
   "dueToday": "Σήμερα",
   "noUrgent": "Όλα ενημερωμένα",

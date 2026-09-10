@@ -21,7 +21,8 @@ public class WeatherIntelligenceServiceTests
     private readonly Mock<IWeatherProvider> _weatherProvider = new();
     private readonly Mock<IWeatherCacheRepository> _cacheRepository = new();
     private readonly Mock<IFieldDailyWeatherSnapshotRepository> _snapshotRepository = new();
-    private readonly Mock<ITaskRepository> _taskRepository = new();
+    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
+    private readonly Mock<ITaskExecutionRepository> _executions = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
     private readonly GeospatialOptions _options = new();
 
@@ -29,8 +30,10 @@ public class WeatherIntelligenceServiceTests
     {
         _dateTimeProvider.SetupGet(d => d.UtcNow).Returns(Now);
         _weatherProvider.SetupGet(p => p.ProviderName).Returns("Open-Meteo");
-        _taskRepository.Setup(r => r.GetByFieldIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TaskItem>());
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Core.Entities.FieldWork.FieldTask>());
+        _executions.Setup(r => r.GetByFieldIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Core.Entities.FieldWork.TaskExecution>());
         _cacheRepository.Setup(r => r.UpsertAsync(It.IsAny<WeatherCacheLocation>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((WeatherCacheLocation l, CancellationToken _) => l);
         _snapshotRepository.Setup(r => r.UpsertAsync(It.IsAny<FieldDailyWeatherSnapshot>(), It.IsAny<CancellationToken>()))
@@ -45,7 +48,8 @@ public class WeatherIntelligenceServiceTests
         _weatherProvider.Object,
         _cacheRepository.Object,
         _snapshotRepository.Object,
-        _taskRepository.Object,
+        _fieldTasks.Object,
+        _executions.Object,
         _dateTimeProvider.Object,
         Options.Create(_options),
         NullLogger<WeatherIntelligenceService>.Instance);
@@ -252,14 +256,22 @@ public class WeatherIntelligenceServiceTests
         }, fromHour: -168, toHour: 24);
         _cacheRepository.Setup(r => r.GetByGridKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateCache(hourly));
-        _taskRepository.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TaskItem>
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Core.Entities.FieldWork.FieldTask>
             {
-                new() { Id = "t1", Type = "Irrigation", Status = WorkTaskStatus.Completed, ActualEnd = Now.AddDays(-2) },
-                // Excluded: outside the 7-day window and not completed.
-                new() { Id = "t2", Type = "Irrigation", Status = WorkTaskStatus.Completed, ActualEnd = Now.AddDays(-30) },
-                new() { Id = "t3", Type = "Irrigation", Status = WorkTaskStatus.Pending, ActualEnd = Now.AddDays(-1) },
-                new() { Id = "t4", Type = "Pruning", Status = WorkTaskStatus.Completed, ActualEnd = Now.AddDays(-1) }
+                new() { Id = "t1", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Completed },
+                new() { Id = "t2", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Completed },
+                new() { Id = "t3", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Planned },
+                new() { Id = "t4", TemplateCode = "Pruning", Title = "Pruning", Status = FieldTaskStatus.Completed }
+            });
+        _executions.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Core.Entities.FieldWork.TaskExecution>
+            {
+                new() { Id = "e1", TaskId = "t1", FieldId = "field-1", CompletedAt = Now.AddDays(-2) },
+                // Excluded: outside the 7-day window.
+                new() { Id = "e2", TaskId = "t2", FieldId = "field-1", CompletedAt = Now.AddDays(-30) },
+                // Excluded: not irrigation / undone would also be excluded via IsActive.
+                new() { Id = "e4", TaskId = "t4", FieldId = "field-1", CompletedAt = Now.AddDays(-1) }
             });
 
         var result = await CreateService().GetFieldWeatherAsync(CreateField());

@@ -30,6 +30,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const location = useLocation();
   const role = (user?.role || '') as AppRole;
   const pageTitle = resolvePageTitle(location.pathname, role, t);
+  const hidePageTitle = location.pathname === '/tasks' || location.pathname === '/tasks/new';
+  const hideAppModeToggle = /^\/fields\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
 
@@ -91,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
       </div>
 
       <div className="header-main">
-        <h1 className="page-title">{pageTitle}</h1>
+        {hidePageTitle ? null : <h1 className="page-title">{pageTitle}</h1>}
 
         <div className="header-right">
           {capture ? (
@@ -105,9 +107,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             </button>
           ) : null}
 
-          <div className="header-desktop-controls u-hide-below-md">
-            <ExperienceModeToggle compact />
-          </div>
+          {hideAppModeToggle ? null : (
+            <div className="header-desktop-controls u-hide-below-md">
+              <ExperienceModeToggle compact />
+            </div>
+          )}
 
           <NotificationBell />
 
@@ -139,10 +143,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             </button>
             {overflowOpen && (
               <div className="header-overflow-menu" role="menu">
-                <div className="header-overflow-section">
-                  <div className="header-overflow-label">{tSettings('experience.label')}</div>
-                  <ExperienceModeToggle compact />
-                </div>
+                {hideAppModeToggle ? null : (
+                  <div className="header-overflow-section">
+                    <div className="header-overflow-label">{tSettings('experience.label')}</div>
+                    <ExperienceModeToggle compact />
+                  </div>
+                )}
                 <div className="header-overflow-user">
                   <User size={18} aria-hidden />
                   <span className="header-overflow-user-name">{displayName}</span>

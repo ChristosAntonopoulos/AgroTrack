@@ -64,7 +64,7 @@
 }
 
 .field-identity--page .field-identity-name {
-  font-size: clamp(1.55rem, 3.6vw, 2.05rem);
+  font-size: clamp(1.875rem, 3vw, 2rem);
 }
 
 .field-identity--page .field-identity-title {
@@ -99,7 +99,7 @@
 }
 
 .field-identity--page .field-identity-place {
-  font-size: 0.95rem;
+  font-size: 1rem;
   margin-top: 0.5rem;
 }
 
@@ -112,7 +112,7 @@
 
 .field-identity--page .field-identity-meta {
   margin-top: 0.55rem;
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--color-text-secondary);
 }
 

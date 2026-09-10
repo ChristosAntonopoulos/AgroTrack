@@ -13,11 +13,11 @@ import {
 } from 'date-fns';
 import { el, enUS } from 'date-fns/locale';
 import { CalendarEvent } from '../../services/calendarService';
-import { RecommendedTemplateEntry, getEventsForDay } from '../../utils/calendarRecommendations';
 import {
   countCritical,
   getEventCategoryColor,
   getEventChipVariant,
+  getEventsForDay,
   shortenLabel,
 } from '../../utils/calendarViewUtils';
 import CalendarTaskChip from './CalendarTaskChip';
@@ -27,7 +27,6 @@ type Props = {
   currentDate: Date;
   selectedDate: Date;
   events: CalendarEvent[];
-  recommended: RecommendedTemplateEntry[];
   locale: string;
   onDateSelect: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
@@ -39,7 +38,6 @@ const CalendarMonthView: React.FC<Props> = ({
   currentDate,
   selectedDate,
   events,
-  recommended,
   locale,
   onDateSelect,
   onEventClick,
@@ -56,8 +54,6 @@ const CalendarMonthView: React.FC<Props> = ({
   const weekDays = [1, 2, 3, 4, 5, 6, 0].map((d) =>
     format(new Date(2024, 0, d), 'EEE', { locale: dateLocale })
   );
-
-  const todayRecommended = recommended.filter((r) => r.recommended);
 
   return (
     <div className="cal-month">
@@ -76,12 +72,8 @@ const CalendarMonthView: React.FC<Props> = ({
           const isSelected = isSameDay(day, selectedDate);
           const isCurrentDay = isToday(day);
           const criticalCount = countCritical(dayEvents);
-          const showTodayRec = isCurrentDay && todayRecommended.length > 0;
-          const recSlots = showTodayRec ? 1 : 0;
-          const eventSlots = MAX_VISIBLE_CHIPS - recSlots;
-          const visibleEvents = dayEvents.slice(0, eventSlots);
-          const hiddenCount =
-            dayEvents.length - visibleEvents.length + (showTodayRec ? Math.max(0, todayRecommended.length - 1) : 0);
+          const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_CHIPS);
+          const hiddenCount = dayEvents.length - visibleEvents.length;
 
           return (
             <button
@@ -124,16 +116,6 @@ const CalendarMonthView: React.FC<Props> = ({
                     }}
                   />
                 ))}
-
-                {showTodayRec && todayRecommended[0] && (
-                  <CalendarTaskChip
-                    label={shortenLabel(todayRecommended[0].template.title)}
-                    categoryColor={todayRecommended[0].categoryBorder}
-                    variant="recommended"
-                    priority={todayRecommended[0].template.priority}
-                    title={todayRecommended[0].template.title}
-                  />
-                )}
 
                 {hiddenCount > 0 && (
                   <span className="cal-month-more">{t('moreEvents', { count: hiddenCount })}</span>

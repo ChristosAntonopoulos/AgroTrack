@@ -6,7 +6,9 @@
     "observation": { "title": "Observation", "description": "A note or photos from the grove" },
     "work": { "title": "Work", "description": "Pruning, spraying, fertilizing…" },
     "expense": { "title": "Expense", "description": "Labor, materials, fuel…" },
-    "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" }
+    "income": { "title": "Income", "description": "Oil, fruit, or subsidy…" },
+    "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" },
+    "money": { "title": "Money", "description": "Income or expense" }
   },
   "fieldLabel": "Grove",
   "fieldPrompt": "Which grove?",
@@ -51,5 +53,36 @@
     "amountRequired": "Enter an amount.",
     "oliveRequired": "Enter olive kilograms.",
     "saveFailed": "Could not save. Try again."
+  },
+  "income": {
+    "saved": "Income recorded."
+  },
+  "cancel": "Cancel",
+  "money": {
+    "cta": "Record money",
+    "ctaPlus": "+ Record money",
+    "chooserTitle": "Income or expense?",
+    "amount": "Amount",
+    "category": "Category",
+    "description": "Description",
+    "descriptionRequired": "Add a short description.",
+    "relatedTask": "Related work",
+    "relatedHarvest": "Related harvest",
+    "none": "None",
+    "paymentMethod": "Payment method",
+    "counterparty": "From / to",
+    "addReceipt": "Add receipt",
+    "notes": "Notes",
+    "resultYear": "Result year",
+    "saveDraft": "Save as draft",
+    "saveIncome": "Record income",
+    "saveExpense": "Record expense",
+    "changeType": "Change type",
+    "draftSaved": "Draft saved.",
+    "confirmSummary": "You are about to record {{type}} {{amount}} € for «{{field}}» on {{date}} (result year {{year}}). Continue?",
+    "undo": "Undo",
+    "addAnother": "Add another",
+    "undoReason": "Undo entry",
+    "noPermission": "You cannot record money here."
   }
 }

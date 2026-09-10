@@ -7,7 +7,7 @@ import { usePreferences } from '../../context/PreferencesContext';
 import StatusBadge from '../StatusBadge';
 import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
-import { Task } from '../../services/taskService';
+import { FieldTask, fieldTaskTypeKey } from '../../services/fieldWorkService';
 import { formatDate } from '../../utils/formatters';
 import { getTaskCategoryColor } from '../../utils/calendarCategoryColors';
 import { isTaskOverdue } from '../../utils/taskListUtils';
@@ -16,7 +16,7 @@ import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
 import CardAccentFades from '../common/CardAccentFades';
 
 export interface TaskCardProps {
-  task: Task;
+  task: FieldTask;
   fieldName?: string;
   fieldColor?: string | null;
   onPress?: () => void;
@@ -42,17 +42,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['tasks', 'common']);
   const overdue = isTaskOverdue(task);
-  const categoryAccent = resolveTaskCategoryAccent(task.type);
+  const typeKey = fieldTaskTypeKey(task);
+  const categoryAccent = resolveTaskCategoryAccent(typeKey);
   const fieldAccent = resolveFieldColor(fieldColor, task.fieldId);
-  const categoryColor = getTaskCategoryColor(task.type);
-  const needsApproval = task.approvalStatus === 'pending';
+  const categoryColor = getTaskCategoryColor(typeKey);
 
-  const dateLabel = task.scheduledStart
-    ? formatDate(task.scheduledStart)
+  const dateLabel = task.plannedStart
+    ? formatDate(task.plannedStart)
     : t('tasks:notScheduled');
 
   const dueLabel =
-    task.scheduledEnd && task.status !== 'completed' ? formatDate(task.scheduledEnd) : null;
+    task.plannedEnd && task.status !== 'completed' ? formatDate(task.plannedEnd) : null;
 
   return (
     <TouchableOpacity
@@ -107,19 +107,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </Text>
             </View>
           ) : null}
-          {needsApproval ? (
-            <View style={[styles.overduePill, { backgroundColor: colors.warningLight }]}>
-              <Ionicons name="hourglass-outline" size={12} color={colors.warningDark} />
-              <Text
-                style={[
-                  styles.overdueText,
-                  { color: colors.warningDark, fontSize: 10 * fontScaleMultiplier },
-                ]}
-              >
-                {t('tasks:filters.approval')}
-              </Text>
-            </View>
-          ) : null}
         </View>
 
         {!compact && task.description ? (
@@ -149,7 +136,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <MetaCell
             icon="pricetag-outline"
             label={t('tasks:type')}
-            value={task.type}
+            value={typeKey}
             colors={colors}
             fontScale={fontScaleMultiplier}
           />

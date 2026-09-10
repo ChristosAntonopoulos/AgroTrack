@@ -27,6 +27,7 @@
   "categoryLabel": {
     "task": "Lavoro",
     "expense": "Spesa",
+    "income": "Introito",
     "harvest": "Raccolta",
     "note": "Osservazione",
     "weather": "Meteo",
@@ -51,6 +52,7 @@
   "ctaViewFields": "Vai ai campi",
   "fromActor": "Di {{name}}",
   "relatedTask": "Collegato a: {{title}}",
+  "relatedHarvest": "Collegato a: {{title}}",
   "pinned": "Fissata",
   "dataSource": "Fonte dati",
   "completed": "Completato",

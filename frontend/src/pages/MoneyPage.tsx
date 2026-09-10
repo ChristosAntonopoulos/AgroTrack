@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
-import PageHeader from '../components/Common/PageHeader';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
 import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
 import { useAuth } from '../context/AuthContext';
@@ -14,69 +12,66 @@ import { useCaptureOptional } from '../context/CaptureContext';
 import { isDeviceOnline } from '../utils/networkStatus';
 import {
   getFieldService,
-  getFinancialEntryService,
+  getFieldWorkService,
+  getFinancialSummaryService,
+  getFinancialTransactionService,
   getHarvestService,
-  getTaskService,
 } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
-import {
-  FinancialEntry,
-  UpdateFinancialEntryInput,
-} from '../services/financialEntryService';
-import type { HarvestRecord } from '../services/harvestService';
+import type { FinancialTransaction } from '../services/financialTransactionService';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
-import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
-import {
-  economicsGroupFor,
-  expenseBreakdown,
-  filterByField,
-  filterByYear,
-  groupMovements,
-  harvestKgInYear,
-  matchesSearch,
-  monthlySeries,
-  perFieldRows,
-  summarizeEntries,
-  yearsFromEntries,
-  type EconomicsGroupId,
-} from '../utils/economics';
-import EconomicsSummary from '../components/economics/EconomicsSummary';
-import EconomicsMovements from '../components/economics/EconomicsMovements';
-import EconomicsEntryDrawer from '../components/economics/EconomicsEntryDrawer';
-import '../components/economics/Economics.css';
+import { fieldLabelMap } from '../utils/fieldLabels';
+import { athensCalendarYear } from '../utils/athensDate';
+import { UNASSIGNED_FIELD_QUERY, overlayUnassignedSummary } from '../finance/buildYearSummary';
+import { formatOfficialAmount, isForbiddenError } from '../finance/format';
+import MoneyPageHeader from '../components/money/MoneyPageHeader';
+import MoneyContextBar from '../components/money/MoneyContextBar';
+import MoneySummaryGrid from '../components/money/MoneySummaryGrid';
+import FinancialDataTrustStrip from '../components/money/FinancialDataTrustStrip';
+import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
+import MonthlyFinancialTrend from '../components/money/MonthlyFinancialTrend';
+import MoneyFieldRows from '../components/money/MoneyFieldRows';
+import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
+import TransactionSection from '../components/money/TransactionSection';
+import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
+import '../components/money/Money.css';
 
-type ViewMode = 'summary' | 'movements';
-type KindFilter = 'all' | 'income' | 'expense';
+type KindFilter = 'all' | 'income' | 'expense' | 'draft';
 
+const PAGE_SIZE = 20;
+
+/** Official totals come from GetYearFinancialSummary only. */
 const MoneyPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['economics', 'capture', 'common']);
+  const { t, i18n } = useTranslation(['money', 'capture', 'common']);
   const { user } = useAuth();
   const { isFullPicture } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const capture = useCaptureOptional();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const view: ViewMode = searchParams.get('view') === 'movements' ? 'movements' : 'summary';
-  const fieldId = searchParams.get('fieldId') || '';
-  const currentYear = new Date().getFullYear();
+  const currentYear = athensCalendarYear(new Date());
   const year = Number(searchParams.get('year')) || currentYear;
+  const fieldId = searchParams.get('fieldId') || '';
+  const month = Number(searchParams.get('month')) || 0;
   const kindParam = searchParams.get('kind');
   const kind: KindFilter =
-    kindParam === 'income' || kindParam === 'expense' ? kindParam : 'all';
-  const query = searchParams.get('q') || '';
-  const category = (searchParams.get('category') || '') as EconomicsGroupId | '';
+    kindParam === 'income' || kindParam === 'expense' || kindParam === 'draft' ? kindParam : 'all';
+  const category = searchParams.get('category') || '';
   const taskFilter = searchParams.get('task') || '';
-  const entryId = searchParams.get('entry') || '';
-  const startEditing = searchParams.get('edit') === '1';
+  const harvestFilter = searchParams.get('harvest') || '';
+  const txId = searchParams.get('tx') || '';
+  const showFilters = searchParams.get('filters') === '1';
 
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const [fields, setFields] = useState<Field[]>([]);
-  const [entries, setEntries] = useState<FinancialEntry[]>([]);
-  const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [summary, setSummary] = useState<YearFinancialSummary | null>(null);
+  const [summaryForbidden, setSummaryForbidden] = useState(false);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [nextPage, setNextPage] = useState(2);
 
   const patch = (next: Record<string, string | null | undefined>) => {
     setSearchParams(
@@ -93,10 +88,28 @@ const MoneyPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!searchParams.get('year')) {
+      patch({ year: String(currentYear) });
+    }
+  }, [currentYear, searchParams]);
+
+  useEffect(() => {
     const onSaved = () => setReloadToken((n) => n + 1);
     window.addEventListener(CAPTURE_SAVED_EVENT, onSaved);
     return () => window.removeEventListener(CAPTURE_SAVED_EVENT, onSaved);
   }, []);
+
+  const listParams = () => ({
+    resultYear: year,
+    fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+    type: kind === 'income' || kind === 'expense' ? kind : undefined,
+    status: kind === 'draft' ? ('draft' as const) : undefined,
+    category: category || undefined,
+    month: month || undefined,
+    relatedTaskId: taskFilter || undefined,
+    relatedHarvestId: harvestFilter || undefined,
+    pageSize: PAGE_SIZE,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -105,25 +118,44 @@ const MoneyPage: React.FC = () => {
         setLoading(true);
         const list = await getFieldService().getFields();
         if (cancelled) return;
-        setFields(list);
+        setFields(list.filter((field) => field.status !== 'Draft'));
         setShowingCachedData(!isDeviceOnline());
-        const money = getFinancialEntryService();
-        const harvestSvc = getHarvestService();
-        const [ledger, harvestRows, taskRows] = await Promise.all([
-          Promise.all(list.map((field) => money.listByField(field.id).catch(() => [] as FinancialEntry[]))),
-          Promise.all(
-            list.map((field) => harvestSvc.listByField(field.id).catch(() => [] as HarvestRecord[]))
-          ),
-          Promise.all(list.map((field) => getTaskService().getTasks(field.id).catch(() => [] as Task[]))),
+
+        const summaryFieldId = fieldId === UNASSIGNED_FIELD_QUERY ? undefined : fieldId || undefined;
+        const [yearSummary, ledger] = await Promise.all([
+          getFinancialSummaryService()
+            .getYear(year, summaryFieldId, i18n.language)
+            .then((result) => ({ ok: true as const, result }))
+            .catch((error) => {
+              if (isForbiddenError(error)) return { ok: false as const, result: null };
+              throw error;
+            }),
+          getFinancialTransactionService().list({
+            ...listParams(),
+            page: 1,
+          }),
         ]);
         if (cancelled) return;
-        setEntries(ledger.flat());
-        setHarvests(harvestRows.flat());
-        setTasks(taskRows.flat());
+        setSummaryForbidden(!yearSummary.ok);
+        setSummary(
+          yearSummary.result && fieldId === UNASSIGNED_FIELD_QUERY
+            ? overlayUnassignedSummary(yearSummary.result, i18n.language)
+            : yearSummary.result
+        );
+        const items = ledger.items.filter((row) => {
+          if (row.status === 'void') return false;
+          if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
+          return true;
+        });
+        setTransactions(items);
+        setTotalCount(ledger.totalCount);
+        setNextPage(2);
       } catch {
         if (!cancelled) {
           setFields([]);
-          setEntries([]);
+          setSummary(null);
+          setTransactions([]);
+          setTotalCount(0);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -132,263 +164,303 @@ const MoneyPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [refreshGeneration, reloadToken, setShowingCachedData]);
+  }, [
+    category,
+    fieldId,
+    harvestFilter,
+    i18n.language,
+    kind,
+    month,
+    refreshGeneration,
+    reloadToken,
+    setShowingCachedData,
+    taskFilter,
+    year,
+  ]);
+
+  const loadOlder = async () => {
+    try {
+      setLoadingMore(true);
+      const ledger = await getFinancialTransactionService().list({
+        ...listParams(),
+        page: nextPage,
+      });
+      const items = ledger.items.filter((row) => {
+        if (row.status === 'void') return false;
+        if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
+        return true;
+      });
+      setTransactions((prev) => [...prev, ...items]);
+      setTotalCount(ledger.totalCount);
+      setNextPage((current) => current + 1);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
-  const years = useMemo(() => yearsFromEntries(entries), [entries]);
-  const scoped = useMemo(
-    () => filterByField(filterByYear(entries, year), fieldId || undefined),
-    [entries, fieldId, year]
-  );
-  const totals = useMemo(() => summarizeEntries(scoped), [scoped]);
-  const breakdown = useMemo(() => expenseBreakdown(scoped), [scoped]);
-  const fieldRows = useMemo(
-    () => (fieldId ? null : perFieldRows(filterByYear(entries, year), fields)),
-    [entries, fieldId, fields, year]
-  );
-  const previous = useMemo(
-    () => summarizeEntries(filterByField(filterByYear(entries, year - 1), fieldId || undefined)),
-    [entries, fieldId, year]
-  );
-  const monthly = useMemo(
-    () => monthlySeries(fieldId ? scoped : filterByYear(entries, year), year),
-    [entries, fieldId, scoped, year]
-  );
+  const selected = transactions.find((row) => row.id === txId) || null;
+  const [relatedTitles, setRelatedTitles] = useState<{ task?: string; harvest?: string }>({});
 
-  const unit = useMemo(() => {
-    if (!isFullPicture) return { costPerKg: null as number | null, harvestCostPerKg: null as number | null };
-    const ids = fieldId ? [fieldId] : fields.map((f) => f.id);
-    const kg = harvestKgInYear(harvests, ids, year);
-    if (!(kg > 0) || !totals.hasExpenses) return { costPerKg: null, harvestCostPerKg: null };
-    const harvestLinked = scoped.filter((e) => e.kind === 'expense' && e.harvestId);
-    const harvestSpend = harvestLinked.reduce((sum, e) => sum + e.amount, 0);
-    return {
-      costPerKg: totals.expenses / kg,
-      harvestCostPerKg: harvestLinked.length > 0 ? harvestSpend / kg : null,
+  useEffect(() => {
+    if (!selected?.relatedTaskId && !selected?.relatedHarvestId) {
+      setRelatedTitles({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const taskTitle = selected.relatedTaskId
+        ? await getFieldWorkService()
+            .getFieldTask(selected.relatedTaskId)
+            .then((task) => task.title)
+            .catch(() => undefined)
+        : undefined;
+      let harvestTitle: string | undefined;
+      if (selected.relatedHarvestId && selected.fieldId) {
+        const harvests = await getHarvestService()
+          .listByField(selected.fieldId)
+          .catch(() => []);
+        const hit = harvests.find((h) => h.id === selected.relatedHarvestId);
+        harvestTitle = hit
+          ? `${hit.harvestDate.slice(0, 10)}${hit.millName ? ` · ${hit.millName}` : ''}`
+          : undefined;
+      }
+      if (!cancelled) setRelatedTitles({ task: taskTitle, harvest: harvestTitle });
+    })();
+    return () => {
+      cancelled = true;
     };
-  }, [fieldId, fields, harvests, isFullPicture, scoped, totals, year]);
+  }, [selected]);
 
-  const filteredMovements = useMemo(() => {
-    return scoped.filter((entry) => {
-      if (kind !== 'all' && entry.kind !== kind) return false;
-      if (category && economicsGroupFor(entry) !== category) return false;
-      if (taskFilter && entry.taskId !== taskFilter) return false;
-      const label = t(`economics:groups.${economicsGroupFor(entry)}`);
-      return matchesSearch(entry, query, fieldNames[entry.fieldId] || '', label);
-    });
-  }, [category, fieldNames, kind, query, scoped, t, taskFilter]);
+  const visibleFields = fields.filter((field) => field.status !== 'Draft');
+  const canManage =
+    user?.role === 'FieldOwner' ||
+    user?.role === 'Administrator' ||
+    Boolean(selected && (selected.createdByUserId === user?.userId || selected.ownerUserId === user?.userId));
 
-  const months = useMemo(() => groupMovements(filteredMovements), [filteredMovements]);
-  const recent = useMemo(
-    () =>
-      [...scoped]
-        .sort((a, b) => new Date(b.occurredOn).getTime() - new Date(a.occurredOn).getTime())
-        .slice(0, 5),
-    [scoped]
-  );
-  const selected = scoped.find((e) => e.id === entryId) || entries.find((e) => e.id === entryId) || null;
-  const selectedHarvest = selected?.harvestId
-    ? harvests.find((h) => h.id === selected.harvestId) || null
-    : null;
-  const linkedTasks = useMemo(
-    () => tasks.filter((task) => scoped.some((entry) => entry.taskId === task.id)),
-    [scoped, tasks]
-  );
-
-  const canManage = (id: string) => {
-    const field = fields.find((f) => f.id === id);
-    return (
-      user?.role === 'FieldOwner' ||
-      user?.role === 'Administrator' ||
-      field?.ownerId === user?.userId
-    );
-  };
-
-  const reloadLedger = async () => {
-    const money = getFinancialEntryService();
-    const ledger = await Promise.all(
-      fields.map((field) => money.listByField(field.id).catch(() => [] as FinancialEntry[]))
-    );
-    setEntries(ledger.flat());
-  };
-
-  const handleVoid = async (id: string) => {
-    await getFinancialEntryService().void(id);
-    await reloadLedger();
-    patch({ entry: null, edit: null });
-  };
-
-  const handleUpdate = async (id: string, input: UpdateFinancialEntryInput) => {
-    await getFinancialEntryService().update(id, input);
-    await reloadLedger();
-    patch({ edit: null });
-  };
-
-  const openCapture = (kind: 'expense' | 'income' = 'expense') => {
+  const openCapture = (preferredType: 'money' | 'income' | 'expense' = 'money') => {
     capture?.openCapture({
-      fieldId: fieldId || fields[0]?.id,
-      preferredType: kind,
+      preferredType,
+      fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : visibleFields[0]?.id,
+      taskId: taskFilter || undefined,
     });
   };
 
-  if (loading) {
-    return (
-      <PageContainer>
+  const reload = () => setReloadToken((n) => n + 1);
+
+  const emptyYear =
+    !summaryForbidden &&
+    summary &&
+    !summary.dataAvailability.hasPostedRecords &&
+    summary.draftCount === 0 &&
+    transactions.length === 0;
+
+  const shell = (body: React.ReactNode, captureEnabled = true) => (
+    <PageContainer maxWidth="full" padding="none">
+      <div className="money-page">
         <Breadcrumbs />
-        <PageHeader title={t('economics:title')} subtitle={t('economics:subtitle')} />
-        <LoadingSpinner className="page-inline-loading" />
-      </PageContainer>
+        <MoneyPageHeader onCapture={captureEnabled ? () => openCapture() : undefined} />
+        {body}
+      </div>
+    </PageContainer>
+  );
+
+  if (loading && !summary) {
+    return shell(
+      <>
+        <div className="money-skeleton" aria-busy="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </>
     );
   }
 
-  if (fields.length === 0) {
-    return (
-      <PageContainer>
-        <Breadcrumbs />
-        <PageHeader title={t('economics:title')} subtitle={t('economics:subtitle')} />
-        <EmptyState title={t('economics:emptyFieldsTitle')} description={t('economics:emptyFieldsHint')} />
-      </PageContainer>
+  if (visibleFields.length === 0) {
+    return shell(
+      <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />,
+      false
     );
   }
 
   return (
-    <PageContainer>
-      <div className="eco-page">
+    <PageContainer maxWidth="full" padding="none">
+      <div className="money-page">
         <Breadcrumbs />
-        <PageHeader title={t('economics:title')} subtitle={t('economics:subtitle')} />
+        <MoneyPageHeader onCapture={() => openCapture()} />
+        <MoneyContextBar
+          year={year}
+          fieldId={fieldId}
+          fields={visibleFields}
+          onYearChange={(next) => patch({ year: String(next), month: null })}
+          onFieldChange={(next) => patch({ fieldId: next || null })}
+        />
 
-        <div className="eco-toolbar">
-          <Button variant="primary" onClick={() => openCapture('expense')}>
-            {t('economics:captureExpense')}
-          </Button>
-          <Button variant="primary" onClick={() => openCapture('income')}>
-            {t('economics:captureIncome')}
-          </Button>
-          <label className="sr-only" htmlFor="eco-field">
-            {t('economics:fieldAria')}
-          </label>
-          <select
-            id="eco-field"
-            className="eco-select"
-            value={fieldId}
-            onChange={(e) => patch({ fieldId: e.target.value || null })}
-          >
-            <option value="">{t('economics:allFields')}</option>
-            {fields.map((field) => (
-              <option key={field.id} value={field.id}>
-                {friendlyFieldLabel(field.name)}
-              </option>
-            ))}
-          </select>
-          <label className="sr-only" htmlFor="eco-year">
-            {t('economics:yearAria')}
-          </label>
-          <select
-            id="eco-year"
-            className="eco-select"
-            value={String(year)}
-            onChange={(e) => patch({ year: e.target.value })}
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="eco-views" role="tablist" aria-label={t('economics:viewsAria')}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'summary'}
-            className={view === 'summary' ? 'is-active' : ''}
-            onClick={() => patch({ view: null })}
-          >
-            {t('economics:summary')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'movements'}
-            className={view === 'movements' ? 'is-active' : ''}
-            onClick={() => patch({ view: 'movements' })}
-          >
-            {t('economics:movements')}
-          </button>
-        </div>
-
-        {totals.count === 0 ? (
+        {summaryForbidden ? (
+          <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
+        ) : emptyYear ? (
           <EmptyState
-            title={t('economics:emptyTitle')}
-            description={t('economics:emptyHint')}
+            title={t('money:emptyTitle', { year })}
+            description={t('money:emptyHint')}
             action={
-              <div className="eco-empty-actions">
-                <Button variant="primary" onClick={() => openCapture('expense')}>
-                  {t('economics:captureExpense')}
-                </Button>
-                <Button variant="outline" onClick={() => openCapture('income')}>
-                  {t('economics:captureIncome')}
-                </Button>
-              </div>
+              <Button variant="primary" onClick={() => openCapture()}>
+                {t('capture:money.cta')}
+              </Button>
             }
           />
-        ) : view === 'summary' ? (
-          <EconomicsSummary
-            year={year}
-            totals={totals}
-            breakdown={breakdown}
-            showAllCategories={showAllCategories}
-            onToggleCategories={() => setShowAllCategories((v) => !v)}
-            fieldRows={fieldRows}
-            recent={recent}
-            fieldNames={fieldNames}
+        ) : summary ? (
+          <>
+            <MoneySummaryGrid
+              summary={summary}
+              locale={i18n.language}
+              onAddIncome={() => openCapture('income')}
+            />
+            <FinancialDataTrustStrip
+              summary={summary}
+              locale={i18n.language}
+              fieldCount={summary.fieldResults.length || (fieldId ? 1 : 0)}
+              onOpenDrafts={() => patch({ kind: 'draft' })}
+            />
+            {summary.oliveOil ? (
+              <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} />
+            ) : null}
+            {isFullPicture &&
+            (summary.costPerHectare != null ||
+              summary.incomePerHectare != null ||
+              summary.netPerHectare != null ||
+              summary.costPerKilogramOfOil != null ||
+              summary.costPerKilogramMessage) ? (
+              <section className="money-card">
+                {summary.costPerHectare != null ? (
+                  <p>
+                    {t('money:costPerHectare')}:{' '}
+                    {formatOfficialAmount(
+                      summary.costPerHectare,
+                      summary.currency,
+                      i18n.language,
+                      t('money:unknownAmount')
+                    )}
+                  </p>
+                ) : null}
+                {summary.incomePerHectare != null ? (
+                  <p>
+                    {t('money:incomePerHectare')}:{' '}
+                    {formatOfficialAmount(
+                      summary.incomePerHectare,
+                      summary.currency,
+                      i18n.language,
+                      t('money:unknownAmount')
+                    )}
+                  </p>
+                ) : null}
+                {summary.netPerHectare != null ? (
+                  <p>
+                    {t('money:netPerHectare')}:{' '}
+                    {formatOfficialAmount(
+                      summary.netPerHectare,
+                      summary.currency,
+                      i18n.language,
+                      t('money:unknownAmount')
+                    )}
+                  </p>
+                ) : null}
+                {summary.costPerKilogramOfOil != null ? (
+                  <p>
+                    {t('money:costPerKg')}:{' '}
+                    {formatOfficialAmount(
+                      summary.costPerKilogramOfOil,
+                      summary.currency,
+                      i18n.language,
+                      t('money:unknownAmount')
+                    )}
+                  </p>
+                ) : summary.costPerKilogramMessage ? (
+                  <p className="money-summary-note">{summary.costPerKilogramMessage}</p>
+                ) : null}
+              </section>
+            ) : null}
+            {summary.dataAvailability.hasPostedRecords ? (
+              <div className="money-analysis-grid">
+                <MonthlyFinancialTrend
+                  year={year}
+                  months={summary.monthlyResults}
+                  currency={summary.currency}
+                  locale={i18n.language}
+                  selectedMonth={month || undefined}
+                  onSelectMonth={(next) => patch({ month: next ? String(next) : null })}
+                />
+                {summary.expenseByCategory.length > 0 || summary.incomeByCategory.length > 0 ? (
+                  <MoneyCategoryBreakdown
+                    expenses={summary.expenseByCategory}
+                    income={summary.incomeByCategory}
+                    currency={summary.currency}
+                    locale={i18n.language}
+                    onSelectCategory={(value) => patch({ category: value, kind: 'all' })}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+            {!fieldId ? (
+              <MoneyFieldRows
+                rows={summary.fieldResults}
+                currency={summary.currency}
+                locale={i18n.language}
+                showPerHectare={isFullPicture}
+                fieldNames={fieldNames}
+                onSelectField={(id) => patch({ fieldId: id || null })}
+              />
+            ) : null}
+          </>
+        ) : null}
+
+        {!emptyYear || summaryForbidden ? (
+          <TransactionSection
+            items={transactions}
+            totalCount={totalCount}
+            loadingMore={loadingMore}
             locale={i18n.language}
-            fullMode={isFullPicture}
-            monthly={monthly}
-            previous={previous}
-            costPerKg={unit.costPerKg}
-            harvestCostPerKg={unit.harvestCostPerKg}
-            onSelectField={(id) => patch({ fieldId: id, view: 'movements' })}
-            onOpenMovements={() => patch({ view: 'movements' })}
-            onOpenEntry={(id) => patch({ entry: id })}
-            onOpenKind={(next) => patch({ view: 'movements', kind: next })}
-            onOpenCategory={(group) => patch({ view: 'movements', category: group, kind: 'expense' })}
-          />
-        ) : (
-          <EconomicsMovements
-            months={months}
             fieldNames={fieldNames}
-            locale={i18n.language}
-            query={query}
             kind={kind}
             category={category}
-            taskId={taskFilter}
-            tasks={linkedTasks}
-            hideFieldMeta={Boolean(fieldId)}
-            canManage={canManage}
-            onQuery={(value) => patch({ q: value || null })}
-            onKind={(next) => patch({ kind: next === 'all' ? null : next })}
-            onCategory={(group) => patch({ category: group || null })}
-            onTask={(id) => patch({ task: id || null })}
-            onOpenEntry={(id) => patch({ entry: id, edit: null })}
-            onCorrect={(id) => patch({ entry: id, edit: '1' })}
-            onDelete={(id) => {
-              if (window.confirm(t('economics:deleteConfirm'))) void handleVoid(id);
-            }}
+            month={month}
+            year={year}
+            showFilters={showFilters}
+            hideIncome={summaryForbidden}
+            onKind={(value) => patch({ kind: value === 'all' ? null : value })}
+            onToggleFilters={() => patch({ filters: showFilters ? null : '1' })}
+            onCategory={(value) => patch({ category: value || null })}
+            onMonth={(value) => patch({ month: value || null })}
+            onClearFilters={() => patch({ category: null, month: null, task: null, harvest: null })}
+            onOpen={(id) => patch({ tx: id })}
+            onLoadMore={() => void loadOlder()}
           />
-        )}
+        ) : null}
       </div>
 
-      <EconomicsEntryDrawer
-        entry={selected}
-        fieldName={selected ? fieldNames[selected.fieldId] : undefined}
-        harvest={selectedHarvest}
-        canManage={selected ? canManage(selected.fieldId) : false}
-        startEditing={startEditing}
-        onClose={() => patch({ entry: null, edit: null })}
-        onVoid={handleVoid}
-        onUpdate={handleUpdate}
+      <MoneyTransactionDrawer
+        transaction={selected}
+        fieldName={selected?.fieldId ? fieldNames[selected.fieldId] : undefined}
+        relatedTaskTitle={relatedTitles.task}
+        relatedHarvestTitle={relatedTitles.harvest}
+        canManage={canManage}
+        fullPicture={isFullPicture}
+        onClose={() => patch({ tx: null })}
+        onVoid={async (id, reason) => {
+          await getFinancialTransactionService().void(id, reason);
+          patch({ tx: null });
+          reload();
+        }}
+        onPostDraft={async (id) => {
+          await getFinancialTransactionService().post(id);
+          patch({ tx: null });
+          reload();
+        }}
+        onDeleteDraft={async (id) => {
+          await getFinancialTransactionService().deleteDraft(id);
+          patch({ tx: null });
+          reload();
+        }}
       />
     </PageContainer>
   );

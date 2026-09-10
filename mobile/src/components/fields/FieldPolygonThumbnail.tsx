@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
 import { resolveFieldPolygon, type LatLng } from '../../utils/fieldGeo';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { hexToRgba } from '../../utils/hexToRgba';
 
 type Props = {
   field: Field;
@@ -28,6 +30,7 @@ const project = (poly: LatLng[], size: number, pad: number) => {
 
 const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
   const { colors } = useTheme();
+  const accent = resolveFieldColor(field.color, field.id);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
   const points = useMemo(
     () => (polygon && polygon.length > 1 ? project(polygon, size, 10) : []),
@@ -41,7 +44,7 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
         {
           width: size,
           height: size,
-          backgroundColor: colors.primaryDark,
+          backgroundColor: hexToRgba(accent, 0.28),
           borderColor: colors.borderLight,
         },
       ]}
@@ -64,7 +67,7 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
                   left: prev.x,
                   top: prev.y,
                   width: length,
-                  backgroundColor: colors.textInverse,
+                  backgroundColor: accent,
                   transform: [{ rotate: `${angle}rad` }],
                 },
               ]}
@@ -72,7 +75,7 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
           );
         })
       ) : (
-        <Ionicons name="location-outline" size={22} color={colors.textInverse} />
+        <Ionicons name="location-outline" size={22} color={accent} />
       )}
     </View>
   );
@@ -88,7 +91,7 @@ const styles = StyleSheet.create({
   },
   edge: {
     position: 'absolute',
-    height: 2,
+    height: 2.5,
     borderRadius: 1,
   },
 });

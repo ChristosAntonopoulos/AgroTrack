@@ -5,6 +5,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Chronologio;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -33,8 +34,9 @@ public class ChronologioService : IChronologioService
     private readonly IFieldAccessService _fieldAccessService;
     private readonly IFieldService _fieldService;
     private readonly IFieldRepository _fieldRepository;
-    private readonly ITaskRepository _taskRepository;
-    private readonly IFinancialEntryRepository _financialEntryRepository;
+    private readonly ITaskExecutionRepository _taskExecutionRepository;
+    private readonly IFieldTaskRepository _fieldTaskRepository;
+    private readonly IFinancialTransactionRepository _financialTransactions;
     private readonly IHarvestRecordRepository _harvestRecordRepository;
     private readonly INoteRepository _noteRepository;
     private readonly IActivityRepository _activityRepository;
@@ -47,8 +49,9 @@ public class ChronologioService : IChronologioService
         IFieldAccessService fieldAccessService,
         IFieldService fieldService,
         IFieldRepository fieldRepository,
-        ITaskRepository taskRepository,
-        IFinancialEntryRepository financialEntryRepository,
+        ITaskExecutionRepository taskExecutionRepository,
+        IFieldTaskRepository fieldTaskRepository,
+        IFinancialTransactionRepository financialTransactions,
         IHarvestRecordRepository harvestRecordRepository,
         INoteRepository noteRepository,
         IActivityRepository activityRepository,
@@ -60,8 +63,9 @@ public class ChronologioService : IChronologioService
         _fieldAccessService = fieldAccessService;
         _fieldService = fieldService;
         _fieldRepository = fieldRepository;
-        _taskRepository = taskRepository;
-        _financialEntryRepository = financialEntryRepository;
+        _taskExecutionRepository = taskExecutionRepository;
+        _fieldTaskRepository = fieldTaskRepository;
+        _financialTransactions = financialTransactions;
         _harvestRecordRepository = harvestRecordRepository;
         _noteRepository = noteRepository;
         _activityRepository = activityRepository;
@@ -590,8 +594,8 @@ public class ChronologioService : IChronologioService
         var includeWeatherReviews = !pageResults
             || categoryFilter == ChronologioCategory.Weather;
 
-        IReadOnlyList<TaskItem> tasks;
-        IReadOnlyList<FinancialEntry> expenses;
+        IReadOnlyList<TaskExecution> executions;
+        IReadOnlyList<FinancialTransaction> money;
         IReadOnlyList<HarvestRecord> harvests;
         IReadOnlyList<Activity> activities;
         IReadOnlyList<Note> notes;
@@ -600,11 +604,9 @@ public class ChronologioService : IChronologioService
         if (fieldIds.Count == 1)
         {
             var fieldId = fieldIds[0];
-            tasks = (await _taskRepository.GetByFieldIdAndStatusAsync(
-                fieldId,
-                WorkTaskStatus.Completed.ToApiString(),
-                cancellationToken)).ToList();
-            expenses = (await _financialEntryRepository.GetByFieldIdAsync(fieldId, includeVoided: false, limit: 200, cancellationToken)).ToList();
+            executions = (await _taskExecutionRepository.GetByFieldIdAsync(fieldId, cancellationToken))
+                .Where(e => e.IsActive)
+                .ToList();
             harvests = (await _harvestRecordRepository.GetByFieldIdAsync(fieldId, cancellationToken)).ToList();
             activities = (await _activityRepository.GetByFieldIdAsync(fieldId, ActivityFetchLimit, cancellationToken)).ToList();
             notes = (await _noteRepository.GetByOwnerUserIdAsync(userId, fieldId, limit: 200, cancellationToken)).ToList();
@@ -615,10 +617,9 @@ public class ChronologioService : IChronologioService
         }
         else
         {
-            tasks = (await _taskRepository.GetByFieldIdsAsync(fieldIds, cancellationToken))
-                .Where(t => t.Status == WorkTaskStatus.Completed)
+            executions = (await _taskExecutionRepository.GetByFieldIdsAsync(fieldIds, cancellationToken))
+                .Where(e => e.IsActive)
                 .ToList();
-            expenses = (await _financialEntryRepository.GetByFieldIdsAsync(fieldIds, cancellationToken)).ToList();
             harvests = (await _harvestRecordRepository.GetByFieldIdsAsync(fieldIds, cancellationToken)).ToList();
             activities = (await _activityRepository.GetByFieldIdsAsync(
                 fieldIds,
@@ -635,25 +636,29 @@ public class ChronologioService : IChronologioService
                 : Array.Empty<FieldWeatherPeriodReview>();
         }
 
+        money = await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
         harvests = harvests.Where(h => h.Status == FinancialEntryStatus.Posted).ToList();
-        expenses = expenses
-            .Where(e => e.Status == FinancialEntryStatus.Posted && e.Kind == FinancialEntryKind.Expense)
-            .ToList();
         notes = notes.Where(n => !string.IsNullOrWhiteSpace(n.FieldId)).ToList();
         activities = activities.Where(a => IncludedActivityTypes.Contains(a.Type)).ToList();
 
-        var completedTaskIds = new HashSet<string>(
-            tasks.Select(t => t.Id),
-            StringComparer.Ordinal);
+        var fieldTasksById = new Dictionary<string, FieldTask>(StringComparer.Ordinal);
+        var relatedTaskIds = executions.Select(e => e.TaskId)
+            .Concat(money
+                .Where(t => !string.IsNullOrWhiteSpace(t.RelatedTaskId))
+                .Select(t => t.RelatedTaskId!))
+            .Distinct(StringComparer.Ordinal);
+        foreach (var taskId in relatedTaskIds)
+        {
+            var task = await _fieldTaskRepository.GetByIdAsync(taskId, cancellationToken);
+            if (task != null)
+            {
+                fieldTasksById[task.Id] = task;
+            }
+        }
 
-        // Dedup: skip expenses linked to a completed task already on the timeline,
-        // and skip harvest-linked ledger rows (harvest card is the source of truth).
-        expenses = expenses
-            .Where(e => string.IsNullOrWhiteSpace(e.HarvestId))
-            .Where(e => string.IsNullOrWhiteSpace(e.TaskId) || !completedTaskIds.Contains(e.TaskId))
-            .ToList();
+        var harvestsById = harvests.ToDictionary(h => h.Id, StringComparer.Ordinal);
 
-        var nameIds = CollectUserIds(tasks, expenses, activities, notes);
+        var nameIds = CollectUserIds(executions, fieldTasksById.Values, money, activities, notes);
         nameIds.Add(userId);
         var displayNames = await ResolveDisplayNamesAsync(nameIds, cancellationToken);
 
@@ -662,7 +667,7 @@ public class ChronologioService : IChronologioService
             .GroupBy(m => m.OwnerId)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
         var taskMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
-                MediaOwnerType.Task, tasks.Select(t => t.Id), cancellationToken))
+                MediaOwnerType.Task, executions.Select(e => e.TaskId), cancellationToken))
             .GroupBy(m => m.OwnerId)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
         var harvestMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
@@ -672,14 +677,27 @@ public class ChronologioService : IChronologioService
 
         var entries = new List<ChronologioEntryDto>();
 
-        foreach (var task in tasks)
+        foreach (var execution in executions)
         {
-            entries.Add(MapTask(task, fieldLabels, displayNames, taskMedia.GetValueOrDefault(task.Id)));
+            fieldTasksById.TryGetValue(execution.TaskId, out var fieldTask);
+            entries.Add(MapTaskExecution(
+                execution,
+                fieldTask,
+                fieldLabels,
+                displayNames,
+                taskMedia.GetValueOrDefault(execution.TaskId)));
         }
 
-        foreach (var expense in expenses)
+        foreach (var transaction in money)
         {
-            entries.Add(MapExpense(expense, fieldLabels, displayNames));
+            fieldTasksById.TryGetValue(transaction.RelatedTaskId ?? string.Empty, out var relatedTask);
+            harvestsById.TryGetValue(transaction.RelatedHarvestId ?? string.Empty, out var relatedHarvest);
+            entries.Add(MapFinancialTransaction(
+                transaction,
+                fieldLabels,
+                displayNames,
+                relatedTask,
+                relatedHarvest));
         }
 
         foreach (var harvest in harvests)
@@ -746,18 +764,27 @@ public class ChronologioService : IChronologioService
         return result;
     }
 
-    private static ChronologioEntryDto MapTask(
-        TaskItem task,
+    private static ChronologioEntryDto MapTaskExecution(
+        TaskExecution execution,
+        FieldTask? task,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         IReadOnlyDictionary<string, string> displayNames,
         IReadOnlyList<MediaAttachment>? attachments = null)
     {
-        var occurredAt = task.ActualEnd ?? task.ScheduledEnd ?? task.UpdatedAt;
-        var assigneeName = ResolveName(task.AssignedTo, displayNames);
-        var actorUserId = task.AssignedTo;
-        var amount = task.Cost.HasValue
-            ? new ChronologioAmountDto { Value = task.Cost.Value, Currency = "EUR" }
-            : null;
+        var occurredAt = execution.CompletedAt;
+        var actorUserId = execution.RecordedByUserId;
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            actorUserId = execution.CompletedByUserIds.FirstOrDefault()
+                ?? task?.AssignedUserId
+                ?? task?.ResponsibleUserId;
+        }
+
+        var assigneeName = ResolveName(task?.AssignedUserId, displayNames);
+        var (eventType, summary) = MapOutcome(execution.Outcome);
+        var title = string.IsNullOrWhiteSpace(task?.Title)
+            ? (task?.TemplateCode ?? "Task")
+            : task!.Title;
 
         var media = new List<ChronologioMediaDto>();
         if (attachments is { Count: > 0 })
@@ -770,92 +797,112 @@ public class ChronologioService : IChronologioService
                 Url = a.Url
             }));
         }
-        else
-        {
-            media.AddRange(task.Evidence
-                .Where(e => !string.IsNullOrWhiteSpace(e.PhotoUrl))
-                .Select((e, index) => new ChronologioMediaDto
-                {
-                    Id = $"{task.Id}-evidence-{index}",
-                    Type = "image",
-                    ThumbnailUrl = e.PhotoUrl,
-                    Url = e.PhotoUrl
-                }));
-        }
 
         return new ChronologioEntryDto
         {
-            Id = $"{ChronologioSourceTypes.Task}:{task.Id}",
-            FieldId = task.FieldId,
-            Field = FieldRef(task.FieldId, fieldLabels),
+            Id = $"{ChronologioSourceTypes.TaskExecution}:{execution.Id}",
+            FieldId = execution.FieldId,
+            Field = FieldRef(execution.FieldId, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = task.LifecycleYear,
+            LifecycleYear = execution.ResultYear > 0
+                ? execution.ResultYear.ToString(CultureInfo.InvariantCulture)
+                : null,
             OccurredAt = EnsureUtc(occurredAt),
-            CreatedAt = EnsureUtc(task.CreatedAt),
+            CreatedAt = EnsureUtc(execution.CreatedAt),
             Category = ChronologioCategory.Task.ToApiString(),
-            EventType = ChronologioEventTypes.TaskCompleted,
-            Title = string.IsNullOrWhiteSpace(task.Title) ? (task.Type ?? "Task") : task.Title,
-            Summary = "Completed",
-            SourceType = ChronologioSourceTypes.Task,
-            SourceId = task.Id,
+            EventType = eventType,
+            Title = title,
+            Summary = string.IsNullOrWhiteSpace(execution.Notes) ? summary : execution.Notes,
+            SourceType = ChronologioSourceTypes.TaskExecution,
+            SourceId = execution.Id,
             IsSystemGenerated = false,
             Actor = BuildActor(actorUserId, displayNames),
             Importance = ChronologioImportance.Normal.ToApiString(),
-            Amount = amount,
+            Amount = null,
             Media = media,
             Details = new ChronologioDetailsDto
             {
                 Task = new ChronologioTaskDetailsDto
                 {
-                    TaskId = task.Id,
-                    TaskType = task.Type,
-                    Status = task.Status.ToApiString(),
-                    StartDate = task.ActualStart ?? task.ScheduledStart,
-                    EndDate = task.ActualEnd ?? task.ScheduledEnd,
-                    AssigneeName = assigneeName
+                    TaskId = execution.TaskId,
+                    ExecutionId = execution.Id,
+                    TaskType = task?.TemplateCode,
+                    Status = task?.Status.ToApiString() ?? FieldTaskStatus.Completed.ToApiString(),
+                    Outcome = execution.Outcome.ToApiString(),
+                    StartDate = execution.StartedAt ?? execution.PlannedStartSnapshot ?? task?.PlannedStart,
+                    EndDate = execution.CompletedAt,
+                    AssigneeName = assigneeName,
+                    FollowUpTaskId = execution.FollowUpTaskId
                 }
             }
         };
     }
 
-    private static ChronologioEntryDto MapExpense(
-        FinancialEntry entry,
-        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
-        IReadOnlyDictionary<string, string> displayNames)
+    private static (string EventType, string Summary) MapOutcome(TaskExecutionOutcome outcome) => outcome switch
     {
-        var category = entry.Category?.ToApiString();
-        var title = string.IsNullOrWhiteSpace(entry.Description)
-            ? (category ?? "Expense")
-            : entry.Description;
-        var currency = string.IsNullOrWhiteSpace(entry.Currency) ? "EUR" : entry.Currency;
+        TaskExecutionOutcome.PartiallyCompleted => (ChronologioEventTypes.TaskPartiallyCompleted, "Partially completed"),
+        TaskExecutionOutcome.NotDone => (ChronologioEventTypes.TaskNotDone, "Not done"),
+        _ => (ChronologioEventTypes.TaskCompleted, "Completed")
+    };
+
+    private static ChronologioEntryDto MapFinancialTransaction(
+        FinancialTransaction transaction,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        IReadOnlyDictionary<string, string> displayNames,
+        FieldTask? relatedTask,
+        HarvestRecord? relatedHarvest)
+    {
+        var isIncome = transaction.Type == FinancialTransactionType.Income;
+        var currency = string.IsNullOrWhiteSpace(transaction.Currency) ? "EUR" : transaction.Currency;
+        var typeWord = FinancialDisplayLabels.Type(transaction.Type);
+        var categoryLabel = transaction.Category.HasValue
+            ? FinancialDisplayLabels.Category(transaction.Category.Value)
+            : null;
+        var fieldName = fieldLabels.TryGetValue(transaction.FieldId ?? string.Empty, out var field)
+            ? field.Name
+            : null;
+        var summary = !string.IsNullOrWhiteSpace(transaction.Description)
+            ? transaction.Description
+            : string.Join(" · ", new[] { categoryLabel, fieldName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        var harvestTitle = relatedHarvest == null
+            ? null
+            : $"Συγκομιδή {relatedHarvest.HarvestDate:yyyy}";
 
         return new ChronologioEntryDto
         {
-            Id = $"{ChronologioSourceTypes.Expense}:{entry.Id}",
-            FieldId = entry.FieldId,
-            Field = FieldRef(entry.FieldId, fieldLabels),
+            Id = $"{(isIncome ? ChronologioSourceTypes.Income : ChronologioSourceTypes.Expense)}:{transaction.Id}",
+            FieldId = transaction.FieldId ?? string.Empty,
+            Field = FieldRef(transaction.FieldId ?? string.Empty, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = entry.LifecycleYear,
-            OccurredAt = EnsureUtc(entry.OccurredOn),
-            CreatedAt = EnsureUtc(entry.CreatedAt),
-            Category = ChronologioCategory.Expense.ToApiString(),
-            EventType = ChronologioEventTypes.ExpenseRecorded,
-            Title = title,
-            Summary = FormatMoney(entry.Amount, currency),
-            SourceType = ChronologioSourceTypes.Expense,
-            SourceId = entry.Id,
+            LifecycleYear = transaction.ResultYear > 0
+                ? transaction.ResultYear.ToString(CultureInfo.InvariantCulture)
+                : null,
+            OccurredAt = EnsureUtc(transaction.OccurredOn),
+            CreatedAt = EnsureUtc(transaction.CreatedAt),
+            Category = (isIncome ? ChronologioCategory.Income : ChronologioCategory.Expense).ToApiString(),
+            EventType = isIncome ? ChronologioEventTypes.IncomeRecorded : ChronologioEventTypes.ExpenseRecorded,
+            Title = $"{typeWord} {FormatMoney(transaction.Amount, currency)}",
+            Summary = string.IsNullOrWhiteSpace(summary) ? typeWord : summary,
+            SourceType = isIncome ? ChronologioSourceTypes.Income : ChronologioSourceTypes.Expense,
+            SourceId = transaction.Id,
             IsSystemGenerated = false,
-            Actor = BuildActor(entry.RecordedBy, displayNames),
-            Importance = ChronologioImportance.Normal.ToApiString(),
-            Amount = new ChronologioAmountDto { Value = entry.Amount, Currency = currency },
+            Actor = BuildActor(transaction.CreatedByUserId, displayNames),
+            Importance = isIncome
+                ? ChronologioImportance.Positive.ToApiString()
+                : ChronologioImportance.Normal.ToApiString(),
+            Amount = new ChronologioAmountDto { Value = transaction.Amount, Currency = currency },
             Details = new ChronologioDetailsDto
             {
                 Expense = new ChronologioExpenseDetailsDto
                 {
-                    ExpenseId = entry.Id,
-                    ExpenseCategory = category,
-                    LinkedTaskId = entry.TaskId,
-                    Description = entry.Description
+                    ExpenseId = transaction.Id,
+                    ExpenseCategory = transaction.Category?.ToApiString(),
+                    LinkedTaskId = transaction.RelatedTaskId,
+                    LinkedHarvestId = transaction.RelatedHarvestId,
+                    RelatedTaskTitle = relatedTask?.Title,
+                    RelatedHarvestTitle = harvestTitle,
+                    TransactionType = isIncome ? "income" : "expense",
+                    Description = transaction.Description
                 }
             }
         };
@@ -1198,25 +1245,44 @@ public class ChronologioService : IChronologioService
     }
 
     private static HashSet<string> CollectUserIds(
-        IEnumerable<TaskItem> tasks,
-        IEnumerable<FinancialEntry> expenses,
+        IEnumerable<TaskExecution> executions,
+        IEnumerable<FieldTask> fieldTasks,
+        IEnumerable<FinancialTransaction> money,
         IEnumerable<Activity> activities,
         IEnumerable<Note> notes)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var task in tasks)
+        foreach (var execution in executions)
         {
-            if (!string.IsNullOrWhiteSpace(task.AssignedTo))
+            if (!string.IsNullOrWhiteSpace(execution.RecordedByUserId))
             {
-                ids.Add(task.AssignedTo);
+                ids.Add(execution.RecordedByUserId);
+            }
+
+            foreach (var userId in execution.CompletedByUserIds.Where(id => !string.IsNullOrWhiteSpace(id)))
+            {
+                ids.Add(userId);
             }
         }
 
-        foreach (var expense in expenses)
+        foreach (var task in fieldTasks)
         {
-            if (!string.IsNullOrWhiteSpace(expense.RecordedBy))
+            if (!string.IsNullOrWhiteSpace(task.AssignedUserId))
             {
-                ids.Add(expense.RecordedBy);
+                ids.Add(task.AssignedUserId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(task.ResponsibleUserId))
+            {
+                ids.Add(task.ResponsibleUserId);
+            }
+        }
+
+        foreach (var transaction in money)
+        {
+            if (!string.IsNullOrWhiteSpace(transaction.CreatedByUserId))
+            {
+                ids.Add(transaction.CreatedByUserId);
             }
         }
 

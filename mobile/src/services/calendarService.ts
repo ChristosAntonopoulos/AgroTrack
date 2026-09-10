@@ -1,10 +1,6 @@
 import { getTaskCategoryColor } from '../utils/calendarCategoryColors';
-import { isMockDataEnabled } from '../config/env';
-import { taskService } from './taskService';
-import { mockTaskService } from './mockTaskService';
-import { Task } from './taskService';
-
-const getTaskService = () => (isMockDataEnabled() ? mockTaskService : taskService);
+import { getFieldWorkService } from './serviceFactory';
+import { FieldTask, fieldTaskTypeKey, isActiveFieldTask } from './fieldWorkService';
 
 export interface CalendarEvent {
   id: string;
@@ -31,10 +27,13 @@ export interface CalendarFilters {
 
 function getTaskStatusColor(status: string): string {
   switch (status) {
-    case 'pending':
+    case 'planned':
+    case 'ready':
       return '#ffc107';
     case 'in_progress':
       return '#17a2b8';
+    case 'blocked':
+      return '#6c757d';
     case 'completed':
       return '#28a745';
     default:
@@ -42,16 +41,17 @@ function getTaskStatusColor(status: string): string {
   }
 }
 
-function taskInRange(task: Task, startDate: Date, endDate: Date): boolean {
-  if (!task.scheduledStart) return false;
-  const taskStart = new Date(task.scheduledStart);
-  const taskEnd = task.scheduledEnd ? new Date(task.scheduledEnd) : taskStart;
+function taskInRange(task: FieldTask, startDate: Date, endDate: Date): boolean {
+  if (!task.plannedStart) return false;
+  const taskStart = new Date(task.plannedStart);
+  const taskEnd = task.plannedEnd ? new Date(task.plannedEnd) : taskStart;
   return taskStart <= endDate && taskEnd >= startDate;
 }
 
-function applyTaskFilters(task: Task, filters?: CalendarFilters): boolean {
+function applyTaskFilters(task: FieldTask, filters?: CalendarFilters): boolean {
   if (filters?.fieldIds?.length && !filters.fieldIds.includes(task.fieldId)) return false;
-  if (filters?.taskTypes?.length && !filters.taskTypes.includes(task.type)) return false;
+  const typeKey = fieldTaskTypeKey(task);
+  if (filters?.taskTypes?.length && !filters.taskTypes.includes(typeKey)) return false;
   if (filters?.statuses?.length && !filters.statuses.includes(task.status)) return false;
   return true;
 }
@@ -60,41 +60,42 @@ export const calendarService = {
   getEvents: async (
     startDate: Date,
     endDate: Date,
-    userId: string,
-    userRole: string,
+    _userId: string,
+    _userRole: string,
     fieldNames: Record<string, string> = {},
     filters?: CalendarFilters
   ): Promise<CalendarEvent[]> => {
-    const allTasks = await getTaskService().getAssignedTasks(userId, userRole);
+    const allTasks = await getFieldWorkService().listFieldTasks();
     const events: CalendarEvent[] = [];
 
     const filteredTasks = allTasks.filter(
-      task => taskInRange(task, startDate, endDate) && applyTaskFilters(task, filters)
+      (task) => taskInRange(task, startDate, endDate) && applyTaskFilters(task, filters)
     );
 
     if (filters?.showTasks !== false) {
-      filteredTasks.forEach(task => {
+      filteredTasks.forEach((task) => {
+        const typeKey = fieldTaskTypeKey(task);
         events.push({
           id: `task-${task.id}`,
           title: task.title,
-          start: new Date(task.scheduledStart!),
-          end: task.scheduledEnd ? new Date(task.scheduledEnd) : new Date(task.scheduledStart!),
+          start: new Date(task.plannedStart!),
+          end: task.plannedEnd ? new Date(task.plannedEnd) : new Date(task.plannedStart!),
           type: 'task',
           status: task.status,
-          taskType: task.type,
+          taskType: typeKey,
           fieldId: task.fieldId,
           fieldName: fieldNames[task.fieldId],
           taskId: task.id,
-          color: getTaskCategoryColor(task.type) || getTaskStatusColor(task.status),
+          color: getTaskCategoryColor(typeKey) || getTaskStatusColor(task.status),
         });
       });
     }
 
     if (filters?.showDeadlines !== false) {
       filteredTasks
-        .filter(task => task.status !== 'completed' && task.scheduledEnd)
-        .forEach(task => {
-          const deadline = new Date(task.scheduledEnd!);
+        .filter((task) => isActiveFieldTask(task) && task.plannedEnd)
+        .forEach((task) => {
+          const deadline = new Date(task.plannedEnd!);
           const daysUntil = Math.ceil(
             (deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
           );

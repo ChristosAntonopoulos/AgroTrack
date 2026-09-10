@@ -1,43 +1,49 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import type { ChronologioEntry } from '../../services/chronologioService';
-import { formatRelativeTime } from '../../utils/localeFormatters';
-import { useLocale } from '../../context/LocaleProvider';
-import './FieldOverviewBlocks.css';
+import { useTranslation } from 'react-i18next';
+import type { FieldAttentionModel } from '../../utils/fieldOverviewAttention';
+import { formatCompactDate } from '../../utils/fieldDisplay';
 
 type Props = {
-  fieldId: string;
-  entries: ChronologioEntry[];
+  attention: FieldAttentionModel;
+  onKeepDate?: (id: string) => void;
 };
 
-const FieldAttentionCard: React.FC<Props> = ({ fieldId, entries }) => {
-  const { t } = useTranslation('fields');
-  const { locale } = useLocale();
-  const attention = entries.find(
-    (entry) =>
-      entry.importance === 'warning' ||
-      entry.importance === 'critical' ||
-      (entry.category === 'note' && entry.importance === 'important')
-  );
-
-  if (!attention) return null;
-
-  const note = attention.details.note?.bodyPreview || attention.summary || '';
+const FieldAttentionCard: React.FC<Props> = ({ attention, onKeepDate }) => {
+  const { t, i18n } = useTranslation('fields');
+  const windowLabel =
+    attention.window && !Number.isNaN(new Date(attention.window).getTime())
+      ? formatCompactDate(attention.window, i18n.language)
+      : attention.window;
+  const title =
+    attention.kind === 'none'
+      ? t(attention.id === 'draft' ? 'overview.attention.draftTitle' : 'overview.attention.noneTitle')
+      : attention.title;
+  const explanation = t(attention.explanationKey, attention.explanationParams);
 
   return (
-    <section className="fd-block fd-block--attention">
-      <h2>{t('overview.needsAttention')}</h2>
-      <p className="fd-next-task-title">{attention.title}</p>
-      {note ? <p className="fd-muted">{note}</p> : null}
-      <p className="fd-muted">
-        {t('overview.recorded', {
-          when: formatRelativeTime(attention.occurredAt, { locale }),
-        })}
-      </p>
-      <Link className="fd-text-link" to={`/fields/${fieldId}?mode=chronologio&entry=${encodeURIComponent(attention.id)}`}>
-        {t('overview.seeObservation')}
-      </Link>
+    <section className={`field-attention field-attention--${attention.severity}`} aria-labelledby="field-attention-title">
+      <p className="field-attention-kicker">{t('overview.needsNow')}</p>
+      <h2 id="field-attention-title">{title}</h2>
+      <p className="field-attention-body">{explanation}</p>
+      {windowLabel ? <p className="field-attention-meta">{windowLabel}</p> : null}
+      {attention.reason ? <p className="field-attention-meta">{attention.reason}</p> : null}
+      <div className="field-attention-actions">
+        {attention.primaryTo ? (
+          <Link className="field-attention-primary" to={attention.primaryTo}>
+            {t(attention.primaryKey)}
+          </Link>
+        ) : null}
+        {attention.secondaryKey && attention.taskId ? (
+          <button
+            type="button"
+            className="field-attention-secondary"
+            onClick={() => onKeepDate?.(attention.taskId!)}
+          >
+            {t(attention.secondaryKey)}
+          </button>
+        ) : null}
+      </div>
     </section>
   );
 };

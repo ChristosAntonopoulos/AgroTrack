@@ -10,11 +10,12 @@ import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
 import {
   getReportsService,
-  getTaskService,
+  getFieldWorkService,
   getNoteService,
   getFieldService,
+  getFinancialSummaryService,
 } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import { Note, notePreviewTitle } from '../services/noteService';
 import {
   formatSeasonLabel,
@@ -32,33 +33,26 @@ import {
 import {
   buildSeasonFinance,
   overlappingCalendarYears,
-  type SoftPnl,
 } from '../ravdos/seasonFinance';
 import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
 import { useExperienceMode } from '../context/ExperienceModeContext';
-import { formatEconomicsMoney } from '../utils/economics';
+import { formatOfficialAmount } from '../finance/format';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { formatDate, formatNumber } from '../utils/localeFormatters';
-import { useAllLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
 import './ThisHarvestPage.css';
 
-const formatMoney = (amount: number, locale: string) => formatEconomicsMoney(amount, 'EUR', locale);
 const formatKg = (kg: number, locale: string) =>
   formatNumber(kg, { locale: locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en', maximumFractionDigits: 1 });
 
 const ThisHarvestReviewPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const { locale } = useLocale();
   const { isEveryday } = useExperienceMode();
-  const localizedTemplates = useAllLocalizedTemplates();
-  const titleByTemplateId = useMemo(
-    () => Object.fromEntries(localizedTemplates.map((tpl) => [tpl.id, tpl.title])),
-    [localizedTemplates]
-  );
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<FieldTask[]>([]);
   const [closedYears, setClosedYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -66,6 +60,7 @@ const ThisHarvestReviewPage: React.FC = () => {
   const [finance, setFinance] = useState(() =>
     buildSeasonFinance([], null, [], getSeasonBounds(getSeasonStartYear() - 1))
   );
+  const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
   const [progressDone, setProgressDone] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
   const [doneTitles, setDoneTitles] = useState<string[]>([]);
@@ -74,7 +69,7 @@ const ThisHarvestReviewPage: React.FC = () => {
     setLoading(true);
     try {
       const [tasks, fields] = await Promise.all([
-        getTaskService().getTasks().catch(() => [] as Task[]),
+        getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
         getFieldService().getFields().catch(() => []),
       ]);
       setAllTasks(tasks);
@@ -103,11 +98,11 @@ const ThisHarvestReviewPage: React.FC = () => {
       const bounds = getSeasonBounds(year);
       const reports = getReportsService();
       const years = overlappingCalendarYears(year);
-      const [allNotes, harvestChunks, pnlChunks, summaryChunks] = await Promise.all([
+      const [allNotes, harvestChunks, summaryChunks, officialYear] = await Promise.all([
         getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
         Promise.all(years.map((y) => reports.getHarvestRecords(y).catch(() => [] as HarvestRecord[]))),
-        Promise.all(years.map((y) => reports.getProfitLoss(y).catch(() => null))),
         Promise.all(years.map((y) => reports.getFieldSummaries(y).catch(() => [] as FieldSummaryData[]))),
+        getFinancialSummaryService().getYear(year + 1, undefined, i18n.language).catch(() => null),
       ]);
 
       const harvests = harvestChunks.flat();
@@ -115,46 +110,20 @@ const ThisHarvestReviewPage: React.FC = () => {
       summaryChunks.flat().forEach((s) => summariesMap.set(s.fieldId, s));
       const summaries = Array.from(summariesMap.values());
 
-      let spent = 0;
-      let received = 0;
-      const profitByField = new Map<
-        string,
-        { fieldId: string; fieldName: string; cost: number; revenue: number }
-      >();
-      for (const pnl of pnlChunks) {
-        if (!pnl) continue;
-        spent += Number(pnl.totalExpenses ?? 0);
-        received += Number(pnl.totalIncome ?? 0);
-        for (const row of pnl.profitByField ?? []) {
-          const prev = profitByField.get(row.fieldId);
-          profitByField.set(row.fieldId, {
-            fieldId: row.fieldId,
-            fieldName: row.fieldName,
-            cost: (prev?.cost ?? 0) + Number(row.cost ?? 0),
-            revenue: (prev?.revenue ?? 0) + Number(row.revenue ?? 0),
-          });
-        }
-      }
-      const mergedPnl: SoftPnl = {
-        totalIncome: received,
-        totalExpenses: spent,
-        netProfit: received - spent,
-        profitByField: Array.from(profitByField.values()),
-      };
-
       const milestones = buildSeasonMilestones(allTasks, {
         anyIrrigatedField: anyIrrigated,
         seasonStartYear: year,
       });
       const progress = computeRodProgress(milestones);
 
-      setFinance(buildSeasonFinance(harvests, mergedPnl, summaries, bounds));
+      setYearMoney(officialYear);
+      setFinance(buildSeasonFinance(harvests, null, summaries, bounds));
       setProgressDone(progress.milestones.filter((m) => m.done).length);
       setProgressTotal(progress.milestones.length);
       setDoneTitles(
         progress.milestones
           .filter((m) => m.done)
-          .map((m) => titleByTemplateId[m.templateId] || m.title)
+          .map((m) => m.title)
       );
       setNotes(
         allNotes
@@ -163,7 +132,7 @@ const ThisHarvestReviewPage: React.FC = () => {
           .slice(0, isEveryday ? 4 : 12)
       );
     },
-    [allTasks, anyIrrigated, isEveryday, titleByTemplateId]
+    [allTasks, anyIrrigated, i18n.language, isEveryday]
   );
 
   useEffect(() => {
@@ -231,20 +200,41 @@ const ThisHarvestReviewPage: React.FC = () => {
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.spent')}</span>
-                  <strong>{formatMoney(finance.spent, locale)}</strong>
+                  <strong>
+                    {formatOfficialAmount(
+                      yearMoney?.totalExpenses,
+                      yearMoney?.currency || 'EUR',
+                      i18n.language,
+                      t('money:unknownAmount')
+                    )}
+                  </strong>
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.received')}</span>
-                  <strong>{formatMoney(finance.received, locale)}</strong>
+                  <strong>
+                    {formatOfficialAmount(
+                      yearMoney?.totalIncome,
+                      yearMoney?.currency || 'EUR',
+                      i18n.language,
+                      t('money:unknownAmount')
+                    )}
+                  </strong>
                 </div>
                 <div className="ravdos-money-stat ravdos-money-net">
                   <span>{t('fields:apologismos.net')}</span>
-                  <strong>{formatMoney(finance.net, locale)}</strong>
+                  <strong>
+                    {formatOfficialAmount(
+                      yearMoney?.netResult,
+                      yearMoney?.currency || 'EUR',
+                      i18n.language,
+                      yearMoney?.resultLabel || t('money:unknownAmount')
+                    )}
+                  </strong>
                 </div>
               </div>
               <div className="ravdos-money-actions">
                 <Button
-                  to={selectedYear ? `/money?year=${selectedYear}` : '/money'}
+                  to={selectedYear ? `/money?year=${selectedYear + 1}` : '/money'}
                   variant="outline"
                   icon={<Wallet size={16} />}
                 >
@@ -304,10 +294,9 @@ const ThisHarvestReviewPage: React.FC = () => {
                       <Link to={`/fields/${card.fieldId}`} className="ravdos-field-link">
                         <span className="ravdos-field-name">{card.fieldName}</span>
                         <span className="ravdos-field-meta">
-                          {formatKg(card.oliveKg, locale)} kg
-                          {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
-                          {card.spent > 0 ? ` · ${formatMoney(card.spent, locale)}` : ''}
-                        </span>
+                        {formatKg(card.oliveKg, locale)} kg
+                        {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
+                      </span>
                       </Link>
                     </li>
                   ))}

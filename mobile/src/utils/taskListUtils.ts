@@ -1,17 +1,17 @@
-import { Task } from '../services/taskService';
+import { FieldTask, isCompletedFieldTask } from '../services/fieldWorkService';
 
-export type TaskFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'approval';
+export type TaskFilter = 'all' | 'planned' | 'in_progress' | 'ready' | 'blocked';
 
-export function isTaskOverdue(task: Task): boolean {
-  if (task.status === 'completed') return false;
-  const deadline = task.scheduledEnd ?? task.scheduledStart;
+export function isTaskOverdue(task: FieldTask): boolean {
+  if (isCompletedFieldTask(task)) return false;
+  const deadline = task.plannedEnd ?? task.plannedStart;
   if (!deadline) return false;
   const end = new Date(deadline);
   end.setHours(23, 59, 59, 999);
   return end.getTime() < Date.now();
 }
 
-export function sortTasksForList(tasks: Task[]): Task[] {
+export function sortTasksForList(tasks: FieldTask[]): FieldTask[] {
   return [...tasks].sort((a, b) => {
     const aOver = isTaskOverdue(a);
     const bOver = isTaskOverdue(b);
@@ -19,26 +19,27 @@ export function sortTasksForList(tasks: Task[]): Task[] {
 
     const statusOrder: Record<string, number> = {
       in_progress: 0,
-      pending: 1,
-      completed: 2,
+      ready: 1,
+      planned: 2,
+      blocked: 3,
     };
-    const aStatus = statusOrder[a.status] ?? 3;
-    const bStatus = statusOrder[b.status] ?? 3;
+    const aStatus = statusOrder[String(a.status).toLowerCase()] ?? 4;
+    const bStatus = statusOrder[String(b.status).toLowerCase()] ?? 4;
     if (aStatus !== bStatus) return aStatus - bStatus;
 
-    const aDate = a.scheduledStart ? new Date(a.scheduledStart).getTime() : Number.MAX_SAFE_INTEGER;
-    const bDate = b.scheduledStart ? new Date(b.scheduledStart).getTime() : Number.MAX_SAFE_INTEGER;
+    const aDate = a.plannedStart ? new Date(a.plannedStart).getTime() : Number.MAX_SAFE_INTEGER;
+    const bDate = b.plannedStart ? new Date(b.plannedStart).getTime() : Number.MAX_SAFE_INTEGER;
     return aDate - bDate;
   });
 }
 
-export function getTaskFilterCounts(tasks: Task[]): Record<TaskFilter, number> {
+export function getTaskFilterCounts(tasks: FieldTask[]): Record<TaskFilter, number> {
   return {
     all: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
-    in_progress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-    approval: tasks.filter(t => t.approvalStatus === 'pending').length,
+    planned: tasks.filter((t) => t.status === 'planned').length,
+    in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+    ready: tasks.filter((t) => t.status === 'ready').length,
+    blocked: tasks.filter((t) => t.status === 'blocked').length,
   };
 }
 
@@ -52,12 +53,16 @@ export function getStatusAccentColor(
   }
 ): string {
   switch (status) {
+    case 'planned':
+    case 'ready':
     case 'pending':
       return colors.taskPending;
     case 'in_progress':
       return colors.taskInProgress;
     case 'completed':
       return colors.taskCompleted;
+    case 'blocked':
+      return colors.textSecondary;
     default:
       return colors.textSecondary;
   }

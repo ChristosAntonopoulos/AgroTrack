@@ -43,6 +43,7 @@ const iconFor = (category: string) => {
     case 'task':
       return <CheckSquare size={16} />;
     case 'expense':
+    case 'income':
       return <Wallet size={16} />;
     case 'harvest':
       return <Wheat size={16} />;
@@ -68,7 +69,7 @@ const categoryTone = (category: string, importance: string): string => {
   if (importance === 'warning') return 'is-warning';
   if (importance === 'positive') return 'is-positive';
   if (category === 'harvest') return 'is-harvest';
-  if (category === 'expense') return 'is-expense';
+  if (category === 'expense' || category === 'income') return 'is-expense';
   if (category === 'task') return 'is-task';
   if (category === 'note') return 'is-note';
   if (category === 'weather') return 'is-weather';
@@ -102,8 +103,11 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
       onSelect(entry);
       return;
     }
-    if (entry.sourceType === 'Task' && entry.sourceId) {
-      navigate(`/tasks/${entry.sourceId}`);
+    if (
+      (entry.sourceType === 'Task' || entry.sourceType === 'TaskExecution') &&
+      (entry.details.task?.taskId || entry.sourceId)
+    ) {
+      navigate(`/tasks/${entry.details.task?.taskId || entry.sourceId}`);
       return;
     }
     if (entry.sourceType === 'Expense') {
@@ -227,7 +231,7 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
             </div>
           ) : null}
 
-          {category === 'expense' ? (
+          {category === 'expense' || category === 'income' ? (
             <div className="chronologio-expense-row">
               {entry.amount ? (
                 <span className="chronologio-card-amount">
@@ -239,6 +243,16 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
                   {t(financialCategoryI18nKey(expense.expenseCategory), {
                     defaultValue: expense.expenseCategory,
                   })}
+                </span>
+              ) : null}
+              {expense?.relatedTaskTitle ? (
+                <span className="chronologio-expense-cat">
+                  {t('chronologio:relatedTask', { title: expense.relatedTaskTitle })}
+                </span>
+              ) : null}
+              {expense?.relatedHarvestTitle ? (
+                <span className="chronologio-expense-cat">
+                  {t('chronologio:relatedHarvest', { title: expense.relatedHarvestTitle })}
                 </span>
               ) : null}
             </div>

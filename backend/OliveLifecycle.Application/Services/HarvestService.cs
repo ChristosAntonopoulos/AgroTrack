@@ -8,6 +8,8 @@ using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
+using OliveLifecycle.Core.FieldWork;
+using OliveLifecycle.Core.Time;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -16,7 +18,8 @@ public class HarvestService : IHarvestService
     private readonly IHarvestRecordRepository _harvestRecordRepository;
     private readonly IFieldRepository _fieldRepository;
     private readonly IFieldAccessService _fieldAccessService;
-    private readonly IFinancialEntryService _financialEntryService;
+    private readonly IFinancialTransactionRepository _financialTransactions;
+    private readonly IFinancialTransactionService _financialTransactionService;
     private readonly IMediaAttachmentService _mediaAttachmentService;
     private readonly IActivityService _activityService;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -26,7 +29,8 @@ public class HarvestService : IHarvestService
         IHarvestRecordRepository harvestRecordRepository,
         IFieldRepository fieldRepository,
         IFieldAccessService fieldAccessService,
-        IFinancialEntryService financialEntryService,
+        IFinancialTransactionRepository financialTransactions,
+        IFinancialTransactionService financialTransactionService,
         IMediaAttachmentService mediaAttachmentService,
         IActivityService activityService,
         IDateTimeProvider dateTimeProvider,
@@ -35,7 +39,8 @@ public class HarvestService : IHarvestService
         _harvestRecordRepository = harvestRecordRepository;
         _fieldRepository = fieldRepository;
         _fieldAccessService = fieldAccessService;
-        _financialEntryService = financialEntryService;
+        _financialTransactions = financialTransactions;
+        _financialTransactionService = financialTransactionService;
         _mediaAttachmentService = mediaAttachmentService;
         _activityService = activityService;
         _dateTimeProvider = dateTimeProvider;
@@ -71,11 +76,16 @@ public class HarvestService : IHarvestService
             FieldId = dto.FieldId,
             OwnerId = field.OwnerId,
             HarvestDate = harvestDate,
+            ResultYear = ResultYearResolver.Resolve(harvestDate, dto.ResultYear, now),
             HarvestMethod = dto.HarvestMethod?.Trim() ?? string.Empty,
             WorkersUsed = dto.WorkersUsed,
             OliveKg = dto.OliveKg,
             MillName = string.IsNullOrWhiteSpace(dto.MillName) ? null : dto.MillName.Trim(),
             OilKg = dto.OilKg,
+            OilLitres = dto.OilLitres is > 0 ? dto.OilLitres : null,
+            ConversionFactor = dto.ConversionFactor is > 0 ? dto.ConversionFactor : null,
+            ConversionSource = string.IsNullOrWhiteSpace(dto.ConversionSource) ? null : dto.ConversionSource.Trim(),
+            ConversionRecordedAt = dto.ConversionFactor is > 0 ? now : null,
             OilYieldPercent = oilYield,
             QualityGrade = dto.QualityGrade?.Trim() ?? string.Empty,
             Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim(),
@@ -85,34 +95,6 @@ public class HarvestService : IHarvestService
         };
 
         var created = await _harvestRecordRepository.CreateAsync(record, cancellationToken);
-
-        if (dto.SaleAmount.HasValue)
-        {
-            await _financialEntryService.CreateAsync(new CreateFinancialEntryDto
-            {
-                FieldId = dto.FieldId,
-                HarvestId = created.Id,
-                Kind = "income",
-                Amount = dto.SaleAmount,
-                Description = "Harvest sale",
-                OccurredOn = harvestDate
-            }, userId, userRole, cancellationToken);
-        }
-
-        if (dto.MillCost.HasValue)
-        {
-            await _financialEntryService.CreateAsync(new CreateFinancialEntryDto
-            {
-                FieldId = dto.FieldId,
-                HarvestId = created.Id,
-                Kind = "expense",
-                Amount = dto.MillCost,
-                Description = string.IsNullOrWhiteSpace(created.MillName) ? "Mill cost" : $"Mill cost — {created.MillName}",
-                Category = "mill_cost",
-                Bucket = "harvest",
-                OccurredOn = harvestDate
-            }, userId, userRole, cancellationToken);
-        }
 
         var mediaUrls = (dto.MediaUrls ?? new List<string>())
             .Where(u => !string.IsNullOrWhiteSpace(u))
@@ -203,20 +185,23 @@ public class HarvestService : IHarvestService
 
         var updated = await _harvestRecordRepository.UpdateAsync(record, cancellationToken);
 
-        var ledger = await _financialEntryService.GetByFieldIdAsync(
-            record.FieldId,
-            userId,
-            userRole,
-            includeVoided: false,
-            cancellationToken);
-        foreach (var entry in ledger.Where(e => e.HarvestId == record.Id && e.Status != "voided"))
+        var linkedMoney = await _financialTransactions.GetByRelatedHarvestIdAsync(record.Id, cancellationToken);
+        var voidReason = record.VoidReason ?? "Harvest voided";
+        foreach (var tx in linkedMoney)
         {
-            await _financialEntryService.VoidAsync(
-                entry.Id,
-                new VoidFinancialEntryDto { Reason = record.VoidReason ?? "Harvest voided" },
-                userId,
-                userRole,
-                cancellationToken);
+            if (tx.Status == FinancialTransactionStatus.Posted)
+            {
+                await _financialTransactionService.VoidAsync(
+                    tx.Id,
+                    new VoidFinancialTransactionDto { Reason = voidReason },
+                    userId,
+                    userRole,
+                    cancellationToken);
+            }
+            else if (tx.Status == FinancialTransactionStatus.Draft)
+            {
+                await _financialTransactionService.DeleteDraftAsync(tx.Id, userId, userRole, cancellationToken);
+            }
         }
 
         await _activityService.RecordAsync(
@@ -271,11 +256,18 @@ public class HarvestService : IHarvestService
         Id = record.Id,
         FieldId = record.FieldId,
         HarvestDate = record.HarvestDate,
+        ResultYear = record.ResultYear != 0
+            ? record.ResultYear
+            : AthensTime.CalendarYear(record.HarvestDate),
         HarvestMethod = record.HarvestMethod,
         WorkersUsed = record.WorkersUsed,
         OliveKg = record.OliveKg,
         MillName = record.MillName,
         OilKg = record.OilKg,
+        OilLitres = record.OilLitres,
+        ConversionFactor = record.ConversionFactor,
+        ConversionSource = record.ConversionSource,
+        ConversionRecordedAt = record.ConversionRecordedAt,
         OilYieldPercent = record.OilYieldPercent,
         QualityGrade = record.QualityGrade,
         Notes = record.Notes,

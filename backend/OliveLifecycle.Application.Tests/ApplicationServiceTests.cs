@@ -17,7 +17,7 @@ namespace OliveLifecycle.Application.Tests;
 public class FieldAccessServiceTests
 {
     private readonly Mock<IFieldRepository> _fieldRepository = new();
-    private readonly Mock<ITaskRepository> _taskRepository = new();
+    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IFamilyMemberRepository> _familyMembers = new();
     private readonly FieldAccessService _service;
 
@@ -25,7 +25,7 @@ public class FieldAccessServiceTests
     {
         _familyMembers.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<FamilyMember>());
-        _service = new FieldAccessService(_fieldRepository.Object, _taskRepository.Object, _familyMembers.Object);
+        _service = new FieldAccessService(_fieldRepository.Object, _fieldTasks.Object, _familyMembers.Object);
     }
 
     [Fact]
@@ -410,28 +410,6 @@ public class UserServiceTests
 
         Assert.NotNull(user);
         Assert.Equal("producer-1", user!.Id);
-    }
-}
-
-public class WorkTaskStatusTests
-{
-    [Theory]
-    [InlineData("pending", WorkTaskStatus.Pending)]
-    [InlineData("in_progress", WorkTaskStatus.InProgress)]
-    [InlineData("completed", WorkTaskStatus.Completed)]
-    [InlineData("cancelled", WorkTaskStatus.Cancelled)]
-    public void FromApiString_ParsesKnownValues(string input, WorkTaskStatus expected)
-    {
-        Assert.Equal(expected, WorkTaskStatusExtensions.FromApiString(input));
-    }
-
-    [Theory]
-    [InlineData(WorkTaskStatus.Pending, "pending")]
-    [InlineData(WorkTaskStatus.InProgress, "in_progress")]
-    [InlineData(WorkTaskStatus.Completed, "completed")]
-    public void ToApiString_ReturnsExpectedValue(WorkTaskStatus status, string expected)
-    {
-        Assert.Equal(expected, status.ToApiString());
     }
 }
 

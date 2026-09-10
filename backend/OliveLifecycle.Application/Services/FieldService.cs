@@ -19,7 +19,7 @@ namespace OliveLifecycle.Application.Services;
 public class FieldService : IFieldService
 {
     private readonly IFieldRepository _fieldRepository;
-    private readonly ITaskRepository _taskRepository;
+    private readonly IFieldTaskRepository _fieldTasks;
     private readonly IUserRepository _userRepository;
     private readonly IFieldAccessService _fieldAccessService;
     private readonly IActivityService _activityService;
@@ -37,7 +37,7 @@ public class FieldService : IFieldService
 
     public FieldService(
         IFieldRepository fieldRepository,
-        ITaskRepository taskRepository,
+        IFieldTaskRepository fieldTasks,
         IUserRepository userRepository,
         IFieldAccessService fieldAccessService,
         IActivityService activityService,
@@ -54,7 +54,7 @@ public class FieldService : IFieldService
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
-        _taskRepository = taskRepository;
+        _fieldTasks = fieldTasks;
         _userRepository = userRepository;
         _fieldAccessService = fieldAccessService;
         _activityService = activityService;
@@ -209,7 +209,9 @@ public class FieldService : IFieldService
 
         if (userRole == Roles.Producer)
         {
-            var tasks = await _taskRepository.GetByAssignedToAsync(userId, cancellationToken);
+            var tasks = await _fieldTasks.QueryAsync(
+                new FieldTaskQuery { AssignedUserId = userId },
+                cancellationToken);
             var fieldIds = tasks.Select(t => t.FieldId).Distinct().ToList();
             if (fieldIds.Count > 0)
             {

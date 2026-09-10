@@ -56,6 +56,7 @@ api.interceptors.request.use(
       handlingUnauthorized = false;
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['Accept-Language'] = i18n.language || 'el';
     return config;
   },
   (error) => {

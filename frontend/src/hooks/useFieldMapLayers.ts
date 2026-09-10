@@ -21,6 +21,7 @@ export interface FieldMapLayersState {
   definitions: MapLayerDefinition[];
   /** Resolved data for the active layer, including availability and legend. */
   activeLayer?: MapLayerData;
+  activeLayers: MapLayerData[];
   /** Overlay for the comparison date when compare mode is on. */
   compareLayer?: MapLayerData;
   dates: SatelliteDate[];
@@ -29,9 +30,11 @@ export interface FieldMapLayersState {
   loading: boolean;
   error?: string;
   selectLayer: (layerId: string | undefined) => void;
+  setOverlayIds: (layerIds: string[]) => void;
   selectDate: (observationId: string) => void;
   selectCompareDate: (observationId: string | undefined) => void;
   activeLayerId?: string;
+  activeLayerIds: string[];
   refresh: () => void;
 }
 
@@ -43,7 +46,7 @@ export interface FieldMapLayersState {
 export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersState => {
   const [definitions, setDefinitions] = useState<MapLayerDefinition[]>([]);
   const [dates, setDates] = useState<SatelliteDate[]>([]);
-  const [activeLayerId, setActiveLayerId] = useState<string>();
+  const [activeLayerIds, setActiveLayerIds] = useState<string[]>([]);
   const [selectedDateId, setSelectedDateId] = useState<string>();
   const [compareDateId, setCompareDateId] = useState<string>();
   const [mapData, setMapData] = useState<FieldMapData>();
@@ -83,9 +86,6 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
         setDates(available);
         const firstUsable = available.find((d) => d.isUsable)?.observationId;
         setSelectedDateId((current) => current ?? firstUsable);
-        if (firstUsable) {
-          setActiveLayerId((current) => current ?? 'ndvi');
-        }
       } catch {
         if (!cancelled) setDates([]);
       }
@@ -98,7 +98,7 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
   }, [fieldId, reloadToken]);
 
   useEffect(() => {
-    if (!fieldId || !activeLayerId) {
+    if (!fieldId || activeLayerIds.length === 0) {
       setMapData(undefined);
       return;
     }
@@ -109,7 +109,7 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
 
     const loadLayer = async () => {
       try {
-        const data = await geospatialService.getMapData(fieldId, [activeLayerId], selectedDateId);
+        const data = await geospatialService.getMapData(fieldId, activeLayerIds, selectedDateId);
         if (!cancelled) setMapData(data);
       } catch {
         if (!cancelled) setError('mapLayerLoadFailed');
@@ -122,10 +122,10 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
     return () => {
       cancelled = true;
     };
-  }, [fieldId, activeLayerId, selectedDateId, reloadToken]);
+  }, [fieldId, activeLayerIds, selectedDateId, reloadToken]);
 
   useEffect(() => {
-    if (!fieldId || !activeLayerId || !compareDateId) {
+    if (!fieldId || activeLayerIds.length === 0 || !compareDateId) {
       setCompareData(undefined);
       return;
     }
@@ -134,7 +134,7 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
 
     const loadCompare = async () => {
       try {
-        const data = await geospatialService.getMapData(fieldId, [activeLayerId], compareDateId);
+        const data = await geospatialService.getMapData(fieldId, [activeLayerIds[0]], compareDateId);
         if (!cancelled) setCompareData(data);
       } catch {
         if (!cancelled) setCompareData(undefined);
@@ -145,13 +145,18 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
     return () => {
       cancelled = true;
     };
-  }, [fieldId, activeLayerId, compareDateId, reloadToken]);
+  }, [fieldId, activeLayerIds, compareDateId, reloadToken]);
 
   const selectLayer = useCallback((layerId: string | undefined) => {
-    setActiveLayerId(layerId);
+    setActiveLayerIds(layerId ? [layerId] : []);
     if (!layerId) {
       setCompareDateId(undefined);
     }
+  }, []);
+
+  const setOverlayIds = useCallback((layerIds: string[]) => {
+    setActiveLayerIds(layerIds.slice(0, 3));
+    if (layerIds.length === 0) setCompareDateId(undefined);
   }, []);
 
   const selectCompareDate = useCallback((observationId: string | undefined) => {
@@ -160,11 +165,13 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
 
   const refresh = useCallback(() => setReloadToken((token) => token + 1), []);
 
-  const activeLayer = useMemo(() => mapData?.layers?.[0], [mapData]);
+  const activeLayers = useMemo(() => mapData?.layers ?? [], [mapData]);
+  const activeLayer = activeLayers[0];
   const compareLayer = useMemo(() => compareData?.layers?.[0], [compareData]);
 
   return {
     definitions,
+    activeLayers,
     activeLayer,
     compareLayer,
     dates,
@@ -173,9 +180,11 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
     loading,
     error,
     selectLayer,
+    setOverlayIds,
     selectDate: setSelectedDateId,
     selectCompareDate,
-    activeLayerId,
+    activeLayerId: activeLayerIds[0],
+    activeLayerIds,
     refresh,
   };
 };

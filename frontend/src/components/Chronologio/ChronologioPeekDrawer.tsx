@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { X, ExternalLink, ChevronRight } from 'lucide-react';
 import Button from '../Common/Button';
+import HarvestMoneyPanel from '../money/HarvestMoneyPanel';
 import type {
   ChronologioEntry,
   ChronologioMonthSummary,
@@ -91,10 +92,11 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
 
   const openFull = () => {
     if (!entry) return;
-    if (entry.sourceType === 'Task') navigate(`/tasks/${entry.sourceId}`);
-    else if (entry.sourceType === 'Expense')
+    if (entry.sourceType === 'Task' || entry.sourceType === 'TaskExecution') {
+      navigate(`/tasks/${entry.details.task?.taskId || entry.sourceId}`);
+    } else if (entry.sourceType === 'Expense' || entry.sourceType === 'Income')
       navigate(
-        `/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&entry=${encodeURIComponent(entry.sourceId)}` : ''}`
+        `/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&tx=${encodeURIComponent(entry.sourceId)}` : ''}`
       );
     else if (entry.sourceType === 'Harvest') navigate('/this-harvest');
     else if (entry.sourceType === 'WeatherReview') navigate(`/fields/${entry.fieldId}/weather`);
@@ -103,14 +105,16 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
   const canOpenFull =
     entry &&
     (entry.sourceType === 'Task' ||
+      entry.sourceType === 'TaskExecution' ||
       entry.sourceType === 'Expense' ||
+      entry.sourceType === 'Income' ||
       entry.sourceType === 'Harvest' ||
       entry.sourceType === 'WeatherReview');
 
   const openFullLabel =
-    entry?.sourceType === 'Task'
+    entry?.sourceType === 'Task' || entry?.sourceType === 'TaskExecution'
       ? t('living.openTask')
-      : entry?.sourceType === 'Expense'
+      : entry?.sourceType === 'Expense' || entry?.sourceType === 'Income'
         ? t('living.openExpense')
         : entry?.sourceType === 'Harvest'
           ? t('living.openHarvest')
@@ -251,6 +255,14 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
                     </div>
                   ) : null}
 
+                  {peek.entry.details.harvest ? (
+                    <HarvestMoneyPanel
+                      harvestId={peek.entry.details.harvest.harvestId}
+                      fieldId={peek.entry.fieldId}
+                      harvestDate={peek.entry.occurredAt}
+                    />
+                  ) : null}
+
                   {isPeriodReview && weather ? (
                     <div className="chrono-drawer-weather">
                       <WeatherReviewSummary
@@ -302,6 +314,28 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
                       <div>
                         <dt>{t('workers')}</dt>
                         <dd>{peek.entry.details.harvest.workers}</dd>
+                      </div>
+                    ) : null}
+                    {peek.entry.details.expense?.relatedTaskTitle ? (
+                      <div>
+                        <dt>{t('relatedTask', { title: peek.entry.details.expense.relatedTaskTitle })}</dt>
+                        <dd>
+                          <button
+                            type="button"
+                            className="money-text-link"
+                            onClick={() =>
+                              navigate(`/tasks/${peek.entry.details.expense?.linkedTaskId}`)
+                            }
+                          >
+                            {peek.entry.details.expense.relatedTaskTitle}
+                          </button>
+                        </dd>
+                      </div>
+                    ) : null}
+                    {peek.entry.details.expense?.relatedHarvestTitle ? (
+                      <div>
+                        <dt>{t('relatedHarvest', { title: peek.entry.details.expense.relatedHarvestTitle })}</dt>
+                        <dd>{peek.entry.details.expense.relatedHarvestTitle}</dd>
                       </div>
                     ) : null}
                   </dl>

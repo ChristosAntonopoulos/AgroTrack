@@ -16,10 +16,23 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, showIcon = false }) =
   const getStatusConfig = () => {
     switch (status.toLowerCase()) {
       case 'pending':
+      case 'planned':
+      case 'ready':
         return {
           color: colors.taskPending,
           backgroundColor: colors.warningLight,
-          label: t('taskStatus.pending'),
+          label:
+            status.toLowerCase() === 'ready'
+              ? t('taskStatus.ready', { defaultValue: 'Ready' })
+              : status.toLowerCase() === 'planned'
+                ? t('taskStatus.planned', { defaultValue: 'Planned' })
+                : t('taskStatus.pending'),
+        };
+      case 'blocked':
+        return {
+          color: colors.textSecondary,
+          backgroundColor: colors.surfaceMuted,
+          label: t('taskStatus.blocked', { defaultValue: 'Blocked' }),
         };
       case 'in_progress':
         return {

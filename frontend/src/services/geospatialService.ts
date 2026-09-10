@@ -40,6 +40,8 @@ export interface RainIntelligence {
   forecast12hMm: number;
   forecast24hMm: number;
   forecast48hMm: number;
+  forecast72hMm?: number;
+  forecast7dMm?: number;
 }
 
 export interface WindIntelligence {
@@ -48,6 +50,7 @@ export interface WindIntelligence {
   maxNext6hKmh: number;
   maxNext12hKmh: number;
   maxNext24hKmh: number;
+  maxNext72hKmh?: number;
   dominantDirection?: string;
 }
 

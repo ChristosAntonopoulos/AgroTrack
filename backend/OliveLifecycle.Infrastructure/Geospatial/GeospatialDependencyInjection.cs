@@ -63,7 +63,6 @@ public static class GeospatialDependencyInjection
         services.AddScoped<IFieldSpatialProfileService, FieldSpatialProfileService>();
         services.AddScoped<IFieldMapDataService, FieldMapDataService>();
         services.AddScoped<IFieldEnvironmentalAlertEvaluator, FieldEnvironmentalAlertEvaluator>();
-        services.AddScoped<ITaskConditionEvaluator, TaskConditionEvaluator>();
         services.AddScoped<ISatelliteProcessingService, SatelliteProcessingService>();
         services.AddScoped<INaturaSiteImportService, NaturaSiteImportService>();
 

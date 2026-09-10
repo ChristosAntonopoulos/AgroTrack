@@ -537,6 +537,16 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         <ScreenHeader
           title={t('chronologio:title')}
           subtitle={fieldMode ? fieldName || t('chronologio:taglineField') : t('chronologio:taglineGlobal')}
+          actionLabel={capture ? t('capture:money.ctaPlus') : undefined}
+          onActionPress={
+            capture
+              ? () =>
+                  capture.openCapture({
+                    preferredType: 'money',
+                    fieldId: fieldId || filterFieldId || undefined,
+                  })
+              : undefined
+          }
         />
       )}
 

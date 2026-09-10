@@ -13,10 +13,16 @@ interface TaskStatusStepperProps {
 
 const STEPS: Step[] = ['pending', 'in_progress', 'completed'];
 
+const normalizeStep = (status: string): Step | string => {
+  const s = status.toLowerCase();
+  if (s === 'planned' || s === 'ready' || s === 'blocked') return 'pending';
+  return s;
+};
+
 const TaskStatusStepper: React.FC<TaskStatusStepperProps> = ({ status }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('common');
-  const currentIdx = STEPS.indexOf(status as Step);
+  const currentIdx = STEPS.indexOf(normalizeStep(status) as Step);
 
   const labels: Record<Step, string> = {
     pending: t('taskStatus.pending'),

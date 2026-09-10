@@ -201,8 +201,6 @@ export const isNavActive = (pathname: string, itemPath: string) => {
 export const resolvePageTitle = (pathname: string, role: AppRole, t: TFunction<'nav'>) => {
   const matched = navItems.find((i) => isNavActive(pathname, i.path));
   if (matched) return resolveNavItemLabel(matched, role, t);
-
-  if (pathname.includes('/task-templates')) return t('nav:breadcrumb.taskTemplates');
   if (pathname.includes('/chronologio')) return t('nav:breadcrumb.chronologio');
   if (pathname.includes('/new')) return t('breadcrumb.new');
   if (pathname.includes('/edit')) return t('breadcrumb.edit');
@@ -219,10 +217,12 @@ export const resolveBreadcrumbLabel = (
 
   if (segment === 'new') return t('breadcrumb.new');
   if (segment === 'edit') return t('breadcrumb.edit');
-  if (segment === 'task-templates') return t('breadcrumb.taskTemplates');
   if (segment === 'chronologio') return t('breadcrumb.chronologio');
   if (segment === 'notes') return t('breadcrumb.notes');
   if (segment === 'review') return t('breadcrumb.apologismos');
+  if (segment === 'work-setup') return t('breadcrumb.workSetup');
+  if (segment === 'work-profile') return t('breadcrumb.workProfile');
+  if (segment === 'weather') return t('breadcrumb.weather');
 
   if (/^[a-zA-Z0-9_-]{6,}$/.test(segment)) return t('breadcrumb.details');
 

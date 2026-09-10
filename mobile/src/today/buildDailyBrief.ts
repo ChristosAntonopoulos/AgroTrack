@@ -1,5 +1,5 @@
 import type { Field } from '../services/fieldService';
-import type { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import type { Note } from '../services/noteService';
 import type { WeatherData } from '../services/weatherService';
 
@@ -49,8 +49,8 @@ const endOfDay = (d: Date) => {
   return x;
 };
 
-const taskDueDate = (task: Task): Date | null => {
-  const raw = task.scheduledStart || task.scheduledEnd;
+const taskDueDate = (task: FieldTask): Date | null => {
+  const raw = task.plannedStart || task.plannedEnd;
   if (!raw) return null;
   const d = new Date(raw);
   return Number.isNaN(d.getTime()) ? null : d;
@@ -67,12 +67,12 @@ export const kmhToBeaufort = (kmh: number): number => {
   return 6;
 };
 
-export const partitionTasks = (openTasks: Task[], now = new Date()) => {
+export const partitionTasks = (openTasks: FieldTask[], now = new Date()) => {
   const dayStart = startOfDay(now);
   const dayEnd = endOfDay(now);
-  const overdue: Task[] = [];
-  const today: Task[] = [];
-  const upcoming: Task[] = [];
+  const overdue: FieldTask[] = [];
+  const today: FieldTask[] = [];
+  const upcoming: FieldTask[] = [];
 
   for (const task of openTasks) {
     const due = taskDueDate(task);
@@ -85,7 +85,7 @@ export const partitionTasks = (openTasks: Task[], now = new Date()) => {
     else upcoming.push(task);
   }
 
-  const byTime = (a: Task, b: Task) => {
+  const byTime = (a: FieldTask, b: FieldTask) => {
     const ad = taskDueDate(a)?.getTime() ?? Number.POSITIVE_INFINITY;
     const bd = taskDueDate(b)?.getTime() ?? Number.POSITIVE_INFINITY;
     return ad - bd;
@@ -131,7 +131,7 @@ export const buildAndRankProposals = (input: {
   fields: Field[];
   notes: Note[];
   weather: WeatherData | null;
-  todayWork: Task[];
+  todayWork: FieldTask[];
   dismissedIds: Set<string>;
 }): RankedProposals => {
   const { fields, notes, weather, todayWork, dismissedIds } = input;
@@ -220,10 +220,10 @@ export const buildAndRankProposals = (input: {
 };
 
 export const buildTodayRoute = (input: {
-  todayWork: Task[];
+  todayWork: FieldTask[];
   fieldsById: Record<string, Field | undefined>;
 }) => {
-  const byField = new Map<string, Task>();
+  const byField = new Map<string, FieldTask>();
   for (const task of input.todayWork) {
     if (!byField.has(task.fieldId)) byField.set(task.fieldId, task);
   }

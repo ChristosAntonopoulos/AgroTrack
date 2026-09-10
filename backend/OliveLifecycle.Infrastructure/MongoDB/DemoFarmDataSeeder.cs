@@ -104,11 +104,9 @@ public static class DemoFarmDataSeeder
             .DeleteManyAsync(fieldFilter, cancellationToken);
         await context.GetCollection<LifecycleDocument>("lifecycles")
             .DeleteManyAsync(l => fieldIds.Contains(l.FieldId), cancellationToken);
-        await context.GetCollection<TaskDocument>("tasks")
-            .DeleteManyAsync(t => fieldIds.Contains(t.FieldId), cancellationToken);
         await context.GetCollection<ActivityDocument>("activities")
             .DeleteManyAsync(a => fieldIds.Contains(a.FieldId), cancellationToken);
-        await context.GetCollection<FinancialEntryDocument>("financial_entries")
+        await context.GetCollection<FinancialTransactionDocument>("financial_transactions")
             .DeleteManyAsync(e => fieldIds.Contains(e.FieldId), cancellationToken);
         await context.GetCollection<HarvestRecordDocument>("harvest_records")
             .DeleteManyAsync(h => fieldIds.Contains(h.FieldId), cancellationToken);

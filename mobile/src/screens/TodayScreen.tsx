@@ -27,6 +27,7 @@ import { RootStackParamList } from '../navigation/types';
 import { getFieldService, getNoteService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { Note } from '../services/noteService';
+import { isActiveFieldTask } from '../services/fieldWorkService';
 import {
   buildAndRankProposals,
   buildConditionsStatus,
@@ -110,7 +111,7 @@ const TodayScreen = () => {
   }, [fields, allFields]);
 
   const myOpenTasks = useMemo(
-    () => tasks.filter((task) => task.status !== 'completed'),
+    () => tasks.filter((task) => isActiveFieldTask(task)),
     [tasks]
   );
 
@@ -263,7 +264,7 @@ const TodayScreen = () => {
             </Text>
           </View>
           {todayWork.map((task) => {
-            const due = task.scheduledStart || task.scheduledEnd;
+            const due = task.plannedStart || task.plannedEnd;
             const time = due
               ? new Date(due).toLocaleTimeString(i18n.language, {
                   hour: '2-digit',
@@ -453,7 +454,7 @@ const TodayScreen = () => {
             </TouchableOpacity>
           </View>
           {nextTasks.map((task) => {
-            const due = task.scheduledStart || task.scheduledEnd;
+            const due = task.plannedStart || task.plannedEnd;
             return (
               <TouchableOpacity
                 key={task.id}

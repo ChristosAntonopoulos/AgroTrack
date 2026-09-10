@@ -48,7 +48,8 @@
     "total": "Total",
     "inProgress": "In progress",
     "completed": "Completed",
-    "thisWeekCost": "This week's cost"
+    "thisWeekCost": "This week's cost",
+    "thisYearCost": "This year's expenses"
   },
   "dueToday": "Due today",
   "noUrgent": "All clear",

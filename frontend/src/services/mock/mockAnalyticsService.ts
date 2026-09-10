@@ -1,4 +1,4 @@
-import {
+﻿import {
   DateRange,
   TaskMetrics,
   FieldMetrics,
@@ -19,21 +19,21 @@ export const mockAnalyticsService = {
     });
 
     const total = filteredTasks.length;
-    const pending = filteredTasks.filter(t => t.status === 'pending').length;
+    const pending = filteredTasks.filter(t => (t.status === 'planned' || t.status === 'ready' || t.status === 'pending')).length;
     const inProgress = filteredTasks.filter(t => t.status === 'in_progress').length;
     const completed = filteredTasks.filter(t => t.status === 'completed').length;
     
     const completionRate = total > 0 ? (completed / total) * 100 : 0;
     
     const completedTasksWithDates = filteredTasks.filter(t => 
-      t.status === 'completed' && t.actualStart && t.actualEnd
+      t.status === 'completed' && t.plannedStart && t.updatedAt
     );
     
     let averageCompletionTime = 0;
     if (completedTasksWithDates.length > 0) {
       const totalDays = completedTasksWithDates.reduce((sum, task) => {
-        const start = new Date(task.actualStart!);
-        const end = new Date(task.actualEnd!);
+        const start = new Date(task.plannedStart!);
+        const end = new Date(task.updatedAt!);
         return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
       }, 0);
       averageCompletionTime = totalDays / completedTasksWithDates.length;
@@ -62,7 +62,7 @@ export const mockAnalyticsService = {
       const field = mockFields.find(f => f.id === fieldId);
       const fieldTasks = filteredTasks.filter(t => t.fieldId === fieldId);
       const completedTasks = fieldTasks.filter(t => t.status === 'completed');
-      const totalCost = completedTasks.reduce((sum, task) => sum + (task.cost || 0), 0);
+      const totalCost = completedTasks.reduce((sum, task) => sum + (task.estimatedCost || 0), 0);
 
       return {
         fieldId,
@@ -80,17 +80,17 @@ export const mockAnalyticsService = {
     await simulateDelay();
     
     const filteredTasks = mockTasks.filter(task => {
-      if (!task.actualEnd) return false;
-      const taskDate = new Date(task.actualEnd);
-      return taskDate >= dateRange.start && taskDate <= dateRange.end && task.cost;
+      if (!task.updatedAt) return false;
+      const taskDate = new Date(task.updatedAt);
+      return taskDate >= dateRange.start && taskDate <= dateRange.end && task.estimatedCost;
     });
 
-    const totalCost = filteredTasks.reduce((sum, task) => sum + (task.cost || 0), 0);
+    const totalCost = filteredTasks.reduce((sum, task) => sum + (task.estimatedCost || 0), 0);
 
     const costByFieldMap = new Map<string, number>();
     filteredTasks.forEach(task => {
       const current = costByFieldMap.get(task.fieldId) || 0;
-      costByFieldMap.set(task.fieldId, current + (task.cost || 0));
+      costByFieldMap.set(task.fieldId, current + (task.estimatedCost || 0));
     });
 
     const costByField = Array.from(costByFieldMap.entries()).map(([fieldId, cost]) => {
@@ -100,8 +100,8 @@ export const mockAnalyticsService = {
 
     const costByTaskTypeMap = new Map<string, number>();
     filteredTasks.forEach(task => {
-      const current = costByTaskTypeMap.get(task.type) || 0;
-      costByTaskTypeMap.set(task.type, current + (task.cost || 0));
+      const current = costByTaskTypeMap.get(task.templateCode || 'other') || 0;
+      costByTaskTypeMap.set(task.templateCode || 'other', current + (task.estimatedCost || 0));
     });
 
     const costByTaskType = Array.from(costByTaskTypeMap.entries()).map(([type, cost]) => ({
@@ -111,10 +111,10 @@ export const mockAnalyticsService = {
 
     const costOverTimeMap = new Map<string, number>();
     filteredTasks.forEach(task => {
-      if (task.actualEnd) {
-        const dateKey = new Date(task.actualEnd).toISOString().split('T')[0];
+      if (task.updatedAt) {
+        const dateKey = new Date(task.updatedAt).toISOString().split('T')[0];
         const current = costOverTimeMap.get(dateKey) || 0;
-        costOverTimeMap.set(dateKey, current + (task.cost || 0));
+        costOverTimeMap.set(dateKey, current + (task.estimatedCost || 0));
       }
     });
 
@@ -212,9 +212,10 @@ export const mockAnalyticsService = {
     });
 
     return {
-      pending: filteredTasks.filter(t => t.status === 'pending').length,
+      pending: filteredTasks.filter(t => (t.status === 'planned' || t.status === 'ready' || t.status === 'pending')).length,
       inProgress: filteredTasks.filter(t => t.status === 'in_progress').length,
       completed: filteredTasks.filter(t => t.status === 'completed').length,
     };
   },
 };
+

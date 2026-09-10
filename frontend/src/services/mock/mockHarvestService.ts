@@ -1,5 +1,4 @@
 import { CreateHarvestInput, HarvestRecord, harvestService } from '../harvestService';
-import { mockFinancialEntryService } from './mockFinancialEntryService';
 
 const STORAGE_KEY = 'Oleachron_demo_harvest_records_v1';
 
@@ -34,24 +33,6 @@ export const mockHarvestService: typeof harvestService = {
       status: 'posted',
     };
     write([record, ...read()]);
-    if (input.saleAmount) {
-      await mockFinancialEntryService.create({
-        fieldId: input.fieldId,
-        amount: input.saleAmount,
-        description: 'Harvest sale',
-        kind: 'income',
-      });
-    }
-    if (input.millCost) {
-      await mockFinancialEntryService.create({
-        fieldId: input.fieldId,
-        amount: input.millCost,
-        description: input.millName ? `Mill cost — ${input.millName}` : 'Mill cost',
-        kind: 'expense',
-        category: 'mill_cost',
-        bucket: 'harvest',
-      });
-    }
     return record;
   },
 

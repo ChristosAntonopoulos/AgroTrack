@@ -1,6 +1,6 @@
 import api from './api';
 import { Field } from './fieldService';
-import { Task } from './taskService';
+import { FieldTask, isActiveFieldTask } from './fieldWorkService';
 
 export interface DashboardStats {
   totalFields?: number;
@@ -18,21 +18,20 @@ export const dashboardService = {
   computeStats: async (_userId: string, userRole: string): Promise<DashboardStats> => {
     const [fieldsRes, tasksRes] = await Promise.all([
       api.get<Field[]>('/api/v1/fields'),
-      api.get<Task[]>('/api/v1/tasks'),
+      api.get<FieldTask[]>('/api/v1/field-tasks'),
     ]);
 
     const fields = fieldsRes.data;
     const tasks = tasksRes.data;
+    const active = tasks.filter(isActiveFieldTask);
 
-    const pending = tasks.filter(t => t.status === 'pending').length;
-    const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-    const completed = tasks.filter(t => t.status === 'completed').length;
+    const pending = active.filter(
+      (t) => t.status === 'planned' || t.status === 'ready' || t.status === 'blocked'
+    ).length;
+    const inProgress = active.filter((t) => t.status === 'in_progress').length;
+    const completed = tasks.filter((t) => t.status === 'completed').length;
     const total = tasks.length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-    const pendingApprovals = tasks.filter(
-      t => (t as Task & { approvalStatus?: string }).approvalStatus === 'pending'
-    ).length;
 
     if (userRole === 'FieldOwner' || userRole === 'Administrator') {
       return {
@@ -43,12 +42,12 @@ export const dashboardService = {
         completedTasks: completed,
         totalTasks: total,
         completionRate,
-        pendingApprovals,
-        fieldsNeedingAttention: fields.filter(f => {
-          const fieldTasks = tasks.filter(t => t.fieldId === f.id && t.status !== 'completed');
-          return fieldTasks.some(t => {
-            if (!t.scheduledEnd) return false;
-            return new Date(t.scheduledEnd) < new Date();
+        pendingApprovals: 0,
+        fieldsNeedingAttention: fields.filter((f) => {
+          const fieldTasks = active.filter((t) => t.fieldId === f.id);
+          return fieldTasks.some((t) => {
+            if (!t.plannedEnd) return false;
+            return new Date(t.plannedEnd) < new Date();
           });
         }).length,
       };

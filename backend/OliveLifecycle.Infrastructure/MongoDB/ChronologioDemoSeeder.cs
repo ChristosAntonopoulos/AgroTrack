@@ -8,6 +8,7 @@ namespace OliveLifecycle.Infrastructure.MongoDB;
 /// <summary>
 /// Multi-year Living Timeline for Giorgos and Kostas on the two Filiatra parcels.
 /// Completed work stops at "today". Harvest 2026 and prep sit in the future.
+/// Legacy TaskDocument ("tasks") rows are intentionally skipped; FieldWork owns tasks.
 /// </summary>
 public static class ChronologioDemoSeeder
 {
@@ -45,8 +46,7 @@ public static class ChronologioDemoSeeder
 
         var targets = south == null ? new[] { north } : new[] { north, south };
 
-        var tasks = context.GetCollection<TaskDocument>("tasks");
-        var expenses = context.GetCollection<FinancialEntryDocument>("financial_entries");
+        var expenses = context.GetCollection<FinancialTransactionDocument>("financial_transactions");
         var harvests = context.GetCollection<HarvestRecordDocument>("harvest_records");
         var notes = context.GetCollection<NoteDocument>("notes");
         var activities = context.GetCollection<ActivityDocument>("activities");
@@ -58,7 +58,6 @@ public static class ChronologioDemoSeeder
             written += await SeedFieldStoryAsync(
                 field,
                 storyIndex,
-                tasks,
                 expenses,
                 harvests,
                 notes,
@@ -76,8 +75,7 @@ public static class ChronologioDemoSeeder
     private static async Task<int> SeedFieldStoryAsync(
         FieldDocument field,
         int storyIndex,
-        IMongoCollection<TaskDocument> tasks,
-        IMongoCollection<FinancialEntryDocument> expenses,
+        IMongoCollection<FinancialTransactionDocument> expenses,
         IMongoCollection<HarvestRecordDocument> harvests,
         IMongoCollection<NoteDocument> notes,
         IMongoCollection<ActivityDocument> activities,
@@ -107,60 +105,35 @@ public static class ChronologioDemoSeeder
             var baseOlives = isNorth ? 1450.0 : 1280.0;
             var oliveKg = Math.Round(baseOlives * y.OliveScale / 5) * 5;
             var oilKg = Math.Round(oliveKg * y.Yield / 100.0, 1);
-            var life = y.Life;
-
-            var pruneDate = Utc(y.Year, 2, isNorth ? 12 : 18, 9, 30);
-            if (pruneDate <= today)
-            {
-                var pruneId = NextId();
-                written += await UpsertTask(tasks, Completed(
-                    pruneId, field.Id, "Pruning", "Κλάδεμα",
-                    isNorth
-                        ? "Αραίωμα κόμης στη βόρεια πλευρά. Περισσότερο φως στα χαμηλά κλαδιά."
-                        : "Κλάδεμα καρποφορίας· βγάλαμε τα ξερά μετά τη βαριά χρονιά.",
-                    life, pruneDate, Math.Round(95m * (decimal)y.ExpenseScale, 0), "approved"), cancellationToken);
-            }
 
             var fertDate = Utc(y.Year, 3, isNorth ? 8 : 14, 10, 0);
             if (fertDate <= today)
             {
-                var fertId = NextId();
-                written += await UpsertTask(tasks, Completed(
-                    fertId, field.Id, "Fertilization", "Λίπανση",
-                    "Οργανική λίπανση κάτω από την κόμη, σύμφωνα με την ανάλυση.",
-                    life, fertDate, Math.Round(70m * (decimal)y.ExpenseScale, 0), "approved"), cancellationToken);
-
-                written += await UpsertExpense(expenses, Expense(
-                    NextId(), field.Id, life, Math.Round(58m * (decimal)y.ExpenseScale, 0),
-                    "Λίπασμα + μεταφορά", "fertilizers", "inputs", fertDate), cancellationToken);
+                var fertilizerAmount = Math.Round(58m * (decimal)y.ExpenseScale, 0);
+                written += await UpsertExpense(expenses, Money(
+                    NextId(), field.Id, fertilizerAmount,
+                    "Λίπασμα και μεταφορά", "fertilizers", fertDate,
+                    quantity: 50m, unit: "kilogram", unitPrice: RoundUnit(fertilizerAmount / 50m),
+                    calculationMode: "quantity_and_total", productKind: "fertilizer"), cancellationToken);
             }
 
             var sprayDate = Utc(y.Year, 5, isNorth ? 6 : 11, 7, 45);
             if (sprayDate <= today)
             {
-                written += await UpsertTask(tasks, Completed(
-                    NextId(), field.Id, "Pest Monitoring", "Ψεκασμός – Δάκος",
-                    y.Year >= 2025
-                        ? "Έντονη παρουσία στα παγιδοκάλαθα· επαναληπτικός ψεκασμός."
-                        : "Προληπτικός ψεκασμός για δάκο.",
-                    life, sprayDate, Math.Round(85m * (decimal)y.ExpenseScale, 0), "approved"), cancellationToken);
-
-                written += await UpsertExpense(expenses, Expense(
-                    NextId(), field.Id, life, Math.Round(42m * (decimal)y.ExpenseScale, 0),
-                    "Δολωματικός ψεκασμός δάκου", "treatments", "inputs", sprayDate), cancellationToken);
+                written += await UpsertExpense(expenses, Money(
+                    NextId(), field.Id, Math.Round(42m * (decimal)y.ExpenseScale, 0),
+                    "Δολωματικός ψεκασμός δάκου", "plant_protection", sprayDate), cancellationToken);
             }
 
             var irrigDate = Utc(y.Year, 7, isNorth ? 9 : 16, 6, 20);
             if (irrigDate <= today)
             {
-                written += await UpsertTask(tasks, Completed(
-                    NextId(), field.Id, "Irrigation", "Άρδευση",
-                    "Στάγδην άρδευση μετά από ξηρή εβδομάδα.",
-                    life, irrigDate, Math.Round(35m * (decimal)y.ExpenseScale, 0), "approved"), cancellationToken);
-
-                written += await UpsertExpense(expenses, Expense(
-                    NextId(), field.Id, life, Math.Round(22m * (decimal)y.ExpenseScale, 0),
-                    "Diesel 20L — αντλία άρδευσης", "electricity_fuel", "inputs", irrigDate), cancellationToken);
+                written += await UpsertExpense(expenses, Money(
+                    NextId(), field.Id, Math.Round(22m * (decimal)y.ExpenseScale, 0),
+                    "Πετρέλαιο για αντλία άρδευσης", "fuel_and_energy", irrigDate,
+                    quantity: 20m, unit: "litre",
+                    unitPrice: RoundUnit(Math.Round(22m * (decimal)y.ExpenseScale, 0) / 20m),
+                    calculationMode: "quantity_times_unit_price", productKind: "fuel"), cancellationToken);
             }
 
             var noteDate = Utc(y.Year, 8, isNorth ? 22 : 27, 17, 10);
@@ -210,44 +183,27 @@ public static class ChronologioDemoSeeder
                     UpdatedAt = harvestDate
                 }, cancellationToken);
 
-                written += await UpsertTask(tasks, Completed(
-                    NextId(), field.Id, "Harvest", $"Συγκομιδή — {variety}",
-                    $"{oliveKg:0} kg ελιές → {oilKg:0.#} kg λάδι ({y.Yield:0.0}%).",
-                    life, harvestDate, Math.Round(240m * (decimal)y.ExpenseScale, 0), "approved",
-                    harvestPhase: "daily"), cancellationToken);
+                written += await UpsertExpense(expenses, Money(
+                    NextId(), field.Id, Math.Round(95m * (decimal)y.ExpenseScale, 0),
+                    "Κόστος ελαιοτριβείου", "mill", harvestDate.AddHours(5), harvestId: harvestId), cancellationToken);
 
-                written += await UpsertExpense(expenses, Expense(
-                    NextId(), field.Id, life, Math.Round(95m * (decimal)y.ExpenseScale, 0),
-                    "Κόστος ελαιοτριβείου", "mill_cost", "harvest", harvestDate.AddHours(5), harvestId), cancellationToken);
-
-                written += await UpsertExpense(expenses, Expense(
-                    NextId(), field.Id, life, Math.Round(180m * (decimal)y.ExpenseScale, 0),
-                    "Ημερομίσθια συγκομιδής", "harvest_workers", "harvest", harvestDate.AddHours(-2)), cancellationToken);
+                written += await UpsertExpense(expenses, Money(
+                    NextId(), field.Id, Math.Round(180m * (decimal)y.ExpenseScale, 0),
+                    "Μεροκάματα για συγκομιδή", "labor", harvestDate.AddHours(-2), harvestId: harvestId,
+                    quantity: 3m, unit: "workday",
+                    unitPrice: RoundUnit(Math.Round(180m * (decimal)y.ExpenseScale, 0) / 3m),
+                    calculationMode: "quantity_times_unit_price", productKind: "labour"), cancellationToken);
 
                 var sale = Math.Round((decimal)(oilKg * y.SalePerKg), 0);
-                written += await UpsertExpense(expenses, new FinancialEntryDocument
-                {
-                    Id = NextId(),
-                    FieldId = field.Id,
-                    LifecycleYear = life,
-                    HarvestId = harvestId,
-                    Kind = "income",
-                    Amount = sale,
-                    Currency = "EUR",
-                    Description = $"Πώληση λαδιού {y.Year}",
-                    Category = "other",
-                    Bucket = "harvest",
-                    OccurredOn = harvestDate.AddDays(18),
-                    Status = "posted",
-                    RecordedBy = OwnerId,
-                    CreatedAt = harvestDate.AddDays(18),
-                    UpdatedAt = harvestDate.AddDays(18)
-                }, cancellationToken);
+                written += await UpsertExpense(expenses, Money(
+                    NextId(), field.Id, sale, "Πώληση ελαιολάδου", "olive_oil_sale",
+                    harvestDate.AddDays(18), type: "income", harvestId: harvestId,
+                    calculationMode: "total_only", productKind: "olive_oil"), cancellationToken);
             }
         }
 
         written += await SeedCurrentAndUpcomingAsync(
-            field, isNorth, variety, NextId, tasks, expenses, notes, activities, today, cancellationToken);
+            field, isNorth, NextId, expenses, notes, activities, cancellationToken);
 
         return written;
     }
@@ -255,59 +211,23 @@ public static class ChronologioDemoSeeder
     private static async Task<int> SeedCurrentAndUpcomingAsync(
         FieldDocument field,
         bool isNorth,
-        string variety,
         Func<string> nextId,
-        IMongoCollection<TaskDocument> tasks,
-        IMongoCollection<FinancialEntryDocument> expenses,
+        IMongoCollection<FinancialTransactionDocument> expenses,
         IMongoCollection<NoteDocument> notes,
         IMongoCollection<ActivityDocument> activities,
-        DateTime today,
         CancellationToken cancellationToken)
     {
-        const string life = "high";
         var written = 0;
         var fieldId = field.Id;
 
-        // Yesterday / this week — completed, waiting on Giorgos
-        var sepSpray = Utc(2026, 9, 6, 14, 10);
-        var sepSprayId = nextId();
-        written += await UpsertTask(tasks, Completed(
-            sepSprayId, fieldId, "Pest Monitoring", "Ψεκασμός – Δάκος",
-            "Δεύτερος γύρος πριν τη συγκομιδή. 12 παγιδοκάλαθα ελέγχθηκαν.",
-            life, sepSpray, 68m, isNorth ? "pending" : "approved"), cancellationToken);
-
-        written += await UpsertExpense(expenses, Expense(
-            nextId(), fieldId, life, 28m, "Diesel 15L", "electricity_fuel", "inputs",
-            Utc(2026, 9, 7, 8, 15)), cancellationToken);
+        written += await UpsertExpense(expenses, Money(
+            nextId(), fieldId, 28.05m, "Πετρέλαιο για αντλία άρδευσης", "fuel_and_energy",
+            Utc(2026, 9, 7, 8, 15),
+            quantity: 15m, unit: "litre", unitPrice: 1.87m,
+            calculationMode: "quantity_times_unit_price", productKind: "fuel"), cancellationToken);
 
         if (isNorth)
         {
-            var rejected = Utc(2026, 9, 4, 16, 0);
-            written += await UpsertTask(tasks, Completed(
-                nextId(), fieldId, "Weed Management", "Καθαρισμός πρόσβασης",
-                "Καθάρισμα ζιζανίων στην είσοδο. Ο Γιώργος ζήτησε δεύτερο πέρασμα πριν έρθει το συνεργείο.",
-                life, rejected, 40m, "rejected",
-                harvestPhase: "prepare"), cancellationToken);
-
-            var scoutingStart = Utc(2026, 9, 8, 7, 30);
-            written += await UpsertTask(tasks, new TaskDocument
-            {
-                Id = nextId(),
-                FieldId = fieldId,
-                Type = "Pest Monitoring",
-                Title = "Παρακολούθηση δάκου",
-                Description = "Έλεγχος παγίδων κάθε δεύτερη μέρα μέχρι να κλείσει ο καρπός.",
-                LifecycleYear = life,
-                AssignedTo = ProducerId,
-                Status = "in_progress",
-                ScheduledStart = scoutingStart,
-                ScheduledEnd = Utc(2026, 9, 12, 18, 0),
-                ActualStart = scoutingStart,
-                ApprovalStatus = "not_required",
-                CreatedAt = scoutingStart.AddDays(-1),
-                UpdatedAt = today
-            }, cancellationToken);
-
             written += await UpsertNote(notes, new NoteDocument
             {
                 Id = nextId(),
@@ -320,203 +240,69 @@ public static class ChronologioDemoSeeder
                 UpdatedAt = Utc(2026, 9, 8, 18, 40)
             }, cancellationToken);
 
+            var scoutingStart = Utc(2026, 9, 8, 7, 30);
             written += await UpsertActivity(activities, new ActivityDocument
             {
                 Id = nextId(),
                 FieldId = fieldId,
-                Type = "task_started",
-                Message = "Ο Κώστας ξεκίνησε παρακολούθηση δάκου",
+                Type = "note_created",
+                Message = "Ο Κώστας σημείωσε παρακολούθηση δάκου",
                 ActorUserId = ProducerId,
-                TaskId = sepSprayId,
                 Timestamp = scoutingStart
             }, cancellationToken);
-        }
-        else
-        {
-            written += await UpsertTask(tasks, new TaskDocument
-            {
-                Id = nextId(),
-                FieldId = fieldId,
-                Type = "Observation",
-                Title = "Γενικός έλεγχος αγρού",
-                Description = "Περπάτημα πριν κλείσουμε ημερομηνία μύλου. Καρπός, δίχτυα, είσοδος.",
-                LifecycleYear = life,
-                AssignedTo = ProducerId,
-                Status = "pending",
-                ScheduledStart = Utc(2026, 9, 11, 8, 0),
-                ScheduledEnd = Utc(2026, 9, 11, 12, 0),
-                ApprovalStatus = "not_required",
-                CreatedAt = Utc(2026, 9, 8, 9, 0),
-                UpdatedAt = Utc(2026, 9, 8, 9, 0)
-            }, cancellationToken);
-        }
-
-        // Owner books the mill himself
-        written += await UpsertTask(tasks, new TaskDocument
-        {
-            Id = nextId(),
-            FieldId = fieldId,
-            Type = "harvest_book_mill",
-            Title = "Κλείσιμο ραντεβού μύλου",
-            Description = isNorth
-                ? "Τηλέφωνο στο Ελαιοτριβείο Φιλιατρών για 7 Οκτωβρίου."
-                : "Δεύτερη μέρα μύλου για την Κορωνέικη — 14 Οκτωβρίου.",
-            LifecycleYear = life,
-            HarvestPhase = "prepare",
-            AssignedTo = OwnerId,
-            Status = "pending",
-            ScheduledStart = Utc(2026, 9, isNorth ? 16 : 17, 10, 0),
-            ScheduledEnd = Utc(2026, 9, isNorth ? 16 : 17, 11, 0),
-            ApprovalStatus = "not_required",
-            CreatedAt = today,
-            UpdatedAt = today
-        }, cancellationToken);
-
-        written += await UpsertTask(tasks, Upcoming(
-            nextId(), fieldId, "harvest_check_access", "Έλεγχος εισόδου και καιρού",
-            "Δρόμος, στροφή τρακτέρ, πρόγνωση αέρα πριν έρθει το συνεργείο.",
-            Utc(2026, 9, isNorth ? 20 : 22, 8, 0), 2, "prepare"), cancellationToken);
-
-        written += await UpsertTask(tasks, Upcoming(
-            nextId(), fieldId, "harvest_ready_nets", "Έτοιμα δίχτυα και κλούβες",
-            "Δίχτυα, κλούβες, κτένες. Να μην χάσουμε ώρα το πρωί της συγκομιδής.",
-            Utc(2026, 9, isNorth ? 24 : 26, 9, 0), 1, "prepare"), cancellationToken);
-
-        written += await UpsertTask(tasks, Upcoming(
-            nextId(), fieldId, "harvest_call_crew", "Κλήση συνεργείου",
-            "Επιβεβαίωση με την Ελένη πόσα άτομα έρχονται και τι ώρα.",
-            Utc(2026, 9, isNorth ? 28 : 29, 18, 0), 0, "prepare"), cancellationToken);
-
-        var harvestDay = Utc(2026, 10, isNorth ? 7 : 14, 7, 0);
-        written += await UpsertTask(tasks, new TaskDocument
-        {
-            Id = nextId(),
-            FieldId = fieldId,
-            Type = "Harvest",
-            Title = $"Συγκομιδή — {variety}",
-            Description = isNorth
-                ? "Στόχος ~1.700 kg. Χειρονακτικά / κτένες. Μύλος το απόγευμα."
-                : "Στόχος ~1.600 kg. Κτένες + δίχτυα. Μύλος 14/10.",
-            LifecycleYear = life,
-            HarvestPhase = "daily",
-            AssignedTo = ProducerId,
-            Status = "pending",
-            ScheduledStart = harvestDay,
-            ScheduledEnd = harvestDay.AddHours(8),
-            ApprovalStatus = "not_required",
-            CreatedAt = today,
-            UpdatedAt = today
-        }, cancellationToken);
-
-        written += await UpsertTask(tasks, Upcoming(
-            nextId(), fieldId, "harvest_mill_delivery", "Παράδοση στο ελαιοτριβείο",
-            "Ζύγιση ελιάς, απόδοση, κόστος μύλου.",
-            Utc(2026, 10, isNorth ? 7 : 14, 16, 0), 0, "final"), cancellationToken);
-
-        written += await UpsertTask(tasks, Upcoming(
-            nextId(), fieldId, "Soil & Analysis", "Ανάλυση εδάφους μετά τη συγκομιδή",
-            "Δείγματα από τις δύο ζώνες για το χειμερινό πλάνο λίπανσης.",
-            Utc(2026, 11, isNorth ? 5 : 8, 9, 0), 1), cancellationToken);
-
-        written += await UpsertTask(tasks, Upcoming(
-            nextId(), fieldId, "Irrigation", "Χειμερινός έλεγχος άρδευσης",
-            "Άδειασμα γραμμών και προστασία βανών.",
-            Utc(2026, 11, isNorth ? 20 : 22, 10, 0), 0), cancellationToken);
-
-        if (isNorth)
-        {
-            written += await UpsertTask(tasks, Upcoming(
-                nextId(), fieldId, "harvest_close_season", "Κλείσιμο συγκομιδής",
-                "Σημείωση πώλησης όταν μπει το λάδι και κλείσιμο της χρονιάς.",
-                Utc(2026, 11, 15, 11, 0), 0, "final"), cancellationToken);
         }
 
         return written;
     }
 
-    private static TaskDocument Completed(
-        string id, string fieldId, string type, string title, string description,
-        string life, DateTime when, decimal cost, string approval, string? harvestPhase = null) =>
+    private static FinancialTransactionDocument Money(
+        string id,
+        string fieldId,
+        decimal amount,
+        string description,
+        string category,
+        DateTime when,
+        string type = "expense",
+        string? harvestId = null,
+        decimal? quantity = null,
+        string? unit = null,
+        decimal? unitPrice = null,
+        string calculationMode = "total_only",
+        string? productKind = null) =>
         new()
         {
             Id = id,
-            FieldId = fieldId,
+            OwnerUserId = OwnerId,
             Type = type,
-            Title = title,
-            Description = description,
-            LifecycleYear = life,
-            HarvestPhase = harvestPhase,
-            AssignedTo = ProducerId,
-            Status = "completed",
-            ScheduledStart = when.AddHours(-3),
-            ScheduledEnd = when,
-            ActualStart = when.AddHours(-3),
-            ActualEnd = when,
-            Cost = cost,
-            ApprovalStatus = approval,
-            ApprovalNote = approval == "approved"
-                ? "Καλή δουλειά — εγκρίθηκε για πληρωμή."
-                : approval == "rejected"
-                    ? "Ξαναπέρασμα στην είσοδο πριν έρθει το συνεργείο."
-                    : null,
-            Notes = "Σημείωση Κώστα: έγινε όπως συμφωνήσαμε.",
-            CreatedAt = when.AddDays(-2),
-            UpdatedAt = when
-        };
-
-    private static TaskDocument Upcoming(
-        string id, string fieldId, string type, string title, string description,
-        DateTime start, int extraDays, string? harvestPhase = null) =>
-        new()
-        {
-            Id = id,
-            FieldId = fieldId,
-            Type = type,
-            Title = title,
-            Description = description,
-            LifecycleYear = "high",
-            HarvestPhase = harvestPhase,
-            AssignedTo = ProducerId,
-            Status = "pending",
-            ScheduledStart = start,
-            ScheduledEnd = start.AddDays(extraDays).AddHours(3),
-            ApprovalStatus = "not_required",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-    private static FinancialEntryDocument Expense(
-        string id, string fieldId, string life, decimal amount,
-        string description, string category, string bucket, DateTime when, string? harvestId = null) =>
-        new()
-        {
-            Id = id,
-            FieldId = fieldId,
-            LifecycleYear = life,
-            HarvestId = harvestId,
-            Kind = "expense",
+            Status = "posted",
             Amount = amount,
             Currency = "EUR",
-            Description = description,
-            Category = category,
-            Bucket = bucket,
             OccurredOn = when,
-            Status = "posted",
-            RecordedBy = OwnerId,
+            ResultYear = when.Year,
+            FieldId = fieldId,
+            Category = category,
+            ProductKind = productKind,
+            Quantity = quantity,
+            QuantityUnit = unit,
+            UnitPrice = unitPrice,
+            CalculationMode = calculationMode,
+            Description = description,
+            RelatedHarvestId = harvestId,
+            SourceType = "manual",
+            IdempotencyKey = id,
+            CreatedByUserId = OwnerId,
             CreatedAt = when,
-            UpdatedAt = when
+            UpdatedAt = when,
+            PostedAt = when
         };
+
+    private static decimal RoundUnit(decimal value) =>
+        decimal.Round(value, 4, MidpointRounding.AwayFromZero);
 
     private static DateTime Utc(int y, int m, int d, int h, int min) =>
         new(y, m, d, h, min, 0, DateTimeKind.Utc);
 
-    private static async Task<int> UpsertTask(IMongoCollection<TaskDocument> col, TaskDocument doc, CancellationToken ct)
-    {
-        await col.ReplaceOneAsync(x => x.Id == doc.Id, doc, new ReplaceOptions { IsUpsert = true }, ct);
-        return 1;
-    }
-
-    private static async Task<int> UpsertExpense(IMongoCollection<FinancialEntryDocument> col, FinancialEntryDocument doc, CancellationToken ct)
+    private static async Task<int> UpsertExpense(IMongoCollection<FinancialTransactionDocument> col, FinancialTransactionDocument doc, CancellationToken ct)
     {
         await col.ReplaceOneAsync(x => x.Id == doc.Id, doc, new ReplaceOptions { IsUpsert = true }, ct);
         return 1;
@@ -539,5 +325,4 @@ public static class ChronologioDemoSeeder
         await col.ReplaceOneAsync(x => x.Id == doc.Id, doc, new ReplaceOptions { IsUpsert = true }, ct);
         return 1;
     }
-
 }

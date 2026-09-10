@@ -8,11 +8,11 @@ import {
 } from 'date-fns';
 import { el, enUS } from 'date-fns/locale';
 import { CalendarEvent } from '../../services/calendarService';
-import { RecommendedTemplateEntry, getEventsForDay } from '../../utils/calendarRecommendations';
 import {
   countCritical,
   getEventCategoryColor,
   getEventChipVariant,
+  getEventsForDay,
   getWeekDays,
   shortenLabel,
 } from '../../utils/calendarViewUtils';
@@ -23,7 +23,6 @@ type Props = {
   currentDate: Date;
   selectedDate: Date;
   events: CalendarEvent[];
-  recommended: RecommendedTemplateEntry[];
   locale: string;
   onDateSelect: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
@@ -35,7 +34,6 @@ const CalendarWeekView: React.FC<Props> = ({
   currentDate,
   selectedDate,
   events,
-  recommended,
   locale,
   onDateSelect,
   onEventClick,
@@ -43,7 +41,6 @@ const CalendarWeekView: React.FC<Props> = ({
   const { t } = useTranslation('calendar');
   const dateLocale = locale === 'el' ? el : enUS;
   const days = getWeekDays(currentDate);
-  const todayRecs = recommended.filter((r) => r.recommended).slice(0, 1);
 
   return (
     <div className="cal-week">
@@ -54,8 +51,6 @@ const CalendarWeekView: React.FC<Props> = ({
           const isCurrentDay = isToday(day);
           const inMonth = isSameMonth(day, currentDate);
           const criticalCount = countCritical(dayEvents);
-          const showRec =
-            isCurrentDay && todayRecs.length > 0 && dayEvents.length < MAX_CHIPS;
 
           return (
             <button
@@ -97,16 +92,6 @@ const CalendarWeekView: React.FC<Props> = ({
                     }}
                   />
                 ))}
-                {showRec &&
-                  todayRecs.map(({ template, categoryBorder }) => (
-                    <CalendarTaskChip
-                      key={`rec-${template.id}`}
-                      label={shortenLabel(template.title, 22)}
-                      categoryColor={categoryBorder}
-                      variant="recommended"
-                      title={template.title}
-                    />
-                  ))}
                 {dayEvents.length > MAX_CHIPS && (
                   <span className="cal-week-more">
                     {t('moreEvents', { count: dayEvents.length - MAX_CHIPS })}

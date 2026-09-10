@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
+import { FieldTask } from '../services/fieldWorkService';
 import type { Note } from '../services/noteService';
 import { SyncOperation } from './offlineQueue';
 
@@ -73,13 +73,13 @@ export class EntityCache {
     return readEntry<Field[]>(fieldsKey(userId));
   }
 
-  static async setTasks(userId: string, tasks: Task[]): Promise<void> {
+  static async setTasks(userId: string, tasks: FieldTask[]): Promise<void> {
     await writeEntry(tasksKey(userId), tasks);
     await Promise.all(tasks.map((t) => writeEntry(taskKey(t.id), t)));
   }
 
-  static async getTasks(userId: string): Promise<CacheEntry<Task[]> | null> {
-    return readEntry<Task[]>(tasksKey(userId));
+  static async getTasks(userId: string): Promise<CacheEntry<FieldTask[]> | null> {
+    return readEntry<FieldTask[]>(tasksKey(userId));
   }
 
   static async setField(field: Field): Promise<void> {
@@ -100,7 +100,7 @@ export class EntityCache {
     return readEntry<Field>(fieldKey(id));
   }
 
-  static async setTask(task: Task): Promise<void> {
+  static async setTask(task: FieldTask): Promise<void> {
     await writeEntry(taskKey(task.id), task);
     const userId = await getUserId();
     if (!userId) return;
@@ -114,8 +114,8 @@ export class EntityCache {
     await writeEntry(tasksKey(userId), next);
   }
 
-  static async getTask(id: string): Promise<CacheEntry<Task> | null> {
-    const direct = await readEntry<Task>(taskKey(id));
+  static async getTask(id: string): Promise<CacheEntry<FieldTask> | null> {
+    const direct = await readEntry<FieldTask>(taskKey(id));
     if (direct) return direct;
 
     const userId = await getUserId();
@@ -127,10 +127,10 @@ export class EntityCache {
     return { data: found, cachedAt: list.cachedAt };
   }
 
-  static async patchTask(id: string, patch: Partial<Task>): Promise<Task | null> {
+  static async patchTask(id: string, patch: Partial<FieldTask>): Promise<FieldTask | null> {
     const existing = await this.getTask(id);
     if (!existing) return null;
-    const updated: Task = {
+    const updated: FieldTask = {
       ...existing.data,
       ...patch,
       updatedAt: patch.updatedAt ?? new Date().toISOString(),
@@ -216,13 +216,13 @@ export class EntityCache {
   static async applySyncSuccess(op: SyncOperation, responseData: unknown): Promise<void> {
     if (op.entityType === 'task') {
       if (op.tempEntityId && responseData && typeof responseData === 'object') {
-        const serverTask = responseData as Task;
+        const serverTask = responseData as FieldTask;
         await this.removeTask(op.tempEntityId);
         await this.setTask(serverTask);
         return;
       }
       if (responseData && typeof responseData === 'object' && 'id' in (responseData as object)) {
-        await this.setTask(responseData as Task);
+        await this.setTask(responseData as FieldTask);
         return;
       }
       if (op.entityId) {

@@ -39,8 +39,9 @@ import {
   countHighPriorityDueWeek,
   getAgendaTasks,
 } from '../utils/dashboardUtils';
-import { getMeDashboardService, getFinancialEntryService } from '../services/serviceFactory';
-import { FinancialOverview } from '../services/financialEntryService';
+import { getMeDashboardService, getFinancialSummaryService } from '../services/serviceFactory';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { formatOfficialAmount } from '../finance/format';
 import {
   emptyMeDashboard,
   MeDashboard,
@@ -54,7 +55,7 @@ const DashboardScreen = () => {
   const capture = useCaptureOptional();
   const { colors } = useTheme();
   const { isFullPicture, fullTutorialSeen, markFullTutorialSeen, showWidget, tapMin } = usePreferences();
-  const { t, i18n } = useTranslation(['dashboard', 'common', 'nav', 'tutorial', 'partners', 'fields']);
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'nav', 'tutorial', 'partners', 'fields', 'money']);
   const navigation = useNavigation<Nav>();
   const { stats, loading, refresh } = useDashboardStats();
   const { tasks } = useTasks();
@@ -63,7 +64,7 @@ const DashboardScreen = () => {
   const { activities } = useRecentActivities(fields, tasks);
   const [period, setPeriod] = useState<MeDashboardPeriod>('week');
   const [meDashboard, setMeDashboard] = useState<MeDashboard>(emptyMeDashboard('week'));
-  const [moneyOverview, setMoneyOverview] = useState<FinancialOverview | null>(null);
+  const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
 
   const loadMeDashboard = async (p: MeDashboardPeriod = period) => {
     try {
@@ -74,9 +75,11 @@ const DashboardScreen = () => {
     }
     if (isFullPicture && isFieldOwner()) {
       try {
-        setMoneyOverview(await getFinancialEntryService().getOverview());
+        setYearMoney(
+          await getFinancialSummaryService().getYear(new Date().getFullYear(), undefined, i18n.language)
+        );
       } catch {
-        setMoneyOverview(null);
+        setYearMoney(null);
       }
     }
   };
@@ -143,12 +146,7 @@ const DashboardScreen = () => {
   };
 
   const overdueCount = useMemo(
-    () => tasks.filter(tk => tk.status !== 'completed' && isTaskOverdue(tk)).length,
-    [tasks]
-  );
-
-  const pendingApproval = useMemo(
-    () => tasks.filter(tk => tk.approvalStatus === 'pending'),
+    () => tasks.filter((tk) => isTaskOverdue(tk)).length,
     [tasks]
   );
 
@@ -156,7 +154,7 @@ const DashboardScreen = () => {
   const highPriorityWeek = useMemo(() => countHighPriorityDueWeek(tasks), [tasks]);
   const agendaTasks = useMemo(() => getAgendaTasks(tasks, 5), [tasks]);
   const topFields = useMemo(() => fields.slice(0, 3), [fields]);
-  const needsAttentionCount = overdueCount + pendingApproval.length;
+  const needsAttentionCount = overdueCount;
 
   const fieldNamesMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -364,7 +362,7 @@ const DashboardScreen = () => {
           </View>
         ) : null}
 
-        {isFullPicture && owner && moneyOverview ? (
+        {isFullPicture && owner ? (
           <Pressable
             onPress={() => navigation.navigate('Money')}
             style={[
@@ -377,13 +375,15 @@ const DashboardScreen = () => {
             ]}
           >
             <Text style={[styles.moneyLabel, { color: colors.textSecondary }]}>
-              {t('dashboard:stats.thisWeekCost', { defaultValue: "This week's cost" })}
+              {t('dashboard:stats.thisYearCost')}
             </Text>
             <Text style={[styles.moneyValue, { color: colors.textPrimary }]}>
-              {new Intl.NumberFormat(undefined, {
-                style: 'currency',
-                currency: moneyOverview.currency || 'EUR',
-              }).format(moneyOverview.thisWeekExpenses ?? 0)}
+              {formatOfficialAmount(
+                yearMoney?.totalExpenses,
+                yearMoney?.currency || 'EUR',
+                i18n.language,
+                t('money:unknownAmount')
+              )}
             </Text>
           </Pressable>
         ) : null}
@@ -395,17 +395,6 @@ const DashboardScreen = () => {
               icon="alert-circle"
               message={t('dashboard:overdueBanner', { count: overdueCount })}
               onPress={() => goTab('Tasks')}
-            />
-          </View>
-        ) : null}
-
-        {owner && pendingApproval.length > 0 ? (
-          <View style={styles.bannerSection}>
-            <AlertBanner
-              variant="warning"
-              icon="hourglass"
-              message={t('dashboard:approvalBanner', { count: pendingApproval.length })}
-              onPress={() => goTab('Tasks', { filter: 'approval' })}
             />
           </View>
         ) : null}

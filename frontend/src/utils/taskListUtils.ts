@@ -1,4 +1,4 @@
-import { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import { parseBusinessDate, startOfLocalDay } from './athensDate';
 import { normalizeTaskStatus } from './categoryNormalize';
 
@@ -8,23 +8,16 @@ export type TaskBoardColumn = 'overdue' | 'today' | 'thisWeek' | 'done';
 
 const startOfDay = (d: Date) => startOfLocalDay(d);
 
-const taskDueDate = (task: Task): Date | null => {
-  const raw = task.scheduledEnd || task.scheduledStart;
+const taskDueDate = (task: FieldTask): Date | null => {
+  const raw = task.plannedEnd || task.plannedStart;
   if (!raw) return null;
   const d = parseBusinessDate(raw);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-const priorityWeight: Record<string, number> = {
-  Critical: 4,
-  High: 3,
-  Medium: 2,
-  Low: 1,
-};
-
 export { taskDueDate };
 
-export const isTaskOverdue = (task: Task, now = new Date()): boolean => {
+export const isTaskOverdue = (task: FieldTask, now = new Date()): boolean => {
   if (normalizeTaskStatus(task.status) === 'completed' || normalizeTaskStatus(task.status) === 'cancelled') {
     return false;
   }
@@ -33,7 +26,7 @@ export const isTaskOverdue = (task: Task, now = new Date()): boolean => {
   return due < startOfDay(now);
 };
 
-export const isTaskDueToday = (task: Task, now = new Date()): boolean => {
+export const isTaskDueToday = (task: FieldTask, now = new Date()): boolean => {
   if (normalizeTaskStatus(task.status) === 'completed' || normalizeTaskStatus(task.status) === 'cancelled') {
     return false;
   }
@@ -42,12 +35,12 @@ export const isTaskDueToday = (task: Task, now = new Date()): boolean => {
   return startOfDay(due).getTime() === startOfDay(now).getTime();
 };
 
-export const needsAction = (task: Task, now = new Date()): boolean => {
-  if (task.status === 'completed') return false;
+export const needsAction = (task: FieldTask, now = new Date()): boolean => {
+  if (normalizeTaskStatus(task.status) === 'completed') return false;
   return isTaskOverdue(task, now) || isTaskDueToday(task, now);
 };
 
-export const isActiveTask = (task: Task): boolean => {
+export const isActiveTask = (task: FieldTask): boolean => {
   const status = normalizeTaskStatus(task.status);
   return status === 'pending' || status === 'in_progress';
 };
@@ -60,7 +53,7 @@ export type TaskSummary = {
   inProgress: number;
 };
 
-export const getTaskSummary = (tasks: Task[], now = new Date()): TaskSummary => {
+export const getTaskSummary = (tasks: FieldTask[], now = new Date()): TaskSummary => {
   let active = 0;
   let overdue = 0;
   let dueToday = 0;
@@ -89,7 +82,7 @@ export type TaskListFilters = {
   status: string;
 };
 
-export const filterTasks = (tasks: Task[], filters: TaskListFilters, now = new Date()): Task[] => {
+export const filterTasks = (tasks: FieldTask[], filters: TaskListFilters, now = new Date()): FieldTask[] => {
   const search = filters.search.trim().toLowerCase();
 
   return tasks.filter((task) => {
@@ -102,7 +95,7 @@ export const filterTasks = (tasks: Task[], filters: TaskListFilters, now = new D
     if (filters.status !== 'all' && normalizeTaskStatus(task.status) !== filters.status) return false;
 
     if (search) {
-      const haystack = [task.title, task.type, task.description || ''].join(' ').toLowerCase();
+      const haystack = [task.title, task.templateCode || '', task.description || ''].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
 
@@ -111,10 +104,10 @@ export const filterTasks = (tasks: Task[], filters: TaskListFilters, now = new D
 };
 
 export const sortTasks = (
-  tasks: Task[],
+  tasks: FieldTask[],
   sort: TaskSort,
   fieldNames: Record<string, string>
-): Task[] => {
+): FieldTask[] => {
   return [...tasks].sort((a, b) => {
     if (sort === 'field') {
       const fa = fieldNames[a.fieldId] || a.fieldId;
@@ -123,30 +116,24 @@ export const sortTasks = (
       if (cmp !== 0) return cmp;
     }
 
-    if (sort === 'priority') {
-      const pa = priorityWeight[a.priority || 'Medium'] ?? 2;
-      const pb = priorityWeight[b.priority || 'Medium'] ?? 2;
-      if (pa !== pb) return pb - pa;
-    }
-
     if (sort === 'recent') {
       const ra = new Date(a.updatedAt || a.createdAt).getTime();
       const rb = new Date(b.updatedAt || b.createdAt).getTime();
       return rb - ra;
     }
 
-    const ad = a.scheduledEnd ? new Date(a.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
-    const bd = b.scheduledEnd ? new Date(b.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+    const ad = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
+    const bd = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
     if (ad !== bd) return ad - bd;
 
     return a.title.localeCompare(b.title);
   });
 };
 
-export const groupOpenTasks = (tasks: Task[], now = new Date()) => {
-  const overdue: Task[] = [];
-  const today: Task[] = [];
-  const upcoming: Task[] = [];
+export const groupOpenTasks = (tasks: FieldTask[], now = new Date()) => {
+  const overdue: FieldTask[] = [];
+  const today: FieldTask[] = [];
+  const upcoming: FieldTask[] = [];
   for (const task of tasks) {
     if (!isActiveTask(task)) continue;
     if (isTaskOverdue(task, now)) overdue.push(task);
@@ -156,12 +143,12 @@ export const groupOpenTasks = (tasks: Task[], now = new Date()) => {
   return { overdue, today, upcoming };
 };
 
-export const groupTasksForBoard = (tasks: Task[], now = new Date()): Record<TaskBoardColumn, Task[]> => {
+export const groupTasksForBoard = (tasks: FieldTask[], now = new Date()): Record<TaskBoardColumn, FieldTask[]> => {
   const today = startOfDay(now);
   const weekEnd = new Date(today);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
-  const cols: Record<TaskBoardColumn, Task[]> = {
+  const cols: Record<TaskBoardColumn, FieldTask[]> = {
     overdue: [],
     today: [],
     thisWeek: [],
@@ -193,8 +180,8 @@ export const groupTasksForBoard = (tasks: Task[], now = new Date()): Record<Task
 
   (Object.keys(cols) as TaskBoardColumn[]).forEach((key) => {
     cols[key].sort((a, b) => {
-      const ad = a.scheduledEnd ? new Date(a.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
-      const bd = b.scheduledEnd ? new Date(b.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+      const ad = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
+      const bd = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
       return ad - bd;
     });
   });

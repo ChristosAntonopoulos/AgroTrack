@@ -18,5 +18,6 @@ export type MapLayerType = 'satellite' | 'standard' | 'hybrid';
 /** Default matches web Fields map — Esri satellite imagery. */
 export const DEFAULT_MAP_LAYER: MapLayerType = 'satellite';
 
-export const FIELD_POLYGON_STROKE = '#a3e635';
-export const FIELD_POLYGON_FILL = '#84cc16';
+/** Fallback only — prefer resolveFieldColor for real fields. */
+export const FIELD_POLYGON_STROKE = '#2F6B4F';
+export const FIELD_POLYGON_FILL = '#2F6B4F';

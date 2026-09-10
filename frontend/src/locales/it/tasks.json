@@ -1,17 +1,8 @@
 {
   "title": "Tasks",
-  "subtitleProducer": "Tasks assigned to you",
-  "subtitleDefault": "Manage field tasks and assignments",
-  "addTask": "Add Task",
-  "searchPlaceholder": "Search tasks...",
-  "emptyTitle": "No tasks found",
-  "emptyDescription": "Create a task or adjust your filters.",
-  "filters": {
-    "all": "All",
-    "pending": "Pending",
-    "in_progress": "In progress",
-    "completed": "Completed"
-  },
+  "failedLoad": "Impossibile caricare i lavori",
+  "fieldFilterLabel": "Filtro per campo",
+  "allFields": "Tutti i campi",
   "detail": {
     "field": "Field",
     "assignedTo": "Assigned To",
@@ -31,5 +22,521 @@
     "editTitle": "Edit Task",
     "title": "Title",
     "save": "Save Task"
+  },
+  "fieldWork": {
+    "pageTitle": "Lavori",
+    "pageSubtitle": "Organizza ciò che serve fare nei campi.",
+    "addTask": "Nuovo lavoro",
+    "year": "Annata",
+    "allFields": "Tutti i campi",
+    "person": "Chi",
+    "unknownField": "Campo",
+    "seeCompletedInChronologio": "Vedi i lavori completati nel Chronologio →",
+    "plannedGroups": {
+      "today": "Oggi",
+      "thisWeek": "Questa settimana",
+      "later": "Più tardi"
+    },
+    "task": {
+      "blocked": "In attesa",
+      "checksShort": "{{done}}/{{total}} controlli",
+      "checksLong": "{{done}} di {{total}} controlli completati",
+      "started": "Iniziato {{date}}",
+      "updated": "Aggiornato {{date}}"
+    },
+    "weather": {
+      "unknown": "Dati meteo insufficienti",
+      "explain": "Meteo",
+      "notSensitive": "Il meteo non influisce in modo significativo su questo lavoro.",
+      "missing": "Non ci sono abbastanza dati meteo per valutare la giornata."
+    },
+    "views": {
+      "aria": "Viste dei lavori",
+      "proposals": "Proposte",
+      "planned": "Programmati",
+      "active": "In corso"
+    },
+    "a11y": {
+      "advancedOpened": "Altri dettagli sono aperti."
+    },
+    "proposalsIntro": {
+      "title": "Proposte per i tuoi campi",
+      "subtitle": "Vedi perché viene proposto ogni lavoro e decidi se programmarlo."
+    },
+    "empty": {
+      "proposalsTitle": "Nessuna nuova proposta",
+      "proposalsDescription": "Mostreremo qualcosa qui quando la stagione, il tempo o i dati del campo richiedono una decisione.",
+      "plannedTitle": "Nessun lavoro programmato",
+      "plannedDescription": "Puoi crearne uno o programmare una proposta.",
+      "activeTitle": "Nessun lavoro in corso",
+      "activeDescription": "I lavori che avvii appariranno qui."
+    },
+    "context": {
+      "clearYear": "Ripristina annata",
+      "clearField": "Rimuovi filtro campo"
+    },
+    "proposalGroups": {
+      "needsDecision": "Servono una decisione",
+      "canWait": "Possono aspettare"
+    },
+    "proposal": {
+      "period": "Periodo:",
+      "more": "Altre azioni",
+      "remindLater": "Ricordamelo più tardi",
+      "notForField": "Non riguarda questo campo",
+      "notThisYear": "Non quest’anno",
+      "why": "Perché lo vedo?",
+      "source": "Fonte:",
+      "confidence": "Affidabilità:",
+      "close": "Chiudi",
+      "chips": {
+        "official": "Avviso ufficiale",
+        "expiring": "Scade presto",
+        "good": "Buona giornata",
+        "caution": "Attenzione",
+        "unsuitable": "Giornata non adatta",
+        "unknown": "Dati insufficienti",
+        "seasonal": "Promemoria stagionale"
+      }
+    },
+    "actions": {
+      "schedule": "Programma",
+      "scheduleIt": "Programmala",
+      "later": "Più tardi",
+      "start": "Inizia",
+      "continue": "Continua",
+      "continueIt": "Continua",
+      "complete": "Completa",
+      "open": "Apri"
+    },
+    "errors": {
+      "accept": "Impossibile programmare la proposta.",
+      "dismiss": "Impossibile archiviare la proposta.",
+      "snooze": "Impossibile rimandare.",
+      "start": "Impossibile avviare.",
+      "complete": "Impossibile completare."
+    },
+    "form": {
+      "newTitle": "Nuovo lavoro",
+      "scheduleTitle": "Programmazione lavoro",
+      "manualSubtitle": "Cosa deve succedere, e quando?",
+      "subtitle": "Cosa deve succedere, e quando?",
+      "whatQuestion": "Cosa bisogna fare?",
+      "fieldQuestion": "In quale campo?",
+      "whenQuestion": "Quando vuoi farlo?",
+      "whoQuestion": "Chi lo fa?",
+      "typeLabel": "Che tipo di lavoro è?",
+      "field": "Campo",
+      "selectField": "Seleziona un campo",
+      "title": "Titolo",
+      "titlePlaceholder": "es. Potatura dei rami secchi",
+      "template": "Modello (opzionale)",
+      "noTemplate": "Senza modello",
+      "plannedStart": "Inizio",
+      "plannedEnd": "Fine",
+      "person": "Chi lo fa?",
+      "unassigned": "Deciderò più tardi",
+      "assigneeMe": "Io",
+      "decideLater": "Deciderò più tardi",
+      "collaborator": "Collaboratore",
+      "more": "Altro",
+      "moreDetails": "+ Altri dettagli",
+      "hideMore": "Meno",
+      "timeWindow": "Finestra preferita",
+      "timeWindowPlaceholder": "es. mattina",
+      "preferredTime": "Orario preferito",
+      "estimatedCost": "Costo stimato",
+      "costHint": "Solo una stima — non viene registrata nei conti.",
+      "notes": "Note",
+      "notesForPerson": "Qualcosa che deve sapere chi farà il lavoro",
+      "save": "Salva",
+      "createSubmit": "Crea lavoro",
+      "scheduleSubmit": "Programma",
+      "cancel": "Annulla",
+      "required": "Campo e titolo obbligatori.",
+      "needTitle": "Scrivi cosa bisogna fare.",
+      "needField": "Scegli un campo.",
+      "needDate": "Scegli una data o “Non ho ancora deciso”.",
+      "failedSave": "Salvataggio non riuscito.",
+      "failedLoad": "Caricamento non riuscito.",
+      "whyProposed": "Perché viene proposto",
+      "recommendedWindow": "Periodo consigliato",
+      "weather": "Meteo",
+      "weatherLater": "Il meteo verrà valutato dopo la scelta del giorno.",
+      "proposalSummary": "Sintesi della proposta",
+      "when": {
+        "today": "Oggi",
+        "tomorrow": "Domani",
+        "thisWeek": "Questa settimana",
+        "pick": "Scegli una data",
+        "undecided": "Non ho ancora deciso"
+      },
+      "moreDays": "Servono più giorni",
+      "singleDay": "Basta un giorno",
+      "periodEnds": "Fino al",
+      "prevMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "checklistIntro": "Controlli di base — {{count}} cose da confermare.",
+      "showChecklist": "Mostra elenco",
+      "hideChecklist": "Nascondi elenco",
+      "resultYear": "Anno di risultato",
+      "resultYearHint": "Cambialo solo se il lavoro appartiene al raccolto precedente.",
+      "createdTitle": "Il lavoro è stato programmato",
+      "viewTask": "Vedi il lavoro",
+      "createAnother": "Creane un altro",
+      "undo": "Annulla",
+      "types": {
+        "pruning": "Potatura",
+        "fertilisation": "Concimazione",
+        "weeds": "Erba",
+        "irrigation": "Irrigazione",
+        "inspection": "Controllo",
+        "protection": "Difesa",
+        "harvest": "Raccolta",
+        "transport": "Trasporto",
+        "maintenance": "Manutenzione",
+        "other": "Altro lavoro"
+      },
+      "suggestions": {
+        "pruning": ["Potatura dei rami secchi", "Potatura di produzione"],
+        "fertilisation": ["Concimazione di base", "Concimazione di copertura"],
+        "weeds": ["Pulizia dell’erba", "Taglio della copertura"],
+        "irrigation": ["Irrigazione", "Controllo irrigazione"],
+        "inspection": ["Controllo del campo", "Osservazione degli alberi"],
+        "protection": ["Controllo trappole", "Monitoraggio mosca"],
+        "harvest": ["Raccolta", "Trasporto al frantoio"],
+        "transport": ["Trasporto olive", "Trasporto olio"],
+        "maintenance": ["Manutenzione irrigazione", "Riparazione"],
+        "other": ["Lavoro in campo"]
+      },
+      "time": {
+        "morning": "Mattina",
+        "midday": "Mezzogiorno",
+        "afternoon": "Pomeriggio",
+        "anytime": "Qualsiasi ora",
+        "specific": "Un orario preciso"
+      }
+    },
+    "detail": {
+      "summary": "Riepilogo",
+      "checklist": "Controlli",
+      "moreChecks": "Altri controlli",
+      "hideMoreChecks": "Meno controlli",
+      "money": "Denaro",
+      "estimated": "Stimato (pianificazione)",
+      "actual": "Costo reale",
+      "difference": "Differenza",
+      "noActual": "Nessun costo registrato ancora",
+      "addExpense": "Registra uscita",
+      "seeMoney": "Vedi in Denaro",
+      "estimateHint": "La stima non entra nei totali ufficiali dell’anno."
+    },
+    "onboarding": {
+      "progress": "{{current}} di {{total}}",
+      "exit": "Esci",
+      "continue": "Continua",
+      "saving": "Salvataggio…",
+      "savedOffline": "Salvato sul dispositivo. Si sincronizzerà quando sei online.",
+      "saveFailed": "Salvataggio non riuscito. Riprova.",
+      "loadFailed": "Impossibile caricare la configurazione lavori.",
+      "needOnlineFirst": "Serve connessione la prima volta per avviare la configurazione.",
+      "backToField": "Torna al campo",
+      "welcome": {
+        "title": "Prepariamo l’anno di questo campo?",
+        "body": "Poche domande semplici — per proporti ciò che si adatta al tuo campo. Puoi fermarti e continuare dopo.",
+        "start": "Iniziamo",
+        "later": "Lo farò più tardi"
+      },
+      "finished": {
+        "title": "Fatto — le risposte di base sono salvate",
+        "body": "Ora vedrai una bozza del piano annuale in base alle tue risposte.",
+        "back": "Torna al campo",
+        "seePlan": "Vedi il piano"
+      },
+      "planPreview": {
+        "title": "Il piano del {{year}}",
+        "summaryEnabled": "{{count}} lavori potrebbero riguardarti",
+        "summaryAskFirst": "{{count}} compariranno solo se c’è un segnale correlato",
+        "summarySuppressed": "{{count}} proposte generali sono state disattivate",
+        "groupEnabled": "Probabile quest’anno",
+        "groupAskFirst": "Solo se serve",
+        "groupSuppressed": "Non proposte di routine",
+        "changeRow": "Modifica",
+        "usePlan": "Usa questo piano",
+        "changes": "Modifiche",
+        "footer": "I lavori non vengono programmati automaticamente. Scegli tu quali proposte accettare.",
+        "loadFailed": "Impossibile caricare l’anteprima del piano.",
+        "activateFailed": "Impossibile attivare il piano. Riprova.",
+        "activating": "Attivazione…"
+      },
+      "completion": {
+        "title": "Il campo è pronto",
+        "body": "Il profilo lavori è attivo. Alcuni passi utili:",
+        "openChronologio": "Apri Chronologio",
+        "reviewProposal": "Rivedi la prima proposta",
+        "addCollaborator": "Aggiungi un collaboratore",
+        "backToField": "Torna al campo"
+      },
+      "blocked": {
+        "draftTitle": "Prima completa il campo",
+        "draftBody": "La configurazione lavori è disponibile dopo che il campo è attivo — non mentre è in bozza.",
+        "permissionTitle": "Solo il responsabile può farlo",
+        "permissionBody": "Questa configurazione è per chi gestisce il campo. I collaboratori non la completano.",
+        "activeTitle": "La configurazione è già completa",
+        "activeBody": "Il profilo lavori è attivo. Puoi vederlo e modificarlo dalla pagina impostazioni."
+      },
+      "questions": {
+        "purpose": "Cosa produci soprattutto da questo campo?",
+        "irrigation": "Irrighi questo campo?",
+        "irrigationMethod": "Come irrigi di solito?",
+        "irrigationWho": "Chi decide sull’irrigazione?",
+        "pruning": "Fai potatura in questo campo?",
+        "pruningLastYear": "Quando è stata l’ultima potatura?",
+        "pruningWho": "Chi fa di solito la potatura? (opzionale)",
+        "fertilisation": "Concimi?",
+        "fertilisationFrequency": "Circa quante volte all’anno?",
+        "fertilisationDone": "Hai già concimato per l’anno {{year}}?",
+        "fertilisationWho": "Chi decide sul concime? (opzionale)",
+        "groundCover": "Come gestisci erbe / copertura del suolo?",
+        "groundCoverTimes": "Circa quante volte all’anno?",
+        "groundCoverMonths": "In quali mesi lo fai di solito? (opzionale)",
+        "pest": "Come decidi su trattamenti / mosca?",
+        "pestTraps": "Hai trappole per la mosca?",
+        "pestWho": "Chi controlla le trappole? (opzionale)",
+        "analyses": "Fai analisi (suolo, foglie, acqua)?",
+        "analysesYears": "Quando è stata l’ultima analisi?",
+        "harvestMonth": "Quando inizia di solito la raccolta?",
+        "harvestWho": "Chi organizza la raccolta?",
+        "harvestMill": "Serve prenotare il frantoio?",
+        "reminders": "Quanti promemoria vuoi?"
+      },
+      "hints": {
+        "purpose": "Scegli ciò che vale di più.",
+        "irrigation": "Se non sei sicuro, dillo — chiederemo prima.",
+        "irrigationPrefill": "Nei dettagli del campo risulta irrigazione. Confermalo.",
+        "pruning": "La potatura ci aiuta a sapere in quali anni proporla.",
+        "optionalWho": "Puoi saltare.",
+        "optionalMonths": "Scegli i mesi o tocca Salta.",
+        "multiSelect": "Puoi scegliere più di uno.",
+        "analysesYears": "Basta l’anno — non serve la data esatta.",
+        "reminders": "Puoi cambiarlo dopo."
+      },
+      "choices": {
+        "unsure": "Non sono sicuro",
+        "skip": "Salta",
+        "yes": "Sì",
+        "no": "No",
+        "partially": "In parte",
+        "purpose": {
+          "oil": "Olio d’oliva",
+          "table": "Olive da tavola",
+          "both": "Entrambi"
+        },
+        "irrigation": {
+          "yes": "Sì, irrigo",
+          "no": "No, senza irrigazione",
+          "ask": "Chiedimi prima"
+        },
+        "irrigationMethod": {
+          "drip": "Goccia",
+          "sprinklers": "Aspersione",
+          "portable": "Portatile / tubo",
+          "other": "Altro"
+        },
+        "who": {
+          "self": "Io",
+          "family": "Famiglia / collaboratore",
+          "agronomist": "Agronomo",
+          "auto": "Sistema automatico",
+          "contractor": "Impresa",
+          "nofixed": "Senza modo fisso"
+        },
+        "pruning": {
+          "yes": "Sì, regolarmente",
+          "whenNeeded": "Quando serve",
+          "pro": "Decide un professionista",
+          "no": "No",
+          "never": "Non ancora / non ricordo l’anno"
+        },
+        "fertilisation": {
+          "annual": "Sì, ogni anno",
+          "sometimes": "A volte / quando serve",
+          "pro": "Decide un agronomo",
+          "no": "No",
+          "once": "1 volta",
+          "twice": "2 volte",
+          "thrice": "3 o più"
+        },
+        "ground": {
+          "mower": "Trinciatura / sfalcio",
+          "tillage": "Lavorazione del suolo",
+          "grazing": "Pascolo",
+          "herbicide": "Diserbante",
+          "nofixed": "Senza pulizia fissa"
+        },
+        "times": {
+          "1": "1 volta",
+          "2": "2 volte",
+          "3": "3 o più",
+          "whenNeeded": "Quando serve"
+        },
+        "pest": {
+          "official": "Avvisi ufficiali",
+          "agronomist": "Con agronomo",
+          "traps": "Trappole e controllo frutti",
+          "combined": "Combinato",
+          "none": "Di solito senza trattamenti"
+        },
+        "traps": {
+          "active": "Sì, installate",
+          "notYet": "Non ancora quest’anno",
+          "none": "Non uso trappole"
+        },
+        "analysis": {
+          "soil": "Suolo",
+          "leaf": "Foglie",
+          "water": "Acqua",
+          "none": "Non faccio analisi"
+        },
+        "reminders": {
+          "decisions": "Solo quando serve una decisione",
+          "upcoming": "Decisioni e lavori in arrivo",
+          "all": "Tutte le proposte",
+          "later": "Lo imposto dopo"
+        }
+      },
+      "months": {
+        "1": "Gennaio",
+        "2": "Febbraio",
+        "3": "Marzo",
+        "4": "Aprile",
+        "5": "Maggio",
+        "6": "Giugno",
+        "9": "Settembre",
+        "10": "Ottobre",
+        "11": "Novembre",
+        "12": "Dicembre"
+      },
+      "years": {
+        "thisYear": "Quest’anno ({{year}})",
+        "lastYear": "L’anno scorso ({{year}})",
+        "twoYearsAgo": "Due anni fa ({{year}})",
+        "threePlus": "{{year}} o prima"
+      },
+      "banner": {
+        "title": "Prepariamo l’anno di questo campo?",
+        "body": "Poche domande per proporti ciò che si adatta qui.",
+        "start": "Iniziamo",
+        "resume": "Continua configurazione",
+        "later": "Più tardi"
+      }
+    },
+    "profile": {
+      "title": "Come lavoro questo campo",
+      "subtitle": "Una vista semplice delle impostazioni. Tocca Modifica per correggere.",
+      "open": "Apri impostazioni lavori",
+      "change": "Modifica",
+      "save": "Salva",
+      "loadFailed": "Impossibile caricare il profilo lavori.",
+      "saveFailed": "Salvataggio non riuscito. Riprova.",
+      "revisitSetup": "Rivedi le domande",
+      "sections": {
+        "purpose": "Cosa produci"
+      },
+      "categories": {
+        "pruning": "Potatura",
+        "fertilisation": "Concimazione",
+        "ground_cover": "Erbe / suolo",
+        "irrigation": "Irrigazione",
+        "monitoring": "Controlli / trappole",
+        "harvest": "Raccolta"
+      },
+      "pref": {
+        "enabled": "Sì",
+        "disabled": "No",
+        "ask_first": "Chiedimi prima",
+        "unknown": "Non impostato",
+        "olive_oil": "Olio d’oliva",
+        "table_olives": "Olive da tavola",
+        "both": "Entrambi"
+      },
+      "assignments": {
+        "title": "Chi fa di solito i lavori",
+        "summary": "Suggerito alla creazione del lavoro — senza assegnazione automatica.",
+        "hint": "Non concede accesso al campo né visibilità finanziaria.",
+        "me": "Io",
+        "collaborator": "Collaboratore esistente",
+        "later": "Sceglierò più tardi",
+        "person": "{{name}}",
+        "noCollaborators": "Aggiungi prima un collaboratore al campo.",
+        "add": "Imposta persone predefinite"
+      },
+      "similar": {
+        "title": "Hai altri campi simili?",
+        "body": "Puoi copiare queste impostazioni o configurare ogni campo separatamente.",
+        "copy": "Copia impostazioni su altri campi",
+        "separate": "Configura ogni campo separatamente",
+        "later": "Lo farò più tardi"
+      },
+      "copy": {
+        "open": "Copia su altri campi",
+        "title": "Copia impostazioni",
+        "pickBody": "Scegli campi attivi (non bozze).",
+        "noTargets": "Non ci sono altri campi attivi su cui copiare.",
+        "continue": "Continua",
+        "optionsTitle": "Cosa copiare?",
+        "optionsBody": "Le pratiche principali si copiano sempre. Irrigazione, date e persone solo se le selezioni.",
+        "optIrrigation": "Sì, copia anche l’irrigazione",
+        "optLastPerformed": "Sì, copia anche le ultime date",
+        "optAssignments": "Sì, copia anche le persone predefinite (solo se hanno già accesso)",
+        "review": "Rivedi prima di applicare",
+        "reviewTitle": "Rivedi le differenze",
+        "reviewBody": "Si applicherà a {{count}} campi:",
+        "willCopy": "Verrà copiato",
+        "willSkip": "Non copiato",
+        "apply": "Applica",
+        "applying": "Applicazione…",
+        "applyFailed": "Copia non riuscita.",
+        "loadFailed": "Impossibile caricare i campi.",
+        "doneTitle": "Completato",
+        "ok": "OK",
+        "finish": "Fine",
+        "diff": {
+          "purpose": "Scopo produttivo",
+          "pruning": "Potatura",
+          "fertilisation": "Concimazione",
+          "groundCover": "Erbe / suolo",
+          "pest": "Trattamenti / mosca",
+          "analysis": "Analisi",
+          "harvest": "Raccolta",
+          "irrigation": "Irrigazione",
+          "lastPerformed": "Ultime date",
+          "assignments": "Persone predefinite"
+        }
+      }
+    },
+    "completion": {
+      "title": "Completamento lavoro",
+      "step": "Passo {{current}} di {{total}}",
+      "whatHappened": "Cosa è successo?",
+      "confirm": "Conferma",
+      "save": "Salva",
+      "createFollowUp": "Crea lavoro per il resto",
+      "savedTitle": "Registrato",
+      "savedBody": "Il completamento è salvato nel Chronologio.",
+      "undo": "Annulla",
+      "undoFailed": "Annullamento non riuscito.",
+      "openFollowUp": "Apri il seguito",
+      "hadCost": "C’è stato un costo?",
+      "hadCostHint": "Se sì, aprirai Denaro per registrare l’importo. Non viene creata una riga a zero.",
+      "hadCostYes": "Sì, c’è stato un costo",
+      "hadCostNo": "No, senza costo",
+      "recordCost": "Registra costo",
+      "outcomes": {
+        "completed": "Completato",
+        "partial": "Parzialmente fatto",
+        "notDone": "Non fatto"
+      }
+    }
   }
 }

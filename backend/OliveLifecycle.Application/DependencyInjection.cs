@@ -25,12 +25,13 @@ public static class DependencyInjection
         services.AddScoped<IFieldAreaValidationService, FieldAreaValidationService>();
         services.AddScoped<IGreekCadastrePdfParser, GreekCadastrePdfParser>();
         services.AddScoped<ILifecycleService, LifecycleService>();
-        services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<ITaskTemplateService, TaskTemplateService>();
         services.AddScoped<IMinistryNotificationService, MinistryNotificationService>();
         services.AddScoped<IReportsService, ReportsService>();
-        services.AddScoped<IFinancialEntryService, FinancialEntryService>();
+        services.AddScoped<IFinancialAuthorizationService, FinancialAuthorizationService>();
+        services.AddScoped<IFinancialTransactionService, FinancialTransactionService>();
+        services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
+        services.AddScoped<IFieldYearSummaryService, FieldYearSummaryService>();
         services.AddScoped<IHarvestService, HarvestService>();
         services.AddScoped<IPartnerService, PartnerService>();
         services.AddScoped<ISavedContactService, SavedContactService>();
@@ -40,6 +41,18 @@ public static class DependencyInjection
         services.AddScoped<IMeDashboardService, MeDashboardService>();
         services.AddScoped<IFamilyService, FamilyService>();
         services.AddScoped<IChronologioService, ChronologioService>();
+        services.AddScoped<IFieldWorkAuthorizationService, FieldWorkAuthorizationService>();
+        services.AddScoped<IFieldWorkTemplateService, FieldWorkTemplateService>();
+        services.AddScoped<ITaskProposalService, TaskProposalService>();
+        services.AddScoped<IFieldTaskService, FieldTaskService>();
+        services.AddScoped<IFieldPhenologyService, FieldPhenologyService>();
+        services.AddScoped<ITaskProposalEngine, TaskProposalEngine>();
+        services.AddScoped<IFieldWorkEventSignalCollector, FieldWorkEventSignalCollector>();
+        services.AddScoped<IFieldYearTaskPlanService, FieldYearTaskPlanService>();
+        services.AddScoped<IFieldTaskWeatherEvaluationService, FieldTaskWeatherEvaluationService>();
+        services.AddScoped<IFieldWorkProfileService, FieldWorkProfileService>();
+        services.AddScoped<IFieldWorkPlanPreviewService, FieldWorkPlanPreviewService>();
+        services.AddScoped<IFieldWorkLearningService, FieldWorkLearningService>();
 
         return services;
     }

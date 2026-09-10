@@ -1,168 +1,163 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Droplets, Wind, Info } from 'lucide-react';
-import { weatherService, WeatherData } from '../../services/weatherService';
+import type { FieldWeather } from '../../services/geospatialService';
+import type { FieldAttentionModel } from '../../utils/fieldOverviewAttention';
+import { resolveWeatherImplication, weatherOutlookBuckets } from '../../utils/fieldWeatherImplication';
 import DataSourceInfoModal, { DataSourceInfo } from '../Common/DataSourceInfoModal';
 import LoadingSpinner from '../Common/LoadingSpinner';
-import { useExperienceMode } from '../../context/ExperienceModeContext';
+import { Link } from 'react-router-dom';
 import './FieldWeatherCard.css';
 
-interface Props {
-  fieldId: string;
-}
-
-const formatAge = (updatedAt?: Date): string | null => {
-  if (!updatedAt) return null;
-  const minutes = Math.round((Date.now() - updatedAt.getTime()) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  return `${hours} h ago`;
+type Props = {
+  weather: FieldWeather | null;
+  loading?: boolean;
+  error?: boolean;
+  year: number;
+  isHistoricalYear: boolean;
+  allowRecommendation: boolean;
+  attention?: FieldAttentionModel;
+  nextTaskTitle?: string;
+  onRetry?: () => void;
 };
 
-const FieldWeatherCard: React.FC<Props> = ({ fieldId }) => {
-  const { t } = useTranslation(['fields', 'settings']);
-  const { showWidget, isEveryday, recordIntelligenceOpen } = useExperienceMode();
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+const formatUpdated = (iso: string | undefined, t: (key: string, opts?: Record<string, unknown>) => string): string => {
+  if (!iso) return t('weather.live');
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (Number.isNaN(minutes) || minutes < 1) return t('weather.updatedJustNow');
+  if (minutes < 60) return t('weather.updatedMinutes', { count: minutes });
+  const hours = Math.round(minutes / 60);
+  return t('weather.updatedHours', { count: hours });
+};
+
+const FieldWeatherCard: React.FC<Props> = ({
+  weather,
+  loading,
+  error,
+  year,
+  isHistoricalYear,
+  allowRecommendation,
+  attention,
+  nextTaskTitle,
+  onRetry,
+}) => {
+  const { t } = useTranslation('fields');
   const [sourceInfo, setSourceInfo] = useState<DataSourceInfo | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(false);
-    weatherService
-      .getFieldWeatherData(fieldId)
-      .then((data) => {
-        if (!cancelled) {
-          setWeather(data);
-          setError(!data);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [fieldId]);
-
-  if (!showWidget('weatherAdvice') && isEveryday) {
-    return null;
-  }
+  const implication = useMemo(
+    () => resolveWeatherImplication(weather, { allowRecommendation }),
+    [weather, allowRecommendation]
+  );
+  const outlook = useMemo(() => weatherOutlookBuckets(weather), [weather]);
 
   if (loading) {
     return (
-      <div className="field-weather-card field-weather-card--loading">
+      <section className="field-weather-card field-weather-card--loading" aria-label={t('weather.fieldTitle')}>
         <LoadingSpinner size="sm" />
-      </div>
+      </section>
     );
   }
 
   if (error || !weather) {
     return (
-      <div className="field-weather-card field-weather-card--empty">
+      <section className="field-weather-card field-weather-card--empty" aria-label={t('weather.fieldTitle')}>
+        <h2>{t('weather.fieldTitle')}</h2>
         <p>{t('weather.unavailable')}</p>
-      </div>
+        {onRetry ? (
+          <button type="button" className="field-weather-retry" onClick={onRetry}>
+            {t('weather.retry')}
+          </button>
+        ) : null}
+      </section>
     );
   }
 
-  const age = formatAge(weather.lastUpdatedAt);
-  const advice =
-    weather.frostLevel && weather.frostLevel !== 'None'
-      ? t('weather.frostRisk', { level: weather.frostLevel })
-      : weather.rainForecast24hMm != null && weather.rainForecast24hMm >= 0.5
-        ? t('weather.rainNext24h', { mm: weather.rainForecast24hMm.toFixed(1) })
-        : t('weather.rainNone');
-
-  // Everyday: plain advice first; denser numbers behind peek (counts toward on-ramp).
-  if (isEveryday && !detailsOpen) {
-    return (
-      <div className="field-weather-card field-weather-card--everyday">
-        <div className="field-weather-header">
-          <span className="field-weather-title">{t('weather.today')}</span>
-        </div>
-        <div className="field-weather-main">
-          <span className="field-weather-icon" aria-hidden>
-            {weather.icon}
-          </span>
-          <div>
-            <div className="field-weather-temp">{weather.temperature}°C</div>
-            <div className="field-weather-desc">{advice}</div>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="fd-everyday-peek-btn"
-          onClick={() => {
-            setDetailsOpen(true);
-            recordIntelligenceOpen();
-          }}
-        >
-          {t('settings:experience.peekMoreAboutField')}
-        </button>
-      </div>
-    );
-  }
+  const current = weather.current;
+  const valueType = weather.metadata?.valueType || 'modelled';
 
   return (
-    <div className="field-weather-card">
+    <section className="field-weather-card" aria-labelledby="field-weather-title">
       <div className="field-weather-header">
-        <span className="field-weather-title">{t('weather.today')}</span>
+        <h2 id="field-weather-title">{t('weather.fieldTitle')}</h2>
         <span className="field-weather-actions">
           <span className={weather.stale ? 'field-weather-stale' : 'field-weather-updated'}>
-            {weather.stale && age ? `Last updated ${age}` : t('weather.live')}
+            {formatUpdated(weather.lastUpdatedAt, t)}
           </span>
           <button
             type="button"
             className="field-weather-info"
-            aria-label="Weather data source"
+            aria-label={t('weather.sourceAria')}
             onClick={() =>
               setSourceInfo({
-                title: 'Temperature',
-                source: weather.source,
-                spatialResolution: weather.sourceResolution,
-                temporalResolution: 'hourly',
-                valueType: 'modelled',
-                lastUpdatedAt: weather.lastUpdatedAt?.toISOString(),
+                title: t('weather.fieldTitle'),
+                source: weather.metadata.source,
+                spatialResolution: weather.metadata.spatialResolution,
+                temporalResolution: weather.metadata.temporalResolution,
+                valueType: weather.metadata.valueType,
+                lastUpdatedAt: weather.lastUpdatedAt,
               })
             }
           >
-            <Info size={14} aria-hidden />
+            <Info size={16} aria-hidden />
           </button>
         </span>
       </div>
-      <div className="field-weather-main">
-        <span className="field-weather-icon" aria-hidden>
-          {weather.icon}
-        </span>
-        <div>
-          <div className="field-weather-temp">{weather.temperature}°C</div>
-          <div className="field-weather-desc">{weather.description}</div>
+
+      {isHistoricalYear ? <p className="field-weather-year-note">{t('weather.notThatYear', { year })}</p> : null}
+
+      <p className="field-weather-implication">
+        {implication.code === 'ok' && nextTaskTitle
+          ? t('weather.implication.okNamed', { task: nextTaskTitle })
+          : t(implication.textKey)}
+      </p>
+
+      {current ? (
+        <div className="field-weather-main">
+          <div>
+            <div className="field-weather-temp">{Math.round(current.temperatureC)}°C</div>
+            <div className="field-weather-desc">{t('weather.nowCondition')}</div>
+          </div>
+          <div className="field-weather-meta">
+            <span>{t('weather.highLow', { high: Math.round(current.highC), low: Math.round(current.lowC) })}</span>
+            <span className="field-weather-meta-item">
+              <Droplets size={16} aria-hidden />
+              {t('weather.rainAmount', { mm: (weather.rain?.forecast24hMm ?? 0).toFixed(1) })}
+            </span>
+            <span className="field-weather-meta-item">
+              <Wind size={16} aria-hidden />
+              {t('weather.windGust', {
+                speed: Math.round(weather.wind?.currentSpeedKmh ?? current.windSpeedKmh),
+                gust: Math.round(weather.wind?.currentGustKmh ?? current.windGustKmh),
+              })}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className="field-weather-meta">
-        <span>{t('weather.highLow', { high: weather.high, low: weather.low })}</span>
-        <span className="field-weather-meta-item">
-          <Droplets size={14} aria-hidden />
-          {t('weather.humidity', { percent: weather.humidity })}
-        </span>
-        <span className="field-weather-meta-item">
-          <Wind size={14} aria-hidden />
-          {t('weather.wind', { speed: weather.windSpeed })}
-        </span>
-      </div>
-      <p className="field-weather-outlook">{advice}</p>
-      {weather.frostLevel && weather.frostLevel !== 'None' ? (
-        <p className="field-weather-frost">{t('weather.frostRisk', { level: weather.frostLevel })}</p>
+      ) : (
+        <p className="field-weather-desc">{t('weather.implication.unknown')}</p>
+      )}
+
+      {outlook.length > 0 ? (
+        <ul className="field-weather-outlook">
+          {outlook.map((bucket) => (
+            <li key={bucket.key}>
+              <span>{t(`weather.outlook.${bucket.key}`)}</span>
+              <strong>{t('weather.rainAmount', { mm: bucket.mm.toFixed(1) })}</strong>
+            </li>
+          ))}
+        </ul>
       ) : null}
-      {sourceInfo && <DataSourceInfoModal info={sourceInfo} onClose={() => setSourceInfo(null)} />}
-    </div>
+
+      <p className="field-weather-type">{t('weather.dataType', { type: t(`weather.valueType.${valueType}`, valueType) })}</p>
+
+      {allowRecommendation && attention?.kind === 'weatherReschedule' && attention.primaryTo ? (
+        <div className="field-weather-actions-row">
+          <Link className="field-attention-primary" to={attention.primaryTo}>
+            {t('overview.attention.moveTask')}
+          </Link>
+        </div>
+      ) : null}
+
+      {sourceInfo ? <DataSourceInfoModal info={sourceInfo} onClose={() => setSourceInfo(null)} /> : null}
+    </section>
   );
 };
 

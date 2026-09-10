@@ -41,6 +41,8 @@ public class RainIntelligenceDto
     public double Forecast12hMm { get; set; }
     public double Forecast24hMm { get; set; }
     public double Forecast48hMm { get; set; }
+    public double Forecast72hMm { get; set; }
+    public double Forecast7dMm { get; set; }
 }
 
 public class WindIntelligenceDto
@@ -50,6 +52,8 @@ public class WindIntelligenceDto
     public double MaxNext6hKmh { get; set; }
     public double MaxNext12hKmh { get; set; }
     public double MaxNext24hKmh { get; set; }
+    public double MaxNext72hKmh { get; set; }
+    public double MaxNext7dKmh { get; set; }
     public string? DominantDirection { get; set; }
 }
 

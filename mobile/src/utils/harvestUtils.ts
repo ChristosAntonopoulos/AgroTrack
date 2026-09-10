@@ -1,4 +1,4 @@
-import { Task } from '../services/taskService';
+import { FieldTask, fieldTaskTypeKey } from '../services/fieldWorkService';
 import { Field } from '../services/fieldService';
 import { normalizeStage } from './lifecycleUtils';
 import {
@@ -8,10 +8,10 @@ import {
   getHarvestJob,
 } from './harvestJobs';
 
-export const isHarvestTask = (task: Task): boolean => {
-  if (task.harvestPhase) return true;
-  if (getHarvestJob(task.type) || getHarvestJob(task.templateId)) return true;
-  const haystack = `${task.type} ${task.title} ${task.description ?? ''}`.toLowerCase();
+export const isHarvestTask = (task: FieldTask): boolean => {
+  const typeKey = fieldTaskTypeKey(task);
+  if (getHarvestJob(typeKey) || getHarvestJob(task.templateCode)) return true;
+  const haystack = `${typeKey} ${task.title} ${task.description ?? ''}`.toLowerCase();
   return (
     haystack.includes('harvest') ||
     haystack.includes('τρύγος') ||
@@ -19,15 +19,13 @@ export const isHarvestTask = (task: Task): boolean => {
   );
 };
 
-export const resolveHarvestPhase = (task: Task): HarvestPhase | null => {
-  if (task.harvestPhase === 'prepare' || task.harvestPhase === 'daily' || task.harvestPhase === 'final') {
-    return task.harvestPhase;
-  }
-  const fromType = getHarvestJob(task.type)?.phase;
+export const resolveHarvestPhase = (task: FieldTask): HarvestPhase | null => {
+  const typeKey = fieldTaskTypeKey(task);
+  const fromType = getHarvestJob(typeKey)?.phase ?? getHarvestJob(task.templateCode)?.phase;
   if (fromType) return fromType;
   if (!isHarvestTask(task)) return null;
 
-  const haystack = `${task.type} ${task.title} ${task.description ?? ''}`.toLowerCase();
+  const haystack = `${typeKey} ${task.title} ${task.description ?? ''}`.toLowerCase();
   if (
     haystack.includes('mill') ||
     haystack.includes('ελαιοτριβ') ||
@@ -54,8 +52,8 @@ export const resolveHarvestPhase = (task: Task): HarvestPhase | null => {
   return 'daily';
 };
 
-export const harvestJobType = (task: Task): string =>
-  canonicalHarvestType(task.type) ?? task.type;
+export const harvestJobType = (task: FieldTask): string =>
+  canonicalHarvestType(fieldTaskTypeKey(task)) ?? fieldTaskTypeKey(task);
 
 export const isFieldInHarvest = (field?: Field | null): boolean =>
   normalizeStage(field?.currentLifecycleStage) === 'harvest';
@@ -70,21 +68,25 @@ export const formatKg = (kg: number): string =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(kg);
 
 export type NextHarvestWork =
-  | { kind: 'task'; task: Task; phase: HarvestPhase; fieldId: string }
+  | { kind: 'task'; task: FieldTask; phase: HarvestPhase; fieldId: string }
   | { kind: 'field'; fieldId: string; phase: HarvestPhase };
 
 export const pickNextHarvestWork = (
-  openTasks: Task[],
+  openTasks: FieldTask[],
   fields: Field[]
 ): NextHarvestWork | null => {
   const harvestTasks = openTasks
     .map((task) => ({ task, phase: resolveHarvestPhase(task) }))
-    .filter((row): row is { task: Task; phase: HarvestPhase } => row.phase != null)
+    .filter((row): row is { task: FieldTask; phase: HarvestPhase } => row.phase != null)
     .sort((a, b) => {
       const phaseDiff = PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase);
       if (phaseDiff !== 0) return phaseDiff;
-      const ad = a.task.scheduledEnd ? new Date(a.task.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
-      const bd = b.task.scheduledEnd ? new Date(b.task.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+      const ad = a.task.plannedEnd
+        ? new Date(a.task.plannedEnd).getTime()
+        : Number.POSITIVE_INFINITY;
+      const bd = b.task.plannedEnd
+        ? new Date(b.task.plannedEnd).getTime()
+        : Number.POSITIVE_INFINITY;
       return ad - bd;
     });
 

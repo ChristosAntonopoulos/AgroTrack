@@ -1,8 +1,10 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { Alert, DeviceEventEmitter } from 'react-native';
-import type { CaptureContext as CaptureCtx, CaptureSavedDetail } from '../capture/types';
+import { useTranslation } from 'react-i18next';
+import type { CaptureContext as CaptureCtx, CaptureSavedDetail, CaptureSavedOptions } from '../capture/types';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import CaptureSheet from '../components/capture/CaptureSheet';
+import { getFinancialTransactionService } from '../services/serviceFactory';
 
 type CaptureApi = {
   openCapture: (ctx?: CaptureCtx) => void;
@@ -13,6 +15,7 @@ type CaptureApi = {
 const Ctx = createContext<CaptureApi | null>(null);
 
 export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { t } = useTranslation(['capture', 'common']);
   const [open, setOpen] = useState(false);
   const [context, setContext] = useState<CaptureCtx>({});
 
@@ -23,11 +26,45 @@ export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const closeCapture = useCallback(() => setOpen(false), []);
 
-  const onSaved = useCallback((detail: CaptureSavedDetail, message: string) => {
-    DeviceEventEmitter.emit(CAPTURE_SAVED_EVENT, detail);
-    setOpen(false);
-    Alert.alert('', message);
-  }, []);
+  const onSaved = useCallback(
+    (detail: CaptureSavedDetail, message: string, options?: CaptureSavedOptions) => {
+      DeviceEventEmitter.emit(CAPTURE_SAVED_EVENT, detail);
+      setOpen(false);
+      const transactionId = options?.transactionId;
+      const status = options?.status;
+      const reopen = options?.reopen;
+      const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [];
+      if (transactionId && status === 'posted') {
+        buttons.push({
+          text: t('capture:money.undo'),
+          style: 'destructive',
+          onPress: () => {
+            void getFinancialTransactionService().void(transactionId, t('capture:money.undoReason'));
+          },
+        });
+      } else if (transactionId && status === 'draft') {
+        buttons.push({
+          text: t('capture:money.undo'),
+          style: 'destructive',
+          onPress: () => {
+            void getFinancialTransactionService().deleteDraft(transactionId);
+          },
+        });
+      }
+      if (reopen) {
+        buttons.push({
+          text: t('capture:money.addAnother'),
+          onPress: () => {
+            setContext(reopen);
+            setOpen(true);
+          },
+        });
+      }
+      buttons.push({ text: t('common:ok', { defaultValue: 'OK' }) });
+      Alert.alert('', message, buttons);
+    },
+    [t]
+  );
 
   const value = useMemo(
     () => ({ openCapture, closeCapture, isOpen: open }),

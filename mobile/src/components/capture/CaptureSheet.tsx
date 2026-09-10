@@ -14,37 +14,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { CaptureContext, CaptureSavedDetail, CaptureType } from '../../capture/types';
+import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../../capture/types';
 import { getAvailableCaptureActions } from '../../capture/permissions';
 import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/photos';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOfflineMode } from '../../context/OfflineContext';
+import { usePreferences } from '../../context/PreferencesContext';
 import Button from '../ui/Button';
+import MoneyCaptureForm from './MoneyCaptureForm';
 import {
   getFieldService,
-  getFinancialEntryService,
   getHarvestService,
   getNoteService,
-  getTaskService,
-  getTaskTemplateService,
+  getFieldWorkService,
 } from '../../services/serviceFactory';
 import type { Field } from '../../services/fieldService';
-import type { TaskTemplate } from '../../services/taskTemplateService';
 import type { RootStackParamList } from '../../navigation/types';
 import { spacing, typography } from '../../theme';
+import { readLastMoneyFieldId } from '../../finance/lastField';
 
 const MAX_PHOTOS = 5;
-const EXPENSE_CATEGORIES = [
-  'labor',
-  'fertilizers',
-  'treatments',
-  'electricity_fuel',
-  'equipment',
-  'transport',
-  'mill_cost',
-  'other',
-] as const;
 
 const FALLBACK_WORK = [
   { id: 'pruning', type: 'pruning', title: 'Κλάδεμα' },
@@ -59,7 +49,7 @@ type Props = {
   context: CaptureContext;
   onClose: () => void;
   onContextChange: (ctx: CaptureContext) => void;
-  onSaved: (detail: CaptureSavedDetail, message: string) => void;
+  onSaved: (detail: CaptureSavedDetail, message: string, options?: CaptureSavedOptions) => void;
 };
 
 const CaptureSheet: React.FC<Props> = ({
@@ -73,11 +63,11 @@ const CaptureSheet: React.FC<Props> = ({
   const { colors, tapMin } = useTheme();
   const { user, isFieldOwner } = useAuth();
   const { isOnline } = useOfflineMode();
+  const { isFullPicture } = usePreferences();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [step, setStep] = useState<'choose' | CaptureType>('choose');
   const [fields, setFields] = useState<Field[]>([]);
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [fieldId, setFieldId] = useState(context.fieldId || '');
   const [occurredAt] = useState(new Date().toISOString());
   const [submitting, setSubmitting] = useState(false);
@@ -88,9 +78,6 @@ const CaptureSheet: React.FC<Props> = ({
   const [workId, setWorkId] = useState('');
   const [workCost, setWorkCost] = useState('');
   const [workNote, setWorkNote] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<string>('labor');
-  const [expenseDesc, setExpenseDesc] = useState('');
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
   const [mill, setMill] = useState('');
@@ -106,17 +93,10 @@ const CaptureSheet: React.FC<Props> = ({
     [fields, isFieldOwner, user?.id]
   );
 
-  const workOptions = useMemo(() => {
-    if (templates.length > 0) {
-      return templates.slice(0, 8).map((tpl) => ({
-        id: tpl.id,
-        type: tpl.type,
-        title: tpl.title,
-        templateId: tpl.id,
-      }));
-    }
-    return FALLBACK_WORK.map((w) => ({ ...w, templateId: undefined as string | undefined }));
-  }, [templates]);
+  const workOptions = useMemo(
+    () => FALLBACK_WORK.map((w) => ({ ...w, templateId: w.type as string | undefined })),
+    []
+  );
 
   const yieldPct = useMemo(() => {
     const olives = Number(oliveKg.replace(',', '.'));
@@ -127,21 +107,29 @@ const CaptureSheet: React.FC<Props> = ({
 
   useEffect(() => {
     if (!open) return;
-    setStep(context.preferredType || 'choose');
+    const moneyStep =
+      context.preferredType === 'expense' ||
+      context.preferredType === 'income' ||
+      context.preferredType === 'money'
+        ? context.preferredType
+        : null;
+    setStep(moneyStep || context.preferredType || 'choose');
     setFieldId(context.fieldId || '');
     setBody('');
     setPhotos([]);
     setWorkId('');
     setWorkCost('');
     setWorkNote('');
-    setAmount('');
-    setCategory('labor');
-    setExpenseDesc('');
     setOliveKg('');
     setOilKg('');
     setMill('');
     setHarvestNotes('');
     setMoreOpen(false);
+    if (!context.fieldId) {
+      void readLastMoneyFieldId().then((id) => {
+        if (id) setFieldId((current) => current || id);
+      });
+    }
     if (user?.id) {
       void getFieldService()
         .getFields(user.id, user.role || '')
@@ -150,10 +138,6 @@ const CaptureSheet: React.FC<Props> = ({
     } else {
       setFields([]);
     }
-    void getTaskTemplateService()
-      .getTemplates()
-      .then(setTemplates)
-      .catch(() => setTemplates([]));
   }, [open, context.preferredType, context.fieldId, user?.id, user?.role]);
 
   const pickPhoto = async (camera: boolean) => {
@@ -200,39 +184,21 @@ const CaptureSheet: React.FC<Props> = ({
           setSubmitting(false);
           return;
         }
-        const mediaUrls = await uploadPhotos();
         const cost = workCost.trim() ? Number(workCost.replace(',', '.')) : undefined;
-        const task = await getTaskService().recordCompletedWork({
+        const now = new Date();
+        const task = await getFieldWorkService().createFieldTask({
           fieldId,
-          templateId: work.templateId,
-          type: work.type,
           title: work.title,
           description: workNote.trim() || undefined,
-          occurredAt,
-          costAmount: cost && !Number.isNaN(cost) ? cost : undefined,
-          currency: 'EUR',
-          costCategory: 'labor',
-          mediaUrls,
+          templateCode: work.templateId || work.type,
+          plannedStart: occurredAt || now.toISOString(),
+          plannedEnd: occurredAt || now.toISOString(),
+          notes: workNote.trim() || undefined,
+          estimatedCost: cost && !Number.isNaN(cost) ? cost : undefined,
         });
         onSaved({ type: 'work', fieldId, sourceId: task.id }, t('capture:work.saved'));
-      } else if (step === 'expense') {
-        const value = Number(amount.replace(',', '.'));
-        if (!value || Number.isNaN(value)) {
-          Alert.alert('', t('capture:errors.amountRequired'));
-          setSubmitting(false);
-          return;
-        }
-        const entry = await getFinancialEntryService().create({
-          fieldId,
-          amount: value,
-          kind: 'expense',
-          category,
-          description: expenseDesc.trim() || category,
-          occurredOn: occurredAt,
-          taskId: context.taskId,
-          currency: 'EUR',
-        });
-        onSaved({ type: 'expense', fieldId, sourceId: entry.id }, t('capture:expense.saved'));
+        onClose();
+        navigation.navigate('TaskDetail', { taskId: task.id });
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
         if (!olives || Number.isNaN(olives)) {
@@ -264,11 +230,12 @@ const CaptureSheet: React.FC<Props> = ({
   const typeCards: Array<{ type: CaptureType; icon: keyof typeof Ionicons.glyphMap; enabled: boolean }> = [
     { type: 'observation', icon: 'eye-outline', enabled: permissions.canRecordObservation },
     { type: 'work', icon: 'checkmark-done-outline', enabled: permissions.canRecordWork },
-    { type: 'expense', icon: 'wallet-outline', enabled: permissions.canRecordExpense },
+    { type: 'money', icon: 'wallet-outline', enabled: permissions.canRecordMoney },
     { type: 'harvest', icon: 'leaf-outline', enabled: permissions.canRecordHarvest },
   ];
 
   const fieldLocked = Boolean(context.fieldId);
+  const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
@@ -283,10 +250,28 @@ const CaptureSheet: React.FC<Props> = ({
               <Ionicons name={step === 'choose' ? 'close' : 'arrow-back'} size={22} color={colors.textPrimary} />
             </Pressable>
             <Text style={[styles.title, { color: colors.textPrimary }]}>
-              {step === 'choose' ? t('capture:title') : t(`capture:types.${step}.title`)}
+              {step === 'choose'
+                ? t('capture:title')
+                : isMoneyStep
+                  ? t('capture:types.money.title')
+                  : t(`capture:types.${step}.title`)}
             </Text>
           </View>
 
+          {isMoneyStep ? (
+            <MoneyCaptureForm
+              context={{
+                ...context,
+                fieldId: context.fieldId || fieldId || undefined,
+                preferredType: step === 'money' ? 'money' : step,
+              }}
+              fields={fields}
+              canRecordIncome={permissions.canRecordIncome}
+              canRecordExpense={permissions.canRecordExpense}
+              isFullPicture={isFullPicture}
+              onSaved={onSaved}
+            />
+          ) : (
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             {step === 'choose' ? (
               <>
@@ -405,40 +390,6 @@ const CaptureSheet: React.FC<Props> = ({
                   </>
                 ) : null}
 
-                {step === 'expense' ? (
-                  <>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:expense.amount')}</Text>
-                    <TextInput
-                      style={[styles.input, styles.amount, { color: colors.textPrimary, borderColor: colors.border }]}
-                      keyboardType="decimal-pad"
-                      value={amount}
-                      onChangeText={setAmount}
-                      placeholder="0,00 €"
-                      placeholderTextColor={colors.textSecondary}
-                    />
-                    <View style={styles.chipRow}>
-                      {EXPENSE_CATEGORIES.map((c) => (
-                        <Pressable
-                          key={c}
-                          style={[
-                            styles.chip,
-                            {
-                              borderColor: category === c ? colors.primary : colors.border,
-                              backgroundColor: category === c ? colors.primary + '22' : 'transparent',
-                              minHeight: tapMin,
-                            },
-                          ]}
-                          onPress={() => setCategory(c)}
-                        >
-                          <Text style={{ color: category === c ? colors.primary : colors.textPrimary }}>
-                            {t(`fields:costs.categories.${c}`, { defaultValue: c })}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </>
-                ) : null}
-
                 {step === 'harvest' ? (
                   <>
                     <TextInput
@@ -505,8 +456,9 @@ const CaptureSheet: React.FC<Props> = ({
               </>
             )}
           </ScrollView>
+          )}
 
-          {step !== 'choose' ? (
+          {step !== 'choose' && !isMoneyStep ? (
             <View style={styles.footer}>
               <Button
                 title={submitting ? t('capture:saving') : t('capture:save')}

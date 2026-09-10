@@ -1,5 +1,5 @@
-import { Field } from '../fieldService';
-import { Task } from '../taskService';
+﻿import { Field } from '../fieldService';
+import type { FieldTask } from '../fieldWorkService';
 import { User } from '../userService';
 import { generateDemoDataset, buildDemoTasks } from './demoSeedGenerator';
 
@@ -7,7 +7,7 @@ export type DemoAssignmentMap = Record<string, string[]>; // fieldId -> producer
 
 export type DemoTaskApprovalStatus = 'not_required' | 'pending' | 'approved' | 'rejected';
 
-export type DemoTask = Task & {
+export type DemoTask = FieldTask & {
   approvalStatus?: DemoTaskApprovalStatus;
   approvalNote?: string;
 };
@@ -82,7 +82,7 @@ type DemoState = {
 };
 
 const STORAGE_KEY = 'Oleachron_demo_state_v1';
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 export type DemoRouteState = {
   active: boolean;
@@ -91,22 +91,17 @@ export type DemoRouteState = {
   startedAt?: string;
 };
 
-const defaultProgressForRole = (role: string): DemoProgress => {
-  const base: DemoProgress = {
-    dismissed: false,
-    steps: {
-      producer_visit_today: false,
-      producer_start_task: false,
-      producer_add_evidence: false,
-      owner_visit_calendar: false,
-      owner_schedule_template: false,
-      owner_view_timeline: false,
-    },
-  };
-
-  // Keep all keys for simplicity; UI will show only relevant ones.
-  return base;
-};
+const defaultProgressForRole = (role: string): DemoProgress => ({
+  dismissed: false,
+  steps: {
+    producer_visit_today: false,
+    producer_start_task: false,
+    producer_add_evidence: false,
+    owner_visit_calendar: false,
+    owner_schedule_template: false,
+    owner_view_timeline: false,
+  },
+});
 
 const safeParse = <T,>(raw: string | null): T | null => {
   if (!raw) return null;
@@ -117,7 +112,6 @@ const safeParse = <T,>(raw: string | null): T | null => {
   }
 };
 
-
 const seedState = (): DemoState => {
   const seededAt = new Date().toISOString();
   const dataset = generateDemoDataset();
@@ -125,7 +119,7 @@ const seedState = (): DemoState => {
     ...t,
     approvalStatus:
       t.approvalStatus ??
-      (t.status === 'completed' && t.assignedTo ? 'pending' : 'not_required'),
+      (t.status === 'completed' && t.assignedUserId ? 'pending' : 'not_required'),
   }));
 
   return {
@@ -145,87 +139,11 @@ const seedState = (): DemoState => {
 
 const loadState = (): DemoState => {
   const parsed = safeParse<DemoState>(localStorage.getItem(STORAGE_KEY));
-  if (!parsed) {
+  if (!parsed || parsed.schemaVersion !== SCHEMA_VERSION) {
     const seeded = seedState();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
     return seeded;
   }
-
-  // Lightweight migrations to avoid wiping demo state.
-  if ((parsed as any).schemaVersion === 2) {
-    const upgraded: DemoState = {
-      ...(parsed as any),
-      schemaVersion: SCHEMA_VERSION,
-      demoProgressByUserId: {},
-      issues: [],
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
-    return upgraded;
-  }
-
-  if ((parsed as any).schemaVersion === 3) {
-    const upgraded: DemoState = {
-      ...(parsed as any),
-      schemaVersion: SCHEMA_VERSION,
-      issues: [],
-      routeStateByUserId: {},
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
-    return upgraded;
-  }
-
-  if ((parsed as any).schemaVersion === 4) {
-    const upgraded: DemoState = {
-      ...(parsed as any),
-      schemaVersion: SCHEMA_VERSION,
-      routeStateByUserId: {},
-      fieldUiPrefsByUserId: {},
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
-    return upgraded;
-  }
-
-  if ((parsed as any).schemaVersion === 5) {
-    const upgraded: DemoState = {
-      ...(parsed as any),
-      schemaVersion: SCHEMA_VERSION,
-      fieldUiPrefsByUserId: {},
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
-    return upgraded;
-  }
-
-  if (parsed.schemaVersion !== SCHEMA_VERSION) {
-    const seeded = seedState();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return seeded;
-  }
-
-  // Ensure new keys exist even if older state was manually edited.
-  if (!(parsed as any).demoProgressByUserId) {
-    const fixed = { ...(parsed as any), demoProgressByUserId: {}, issues: (parsed as any).issues || [] } as DemoState;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
-    return fixed;
-  }
-
-  if (!(parsed as any).issues) {
-    const fixed = { ...(parsed as any), issues: [] } as DemoState;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
-    return fixed;
-  }
-
-  if (!(parsed as any).routeStateByUserId) {
-    const fixed = { ...(parsed as any), routeStateByUserId: {} } as DemoState;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
-    return fixed;
-  }
-
-  if (!(parsed as any).fieldUiPrefsByUserId) {
-    const fixed = { ...(parsed as any), fieldUiPrefsByUserId: {} } as DemoState;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
-    return fixed;
-  }
-
   return parsed;
 };
 
@@ -291,17 +209,10 @@ export const demoStore = {
     };
     const issues = [next, ...(state.issues || [])].slice(0, 200);
     saveState({ ...state, issues });
-    demoStore.addEvent({
-      type: 'task_status_changed',
-      timestamp: next.createdAt,
-      fieldId: next.fieldId,
-      actorUserId: next.createdByUserId,
-      message: `Issue reported (${next.severity} ${next.type}): ${next.title}`,
-    });
     return next;
   },
 
-  updateIssueStatus: (issueId: string, status: DemoIssueStatus, actorUserId?: string) => {
+  updateIssueStatus: (issueId: string, status: DemoIssueStatus) => {
     const state = loadState();
     const idx = (state.issues || []).findIndex((i) => i.id === issueId);
     if (idx < 0) throw new Error('Issue not found');
@@ -309,64 +220,19 @@ export const demoStore = {
     const issues = [...state.issues];
     issues[idx] = updated;
     saveState({ ...state, issues });
-    demoStore.addEvent({
-      type: 'task_status_changed',
-      timestamp: new Date().toISOString(),
-      fieldId: updated.fieldId,
-      actorUserId,
-      message: `Issue status updated: ${updated.title} → ${status}`,
-    });
     return updated;
   },
 
-  getRouteState: (userId: string): DemoRouteState => {
+  addEvent: (event: Omit<DemoEvent, 'id'>) => {
     const state = loadState();
-    const existing = state.routeStateByUserId?.[userId];
-    if (existing) return existing;
-    const created: DemoRouteState = { active: false, currentIndex: 0, completedFieldIds: [] };
-    const routeStateByUserId = { ...(state.routeStateByUserId || {}), [userId]: created };
-    saveState({ ...state, routeStateByUserId });
-    return created;
-  },
-
-  setRouteState: (userId: string, route: DemoRouteState) => {
-    const state = loadState();
-    const routeStateByUserId = { ...(state.routeStateByUserId || {}), [userId]: route };
-    saveState({ ...state, routeStateByUserId });
-  },
-
-  getFieldUiPrefs: (userId: string): DemoFieldUiPrefs => {
-    const state = loadState();
-    return state.fieldUiPrefsByUserId?.[userId] || {};
-  },
-
-  setFieldUiPrefs: (userId: string, prefs: DemoFieldUiPrefs) => {
-    const state = loadState();
-    const fieldUiPrefsByUserId = { ...(state.fieldUiPrefsByUserId || {}), [userId]: prefs };
-    saveState({ ...state, fieldUiPrefsByUserId });
-  },
-
-  setFields: (fields: Field[]) => {
-    const state = loadState();
-    saveState({ ...state, fields });
+    const next: DemoEvent = { id: `ev-${Date.now()}`, ...event };
+    saveState({ ...state, events: [next, ...state.events].slice(0, 500) });
+    return next;
   },
 
   setTasks: (tasks: DemoTask[]) => {
     const state = loadState();
     saveState({ ...state, tasks });
-  },
-
-  setAssignments: (assignments: DemoAssignmentMap) => {
-    const state = loadState();
-    saveState({ ...state, assignments });
-  },
-
-  addEvent: (event: Omit<DemoEvent, 'id'>) => {
-    const state = loadState();
-    const next: DemoEvent = { id: `ev-${Date.now()}-${Math.random().toString(16).slice(2)}`, ...event };
-    const events = [next, ...(state.events || [])].slice(0, 500);
-    saveState({ ...state, events });
-    return next;
   },
 
   upsertTask: (task: DemoTask) => {
@@ -387,6 +253,38 @@ export const demoStore = {
     tasks[idx] = updated;
     saveState({ ...state, tasks });
     return updated;
+  },
+
+  getRouteState: (userId: string): DemoRouteState | null =>
+    loadState().routeStateByUserId?.[userId] || null,
+
+  setRouteState: (userId: string, route: DemoRouteState) => {
+    const state = loadState();
+    saveState({
+      ...state,
+      routeStateByUserId: { ...(state.routeStateByUserId || {}), [userId]: route },
+    });
+  },
+
+  getFieldUiPrefs: (userId: string): DemoFieldUiPrefs =>
+    loadState().fieldUiPrefsByUserId?.[userId] || {},
+
+  setFieldUiPrefs: (userId: string, prefs: DemoFieldUiPrefs) => {
+    const state = loadState();
+    saveState({
+      ...state,
+      fieldUiPrefsByUserId: { ...(state.fieldUiPrefsByUserId || {}), [userId]: prefs },
+    });
+  },
+
+  setAssignments: (assignments: DemoAssignmentMap) => {
+    const state = loadState();
+    saveState({ ...state, assignments });
+  },
+
+  setFields: (fields: Field[]) => {
+    const state = loadState();
+    saveState({ ...state, fields });
   },
 
   updateField: (fieldId: string, patch: Partial<Field>) => {
@@ -417,4 +315,3 @@ export const demoStore = {
     saveState({ ...state, assignments: updatedAssignments });
   },
 };
-

@@ -7,7 +7,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { Task } from '../../services/taskService';
+import type { FieldTask } from '../../services/fieldWorkService';
+import { fieldTaskTypeKey } from '../../services/fieldWorkService';
 import TaskCard from './TaskCard';
 import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
 import { spacing, typography } from '../../theme';
@@ -17,20 +18,20 @@ export type CategoryRow = {
   key: string;
   label: string;
   accent: string;
-  tasks: Task[];
+  tasks: FieldTask[];
 };
 
 type Props = {
-  tasks: Task[];
+  tasks: FieldTask[];
   fields: Record<string, { name?: string; color?: string | null } | undefined>;
   compact?: boolean;
   onPressTask: (taskId: string) => void;
 };
 
-export const groupTasksByCategory = (tasks: Task[]): CategoryRow[] => {
-  const map = new Map<string, Task[]>();
+export const groupTasksByCategory = (tasks: FieldTask[]): CategoryRow[] => {
+  const map = new Map<string, FieldTask[]>();
   for (const task of tasks) {
-    const key = task.type?.trim() || 'Task';
+    const key = fieldTaskTypeKey(task);
     const list = map.get(key) || [];
     list.push(task);
     map.set(key, list);

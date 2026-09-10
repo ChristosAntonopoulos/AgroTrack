@@ -14,8 +14,8 @@ import { usePreferences } from '../context/PreferencesContext';
 import { useRefresh } from '../hooks/useRefresh';
 import { useFields } from '../hooks/useFields';
 import { reportsService, HarvestReportRecord } from '../services/reportsService';
-import { getTaskService, getNoteService } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
+import { getFieldWorkService, getNoteService, getFinancialSummaryService } from '../services/serviceFactory';
+import { FieldTask } from '../services/fieldWorkService';
 import { Note, notePreviewTitle } from '../services/noteService';
 import { formatKg } from '../utils/harvestUtils';
 import {
@@ -34,15 +34,15 @@ import {
 import { RootStackParamList } from '../navigation/types';
 import { spacing, typography } from '../theme';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+import { formatOfficialAmount } from '../finance/format';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
 
-const formatMoney = (amount: number) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(amount);
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const ThisHarvestScreen = () => {
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
-  const { t } = useTranslation(['fields', 'common']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const navigation = useNavigation<Nav>();
   const { fields } = useFields();
   const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
@@ -50,10 +50,10 @@ const ThisHarvestScreen = () => {
 
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [oliveKg, setOliveKg] = useState(0);
-  const [spent, setSpent] = useState(0);
+  const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   const anyIrrigated = useMemo(() => fields.some((f) => Boolean(f.irrigationStatus)), [fields]);
@@ -62,13 +62,15 @@ const ThisHarvestScreen = () => {
     setLoading(true);
     try {
       const years = overlappingCalendarYears(seasonStartYear);
-      const [allTasks, allNotes, harvestChunks, pnlChunks] = await Promise.all([
-        getTaskService().getAllTasks().catch(() => [] as Task[]),
+      const [allTasks, allNotes, harvestChunks, officialYear] = await Promise.all([
+        getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
         getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
         Promise.all(
           years.map((y) => reportsService.getHarvestRecords({ season: y }).catch(() => [] as HarvestReportRecord[]))
         ),
-        Promise.all(years.map((y) => reportsService.getProfitLoss({ season: y }).catch(() => null))),
+        getFinancialSummaryService()
+          .getYear(new Date().getFullYear(), undefined, i18n.language)
+          .catch(() => null),
       ]);
 
       const harvests = harvestChunks.flat().filter((h) => {
@@ -76,7 +78,7 @@ const ThisHarvestScreen = () => {
         return !Number.isNaN(d.getTime()) && d >= bounds.from && d <= bounds.to;
       });
       setOliveKg(harvests.reduce((s, h) => s + (h.oliveKg || 0), 0));
-      setSpent(pnlChunks.reduce((s, p) => s + Number(p?.totalExpenses ?? 0), 0));
+      setYearMoney(officialYear);
       setTasks(allTasks);
       setNotes(
         allNotes
@@ -87,7 +89,7 @@ const ThisHarvestScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [bounds, isEveryday, seasonStartYear]);
+  }, [bounds, isEveryday, seasonStartYear, i18n.language]);
 
   useEffect(() => {
     void load();
@@ -112,11 +114,22 @@ const ThisHarvestScreen = () => {
     if (!taskId || togglingId) return;
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
-    const next = done ? 'pending' : 'completed';
+    const next = done ? 'planned' : 'completed';
     setTogglingId(taskId);
     setTasks((prev) => prev.map((r) => (r.id === taskId ? { ...r, status: next } : r)));
     try {
-      await getTaskService().updateTaskStatus(taskId, next);
+      if (done) {
+        // Re-open is not supported via undo without execution id; keep optimistic planned.
+      } else if (task.status === 'planned' || task.status === 'ready' || task.status === 'blocked') {
+        await getFieldWorkService().startFieldTask(taskId);
+        await getFieldWorkService().completeFieldTask(taskId, { outcome: 'done' });
+        const refreshed = await getFieldWorkService().getFieldTask(taskId);
+        setTasks((prev) => prev.map((r) => (r.id === taskId ? refreshed : r)));
+      } else if (task.status === 'in_progress') {
+        await getFieldWorkService().completeFieldTask(taskId, { outcome: 'done' });
+        const refreshed = await getFieldWorkService().getFieldTask(taskId);
+        setTasks((prev) => prev.map((r) => (r.id === taskId ? refreshed : r)));
+      }
     } catch {
       setTasks((prev) => prev.map((r) => (r.id === taskId ? { ...r, status: task.status } : r)));
     } finally {
@@ -128,7 +141,7 @@ const ThisHarvestScreen = () => {
 
   const phaseLabel = (id: RodPhaseId) => t(`fields:thisHarvest.phases.${id}`);
   const empty =
-    progress.milestones.length === 0 && notes.length === 0 && oliveKg === 0 && spent === 0;
+    progress.milestones.length === 0 && notes.length === 0 && oliveKg === 0 && !yearMoney?.dataAvailability.hasPostedRecords;
 
   return (
     <ScreenLayout
@@ -273,7 +286,13 @@ const ThisHarvestScreen = () => {
           {t('fields:thisHarvest.olivesSoFar')}: {t('fields:thisHarvest.kgValue', { kg: formatKg(oliveKg) })}
         </Text>
         <Text style={{ color: colors.textPrimary, marginBottom: spacing.sm }}>
-          {t('fields:thisHarvest.spentSoFar')}: {formatMoney(spent)}
+          {t('fields:thisHarvest.spentSoFar')}:{' '}
+          {formatOfficialAmount(
+            yearMoney?.totalExpenses,
+            yearMoney?.currency || 'EUR',
+            i18n.language,
+            t('money:unknownAmount')
+          )}
         </Text>
         <Button
           title={t('fields:thisHarvest.openMoney')}

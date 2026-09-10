@@ -9,14 +9,12 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Field } from '../../services/fieldService';
 import { locationService, Location } from '../../services/locationService';
 import {
-  FIELD_POLYGON_HOVER_STYLE,
-  FIELD_POLYGON_SELECTED_STYLE,
-  FIELD_POLYGON_STYLE,
   MapLayerType,
   SATELLITE_LABELS_TILE,
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
   STREET_TILE,
+  fieldPolygonStyle,
 } from '../../utils/mapLayers';
 import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
@@ -148,10 +146,10 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
     );
   }
 
-  const polygonStyle = (fieldId: string) => {
-    if (fieldId === selectedFieldId) return FIELD_POLYGON_SELECTED_STYLE;
-    if (fieldId === hoveredId) return FIELD_POLYGON_HOVER_STYLE;
-    return FIELD_POLYGON_STYLE;
+  const polygonStyle = (field: Field) => {
+    if (field.id === selectedFieldId) return fieldPolygonStyle(field.color, field.id, 'selected');
+    if (field.id === hoveredId) return fieldPolygonStyle(field.color, field.id, 'hover');
+    return fieldPolygonStyle(field.color, field.id);
   };
 
   return (
@@ -212,7 +210,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
               <Polygon
                 key={field.id}
                 positions={polygon}
-                pathOptions={polygonStyle(field.id)}
+                pathOptions={polygonStyle(field)}
                 eventHandlers={handlers}
               />
             );

@@ -5,6 +5,7 @@
 export const CHRONOLOGIO_CATEGORY_ACCENTS: Record<string, string> = {
   task: '#C47A1A',
   expense: '#3D6EA8',
+  income: '#2F7A4B',
   harvest: '#4A7C2A',
   note: '#7A5EA8',
   weather: '#2D7A9A',

@@ -18,6 +18,9 @@ public class HarvestRecordDocument
     [BsonElement("harvestDate")]
     public DateTime HarvestDate { get; set; } = DateTime.UtcNow;
 
+    [BsonElement("resultYear")]
+    public int ResultYear { get; set; }
+
     [BsonElement("harvestMethod")]
     public string HarvestMethod { get; set; } = string.Empty;
 
@@ -32,6 +35,22 @@ public class HarvestRecordDocument
 
     [BsonElement("oilKg")]
     public double? OilKg { get; set; }
+
+    [BsonElement("oilLitres")]
+    [BsonRepresentation(BsonType.Decimal128)]
+    [BsonIgnoreIfNull]
+    public decimal? OilLitres { get; set; }
+
+    [BsonElement("conversionFactor")]
+    [BsonRepresentation(BsonType.Decimal128)]
+    [BsonIgnoreIfNull]
+    public decimal? ConversionFactor { get; set; }
+
+    [BsonElement("conversionSource")]
+    public string? ConversionSource { get; set; }
+
+    [BsonElement("conversionRecordedAt")]
+    public DateTime? ConversionRecordedAt { get; set; }
 
     [BsonElement("oilYieldPercent")]
     public double? OilYieldPercent { get; set; }

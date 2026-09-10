@@ -199,13 +199,13 @@ public class FamilyServiceTests
 public class FamilyAccessServiceTests
 {
     private readonly Mock<IFieldRepository> _fields = new();
-    private readonly Mock<ITaskRepository> _tasks = new();
+    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IFamilyMemberRepository> _family = new();
     private readonly FieldAccessService _service;
 
     public FamilyAccessServiceTests()
     {
-        _service = new FieldAccessService(_fields.Object, _tasks.Object, _family.Object);
+        _service = new FieldAccessService(_fields.Object, _fieldTasks.Object, _family.Object);
     }
 
     [Fact]
@@ -250,8 +250,8 @@ public class FamilyAccessServiceTests
                     AccessLevel = FamilyAccessLevels.View
                 }
             });
-        _tasks.Setup(r => r.GetByAssignedToAsync("family-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<TaskItem>());
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Core.Entities.FieldWork.FieldTask>());
 
         var ok = await _service.CanUserAccessFieldAsync("field-1", "family-1", "FieldOwner");
 

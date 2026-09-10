@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Image,
   Alert,
   TouchableOpacity,
   TextInput,
@@ -14,9 +13,9 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { Task } from '../services/taskService';
+import { FieldTask, fieldTaskTypeKey } from '../services/fieldWorkService';
 import { Field } from '../services/fieldService';
-import { getTaskService, getFieldService } from '../services/serviceFactory';
+import { getFieldWorkService, getFieldService } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
@@ -27,22 +26,17 @@ import StatusBadge from '../components/StatusBadge';
 import TaskStatusStepper from '../components/domain/TaskStatusStepper';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
-import EvidenceForm, { EvidenceFormData } from '../components/forms/EvidenceForm';
 import OfflineBanner from '../components/OfflineBanner';
 import { typography, spacing } from '../theme';
 import { createElevation } from '../theme/elevation';
-import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
 import { toBoolean } from '../utils/booleanConverter';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import { harvestFocusForPhase, harvestJobType, resolveHarvestPhase } from '../utils/harvestUtils';
 import { RootStackParamList } from '../navigation/types';
-import { API_BASE_URL } from '../services/fileService';
 
 type Route = RouteProp<RootStackParamList, 'TaskDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
-
-const resolveImageUrl = (url: string) =>
-  url.startsWith('http') ? url : `${API_BASE_URL.replace(/\/$/, '')}${url}`;
 
 const DetailRow = ({
   label,
@@ -68,19 +62,17 @@ const TaskDetailScreen = () => {
   const { isEveryday, tapMin, fontScaleMultiplier } = usePreferences();
   const capture = useCaptureOptional();
   const { t } = useTranslation(['tasks', 'common', 'partners', 'capture']);
-  const [task, setTask] = useState<Task | null>(null);
+  const [task, setTask] = useState<FieldTask | null>(null);
   const [field, setField] = useState<Field | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [showEvidenceForm, setShowEvidenceForm] = useState(false);
-  const [addingEvidence, setAddingEvidence] = useState(false);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [prepareNote, setPrepareNote] = useState('');
 
   const isUpdating = toBoolean(updating);
-  const isAddingEvidence = toBoolean(addingEvidence);
   const phase = task ? resolveHarvestPhase(task) : null;
   const jobType = task ? harvestJobType(task) : '';
+  const typeKey = task ? fieldTaskTypeKey(task) : '';
 
   const canWork = Boolean(
     user?.id &&
@@ -88,16 +80,15 @@ const TaskDetailScreen = () => {
         (field?.assignedProducerIds || []).includes(user.id) ||
         user.role === 'Producer')
   );
-  const canApprove = isFieldOwner();
 
   useEffect(() => {
-    loadTaskDetails();
+    void loadTaskDetails();
   }, [taskId]);
 
   const loadTaskDetails = async () => {
     try {
       setLoading(true);
-      const taskData = await getTaskService().getTask(taskId);
+      const taskData = await getFieldWorkService().getFieldTask(taskId);
       setTask(taskData);
       try {
         const fieldData = await getFieldService().getField(taskData.fieldId);
@@ -116,22 +107,18 @@ const TaskDetailScreen = () => {
     if (!phase || phase !== 'prepare') return [];
     return t(`tasks:harvestJobs.${jobType}.checklist`, {
       returnObjects: true,
-      defaultValue: t('tasks:harvestJobs.prepare.checklist', { returnObjects: true, defaultValue: [] }),
+      defaultValue: t('tasks:harvestJobs.prepare.checklist', {
+        returnObjects: true,
+        defaultValue: [],
+      }),
     }) as string[];
   }, [phase, jobType, t]);
 
-  const promptPhotoAfterDone = () => {
-    Alert.alert(t('tasks:addPhotoTitle'), t('tasks:addPhotoBody'), [
-      { text: t('tasks:notNow'), style: 'cancel' },
-      { text: t('tasks:camera'), onPress: () => setShowEvidenceForm(true) },
-    ]);
-  };
-
-  const openHarvestNext = (completed: Task) => {
+  const openHarvestNext = (completed: FieldTask) => {
     const nextPhase = resolveHarvestPhase(completed);
     if (nextPhase === 'daily') {
       Alert.alert(t('tasks:harvest.writeKilosTitle'), t('tasks:harvest.writeKilosBody'), [
-        { text: t('tasks:notNow'), style: 'cancel', onPress: promptPhotoAfterDone },
+        { text: t('tasks:notNow'), style: 'cancel' },
         {
           text: t('tasks:harvest.writeKilosNow'),
           onPress: () =>
@@ -145,7 +132,11 @@ const TaskDetailScreen = () => {
     }
     if (nextPhase === 'final') {
       Alert.alert(t('tasks:harvest.closeTitle'), t('tasks:harvest.closeBody'), [
-        { text: t('tasks:harvest.writeMoneyIn'), onPress: () => navigation.navigate('FieldDetail', { fieldId: completed.fieldId, focus: 'money' }) },
+        {
+          text: t('tasks:harvest.writeMoneyIn'),
+          onPress: () =>
+            navigation.navigate('FieldDetail', { fieldId: completed.fieldId, focus: 'money' }),
+        },
         {
           text: t('tasks:harvest.addMillOil'),
           onPress: () =>
@@ -155,21 +146,21 @@ const TaskDetailScreen = () => {
             }),
         },
       ]);
-      return;
     }
-    promptPhotoAfterDone();
   };
 
   const completeTask = async () => {
     if (!task) return;
     try {
       setUpdating(true);
-      const updated = await getTaskService().updateTaskStatus(taskId, 'completed');
+      await getFieldWorkService().completeFieldTask(taskId, {
+        outcome: 'done',
+        notes: prepareNote.trim() || undefined,
+      });
+      const updated = await getFieldWorkService().getFieldTask(taskId);
       setTask(updated);
       if (resolveHarvestPhase(updated)) {
         openHarvestNext(updated);
-      } else {
-        promptPhotoAfterDone();
       }
     } catch (err: unknown) {
       Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
@@ -178,31 +169,16 @@ const TaskDetailScreen = () => {
     }
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStart = () => {
     if (!task) return;
-    if (newStatus === 'completed') {
-      Alert.alert(
-        t('tasks:confirmDoneTitle'),
-        t('tasks:confirmDoneBody', { title: task.title }),
-        [
-          { text: t('common:cancel'), style: 'cancel' },
-          { text: t('common:done'), onPress: () => void completeTask() },
-        ]
-      );
-      return;
-    }
-    const messages: Record<string, string> = {
-      in_progress: t('tasks:startTask'),
-      pending: t('tasks:reopenTask'),
-    };
-    Alert.alert(t('tasks:confirmStatus'), messages[newStatus] ?? t('tasks:confirmStatus'), [
+    Alert.alert(t('tasks:confirmStatus'), t('tasks:startTask'), [
       { text: t('common:cancel'), style: 'cancel' },
       {
         text: t('common:confirm'),
         onPress: async () => {
           try {
             setUpdating(true);
-            const updated = await getTaskService().updateTaskStatus(taskId, newStatus);
+            const updated = await getFieldWorkService().startFieldTask(taskId);
             setTask(updated);
           } catch (err: unknown) {
             Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
@@ -214,31 +190,12 @@ const TaskDetailScreen = () => {
     ]);
   };
 
-  const handleAddEvidence = async (data: EvidenceFormData) => {
+  const handleCompleteConfirm = () => {
     if (!task) return;
-    try {
-      setAddingEvidence(true);
-      const updated = await getTaskService().addEvidence(taskId, data.photoUrl, data.notes);
-      setTask(updated);
-      Alert.alert(t('tasks:evidenceAdded'));
-    } finally {
-      setAddingEvidence(false);
-    }
-  };
-
-  const handleApprove = async (approve: boolean) => {
-    if (!task) return;
-    try {
-      setUpdating(true);
-      const updated = approve
-        ? await getTaskService().approveTask(taskId)
-        : await getTaskService().rejectTask(taskId);
-      setTask(updated);
-    } catch (err: unknown) {
-      Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
-    } finally {
-      setUpdating(false);
-    }
+    Alert.alert(t('tasks:confirmDoneTitle'), t('tasks:confirmDoneBody', { title: task.title }), [
+      { text: t('common:cancel'), style: 'cancel' },
+      { text: t('common:done'), onPress: () => void completeTask() },
+    ]);
   };
 
   const doneLabel = useMemo(() => {
@@ -257,31 +214,20 @@ const TaskDetailScreen = () => {
   }, [phase, jobType, t]);
 
   const primaryAction = useMemo(() => {
-    if (!task) return null;
-    if (canWork) {
-      if (task.status === 'pending') {
-        return { label: t('tasks:startTask'), onPress: () => handleStatusUpdate('in_progress') };
-      }
-      if (task.status === 'in_progress') {
-        return { label: doneLabel, onPress: () => handleStatusUpdate('completed') };
-      }
+    if (!task || !canWork) return null;
+    if (
+      task.status === 'planned' ||
+      task.status === 'ready' ||
+      task.status === 'blocked' ||
+      task.status === 'pending'
+    ) {
+      return { label: t('tasks:startTask'), onPress: handleStart };
     }
-    if (canApprove && task.approvalStatus === 'pending') {
-      return { label: t('tasks:approve'), onPress: () => handleApprove(true) };
-    }
-    return null;
-  }, [task, canWork, canApprove, doneLabel, t]);
-
-  const secondaryAction = useMemo(() => {
-    if (!task) return null;
-    if (canWork && (task.status === 'in_progress' || task.status === 'completed')) {
-      return { label: t('tasks:addEvidence'), onPress: () => setShowEvidenceForm(true) };
-    }
-    if (canApprove && task.approvalStatus === 'pending') {
-      return { label: t('tasks:reject'), onPress: () => handleApprove(false) };
+    if (task.status === 'in_progress') {
+      return { label: doneLabel, onPress: handleCompleteConfirm };
     }
     return null;
-  }, [task, canWork, canApprove, t]);
+  }, [task, canWork, doneLabel, t]);
 
   if (loading) return <LoadingSpinner fullScreen />;
 
@@ -345,7 +291,11 @@ const TaskDetailScreen = () => {
             title={t('partners:findPartner')}
             variant="outline"
             onPress={() =>
-              navigation.navigate('Partners', { fieldId: task.fieldId, taskId: task.id, category: task.type })
+              navigation.navigate('Partners', {
+                fieldId: task.fieldId,
+                taskId: task.id,
+                category: typeKey,
+              })
             }
           />
         ) : null}
@@ -430,87 +380,62 @@ const TaskDetailScreen = () => {
           <>
             <Section title={t('tasks:detailInfo')}>
               <Card variant="outlined">
-                <DetailRow label={t('tasks:type')} value={task.type} colors={colors} />
+                <DetailRow label={t('tasks:type')} value={typeKey} colors={colors} />
                 {task.description ? (
                   <DetailRow label={t('tasks:notes')} value={task.description} colors={colors} />
+                ) : null}
+                {task.statusLabel ? (
+                  <DetailRow label={t('tasks:status')} value={task.statusLabel} colors={colors} />
                 ) : null}
               </Card>
             </Section>
 
             <Section title={t('tasks:detailSchedule')}>
               <Card variant="outlined">
-                {task.scheduledStart ? (
-                  <DetailRow label={t('tasks:scheduled')} value={formatDate(task.scheduledStart)} colors={colors} />
+                {task.plannedStart ? (
+                  <DetailRow
+                    label={t('tasks:scheduled')}
+                    value={formatDate(task.plannedStart)}
+                    colors={colors}
+                  />
                 ) : null}
-                {task.scheduledEnd ? (
-                  <DetailRow label={t('tasks:due')} value={formatDate(task.scheduledEnd)} colors={colors} />
+                {task.plannedEnd ? (
+                  <DetailRow label={t('tasks:due')} value={formatDate(task.plannedEnd)} colors={colors} />
                 ) : null}
-                {task.cost !== undefined ? (
-                  <DetailRow label={t('tasks:cost')} value={formatCurrency(task.cost)} colors={colors} />
+                {task.estimatedCost !== undefined ? (
+                  <DetailRow
+                    label={t('tasks:cost')}
+                    value={`${task.estimatedCost} ${task.estimatedCostCurrency || 'EUR'}`}
+                    colors={colors}
+                  />
                 ) : null}
               </Card>
             </Section>
           </>
         ) : null}
 
-        {task.evidence?.length > 0 ? (
-          <Section title={t('tasks:addEvidence')}>
-            {task.evidence.map((evidence, index) => (
-              <Card key={index} variant="elevated" style={{ marginBottom: spacing.sm }}>
-                {evidence.photoUrl ? (
-                  <Image
-                    source={{ uri: resolveImageUrl(evidence.photoUrl) }}
-                    style={styles.evidenceImage}
-                    resizeMode="cover"
-                  />
-                ) : null}
-                {evidence.notes ? (
-                  <Text style={{ color: colors.textSecondary, marginTop: spacing.sm }}>{evidence.notes}</Text>
-                ) : null}
-                <Text style={[styles.timestamp, { color: colors.textTertiary }]}>
-                  {formatDateTime(evidence.timestamp)}
-                </Text>
-              </Card>
-            ))}
-          </Section>
-        ) : null}
-
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {(primaryAction || secondaryAction) ? (
+      {primaryAction ? (
         <View
           style={[
             styles.footer,
-            { backgroundColor: colors.surfaceElevated, borderTopColor: colors.border, ...createElevation(colors, 'lg') },
+            {
+              backgroundColor: colors.surfaceElevated,
+              borderTopColor: colors.border,
+              ...createElevation(colors, 'lg'),
+            },
           ]}
         >
-          {secondaryAction && !isEveryday ? (
-            <Button
-              title={secondaryAction.label}
-              onPress={secondaryAction.onPress}
-              variant="outline"
-              style={[styles.footerBtn, { minHeight: tapMin }]}
-              disabled={isUpdating}
-            />
-          ) : null}
-          {primaryAction ? (
-            <Button
-              title={primaryAction.label}
-              onPress={primaryAction.onPress}
-              loading={isUpdating}
-              style={[styles.footerBtn, { flex: 1, minHeight: tapMin }]}
-            />
-          ) : null}
+          <Button
+            title={primaryAction.label}
+            onPress={primaryAction.onPress}
+            loading={isUpdating}
+            style={{ ...styles.footerBtn, flex: 1, minHeight: tapMin }}
+          />
         </View>
       ) : null}
-
-      <EvidenceForm
-        visible={showEvidenceForm}
-        onClose={() => setShowEvidenceForm(false)}
-        onSubmit={handleAddEvidence}
-        loading={isAddingEvidence}
-      />
     </View>
   );
 };
@@ -539,8 +464,6 @@ const styles = StyleSheet.create({
   },
   detailLabel: { ...typography.styles.bodySmall, flex: 1 },
   detailValue: { ...typography.styles.bodySmall, fontWeight: '600', flex: 1, textAlign: 'right' },
-  evidenceImage: { width: '100%', height: 200, borderRadius: 12 },
-  timestamp: { ...typography.styles.caption, marginTop: spacing.xs },
   footer: {
     flexDirection: 'row',
     gap: spacing.sm,

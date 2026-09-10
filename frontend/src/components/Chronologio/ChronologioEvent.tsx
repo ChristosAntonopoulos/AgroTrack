@@ -141,9 +141,11 @@ const ChronologioEvent: React.FC<Props> = ({
                 : ''}
             </span>
           ) : null}
-          {category === 'expense' && entry.amount && entry.amount.value > 0 ? (
+          {category === 'expense' || category === 'income' ? (
             <span className="chrono-event-compact-meta">
-              {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
+              {entry.amount
+                ? formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)
+                : null}
             </span>
           ) : null}
           {category === 'weather' &&

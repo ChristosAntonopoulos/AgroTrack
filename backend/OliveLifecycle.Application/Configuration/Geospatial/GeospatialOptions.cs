@@ -16,6 +16,7 @@ public class GeospatialOptions
     public FrostRiskOptions FrostRisk { get; set; } = new();
     public TaskRulesOptions TaskRules { get; set; } = new();
     public AlertOptions Alerts { get; set; } = new();
+    public FieldWorkEventOptions FieldWorkEvents { get; set; } = new();
 }
 
 public class WeatherOptions
@@ -208,4 +209,25 @@ public class AlertOptions
 
     /// <summary>Observations older than this no longer justify a vegetation alert.</summary>
     public int VegetationMaxObservationAgeDays { get; set; } = 21;
+}
+
+/// <summary>Configurable planning defaults for Field Work event-triggered proposals.</summary>
+public class FieldWorkEventOptions
+{
+    public double FrostWarningTempC { get; set; } = 2;
+    public double FrostUrgentTempC { get; set; } = 0;
+    public double StormGustKmh { get; set; } = 70;
+    public double StormHeavyRainMm { get; set; } = 20;
+    public double HeatInfoTempC { get; set; } = 35;
+    public double HeatUrgentTempC { get; set; } = 38;
+    public double PeacockCoolMaxTempC { get; set; } = 22;
+    public double PeacockHumidityPercent { get; set; } = 80;
+    public double PeacockRainMm { get; set; } = 5;
+    public double AnthracnoseRainMm { get; set; } = 8;
+    public double AnthracnoseHumidityPercent { get; set; } = 85;
+    public double PostTreatmentDefaultRainfastHours { get; set; } = 6;
+    public double PostTreatmentMinRainMm { get; set; } = 1;
+    public double FertiliserHeavyRainMm { get; set; } = 10;
+    public int FertiliserRainLookbackHours { get; set; } = 48;
+    public int TreatmentRainLookbackHours { get; set; } = 72;
 }

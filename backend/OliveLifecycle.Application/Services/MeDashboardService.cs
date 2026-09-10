@@ -5,6 +5,7 @@ using OliveLifecycle.Application.DTOs.Dashboard;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.Application.Services;
@@ -26,25 +27,36 @@ public class MeDashboardService : IMeDashboardService
         Roles.Administrator
     };
 
+    private static readonly HashSet<FieldTaskStatus> OpenStatuses = new()
+    {
+        FieldTaskStatus.Planned,
+        FieldTaskStatus.Ready,
+        FieldTaskStatus.InProgress,
+        FieldTaskStatus.Blocked
+    };
+
     private readonly IActivityRepository _activities;
-    private readonly ITaskRepository _tasks;
+    private readonly IFieldTaskRepository _fieldTasks;
+    private readonly ITaskExecutionRepository _executions;
     private readonly IFieldRepository _fields;
-    private readonly IFinancialEntryRepository _financialEntries;
+    private readonly IFinancialTransactionRepository _financialTransactions;
     private readonly IServiceContactRequestRepository _contactRequests;
     private readonly IDateTimeProvider _clock;
 
     public MeDashboardService(
         IActivityRepository activities,
-        ITaskRepository tasks,
+        IFieldTaskRepository fieldTasks,
+        ITaskExecutionRepository executions,
         IFieldRepository fields,
-        IFinancialEntryRepository financialEntries,
+        IFinancialTransactionRepository financialTransactions,
         IServiceContactRequestRepository contactRequests,
         IDateTimeProvider clock)
     {
         _activities = activities;
-        _tasks = tasks;
+        _fieldTasks = fieldTasks;
+        _executions = executions;
         _fields = fields;
-        _financialEntries = financialEntries;
+        _financialTransactions = financialTransactions;
         _contactRequests = contactRequests;
         _clock = clock;
     }
@@ -75,12 +87,11 @@ public class MeDashboardService : IMeDashboardService
         var fieldIds = fields.Select(f => f.Id).ToList();
 
         var expenses = fieldIds.Count == 0
-            ? new List<FinancialEntry>()
-            : (await _financialEntries.GetByFieldIdsAsync(fieldIds, cancellationToken))
+            ? new List<FinancialTransaction>()
+            : (await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken))
                 .Where(e =>
-                    e.RecordedBy == userId &&
-                    e.Status == FinancialEntryStatus.Posted &&
-                    e.Kind == FinancialEntryKind.Expense)
+                    e.CreatedByUserId == userId &&
+                    e.Type == FinancialTransactionType.Expense)
                 .ToList();
 
         var counts = BuildCounts(myActivities, contacts, expenses, from, to);
@@ -89,10 +100,19 @@ public class MeDashboardService : IMeDashboardService
         var topAction = ResolveTopAction(myActivities, contacts, expenses, now.AddDays(-14), now);
 
         var fieldTasks = fieldIds.Count == 0
-            ? new List<TaskItem>()
-            : (await _tasks.GetByFieldIdsAsync(fieldIds, cancellationToken)).ToList();
+            ? new List<FieldTask>()
+            : (await _fieldTasks.QueryAsync(
+                new FieldTaskQuery { FieldIds = fieldIds },
+                cancellationToken)).ToList();
 
-        var pending = BuildPending(fieldTasks, now, userRole);
+        var activeExecutionTaskIds = fieldIds.Count == 0
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : (await _executions.GetByFieldIdsAsync(fieldIds, cancellationToken))
+                .Where(e => e.IsActive)
+                .Select(e => e.TaskId)
+                .ToHashSet(StringComparer.Ordinal);
+
+        var pending = BuildPending(fieldTasks, activeExecutionTaskIds, now);
 
         var recentMine = myActivities
             .Where(a => a.Timestamp >= from && a.Timestamp < to)
@@ -153,7 +173,7 @@ public class MeDashboardService : IMeDashboardService
     public static MeDashboardCountsDto BuildCounts(
         IEnumerable<Activity> activities,
         IEnumerable<ServiceContactRequest> contacts,
-        IEnumerable<FinancialEntry> expenses,
+        IEnumerable<FinancialTransaction> expenses,
         DateTime from,
         DateTime to)
     {
@@ -199,7 +219,7 @@ public class MeDashboardService : IMeDashboardService
     public static string ResolveTopAction(
         IEnumerable<Activity> activities,
         IEnumerable<ServiceContactRequest> contacts,
-        IEnumerable<FinancialEntry> expenses,
+        IEnumerable<FinancialTransaction> expenses,
         DateTime from,
         DateTime to)
     {
@@ -221,28 +241,43 @@ public class MeDashboardService : IMeDashboardService
     }
 
     public static MeDashboardPendingDto BuildPending(
-        IEnumerable<TaskItem> tasks,
-        DateTime nowUtc,
-        string userRole)
+        IEnumerable<FieldTask> tasks,
+        IReadOnlySet<string> activeExecutionTaskIds,
+        DateTime nowUtc)
     {
         var today = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, 0, 0, 0, DateTimeKind.Utc);
         var tomorrow = today.AddDays(1);
-        var open = tasks.Where(t => t.Status != WorkTaskStatus.Completed).ToList();
+        var open = tasks.Where(t => IsOpen(t, activeExecutionTaskIds)).ToList();
 
         return new MeDashboardPendingDto
         {
-            Overdue = open.Count(t => t.ScheduledEnd.HasValue && t.ScheduledEnd.Value < today),
+            Overdue = open.Count(t => t.PlannedEnd.HasValue && t.PlannedEnd.Value < today),
             DueToday = open.Count(t =>
-                t.ScheduledEnd.HasValue &&
-                t.ScheduledEnd.Value >= today &&
-                t.ScheduledEnd.Value < tomorrow),
-            PendingApproval = OwnerRoles.Contains(userRole)
-                ? tasks.Count(t =>
-                    t.Status == WorkTaskStatus.Completed &&
-                    t.ApprovalStatus == ApprovalStatus.Pending)
-                : 0
+                t.PlannedEnd.HasValue &&
+                t.PlannedEnd.Value >= today &&
+                t.PlannedEnd.Value < tomorrow),
+            // FieldTask has no post-completion approval workflow.
+            PendingApproval = 0
         };
     }
+
+    public static bool IsOpen(FieldTask task, IReadOnlySet<string> activeExecutionTaskIds)
+    {
+        if (task.Status == FieldTaskStatus.Cancelled)
+        {
+            return false;
+        }
+
+        if (task.Status == FieldTaskStatus.Completed || activeExecutionTaskIds.Contains(task.Id))
+        {
+            return false;
+        }
+
+        return OpenStatuses.Contains(task.Status);
+    }
+
+    public static bool IsCompleted(FieldTask task, IReadOnlySet<string> activeExecutionTaskIds) =>
+        task.Status == FieldTaskStatus.Completed || activeExecutionTaskIds.Contains(task.Id);
 
     private async Task<IEnumerable<Field>> GetAccessibleFieldsAsync(
         string userId,

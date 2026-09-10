@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowLeft, Filter, GitCompare, X } from 'lucide-react';
+import { ArrowLeft, Filter, GitCompare, Wallet, X } from 'lucide-react';
 import Button from '../Common/Button';
 import ChronologioZoomBar from './ChronologioZoomBar';
+import { useCaptureOptional } from '../../context/CaptureContext';
 import type { ChronologioAxis, ChronologioCategory } from '../../services/chronologioService';
 import type { Field } from '../../services/fieldService';
 import type { ChronologioZoom, LivingFilters } from '../../chronologio/livingTypes';
@@ -22,6 +23,7 @@ const FILTER_CATEGORIES: Array<ChronologioCategory | 'all'> = [
 type Props = {
   fieldMode: boolean;
   fieldName?: string;
+  fieldId?: string;
   fields: Field[];
   filters: LivingFilters;
   axis: ChronologioAxis;
@@ -38,12 +40,13 @@ type Props = {
 };
 
 /**
- * Locked shell: title → tagline → field → zoom | filters | contextual Compare.
- * No persistent Capture (global header owns Καταγραφή).
+ * Locked shell: title → tagline → field → zoom | money capture | filters | Compare.
+ * Generic Καταγραφή stays in the app header; Chronologio adds one money CTA.
  */
 const ChronologioChrome: React.FC<Props> = ({
   fieldMode,
   fieldName,
+  fieldId,
   fields,
   filters,
   axis,
@@ -59,6 +62,7 @@ const ChronologioChrome: React.FC<Props> = ({
   onCompareToggle,
 }) => {
   const { t } = useTranslation(['chronologio', 'capture']);
+  const capture = useCaptureOptional();
   const reduceMotion = useReducedMotion();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
@@ -141,6 +145,21 @@ const ChronologioChrome: React.FC<Props> = ({
           />
 
           <div className="chrono-toolbar-actions">
+            {capture ? (
+              <button
+                type="button"
+                className="chrono-money-cta"
+                onClick={() =>
+                  capture.openCapture({
+                    preferredType: 'money',
+                    fieldId: filters.fieldId || fieldId || undefined,
+                  })
+                }
+              >
+                <Wallet size={16} aria-hidden />
+                {t('capture:money.ctaPlus')}
+              </button>
+            ) : null}
             <div className="chronologio-filter-popover" ref={filterPanelRef}>
               <button
                 type="button"

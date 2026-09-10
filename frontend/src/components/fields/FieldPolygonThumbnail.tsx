@@ -2,6 +2,7 @@ import React, { useId, useMemo } from 'react';
 import { MapPin } from 'lucide-react';
 import { Field } from '../../services/fieldService';
 import { resolveFieldPolygon } from '../../utils/fieldGeo';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import './FieldPolygonThumbnail.css';
 
 type Props = {
@@ -11,20 +12,6 @@ type Props = {
 
 const VIEW = 160;
 const PAD = 18;
-
-const PALETTES = [
-  { fillFrom: '#8FBF63', fillTo: '#3D6B3A', stroke: '#D4F0A8' },
-  { fillFrom: '#A8C96B', fillTo: '#4F6F38', stroke: '#E8F5B8' },
-  { fillFrom: '#C4B06A', fillTo: '#7A6238', stroke: '#F3E6B4' },
-  { fillFrom: '#6FAF7A', fillTo: '#2E4A2E', stroke: '#C5E8C4' },
-  { fillFrom: '#9BB56E', fillTo: '#44582E', stroke: '#DCE8B0' },
-] as const;
-
-const hashIndex = (id: string, n: number): number => {
-  let h = 0;
-  for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h % n;
-};
 
 /** Project a lat/lng ring into a fitted SVG path, preserving geographic aspect. */
 export const polygonToSvgPath = (
@@ -58,7 +45,7 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, className }) => {
   const uid = useId().replace(/:/g, '');
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
   const d = useMemo(() => (polygon ? polygonToSvgPath(polygon, VIEW, PAD) : ''), [polygon]);
-  const palette = PALETTES[hashIndex(field.id, PALETTES.length)];
+  const accent = resolveFieldColor(field.color, field.id);
 
   if (!d) {
     return (
@@ -73,15 +60,15 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, className }) => {
       <svg className="field-poly-thumb-svg" viewBox={`0 0 ${VIEW} ${VIEW}`} role="presentation">
         <defs>
           <linearGradient id={`fp-fill-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={palette.fillFrom} />
-            <stop offset="100%" stopColor={palette.fillTo} />
+            <stop offset="0%" stopColor={accent} stopOpacity="0.92" />
+            <stop offset="100%" stopColor={accent} stopOpacity="0.72" />
           </linearGradient>
         </defs>
         <path d={d} fill="rgba(10, 16, 8, 0.38)" transform="translate(3 5)" />
         <path
           d={d}
           fill={`url(#fp-fill-${uid})`}
-          stroke={palette.stroke}
+          stroke={accent}
           strokeWidth="2.75"
           strokeLinejoin="round"
         />

@@ -30,7 +30,7 @@ const Breadcrumbs: React.FC = () => {
   }
 
   const resolveDynamicLabel = (segment: string, to: string) => {
-    if (to.startsWith('/fields/') && segment !== 'fields' && segment !== 'new' && segment !== 'edit' && segment !== 'task-templates' && segment !== 'history') {
+    if (to.startsWith('/fields/') && segment !== 'fields' && segment !== 'new' && segment !== 'edit' && segment !== 'history') {
       if (segment === fieldIdFromPath && apiFieldName) return apiFieldName;
       if (isMockMode()) {
         demoStore.ensureSeeded();

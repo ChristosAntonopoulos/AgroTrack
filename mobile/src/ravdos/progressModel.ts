@@ -1,4 +1,5 @@
-import type { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
+import { fieldTaskTypeKey } from '../services/fieldWorkService';
 import {
   getSeasonBounds,
   isDateInSeason,
@@ -130,15 +131,14 @@ export const isTaskCancelled = (status?: string): boolean => {
   return s === 'cancelled' || s === 'canceled';
 };
 
-const taskDateCandidates = (task: Task): Array<string | undefined> => [
-  task.scheduledStart,
-  task.scheduledEnd,
-  task.actualEnd,
-  task.actualStart,
+const taskDateCandidates = (task: FieldTask): Array<string | undefined> => [
+  task.plannedStart,
+  task.plannedEnd,
+  task.updatedAt,
   task.createdAt,
 ];
 
-export const taskInSeasonBounds = (task: Task, bounds: SeasonBounds): boolean => {
+export const taskInSeasonBounds = (task: FieldTask, bounds: SeasonBounds): boolean => {
   if (isTaskCancelled(task.status)) return false;
   return taskDateCandidates(task).some((d) => isDateInSeason(d, bounds));
 };
@@ -148,17 +148,17 @@ export const noteInSeasonBounds = (
   bounds: SeasonBounds
 ): boolean => isDateInSeason(note.occurredAt, bounds) || isDateInSeason(note.createdAt, bounds);
 
-const normalizeTypeKey = (task: Task): string => {
-  const raw = (task.templateId || task.type || '').trim();
+const normalizeTypeKey = (task: FieldTask): string => {
+  const raw = fieldTaskTypeKey(task);
   return raw.toLowerCase().replace(/\s+/g, '_');
 };
 
-export const hasHarvestCloseSignal = (tasks: Task[], bounds: SeasonBounds): boolean =>
+export const hasHarvestCloseSignal = (tasks: FieldTask[], bounds: SeasonBounds): boolean =>
   tasks.some((task) => {
     if (!taskInSeasonBounds(task, bounds) || !isTaskCompleted(task.status)) return false;
     const key = normalizeTypeKey(task);
     if (FINAL_CLOSE_TYPES.has(key)) return true;
-    const hay = `${task.type} ${task.title}`.toLowerCase();
+    const hay = `${fieldTaskTypeKey(task)} ${task.title}`.toLowerCase();
     return (
       hay.includes('close harvest') ||
       hay.includes('κλείσ') ||
@@ -169,7 +169,7 @@ export const hasHarvestCloseSignal = (tasks: Task[], bounds: SeasonBounds): bool
 
 export const isSeasonClosedForReview = (
   seasonStartYear: number,
-  tasks: Task[],
+  tasks: FieldTask[],
   now = new Date()
 ): boolean => {
   const bounds = getSeasonBounds(seasonStartYear);
@@ -178,13 +178,13 @@ export const isSeasonClosedForReview = (
 };
 
 export const buildSeasonMilestones = (
-  tasks: Task[],
+  tasks: FieldTask[],
   options: { anyIrrigatedField: boolean; seasonStartYear: number }
 ): RodMilestone[] => {
   const bounds = getSeasonBounds(options.seasonStartYear);
   const seasonTasks = tasks.filter((t) => taskInSeasonBounds(t, bounds));
-  const doneByTemplate = new Map<string, Task>();
-  const openByTemplate = new Map<string, Task>();
+  const doneByTemplate = new Map<string, FieldTask>();
+  const openByTemplate = new Map<string, FieldTask>();
 
   for (const task of seasonTasks) {
     const key = normalizeTypeKey(task);

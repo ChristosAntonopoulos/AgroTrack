@@ -74,4 +74,10 @@ public class FieldRepository : MongoRepositoryBase<FieldDocument, Field>, IField
         var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
         return documents.Select(ToEntity).ToList();
     }
+
+    public async Task<IReadOnlyList<Field>> GetByStatusAsync(FieldStatus status, CancellationToken cancellationToken = default)
+    {
+        var documents = await Collection.Find(f => f.Status == status).ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
+    }
 }

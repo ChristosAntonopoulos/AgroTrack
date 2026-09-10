@@ -1,9 +1,10 @@
-using Moq;
+﻿using Moq;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Enums;
 using Xunit;
@@ -13,9 +14,10 @@ namespace OliveLifecycle.Application.Tests;
 public class ReportsServiceTests
 {
     private readonly Mock<IFieldRepository> _fields = new();
-    private readonly Mock<ITaskRepository> _tasks = new();
+    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
+    private readonly Mock<ITaskExecutionRepository> _executions = new();
     private readonly Mock<IHarvestRecordRepository> _harvests = new();
-    private readonly Mock<IFinancialEntryRepository> _ledger = new();
+    private readonly Mock<IFinancialTransactionRepository> _ledger = new();
     private readonly Mock<IFieldDailyWeatherSnapshotRepository> _snapshots = new();
     private readonly Mock<IFieldWeatherPeriodReviewRepository> _reviews = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
@@ -24,12 +26,14 @@ public class ReportsServiceTests
     public ReportsServiceTests()
     {
         _clock.Setup(c => c.UtcNow).Returns(new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc));
-        _tasks.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<TaskItem>());
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FieldTask>());
+        _executions.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<TaskExecution>());
         _harvests.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<HarvestRecord>());
-        _ledger.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<FinancialEntry>());
+        _ledger.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FinancialTransaction>());
         _reviews.Setup(r => r.GetByFieldIdsAsync(
                 It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<DateTime?>(),
@@ -38,7 +42,8 @@ public class ReportsServiceTests
             .ReturnsAsync(Array.Empty<FieldWeatherPeriodReview>());
         _service = new ReportsService(
             _fields.Object,
-            _tasks.Object,
+            _fieldTasks.Object,
+            _executions.Object,
             _harvests.Object,
             _ledger.Object,
             _snapshots.Object,
@@ -72,23 +77,25 @@ public class ReportsServiceTests
                     Status = FinancialEntryStatus.Posted
                 }
             ]);
-        _ledger.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+        _ledger.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
-                new FinancialEntry
+                new FinancialTransaction
                 {
                     FieldId = "f1",
-                    Kind = FinancialEntryKind.Expense,
+                    Type = FinancialTransactionType.Expense,
                     Amount = 2844.49m,
-                    Status = FinancialEntryStatus.Posted,
-                    OccurredOn = new DateTime(2024, 5, 1)
+                    Status = FinancialTransactionStatus.Posted,
+                    OccurredOn = new DateTime(2024, 5, 1),
+                    ResultYear = 2024
                 },
-                new FinancialEntry
+                new FinancialTransaction
                 {
                     FieldId = "f1",
-                    Kind = FinancialEntryKind.Income,
+                    Type = FinancialTransactionType.Income,
                     Amount = 1200.2m,
-                    Status = FinancialEntryStatus.Posted,
-                    OccurredOn = new DateTime(2024, 12, 1)
+                    Status = FinancialTransactionStatus.Posted,
+                    OccurredOn = new DateTime(2024, 12, 1),
+                    ResultYear = 2024
                 }
             ]);
 
@@ -173,43 +180,59 @@ public class ReportsServiceTests
         _snapshots.Setup(r => r.GetHistoryAsync("f1", It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(snapshots);
 
-        _tasks.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
-                new TaskItem
+                new FieldTask
                 {
+                    Id = "ft-1",
                     FieldId = "f1",
-                    Type = "Pruning",
+                    TemplateCode = "Pruning",
                     Title = "Main pruning",
-                    Status = WorkTaskStatus.Completed,
-                    Cost = 400,
-                    ActualEnd = new DateTime(2024, 3, 12)
+                    Status = FieldTaskStatus.Completed,
+                    PlannedEnd = new DateTime(2024, 3, 12),
+                    ResultYear = 2024
                 },
-                new TaskItem
+                new FieldTask
                 {
+                    Id = "ft-2",
                     FieldId = "f1",
-                    Type = "Spray",
+                    TemplateCode = "Spray",
                     Title = "Treatment",
-                    Status = WorkTaskStatus.Pending,
-                    ScheduledEnd = new DateTime(2024, 1, 1)
+                    Status = FieldTaskStatus.Planned,
+                    PlannedEnd = new DateTime(2024, 1, 1),
+                    ResultYear = 2024
                 }
             ]);
-        _ledger.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+        _executions.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
-                new FinancialEntry
+                new TaskExecution
+                {
+                    Id = "ex-1",
+                    TaskId = "ft-1",
+                    FieldId = "f1",
+                    ResultYear = 2024,
+                    CompletedAt = new DateTime(2024, 3, 12)
+                }
+            ]);
+        _ledger.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new FinancialTransaction
                 {
                     FieldId = "f1",
-                    Kind = FinancialEntryKind.Expense,
+                    Type = FinancialTransactionType.Expense,
                     Amount = 500,
-                    Status = FinancialEntryStatus.Posted,
-                    OccurredOn = new DateTime(2024, 3, 10)
+                    Status = FinancialTransactionStatus.Posted,
+                    OccurredOn = new DateTime(2024, 3, 10),
+                    ResultYear = 2024
                 },
-                new FinancialEntry
+                new FinancialTransaction
                 {
                     FieldId = "f1",
-                    Kind = FinancialEntryKind.Income,
+                    Type = FinancialTransactionType.Income,
                     Amount = 200,
-                    Status = FinancialEntryStatus.Posted,
-                    OccurredOn = new DateTime(2024, 11, 1)
+                    Status = FinancialTransactionStatus.Posted,
+                    OccurredOn = new DateTime(2024, 11, 1),
+                    ResultYear = 2024
                 }
             ]);
 

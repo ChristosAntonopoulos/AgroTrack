@@ -6,6 +6,7 @@ using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence;
 using OliveLifecycle.Infrastructure.Persistence.Repositories;
 using OliveLifecycle.Infrastructure.Geospatial;
+using OliveLifecycle.Infrastructure.FieldWork;
 using OliveLifecycle.Infrastructure.Storage;
 
 namespace OliveLifecycle.Infrastructure;
@@ -17,17 +18,26 @@ public static class DependencyInjection
         services.AddMongoDb(configuration);
         services.AddHostedService<MongoIndexInitializer>();
         services.AddHostedService<DataSeeder>();
+        services.AddHostedService<TaskProposalEvaluationHost>();
+        services.AddHostedService<FieldTaskWeatherEvaluationHost>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFieldRepository, FieldRepository>();
         services.AddScoped<IFieldInviteRepository, FieldInviteRepository>();
         services.AddScoped<ILifecycleRepository, LifecycleRepository>();
-        services.AddScoped<ITaskRepository, TaskRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
-        services.AddScoped<ITaskTemplateRepository, TaskTemplateRepository>();
+        services.AddScoped<IFieldWorkTaskTemplateRepository, FieldWorkTaskTemplateRepository>();
+        services.AddScoped<IFieldWorkTaskTemplateVersionRepository, FieldWorkTaskTemplateVersionRepository>();
+        services.AddScoped<ITaskProposalRepository, TaskProposalRepository>();
+        services.AddScoped<IFieldTaskRepository, FieldTaskRepository>();
+        services.AddScoped<ITaskExecutionRepository, TaskExecutionRepository>();
+        services.AddScoped<IFieldPhenologyObservationRepository, FieldPhenologyObservationRepository>();
+        services.AddScoped<ITaskWeatherEvaluationRepository, TaskWeatherEvaluationRepository>();
+        services.AddScoped<IOfficialAgriculturalWarningRepository, OfficialAgriculturalWarningRepository>();
+        services.AddScoped<IFieldWorkProfileRepository, FieldWorkProfileRepository>();
         services.AddScoped<IMinistryNotificationRepository, MinistryNotificationRepository>();
         services.AddScoped<IHarvestRecordRepository, HarvestRecordRepository>();
-        services.AddScoped<IFinancialEntryRepository, FinancialEntryRepository>();
+        services.AddScoped<IFinancialTransactionRepository, FinancialTransactionRepository>();
         services.AddScoped<IServiceCategoryRepository, ServiceCategoryRepository>();
         services.AddScoped<IServiceProviderProfileRepository, ServiceProviderProfileRepository>();
         services.AddScoped<IServiceContactRequestRepository, ServiceContactRequestRepository>();

@@ -37,7 +37,8 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
     private readonly IWeatherProvider _weatherProvider;
     private readonly IWeatherCacheRepository _weatherCacheRepository;
     private readonly IFieldDailyWeatherSnapshotRepository _snapshotRepository;
-    private readonly ITaskRepository _taskRepository;
+    private readonly IFieldTaskRepository _fieldTasks;
+    private readonly ITaskExecutionRepository _executions;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly GeospatialOptions _options;
     private readonly ILogger<WeatherIntelligenceService> _logger;
@@ -46,7 +47,8 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
         IWeatherProvider weatherProvider,
         IWeatherCacheRepository weatherCacheRepository,
         IFieldDailyWeatherSnapshotRepository snapshotRepository,
-        ITaskRepository taskRepository,
+        IFieldTaskRepository fieldTasks,
+        ITaskExecutionRepository executions,
         IDateTimeProvider dateTimeProvider,
         IOptions<GeospatialOptions> options,
         ILogger<WeatherIntelligenceService> logger)
@@ -54,7 +56,8 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
         _weatherProvider = weatherProvider;
         _weatherCacheRepository = weatherCacheRepository;
         _snapshotRepository = snapshotRepository;
-        _taskRepository = taskRepository;
+        _fieldTasks = fieldTasks;
+        _executions = executions;
         _dateTimeProvider = dateTimeProvider;
         _options = options.Value;
         _logger = logger;
@@ -119,10 +122,10 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
         var now = _dateTimeProvider.UtcNow;
         var hourly = cache!.HourlyForecast.OrderBy(h => h.Time).ToList();
         var current = hourly.LastOrDefault(h => h.Time <= now) ?? hourly.FirstOrDefault();
-        var next48 = hourly.Where(h => h.Time > now && h.Time <= now.AddHours(48)).ToList();
+        var next7d = hourly.Where(h => h.Time > now && h.Time <= now.AddDays(7)).ToList();
         var past = hourly.Where(h => h.Time <= now).ToList();
         var frost = ComputeFrostRisk(hourly, now);
-        var rain = ComputeRainIntelligence(past, next48, now);
+        var rain = ComputeRainIntelligence(past, next7d, now);
         var wind = ComputeWindIntelligence(hourly, now);
         var et0Today = hourly.Where(h => h.Time.Date == now.Date).Sum(h => h.Et0Mm ?? 0);
         // Same 7-day window as Rain.Previous7dMm so the water balance compares like with like.
@@ -263,19 +266,38 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
     }
 
     /// <summary>
-    /// Water applied over the balance window. Tasks do not record volume, so each
-    /// completed irrigation task counts as a configured nominal amount.
+    /// Water applied over the balance window. Executions do not record volume, so each
+    /// active irrigation completion counts as a configured nominal amount.
     /// </summary>
     private async Task<double> GetIrrigationMmAsync(string fieldId, DateTime windowStart, CancellationToken ct)
     {
-        var tasks = await _taskRepository.GetByFieldIdAsync(fieldId, ct);
-        var count = tasks.Count(t =>
-            t.Type.Contains("irrig", StringComparison.OrdinalIgnoreCase) &&
-            t.Status == WorkTaskStatus.Completed &&
-            t.ActualEnd.HasValue &&
-            t.ActualEnd.Value >= windowStart);
+        var tasks = await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldId = fieldId }, ct);
+        var irrigationTaskIds = tasks
+            .Where(t => IsIrrigationTask(t))
+            .Select(t => t.Id)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (irrigationTaskIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var executions = await _executions.GetByFieldIdAsync(fieldId, ct);
+        var count = executions.Count(e =>
+            e.IsActive &&
+            irrigationTaskIds.Contains(e.TaskId) &&
+            e.CompletedAt >= windowStart);
         return count * _options.Weather.IrrigationMmPerTask;
     }
+
+    private static bool IsIrrigationTask(Core.Entities.FieldWork.FieldTask task) =>
+        ContainsIgnoreCase(task.TemplateCode, "irrig") ||
+        ContainsIgnoreCase(task.Title, "irrig") ||
+        ContainsIgnoreCase(task.Title, "άρδευ") ||
+        ContainsIgnoreCase(task.Title, "αρδευ");
+
+    private static bool ContainsIgnoreCase(string? value, string fragment) =>
+        !string.IsNullOrWhiteSpace(value) && value.Contains(fragment, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Simple 7-day water balance: what came in (rain plus irrigation) against
@@ -351,7 +373,9 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
             Forecast6hMm = SumForecast(TimeSpan.FromHours(6)),
             Forecast12hMm = SumForecast(TimeSpan.FromHours(12)),
             Forecast24hMm = SumForecast(TimeSpan.FromHours(24)),
-            Forecast48hMm = SumForecast(TimeSpan.FromHours(48))
+            Forecast48hMm = SumForecast(TimeSpan.FromHours(48)),
+            Forecast72hMm = SumForecast(TimeSpan.FromHours(72)),
+            Forecast7dMm = SumForecast(TimeSpan.FromDays(7))
         };
     }
 
@@ -361,6 +385,8 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
         var next6 = hourly.Where(h => h.Time > now && h.Time <= now.AddHours(6)).ToList();
         var next12 = hourly.Where(h => h.Time > now && h.Time <= now.AddHours(12)).ToList();
         var next24 = hourly.Where(h => h.Time > now && h.Time <= now.AddHours(24)).ToList();
+        var next72 = hourly.Where(h => h.Time > now && h.Time <= now.AddHours(72)).ToList();
+        var next7d = hourly.Where(h => h.Time > now && h.Time <= now.AddDays(7)).ToList();
         var dirs = next24.Where(h => h.WindDirectionDegrees.HasValue).Select(h => h.WindDirectionDegrees!.Value).ToList();
         return new WindIntelligenceDto
         {
@@ -369,6 +395,8 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
             MaxNext6hKmh = next6.Count > 0 ? next6.Max(h => h.WindGustKmh ?? h.WindSpeedKmh ?? 0) : 0,
             MaxNext12hKmh = next12.Count > 0 ? next12.Max(h => h.WindGustKmh ?? h.WindSpeedKmh ?? 0) : 0,
             MaxNext24hKmh = next24.Count > 0 ? next24.Max(h => h.WindGustKmh ?? h.WindSpeedKmh ?? 0) : 0,
+            MaxNext72hKmh = next72.Count > 0 ? next72.Max(h => h.WindGustKmh ?? h.WindSpeedKmh ?? 0) : 0,
+            MaxNext7dKmh = next7d.Count > 0 ? next7d.Max(h => h.WindGustKmh ?? h.WindSpeedKmh ?? 0) : 0,
             DominantDirection = dirs.Count > 0 ? DegreesToCompass(dirs.Average()) : null
         };
     }

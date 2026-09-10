@@ -1,4 +1,5 @@
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.Application.Abstractions.Persistence;
 
@@ -11,4 +12,5 @@ public interface IFieldRepository : IRepository<Field, string>
     Task<IEnumerable<Field>> GetByOwnerAndNormalizedKaekAsync(string ownerId, string normalizedKaek, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Field>> GetActiveFieldsWithCoordinatesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Field>> GetByStatusAsync(FieldStatus status, CancellationToken cancellationToken = default);
 }

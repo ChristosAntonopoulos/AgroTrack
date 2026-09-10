@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Configuration.Geospatial;
+using OliveLifecycle.Application.Services;
 using OliveLifecycle.Application.Services.Geospatial;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Enums;
@@ -109,6 +110,9 @@ public class GeospatialJobHost : BackgroundService
             {
                 var service = provider.GetRequiredService<IFieldSpatialProfileService>();
                 await service.ProcessFieldAsync(item.FieldId, ct);
+
+                var proposals = provider.GetRequiredService<ITaskProposalEngine>();
+                await proposals.EvaluateFieldAsync(item.FieldId, resultYear: null, cancellationToken: ct);
             }, ct);
         }
     }
@@ -160,8 +164,14 @@ public class GeospatialJobHost : BackgroundService
                 var field = await fieldRepository.GetByIdAsync(item.FieldId, ct);
                 if (field == null) return;
 
-                var evaluator = provider.GetRequiredService<ITaskConditionEvaluator>();
-                await evaluator.EvaluateFieldWeatherChangeAsync(field, ct);
+                // Legacy TaskConditionEvaluator (TaskItem keyword warnings) retired for FieldTasks.
+                // FieldTasks use the Phase 4 suitability engine + proposal engine below.
+                var fieldTaskWeather = provider.GetRequiredService<IFieldTaskWeatherEvaluationService>();
+                await fieldTaskWeather.EvaluateFieldAsync(field.Id, ct);
+
+                // Phase 7: weather/alert changes re-evaluate event-triggered proposals.
+                var proposals = provider.GetRequiredService<ITaskProposalEngine>();
+                await proposals.EvaluateFieldAsync(field.Id, resultYear: null, cancellationToken: ct);
             }, ct);
         }
     }

@@ -17,7 +17,8 @@ export const getAvailableCaptureActions = (opts: {
     canRecordObservation: access,
     canRecordWork: canWork,
     canRecordExpense: canOwn || canWork,
-    canRecordIncome: canOwn || canWork,
+    canRecordIncome: canOwn,
     canRecordHarvest: canOwn,
+    canRecordMoney: canOwn || canWork,
   };
 };

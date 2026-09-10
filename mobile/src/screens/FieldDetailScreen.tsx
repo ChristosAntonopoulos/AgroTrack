@@ -12,13 +12,13 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
-import { FieldFinancialSummary } from '../services/financialEntryService';
+import { FieldTask, isActiveFieldTask } from '../services/fieldWorkService';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
 import type { ChronologioEntry } from '../services/chronologioService';
 import {
   getFieldService,
-  getTaskService,
-  getFinancialEntryService,
+  getFieldWorkService,
+  getFinancialSummaryService,
   getChronologioService,
 } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
@@ -54,12 +54,12 @@ const FieldDetailScreen = () => {
   const { isFieldOwner, user } = useAuth();
   const capture = useCaptureOptional();
   const { colors, tapMin } = useTheme();
-  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings']);
   const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
 
   const [field, setField] = useState<Field | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [costSummary, setCostSummary] = useState<FieldFinancialSummary | null>(null);
+  const [tasks, setTasks] = useState<FieldTask[]>([]);
+  const [costSummary, setCostSummary] = useState<YearFinancialSummary | null>(null);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +71,12 @@ const FieldDetailScreen = () => {
     try {
       const [fieldData, taskData, summary, chrono] = await Promise.all([
         getFieldService().getField(fieldId),
-        getTaskService().getTasksByField(fieldId),
-        getFinancialEntryService().getSummary(fieldId).catch(() => null),
+        getFieldWorkService()
+          .listFieldTasks({ fieldId })
+          .then((rows) => rows.filter(isActiveFieldTask)),
+        getFinancialSummaryService()
+          .getYear(new Date().getFullYear(), fieldId, i18n.language)
+          .catch(() => null),
         getChronologioService()
           .getFieldChronologio(fieldId, { limit: 8 })
           .catch(() => [] as ChronologioEntry[]),
@@ -87,7 +91,7 @@ const FieldDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [fieldId, t]);
+  }, [fieldId, t, i18n.language]);
 
   useEffect(() => {
     void load();

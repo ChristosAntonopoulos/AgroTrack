@@ -12,7 +12,7 @@ import {
   type Locale,
 } from 'date-fns';
 import { CalendarEvent } from '../services/calendarService';
-import { getTaskCategoryColor } from './calendarRecommendations';
+import { getTaskCategoryColor } from './taskCategoryColors';
 
 export type AgendaGroup = 'today' | 'tomorrow' | 'thisWeek' | 'later';
 
@@ -130,4 +130,16 @@ export function isDateSelected(date: Date, selected: Date): boolean {
 
 export function isDateToday(date: Date): boolean {
   return isToday(date);
+}
+
+export function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
+  return events.filter((event) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    return start < dayEnd && end >= dayStart;
+  });
 }

@@ -9,6 +9,10 @@ export interface HarvestRecord {
   oliveKg: number;
   millName?: string;
   oilKg?: number;
+  oilLitres?: number | null;
+  conversionFactor?: number | null;
+  conversionSource?: string | null;
+  conversionRecordedAt?: string | null;
   oilYieldPercent?: number;
   qualityGrade: string;
   notes?: string;
@@ -25,6 +29,10 @@ export interface CreateHarvestInput {
   oliveKg: number;
   millName?: string;
   oilKg?: number;
+  oilLitres?: number;
+  conversionFactor?: number;
+  conversionSource?: string;
+  conversionRecordedAt?: string;
   oilYieldPercent?: number;
   qualityGrade?: string;
   saleAmount?: number;

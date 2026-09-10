@@ -2,7 +2,7 @@ import { ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../services/fieldService';
 import { resolveFieldCenter } from './fieldGeo';
-import { Task } from '../services/taskService';
+import { FieldTask, isActiveFieldTask, isCompletedFieldTask } from '../services/fieldWorkService';
 import { isTaskOverdue, sortTasksForList } from './taskListUtils';
 
 export function countFieldLocations(fields: Field[]): number {
@@ -17,9 +17,9 @@ export function countFieldLocations(fields: Field[]): number {
   return keys.size > 0 ? keys.size : 1;
 }
 
-export function isTaskDueWithinDays(task: Task, days: number): boolean {
-  if (task.status === 'completed') return false;
-  const deadline = task.scheduledStart ?? task.scheduledEnd;
+export function isTaskDueWithinDays(task: FieldTask, days: number): boolean {
+  if (isCompletedFieldTask(task)) return false;
+  const deadline = task.plannedStart ?? task.plannedEnd;
   if (!deadline) return false;
   const end = new Date();
   end.setDate(end.getDate() + days);
@@ -28,38 +28,32 @@ export function isTaskDueWithinDays(task: Task, days: number): boolean {
   return d.getTime() <= end.getTime();
 }
 
-export function countTasksDueThisWeek(tasks: Task[]): number {
-  return tasks.filter(t => isTaskDueWithinDays(t, 7)).length;
+export function countTasksDueThisWeek(tasks: FieldTask[]): number {
+  return tasks.filter((t) => isTaskDueWithinDays(t, 7)).length;
 }
 
-export function countHighPriorityDueWeek(tasks: Task[]): number {
-  return tasks.filter(
-    t =>
-      isTaskDueWithinDays(t, 7) &&
-      (isTaskOverdue(t) || t.lifecycleYear === 'high' || t.approvalStatus === 'pending')
-  ).length;
+export function countHighPriorityDueWeek(tasks: FieldTask[]): number {
+  return tasks.filter((t) => isTaskDueWithinDays(t, 7) && isTaskOverdue(t)).length;
 }
 
-export function getAgendaTasks(tasks: Task[], limit = 5): Task[] {
-  const open = tasks.filter(t => t.status !== 'completed');
+export function getAgendaTasks(tasks: FieldTask[], limit = 5): FieldTask[] {
+  const open = tasks.filter(isActiveFieldTask);
   return sortTasksForList(open)
-    .filter(t => isTaskDueWithinDays(t, 7) || isTaskOverdue(t))
+    .filter((t) => isTaskDueWithinDays(t, 7) || isTaskOverdue(t))
     .slice(0, limit);
 }
 
 export type DueStatusVariant = 'overdue' | 'tomorrow' | 'future';
 
-export function getTaskDueVariant(task: Task): DueStatusVariant {
+export function getTaskDueVariant(task: FieldTask): DueStatusVariant {
   if (isTaskOverdue(task)) return 'overdue';
-  const deadline = task.scheduledStart ?? task.scheduledEnd;
+  const deadline = task.plannedStart ?? task.plannedEnd;
   if (!deadline) return 'future';
   const d = new Date(deadline);
   d.setHours(0, 0, 0, 0);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   if (d.getTime() === tomorrow.getTime()) return 'tomorrow';
   return 'future';
 }

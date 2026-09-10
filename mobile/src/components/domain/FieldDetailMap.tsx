@@ -17,6 +17,7 @@ import {
   FIELD_HERO_POLYGON_PADDING,
 } from '../../utils/fieldMapFraming';
 import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
 import MapPointLayer from '../maps/MapPointLayer';
@@ -90,6 +91,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
 
   const center = useMemo(() => resolveFieldCenter(field), [field]);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
+  const accent = resolveFieldColor(field.color, field.id);
 
   const region = useMemo(() => {
     const raw = polygon?.length
@@ -189,13 +191,15 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
           <MapPolygonLayer
             id={field.id}
             ring={polygon}
-            fillOpacity={activeLayerId ? 0 : 0.22}
-            strokeWidth={activeLayerId ? 3 : 2}
+            fillColor={accent}
+            strokeColor={accent}
+            fillOpacity={activeLayerId ? 0 : 0.28}
+            strokeWidth={activeLayerId ? 3 : 2.5}
           />
         ) : (
           <MapPointLayer
             sourceId="field-center"
-            points={[{ id: field.id, coordinate: center, color: colors.primaryDark }]}
+            points={[{ id: field.id, coordinate: center, color: accent }]}
             radius={10}
           />
         )}

@@ -27,6 +27,7 @@
   "categoryLabel": {
     "task": "Εργασία",
     "expense": "Έξοδο",
+    "income": "Έσοδο",
     "harvest": "Συγκομιδή",
     "note": "Παρατήρηση",
     "weather": "Καιρός",
@@ -51,6 +52,7 @@
   "ctaViewFields": "Προς τα κτήματα",
   "fromActor": "Από {{name}}",
   "relatedTask": "Σχετίζεται με: {{title}}",
+  "relatedHarvest": "Σχετίζεται με: {{title}}",
   "pinned": "Καρφιτσωμένη",
   "dataSource": "Πηγή δεδομένων",
   "completed": "Ολοκληρώθηκε",

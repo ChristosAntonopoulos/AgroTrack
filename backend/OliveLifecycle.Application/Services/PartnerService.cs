@@ -19,7 +19,7 @@ public class PartnerService : IPartnerService
     private readonly IServiceContactRequestRepository _requests;
     private readonly IUserRepository _users;
     private readonly IFieldRepository _fields;
-    private readonly ITaskRepository _tasks;
+    private readonly IFieldTaskRepository _fieldTasks;
     private readonly IFieldAccessService _fieldAccess;
     private readonly IUserNotificationService _notifications;
     private readonly IActivityService _activityService;
@@ -32,7 +32,7 @@ public class PartnerService : IPartnerService
         IServiceContactRequestRepository requests,
         IUserRepository users,
         IFieldRepository fields,
-        ITaskRepository tasks,
+        IFieldTaskRepository fieldTasks,
         IFieldAccessService fieldAccess,
         IUserNotificationService notifications,
         IActivityService activityService,
@@ -44,7 +44,7 @@ public class PartnerService : IPartnerService
         _requests = requests;
         _users = users;
         _fields = fields;
-        _tasks = tasks;
+        _fieldTasks = fieldTasks;
         _fieldAccess = fieldAccess;
         _notifications = notifications;
         _activityService = activityService;
@@ -352,7 +352,7 @@ public class PartnerService : IPartnerService
         string? taskId = NullIfEmpty(dto.TaskId);
         if (!string.IsNullOrWhiteSpace(taskId))
         {
-            var task = await _tasks.GetByIdAsync(taskId, cancellationToken)
+            var task = await _fieldTasks.GetByIdAsync(taskId, cancellationToken)
                 ?? throw new NotFoundException("Task not found.");
             if (!string.IsNullOrWhiteSpace(fieldId) && task.FieldId != fieldId)
             {
@@ -522,22 +522,22 @@ public class PartnerService : IPartnerService
     }
 
     /// <summary>
-    /// Links the partner to the task without AssignedTo or field membership.
-    /// FieldAccessService continues to ignore PartnerUserId.
+    /// Links the partner to the FieldTask via AssignedCollaboratorId without AssignedUserId
+    /// or field membership. FieldAccessService continues to ignore collaborator assignment.
     /// </summary>
     private async Task LinkTaskWithoutFieldAccessAsync(ServiceContactRequest request, CancellationToken cancellationToken)
     {
-        var task = await _tasks.GetByIdAsync(request.TaskId!, cancellationToken);
+        var task = await _fieldTasks.GetByIdAsync(request.TaskId!, cancellationToken);
         if (task == null)
         {
             return;
         }
 
-        task.PartnerUserId = request.ProviderUserId;
-        task.ServiceContactRequestId = request.Id;
-        await _tasks.UpdateAsync(task, cancellationToken);
+        // Collaborator assignment does not grant field access (unlike AssignedUserId).
+        task.AssignedCollaboratorId = request.ProviderUserId;
+        await _fieldTasks.UpdateAsync(task, cancellationToken);
         _logger.LogInformation(
-            "Linked partner {PartnerUserId} to task {TaskId} without granting field access",
+            "Linked partner {PartnerUserId} to field task {TaskId} without granting field access",
             request.ProviderUserId,
             task.Id);
     }

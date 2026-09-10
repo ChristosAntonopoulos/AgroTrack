@@ -1,4 +1,4 @@
-import { FinancialBucket } from '../services/financialEntryService';
+export type FinancialBucket = 'labor' | 'inputs' | 'harvest' | 'other';
 
 export const FINANCIAL_CATEGORIES = [
   'labor',

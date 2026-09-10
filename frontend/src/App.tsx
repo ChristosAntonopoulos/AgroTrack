@@ -17,11 +17,13 @@ import FieldsPage from './pages/FieldsPage';
 import FieldFormPage from './pages/FieldFormPage';
 import FieldDetailPage from './pages/FieldDetailPage';
 import FieldWeatherVegetationPage from './pages/FieldWeatherVegetationPage';
+import FieldWorkSetupPage from './pages/FieldWorkSetupPage';
+import FieldWorkProfilePage from './pages/FieldWorkProfilePage';
 import ChronologioPage from './pages/ChronologioPage';
-import FieldTaskTemplatesPage from './pages/FieldTaskTemplatesPage';
 import TasksPage from './pages/TasksPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import TaskFormPage from './pages/TaskFormPage';
+import TaskCompletionPage from './pages/TaskCompletionPage';
 import CalendarPage from './pages/CalendarPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -57,7 +59,8 @@ const FieldChronologioRedirect: React.FC = () => {
   const { id } = useParams();
   const [params] = useSearchParams();
   const next = new URLSearchParams(params);
-  next.set('mode', 'chronologio');
+  next.set('tab', 'chronologio');
+  next.delete('mode');
   const qs = next.toString();
   return <Navigate to={id ? `/fields/${id}${qs ? `?${qs}` : ''}` : '/chronologio'} replace />;
 };
@@ -95,9 +98,10 @@ function App() {
                     <Route path="dashboard" element={<Navigate to="/today" replace />} />
                     <Route path="fields" element={<FieldsPage />} />
                     <Route path="fields/new" element={<FieldFormPage />} />
-                    <Route path="fields/:id/task-templates" element={<FieldTaskTemplatesPage />} />
                     <Route path="fields/:id/chronologio" element={<FieldChronologioRedirect />} />
                     <Route path="fields/:id/weather" element={<FieldWeatherVegetationPage />} />
+                    <Route path="fields/:id/work-setup" element={<FieldWorkSetupPage />} />
+                    <Route path="fields/:id/work-profile" element={<FieldWorkProfilePage />} />
                     <Route path="fields/:id/edit" element={<FieldFormPage />} />
                     <Route
                       path="fields/:id/people"
@@ -107,6 +111,7 @@ function App() {
                     <Route path="chronologio" element={<ChronologioPage />} />
                     <Route path="tasks" element={<TasksPage />} />
                     <Route path="tasks/new" element={<TaskFormPage />} />
+                    <Route path="tasks/:id/complete" element={<TaskCompletionPage />} />
                     <Route path="tasks/:id" element={<TaskDetailPage />} />
                     <Route path="people" element={<Navigate to="/partners" replace />} />
                     <Route path="partners" element={<PartnersPage />} />

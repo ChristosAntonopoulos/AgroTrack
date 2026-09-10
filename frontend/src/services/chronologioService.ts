@@ -3,6 +3,7 @@ import api from './api';
 export type ChronologioCategory =
   | 'task'
   | 'expense'
+  | 'income'
   | 'harvest'
   | 'note'
   | 'photo'
@@ -21,7 +22,9 @@ export type ChronologioImportance =
 
 export type ChronologioSourceType =
   | 'Task'
+  | 'TaskExecution'
   | 'Expense'
+  | 'Income'
   | 'Harvest'
   | 'Note'
   | 'Activity'
@@ -52,17 +55,24 @@ export interface ChronologioMedia {
 
 export interface ChronologioTaskDetails {
   taskId: string;
+  executionId?: string;
   taskType?: string;
   status: string;
+  outcome?: string;
   startDate?: string;
   endDate?: string;
   assigneeName?: string;
+  followUpTaskId?: string;
 }
 
 export interface ChronologioExpenseDetails {
   expenseId: string;
   expenseCategory?: string;
   linkedTaskId?: string;
+  linkedHarvestId?: string;
+  relatedTaskTitle?: string;
+  relatedHarvestTitle?: string;
+  transactionType?: string;
   description?: string;
 }
 
@@ -167,6 +177,7 @@ export interface ChronologioEntryBase {
 export type ChronologioEntry =
   | (ChronologioEntryBase & { category: 'task'; details: ChronologioDetails & { task: ChronologioTaskDetails } })
   | (ChronologioEntryBase & { category: 'expense'; details: ChronologioDetails & { expense: ChronologioExpenseDetails } })
+  | (ChronologioEntryBase & { category: 'income'; details: ChronologioDetails & { expense: ChronologioExpenseDetails } })
   | (ChronologioEntryBase & { category: 'harvest'; details: ChronologioDetails & { harvest: ChronologioHarvestDetails } })
   | (ChronologioEntryBase & { category: 'note'; details: ChronologioDetails & { note: ChronologioNoteDetails } })
   | (ChronologioEntryBase & { category: 'lifecycle'; details: ChronologioDetails & { lifecycle?: ChronologioLifecycleDetails } })

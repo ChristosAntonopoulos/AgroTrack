@@ -1,5 +1,5 @@
-import { Field } from '../fieldService';
-import { Task, Evidence } from '../taskService';
+﻿import { Field } from '../fieldService';
+import type { FieldTaskStatus } from '../fieldWorkService';
 import { User } from '../userService';
 import { Lifecycle } from '../lifecycleService';
 import { DemoEvent, DemoIssue, DemoTask } from './demoStore';
@@ -125,17 +125,17 @@ const DEMO_IMAGES = [
 ];
 
 const OWNER_NOTES = [
-  'Good work — approved for payment.',
+  'Good work â€” approved for payment.',
   'Please add clearer photos next time.',
   'Approved. Schedule follow-up irrigation check.',
-  'Rejected — missed north zone. Please redo.',
+  'Rejected â€” missed north zone. Please redo.',
 ];
 
 const PRODUCER_NOTES = [
   'Completed all zones. Minor leak flagged near valve box.',
-  'Trap counts elevated on north edge — reported to owner.',
+  'Trap counts elevated on north edge â€” reported to owner.',
   'Harvest yield logged in field notebook.',
-  'Weather delay — finished next morning.',
+  'Weather delay â€” finished next morning.',
 ];
 
 const addDays = (base: Date, days: number): Date => {
@@ -232,7 +232,6 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
 
     fields.forEach((field, fieldIdx) => {
       const template = templates[(fieldIdx + monthOffset + 12) % templates.length];
-      const lifecycleYear = template.lifecycleYear ?? field.currentLifecycleYear;
 
       const scheduledStart = addDays(anchor, (fieldIdx % 5) - 2);
       const scheduledEnd = addDays(scheduledStart, 2 + (fieldIdx % 3));
@@ -244,13 +243,12 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
       const assignProducer = taskIndex % 7 !== 0; // ~85% producer-assigned
       const assignedTo = assignProducer ? DEMO_PRODUCER_ID : undefined;
 
-      let status: Task['status'] = 'pending';
+      let status: FieldTaskStatus = 'planned';
       let actualStart: string | undefined;
       let actualEnd: string | undefined;
       let approvalStatus: DemoTask['approvalStatus'] = 'not_required';
       let approvalNote: string | undefined;
-      let evidence: Evidence[] = [];
-      let cost: number | undefined;
+            let cost: number | undefined;
 
       if (endMs < nowMs - 3 * 24 * 60 * 60 * 1000) {
         status = 'completed';
@@ -268,60 +266,52 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
             approvalNote = OWNER_NOTES[3];
           }
         }
-        if (taskIndex % 3 === 0) {
-          evidence = [
-            {
-              photoUrl: DEMO_IMAGES[taskIndex % DEMO_IMAGES.length],
-              notes: PRODUCER_NOTES[taskIndex % PRODUCER_NOTES.length],
-              timestamp: actualEnd!,
-              kind: 'general',
-            },
-          ];
-        }
+        
         cost = 80 + (taskIndex % 12) * 25;
       } else if (startMs <= nowMs && endMs >= nowMs) {
-        status = taskIndex % 2 === 0 ? 'in_progress' : 'pending';
-        if (status === 'in_progress') {
-          actualStart = toIso(addDays(scheduledStart, 0));
-        }
+        status = taskIndex % 2 === 0 ? 'in_progress' : 'planned';
+        
       } else if (endMs < nowMs) {
-        status = 'pending'; // overdue
+        status = 'planned'; // overdue
       }
 
       const taskId = `67555555555555555555${(6000 + taskIndex).toString(16).padStart(4, '0')}`;
       taskIndex += 1;
 
-      const title = `${template.title} — ${field.name}`;
+      const title = `${template.title} - `;
       const task: DemoTask = {
         id: taskId,
         fieldId: field.id,
-        type: template.type,
+        resultYear: scheduledStart.getFullYear(),
+        templateCode: template.type.toLowerCase().replace(/\s+/g, '_'),
         title,
         description: template.description,
-        priority: template.priority,
-        estimatedMinutes: template.estimatedMinutes,
         status,
-        assignedTo,
-        scheduledStart: toIso(scheduledStart),
-        scheduledEnd: toIso(scheduledEnd),
-        actualStart,
-        actualEnd,
-        lifecycleYear,
-        approvalStatus,
-        approvalNote,
-        cost,
-        evidence,
+        statusLabel: status,
+        plannedStart: toIso(scheduledStart),
+        plannedEnd: toIso(scheduledEnd),
+        assignedUserId: assignedTo,
+        additionalParticipantUserIds: [],
+        assignmentResponse: 'pending',
+        checklist: [],
+        estimatedCost: cost,
         notes:
           assignedTo && status === 'completed'
             ? `Producer note: ${PRODUCER_NOTES[taskIndex % PRODUCER_NOTES.length]}`
             : undefined,
+        attachmentIds: [],
+        weatherSuitability: 'unknown',
+        weatherSuitabilityLabel: '',
+        createdByUserId: DEMO_OWNER_ID,
         createdAt: toIso(createdAt),
         updatedAt: actualEnd ?? actualStart ?? toIso(scheduledStart),
+        approvalStatus,
+        approvalNote,
       };
 
       tasks.push(task);
 
-      // Timeline: owner assigns → producer works → owner reviews
+      // Timeline: owner assigns â†’ producer works â†’ owner reviews
       if (assignedTo) {
         pushEvent({
           type: 'task_assigned',
@@ -362,16 +352,6 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
           actorUserId: assignedTo,
           message: `Kostas completed: ${title}`,
         });
-        if (evidence.length > 0) {
-          pushEvent({
-            type: 'evidence_added',
-            timestamp: evidence[0].timestamp,
-            fieldId: field.id,
-            taskId: task.id,
-            actorUserId: assignedTo,
-            message: `Evidence uploaded for: ${title}`,
-          });
-        }
         if (approvalStatus === 'pending') {
           pushEvent({
             type: 'task_status_changed',
@@ -409,8 +389,8 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
   // De-duplicate very similar tasks in same month/field (keep first per monthKey+field)
   const seen = new Set<string>();
   const dedupedTasks = tasks.filter((t) => {
-    const start = new Date(t.scheduledStart!);
-    const key = `${t.fieldId}-${monthKey(start)}-${t.type}`;
+    const start = new Date(t.plannedStart!);
+    const key = `${t.fieldId}-${monthKey(start)}-${t.templateCode || t.title}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -458,7 +438,7 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
       type: 'Pest',
       severity: 'Medium',
       title: 'Olive fruit fly hotspots on north edge',
-      description: 'Trap counts rising — owner notified for spray window decision.',
+      description: 'Trap counts rising â€” owner notified for spray window decision.',
       photoUrls: [DEMO_IMAGES[0]],
       createdAt: toIso(addDays(now, -3)),
       createdByUserId: DEMO_PRODUCER_ID,
@@ -490,90 +470,77 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
 /** Curated near-term tasks always visible on dashboard (merged if missing) */
 export function getPinnedDemoTasks(now = new Date()): DemoTask[] {
   const daysFromNow = (days: number) => toIso(addDays(now, days));
+  const year = now.getFullYear();
+
+  const base = (
+    partial: Partial<DemoTask> &
+      Pick<DemoTask, 'id' | 'fieldId' | 'title' | 'status' | 'plannedStart' | 'plannedEnd'>
+  ): DemoTask => ({
+    resultYear: year,
+    statusLabel: partial.status,
+    additionalParticipantUserIds: [],
+    assignmentResponse: 'pending',
+    checklist: [],
+    attachmentIds: [],
+    weatherSuitability: 'unknown',
+    weatherSuitabilityLabel: '',
+    createdByUserId: DEMO_OWNER_ID,
+    createdAt: daysFromNow(-10),
+    updatedAt: daysFromNow(-1),
+    ...partial,
+  });
 
   return [
-    {
+    base({
       id: '675555555555555555556f01',
       fieldId: DEMO_FIELD_IDS[0],
-      type: 'Irrigation',
-      title: 'Irrigation — North Olive Grove',
+      templateCode: 'irrigation',
+      title: 'Irrigation - North Olive Grove',
       description: 'Inspect irrigation lines and verify flow in all zones.',
-      priority: 'High',
-      estimatedMinutes: 45,
-      status: 'pending',
-      assignedTo: DEMO_PRODUCER_ID,
-      scheduledStart: daysFromNow(-6),
-      scheduledEnd: daysFromNow(-2),
-      lifecycleYear: 'low',
+      status: 'planned',
+      assignedUserId: DEMO_PRODUCER_ID,
+      plannedStart: daysFromNow(-6),
+      plannedEnd: daysFromNow(-2),
       approvalStatus: 'not_required',
-      evidence: [],
-      createdAt: daysFromNow(-10),
-      updatedAt: daysFromNow(-6),
-    },
-    {
+    }),
+    base({
       id: '675555555555555555556f02',
       fieldId: DEMO_FIELD_IDS[0],
-      type: 'Pest Control',
-      title: 'Fruit fly scouting — North Olive Grove',
+      templateCode: 'pest_control',
+      title: 'Fruit fly scouting - North Olive Grove',
       description: 'Scout for olive fruit fly and record hotspot locations.',
-      priority: 'Critical',
-      estimatedMinutes: 60,
       status: 'in_progress',
-      assignedTo: DEMO_PRODUCER_ID,
-      scheduledStart: daysFromNow(-3),
-      scheduledEnd: daysFromNow(1),
-      actualStart: daysFromNow(-2),
-      lifecycleYear: 'low',
+      assignedUserId: DEMO_PRODUCER_ID,
+      plannedStart: daysFromNow(-3),
+      plannedEnd: daysFromNow(1),
       approvalStatus: 'not_required',
-      evidence: [],
-      createdAt: daysFromNow(-8),
-      updatedAt: daysFromNow(-2),
-    },
-    {
+    }),
+    base({
       id: '675555555555555555556f03',
       fieldId: DEMO_FIELD_IDS[1],
-      type: 'Fertilization',
-      title: 'Fertilization — South Valley Fields',
+      templateCode: 'fertilization',
+      title: 'Fertilization - South Valley Fields',
       description: 'Apply recommended nutrients; record quantities used.',
-      priority: 'Medium',
-      estimatedMinutes: 70,
-      status: 'pending',
-      assignedTo: DEMO_PRODUCER_ID,
-      scheduledStart: daysFromNow(-1),
-      scheduledEnd: daysFromNow(3),
-      lifecycleYear: 'high',
+      status: 'planned',
+      assignedUserId: DEMO_PRODUCER_ID,
+      plannedStart: daysFromNow(-1),
+      plannedEnd: daysFromNow(3),
       approvalStatus: 'not_required',
-      evidence: [],
-      createdAt: daysFromNow(-4),
-      updatedAt: daysFromNow(-1),
-    },
-    {
+    }),
+    base({
       id: '675555555555555555556f05',
       fieldId: DEMO_FIELD_IDS[0],
-      type: 'Soil Testing',
-      title: 'Soil testing — North Olive Grove',
+      templateCode: 'soil_testing',
+      title: 'Soil testing - North Olive Grove',
       description: 'Collect samples from 3 representative zones.',
-      priority: 'Medium',
-      estimatedMinutes: 90,
       status: 'completed',
-      assignedTo: DEMO_PRODUCER_ID,
-      scheduledStart: daysFromNow(-14),
-      scheduledEnd: daysFromNow(-12),
-      actualStart: daysFromNow(-13),
-      actualEnd: daysFromNow(-12),
-      lifecycleYear: 'low',
+      assignedUserId: DEMO_PRODUCER_ID,
+      plannedStart: daysFromNow(-14),
+      plannedEnd: daysFromNow(-12),
+      estimatedCost: 220,
       approvalStatus: 'pending',
-      cost: 220,
-      evidence: [
-        {
-          photoUrl: DEMO_IMAGES[0],
-          notes: 'Samples from north, center, south zones.',
-          timestamp: daysFromNow(-12),
-        },
-      ],
-      createdAt: daysFromNow(-16),
       updatedAt: daysFromNow(-12),
-    },
+    }),
   ];
 }
 
@@ -583,6 +550,9 @@ export function buildDemoTasks(now = new Date()): DemoTask[] {
   const byId = new Map(tasks.map((t) => [t.id, t]));
   pinned.forEach((p) => byId.set(p.id, p));
   return Array.from(byId.values()).sort(
-    (a, b) => new Date(a.scheduledStart || a.createdAt).getTime() - new Date(b.scheduledStart || b.createdAt).getTime()
+    (a, b) =>
+      new Date(a.plannedStart || a.createdAt).getTime() -
+      new Date(b.plannedStart || b.createdAt).getTime()
   );
 }
+

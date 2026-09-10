@@ -29,14 +29,14 @@
     },
     "owner": {
       "step1": {
-        "label": "View the seasonal calendar",
-        "hint": "Recommended olive tasks for the current month.",
-        "action": "Open calendar"
+        "label": "Open This harvest",
+        "hint": "See harvest planning and season progress.",
+        "action": "Open This harvest"
       },
       "step2": {
-        "label": "Schedule from a template",
-        "hint": "Create a seasonal task with a prefilled checklist.",
-        "action": "New task"
+        "label": "Set up how you work a field",
+        "hint": "Answer a few grove-practice questions so Oleachron can propose the right work.",
+        "action": "Open fields"
       },
       "step3": {
         "label": "Check the activity timeline",
@@ -91,7 +91,8 @@
     "totalTasks": "Total tasks",
     "dueToday": "Due today",
     "overdue": "Overdue",
-    "thisWeekCost": "This week's cost"
+    "thisWeekCost": "This week's cost",
+    "thisYearCost": "This year's expenses"
   },
   "fieldsSection": {
     "ownerTitle": "My fields",

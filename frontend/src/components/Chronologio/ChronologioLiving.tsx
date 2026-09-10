@@ -560,6 +560,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       <ChronologioChrome
         fieldMode={fieldMode}
         fieldName={fieldName}
+        fieldId={fieldId}
         fields={fields}
         filters={living.filters}
         axis={living.axis}

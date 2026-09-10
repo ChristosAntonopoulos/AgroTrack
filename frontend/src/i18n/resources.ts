@@ -13,13 +13,12 @@ import enAnalytics from '../locales/en/analytics.json';
 import enReports from '../locales/en/reports.json';
 import enMinistry from '../locales/en/ministry.json';
 import enToday from '../locales/en/today.json';
-import enTaskTemplates from '../locales/en/taskTemplates.json';
 import enLanding from '../locales/en/landing.json';
 import enAdmin from '../locales/en/admin.json';
 import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
-import enEconomics from '../locales/en/economics.json';
+import enMoney from '../locales/en/money.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -34,14 +33,12 @@ import elAnalytics from '../locales/el/analytics.json';
 import elReports from '../locales/el/reports.json';
 import elMinistry from '../locales/el/ministry.json';
 import elToday from '../locales/el/today.json';
-import elTaskTemplates from '../locales/el/taskTemplates.json';
-import elTaskTemplateEntries from '../locales/el/taskTemplateEntries.json';
 import elLanding from '../locales/el/landing.json';
 import elAdmin from '../locales/el/admin.json';
 import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
-import elEconomics from '../locales/el/economics.json';
+import elMoney from '../locales/el/money.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -59,7 +56,7 @@ import itToday from '../locales/it/today.json';
 import itPartners from '../locales/it/partners.json';
 import itChronologio from '../locales/it/chronologio.json';
 import itCapture from '../locales/it/capture.json';
-import itEconomics from '../locales/it/economics.json';
+import itMoney from '../locales/it/money.json';
 
 const bundle = (
   common: object,
@@ -75,7 +72,6 @@ const bundle = (
   reports: object,
   ministry: object,
   today: object,
-  taskTemplates: object,
   landing: object,
   admin: object,
   partners: object,
@@ -95,7 +91,6 @@ const bundle = (
   reports,
   ministry,
   today,
-  taskTemplates,
   landing,
   admin,
   partners,
@@ -122,14 +117,13 @@ export const resources: Record<
       enReports,
       enMinistry,
       enToday,
-      enTaskTemplates,
       enLanding,
       enAdmin,
       enPartners,
       enChronologio,
       enCapture
     ),
-    economics: enEconomics,
+    money: enMoney,
   },
   el: {
     ...bundle(
@@ -146,14 +140,13 @@ export const resources: Record<
       elReports,
       elMinistry,
       elToday,
-      { ...elTaskTemplates, templates: elTaskTemplateEntries },
       elLanding,
       elAdmin,
       elPartners,
       elChronologio,
       elCapture
     ),
-    economics: elEconomics,
+    money: elMoney,
   },
   it: {
     ...bundle(
@@ -170,14 +163,12 @@ export const resources: Record<
       itReports,
       itMinistry,
       itToday,
-      enTaskTemplates,
       enLanding,
       enAdmin,
       itPartners,
       itChronologio,
       itCapture
     ),
-    economics: itEconomics,
+    money: itMoney,
   },
 };
-

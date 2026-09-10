@@ -14,6 +14,7 @@ import {
   LatLng,
 } from '../../utils/fieldGeo';
 import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import MapLayerToggle from './MapLayerToggle';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
@@ -98,9 +99,6 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
 
   const safeCompact = toBoolean(compact, 'FieldsMap.compact');
 
-  const getLifecycleColor = (lifecycleYear: string) =>
-    lifecycleYear === 'high' ? colors.lifecycleHigh : colors.lifecycleLow;
-
   const markerPoints = useMemo(
     () =>
       mappableFields
@@ -111,9 +109,9 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         .map((field) => ({
           id: field.id,
           coordinate: resolveFieldCenter(field)!,
-          color: getLifecycleColor(field.currentLifecycleYear),
+          color: resolveFieldColor(field.color, field.id),
         })),
-    [mappableFields, colors.lifecycleHigh, colors.lifecycleLow]
+    [mappableFields]
   );
 
   const mapHeightStyle = fillScreen ? styles.mapFill : { height };
@@ -149,11 +147,16 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
             {mappableFields.map((field) => {
               const polygon = resolveFieldPolygon(field);
               if (!polygon || polygon.length < 3) return null;
+              const accent = resolveFieldColor(field.color, field.id);
               return (
                 <MapPolygonLayer
                   key={field.id}
                   id={field.id}
                   ring={polygon}
+                  fillColor={accent}
+                  strokeColor={accent}
+                  fillOpacity={0.28}
+                  strokeWidth={2.5}
                   onPress={onFieldPress}
                 />
               );

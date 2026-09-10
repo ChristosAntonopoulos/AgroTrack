@@ -168,7 +168,7 @@
   color: var(--color-text-secondary);
   border-radius: 999px;
   padding: 0.45rem 0.8rem;
-  min-height: 40px;
+  min-height: 48px;
   cursor: pointer;
   font-size: 0.88rem;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
@@ -313,6 +313,65 @@
   border-radius: 999px;
   font-weight: 600;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+}
+
+.money-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  flex-wrap: wrap;
+  border-radius: 16px;
+  max-width: min(560px, calc(100vw - 2rem));
+  padding: 0.7rem 0.85rem 0.7rem 1.1rem;
+}
+
+.capture-toast-action {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 0.85rem;
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 18%, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.capture-drawer.is-money-drawer {
+  width: min(540px, 100vw);
+  max-width: 45vw;
+}
+
+.capture-backdrop.is-money-scrim {
+  background: rgba(4, 7, 5, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.capture-drawer-header.is-money {
+  justify-content: space-between;
+}
+
+.capture-drawer-header.is-money .capture-icon-btn {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .capture-drawer.is-money-drawer {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+  }
+}
+
+.money-more {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .capture-header-cta {

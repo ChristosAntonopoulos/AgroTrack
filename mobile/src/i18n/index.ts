@@ -16,7 +16,7 @@ import enTutorial from '../locales/en/tutorial.json';
 import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
-import enEconomics from '../locales/en/economics.json';
+import enMoney from '../locales/en/money.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -32,7 +32,7 @@ import elTutorial from '../locales/el/tutorial.json';
 import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
-import elEconomics from '../locales/el/economics.json';
+import elMoney from '../locales/el/money.json';
 
 const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
 const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
@@ -55,7 +55,7 @@ i18n.use(initReactI18next).init({
       partners: enPartners,
       chronologio: enChronologio,
       capture: enCapture,
-      economics: enEconomics,
+      money: enMoney,
     },
     el: {
       auth: elAuth,
@@ -72,7 +72,7 @@ i18n.use(initReactI18next).init({
       partners: elPartners,
       chronologio: elChronologio,
       capture: elCapture,
-      economics: elEconomics,
+      money: elMoney,
     },
   },
   lng: defaultLng,

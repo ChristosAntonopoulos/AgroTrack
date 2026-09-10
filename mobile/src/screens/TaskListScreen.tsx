@@ -55,7 +55,14 @@ const TaskListScreen = () => {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    if (initialFilter === 'approval') setFilter('approval');
+    if (
+      initialFilter === 'planned' ||
+      initialFilter === 'in_progress' ||
+      initialFilter === 'ready' ||
+      initialFilter === 'blocked'
+    ) {
+      setFilter(initialFilter);
+    }
   }, [initialFilter, setFilter]);
 
   const counts = useMemo(() => getTaskFilterCounts(tasks), [tasks]);
@@ -65,29 +72,37 @@ const TaskListScreen = () => {
       ? filteredTasks.filter(
           (task) =>
             task.title.toLowerCase().includes(needle) ||
-            (task.description || '').toLowerCase().includes(needle)
+            (task.description || '').toLowerCase().includes(needle) ||
+            (task.templateCode || '').toLowerCase().includes(needle)
         )
       : filteredTasks;
     return sortTasksForList(searched);
   }, [filteredTasks, query]);
   const overdueCount = useMemo(
-    () => tasks.filter(tk => tk.status !== 'completed' && isTaskOverdue(tk)).length,
+    () => tasks.filter((tk) => isTaskOverdue(tk)).length,
     [tasks]
   );
 
-  const filterKeys = isFieldOwner()
-    ? (['all', 'pending', 'in_progress', 'completed', 'approval'] as const)
-    : (['all', 'pending', 'in_progress', 'completed'] as const);
+  const filterKeys = (['all', 'planned', 'in_progress', 'ready', 'blocked'] as const);
 
-  const filterOptions = filterKeys.map(value => ({
+  const filterOptions = filterKeys.map((value) => ({
     value,
-    label: t(`tasks:filters.${value}`),
+    label: t(`tasks:filters.${value}`, {
+      defaultValue:
+        value === 'planned'
+          ? 'Planned'
+          : value === 'ready'
+            ? 'Ready'
+            : value === 'blocked'
+              ? 'Blocked'
+              : t(`tasks:filters.${value}`),
+    }),
     count: counts[value],
   }));
 
   const fieldName = fieldId ? fields[fieldId]?.name : undefined;
 
-  const openCount = counts.pending + counts.in_progress;
+  const openCount = counts.planned + counts.ready + counts.in_progress + counts.blocked;
   const subtitle = fieldName
     ? t('tasks:subtitleField', { field: fieldName, count: sortedTasks.length })
     : t('tasks:subtitle', { open: openCount, total: counts.all });
@@ -97,7 +112,7 @@ const TaskListScreen = () => {
       ? isFieldOwner()
         ? t('tasks:emptyOwner')
         : t('tasks:emptyProducer')
-      : t('tasks:emptyFilter', { filter: t(`tasks:filters.${filter}`) });
+      : t('tasks:emptyFilter', { filter: t(`tasks:filters.${filter}`, { defaultValue: filter }) });
 
   const handleCreate = () => {
     navigation.navigate('CreateTask', { fieldId });
@@ -161,18 +176,6 @@ const TaskListScreen = () => {
                 color={colors.error}
                 colors={colors}
               />
-              {isFieldOwner() && counts.approval > 0 ? (
-                <>
-                  <View style={[styles.summaryDivider, { backgroundColor: colors.borderLight }]} />
-                  <SummaryPill
-                    icon="hourglass-outline"
-                    label={t('tasks:summaryApproval')}
-                    value={counts.approval}
-                    color={colors.warningDark}
-                    colors={colors}
-                  />
-                </>
-              ) : null}
             </View>
 
             <FilterChips options={filterOptions} selected={filter} onSelect={setFilter} />

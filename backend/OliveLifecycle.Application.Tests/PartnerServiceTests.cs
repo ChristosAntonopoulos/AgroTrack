@@ -20,7 +20,7 @@ public class PartnerServiceTests
     private readonly Mock<IServiceContactRequestRepository> _requests = new();
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IFieldRepository> _fields = new();
-    private readonly Mock<ITaskRepository> _tasks = new();
+    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IFieldAccessService> _access = new();
     private readonly Mock<IUserNotificationService> _notifications = new();
     private readonly Mock<IActivityService> _activities = new();
@@ -60,7 +60,7 @@ public class PartnerServiceTests
             _requests.Object,
             _users.Object,
             _fields.Object,
-            _tasks.Object,
+            _fieldTasks.Object,
             _access.Object,
             _notifications.Object,
             _activities.Object,
@@ -252,7 +252,7 @@ public class PartnerServiceTests
     }
 
     [Fact]
-    public async Task UpdateRequestStatusAsync_AcceptLinksTaskWithoutAssignedTo()
+    public async Task UpdateRequestStatusAsync_AcceptLinksTaskWithoutAssignedUserId()
     {
         var request = new ServiceContactRequest
         {
@@ -264,13 +264,19 @@ public class PartnerServiceTests
             Status = ServiceContactStatus.New,
             ApproximateArea = "Peza"
         };
-        var task = new TaskItem { Id = "task-1", FieldId = "field-1", Title = "Pruning", AssignedTo = null };
+        var task = new Core.Entities.FieldWork.FieldTask
+        {
+            Id = "task-1",
+            FieldId = "field-1",
+            Title = "Pruning",
+            AssignedUserId = null
+        };
         _requests.Setup(r => r.GetByIdAsync("req-1", It.IsAny<CancellationToken>())).ReturnsAsync(request);
         _requests.Setup(r => r.UpdateAsync(It.IsAny<ServiceContactRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ServiceContactRequest r, CancellationToken _) => r);
-        _tasks.Setup(r => r.GetByIdAsync("task-1", It.IsAny<CancellationToken>())).ReturnsAsync(task);
-        _tasks.Setup(r => r.UpdateAsync(It.IsAny<TaskItem>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((TaskItem t, CancellationToken _) => t);
+        _fieldTasks.Setup(r => r.GetByIdAsync("task-1", It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        _fieldTasks.Setup(r => r.UpdateAsync(It.IsAny<Core.Entities.FieldWork.FieldTask>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Core.Entities.FieldWork.FieldTask t, CancellationToken _) => t);
         _categories.Setup(r => r.GetByIdAsync("cat-pruning", It.IsAny<CancellationToken>())).ReturnsAsync(Pruning);
         _users.Setup(r => r.GetByIdAsync("owner-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User { Id = "owner-1", FirstName = "Giorgos" });
@@ -283,9 +289,8 @@ public class PartnerServiceTests
             LinkTask = true
         });
 
-        Assert.Null(task.AssignedTo);
-        Assert.Equal("pruner-1", task.PartnerUserId);
-        Assert.Equal("req-1", task.ServiceContactRequestId);
+        Assert.Null(task.AssignedUserId);
+        Assert.Equal("pruner-1", task.AssignedCollaboratorId);
     }
 
     [Theory]

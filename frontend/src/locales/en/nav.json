@@ -16,7 +16,7 @@
     "fields": "Fields",
     "tasks": "Tasks",
     "partners": "Partners",
-    "money": "Economics",
+    "money": "Money",
     "calendar": "Calendar",
     "analytics": "Analytics",
     "reports": "Reports",
@@ -30,9 +30,11 @@
     "new": "New",
     "edit": "Edit",
     "details": "Details",
-    "taskTemplates": "Task Templates",
     "chronologio": "Chronologio",
     "notes": "Notes",
-    "apologismos": "Year review"
+    "apologismos": "Year review",
+    "workSetup": "Work setup",
+    "workProfile": "How I work this field",
+    "weather": "Weather"
   }
 }

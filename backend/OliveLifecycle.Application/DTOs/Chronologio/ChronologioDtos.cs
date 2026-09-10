@@ -70,11 +70,14 @@ public class ChronologioDetailsDto
 public class ChronologioTaskDetailsDto
 {
     public string TaskId { get; set; } = string.Empty;
+    public string? ExecutionId { get; set; }
     public string? TaskType { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string? Outcome { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? AssigneeName { get; set; }
+    public string? FollowUpTaskId { get; set; }
 }
 
 public class ChronologioExpenseDetailsDto
@@ -82,6 +85,10 @@ public class ChronologioExpenseDetailsDto
     public string ExpenseId { get; set; } = string.Empty;
     public string? ExpenseCategory { get; set; }
     public string? LinkedTaskId { get; set; }
+    public string? LinkedHarvestId { get; set; }
+    public string? RelatedTaskTitle { get; set; }
+    public string? RelatedHarvestTitle { get; set; }
+    public string? TransactionType { get; set; }
     public string? Description { get; set; }
 }
 

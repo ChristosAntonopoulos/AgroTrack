@@ -3,6 +3,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Reports;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -27,26 +28,29 @@ public class ReportsService : IReportsService
     internal const double HeatStressTempC = 35;
 
     private readonly IFieldRepository _fieldRepository;
-    private readonly ITaskRepository _taskRepository;
+    private readonly IFieldTaskRepository _fieldTasks;
+    private readonly ITaskExecutionRepository _executions;
     private readonly IHarvestRecordRepository _harvestRecordRepository;
-    private readonly IFinancialEntryRepository _financialEntryRepository;
+    private readonly IFinancialTransactionRepository _financialTransactions;
     private readonly IFieldDailyWeatherSnapshotRepository _weatherSnapshots;
     private readonly IFieldWeatherPeriodReviewRepository _weatherReviews;
     private readonly IDateTimeProvider _dateTimeProvider;
 
     public ReportsService(
         IFieldRepository fieldRepository,
-        ITaskRepository taskRepository,
+        IFieldTaskRepository fieldTasks,
+        ITaskExecutionRepository executions,
         IHarvestRecordRepository harvestRecordRepository,
-        IFinancialEntryRepository financialEntryRepository,
+        IFinancialTransactionRepository financialTransactions,
         IFieldDailyWeatherSnapshotRepository weatherSnapshots,
         IFieldWeatherPeriodReviewRepository weatherReviews,
         IDateTimeProvider dateTimeProvider)
     {
         _fieldRepository = fieldRepository;
-        _taskRepository = taskRepository;
+        _fieldTasks = fieldTasks;
+        _executions = executions;
         _harvestRecordRepository = harvestRecordRepository;
-        _financialEntryRepository = financialEntryRepository;
+        _financialTransactions = financialTransactions;
         _weatherSnapshots = weatherSnapshots;
         _weatherReviews = weatherReviews;
         _dateTimeProvider = dateTimeProvider;
@@ -63,39 +67,46 @@ public class ReportsService : IReportsService
         var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
         var fieldIds = fields.Select(f => f.Id).ToList();
         var tasks = fieldIds.Count == 0
-            ? Enumerable.Empty<TaskItem>()
-            : await _taskRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            ? Array.Empty<FieldTask>()
+            : await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldIds = fieldIds }, cancellationToken);
+        var executions = fieldIds.Count == 0
+            ? Array.Empty<TaskExecution>()
+            : await _executions.GetByFieldIdsAsync(fieldIds, cancellationToken);
+        var activeByTaskId = executions
+            .Where(e => e.IsActive)
+            .GroupBy(e => e.TaskId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.CompletedAt).First(), StringComparer.Ordinal);
         var harvests = fieldIds.Count == 0
             ? Enumerable.Empty<HarvestRecord>()
             : await _harvestRecordRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
         var ledger = fieldIds.Count == 0
-            ? Enumerable.Empty<FinancialEntry>()
-            : await _financialEntryRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            ? Enumerable.Empty<FinancialTransaction>()
+            : await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
 
         var now = _dateTimeProvider.UtcNow;
         return fields.Select(field =>
         {
-            var fieldTasks = tasks.Where(t => t.FieldId == field.Id).ToList();
+            var fieldTaskList = tasks.Where(t => t.FieldId == field.Id).ToList();
             var fieldHarvests = harvests
                 .Where(h => h.FieldId == field.Id && MatchesSeason(h.HarvestDate, season, periodBasis) && h.Status != FinancialEntryStatus.Voided)
                 .ToList();
             var fieldEntries = ledger
-                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
+                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.ResultYear, lifecycleYear))
                 .ToList();
-            var fieldTasksInPeriod = fieldTasks
-                .Where(t => MatchesSeason(TaskDate(t), season, periodBasis))
+            var fieldTasksInPeriod = fieldTaskList
+                .Where(t => MatchesSeason(TaskDate(t, activeByTaskId), season, periodBasis))
                 .ToList();
             var totalProduction = fieldHarvests.Sum(h => h.OliveKg);
             var oilKg = fieldHarvests.Where(h => h.OilKg.HasValue).Sum(h => h.OilKg ?? 0);
             var hasOil = fieldHarvests.Any(h => h.OilKg.HasValue);
-            var totalCost = SumFieldCost(fieldEntries, fieldTasksInPeriod);
+            var totalCost = SumFieldCost(fieldEntries);
             var revenue = SumFieldRevenue(fieldEntries);
             var areaHa = RoundHa(field.ResolveAreaHectares() ?? 0);
             var treeCount = field.TreeCount ?? 0;
             var lastHarvest = fieldHarvests.OrderByDescending(h => h.HarvestDate).FirstOrDefault();
-            var lastPruning = fieldTasks
-                .Where(t => t.Status == WorkTaskStatus.Completed && IsPruning(t))
-                .OrderByDescending(t => t.ActualEnd ?? t.ScheduledEnd ?? t.UpdatedAt)
+            var lastPruning = fieldTaskList
+                .Where(t => IsCompleted(t, activeByTaskId) && IsPruning(t))
+                .OrderByDescending(t => TaskDate(t, activeByTaskId))
                 .FirstOrDefault();
 
             return new FieldSummaryReportDto
@@ -109,15 +120,14 @@ public class ReportsService : IReportsService
                 TreeAge = field.TreeAge,
                 IrrigationType = field.IrrigationType,
                 SoilType = field.SoilType ?? field.GroundType,
-                LastPruningDate = FormatDate(lastPruning?.ActualEnd ?? lastPruning?.ScheduledEnd),
+                LastPruningDate = lastPruning == null ? null : FormatDate(TaskDate(lastPruning, activeByTaskId)),
                 LastHarvestDate = lastHarvest == null ? null : FormatDate(lastHarvest.HarvestDate),
-                TasksCompleted = fieldTasksInPeriod.Count(t => t.Status == WorkTaskStatus.Completed),
-                TasksPending = fieldTasksInPeriod.Count(t => t.Status is WorkTaskStatus.Pending or WorkTaskStatus.InProgress),
+                TasksCompleted = fieldTasksInPeriod.Count(t => IsCompleted(t, activeByTaskId)),
+                TasksPending = fieldTasksInPeriod.Count(t => IsOpen(t, activeByTaskId)),
                 TasksOverdue = fieldTasksInPeriod.Count(t =>
-                    t.Status != WorkTaskStatus.Completed &&
-                    t.Status != WorkTaskStatus.Cancelled &&
-                    t.ScheduledEnd.HasValue &&
-                    t.ScheduledEnd.Value < now),
+                    IsOpen(t, activeByTaskId) &&
+                    t.PlannedEnd.HasValue &&
+                    t.PlannedEnd.Value < now),
                 TotalCost = RoundMoney(totalCost),
                 CostPerHa = areaHa > 0 ? RoundMoney(totalCost / (decimal)areaHa) : 0,
                 Revenue = RoundMoney(revenue),
@@ -186,20 +196,16 @@ public class ReportsService : IReportsService
 
         var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
         var fieldIds = fields.Select(f => f.Id).ToList();
-        var tasks = fieldIds.Count == 0
-            ? Enumerable.Empty<TaskItem>()
-            : await _taskRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
         var ledger = fieldIds.Count == 0
-            ? Enumerable.Empty<FinancialEntry>()
-            : await _financialEntryRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            ? Enumerable.Empty<FinancialTransaction>()
+            : await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
 
         var profitByField = fields.Select(field =>
         {
             var fieldEntries = ledger
-                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
+                .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.ResultYear, lifecycleYear))
                 .ToList();
-            var fieldTasks = tasks.Where(t => t.FieldId == field.Id && MatchesSeason(TaskDate(t), season, periodBasis));
-            var cost = SumFieldCost(fieldEntries, fieldTasks);
+            var cost = SumFieldCost(fieldEntries);
             var revenue = SumFieldRevenue(fieldEntries);
             return new FieldProfitDto
             {
@@ -215,13 +221,12 @@ public class ReportsService : IReportsService
         var totalIncome = profitByField.Sum(p => p.Revenue);
         var postedExpenses = ledger
             .Where(e =>
-                e.Kind == FinancialEntryKind.Expense &&
-                e.Status == FinancialEntryStatus.Posted &&
+                e.Type == FinancialTransactionType.Expense &&
                 MatchesSeason(e.OccurredOn, season, periodBasis) &&
-                MatchesLifecycleYear(e.LifecycleYear, lifecycleYear))
+                MatchesLifecycleYear(e.ResultYear, lifecycleYear))
             .ToList();
         var expensesByBucket = postedExpenses
-            .GroupBy(e => (e.Bucket ?? FinancialCategoryBucket.Other).ToApiString())
+            .GroupBy(e => (e.Category?.ToApiString() ?? FinancialTransactionCategory.OtherExpense.ToApiString()))
             .ToDictionary(g => g.Key, g => RoundMoney(g.Sum(e => e.Amount)));
         var expensesByCategory = postedExpenses
             .Where(e => e.Category.HasValue)
@@ -297,11 +302,18 @@ public class ReportsService : IReportsService
         var periodTo = new DateTime(year, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
         var tasks = fieldIds.Count == 0
-            ? Enumerable.Empty<TaskItem>()
-            : await _taskRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            ? Array.Empty<FieldTask>()
+            : await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldIds = fieldIds }, cancellationToken);
+        var executions = fieldIds.Count == 0
+            ? Array.Empty<TaskExecution>()
+            : await _executions.GetByFieldIdsAsync(fieldIds, cancellationToken);
+        var activeByTaskId = executions
+            .Where(e => e.IsActive)
+            .GroupBy(e => e.TaskId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.CompletedAt).First(), StringComparer.Ordinal);
         var ledger = fieldIds.Count == 0
-            ? Enumerable.Empty<FinancialEntry>()
-            : await _financialEntryRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            ? Enumerable.Empty<FinancialTransaction>()
+            : await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
         var reviews = fieldIds.Count == 0
             ? Array.Empty<FieldWeatherPeriodReview>()
             : await _weatherReviews.GetByFieldIdsAsync(fieldIds, periodFrom, periodTo, cancellationToken);
@@ -319,6 +331,7 @@ public class ReportsService : IReportsService
                 snapshots,
                 review,
                 tasks.Where(t => t.FieldId == field.Id).ToList(),
+                activeByTaskId,
                 ledger.Where(e => e.FieldId == field.Id).ToList(),
                 year,
                 now));
@@ -403,8 +416,9 @@ public class ReportsService : IReportsService
         Field field,
         IReadOnlyList<FieldDailyWeatherSnapshot> snapshots,
         FieldWeatherPeriodReview? review,
-        List<TaskItem> fieldTasks,
-        List<FinancialEntry> fieldEntries,
+        List<FieldTask> fieldTasks,
+        IReadOnlyDictionary<string, TaskExecution> activeByTaskId,
+        List<FinancialTransaction> fieldEntries,
         int year,
         DateTime now)
     {
@@ -413,19 +427,28 @@ public class ReportsService : IReportsService
         var monthlyRain = Enumerable.Range(1, 12)
             .Select(m => RoundOne(days.Where(s => s.Date.Month == m).Sum(s => s.RainTotalMm ?? 0)))
             .ToList();
-        var posted = fieldEntries.Where(e => e.Status == FinancialEntryStatus.Posted && e.OccurredOn.Year == year).ToList();
+        var posted = fieldEntries.Where(e => e.OccurredOn.Year == year).ToList();
         var monthlyCost = Enumerable.Range(1, 12)
-            .Select(m => RoundMoney(posted.Where(e => e.Kind == FinancialEntryKind.Expense && e.OccurredOn.Month == m).Sum(e => e.Amount)))
+            .Select(m => RoundMoney(posted.Where(e => e.Type == FinancialTransactionType.Expense && e.OccurredOn.Month == m).Sum(e => e.Amount)))
             .ToList();
         var monthlyRevenue = Enumerable.Range(1, 12)
-            .Select(m => RoundMoney(posted.Where(e => e.Kind == FinancialEntryKind.Income && e.OccurredOn.Month == m).Sum(e => e.Amount)))
+            .Select(m => RoundMoney(posted.Where(e => e.Type == FinancialTransactionType.Income && e.OccurredOn.Month == m).Sum(e => e.Amount)))
             .ToList();
-        var seasonTasks = fieldTasks.Where(t => TaskInYear(t, year)).ToList();
+        var seasonTasks = fieldTasks.Where(t => TaskInYear(t, activeByTaskId, year)).ToList();
         var monthlyTasks = Enumerable.Range(1, 12)
-            .Select(m => seasonTasks.Count(t => t.Status == WorkTaskStatus.Completed && (t.ActualEnd ?? t.ScheduledEnd ?? t.UpdatedAt).Month == m && (t.ActualEnd ?? t.ScheduledEnd ?? t.UpdatedAt).Year == year))
+            .Select(m => seasonTasks.Count(t =>
+            {
+                if (!IsCompleted(t, activeByTaskId))
+                {
+                    return false;
+                }
+
+                var completedAt = TaskDate(t, activeByTaskId);
+                return completedAt.Month == m && completedAt.Year == year;
+            }))
             .ToList();
 
-        var totalCost = SumFieldCost(posted, seasonTasks);
+        var totalCost = SumFieldCost(posted);
         var revenue = SumFieldRevenue(posted);
         var mins = days.Where(s => s.MinTemperatureC.HasValue).Select(s => s.MinTemperatureC!.Value).ToList();
         var maxs = days.Where(s => s.MaxTemperatureC.HasValue).Select(s => s.MaxTemperatureC!.Value).ToList();
@@ -444,13 +467,13 @@ public class ReportsService : IReportsService
         if (wettestMm <= 0) wettest = null;
 
         var tasksByType = seasonTasks
-            .GroupBy(t => string.IsNullOrWhiteSpace(t.Type) ? (string.IsNullOrWhiteSpace(t.Title) ? "other" : t.Title) : t.Type)
+            .GroupBy(t => ResolveTaskType(t))
             .Select(g => new TaskTypeCountDto
             {
                 Type = g.Key,
-                Completed = g.Count(t => t.Status == WorkTaskStatus.Completed),
+                Completed = g.Count(t => IsCompleted(t, activeByTaskId)),
                 Total = g.Count(),
-                Cost = RoundMoney(g.Where(t => t.Status == WorkTaskStatus.Completed).Sum(t => t.Cost ?? 0))
+                Cost = 0m
             })
             .OrderByDescending(t => t.Completed)
             .ThenBy(t => t.Type)
@@ -479,13 +502,12 @@ public class ReportsService : IReportsService
             CostPerHa = (field.ResolveAreaHectares() ?? 0) > 0 ? RoundMoney(totalCost / (decimal)RoundHa(field.ResolveAreaHectares() ?? 0)) : 0,
             MonthlyCost = monthlyCost,
             MonthlyRevenue = monthlyRevenue,
-            TasksCompleted = seasonTasks.Count(t => t.Status == WorkTaskStatus.Completed),
-            TasksPending = seasonTasks.Count(t => t.Status is WorkTaskStatus.Pending or WorkTaskStatus.InProgress),
+            TasksCompleted = seasonTasks.Count(t => IsCompleted(t, activeByTaskId)),
+            TasksPending = seasonTasks.Count(t => IsOpen(t, activeByTaskId)),
             TasksOverdue = seasonTasks.Count(t =>
-                t.Status != WorkTaskStatus.Completed &&
-                t.Status != WorkTaskStatus.Cancelled &&
-                t.ScheduledEnd.HasValue &&
-                t.ScheduledEnd.Value < now),
+                IsOpen(t, activeByTaskId) &&
+                t.PlannedEnd.HasValue &&
+                t.PlannedEnd.Value < now),
             MonthlyTasksCompleted = monthlyTasks,
             TasksByType = tasksByType
         };
@@ -566,14 +588,48 @@ public class ReportsService : IReportsService
         return Math.Round((currentMm - previousMm) / previousMm * 100.0, 0, MidpointRounding.AwayFromZero);
     }
 
-    private static DateTime TaskDate(TaskItem task) =>
-        task.ActualEnd ?? task.ScheduledEnd ?? task.ScheduledStart ?? task.UpdatedAt;
+    private static DateTime TaskDate(
+        FieldTask task,
+        IReadOnlyDictionary<string, TaskExecution> activeByTaskId)
+    {
+        if (activeByTaskId.TryGetValue(task.Id, out var execution))
+        {
+            return execution.CompletedAt;
+        }
 
-    private static bool TaskInYear(TaskItem task, int year) =>
-        CultivationSeason.MatchesPeriod(TaskDate(task), year, "calendar");
+        return task.PlannedEnd ?? task.PlannedStart ?? task.UpdatedAt;
+    }
 
-    private static bool IsPruning(TaskItem task) =>
-        ContainsIgnoreCase(task.Type, "prun") ||
+    private static bool TaskInYear(
+        FieldTask task,
+        IReadOnlyDictionary<string, TaskExecution> activeByTaskId,
+        int year) =>
+        CultivationSeason.MatchesPeriod(TaskDate(task, activeByTaskId), year, "calendar")
+        || task.ResultYear == year;
+
+    private static bool IsCompleted(
+        FieldTask task,
+        IReadOnlyDictionary<string, TaskExecution> activeByTaskId) =>
+        task.Status == FieldTaskStatus.Completed || activeByTaskId.ContainsKey(task.Id);
+
+    private static bool IsOpen(
+        FieldTask task,
+        IReadOnlyDictionary<string, TaskExecution> activeByTaskId) =>
+        task.Status != FieldTaskStatus.Cancelled
+        && task.Status != FieldTaskStatus.Completed
+        && !activeByTaskId.ContainsKey(task.Id)
+        && task.Status is FieldTaskStatus.Planned
+            or FieldTaskStatus.Ready
+            or FieldTaskStatus.InProgress
+            or FieldTaskStatus.Blocked;
+
+    private static string ResolveTaskType(FieldTask task) =>
+        !string.IsNullOrWhiteSpace(task.TemplateCode)
+            ? task.TemplateCode!
+            : string.IsNullOrWhiteSpace(task.Title) ? "other" : task.Title;
+
+    private static bool IsPruning(FieldTask task) =>
+        ContainsIgnoreCase(task.TemplateCode, "prun") ||
         ContainsIgnoreCase(task.Title, "prun") ||
         ContainsIgnoreCase(task.Title, "κλάδεμ");
 
@@ -597,14 +653,14 @@ public class ReportsService : IReportsService
         return fields.Where(f => string.Equals(f.CurrentLifecycleYear, year, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool MatchesLifecycleYear(string? entryYear, string? filterYear)
+    private static bool MatchesLifecycleYear(int resultYear, string? filterYear)
     {
         if (string.IsNullOrWhiteSpace(filterYear))
         {
             return true;
         }
 
-        return string.Equals(entryYear, filterYear.Trim(), StringComparison.OrdinalIgnoreCase);
+        return int.TryParse(filterYear.Trim(), out var year) && resultYear == year;
     }
 
     private static bool MatchesSeason(DateTime date, string? season, string? periodBasis = null)
@@ -617,27 +673,11 @@ public class ReportsService : IReportsService
         return int.TryParse(season.Trim(), out var year) && CultivationSeason.MatchesPeriod(date, year, periodBasis);
     }
 
-    /// <summary>
-    /// Recorded expenses prefer the ledger. Completed task costs are used only when the field
-    /// has no posted expense rows, so a linked task+ledger pair is never summed twice.
-    /// </summary>
-    private static decimal SumFieldCost(IEnumerable<FinancialEntry> entries, IEnumerable<TaskItem> fieldTasks)
-    {
-        var postedExpenses = entries
-            .Where(e => e.Status == FinancialEntryStatus.Posted && e.Kind == FinancialEntryKind.Expense)
-            .ToList();
-        if (postedExpenses.Count > 0)
-        {
-            return postedExpenses.Sum(e => e.Amount);
-        }
+    private static decimal SumFieldCost(IEnumerable<FinancialTransaction> entries) =>
+        entries.Where(e => e.Type == FinancialTransactionType.Expense).Sum(e => e.Amount);
 
-        return fieldTasks.Where(t => t.Status == WorkTaskStatus.Completed).Sum(t => t.Cost ?? 0);
-    }
-
-    private static decimal SumFieldRevenue(IEnumerable<FinancialEntry> entries) =>
-        entries
-            .Where(e => e.Kind == FinancialEntryKind.Income && e.Status == FinancialEntryStatus.Posted)
-            .Sum(e => e.Amount);
+    private static decimal SumFieldRevenue(IEnumerable<FinancialTransaction> entries) =>
+        entries.Where(e => e.Type == FinancialTransactionType.Income).Sum(e => e.Amount);
 
     private static double RoundHa(double value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
     private static double RoundKg(double value) => Math.Round(value, 0, MidpointRounding.AwayFromZero);

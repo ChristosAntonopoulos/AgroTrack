@@ -137,20 +137,6 @@ public static class ServiceCategorySeeder
             "Ensured {Count} service categories ({Parents} parents).",
             Catalog.Length,
             Catalog.Count(c => c.ParentSlug == null));
-
-        var templates = context.GetCollection<TaskTemplateDocument>("task_templates");
-        foreach (var item in Catalog)
-        {
-            foreach (var type in item.TaskTypes)
-            {
-                await templates.UpdateManyAsync(
-                    t => t.Type == type,
-                    Builders<TaskTemplateDocument>.Update
-                        .Set(t => t.ServiceCategorySlug, item.Slug)
-                        .Set(t => t.UpdatedAt, now),
-                    cancellationToken: cancellationToken);
-            }
-        }
     }
 
     private static async Task UpsertAsync(

@@ -1,415 +1,498 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { isDeviceOnline } from '../utils/networkStatus';
-import { getFieldService, getTaskService } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
-import { Field } from '../services/fieldService';
+import { getFieldService, getFieldWorkService, getPartnerService } from '../services/serviceFactory';
+import { fieldPeopleService } from '../services/fieldPeopleService';
+import { weatherService } from '../services/weatherService';
+import type { DismissalLearningChoice, FieldTask, TaskProposal } from '../services/fieldWorkService';
+import type { Field } from '../services/fieldService';
+import type { FieldWeather } from '../services/geospatialService';
 import { getApiErrorMessage } from '../utils/translateApiError';
-import TaskCard from '../components/Task/TaskCard';
+import { athensCalendarYear } from '../utils/athensDate';
+import { dedupeTaskProposals } from '../utils/taskProposalDedup';
+import { scheduleProposalPath, stashProposalForSchedule } from '../utils/proposalPresentation';
+import type { ProposalDismissDecision } from '../components/Tasks/ProposalActionsMenu';
+import LearningPromptSheet from '../components/FieldWork/LearningPromptSheet';
 import {
-  filterTasks,
-  getTaskSummary,
-  groupOpenTasks,
-  sortTasks,
-  TaskFocusFilter,
-  TaskSort,
-} from '../utils/taskListUtils';
-import {
-  filterTemplates,
-  sortTemplates,
-} from '../utils/taskTemplateUtils';
-import { useAllLocalizedTemplates, useTaskTemplateLabels } from '../hooks/useLocalizedTaskTemplate';
-import { TaskTemplateFilters as TemplateFiltersState } from '../types/oliveTaskTemplate';
+  buildTaskSearchParams,
+  parseTaskFieldId,
+  parseTaskView,
+  parseTaskYear,
+  type TaskPageView,
+} from '../utils/taskViewState';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import EmptyState from '../components/Common/EmptyState';
-import TasksBoardView from '../components/Task/TasksBoardView';
-import TasksCategoryBrowse from '../components/Task/TasksCategoryBrowse';
-import {
-  AlertCircle,
-  CalendarClock,
-  CheckSquare,
-  LayoutGrid,
-  List,
-  Plus,
-  Search,
-  Sparkles,
-} from 'lucide-react';
-import './TasksPage.css';
+import TasksPageHeader from '../components/Tasks/TasksPageHeader';
+import TaskViewTabs from '../components/Tasks/TaskViewTabs';
+import TaskContextBar from '../components/Tasks/TaskContextBar';
+import TaskProposalList from '../components/Tasks/TaskProposalList';
+import PlannedTaskList from '../components/Tasks/PlannedTaskList';
+import InProgressTaskList from '../components/Tasks/InProgressTaskList';
+import CreatedTaskBanner from '../components/Tasks/CreatedTaskBanner';
+import { formatLongTaskDate } from '../utils/taskFormDates';
+import { taskDisplayTitle } from '../utils/taskDisplayTitle';
+import '../components/Tasks/TasksShell.css';
 
-type ViewMode = 'list' | 'board';
+const PLANNED_STATUSES = new Set(['planned', 'ready', 'blocked']);
+const IN_PROGRESS_STATUSES = new Set(['in_progress']);
+const FUTURE_WORK_STATUSES = new Set([...PLANNED_STATUSES, ...IN_PROGRESS_STATUSES]);
+
+type DismissalLearningPrompt = {
+  fieldId: string;
+  templateCode: string;
+  message: string;
+};
 
 const TasksPage: React.FC = () => {
-  const { t } = useTranslation(['tasks', 'common', 'errors', 'taskTemplates']);
+  const { t, i18n } = useTranslation(['tasks', 'common', 'errors']);
   const { user } = useAuth();
-  const { showWidget, isEveryday } = useExperienceMode();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
-  const labels = useTaskTemplateLabels();
-  const localizedTemplates = useAllLocalizedTemplates();
 
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const defaultYear = athensCalendarYear(new Date());
+  const view = parseTaskView(searchParams.get('view'));
+  const yearFilter = parseTaskYear(searchParams.get('year'), defaultYear);
+  const fieldFilter = parseTaskFieldId(searchParams.get('field'));
+  const createdId = searchParams.get('created') || '';
+
+  const [proposals, setProposals] = useState<TaskProposal[]>([]);
+  const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [weatherByField, setWeatherByField] = useState<Record<string, FieldWeather | null>>({});
+  const [personNames, setPersonNames] = useState<Record<string, string>>({});
+  const [dismissalPrompt, setDismissalPrompt] = useState<DismissalLearningPrompt | null>(null);
+  const [learningBusy, setLearningBusy] = useState(false);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [focus, setFocus] = useState<TaskFocusFilter>('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [fieldFilter, setFieldFilter] = useState('');
-  const [sort, setSort] = useState<TaskSort>('due');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [templateFieldId, setTemplateFieldId] = useState('');
+  const fieldNames = useMemo(
+    () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
+    [fields]
+  );
 
-  const isOwner = user?.role === 'FieldOwner';
-  const currentMonth = new Date().getMonth() + 1;
+  const writeParams = useCallback(
+    (next: { view?: TaskPageView; year?: number; fieldId?: string }) => {
+      setSearchParams(
+        buildTaskSearchParams({
+          view: next.view ?? view,
+          year: next.year ?? yearFilter,
+          defaultYear,
+          fieldId: next.fieldId !== undefined ? next.fieldId : fieldFilter,
+        }),
+        { replace: false }
+      );
+    },
+    [defaultYear, fieldFilter, setSearchParams, view, yearFilter]
+  );
 
-  useEffect(() => {
-    if (isEveryday || !showWidget('taskBoardView')) {
-      setViewMode('list');
-    }
-  }, [isEveryday, showWidget]);
-
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.role, user?.userId, refreshGeneration]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      if (tasks.length === 0) setLoading(true);
-      const taskService = getTaskService();
-      const userId = user?.role === 'Producer' ? user.userId : undefined;
-      const [tasksData, fieldsData] = await Promise.all([
-        taskService.getTasks(undefined, userId),
+      setError(null);
+      const fw = getFieldWorkService();
+      const [fieldsData, proposalsData, tasksData] = await Promise.all([
         getFieldService().getFields().catch(() => [] as Field[]),
+        fw.listProposals({ resultYear: yearFilter }),
+        fw.listFieldTasks({ resultYear: yearFilter }),
       ]);
-      setTasks(tasksData);
+
       setFields(fieldsData);
+      setProposals(dedupeTaskProposals(proposalsData));
+      setTasks(tasksData);
       setShowingCachedData(!isDeviceOnline());
-      if (fieldsData.length > 0 && !templateFieldId) {
-        setTemplateFieldId(fieldsData[0].id);
-      }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('tasks:failedLoad'));
     } finally {
       setLoading(false);
     }
+  }, [yearFilter, setShowingCachedData, t]);
+
+  useEffect(() => {
+    setLoading(true);
+    void loadData();
+  }, [user?.userId, user?.role, refreshGeneration, loadData]);
+
+  const visibleProposals = useMemo(
+    () =>
+      proposals.filter((proposal) => {
+        if (fieldFilter && proposal.fieldId !== fieldFilter) return false;
+        return proposal.status === 'active' || proposal.status === 'snoozed';
+      }),
+    [proposals, fieldFilter]
+  );
+
+  const weatherFieldKey = useMemo(
+    () =>
+      [...new Set(visibleProposals.map((proposal) => proposal.fieldId).filter(Boolean))]
+        .sort()
+        .join(','),
+    [visibleProposals]
+  );
+
+  useEffect(() => {
+    if (view !== 'proposals' || !weatherFieldKey) {
+      return;
+    }
+    let cancelled = false;
+    const ids = weatherFieldKey.split(',').filter(Boolean);
+    void Promise.all(
+      ids.map(async (fieldId) => {
+        try {
+          const weather = await weatherService.getFieldWeather(fieldId);
+          return [fieldId, weather] as const;
+        } catch {
+          return [fieldId, null] as const;
+        }
+      })
+    ).then((entries) => {
+      if (!cancelled) setWeatherByField(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [view, weatherFieldKey]);
+
+  const futureTasks = useMemo(
+    () =>
+      tasks.filter((task) => {
+        if (fieldFilter && task.fieldId !== fieldFilter) return false;
+        return FUTURE_WORK_STATUSES.has(String(task.status).toLowerCase());
+      }),
+    [tasks, fieldFilter]
+  );
+
+  const planned = useMemo(
+    () => futureTasks.filter((task) => PLANNED_STATUSES.has(String(task.status).toLowerCase())),
+    [futureTasks]
+  );
+
+  const inProgress = useMemo(
+    () =>
+      futureTasks.filter((task) => IN_PROGRESS_STATUSES.has(String(task.status).toLowerCase())),
+    [futureTasks]
+  );
+
+  const peopleFieldKey = useMemo(
+    () =>
+      [...new Set(futureTasks.map((task) => task.fieldId).filter(Boolean))]
+        .sort()
+        .join(','),
+    [futureTasks]
+  );
+
+  useEffect(() => {
+    if ((view !== 'planned' && view !== 'active') || !peopleFieldKey) return;
+    let cancelled = false;
+    const ids = peopleFieldKey.split(',').filter(Boolean);
+    void Promise.all(
+      ids.map(async (fieldId) => {
+        const [people, contacts] = await Promise.all([
+          Promise.resolve(fieldPeopleService.getPeople(fieldId)).catch(() => []),
+          Promise.resolve(
+            getPartnerService().getContacts({ fieldId, includeUnassigned: true })
+          ).catch(() => []),
+        ]);
+        const entries: Array<[string, string]> = [];
+        (Array.isArray(people) ? people : []).forEach((person) => {
+          const name = person.displayName || person.email;
+          if (name) entries.push([`user:${person.userId}`, name]);
+        });
+        (Array.isArray(contacts) ? contacts : []).forEach((contact) => {
+          if (contact.displayName) entries.push([`contact:${contact.id}`, contact.displayName]);
+        });
+        return entries;
+      })
+    ).then((groups) => {
+      if (cancelled) return;
+      setPersonNames(Object.fromEntries(groups.flat()));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [view, peopleFieldKey]);
+
+  const handleSchedule = (proposal: TaskProposal) => {
+    stashProposalForSchedule(proposal);
+    navigate(scheduleProposalPath(proposal));
   };
 
-  const fieldNames = useMemo(
-    () => Object.fromEntries(fields.map((f) => [f.id, f.name])),
-    [fields]
+  const handleLater = async (proposal: TaskProposal) => {
+    try {
+      setBusyId(proposal.id);
+      await getFieldWorkService().snoozeProposal(proposal.id);
+      await loadData();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.snooze'));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDismiss = async (proposal: TaskProposal, decision: ProposalDismissDecision) => {
+    try {
+      setBusyId(proposal.id);
+      await getFieldWorkService().dismissProposal(proposal.id, decision);
+      await loadData();
+      try {
+        const evalResult = await getFieldWorkService().evaluateDismissalLearning(
+          proposal.fieldId,
+          proposal.templateCode
+        );
+        if (evalResult.shouldPrompt) {
+          setDismissalPrompt({
+            fieldId: proposal.fieldId,
+            templateCode: proposal.templateCode,
+            message: evalResult.promptMessage || t('fieldWork.profile.learning.dismissalMessage'),
+          });
+        }
+      } catch {
+        // Learning prompt is optional — dismiss already succeeded.
+      }
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.dismiss'));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const applyDismissalLearning = async (choice: DismissalLearningChoice) => {
+    if (!dismissalPrompt) return;
+    try {
+      setLearningBusy(true);
+      await getFieldWorkService().applyDismissalLearning(
+        dismissalPrompt.fieldId,
+        dismissalPrompt.templateCode,
+        choice
+      );
+      setDismissalPrompt(null);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.profile.learning.applyFailed'));
+    } finally {
+      setLearningBusy(false);
+    }
+  };
+
+  const createdTask = useMemo(
+    () => planned.find((task) => task.id === createdId),
+    [planned, createdId]
   );
 
-  const fieldColors = useMemo(
-    () => Object.fromEntries(fields.map((f) => [f.id, f.color ?? null])),
-    [fields]
-  );
+  const clearCreated = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('created');
+    setSearchParams(next, { replace: true });
+  };
 
-  const summary = useMemo(() => getTaskSummary(tasks), [tasks]);
+  const handleUndoCreated = async () => {
+    if (!createdId) return;
+    try {
+      setBusyId(createdId);
+      await getFieldWorkService().cancelFieldTask(createdId);
+      clearCreated();
+      await loadData();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.form.failedSave'));
+    } finally {
+      setBusyId(null);
+    }
+  };
 
-  const filteredTasks = useMemo(() => {
-    const filtered = filterTasks(tasks, {
-      search: searchTerm,
-      focus,
-      fieldId: fieldFilter,
-      status: statusFilter,
-    });
-    return sortTasks(filtered, sort, fieldNames);
-  }, [tasks, searchTerm, focus, fieldFilter, statusFilter, sort, fieldNames]);
+  const handleStart = async (task: FieldTask) => {
+    try {
+      setBusyId(task.id);
+      await getFieldWorkService().startFieldTask(task.id);
+      await loadData();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.start'));
+    } finally {
+      setBusyId(null);
+    }
+  };
 
-  const templateField = fields.find((f) => f.id === templateFieldId) ?? null;
+  const years = useMemo(() => {
+    const current = defaultYear;
+    return [current - 1, current, current + 1];
+  }, [defaultYear]);
 
-  const recommendedTemplates = useMemo(() => {
-    if (!isOwner || !templateField) return [];
-    const filters: TemplateFiltersState = {
-      search: '',
-      category: 'All',
-      season: 'All year',
-      priority: 'All',
-      recommendedOnly: true,
-      fieldSuitableOnly: true,
-    };
-    const filtered = filterTemplates(
-      localizedTemplates,
-      filters,
-      currentMonth,
-      templateField,
-      tasks,
-      templateFieldId
+  if (loading) {
+    return (
+      <PageContainer className="tasks-page-container">
+        <Breadcrumbs />
+        <LoadingSpinner />
+      </PageContainer>
     );
-    return sortTemplates(filtered, currentMonth, templateField, tasks, templateFieldId).slice(0, 4);
-  }, [isOwner, templateField, templateFieldId, localizedTemplates, tasks, currentMonth]);
-
-  const subtitle =
-    user?.role === 'Producer' ? t('tasks:subtitleProducer') : t('tasks:subtitleDefault');
+  }
 
   return (
-    <PageContainer>
+    <PageContainer className="tasks-page-container">
+      <Breadcrumbs />
       <div className="tasks-page">
-        <Breadcrumbs />
+        <TasksPageHeader
+          title={t('fieldWork.pageTitle')}
+          subtitle={t('fieldWork.pageSubtitle')}
+          newTaskLabel={t('fieldWork.addTask')}
+          newTaskTo="/tasks/new"
+        />
 
-        <header className="tasks-page-header">
-          <div className="tasks-page-header-text">
-            <h1>{t('tasks:title')}</h1>
-            <p className="tasks-subtitle">{subtitle}</p>
-          </div>
-          {isOwner && (
-            <div className="tasks-page-header-actions">
-              <Button to="/tasks/new" icon={<Plus />} variant="primary">
-                {t('tasks:addTask')}
-              </Button>
-            </div>
-          )}
-        </header>
+        <TaskViewTabs
+          ariaLabel={t('fieldWork.views.aria')}
+          activeView={view}
+          onChange={(next) => writeParams({ view: next })}
+          views={[
+            {
+              id: 'proposals',
+              label: t('fieldWork.views.proposals'),
+              count: visibleProposals.length,
+            },
+            {
+              id: 'planned',
+              label: t('fieldWork.views.planned'),
+              count: planned.length,
+            },
+            {
+              id: 'active',
+              label: t('fieldWork.views.active'),
+              count: inProgress.length,
+            },
+          ]}
+        />
 
-        {loading ? (
-          <LoadingSpinner className="page-inline-loading" />
-        ) : (
-          <>
+        <TaskContextBar
+          yearLabel={t('fieldWork.year')}
+          year={yearFilter}
+          years={years}
+          defaultYear={defaultYear}
+          fieldLabel={t('fieldFilterLabel')}
+          allFieldsLabel={t('fieldWork.allFields')}
+          fieldId={fieldFilter}
+          fields={fields}
+          onYearChange={(year) => writeParams({ year })}
+          onFieldChange={(fieldId) => writeParams({ fieldId })}
+          clearYearLabel={t('fieldWork.context.clearYear')}
+          clearFieldLabel={t('fieldWork.context.clearField')}
+        />
+
         {error && <div className="tasks-error">{error}</div>}
 
-        <div className="tasks-summary-strip">
-          <div className="tasks-summary-item">
-            <strong>{summary.active}</strong> {t('tasks:summary.active')}
-          </div>
-          {summary.overdue > 0 && (
-            <div className="tasks-summary-item tasks-summary-item--warn">
-              <strong>{summary.overdue}</strong> {t('tasks:summary.overdue')}
-            </div>
-          )}
-          {summary.dueToday > 0 && (
-            <div className="tasks-summary-item tasks-summary-item--today">
-              <strong>{summary.dueToday}</strong> {t('tasks:summary.dueToday')}
-            </div>
-          )}
-        </div>
-
-        {!isEveryday && isOwner && fields.length > 0 && (
-          <section className="tasks-recommended-section">
-            <div className="tasks-recommended-header">
-              <div>
-                <h2>{t('tasks:recommended.title')}</h2>
-                <p>{t('tasks:recommended.subtitle')}</p>
-              </div>
-              <div className="tasks-recommended-field">
-                <label htmlFor="template-field">{t('tasks:recommended.fieldLabel')}</label>
-                <select
-                  id="template-field"
-                  value={templateFieldId}
-                  onChange={(e) => setTemplateFieldId(e.target.value)}
-                >
-                  {fields.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {recommendedTemplates.length === 0 ? (
-              <p className="tasks-recommended-empty">{t('tasks:recommended.empty')}</p>
-            ) : (
-              <div className="tasks-recommended-grid">
-                {recommendedTemplates.map((tpl) => (
-                  <article key={tpl.id} className="tasks-recommended-card">
-                    <div className="tasks-recommended-card-top">
-                      <span className="tasks-recommended-badge">{labels.categoryLabel(tpl.category)}</span>
-                      <span className="tasks-recommended-now">{t('taskTemplates:card.recommendedNow')}</span>
-                    </div>
-                    <h3>{tpl.title}</h3>
-                    <p>{tpl.shortDescription}</p>
-                    <div className="tasks-recommended-card-actions">
-                      <Button
-                        to={`/tasks/new?templateId=${tpl.id}&fieldId=${templateFieldId}`}
-                        size="sm"
-                        variant="primary"
-                        icon={<Plus />}
-                      >
-                        {t('tasks:recommended.schedule')}
-                      </Button>
-                      <Button
-                        to={`/fields/${templateFieldId}/task-templates`}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {t('tasks:recommended.browseAll')}
-                      </Button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
+        {view === 'proposals' ? (
+          <section
+            className="tasks-view-panel"
+            role="tabpanel"
+            id="tasks-panel-proposals"
+            aria-labelledby="tasks-tab-proposals"
+          >
+            <TaskProposalList
+              proposals={visibleProposals}
+              fieldNames={fieldNames}
+              unknownField={t('fieldWork.unknownField')}
+              introTitle={t('fieldWork.proposalsIntro.title')}
+              introSubtitle={t('fieldWork.proposalsIntro.subtitle')}
+              emptyTitle={t('fieldWork.empty.proposalsTitle')}
+              emptyDescription={t('fieldWork.empty.proposalsDescription')}
+              needsDecisionLabel={t('fieldWork.proposalGroups.needsDecision')}
+              canWaitLabel={t('fieldWork.proposalGroups.canWait')}
+              weatherByField={weatherByField}
+              busyId={busyId}
+              onSchedule={handleSchedule}
+              onSnooze={(proposal) => void handleLater(proposal)}
+              onDismiss={(proposal, decision) => void handleDismiss(proposal, decision)}
+            />
           </section>
-        )}
+        ) : null}
 
-        {tasks.length === 0 ? (
-          <EmptyState
-            icon={<CheckSquare size={64} />}
-            title={t('tasks:emptyTitle')}
-            description={
-              isOwner ? t('tasks:emptyDescriptionOwner') : t('tasks:emptyDescriptionFilter')
-            }
-            action={
-              isOwner ? (
-                <Button to="/tasks/new" icon={<Sparkles />}>
-                  {t('tasks:addFromTemplate')}
+        {view === 'planned' ? (
+          <section
+            className="tasks-view-panel"
+            role="tabpanel"
+            id="tasks-panel-planned"
+            aria-labelledby="tasks-tab-planned"
+          >
+            {createdTask ? (
+              <CreatedTaskBanner
+                title={taskDisplayTitle(createdTask.title, createdTask.templateCode, i18n.language)}
+                fieldName={fieldNames[createdTask.fieldId] || t('fieldWork.unknownField')}
+                dateLabel={formatLongTaskDate(createdTask.plannedStart, i18n.language)}
+                onView={() => navigate(`/tasks/${createdTask.id}`)}
+                onCreateAnother={() => navigate('/tasks/new')}
+                onUndo={() => void handleUndoCreated()}
+              />
+            ) : null}
+            <PlannedTaskList
+              tasks={planned}
+              fieldNames={fieldNames}
+              personNames={personNames}
+              unknownField={t('fieldWork.unknownField')}
+              highlightedId={createdId}
+              title={t('fieldWork.views.planned')}
+              groupLabels={{
+                today: t('fieldWork.plannedGroups.today'),
+                thisWeek: t('fieldWork.plannedGroups.thisWeek'),
+                later: t('fieldWork.plannedGroups.later'),
+              }}
+              emptyTitle={t('fieldWork.empty.plannedTitle')}
+              emptyDescription={t('fieldWork.empty.plannedDescription')}
+              emptyAction={
+                <Button to="/tasks/new" icon={<Plus />} variant="primary" size="lg">
+                  {t('fieldWork.addTask')}
                 </Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <>
-            <div className="tasks-toolbar">
-              <div className="tasks-search">
-                <Search size={18} />
-                <input
-                  type="search"
-                  placeholder={t('tasks:searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  aria-label={t('tasks:searchPlaceholder')}
-                />
-              </div>
+              }
+              completedLinkLabel={t('fieldWork.seeCompletedInChronologio')}
+              year={yearFilter}
+              busyId={busyId}
+              onStart={(task) => void handleStart(task)}
+              onOpen={(task) => navigate(`/tasks/${task.id}`)}
+            />
+          </section>
+        ) : null}
 
-              <div className="tasks-toolbar-row">
-                <div className="tasks-focus-pills" role="group" aria-label={t('tasks:focusLabel')}>
-                  {(isEveryday
-                    ? (['all', 'completed'] as TaskFocusFilter[])
-                    : (['all', 'action', 'active', 'completed'] as TaskFocusFilter[])
-                  ).map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={focus === key ? 'active' : ''}
-                      onClick={() => setFocus(key === 'all' && isEveryday ? 'all' : key)}
-                    >
-                      {key === 'action' && <AlertCircle size={14} />}
-                      {isEveryday && key === 'all' ? t('tasks:focus.open') : t(`tasks:focus.${key}`)}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="tasks-toolbar-controls">
-                  {isOwner && fields.length > 0 && (
-                    <select
-                      value={fieldFilter}
-                      onChange={(e) => setFieldFilter(e.target.value)}
-                      aria-label={t('tasks:fieldFilterLabel')}
-                    >
-                      <option value="">{t('tasks:allFields')}</option>
-                      {fields.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  <select value={sort} onChange={(e) => setSort(e.target.value as TaskSort)} aria-label={t('tasks:sortLabel')}>
-                    <option value="due">{t('tasks:sortDue')}</option>
-                    <option value="priority">{t('tasks:sortPriority')}</option>
-                    {isOwner && <option value="field">{t('tasks:sortField')}</option>}
-                    <option value="recent">{t('tasks:sortRecent')}</option>
-                  </select>
-
-                  {!isEveryday && showWidget('taskBoardView') ? (
-                  <div className="tasks-view-toggle" role="group" aria-label={t('tasks:viewModeAria')}>
-                    <button
-                      type="button"
-                      className={viewMode === 'list' ? 'active' : ''}
-                      onClick={() => setViewMode('list')}
-                    >
-                      <List size={16} />
-                      <span>{t('tasks:viewList')}</span>
-                    </button>
-                    {showWidget('taskBoardView') ? (
-                      <button
-                        type="button"
-                        className={viewMode === 'board' ? 'active' : ''}
-                        onClick={() => setViewMode('board')}
-                      >
-                        <LayoutGrid size={16} />
-                        <span>{t('tasks:viewBoard')}</span>
-                      </button>
-                    ) : null}
-                  </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {!isEveryday && (statusFilter !== 'all' || focus !== 'all') ? null : !isEveryday ? (
-                <div className="tasks-status-pills">
-                  {['all', 'pending', 'in_progress', 'completed'].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={statusFilter === s ? 'active' : ''}
-                      onClick={() => setStatusFilter(s)}
-                    >
-                      {t(s === 'all' ? 'tasks:filters.all' : `tasks:filters.${s}`)}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            {filteredTasks.length === 0 ? (
-              <EmptyState
-                icon={<CalendarClock size={48} />}
-                title={t('tasks:emptySearchTitle')}
-                description={t('tasks:emptySearchDescription')}
-              />
-            ) : !isEveryday && viewMode === 'board' ? (
-              <TasksBoardView
-                tasks={filteredTasks}
-                fieldNames={fieldNames}
-                fieldColors={fieldColors}
-              />
-            ) : isEveryday && focus !== 'completed' ? (
-              <div className="tasks-simple-groups">
-                {(['overdue', 'today', 'upcoming'] as const).map((group) => {
-                  const grouped = groupOpenTasks(filteredTasks);
-                  const list = grouped[group];
-                  if (list.length === 0) return null;
-                  return (
-                    <section key={group} className="tasks-simple-group">
-                      <h2>
-                        {t(`tasks:groups.${group}`)}
-                        <span>{list.length}</span>
-                      </h2>
-                      <div className="tasks-simple-list">
-                        {list.map((task) => (
-                          <TaskCard
-                            key={task.id}
-                            task={task}
-                            fieldName={fieldNames[task.fieldId]}
-                            fieldColor={fieldColors[task.fieldId]}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-            ) : (
-              <TasksCategoryBrowse
-                tasks={filteredTasks}
-                fieldNames={fieldNames}
-                fieldColors={fieldColors}
-              />
-            )}
-          </>
-        )}
-          </>
-        )}
+        {view === 'active' ? (
+          <section
+            className="tasks-view-panel"
+            role="tabpanel"
+            id="tasks-panel-active"
+            aria-labelledby="tasks-tab-active"
+          >
+            <InProgressTaskList
+              tasks={inProgress}
+              fieldNames={fieldNames}
+              personNames={personNames}
+              unknownField={t('fieldWork.unknownField')}
+              emptyTitle={t('fieldWork.empty.activeTitle')}
+              emptyDescription={t('fieldWork.empty.activeDescription')}
+              completedLinkLabel={t('fieldWork.seeCompletedInChronologio')}
+              year={yearFilter}
+              busyId={busyId}
+              onContinue={(task) => navigate(`/tasks/${task.id}`)}
+            />
+          </section>
+        ) : null}
       </div>
+
+      {dismissalPrompt ? (
+        <LearningPromptSheet
+          title={t('fieldWork.profile.learning.dismissalTitle')}
+          message={dismissalPrompt.message}
+          busy={learningBusy}
+          onClose={() => setDismissalPrompt(null)}
+          onAction={(actionId) => void applyDismissalLearning(actionId as DismissalLearningChoice)}
+          actions={[
+            { id: 'dont_propose', label: t('fieldWork.profile.learning.dontPropose') },
+            { id: 'ask_when_indicated', label: t('fieldWork.profile.learning.askWhenIndicated') },
+            {
+              id: 'keep_proposing',
+              label: t('fieldWork.profile.learning.keepProposing'),
+              variant: 'outline',
+            },
+          ]}
+        />
+      ) : null}
     </PageContainer>
   );
 };

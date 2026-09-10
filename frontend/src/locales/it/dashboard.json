@@ -19,7 +19,8 @@
     "inProgress": "In Progress",
     "completed": "Completed",
     "totalTasks": "Total Tasks",
-    "thisWeekCost": "Costo di questa settimana"
+    "thisWeekCost": "Costo di questa settimana",
+    "thisYearCost": "Spese di quest'anno"
   },
   "fieldsSection": {
     "ownerTitle": "My Fields",

@@ -1,25 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { FieldFinancialSummary } from '../../services/financialEntryService';
+import type { YearFinancialSummary } from '../../services/financialSummaryService';
 import { useTheme } from '../../context/ThemeContext';
-import { formatChronologioMoney } from '../../utils/chronologioGrouping';
-import { formatSignedMoney, numberLocaleFor } from '../../utils/fieldDisplay';
+import { formatOfficialAmount, formatOfficialNet } from '../../finance/format';
+import { numberLocaleFor } from '../../utils/fieldDisplay';
 import { spacing, typography } from '../../theme';
 
 type Props = {
-  summary: FieldFinancialSummary | null;
+  summary: YearFinancialSummary | null;
   onSeeFinance: () => void;
 };
 
 const FieldFinanceSummary: React.FC<Props> = ({ summary, onSeeFinance }) => {
-  const { t, i18n } = useTranslation('fields');
+  const { t, i18n } = useTranslation(['fields', 'money']);
   const { colors } = useTheme();
   const locale = numberLocaleFor(i18n.language);
   const currency = summary?.currency || 'EUR';
-  const income = summary?.totalIncome ?? 0;
-  const expenses = summary?.totalExpenses ?? 0;
-  const net = summary?.net ?? income - expenses;
+  const unknown = t('money:unknownAmount');
 
   return (
     <View style={[styles.block, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
@@ -27,19 +25,19 @@ const FieldFinanceSummary: React.FC<Props> = ({ summary, onSeeFinance }) => {
       <View style={styles.row}>
         <Text style={{ color: colors.textSecondary }}>{t('overview.income')}</Text>
         <Text style={{ color: colors.successDark, fontWeight: '700' }}>
-          + {formatChronologioMoney(income, currency, locale)}
+          {formatOfficialAmount(summary?.totalIncome, currency, locale, unknown)}
         </Text>
       </View>
       <View style={styles.row}>
         <Text style={{ color: colors.textSecondary }}>{t('overview.expenses')}</Text>
         <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-          − {formatChronologioMoney(expenses, currency, locale)}
+          {formatOfficialAmount(summary?.totalExpenses, currency, locale, unknown)}
         </Text>
       </View>
       <View style={styles.row}>
         <Text style={{ color: colors.textSecondary }}>{t('overview.result')}</Text>
-        <Text style={{ color: net >= 0 ? colors.successDark : colors.textPrimary, fontWeight: '800' }}>
-          {formatSignedMoney(net, currency, locale)}
+        <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>
+          {formatOfficialNet(summary?.netResult, currency, locale, unknown)}
         </Text>
       </View>
       <Pressable onPress={onSeeFinance} style={styles.link}>

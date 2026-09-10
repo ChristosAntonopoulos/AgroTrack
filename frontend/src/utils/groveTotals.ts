@@ -1,8 +1,6 @@
 import type { ChronologioEntry } from '../services/chronologioService';
-import type { FinancialEntry } from '../services/financialEntryService';
 import type { HarvestRecord } from '../services/harvestService';
 import { HARVEST_COST_CATEGORIES } from './categoryNormalize';
-import { isPosted } from './economics';
 
 export type GroveTotals = {
   recordedExpenses: number;
@@ -21,9 +19,6 @@ export type GroveTotals = {
   hasIncome: boolean;
 };
 
-const finite = (n: number | null | undefined): n is number =>
-  typeof n === 'number' && Number.isFinite(n);
-
 export const oilYieldPercent = (oliveKg: number, oilKg: number): number | null => {
   if (!(oliveKg > 0) || !(oilKg >= 0) || !Number.isFinite(oliveKg) || !Number.isFinite(oilKg)) {
     return null;
@@ -36,52 +31,6 @@ export const ratioOrNull = (numerator: number, denominator: number): number | nu
     return null;
   }
   return numerator / denominator;
-};
-
-const taskLinkedExpenseIds = (entries: FinancialEntry[]): Set<string> => {
-  const ids = new Set<string>();
-  for (const entry of entries) {
-    if (isPosted(entry) && entry.kind === 'expense' && entry.taskId) ids.add(entry.taskId);
-  }
-  return ids;
-};
-
-export const summarizeLedger = (entries: FinancialEntry[]): GroveTotals => {
-  let recordedExpenses = 0;
-  let recordedIncome = 0;
-  let harvestSpend = 0;
-  let hasExpenses = false;
-  let hasIncome = false;
-  let currency = 'EUR';
-  for (const entry of entries.filter(isPosted)) {
-    currency = entry.currency || currency;
-    if (entry.kind === 'income') {
-      recordedIncome += entry.amount;
-      hasIncome = true;
-    } else {
-      recordedExpenses += entry.amount;
-      hasExpenses = true;
-      if (HARVEST_COST_CATEGORIES.has(entry.category) || entry.harvestId || entry.bucket === 'harvest') {
-        harvestSpend += entry.amount;
-      }
-    }
-  }
-  return {
-    recordedExpenses,
-    recordedIncome,
-    recordedResult: recordedIncome - recordedExpenses,
-    estimatedTaskCosts: 0,
-    oliveKg: 0,
-    oilKg: 0,
-    oilYieldPercent: null,
-    costPerKgOlives: null,
-    harvestCostPerKg: null,
-    harvestCount: 0,
-    completedTasks: 0,
-    currency,
-    hasExpenses,
-    hasIncome,
-  };
 };
 
 export const summarizeHarvests = (harvests: HarvestRecord[]): Pick<GroveTotals, 'oliveKg' | 'oilKg' | 'oilYieldPercent' | 'harvestCount'> => {
@@ -180,5 +129,3 @@ export const withProductionCosts = (
   costPerKgOlives: ratioOrNull(totals.recordedExpenses, oliveKg),
   harvestCostPerKg: ratioOrNull(harvestSpend, oliveKg),
 });
-
-export { taskLinkedExpenseIds };

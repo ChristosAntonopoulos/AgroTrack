@@ -12,9 +12,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, format, parseISO, isValid } from 'date-fns';
-import { getFieldService, getTaskService, getTaskTemplateService } from '../services/serviceFactory';
+import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { TaskTemplate } from '../services/taskTemplateService';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
@@ -35,12 +34,27 @@ import { RootStackParamList } from '../navigation/types';
 type Route = RouteProp<RootStackParamList, 'CreateTask'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CreateTask'>;
 
+type LocalTemplate = {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+};
+
 const ALL_STEPS: TaskWizardStep[] = ['field', 'template', 'details', 'review'];
 const SKIP_FIELD_STEPS: TaskWizardStep[] = ['template', 'details', 'review'];
 const EVERYDAY_STEPS: TaskWizardStep[] = ['field', 'template', 'details'];
 const EVERYDAY_SKIP_FIELD: TaskWizardStep[] = ['template', 'details'];
 
 const CUSTOM_TEMPLATE_ID = '__custom__';
+
+const BASE_WORK_TYPES: LocalTemplate[] = [
+  { id: 'local-pruning', type: 'pruning', title: 'Pruning' },
+  { id: 'local-spraying', type: 'spraying', title: 'Spraying' },
+  { id: 'local-fertilization', type: 'fertilization', title: 'Fertilization' },
+  { id: 'local-irrigation', type: 'irrigation', title: 'Irrigation' },
+  { id: 'local-cleaning', type: 'cleaning', title: 'Cleaning' },
+];
 
 const toDateInput = (date: Date) => format(date, 'yyyy-MM-dd');
 
@@ -66,7 +80,6 @@ const CreateTaskScreen = () => {
 
   const [step, setStep] = useState<TaskWizardStep>(steps[0]);
   const [fields, setFields] = useState<Field[]>([]);
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [fieldId, setFieldId] = useState(preselectedFieldId || '');
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -103,12 +116,11 @@ const CreateTaskScreen = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [fieldsData, templateData] = await Promise.all([
-          getFieldService().getFields(user?.id ?? '', user?.role ?? 'FieldOwner'),
-          getTaskTemplateService().getTemplates().catch(() => []),
-        ]);
+        const fieldsData = await getFieldService().getFields(
+          user?.id ?? '',
+          user?.role ?? 'FieldOwner'
+        );
         setFields(fieldsData);
-        setTemplates(templateData);
         if (!fieldId && fieldsData.length > 0) setFieldId(fieldsData[0].id);
       } catch {
         setError(t('tasks:loadError'));
@@ -119,24 +131,20 @@ const CreateTaskScreen = () => {
   }, [user, t]);
 
   const jobChoices = useMemo(() => {
-    const byType = new Map<string, TaskTemplate>();
-    templates.forEach((tpl) => {
-      if (!byType.has(tpl.type)) byType.set(tpl.type, tpl);
+    const byType = new Map<string, LocalTemplate>();
+    BASE_WORK_TYPES.forEach((tpl) => {
+      byType.set(tpl.type, {
+        ...tpl,
+        title: t(`tasks:workTypes.${tpl.type}`, { defaultValue: tpl.title }),
+      });
     });
-    CREATE_HARVEST_JOBS.forEach((type) => {
-      if (byType.has(type)) return;
-      const alias = templates.find((tpl) => getHarvestJob(tpl.type)?.aliasOf === type);
-      if (alias) {
-        byType.set(type, { ...alias, type, title: t(`tasks:harvestJobs.${type}.title`, { defaultValue: alias.title }) });
-        return;
-      }
-      byType.set(type, {
-        id: `local-${type}`,
-        type,
-        title: t(`tasks:harvestJobs.${type}.title`),
-        description: t(`tasks:harvestJobs.${type}.helper`),
-        lifecycleYear: 'high',
-        harvestPhase: getHarvestJob(type)?.phase,
+    CREATE_HARVEST_JOBS.forEach((jobType) => {
+      if (byType.has(jobType)) return;
+      byType.set(jobType, {
+        id: `local-${jobType}`,
+        type: jobType,
+        title: t(`tasks:harvestJobs.${jobType}.title`),
+        description: t(`tasks:harvestJobs.${jobType}.helper`),
       });
     });
     const list = [...byType.values()];
@@ -149,9 +157,9 @@ const CreateTaskScreen = () => {
       return a.title.localeCompare(b.title);
     });
     return list;
-  }, [templates, t]);
+  }, [t]);
 
-  const applyTemplate = useCallback((tpl: TaskTemplate) => {
+  const applyTemplate = useCallback((tpl: LocalTemplate) => {
     setTemplateId(tpl.id);
     setTitle(tpl.title);
     setType(tpl.type);
@@ -256,21 +264,15 @@ const CreateTaskScreen = () => {
     try {
       setSaving(true);
       setError(null);
-      await getTaskService().createTask({
+      await getFieldWorkService().createFieldTask({
         fieldId,
-        templateId:
-          templateId && templateId !== CUSTOM_TEMPLATE_ID && !templateId.startsWith('local-')
-            ? templateId
-            : undefined,
         title: title.trim(),
-        type: type.trim(),
         description: description.trim() || undefined,
-        harvestPhase: getHarvestJob(type)?.phase,
-        lifecycleYear: selectedField?.currentLifecycleYear,
-        scheduledStart: scheduledStart
+        templateCode: type.trim() || undefined,
+        plannedStart: scheduledStart
           ? new Date(`${scheduledStart}T09:00:00`).toISOString()
           : undefined,
-        scheduledEnd: scheduledEnd
+        plannedEnd: scheduledEnd
           ? new Date(`${scheduledEnd}T17:00:00`).toISOString()
           : undefined,
       });

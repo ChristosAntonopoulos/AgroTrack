@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
-import { getFieldService, getTaskService } from '../services/serviceFactory';
+import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { locationService } from '../services/locationService';
@@ -33,7 +33,7 @@ const FieldsPage: React.FC = () => {
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
-  const [fieldTasks, setFieldTasks] = useState<Map<string, Task[]>>(new Map());
+  const [fieldTasks, setFieldTasks] = useState<Map<string, FieldTask[]>>(new Map());
   const [tasksReady, setTasksReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,13 +80,15 @@ const FieldsPage: React.FC = () => {
 
   const loadFieldTasks = async () => {
     try {
-      const taskService = getTaskService();
-      const tasksMap = new Map<string, Task[]>();
-      await Promise.all(
-        fields.map(async (field) => {
-          tasksMap.set(field.id, await taskService.getTasks(field.id));
-        })
-      );
+      const fieldWork = getFieldWorkService();
+      const all = await fieldWork.listFieldTasks();
+      const tasksMap = new Map<string, FieldTask[]>();
+      for (const field of fields) {
+        tasksMap.set(
+          field.id,
+          all.filter((t) => t.fieldId === field.id)
+        );
+      }
       setFieldTasks(tasksMap);
     } catch (err) {
       console.error('Error loading field tasks:', err);

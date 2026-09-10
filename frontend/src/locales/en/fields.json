@@ -35,9 +35,48 @@
     "expenses": "Expenses",
     "result": "Result",
     "seeFinance": "See finances →",
+    "costPerKg": "Cost per kilogram of oil",
+    "completedWork": "Completed work",
     "recentChronologio": "Recent Chronologio",
-    "seeAllChronologio": "See full Chronologio →",
+    "seeAllChronologio": "View the full Chronologio",
     "needsAttention": "Needs attention",
+    "needsNow": "What is needed now",
+    "statusStrip": {
+      "aria": "Field status",
+      "now": "Now",
+      "attention": "Attention",
+      "lastRecording": "Last recording",
+      "noWarning": "There is no active warning",
+      "noRecording": "There is no recording yet",
+      "unknownStage": "We do not yet know the grove stage."
+    },
+    "attention": {
+      "noneTitle": "The field is quiet",
+      "noneBody": "Nothing needs action right now.",
+      "noneAction": "View tasks",
+      "draftTitle": "This field is still a draft",
+      "draftBody": "Finish the field details before relying on recommendations or money totals.",
+      "alertBody": "{{message}}",
+      "overdueBody": "This task has passed its planned date.",
+      "weatherBody": "The weather does not favour this task on the current date. The date will not change by itself.",
+      "nextBody": "This is the next planned task.",
+      "proposalBody": "{{message}}",
+      "seeChange": "See the change",
+      "seeProposal": "See the proposal",
+      "openTask": "Open task",
+      "moveTask": "Move the task",
+      "keepDate": "Keep the date"
+    },
+    "yearGlance": {
+      "title": "The year at a glance",
+      "plannedRemaining": "Planned work remaining",
+      "harvest": "Harvest",
+      "oil": "Oil litres",
+      "perHectare": "€ / hectare",
+      "perLitre": "€ / litre",
+      "noHarvest": "There is no harvest for {{year}}.",
+      "noMoney": "There are no financial entries for {{year}}."
+    },
     "recorded": "Recorded {{when}}.",
     "seeObservation": "See observation",
     "area": "Area",
@@ -48,6 +87,11 @@
     "chronoModesAria": "Chronologio view",
     "recent": "Recent",
     "years": "Years"
+  },
+  "harvestMoney": {
+    "noIncome": "No income has been recorded yet",
+    "addIncome": "Record income",
+    "addExpense": "Record expense"
   },
   "more": {
     "partners": "Partners"
@@ -181,6 +225,78 @@
     "monitoring": "Monitoring",
     "timeline": "Timeline"
   },
+  "page": {
+    "tabsAria": "Field sections",
+    "mapData": "Map & data",
+    "details": "Details",
+    "yearAria": "Result year",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "yearLabel": "Year {{year}}",
+    "modeAria": "Information depth",
+    "simple": "Simple",
+    "full": "Full",
+    "capture": "+ Record",
+    "editField": "Edit field",
+    "manageAccess": "Manage access",
+    "documents": "Documents",
+    "archive": "Archive",
+    "archiveUnavailable": "Archiving will be connected when the server action is ready.",
+    "draftField": "Draft field",
+    "mapPlaceholder": "The map and data for this field will appear here.",
+    "detailsPlaceholder": "Grove identity, water, soil, people and documents will be organised here."
+  },
+  "mapWorkspace": {
+    "lead": "See the field and what the available data means, without technical terms.",
+    "whatToSee": "What do you want to see?",
+    "terrain": "Terrain",
+    "recenter": "Centre on field",
+    "openTab": "Open map",
+    "overlayCap": "To keep the map readable, you can show up to 3 data layers together.",
+    "unknownFrost": "unknown",
+    "missingMoisture": "There is no moisture data for this area.",
+    "missingVegetation": "There are no recent clear satellite pictures.",
+    "meaningTitle": "What do these data mean?",
+    "freshness": "The data belong to year {{year}} when observations exist.",
+    "presets": {
+      "field": "The field",
+      "water": "Water",
+      "frost": "Frost",
+      "vegetation": "Vegetation"
+    },
+    "meaning": {
+      "field": "You are seeing the field boundary on the map.",
+      "water": "Leaf moisture is a satellite indication, not a field measurement.",
+      "frost": "Frost risk is a model forecast for this place.",
+      "vegetation": "Vegetation shows how green the trees look. It does not always mean health — confirm in the field."
+    }
+  },
+  "details": {
+    "identity": "Identity",
+    "grove": "Grove",
+    "water": "Water",
+    "terrain": "Soil and terrain",
+    "people": "People and access",
+    "unknown": "Not recorded",
+    "more": "More details",
+    "trees": "Number of trees",
+    "boundary": "Boundary",
+    "hasBoundary": "A boundary exists",
+    "noBoundary": "No boundary has been drawn",
+    "rainfed": "Rain-fed",
+    "irrigationType": "Irrigation type",
+    "slope": "Slope",
+    "elevation": "Elevation",
+    "noPeople": "No people have been named yet.",
+    "noDocuments": "There are no documents.",
+    "draftHelp": "Finish the basic field details before relying on recommendations.",
+    "checklist": {
+      "name": "Field name",
+      "boundary": "Boundary or location",
+      "area": "Area",
+      "active": "Active status"
+    }
+  },
   "card": {
     "area": "Area",
     "variety": "Variety",
@@ -247,18 +363,47 @@
   },
   "weather": {
     "today": "Weather at the grove",
+    "fieldTitle": "Weather at the field",
     "live": "Now",
     "unavailable": "Weather is not available for this location yet.",
+    "retry": "Try again",
+    "sourceAria": "Weather data source",
+    "updatedJustNow": "Updated just now",
+    "updatedMinutes": "Updated {{count}} minutes ago",
+    "updatedHours": "Updated {{count}} hours ago",
+    "notThatYear": "This is the current weather, not the weather of {{year}}.",
     "highLow": "High {{high}}° · Low {{low}}°",
     "humidity": "Air moisture {{percent}}%",
     "wind": "Wind {{speed}} km/h",
+    "windGust": "Wind {{speed}} km/h · gusts {{gust}}",
+    "rainAmount": "{{mm}} mm of rain",
     "rainNext24h": "{{mm}} mm of rain expected in the next 24 hours",
     "rainNone": "No rain expected in the next 24 hours",
     "frostRisk": "Frost risk: {{level}}",
     "adviceFrost": "Frost risk tonight — protect young trees.",
     "adviceRain": "Do not spray — rain expected today.",
     "adviceOk": "Conditions look workable for field tasks today.",
-    "showDetails": "Show temperature and wind"
+    "showDetails": "Show temperature and wind",
+    "nowCondition": "Now at the field",
+    "dataType": "Data type: {{type}}",
+    "valueType": {
+      "modelled": "modelled",
+      "observed": "observed",
+      "estimated": "estimated"
+    },
+    "outlook": {
+      "h24": "Next 24 hours",
+      "h48": "Next 48 hours",
+      "h72": "Next 72 hours"
+    },
+    "implication": {
+      "ok": "Conditions are suitable for field work",
+      "okNamed": "Conditions are suitable for {{task}}",
+      "rain": "Rain is likely — consider moving the task",
+      "wind": "Strong wind — avoid spraying",
+      "frost": "Frost risk tonight",
+      "unknown": "There is not enough data for a recommendation"
+    }
   },
   "mapLayers": {
     "title": "Map pictures",

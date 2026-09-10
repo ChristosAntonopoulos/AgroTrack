@@ -1,215 +1,249 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { getTaskService } from '../services/serviceFactory';
-import { getFieldService } from '../services/serviceFactory';
-import { getUserService } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
-import { Field } from '../services/fieldService';
-import { User } from '../services/userService';
+import { ArrowLeft } from 'lucide-react';
+import {
+  getFieldService,
+  getFieldWorkService,
+  getFinancialSummaryService,
+  getPartnerService,
+} from '../services/serviceFactory';
+import { fieldPeopleService, type FieldMembership } from '../services/fieldPeopleService';
+import type { SavedContact } from '../services/partnerService';
+import type { FieldTask, FieldTaskChecklistItem } from '../services/fieldWorkService';
+import type { Field } from '../services/fieldService';
+import type { TaskFinancialSummary } from '../services/financialSummaryService';
+import { useCaptureOptional } from '../context/CaptureContext';
+import { formatOfficialAmount, formatOfficialNet } from '../finance/format';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
-import EvidenceUpload from '../components/Task/EvidenceUpload';
 import PageContainer from '../components/Common/PageContainer';
-import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
-import Badge from '../components/Common/Badge';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { ArrowLeft, Edit, User as UserIcon, Calendar, MapPin, CheckCircle, Handshake, Wallet, StickyNote } from 'lucide-react';
-import { useCaptureOptional } from '../context/CaptureContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
-import { taskStatusI18nKey } from '../utils/categoryNormalize';
+import '../components/FieldWork/FieldWorkCards.css';
 import './TaskDetailPage.css';
 
+type ChecklistAnswers = Record<
+  string,
+  { boolValue?: boolean; textValue?: string; numberValue?: number }
+>;
+
+const checklistLabel = (item: FieldTaskChecklistItem, lang: string) => {
+  if (lang.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
+  return item.englishLabel || item.label;
+};
+
 const TaskDetailPage: React.FC = () => {
-  const { t } = useTranslation(['tasks', 'common', 'errors', 'partners', 'capture', 'taskTemplates']);
-  const { formatDateTime } = useLocaleFormatters();
-  const { isEveryday } = useExperienceMode();
+  const { t, i18n } = useTranslation(['tasks', 'common', 'errors', 'money']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const capture = useCaptureOptional();
-  const [task, setTask] = useState<Task | null>(null);
+
+  const [task, setTask] = useState<FieldTask | null>(null);
   const [field, setField] = useState<Field | null>(null);
-  const [assignedUser, setAssignedUser] = useState<User | null>(null);
-  const [producers, setProducers] = useState<User[]>([]);
+  const [money, setMoney] = useState<TaskFinancialSummary | null>(null);
+  const [people, setPeople] = useState<FieldMembership[]>([]);
+  const [contacts, setContacts] = useState<SavedContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [selectedProducerId, setSelectedProducerId] = useState<string>('');
+  const [showMoreChecks, setShowMoreChecks] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [answers, setAnswers] = useState<ChecklistAnswers>({});
+  const [assigneeKey, setAssigneeKey] = useState('');
 
-  useEffect(() => {
-    if (id) {
-      loadTaskData();
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (user?.role === 'FieldOwner') {
-      loadProducers();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (task?.assignedTo) {
-      loadAssignedUser(task.assignedTo);
-    }
-  }, [task]);
-
-  const loadTaskData = async () => {
+  const load = async () => {
+    if (!id) return;
     try {
-      setLoading(true);
-      const taskService = getTaskService();
-      const taskData = await taskService.getTask(id!);
-      setTask(taskData);
-      
-      // Load field information
-      if (taskData.fieldId) {
-        try {
-          const fieldService = getFieldService();
-          const fieldData = await fieldService.getField(taskData.fieldId);
-          setField(fieldData);
-        } catch (err) {
-          console.error('Error loading field:', err);
-        }
-      }
+      setError(null);
+      const fw = getFieldWorkService();
+      const data = await fw.getFieldTask(id);
+      setTask(data);
+      setNotes(data.notes || '');
+      const initial: ChecklistAnswers = {};
+      data.checklist.forEach((c) => {
+        initial[c.key] = {
+          boolValue: c.boolValue ?? (c.isAnswered ? true : undefined),
+          textValue: c.textValue,
+          numberValue: c.numberValue,
+        };
+      });
+      setAnswers(initial);
+      if (data.assignedUserId) setAssigneeKey(`user:${data.assignedUserId}`);
+      else if (data.assignedCollaboratorId) setAssigneeKey(`contact:${data.assignedCollaboratorId}`);
+
+      const [fields, memberships, saved, taskMoney] = await Promise.all([
+        getFieldService().getFields().catch(() => [] as Field[]),
+        fieldPeopleService.getPeople(data.fieldId).catch(() => [] as FieldMembership[]),
+        getPartnerService()
+          .getContacts({ fieldId: data.fieldId, includeUnassigned: true })
+          .catch(() => [] as SavedContact[]),
+        getFinancialSummaryService().getTaskSummary(id).catch(() => null),
+      ]);
+      setField(fields.find((f) => f.id === data.fieldId) || null);
+      setPeople(memberships);
+      setContacts(saved);
+      setMoney(taskMoney);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedLoad'));
+      setError(getApiErrorMessage(err, t) || t('detail.failedLoad'));
+      setTask(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadProducers = async () => {
-    try {
-      const userService = getUserService();
-      const producersData = await userService.getUsers('Producer');
-      setProducers(producersData);
-    } catch (err) {
-      console.error('Error loading producers:', err);
-    }
-  };
+  useEffect(() => {
+    setLoading(true);
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
-  const loadAssignedUser = async (userId: string) => {
-    try {
-      const userService = getUserService();
-      const userData = await userService.getUser(userId);
-      setAssignedUser(userData);
-    } catch (err) {
-      console.error('Error loading assigned user:', err);
-    }
-  };
+  const assigneeOptions = useMemo(() => {
+    const opts: Array<{ key: string; label: string; userId?: string; contactId?: string }> = [];
+    people.forEach((p) => {
+      opts.push({
+        key: `user:${p.userId}`,
+        label: p.displayName || p.email || p.userId,
+        userId: p.userId,
+      });
+    });
+    contacts.forEach((c) => {
+      if (c.linkedUserId && people.some((p) => p.userId === c.linkedUserId)) return;
+      opts.push({
+        key: `contact:${c.id}`,
+        label: c.displayName,
+        contactId: c.id,
+        userId: c.linkedUserId,
+      });
+    });
+    return opts;
+  }, [people, contacts]);
 
-  const handleStatusUpdate = async (newStatus: string) => {
-    if (!task || !id) return;
+  const essential = useMemo(
+    () =>
+      (task?.checklist || [])
+        .filter((c) => c.isEssential)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .slice(0, 5),
+    [task]
+  );
 
+  const extra = useMemo(
+    () =>
+      (task?.checklist || [])
+        .filter((c) => !essential.some((e) => e.key === c.key))
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [task, essential]
+  );
+
+  const status = String(task?.status || '').toLowerCase();
+  const canStart = status === 'planned' || status === 'ready' || status === 'blocked';
+  const canComplete = status === 'in_progress' || status === 'ready' || status === 'planned';
+  const isTerminal = status === 'completed' || status === 'cancelled';
+
+  const handleStart = async () => {
+    if (!id) return;
+    setBusy(true);
     try {
-      setUpdatingStatus(true);
-      const taskService = getTaskService();
-      const updatedTask = await taskService.updateTaskStatus(id, newStatus);
-      setTask(updatedTask);
+      const updated = await getFieldWorkService().startFieldTask(id);
+      setTask(updated);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedStatus'));
+      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.start'));
     } finally {
-      setUpdatingStatus(false);
+      setBusy(false);
     }
   };
 
   const handleAssign = async () => {
-    if (!task || !id || !selectedProducerId) return;
-
+    if (!id || !assigneeKey) return;
+    setBusy(true);
     try {
-      setAssigning(true);
-      const taskService = getTaskService();
-      const updatedTask = await taskService.assignTask(id, selectedProducerId);
-      setTask(updatedTask);
-      setSelectedProducerId('');
-      await loadAssignedUser(selectedProducerId);
+      const selected = assigneeOptions.find((o) => o.key === assigneeKey);
+      const updated = await getFieldWorkService().assignFieldTask(id, {
+        assignedUserId: selected?.userId,
+        assignedCollaboratorId: selected?.contactId,
+      });
+      setTask(updated);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedAssign'));
+      setError(getApiErrorMessage(err, t) || t('detail.failedAssign'));
     } finally {
-      setAssigning(false);
+      setBusy(false);
     }
   };
 
-  const handleApprove = async () => {
-    if (!task || !id) return;
-    try {
-      setApproving(true);
-      const updatedTask = await getTaskService().approveTask(id);
-      setTask(updatedTask);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedApprove'));
-    } finally {
-      setApproving(false);
-    }
+  const handleComplete = () => {
+    if (!id) return;
+    navigate(`/tasks/${id}/complete`);
   };
 
-  const handleReject = async () => {
-    if (!task || !id) return;
-    const note = window.prompt(t('tasks:detail.rejectNotePrompt'));
-    if (note === null) return;
-    try {
-      setApproving(true);
-      const updatedTask = await getTaskService().rejectTask(id, note || undefined);
-      setTask(updatedTask);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('tasks:detail.failedReject'));
-    } finally {
-      setApproving(false);
-    }
+  const renderCheckItem = (item: FieldTaskChecklistItem) => {
+    const type = item.itemType?.toLowerCase() || 'checkbox';
+    const answer = answers[item.key] || {};
+    return (
+      <li key={item.key}>
+        {type === 'number' ? (
+          <>
+            <input
+              type="number"
+              aria-label={checklistLabel(item, i18n.language)}
+              value={answer.numberValue ?? ''}
+              disabled={isTerminal}
+              onChange={(e) =>
+                setAnswers((prev) => ({
+                  ...prev,
+                  [item.key]: {
+                    ...prev[item.key],
+                    numberValue: e.target.value === '' ? undefined : Number(e.target.value),
+                  },
+                }))
+              }
+            />
+            <span>
+              {checklistLabel(item, i18n.language)}
+              {item.unit ? ` (${item.unit})` : ''}
+            </span>
+          </>
+        ) : type === 'text' ? (
+          <>
+            <input
+              type="text"
+              aria-label={checklistLabel(item, i18n.language)}
+              value={answer.textValue ?? ''}
+              disabled={isTerminal}
+              onChange={(e) =>
+                setAnswers((prev) => ({
+                  ...prev,
+                  [item.key]: { ...prev[item.key], textValue: e.target.value },
+                }))
+              }
+            />
+            <span>{checklistLabel(item, i18n.language)}</span>
+          </>
+        ) : (
+          <>
+            <input
+              type="checkbox"
+              checked={Boolean(answer.boolValue)}
+              disabled={isTerminal}
+              onChange={(e) =>
+                setAnswers((prev) => ({
+                  ...prev,
+                  [item.key]: { ...prev[item.key], boolValue: e.target.checked },
+                }))
+              }
+            />
+            <span>{checklistLabel(item, i18n.language)}</span>
+          </>
+        )}
+      </li>
+    );
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'warning';
-      case 'in_progress':
-        return 'info';
-      case 'completed':
-        return 'success';
-      default:
-        return 'primary';
-    }
-  };
-
-  const getNextStatus = (currentStatus: string) => {
-    switch (currentStatus) {
-      case 'pending':
-        return 'in_progress';
-      case 'in_progress':
-        return 'completed';
-      default:
-        return null;
-    }
-  };
-
-  const formatTaskDate = (dateString?: string) => {
-    if (!dateString) return t('tasks:notScheduled');
-    return formatDateTime(dateString);
-  };
-
-  const canEdit = user?.role === 'FieldOwner' || (user?.role === 'Producer' && task?.assignedTo === user?.userId);
-  const isFieldOwner = user?.role === 'FieldOwner';
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
-
-  if (error && !task) {
     return (
       <PageContainer>
-        <div className="task-detail-page">
-          <Breadcrumbs />
-          <div className="error-message">{error}</div>
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
-            {t('tasks:detail.backToTasks')}
-          </Button>
-        </div>
+        <Breadcrumbs />
+        <LoadingSpinner />
       </PageContainer>
     );
   }
@@ -217,294 +251,205 @@ const TaskDetailPage: React.FC = () => {
   if (!task) {
     return (
       <PageContainer>
-        <div className="task-detail-page">
-          <Breadcrumbs />
-          <div className="error-message">{t('tasks:detail.notFound')}</div>
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
-            {t('tasks:detail.backToTasks')}
-          </Button>
-        </div>
+        <Breadcrumbs />
+        <p className="fw-empty">{error || t('detail.notFound')}</p>
+        <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
+          {t('detail.backToTasks')}
+        </Button>
       </PageContainer>
     );
   }
 
-  const nextStatus = getNextStatus(task.status);
-
   return (
-    <PageContainer>
-      <div className="task-detail-page">
-        <Breadcrumbs />
-        
-        <div className="task-header">
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline">
-            {t('tasks:detail.backToTasks')}
+    <PageContainer maxWidth="md">
+      <Breadcrumbs />
+      <div className="task-detail-page fw-detail-sections">
+        <header className="tasks-page-header">
+          <div className="tasks-page-header-text">
+            <h1>{task.title}</h1>
+            <p className="tasks-subtitle">
+              {field?.name || task.fieldId} · {task.statusLabel} · {task.resultYear}
+            </p>
+          </div>
+          <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
+            {t('detail.backToTasks')}
           </Button>
-          {isFieldOwner && !isEveryday && (
-            <Button to={`/tasks/${id}/edit`} icon={<Edit />} variant="success">
-              {t('tasks:detail.editTask')}
+        </header>
+
+        {error && <div className="tasks-error">{error}</div>}
+
+        <section className="fw-detail-section">
+          <h2>{t('fieldWork.detail.summary')}</h2>
+          <p>{task.weatherSuitabilityLabel}</p>
+          {task.description && <p>{task.description}</p>}
+          {(task.plannedStart || task.plannedEnd) && (
+            <p>
+              {task.plannedStart
+                ? new Date(task.plannedStart).toLocaleString(
+                    i18n.language.startsWith('el') ? 'el-GR' : 'en-GB'
+                  )
+                : '—'}
+              {' – '}
+              {task.plannedEnd
+                ? new Date(task.plannedEnd).toLocaleString(
+                    i18n.language.startsWith('el') ? 'el-GR' : 'en-GB',
+                    { day: 'numeric', month: 'short' }
+                  )
+                : '—'}
+            </p>
+          )}
+        </section>
+
+        <section className="fw-detail-section">
+          <h2>{t('fieldWork.detail.money')}</h2>
+          <dl className="fw-money-facts">
+            <div>
+              <dt>{t('fieldWork.detail.estimated')}</dt>
+              <dd>
+                {formatOfficialAmount(
+                  money?.estimatedCost,
+                  'EUR',
+                  i18n.language,
+                  t('money:unknownAmount')
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('fieldWork.detail.actual')}</dt>
+              <dd>
+                {formatOfficialAmount(
+                  money?.actualCost,
+                  'EUR',
+                  i18n.language,
+                  t('fieldWork.detail.noActual')
+                )}
+              </dd>
+            </div>
+            {money?.difference != null ? (
+              <div>
+                <dt>{t('fieldWork.detail.difference')}</dt>
+                <dd>
+                  {formatOfficialNet(
+                    money.difference,
+                    'EUR',
+                    i18n.language,
+                    t('money:unknownAmount')
+                  )}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          <p className="fw-empty">{t('fieldWork.detail.estimateHint')}</p>
+          <div className="fw-card-actions">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() =>
+                capture?.openCapture({
+                  preferredType: 'expense',
+                  fieldId: task.fieldId,
+                  taskId: task.id,
+                })
+              }
+            >
+              {t('fieldWork.detail.addExpense')}
+            </Button>
+            <Button
+              to={`/money?year=${task.resultYear}&fieldId=${encodeURIComponent(task.fieldId)}&task=${encodeURIComponent(task.id)}`}
+              variant="outline"
+              size="lg"
+            >
+              {t('fieldWork.detail.seeMoney')}
+            </Button>
+          </div>
+        </section>
+
+        <section className="fw-detail-section">
+          <h2>{t('fieldWork.person')}</h2>
+          <div className="fw-form-row">
+            <select
+              value={assigneeKey}
+              onChange={(e) => setAssigneeKey(e.target.value)}
+              disabled={isTerminal}
+            >
+              <option value="">{t('fieldWork.form.unassigned')}</option>
+              {assigneeOptions.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {!isTerminal && (
+            <Button variant="outline" size="lg" onClick={() => void handleAssign()} disabled={busy}>
+              {t('detail.assignTask')}
             </Button>
           )}
-          {capture && task ? (
+        </section>
+
+        <section className="fw-detail-section">
+          <h2>{t('fieldWork.detail.checklist')}</h2>
+          <ul className="fw-checklist">{essential.map(renderCheckItem)}</ul>
+          {extra.length > 0 && (
             <>
-              <Button
-                variant="outline"
-                icon={<Wallet size={16} />}
-                onClick={() =>
-                  capture.openCapture({
-                    fieldId: task.fieldId,
-                    taskId: task.id,
-                    preferredType: 'expense',
-                  })
-                }
+              <button
+                type="button"
+                className="fw-advanced-toggle"
+                onClick={() => setShowMoreChecks((v) => !v)}
               >
-                {t('capture:types.expense.title')}
-              </Button>
-              <Button
-                variant="outline"
-                icon={<StickyNote size={16} />}
-                onClick={() =>
-                  capture.openCapture({
-                    fieldId: task.fieldId,
-                    preferredType: 'observation',
-                  })
-                }
-              >
-                {t('capture:types.observation.title')}
-              </Button>
+                {showMoreChecks
+                  ? t('fieldWork.detail.hideMoreChecks')
+                  : t('fieldWork.detail.moreChecks')}
+              </button>
+              {showMoreChecks && <ul className="fw-checklist">{extra.map(renderCheckItem)}</ul>}
             </>
-          ) : null}
-        </div>
+          )}
+        </section>
 
-        {error && <div className="error-message">{error}</div>}
+        <section className="fw-detail-section">
+          <h2>{t('fieldWork.form.notes')}</h2>
+          <textarea
+            rows={3}
+            value={notes}
+            disabled={isTerminal}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </section>
 
-        {isFieldOwner && !isEveryday && (
-          <Card className="task-partner-cta">
-            <h2>{t('partners:needHelp')}</h2>
-            <p>{t('partners:fromTaskHint')}</p>
-            <Button
-              icon={<Handshake />}
-              to={`/partners?fieldId=${task.fieldId}&taskId=${task.id}&from=task&taskType=${encodeURIComponent(task.type || '')}${
-                task.scheduledStart ? `&start=${task.scheduledStart.slice(0, 10)}` : ''
-              }${task.scheduledEnd ? `&end=${task.scheduledEnd.slice(0, 10)}` : ''}`}
-            >
-              {t('partners:findPartner')}
-            </Button>
-          </Card>
+        {!isTerminal && (
+          <div className="fw-card-actions">
+            {canStart && (
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => void handleStart()}
+                disabled={busy}
+                className="fw-primary-action"
+              >
+                {t('fieldWork.actions.start')}
+              </Button>
+            )}
+          </div>
         )}
 
-        <div className="task-content">
-          <Card className="task-main">
-            <div className="task-title-section">
-              <h1>{task.title}</h1>
-              <div className="task-badges">
-                <Badge variant={getStatusColor(task.status) as any} size="md">
-                  {t(taskStatusI18nKey(task.status))}
-                </Badge>
-                {task.approvalStatus && task.approvalStatus !== 'not_required' && (
-                  <Badge
-                    variant={
-                      task.approvalStatus === 'approved'
-                        ? 'success'
-                        : task.approvalStatus === 'rejected'
-                          ? 'error'
-                          : 'warning'
-                    }
-                    size="md"
-                  >
-                    {t(`common:approvalStatus.${task.approvalStatus}`)}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-          {task.description && (
-            <div className="task-description">
-              <p>{task.description}</p>
-            </div>
-          )}
-
-          <div className="task-info-grid">
-            <div className="info-item">
-              <MapPin className="info-icon" />
-              <div>
-                <label>{t('tasks:detail.field')}</label>
-                {field ? (
-                  <Link to={`/fields/${field.id}`} className="field-link">
-                    {field.name}
-                  </Link>
-                ) : (
-                  <span>{t('common:loading')}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="info-item">
-              <UserIcon className="info-icon" />
-              <div>
-                <label>{t('tasks:detail.assignedTo')}</label>
-                {assignedUser ? (
-                  <span>{assignedUser.firstName} {assignedUser.lastName} ({assignedUser.email})</span>
-                ) : task.assignedTo ? (
-                  <span>{t('common:loading')}</span>
-                ) : (
-                  <span className="not-assigned">{t('tasks:form.notAssigned')}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="info-item">
-              <Calendar className="info-icon" />
-              <div>
-                <label>{t('tasks:detail.scheduledStart')}</label>
-                <span>{formatTaskDate(task.scheduledStart)}</span>
-              </div>
-            </div>
-
-            <div className="info-item">
-              <Calendar className="info-icon" />
-              <div>
-                <label>{t('tasks:detail.scheduledEnd')}</label>
-                <span>{formatTaskDate(task.scheduledEnd)}</span>
-              </div>
-            </div>
-
-            {task.actualStart && (
-              <div className="info-item">
-                <CheckCircle className="info-icon" />
-                <div>
-                  <label>{t('tasks:detail.actualStart')}</label>
-                  <span>{formatTaskDate(task.actualStart)}</span>
-                </div>
-              </div>
-            )}
-
-            {task.actualEnd && (
-              <div className="info-item">
-                <CheckCircle className="info-icon" />
-                <div>
-                  <label>{t('tasks:detail.actualEnd')}</label>
-                  <span>{formatTaskDate(task.actualEnd)}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="info-item">
-              <div>
-                <label>{t('tasks:detail.type')}</label>
-                <span>{t(`taskTemplates:categories.${task.type}`, { defaultValue: task.type })}</span>
-              </div>
-            </div>
-
-            {!isEveryday ? (
-            <div className="info-item">
-              <div>
-                <label>{t('common:lifecycleYear.label')}</label>
-                <span className="lifecycle-year">
-                  {t(`common:lifecycleYear.${task.lifecycleYear}`, { defaultValue: task.lifecycleYear })}
-                </span>
-              </div>
-            </div>
-            ) : null}
+        {canComplete && !isTerminal && (
+          <div className="fw-sticky-complete">
+            <Button
+              variant="success"
+              size="lg"
+              onClick={() => void handleComplete()}
+              disabled={busy}
+            >
+              {t('fieldWork.actions.complete')}
+            </Button>
           </div>
+        )}
 
-            {canEdit && (
-              <div className="task-actions">
-                {isFieldOwner &&
-                  task.status === 'completed' &&
-                  task.approvalStatus === 'pending' && (
-                    <>
-                      <Button onClick={handleApprove} disabled={approving} loading={approving} variant="success">
-                        {t('tasks:detail.approve')}
-                      </Button>
-                      <Button
-                        onClick={handleReject}
-                        disabled={approving}
-                        loading={approving}
-                        variant="error"
-                      >
-                        {t('tasks:detail.reject')}
-                      </Button>
-                    </>
-                  )}
-
-                {nextStatus && (
-                  <Button
-                    onClick={() => handleStatusUpdate(nextStatus)}
-                    disabled={updatingStatus}
-                    loading={updatingStatus}
-                    variant={nextStatus === 'completed' ? 'success' : nextStatus === 'in_progress' ? 'secondary' : 'warning'}
-                  >
-                    {t(`tasks:detail.markAs.${nextStatus}`)}
-                  </Button>
-                )}
-
-                {isFieldOwner && !isEveryday && !task.assignedTo && (
-                  <div className="assign-section">
-                    <select
-                      value={selectedProducerId}
-                      onChange={(e) => setSelectedProducerId(e.target.value)}
-                      className="producer-select"
-                    >
-                      <option value="">{t('tasks:detail.selectProducer')}</option>
-                      {producers.map((producer) => (
-                        <option key={producer.id} value={producer.id}>
-                          {producer.firstName} {producer.lastName} ({producer.email})
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      onClick={handleAssign}
-                      disabled={assigning || !selectedProducerId}
-                      loading={assigning}
-                      variant="primary"
-                    >
-                      {t('tasks:detail.assignTask')}
-                    </Button>
-                  </div>
-                )}
-
-                {isFieldOwner && !isEveryday && task.assignedTo && (
-                  <div className="assign-section">
-                    <select
-                      value={selectedProducerId || task.assignedTo}
-                      onChange={(e) => setSelectedProducerId(e.target.value)}
-                      className="producer-select"
-                    >
-                      <option value={task.assignedTo}>
-                        {assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : t('tasks:detail.currentAssignee')}
-                      </option>
-                      {producers
-                        .filter((p) => p.id !== task.assignedTo)
-                        .map((producer) => (
-                          <option key={producer.id} value={producer.id}>
-                            {producer.firstName} {producer.lastName} ({producer.email})
-                          </option>
-                        ))}
-                    </select>
-                    <Button
-                      onClick={handleAssign}
-                      disabled={assigning || !selectedProducerId}
-                      loading={assigning}
-                      variant="primary"
-                    >
-                      {t('tasks:detail.reassignTask')}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
-
-          {canEdit && (
-            <Card className="task-evidence">
-              <EvidenceUpload
-                taskId={id!}
-                existingEvidence={task.evidence || []}
-                onEvidenceAdded={loadTaskData}
-              />
-            </Card>
-          )}
-        </div>
+        {status === 'completed' && (
+          <p className="fw-empty">
+            <Link to="/chronologio">{t('fieldWork.seeCompletedInChronologio')}</Link>
+          </p>
+        )}
       </div>
     </PageContainer>
   );

@@ -1,9 +1,5 @@
 .field-weather-card {
-  border: none;
-  border-radius: 0;
-  padding: 1rem 1.05rem 0.85rem;
-  background: transparent;
-  color: var(--color-text-primary);
+  color: var(--text-primary, var(--color-text-primary));
 }
 
 .field-weather-card--loading,

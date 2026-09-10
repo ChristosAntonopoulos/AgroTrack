@@ -48,7 +48,6 @@ const FieldHarvestCard: React.FC<Props> = ({
   const [showMore, setShowMore] = useState(!compact || autoFocus || isFinal);
   const [oilKg, setOilKg] = useState('');
   const [millName, setMillName] = useState('');
-  const [millCost, setMillCost] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<HarvestRecord | null>(null);
@@ -71,12 +70,6 @@ const FieldHarvestCard: React.FC<Props> = ({
       return;
     }
 
-    const millParsed = millCost.trim() ? Number(millCost.replace(',', '.')) : undefined;
-    if (millParsed != null && (!Number.isFinite(millParsed) || millParsed <= 0)) {
-      setError(t('fields:harvest.millCostRequired'));
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
     try {
@@ -86,13 +79,11 @@ const FieldHarvestCard: React.FC<Props> = ({
         oliveKg: parsed,
         oilKg: oilParsed,
         millName: millName.trim() || undefined,
-        millCost: millParsed,
       });
       setSaved(created);
       setOliveKg('');
       setOilKg('');
       setMillName('');
-      setMillCost('');
       setDate(todayIso());
       if (compact) setShowMore(false);
     } catch (err) {
@@ -197,14 +188,6 @@ const FieldHarvestCard: React.FC<Props> = ({
                 value={millName}
                 onChangeText={setMillName}
                 placeholder={t('fields:harvest.millName')}
-                placeholderTextColor={colors.textTertiary}
-                style={inputStyle}
-              />
-              <TextInput
-                value={millCost}
-                onChangeText={setMillCost}
-                keyboardType="decimal-pad"
-                placeholder={t('fields:harvest.millCost')}
                 placeholderTextColor={colors.textTertiary}
                 style={inputStyle}
               />

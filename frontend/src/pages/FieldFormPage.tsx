@@ -303,7 +303,7 @@ const FieldFormPage: React.FC = () => {
         cadastreReferenceAcknowledged: cadastre ? cadastreAcknowledged : true,
       });
 
-      navigate(`/fields/${result.field.id}`, {
+      navigate(`/fields/${result.field.id}/work-setup`, {
         state: result.suggestLifecyclePlan ? { suggestLifecyclePlan: true } : undefined,
       });
     } catch {

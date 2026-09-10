@@ -10,11 +10,12 @@ import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
 import {
   getReportsService,
-  getTaskService,
+  getFieldWorkService,
   getNoteService,
   getFieldService,
+  getFinancialSummaryService,
 } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import { Note, notePreviewTitle } from '../services/noteService';
 import {
   formatSeasonLabel,
@@ -32,41 +33,40 @@ import {
 import {
   buildSeasonFinance,
   overlappingCalendarYears,
-  type SoftPnl,
 } from '../ravdos/seasonFinance';
 import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
 import { useExperienceMode } from '../context/ExperienceModeContext';
-import { formatEconomicsMoney } from '../utils/economics';
-import { useAllLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
+import { useCaptureOptional } from '../context/CaptureContext';
+import { formatOfficialAmount } from '../finance/format';
+import { athensCalendarYear } from '../utils/athensDate';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { formatDate } from '../utils/localeFormatters';
 import { normalizeTaskCategory, taskStatusI18nKey } from '../utils/categoryNormalize';
 import { formatNumber } from '../utils/localeFormatters';
 import './ThisHarvestPage.css';
 
-const formatMoney = (amount: number, locale: string) => formatEconomicsMoney(amount, 'EUR', locale);
 const formatKg = (kg: number, locale: string) =>
   formatNumber(kg, { locale: locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en', maximumFractionDigits: 1 });
 
 const ThisHarvestPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const { locale } = useLocale();
   const { isEveryday } = useExperienceMode();
-  const localizedTemplates = useAllLocalizedTemplates();
-  const titleByTemplateId = useMemo(
-    () => Object.fromEntries(localizedTemplates.map((tpl) => [tpl.id, tpl.title])),
-    [localizedTemplates]
-  );
+  const capture = useCaptureOptional();
   const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
   const bounds = useMemo(() => getSeasonBounds(seasonStartYear), [seasonStartYear]);
 
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [anyIrrigated, setAnyIrrigated] = useState(false);
   const [finance, setFinance] = useState(() =>
     buildSeasonFinance([], null, [], bounds)
   );
+  const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
+  const moneyYear = athensCalendarYear(new Date());
   const [showAllMilestones, setShowAllMilestones] = useState(false);
 
   const load = useCallback(async () => {
@@ -74,14 +74,14 @@ const ThisHarvestPage: React.FC = () => {
     try {
       const reports = getReportsService();
       const years = overlappingCalendarYears(seasonStartYear);
-      const [allTasks, allNotes, fields, harvestChunks, pnlChunks, summaryChunks] =
+      const [allTasks, allNotes, fields, harvestChunks, summaryChunks, officialYear] =
         await Promise.all([
-          getTaskService().getTasks().catch(() => [] as Task[]),
+          getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
           getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
           getFieldService().getFields().catch(() => []),
           Promise.all(years.map((y) => reports.getHarvestRecords(y).catch(() => [] as HarvestRecord[]))),
-          Promise.all(years.map((y) => reports.getProfitLoss(y).catch(() => null))),
           Promise.all(years.map((y) => reports.getFieldSummaries(y).catch(() => [] as FieldSummaryData[]))),
+          getFinancialSummaryService().getYear(moneyYear, undefined, i18n.language).catch(() => null),
         ]);
 
       const harvests = harvestChunks.flat();
@@ -89,34 +89,10 @@ const ThisHarvestPage: React.FC = () => {
       summaryChunks.flat().forEach((s) => summariesMap.set(s.fieldId, s));
       const summaries = Array.from(summariesMap.values());
 
-      // Merge PnL softly: sum expenses/income across overlapping calendar years (approximate live pulse).
-      let spent = 0;
-      let received = 0;
-      const profitByField = new Map<string, { fieldId: string; fieldName: string; cost: number; revenue: number }>();
-      for (const pnl of pnlChunks) {
-        if (!pnl) continue;
-        spent += Number(pnl.totalExpenses ?? 0);
-        received += Number(pnl.totalIncome ?? 0);
-        for (const row of pnl.profitByField ?? []) {
-          const prev = profitByField.get(row.fieldId);
-          profitByField.set(row.fieldId, {
-            fieldId: row.fieldId,
-            fieldName: row.fieldName,
-            cost: (prev?.cost ?? 0) + Number(row.cost ?? 0),
-            revenue: (prev?.revenue ?? 0) + Number(row.revenue ?? 0),
-          });
-        }
-      }
-      const mergedPnl: SoftPnl = {
-        totalIncome: received,
-        totalExpenses: spent,
-        netProfit: received - spent,
-        profitByField: Array.from(profitByField.values()),
-      };
-
       setTasks(allTasks);
       setAnyIrrigated(fields.some((f) => Boolean(f.irrigationStatus)));
-      setFinance(buildSeasonFinance(harvests, mergedPnl, summaries, bounds));
+      setYearMoney(officialYear);
+      setFinance(buildSeasonFinance(harvests, null, summaries, bounds));
       setNotes(
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
@@ -129,7 +105,7 @@ const ThisHarvestPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [bounds, isEveryday, seasonStartYear]);
+  }, [bounds, isEveryday, seasonStartYear, moneyYear, i18n.language]);
 
   useEffect(() => {
     void load();
@@ -144,19 +120,19 @@ const ThisHarvestPage: React.FC = () => {
   const visibleMilestones = useMemo(() => {
     const withTitles = progress.milestones.map((m) => ({
       ...m,
-      title: titleByTemplateId[m.templateId] || m.title,
+      title: m.title,
     }));
     const relevant = isEveryday ? withTitles.filter((m) => Boolean(m.taskId)) : withTitles;
     if (showAllMilestones || !isEveryday) return relevant;
     return relevant.filter((m) => !m.done).slice(0, 5);
-  }, [progress.milestones, showAllMilestones, isEveryday, titleByTemplateId]);
+  }, [progress.milestones, showAllMilestones, isEveryday]);
 
   const upcomingHarvest = useMemo(
     () =>
       tasks
         .filter((task) => {
           if (task.status === 'completed' || task.status === 'cancelled') return false;
-          return normalizeTaskCategory(task.type) === 'harvest';
+          return normalizeTaskCategory(task.templateCode || task.title) === 'harvest';
         })
         .slice(0, isEveryday ? 5 : 12),
     [tasks, isEveryday]
@@ -173,7 +149,13 @@ const ThisHarvestPage: React.FC = () => {
     setTogglingId(taskId);
     setTasks((prev) => prev.map((row) => (row.id === taskId ? { ...row, status: nextStatus } : row)));
     try {
-      await getTaskService().updateTaskStatus(taskId, nextStatus);
+      if (currentlyDone) {
+        if (task.latestExecutionId) {
+          await getFieldWorkService().undoCompletion(task.latestExecutionId);
+        }
+      } else {
+        await getFieldWorkService().completeFieldTask(taskId, { outcome: 'done' });
+      }
     } catch {
       setTasks((prev) => prev.map((row) => (row.id === taskId ? { ...row, status: task.status } : row)));
     } finally {
@@ -353,11 +335,25 @@ const ThisHarvestPage: React.FC = () => {
             ) : null}
             <div className="ravdos-money-stat">
               <span>{t('fields:thisHarvest.spentSoFar')}</span>
-              <strong>{formatMoney(finance.spent, locale)}</strong>
+              <strong>
+                {formatOfficialAmount(
+                  yearMoney?.totalExpenses,
+                  yearMoney?.currency || 'EUR',
+                  i18n.language,
+                  t('money:unknownAmount')
+                )}
+              </strong>
             </div>
           </div>
           <div className="ravdos-money-actions">
-            <Button to="/money" variant="outline" icon={<Wallet size={16} />}>
+            <Button
+              variant="primary"
+              icon={<Wallet size={16} />}
+              onClick={() => capture?.openCapture({ preferredType: 'income' })}
+            >
+              {t('fields:harvestMoney.addIncome')}
+            </Button>
+            <Button to={`/money?year=${moneyYear}`} variant="outline" icon={<Wallet size={16} />}>
               {t('fields:thisHarvest.openMoney')}
             </Button>
           </div>
@@ -372,7 +368,6 @@ const ThisHarvestPage: React.FC = () => {
                       <span className="ravdos-field-meta">
                         {formatKg(card.oliveKg, locale)} kg
                         {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
-                        {card.spent > 0 ? ` · ${formatMoney(card.spent, locale)}` : ''}
                       </span>
                     </Link>
                   </li>

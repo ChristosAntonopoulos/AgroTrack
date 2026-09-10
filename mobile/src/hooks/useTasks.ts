@@ -1,26 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getTaskService, getFieldService } from '../services/serviceFactory';
-import { Task } from '../services/taskService';
+import { getFieldWorkService, getFieldService } from '../services/serviceFactory';
+import {
+  FieldTask,
+  isActiveFieldTask,
+} from '../services/fieldWorkService';
 import { Field } from '../services/fieldService';
 import { EntityCache } from '../utils/entityCache';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { useOfflineMode } from '../context/OfflineContext';
 
+export type TaskListFilter = 'all' | 'planned' | 'in_progress' | 'ready' | 'blocked';
+
 export interface UseTasksOptions {
   fieldId?: string;
-  filter?: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval';
+  filter?: TaskListFilter;
 }
 
 export interface UseTasksResult {
-  tasks: Task[];
-  filteredTasks: Task[];
+  tasks: FieldTask[];
+  filteredTasks: FieldTask[];
   fields: Record<string, Field>;
   loading: boolean;
   error: string | null;
-  filter: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval';
+  filter: TaskListFilter;
   refresh: () => Promise<void>;
-  setFilter: (filter: 'all' | 'pending' | 'in_progress' | 'completed' | 'approval') => void;
+  setFilter: (filter: TaskListFilter) => void;
   fromCache: boolean;
 }
 
@@ -28,14 +33,12 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
   const { user } = useAuth();
   const { setShowingCachedData, syncGeneration } = useOfflineMode();
   const { fieldId } = options;
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [fields, setFields] = useState<Record<string, Field>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
-  const [filter, setFilter] = useState<
-    'all' | 'pending' | 'in_progress' | 'completed' | 'approval'
-  >('all');
+  const [filter, setFilter] = useState<TaskListFilter>('all');
 
   const loadTasks = async () => {
     if (!user) {
@@ -48,12 +51,9 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
       setError(null);
       const online = await isDeviceOnline();
 
-      let tasksData: Task[];
-      if (fieldId) {
-        tasksData = await getTaskService().getTasksByField(fieldId);
-      } else {
-        tasksData = await getTaskService().getAssignedTasks(user.id, user.role);
-      }
+      const tasksData = (
+        await getFieldWorkService().listFieldTasks(fieldId ? { fieldId } : undefined)
+      ).filter(isActiveFieldTask);
 
       setTasks(tasksData);
 
@@ -81,7 +81,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
           const data = fieldId
             ? cachedTasks.data.filter((t) => t.fieldId === fieldId)
             : cachedTasks.data;
-          setTasks(data);
+          setTasks(data.filter(isActiveFieldTask));
           setFromCache(true);
           setShowingCachedData(true);
           setError(null);
@@ -104,12 +104,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
 
   const filteredTasks = useMemo(() => {
     if (filter === 'all') return tasks;
-    if (filter === 'approval') {
-      return tasks.filter(
-        (t) => (t as Task & { approvalStatus?: string }).approvalStatus === 'pending'
-      );
-    }
-    return tasks.filter((task) => task.status === filter);
+    return tasks.filter((task) => String(task.status).toLowerCase() === filter);
   }, [tasks, filter]);
 
   return {

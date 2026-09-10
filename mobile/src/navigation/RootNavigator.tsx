@@ -8,6 +8,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { CaptureProvider } from '../context/CaptureContext';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from '../theme';
 import AuthNavigator from './AuthNavigator';
@@ -131,7 +132,8 @@ const RootNavigator = () => {
         },
       }}
     >
-      <Stack.Navigator
+      <CaptureProvider>
+        <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: colors.surfaceElevated },
           headerTintColor: colors.primaryDark,
@@ -310,7 +312,8 @@ const RootNavigator = () => {
             />
           </>
         )}
-      </Stack.Navigator>
+        </Stack.Navigator>
+      </CaptureProvider>
     </NavigationContainer>
   );
 };

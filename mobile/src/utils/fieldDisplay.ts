@@ -1,37 +1,43 @@
 import type { TFunction } from 'i18next';
 import type { ChronologioEntry } from '../services/chronologioService';
 import type { Field } from '../services/fieldService';
-import type { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
+import { isActiveFieldTask } from '../services/fieldWorkService';
 import { formatChronologioMoney } from './chronologioGrouping';
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-export const countTasksToday = (tasks: Task[], now: Date = new Date()): number => {
+export const countTasksToday = (tasks: FieldTask[], now: Date = new Date()): number => {
   const start = startOfLocalDay(now);
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
   return tasks.filter((task) => {
-    if (task.status === 'completed') return false;
-    const raw = task.scheduledStart || task.scheduledEnd;
+    if (!isActiveFieldTask(task)) return false;
+    const raw = task.plannedStart || task.plannedEnd;
     if (!raw) return false;
     const when = new Date(raw);
     return when >= start && when < end;
   }).length;
 };
 
-export const getNextUpcomingTask = (tasks: Task[], now: Date = new Date()): Task | undefined => {
+export const getNextUpcomingTask = (
+  tasks: FieldTask[],
+  now: Date = new Date()
+): FieldTask | undefined => {
   const start = startOfLocalDay(now).getTime();
   return tasks
-    .filter((task) => task.status !== 'completed')
-    .filter((task) => task.scheduledEnd || task.scheduledStart)
+    .filter((task) => isActiveFieldTask(task))
+    .filter((task) => task.plannedEnd || task.plannedStart)
     .slice()
     .sort((a, b) => {
-      const aTime = new Date(a.scheduledEnd || a.scheduledStart || 0).getTime();
-      const bTime = new Date(b.scheduledEnd || b.scheduledStart || 0).getTime();
+      const aTime = new Date(a.plannedEnd || a.plannedStart || 0).getTime();
+      const bTime = new Date(b.plannedEnd || b.plannedStart || 0).getTime();
       return aTime - bTime;
     })
-    .find((task) => new Date(task.scheduledEnd || task.scheduledStart || 0).getTime() >= start);
+    .find(
+      (task) => new Date(task.plannedEnd || task.plannedStart || 0).getTime() >= start
+    );
 };
 
 export const kmhToBeaufort = (kmh: number): number => {

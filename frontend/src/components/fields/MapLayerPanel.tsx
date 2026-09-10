@@ -9,13 +9,14 @@ interface Props {
   baseLayer: MapLayerType;
   onBaseLayerChange: (layer: MapLayerType) => void;
   overlays: MapLayerDefinition[];
-  activeLayerId?: string;
-  onActiveLayerChange: (layerId: string | undefined) => void;
+  activeLayerIds: string[];
+  onToggleOverlay: (layerId: string | undefined) => void;
   activeLayer?: MapLayerData;
   opacity: number;
   onOpacityChange: (opacity: number) => void;
   onShowInfo: (definition: MapLayerDefinition, data?: MapLayerData) => void;
   loading?: boolean;
+  capReached?: boolean;
 }
 
 /** First-look layers, in the order a grower typically wants (photo → greenness → change → moisture). */
@@ -38,19 +39,20 @@ const MapLayerPanel: React.FC<Props> = ({
   baseLayer,
   onBaseLayerChange,
   overlays,
-  activeLayerId,
-  onActiveLayerChange,
+  activeLayerIds,
+  onToggleOverlay,
   activeLayer,
   opacity,
   onOpacityChange,
   onShowInfo,
   loading,
+  capReached,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
   const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-
+  const activeLayerId = activeLayerIds[0];
   const activeDefinition = overlays.find((o) => o.id === activeLayerId);
   const overlayUnavailable = Boolean(activeLayerId) && activeLayer?.available === false;
   const { primary, more } = useMemo(() => splitOverlays(overlays), [overlays]);
@@ -82,14 +84,14 @@ const MapLayerPanel: React.FC<Props> = ({
     : t('fields:mapLayers.none');
 
   const renderOption = (definition: MapLayerDefinition | undefined, id: string, label: string) => {
-    const selected = activeLayerId === (definition?.id ?? undefined) || (!definition && !activeLayerId);
+    const selected = definition ? activeLayerIds.includes(definition.id) : activeLayerIds.length === 0;
     return (
       <label key={id} className={`map-layer-panel-option${selected ? ' is-selected' : ''}`}>
         <input
-          type="radio"
-          name="field-map-overlay"
+          type={definition ? 'checkbox' : 'radio'}
+          name={definition ? `overlay-${id}` : 'field-map-overlay-none'}
           checked={selected}
-          onChange={() => onActiveLayerChange(definition?.id)}
+          onChange={() => onToggleOverlay(definition?.id)}
         />
         <span>{label}</span>
       </label>
@@ -121,6 +123,13 @@ const MapLayerPanel: React.FC<Props> = ({
                 onClick={() => onBaseLayerChange('satellite')}
               >
                 {t('fields:mapLayerSatellite')}
+              </button>
+              <button
+                type="button"
+                className={baseLayer === 'terrain' ? 'active' : ''}
+                onClick={() => onBaseLayerChange('terrain')}
+              >
+                {t('fields:mapWorkspace.terrain')}
               </button>
               <button
                 type="button"
@@ -189,6 +198,12 @@ const MapLayerPanel: React.FC<Props> = ({
                 onChange={(event) => onOpacityChange(Number(event.target.value) / 100)}
               />
             </div>
+          ) : null}
+
+          {capReached ? (
+            <p className="map-layer-panel-note map-layer-panel-note--warn">
+              {t('fields:mapWorkspace.overlayCap')}
+            </p>
           ) : null}
 
           {loading ? <p className="map-layer-panel-note">{t('common:loading')}</p> : null}

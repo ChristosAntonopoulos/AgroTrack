@@ -7,57 +7,31 @@ import {
   Camera,
   CheckSquare,
   StickyNote,
-  TrendingUp,
   Wallet,
   Wheat,
   X,
 } from 'lucide-react';
-import type { CaptureContext, CaptureSavedDetail, CaptureType } from '../../capture/types';
+import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../../capture/types';
 import { getAvailableCaptureActions } from '../../capture/permissions';
 import { getFieldService } from '../../services/serviceFactory';
 import { noteService } from '../../services/noteService';
-import { financialEntryService } from '../../services/financialEntryService';
 import { harvestService } from '../../services/harvestService';
 import { fileUploadService } from '../../services/fileUploadService';
-import { taskService } from '../../services/taskService';
 import type { Field } from '../../services/fieldService';
-import { OLIVE_TASK_TEMPLATES } from '../../data/oliveTaskTemplates';
 import { useAuth } from '../../context/AuthContext';
-import { useLocalizedTemplates } from '../../hooks/useLocalizedTaskTemplate';
-import { buildCreateTaskUrl } from '../../utils/taskTemplateUtils';
+import { useExperienceMode } from '../../context/ExperienceModeContext';
+import { readLastMoneyFieldId } from '../../finance/lastField';
+import MoneyCaptureForm from './MoneyCaptureForm';
 import './Capture.css';
 
 const MAX_PHOTOS = 5;
-
-const WORK_TEMPLATE_IDS = [
-  'main_pruning',
-  'irrigation_event',
-  'nitrogen_application',
-  'olive_fruit_fly_monitoring',
-  'weed_control_mowing',
-  'disease_scouting',
-  'equipment_maintenance',
-];
-
-const EXPENSE_CATEGORIES = [
-  'labor',
-  'fertilizers',
-  'treatments',
-  'electricity_fuel',
-  'equipment',
-  'transport',
-  'mill_cost',
-  'other',
-] as const;
-
-const INCOME_CATEGORIES = ['oil_sale', 'fruit_sale', 'subsidy', 'other'] as const;
 
 type Props = {
   open: boolean;
   context: CaptureContext;
   onClose: () => void;
   onContextChange: (ctx: CaptureContext) => void;
-  onSaved: (detail: CaptureSavedDetail, message: string) => void;
+  onSaved: (detail: CaptureSavedDetail, message: string, options?: CaptureSavedOptions) => void;
 };
 
 type PhotoItem = { id: string; file: File; preview: string; url?: string };
@@ -84,12 +58,17 @@ const CaptureDrawer: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation(['capture', 'fields', 'common']);
   const { user } = useAuth();
+  const { isFullPicture } = useExperienceMode();
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
-  const localized = useLocalizedTemplates(OLIVE_TASK_TEMPLATES);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<'choose' | CaptureType>('choose');
+  const [step, setStep] = useState<'choose' | CaptureType>(context.preferredType || 'choose');
+  const wasOpenRef = useRef(open);
+  if (open && !wasOpenRef.current) {
+    setStep(context.preferredType || 'choose');
+  }
+  wasOpenRef.current = open;
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldId, setFieldId] = useState(context.fieldId || '');
   const [occurredAt, setOccurredAt] = useState(toDateTimeLocal(context.occurredAt));
@@ -102,17 +81,6 @@ const CaptureDrawer: React.FC<Props> = ({
   const [body, setBody] = useState('');
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
 
-  // Work
-  const [templateId, setTemplateId] = useState('');
-  const [workNote, setWorkNote] = useState('');
-  const [workCost, setWorkCost] = useState('');
-
-  // Expense
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<string>('labor');
-  const [expenseDesc, setExpenseDesc] = useState('');
-  const [taskId, setTaskId] = useState(context.taskId || '');
-
   // Harvest
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
@@ -121,11 +89,6 @@ const CaptureDrawer: React.FC<Props> = ({
   const [workers, setWorkers] = useState('');
   const [method, setMethod] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
-
-  const workTemplates = useMemo(
-    () => localized.filter((tpl) => WORK_TEMPLATE_IDS.includes(tpl.id)),
-    [localized]
-  );
 
   const permissions = useMemo(
     () =>
@@ -152,21 +115,20 @@ const CaptureDrawer: React.FC<Props> = ({
 
   useEffect(() => {
     if (!open) return;
-    setStep(context.preferredType || 'choose');
-    setFieldId(context.fieldId || '');
+    const moneyStep =
+      context.preferredType === 'expense' ||
+      context.preferredType === 'income' ||
+      context.preferredType === 'money'
+        ? context.preferredType
+        : null;
+    setStep(moneyStep || context.preferredType || 'choose');
+    setFieldId(context.fieldId || readLastMoneyFieldId() || '');
     setOccurredAt(toDateTimeLocal(context.occurredAt));
-    setTaskId(context.taskId || '');
     setDirty(false);
     setError(null);
     setMoreOpen(false);
     setBody('');
     setPhotos([]);
-    setTemplateId('');
-    setWorkNote('');
-    setWorkCost('');
-    setAmount('');
-    setCategory('labor');
-    setExpenseDesc('');
     setOliveKg('');
     setOilKg('');
     setMill('');
@@ -203,8 +165,6 @@ const CaptureDrawer: React.FC<Props> = ({
   const selectType = (type: CaptureType) => {
     setStep(type);
     setError(null);
-    if (type === 'income') setCategory('oil_sale');
-    if (type === 'expense') setCategory('labor');
   };
 
   const goBack = () => {
@@ -286,46 +246,12 @@ const CaptureDrawer: React.FC<Props> = ({
           t('capture:observation.saved')
         );
       } else if (step === 'work') {
-        const tpl = workTemplates.find((x) => x.id === templateId);
-        if (!tpl) {
-          setError(t('capture:errors.workTypeRequired'));
-          setSubmitting(false);
-          return;
-        }
-        const mediaUrls = await uploadPhotos();
-        const cost = workCost.trim() ? Number(workCost.replace(',', '.')) : undefined;
-        const task = await taskService.recordCompletedWork({
-          fieldId,
-          templateId: tpl.id,
-          type: tpl.category,
-          title: tpl.title,
-          description: workNote.trim() || undefined,
-          occurredAt: when,
-          costAmount: cost && !Number.isNaN(cost) ? cost : undefined,
-          currency: 'EUR',
-          costCategory: 'labor',
-          mediaUrls,
-        });
-        onSaved({ type: 'work', fieldId, sourceId: task.id }, t('capture:work.saved'));
-      } else if (step === 'expense' || step === 'income') {
-        const value = Number(amount.replace(',', '.'));
-        if (!value || Number.isNaN(value)) {
-          setError(t('capture:errors.amountRequired'));
-          setSubmitting(false);
-          return;
-        }
-        const kind = step === 'income' ? 'income' : 'expense';
-        const entry = await financialEntryService.create({
-          fieldId,
-          amount: value,
-          kind,
-          category,
-          description: expenseDesc.trim() || t(`fields:financial.categories.${category}`, { defaultValue: category }),
-          occurredOn: when,
-          taskId: taskId || undefined,
-          currency: 'EUR',
-        });
-        onSaved({ type: kind, fieldId, sourceId: entry.id }, t(`capture:${kind}.saved`));
+        if (!ensureField()) return;
+        const q = new URLSearchParams();
+        q.set('fieldId', fieldId);
+        onClose();
+        navigate(`/tasks/new?${q.toString()}`);
+        return;
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
         if (!olives || Number.isNaN(olives)) {
@@ -364,11 +290,11 @@ const CaptureDrawer: React.FC<Props> = ({
       enabled: permissions.canRecordObservation,
     },
     { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
-    { type: 'expense', icon: <Wallet size={22} />, enabled: permissions.canRecordExpense },
-    { type: 'income', icon: <TrendingUp size={22} />, enabled: permissions.canRecordIncome },
+    { type: 'money', icon: <Wallet size={22} />, enabled: permissions.canRecordMoney },
     { type: 'harvest', icon: <Wheat size={22} />, enabled: permissions.canRecordHarvest },
   ];
 
+  const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
   const fieldLocked = Boolean(context.fieldId);
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
 
@@ -378,7 +304,7 @@ const CaptureDrawer: React.FC<Props> = ({
         <>
           <motion.button
             type="button"
-            className="capture-backdrop"
+            className={`capture-backdrop${isMoneyStep ? ' is-money-scrim' : ''}`}
             aria-label={t('capture:cancel')}
             onClick={requestClose}
             initial={{ opacity: 0 }}
@@ -387,32 +313,57 @@ const CaptureDrawer: React.FC<Props> = ({
             transition={{ duration: reduceMotion ? 0 : 0.2 }}
           />
           <motion.aside
-            className="capture-drawer"
+            className={`capture-drawer${isMoneyStep ? ' is-money-drawer' : ''}`}
             role="dialog"
             aria-modal="true"
-            aria-label={t('capture:title')}
+            aria-label={isMoneyStep ? t('capture:money.cta') : t('capture:title')}
             initial={reduceMotion ? false : { x: 24, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={reduceMotion ? undefined : { x: 16, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.26, ease: 'easeOut' }}
           >
-            <header className="capture-drawer-header">
-              <button type="button" className="capture-icon-btn" onClick={goBack} aria-label={t('capture:back')}>
-                {step === 'choose' ? <X size={20} /> : <ArrowLeft size={20} />}
-              </button>
-              <div>
-                <h2>
-                  {step === 'choose'
-                    ? t('capture:title')
-                    : t(`capture:types.${step}.title`)}
-                </h2>
-                {step !== 'choose' && selectedFieldName ? (
-                  <p className="capture-header-meta">{selectedFieldName}</p>
-                ) : null}
-              </div>
+            <header className={`capture-drawer-header${isMoneyStep ? ' is-money' : ''}`}>
+              {isMoneyStep ? (
+                <>
+                  <div>
+                    <h2>{t('capture:money.cta')}</h2>
+                  </div>
+                  <button type="button" className="capture-icon-btn" onClick={requestClose} aria-label={t('common:close', { defaultValue: 'Κλείσιμο' })}>
+                    <X size={20} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="capture-icon-btn" onClick={goBack} aria-label={t('capture:back')}>
+                    {step === 'choose' ? <X size={20} /> : <ArrowLeft size={20} />}
+                  </button>
+                  <div>
+                    <h2>
+                      {step === 'choose' ? t('capture:title') : t(`capture:types.${step}.title`)}
+                    </h2>
+                    {step !== 'choose' && selectedFieldName ? (
+                      <p className="capture-header-meta">{selectedFieldName}</p>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </header>
 
-            <div className="capture-drawer-body">
+            {isMoneyStep ? (
+              <MoneyCaptureForm
+                context={{
+                  ...context,
+                  fieldId: context.fieldId || fieldId || undefined,
+                  preferredType: step === 'money' ? 'money' : step,
+                }}
+                fields={fields}
+                canRecordIncome={permissions.canRecordIncome}
+                canRecordExpense={permissions.canRecordExpense}
+                isFullPicture={isFullPicture}
+                onSaved={onSaved}
+              />
+            ) : (
+              <div className="capture-drawer-body">
               {step === 'choose' ? (
                 <div className="capture-type-list">
                   <p className="capture-prompt">{t('capture:whatToRecord')}</p>
@@ -485,118 +436,12 @@ const CaptureDrawer: React.FC<Props> = ({
                   ) : null}
 
                   {step === 'work' ? (
-                    <>
-                      <div className="capture-label">{t('capture:work.whatWork')}</div>
-                      <div className="capture-chip-grid">
-                        {workTemplates.map((tpl) => (
-                          <button
-                            key={tpl.id}
-                            type="button"
-                            className={`capture-chip${templateId === tpl.id ? ' is-active' : ''}`}
-                            onClick={() => {
-                              setTemplateId(tpl.id);
-                              markDirty();
-                            }}
-                          >
-                            {tpl.title}
-                          </button>
-                        ))}
-                      </div>
-                      <label className="capture-label">
-                        {t('capture:work.optionalCost')}
-                        <input
-                          inputMode="decimal"
-                          value={workCost}
-                          onChange={(e) => {
-                            setWorkCost(e.target.value);
-                            markDirty();
-                          }}
-                          placeholder="€"
-                        />
-                      </label>
-                      <label className="capture-label">
-                        {t('capture:work.optionalNote')}
-                        <textarea
-                          rows={2}
-                          value={workNote}
-                          onChange={(e) => {
-                            setWorkNote(e.target.value);
-                            markDirty();
-                          }}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="capture-link"
-                        onClick={() => {
-                          onClose();
-                          navigate(
-                            templateId
-                              ? buildCreateTaskUrl(templateId, fieldId || undefined)
-                              : fieldId
-                                ? `/tasks/new?fieldId=${encodeURIComponent(fieldId)}`
-                                : '/tasks/new'
-                          );
-                        }}
-                      >
-                        {t('capture:scheduleLater')}
-                      </button>
-                    </>
-                  ) : null}
-
-                  {step === 'expense' || step === 'income' ? (
-                    <>
-                      <label className="capture-label capture-amount-label">
-                        {t(`capture:${step}.amount`)}
-                        <input
-                          className="capture-amount-input"
-                          inputMode="decimal"
-                          value={amount}
-                          onChange={(e) => {
-                            setAmount(e.target.value);
-                            markDirty();
-                          }}
-                          placeholder="0,00 €"
-                        />
-                      </label>
-                      <div className="capture-label">{t(`capture:${step}.category`)}</div>
-                      <div className="capture-chip-grid">
-                        {(step === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((c) => (
-                          <button
-                            key={c}
-                            type="button"
-                            className={`capture-chip${category === c ? ' is-active' : ''}`}
-                            onClick={() => {
-                              setCategory(c);
-                              markDirty();
-                            }}
-                          >
-                            {t(`fields:financial.categories.${c}`, {
-                              defaultValue: t(`economics:groups.${c}`, { defaultValue: c }),
-                            })}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        className="capture-more-toggle"
-                        onClick={() => setMoreOpen((v) => !v)}
-                      >
-                        {moreOpen ? t('capture:less') : t('capture:more')}
-                      </button>
-                      {moreOpen ? (
-                        <label className="capture-label">
-                          {t(`capture:${step}.description`)}
-                          <input
-                            value={expenseDesc}
-                            onChange={(e) => {
-                              setExpenseDesc(e.target.value);
-                              markDirty();
-                            }}
-                          />
-                        </label>
-                      ) : null}
-                    </>
+                    <div className="capture-label">
+                      <p>{t('capture:work.whatWork')}</p>
+                      <p className="capture-hint">
+                        {t('capture:scheduleLater', { defaultValue: 'Continue to create a field task.' })}
+                      </p>
+                    </div>
                   ) : null}
 
                   {step === 'harvest' ? (
@@ -712,8 +557,9 @@ const CaptureDrawer: React.FC<Props> = ({
                 </div>
               )}
             </div>
+            )}
 
-            {step !== 'choose' ? (
+            {step !== 'choose' && !isMoneyStep ? (
               <footer className="capture-drawer-footer">
                 <button
                   type="button"

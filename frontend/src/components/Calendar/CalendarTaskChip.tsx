@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, AlertCircle } from 'lucide-react';
 import './CalendarTaskChip.css';
 
-export type TaskChipVariant = 'scheduled' | 'recommended' | 'overdue' | 'completed' | 'deadline';
+export type TaskChipVariant = 'scheduled' | 'overdue' | 'completed' | 'deadline';
 
 type Props = {
   label: string;

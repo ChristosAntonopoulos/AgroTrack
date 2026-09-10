@@ -13,7 +13,7 @@
     "fields": "Campi",
     "tasks": "Attività",
     "partners": "Partner",
-    "money": "Finanze",
+    "money": "Denaro",
     "approvals": "Approvazioni",
     "issues": "Problemi",
     "calendar": "Calendario",
@@ -31,6 +31,9 @@
     "details": "Dettagli",
     "chronologio": "Cronologio",
     "notes": "Note",
-    "apologismos": "Bilancio"
+    "apologismos": "Bilancio",
+    "workSetup": "Configurazione lavori",
+    "workProfile": "Come lavoro questo campo",
+    "weather": "Meteo"
   }
 }

@@ -1,5 +1,5 @@
-import { getTaskService, getFieldService } from './serviceFactory';
-import { Task } from './taskService';
+import { getFieldWorkService, getFieldService } from './serviceFactory';
+import { FieldTask } from './fieldWorkService';
 
 export interface DateRange {
   start: Date;
@@ -24,14 +24,16 @@ export interface FieldMetrics {
 
 export const analyticsService = {
   getTaskMetrics: async (dateRange: DateRange): Promise<TaskMetrics> => {
-    const allTasks = await getTaskService().getAllTasks();
+    const allTasks = await getFieldWorkService().listFieldTasks();
     const filtered = allTasks.filter((task) => {
       if (!task.createdAt) return false;
       const taskDate = new Date(task.createdAt);
       return taskDate >= dateRange.start && taskDate <= dateRange.end;
     });
     const total = filtered.length;
-    const pending = filtered.filter((t) => t.status === 'pending').length;
+    const pending = filtered.filter(
+      (t) => t.status === 'planned' || t.status === 'ready' || t.status === 'blocked'
+    ).length;
     const inProgress = filtered.filter((t) => t.status === 'in_progress').length;
     const completed = filtered.filter((t) => t.status === 'completed').length;
     return {
@@ -45,10 +47,10 @@ export const analyticsService = {
 
   getFieldMetrics: async (dateRange: DateRange): Promise<FieldMetrics[]> => {
     const [tasks, fields] = await Promise.all([
-      getTaskService().getAllTasks(),
+      getFieldWorkService().listFieldTasks(),
       getFieldService().getFields('', ''),
     ]);
-    const inRange = (task: Task) => {
+    const inRange = (task: FieldTask) => {
       if (!task.createdAt) return false;
       const d = new Date(task.createdAt);
       return d >= dateRange.start && d <= dateRange.end;

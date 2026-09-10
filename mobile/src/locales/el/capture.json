@@ -6,7 +6,9 @@
     "observation": { "title": "Παρατήρηση", "description": "Σημείωση ή φωτογραφίες από τον ελαιώνα" },
     "work": { "title": "Εργασία", "description": "Κλάδεμα, ψεκασμός, λίπανση…" },
     "expense": { "title": "Έξοδο", "description": "Εργατικά, υλικά, καύσιμα…" },
-    "harvest": { "title": "Συγκομιδή", "description": "Ελιές, λάδι και απόδοση" }
+    "income": { "title": "Έσοδο", "description": "Πώληση λαδιού, ελαιοκάρπου, επιδότηση…" },
+    "harvest": { "title": "Συγκομιδή", "description": "Ελιές, λάδι και απόδοση" },
+    "money": { "title": "Χρήματα", "description": "Έσοδο ή έξοδο" }
   },
   "fieldLabel": "Ελαιώνας",
   "fieldPrompt": "Σε ποιον ελαιώνα;",
@@ -51,5 +53,36 @@
     "amountRequired": "Γράψε ποσό.",
     "oliveRequired": "Γράψε κιλά ελιών.",
     "saveFailed": "Αδυναμία αποθήκευσης. Δοκίμασε ξανά."
+  },
+  "income": {
+    "saved": "Το έσοδο καταγράφηκε."
+  },
+  "cancel": "Ακύρωση",
+  "money": {
+    "cta": "Καταχώρηση χρημάτων",
+    "ctaPlus": "+ Καταχώρηση χρημάτων",
+    "chooserTitle": "Έσοδο ή έξοδο;",
+    "amount": "Ποσό",
+    "category": "Κατηγορία",
+    "description": "Περιγραφή",
+    "descriptionRequired": "Γράψε μια σύντομη περιγραφή.",
+    "relatedTask": "Σχετική εργασία",
+    "relatedHarvest": "Σχετική συγκομιδή",
+    "none": "Καμία",
+    "paymentMethod": "Τρόπος πληρωμής",
+    "counterparty": "Από / προς",
+    "addReceipt": "Προσθήκη απόδειξης",
+    "notes": "Σημειώσεις",
+    "resultYear": "Έτος αποτελέσματος",
+    "saveDraft": "Αποθήκευση ως πρόχειρο",
+    "saveIncome": "Καταχώρηση εσόδου",
+    "saveExpense": "Καταχώρηση εξόδου",
+    "changeType": "Αλλαγή τύπου",
+    "draftSaved": "Το πρόχειρο αποθηκεύτηκε.",
+    "confirmSummary": "Θα καταχωρήσεις {{type}} {{amount}} € στον ελαιώνα «{{field}}» στις {{date}} (έτος αποτελέσματος {{year}}). Συνέχεια;",
+    "undo": "Αναίρεση",
+    "addAnother": "Προσθήκη άλλου",
+    "undoReason": "Αναίρεση καταχώρησης",
+    "noPermission": "Δεν έχεις δικαίωμα καταχώρησης χρημάτων."
   }
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getFieldService, getTaskService } from '../services/serviceFactory';
+import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
+import { FieldTask, isActiveFieldTask } from '../services/fieldWorkService';
 import { sanitizeFields } from '../utils/dataSanitizer';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import { countTasksToday } from '../utils/fieldDisplay';
@@ -36,7 +36,7 @@ export const useFields = (): UseFieldsResult => {
   const [fieldNextJobTitle, setFieldNextJobTitle] = useState<Record<string, string | undefined>>({});
   const [fieldTodayTaskCounts, setFieldTodayTaskCounts] = useState<Record<string, number>>({});
 
-  const buildTaskMaps = (sanitizedFields: Field[], tasks: Task[]) => {
+  const buildTaskMaps = (sanitizedFields: Field[], tasks: FieldTask[]) => {
     const counts: Record<string, number> = {};
     const openCounts: Record<string, number> = {};
     const overdue: Record<string, boolean> = {};
@@ -47,13 +47,13 @@ export const useFields = (): UseFieldsResult => {
     for (const field of sanitizedFields) {
       const fieldTasks = tasks.filter((t) => t.fieldId === field.id);
       counts[field.id] = fieldTasks.length;
-      const open = fieldTasks.filter((t) => t.status !== 'completed');
+      const open = fieldTasks.filter(isActiveFieldTask);
       openCounts[field.id] = open.length;
       overdue[field.id] = open.some((t) => isTaskOverdue(t));
       todayCounts[field.id] = countTasksToday(fieldTasks);
       const next = [...open].sort((a, b) => {
-        const ad = a.scheduledEnd ? new Date(a.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
-        const bd = b.scheduledEnd ? new Date(b.scheduledEnd).getTime() : Number.POSITIVE_INFINITY;
+        const ad = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
+        const bd = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
         return ad - bd;
       })[0];
       nextJob[field.id] = next?.title;
@@ -75,7 +75,7 @@ export const useFields = (): UseFieldsResult => {
       const online = await isDeviceOnline();
       const [fieldsData, tasksData] = await Promise.all([
         getFieldService().getFields(user.id, user.role),
-        getTaskService().getAssignedTasks(user.id, user.role).catch(() => [] as Task[]),
+        getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
       ]);
 
       const sanitizedFields = sanitizeFields(fieldsData);

@@ -27,6 +27,7 @@
   "categoryLabel": {
     "task": "Task",
     "expense": "Expense",
+    "income": "Income",
     "harvest": "Harvest",
     "note": "Observation",
     "weather": "Weather",
@@ -51,6 +52,7 @@
   "ctaViewFields": "View fields",
   "fromActor": "By {{name}}",
   "relatedTask": "Related to: {{title}}",
+  "relatedHarvest": "Related to: {{title}}",
   "pinned": "Pinned",
   "dataSource": "Data source",
   "completed": "Completed",

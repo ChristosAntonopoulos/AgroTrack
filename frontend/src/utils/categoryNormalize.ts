@@ -81,6 +81,9 @@ export type TaskStatusId = (typeof TASK_STATUS_IDS)[number];
 
 const STATUS_ALIASES: Record<string, TaskStatusId> = {
   pending: 'pending',
+  planned: 'pending',
+  ready: 'pending',
+  blocked: 'pending',
   scheduled: 'pending',
   todo: 'pending',
   in_progress: 'in_progress',

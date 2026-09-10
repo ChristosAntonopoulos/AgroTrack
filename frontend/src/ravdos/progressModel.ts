@@ -1,6 +1,4 @@
-import { OLIVE_TASK_TEMPLATES } from '../data/oliveTaskTemplates';
-import type { OliveTaskTemplate } from '../types/oliveTaskTemplate';
-import type { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import {
   getSeasonBounds,
   isDateInSeason,
@@ -53,6 +51,7 @@ const WEIGHT_BY_TEMPLATE: Record<string, number> = {
   fruit_damage_sampling: 15,
   harvest_planning: 15,
   olive_harvest: 15,
+  T14: 15,
 
   soil_analysis: 10,
   leaf_analysis: 10,
@@ -76,18 +75,9 @@ const WEIGHT_BY_TEMPLATE: Record<string, number> = {
   equipment_maintenance: 5,
   post_harvest_irrigation_check: 5,
 
-  // Excluded from year % (weight 0)
   general_field_inspection: 0,
   irrigation_event: 0,
   irrigation_filter_cleaning: 0,
-};
-
-const PHASE_MONTHS: Record<RodPhaseId, number[]> = {
-  dormancy: [12, 1, 2],
-  bud_break: [3, 4],
-  flowering: [4, 5],
-  fruit_growth: [6, 7, 8, 9],
-  harvest: [9, 10, 11, 12],
 };
 
 const PHASE_ORDER: RodPhaseId[] = [
@@ -105,26 +95,17 @@ const FINAL_CLOSE_TYPES = new Set([
   'post_harvest_field_inspection',
 ]);
 
-const weightForTemplate = (template: OliveTaskTemplate): number => {
-  if (WEIGHT_BY_TEMPLATE[template.id] !== undefined) return WEIGHT_BY_TEMPLATE[template.id];
-  if (template.priority === 'Critical') return 15;
-  if (template.priority === 'High') return 10;
-  if (template.priority === 'Medium') return 5;
-  return 0;
-};
-
-const phaseForTemplate = (template: OliveTaskTemplate): RodPhaseId => {
-  if (template.harvestPhase || template.category === 'Harvest' || template.category === 'Post-Harvest') {
-    return 'harvest';
-  }
-  const months = template.primaryMonths?.length ? template.primaryMonths : [1];
-  const scores = PHASE_ORDER.map((id) => {
-    const overlap = months.filter((m) => PHASE_MONTHS[id].includes(m)).length;
-    return { id, overlap };
-  });
-  scores.sort((a, b) => b.overlap - a.overlap);
-  return scores[0]?.overlap ? scores[0].id : 'dormancy';
-};
+const HARVEST_CODES = new Set([
+  'olive_harvest',
+  'harvest_planning',
+  'ripening_index_sampling',
+  'pre_harvest_field_access_cleanup',
+  'harvest_equipment_preparation',
+  'post_harvest_field_inspection',
+  'annual_field_report',
+  'harvest_close_season',
+  'harvest_mill_delivery',
+]);
 
 export const isTaskCompleted = (status?: string): boolean => {
   const s = (status || '').toLowerCase();
@@ -136,15 +117,14 @@ export const isTaskCancelled = (status?: string): boolean => {
   return s === 'cancelled' || s === 'canceled';
 };
 
-const taskDateCandidates = (task: Task): Array<string | undefined> => [
-  task.scheduledStart,
-  task.scheduledEnd,
-  task.actualEnd,
-  task.actualStart,
+const taskDateCandidates = (task: FieldTask): Array<string | undefined> => [
+  task.plannedStart,
+  task.plannedEnd,
+  task.updatedAt,
   task.createdAt,
 ];
 
-export const taskInSeasonBounds = (task: Task, bounds: SeasonBounds): boolean => {
+export const taskInSeasonBounds = (task: FieldTask, bounds: SeasonBounds): boolean => {
   if (isTaskCancelled(task.status)) return false;
   return taskDateCandidates(task).some((d) => isDateInSeason(d, bounds));
 };
@@ -154,29 +134,34 @@ export const noteInSeasonBounds = (
   bounds: SeasonBounds
 ): boolean => isDateInSeason(note.occurredAt, bounds) || isDateInSeason(note.createdAt, bounds);
 
-const normalizeTypeKey = (task: Task): string => {
-  const raw = (task.templateId || task.type || '').trim();
+const normalizeTypeKey = (task: FieldTask): string => {
+  const raw = (task.templateCode || '').trim();
   return raw.toLowerCase().replace(/\s+/g, '_');
 };
 
-const findTemplate = (task: Task): OliveTaskTemplate | undefined => {
-  const key = normalizeTypeKey(task);
-  return (
-    OLIVE_TASK_TEMPLATES.find((t) => t.id === key) ||
-    OLIVE_TASK_TEMPLATES.find((t) => t.id === task.templateId) ||
-    OLIVE_TASK_TEMPLATES.find((t) => t.id === task.type)
-  );
+const phaseForKey = (key: string, title: string): RodPhaseId => {
+  if (HARVEST_CODES.has(key) || /harvest|συγκομιδ|τρύγ|post.?harvest/i.test(`${key} ${title}`)) {
+    return 'harvest';
+  }
+  if (/prun|κλάδ|dorman|winter/i.test(`${key} ${title}`)) return 'dormancy';
+  if (/flower|άνθ/i.test(`${key} ${title}`)) return 'flowering';
+  if (/bud|βλαστ/i.test(`${key} ${title}`)) return 'bud_break';
+  return 'fruit_growth';
 };
 
-export const hasHarvestCloseSignal = (tasks: Task[], bounds: SeasonBounds): boolean => {
+const weightForKey = (key: string): number => {
+  if (WEIGHT_BY_TEMPLATE[key] !== undefined) return WEIGHT_BY_TEMPLATE[key];
+  if (HARVEST_CODES.has(key) || FINAL_CLOSE_TYPES.has(key)) return 10;
+  return 5;
+};
+
+export const hasHarvestCloseSignal = (tasks: FieldTask[], bounds: SeasonBounds): boolean => {
   return tasks.some((task) => {
     if (!taskInSeasonBounds(task, bounds)) return false;
     if (!isTaskCompleted(task.status)) return false;
     const key = normalizeTypeKey(task);
-    const template = findTemplate(task);
-    if (template?.harvestPhase === 'final') return true;
     if (FINAL_CLOSE_TYPES.has(key)) return true;
-    const hay = `${task.type} ${task.title}`.toLowerCase();
+    const hay = `${task.templateCode || ''} ${task.title}`.toLowerCase();
     return (
       hay.includes('close harvest') ||
       hay.includes('κλείσ') ||
@@ -188,7 +173,7 @@ export const hasHarvestCloseSignal = (tasks: Task[], bounds: SeasonBounds): bool
 
 export const isSeasonClosedForReview = (
   seasonStartYear: number,
-  tasks: Task[],
+  tasks: FieldTask[],
   now = new Date()
 ): boolean => {
   const bounds = getSeasonBounds(seasonStartYear);
@@ -197,22 +182,20 @@ export const isSeasonClosedForReview = (
 };
 
 /**
- * Build milestones for a season from catalog templates + actual tasks.
- * One credit per template id; irrigation-gated templates skipped when no irrigated field.
+ * Build milestones for a season from FieldTasks (templateCode weights).
  */
 export const buildSeasonMilestones = (
-  tasks: Task[],
+  tasks: FieldTask[],
   options: { anyIrrigatedField: boolean; seasonStartYear: number }
 ): RodMilestone[] => {
   const bounds = getSeasonBounds(options.seasonStartYear);
   const seasonTasks = tasks.filter((t) => taskInSeasonBounds(t, bounds));
 
-  const doneByTemplate = new Map<string, Task>();
-  const openByTemplate = new Map<string, Task>();
+  const doneByTemplate = new Map<string, FieldTask>();
+  const openByTemplate = new Map<string, FieldTask>();
 
   for (const task of seasonTasks) {
-    const template = findTemplate(task);
-    const key = template?.id || normalizeTypeKey(task);
+    const key = normalizeTypeKey(task) || task.id;
     if (!key) continue;
     if (isTaskCompleted(task.status)) {
       if (!doneByTemplate.has(key)) doneByTemplate.set(key, task);
@@ -221,42 +204,27 @@ export const buildSeasonMilestones = (
     }
   }
 
+  const keys = new Set([...doneByTemplate.keys(), ...openByTemplate.keys()]);
   const milestones: RodMilestone[] = [];
 
-  for (const template of OLIVE_TASK_TEMPLATES) {
-    const weight = weightForTemplate(template);
+  for (const key of keys) {
+    const weight = weightForKey(key);
     if (weight <= 0) continue;
-    if (template.requiresIrrigation && !options.anyIrrigatedField) continue;
+    if (!options.anyIrrigatedField && /irrigation/i.test(key)) continue;
 
-    const doneTask = doneByTemplate.get(template.id);
-    const openTask = openByTemplate.get(template.id);
+    const doneTask = doneByTemplate.get(key);
+    const openTask = openByTemplate.get(key);
     const task = doneTask || openTask;
+    if (!task) continue;
 
-    milestones.push({
-      id: template.id,
-      templateId: template.id,
-      title: template.title,
-      weight,
-      phase: phaseForTemplate(template),
-      harvestSubPhase: template.harvestPhase,
-      done: Boolean(doneTask),
-      taskId: task?.id,
-      status: task?.status,
-    });
-  }
-
-  // Include completed ad-hoc harvest-close tasks not in catalog
-  for (const [key, task] of doneByTemplate) {
-    if (milestones.some((m) => m.templateId === key)) continue;
-    if (!FINAL_CLOSE_TYPES.has(key) && !key.includes('harvest')) continue;
     milestones.push({
       id: key,
       templateId: key,
       title: task.title,
-      weight: 10,
-      phase: 'harvest',
-      harvestSubPhase: 'final',
-      done: true,
+      weight,
+      phase: phaseForKey(key, task.title),
+      harvestSubPhase: FINAL_CLOSE_TYPES.has(key) ? 'final' : undefined,
+      done: Boolean(doneTask),
       taskId: task.id,
       status: task.status,
     });

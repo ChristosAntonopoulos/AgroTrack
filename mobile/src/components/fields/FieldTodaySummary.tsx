@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Task } from '../../services/taskService';
+import { FieldTask } from '../../services/fieldWorkService';
 import { weatherService, WeatherData } from '../../services/weatherService';
 import { useTheme } from '../../context/ThemeContext';
 import { formatCompactDate, getNextUpcomingTask, kmhToBeaufort, numberLocaleFor } from '../../utils/fieldDisplay';
@@ -9,7 +9,7 @@ import { spacing, typography } from '../../theme';
 
 type Props = {
   fieldId: string;
-  tasks: Task[];
+  tasks: FieldTask[];
   onOpenWeather: () => void;
 };
 
@@ -56,9 +56,9 @@ const FieldTodaySummary: React.FC<Props> = ({ fieldId, tasks, onOpenWeather }) =
       {nextTask ? (
         <>
           <Text style={[styles.nextTitle, { color: colors.textPrimary }]}>{nextTask.title}</Text>
-          {nextTask.scheduledEnd || nextTask.scheduledStart ? (
+          {nextTask.plannedEnd || nextTask.plannedStart ? (
             <Text style={[styles.body, { color: colors.textSecondary }]}>
-              {formatCompactDate(nextTask.scheduledEnd || nextTask.scheduledStart || '', locale)}
+              {formatCompactDate(nextTask.plannedEnd || nextTask.plannedStart || '', locale)}
             </Text>
           ) : null}
         </>

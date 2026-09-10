@@ -1,5 +1,5 @@
-import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
+﻿import { Field } from '../services/fieldService';
+import type { FieldTask } from '../services/fieldWorkService';
 import type { Note } from '../services/noteService';
 import type { FieldMembership } from '../services/fieldPeopleService';
 import type { SyncOperation } from './offlineQueue';
@@ -39,7 +39,7 @@ function writeEntry<T>(key: string, data: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(entry));
   } catch {
-    // Quota / private mode — ignore
+    // Quota / private mode â€” ignore
   }
 }
 
@@ -85,13 +85,13 @@ export class EntityCache {
     return readEntry<Field[]>(fieldsKey(userId));
   }
 
-  static setTasks(userId: string, tasks: Task[]): void {
+  static setTasks(userId: string, tasks: FieldTask[]): void {
     writeEntry(tasksKey(userId), tasks);
     tasks.forEach((t) => writeEntry(taskKey(t.id), t));
   }
 
-  static getTasks(userId: string): CacheEntry<Task[]> | null {
-    return readEntry<Task[]>(tasksKey(userId));
+  static getTasks(userId: string): CacheEntry<FieldTask[]> | null {
+    return readEntry<FieldTask[]>(tasksKey(userId));
   }
 
   static setField(field: Field): void {
@@ -110,7 +110,7 @@ export class EntityCache {
     return readEntry<Field>(fieldKey(id));
   }
 
-  static setTask(task: Task): void {
+  static setTask(task: FieldTask): void {
     writeEntry(taskKey(task.id), task);
     const userId = getUserId();
     if (!userId) return;
@@ -122,8 +122,8 @@ export class EntityCache {
     writeEntry(tasksKey(userId), next);
   }
 
-  static getTask(id: string): CacheEntry<Task> | null {
-    const direct = readEntry<Task>(taskKey(id));
+  static getTask(id: string): CacheEntry<FieldTask> | null {
+    const direct = readEntry<FieldTask>(taskKey(id));
     if (direct) return direct;
 
     const userId = getUserId();
@@ -135,10 +135,10 @@ export class EntityCache {
     return { data: found, cachedAt: list.cachedAt };
   }
 
-  static patchTask(id: string, patch: Partial<Task>): Task | null {
+  static patchTask(id: string, patch: Partial<FieldTask>): FieldTask | null {
     const existing = this.getTask(id);
     if (!existing) return null;
-    const updated: Task = {
+    const updated: FieldTask = {
       ...existing.data,
       ...patch,
       updatedAt: patch.updatedAt ?? new Date().toISOString(),
@@ -232,11 +232,11 @@ export class EntityCache {
     if (op.entityType === 'task') {
       if (op.tempEntityId && responseData && typeof responseData === 'object') {
         this.removeTask(op.tempEntityId);
-        this.setTask(responseData as Task);
+        this.setTask(responseData as FieldTask);
         return;
       }
       if (responseData && typeof responseData === 'object' && 'id' in (responseData as object)) {
-        this.setTask(responseData as Task);
+        this.setTask(responseData as FieldTask);
       }
       return;
     }
@@ -283,3 +283,4 @@ export class EntityCache {
     }
   }
 }
+

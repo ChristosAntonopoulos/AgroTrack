@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import Card from '../ui/Card';
-import { Task } from '../../services/mockDataService';
+import { FieldTask } from '../../services/fieldWorkService';
 import { colors, typography, spacing, spacingPatterns } from '../../theme';
 import { toBoolean } from '../../utils/booleanConverter';
 import EmptyState from '../EmptyState';
 import Button from '../ui/Button';
 
 export interface TodaysScheduleProps {
-  tasks: Task[];
-  onTaskPress?: (task: Task) => void;
-  onStartTask?: (task: Task) => void;
-  onCompleteTask?: (task: Task) => void;
+  tasks: FieldTask[];
+  onTaskPress?: (task: FieldTask) => void;
+  onStartTask?: (task: FieldTask) => void;
+  onCompleteTask?: (task: FieldTask) => void;
   weatherWorkable?: boolean;
 }
 
@@ -34,8 +34,12 @@ const TodaysSchedule: React.FC<TodaysScheduleProps> = ({
         return colors.success;
       case 'in_progress':
         return colors.info;
+      case 'planned':
+      case 'ready':
       case 'pending':
         return colors.warning;
+      case 'blocked':
+        return colors.gray400;
       default:
         return colors.gray400;
     }
@@ -47,6 +51,8 @@ const TodaysSchedule: React.FC<TodaysScheduleProps> = ({
         return '✅';
       case 'in_progress':
         return '🔄';
+      case 'planned':
+      case 'ready':
       case 'pending':
         return '⏳';
       default:
@@ -61,15 +67,15 @@ const TodaysSchedule: React.FC<TodaysScheduleProps> = ({
 
   // Filter tasks for today
   const todaysTasks = tasks
-    .filter(task => {
-      if (!task.scheduledStart) return false;
-      const scheduled = new Date(task.scheduledStart);
+    .filter((task) => {
+      if (!task.plannedStart) return false;
+      const scheduled = new Date(task.plannedStart);
       scheduled.setHours(0, 0, 0, 0);
       return scheduled.getTime() === today.getTime();
     })
     .sort((a, b) => {
-      if (!a.scheduledStart || !b.scheduledStart) return 0;
-      return new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime();
+      if (!a.plannedStart || !b.plannedStart) return 0;
+      return new Date(a.plannedStart).getTime() - new Date(b.plannedStart).getTime();
     });
 
   if (todaysTasks.length === 0) {
@@ -126,8 +132,8 @@ const TodaysSchedule: React.FC<TodaysScheduleProps> = ({
                       {task.title}
                     </Text>
                     <Text style={styles.taskTime}>
-                      {formatTime(task.scheduledStart)}
-                      {task.scheduledEnd ? ` - ${formatTime(task.scheduledEnd)}` : ''}
+                      {formatTime(task.plannedStart)}
+                      {task.plannedEnd ? ` - ${formatTime(task.plannedEnd)}` : ''}
                     </Text>
                   </View>
                 </View>
@@ -145,7 +151,10 @@ const TodaysSchedule: React.FC<TodaysScheduleProps> = ({
               ) : null}
 
               <View style={styles.taskActions}>
-                {task.status === 'pending' && onStartTask ? (
+                {(task.status === 'planned' ||
+                  task.status === 'ready' ||
+                  task.status === 'pending') &&
+                onStartTask ? (
                   <Button
                     title="Start"
                     onPress={() => onStartTask(task)}

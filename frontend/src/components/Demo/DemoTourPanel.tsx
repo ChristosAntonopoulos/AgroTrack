@@ -82,7 +82,7 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
         labelKey: 'onboarding.owner.step2.label',
         hintKey: 'onboarding.owner.step2.hint',
         actionLabelKey: 'onboarding.owner.step2.action',
-        action: () => navigate('/tasks/new'),
+        action: () => navigate('/fields'),
       },
       {
         key: 'owner_view_timeline',

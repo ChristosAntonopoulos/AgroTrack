@@ -49,7 +49,7 @@ export const mockFieldService = {
         .filter(([, producerIds]) => producerIds.includes(userId))
         .map(([fieldId]) => fieldId);
 
-      const taskFieldIds = Array.from(new Set(tasks.filter(t => t.assignedTo === userId).map(t => t.fieldId)));
+      const taskFieldIds = Array.from(new Set(tasks.filter(t => t.assignedUserId === userId).map(t => t.fieldId)));
       const fieldIds = Array.from(new Set([...assignedFieldIds, ...taskFieldIds]));
       return fields.filter(f => fieldIds.includes(f.id));
     }
@@ -76,7 +76,7 @@ export const mockFieldService = {
     // Check access: owner or has tasks in this field
     const userId = user.userId || user.id;
     const isOwner = field.ownerId === userId;
-    const hasTasks = user.role === 'Producer' && tasks.some(t => t.fieldId === id && t.assignedTo === userId);
+    const hasTasks = user.role === 'Producer' && tasks.some(t => t.fieldId === id && t.assignedUserId === userId);
     
     if (!isOwner && !hasTasks && user.role !== 'Administrator' && user.role !== 'Agronomist') {
       throw new Error('You do not have access to this field.');
@@ -203,7 +203,7 @@ export const mockFieldService = {
     const field = await mockFieldService.getField(id);
     return {
       officialAreaSqm: field.greekCadastre?.officialAreaSqm,
-      appMeasuredAreaSqm: field.appMeasuredAreaSqm,
+      appMeasuredAreaSqm: field.appMeasuredAreaSqm ?? 0,
       severity: 'Ok',
       message: 'Mock area validation',
       warnings: [],

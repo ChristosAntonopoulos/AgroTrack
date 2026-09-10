@@ -5,12 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
-import { Task } from '../../services/taskService';
+import { FieldTask, fieldTaskTypeKey } from '../../services/fieldWorkService';
 import { getTaskDueVariant, getTaskTypeIcon } from '../../utils/dashboardUtils';
 import { formatLocaleDate } from '../../utils/formatters';
 
 export interface AgendaTaskRowProps {
-  task: Task;
+  task: FieldTask;
   fieldName?: string;
   onPress?: () => void;
 }
@@ -19,7 +19,7 @@ const AgendaTaskRow: React.FC<AgendaTaskRowProps> = ({ task, fieldName, onPress 
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('dashboard');
   const variant = getTaskDueVariant(task);
-  const icon = getTaskTypeIcon(task.type);
+  const icon = getTaskTypeIcon(fieldTaskTypeKey(task));
 
   const pillStyle =
     variant === 'overdue'
@@ -29,8 +29,8 @@ const AgendaTaskRow: React.FC<AgendaTaskRowProps> = ({ task, fieldName, onPress 
         : {
             bg: colors.successLight,
             text: colors.successDark,
-            label: task.scheduledStart
-              ? formatLocaleDate(new Date(task.scheduledStart), i18n.language, {
+            label: task.plannedStart
+              ? formatLocaleDate(new Date(task.plannedStart), i18n.language, {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',

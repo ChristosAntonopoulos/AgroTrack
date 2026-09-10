@@ -14,7 +14,7 @@ public class FieldPeopleService : IFieldPeopleService
 {
     private readonly IFieldRepository _fieldRepository;
     private readonly IUserRepository _userRepository;
-    private readonly ITaskRepository _taskRepository;
+    private readonly IFieldTaskRepository _fieldTasks;
     private readonly IActivityRepository _activityRepository;
     private readonly IFieldInviteRepository _inviteRepository;
     private readonly IFieldAccessService _fieldAccessService;
@@ -25,7 +25,7 @@ public class FieldPeopleService : IFieldPeopleService
     public FieldPeopleService(
         IFieldRepository fieldRepository,
         IUserRepository userRepository,
-        ITaskRepository taskRepository,
+        IFieldTaskRepository fieldTasks,
         IActivityRepository activityRepository,
         IFieldInviteRepository inviteRepository,
         IFieldAccessService fieldAccessService,
@@ -35,7 +35,7 @@ public class FieldPeopleService : IFieldPeopleService
     {
         _fieldRepository = fieldRepository;
         _userRepository = userRepository;
-        _taskRepository = taskRepository;
+        _fieldTasks = fieldTasks;
         _activityRepository = activityRepository;
         _inviteRepository = inviteRepository;
         _fieldAccessService = fieldAccessService;
@@ -254,7 +254,9 @@ public class FieldPeopleService : IFieldPeopleService
             ?? throw new NotFoundException("Field not found.");
         FieldMembershipSync.EnsureBackfilled(field);
 
-        var tasks = (await _taskRepository.GetByFieldIdAsync(fieldId, cancellationToken)).ToList();
+        var tasks = (await _fieldTasks.QueryAsync(
+            new FieldTaskQuery { FieldId = fieldId },
+            cancellationToken)).ToList();
         var activities = (await _activityRepository.GetByFieldIdAsync(fieldId, 100, cancellationToken)).ToList();
         var today = _dateTimeProvider.UtcNow.Date;
 
@@ -262,18 +264,22 @@ public class FieldPeopleService : IFieldPeopleService
         foreach (var membership in field.Memberships.Where(m => m.Status == "active"))
         {
             var user = await _userRepository.GetByIdAsync(membership.UserId, cancellationToken);
-            var userTasks = tasks.Where(t => t.AssignedTo == membership.UserId).ToList();
+            var userTasks = tasks.Where(t =>
+                string.Equals(t.AssignedUserId, membership.UserId, StringComparison.Ordinal)).ToList();
             people.Add(new PersonWorkStatsDto
             {
                 UserId = membership.UserId,
                 DisplayName = user == null ? membership.UserId : DisplayName(user),
                 Capacities = membership.Capacities,
-                CompletedTasks = userTasks.Count(t => t.Status == Core.Enums.WorkTaskStatus.Completed),
+                CompletedTasks = userTasks.Count(t => t.Status == Core.Enums.FieldTaskStatus.Completed),
                 OverdueTasks = userTasks.Count(t =>
-                    t.Status != Core.Enums.WorkTaskStatus.Completed
-                    && t.ScheduledEnd.HasValue
-                    && t.ScheduledEnd.Value.Date < today),
-                OpenTasks = userTasks.Count(t => t.Status != Core.Enums.WorkTaskStatus.Completed),
+                    t.Status != Core.Enums.FieldTaskStatus.Completed
+                    && t.Status != Core.Enums.FieldTaskStatus.Cancelled
+                    && t.PlannedEnd.HasValue
+                    && t.PlannedEnd.Value.Date < today),
+                OpenTasks = userTasks.Count(t =>
+                    t.Status != Core.Enums.FieldTaskStatus.Completed
+                    && t.Status != Core.Enums.FieldTaskStatus.Cancelled),
                 LastActivityAt = activities
                     .Where(a => a.ActorUserId == membership.UserId)
                     .Select(a => (DateTime?)a.Timestamp)

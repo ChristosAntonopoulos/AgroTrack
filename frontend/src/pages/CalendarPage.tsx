@@ -4,14 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
-import { getCalendarService, getFieldService, getTaskService } from '../services/serviceFactory';
+import { getCalendarService, getFieldService } from '../services/serviceFactory';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { CalendarEvent, CalendarFilters } from '../services/calendarService';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
-import { useAllLocalizedTemplates } from '../hooks/useLocalizedTaskTemplate';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { getRecommendedForMonth } from '../utils/calendarRecommendations';
 import { isEventOverdue } from '../utils/calendarViewUtils';
 import { demoStore } from '../services/demo/demoStore';
 import CalendarMonthView from '../components/Calendar/CalendarMonthView';
@@ -21,7 +18,6 @@ import CalendarFieldView from '../components/Calendar/CalendarFieldView';
 import CalendarDayPanel from '../components/Calendar/CalendarDayPanel';
 import CalendarFilterBar from '../components/Calendar/CalendarFilterBar';
 import CalendarLegend from '../components/Calendar/CalendarLegend';
-import CalendarRecommendationCard from '../components/Calendar/CalendarRecommendationCard';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -46,7 +42,6 @@ import {
   List,
   MapPin,
   Plus,
-  Sparkles,
 } from 'lucide-react';
 import './CalendarPage.css';
 
@@ -58,7 +53,6 @@ const CalendarPage: React.FC = () => {
   const { isEveryday, showWidget } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
-  const localizedTemplates = useAllLocalizedTemplates();
   const dateLocale = i18n.language === 'el' ? el : enUS;
   const isMobile = useBreakpoint('md');
 
@@ -70,7 +64,6 @@ const CalendarPage: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(!isMobile && !isEveryday);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
-  const [fieldTasks, setFieldTasks] = useState<Task[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState('');
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<CalendarFilters>({
@@ -79,38 +72,11 @@ const CalendarPage: React.FC = () => {
     showDeadlines: true,
   });
 
-  const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
-  const visibleMonth = currentDate.getMonth() + 1;
-
   useEffect(() => {
     if (isEveryday || (isMobile && viewMode === 'month')) {
       setViewMode('agenda');
     }
   }, [isMobile, isEveryday]);
-
-  const recommended = useMemo(
-    () =>
-      getRecommendedForMonth(
-        localizedTemplates,
-        selectedDate.getMonth() + 1,
-        selectedField,
-        fieldTasks,
-        selectedFieldId || undefined
-      ),
-    [localizedTemplates, selectedDate, selectedField, fieldTasks, selectedFieldId]
-  );
-
-  const monthRecommendations = useMemo(
-    () =>
-      getRecommendedForMonth(
-        localizedTemplates,
-        visibleMonth,
-        selectedField,
-        fieldTasks,
-        selectedFieldId || undefined
-      ),
-    [localizedTemplates, visibleMonth, selectedField, fieldTasks, selectedFieldId]
-  );
 
   const filteredEvents = useMemo(() => {
     let list = events;
@@ -139,13 +105,6 @@ const CalendarPage: React.FC = () => {
   useEffect(() => {
     loadEvents();
   }, [currentDate, viewMode, filters, selectedFieldId, refreshGeneration]);
-
-  useEffect(() => {
-    getTaskService()
-      .getTasks(selectedFieldId || undefined)
-      .then(setFieldTasks)
-      .catch(() => setFieldTasks([]));
-  }, [selectedFieldId, refreshGeneration]);
 
   const loadFields = async () => {
     try {
@@ -220,17 +179,6 @@ const CalendarPage: React.FC = () => {
     else if (event.fieldId) navigate(`/fields/${event.fieldId}`);
   };
 
-  const handleTemplateSelect = (templateId: string, fieldId?: string) => {
-    const fid = fieldId || selectedFieldId || fields[0]?.id;
-    if (!fid) return;
-    navigate(`/tasks/new?templateId=${templateId}&fieldId=${fid}&month=${visibleMonth}`);
-  };
-
-  const handleScheduleRecommended = () => {
-    const first = recommended.find((r) => r.recommended);
-    if (first) handleTemplateSelect(first.template.id);
-  };
-
   const headerLabel =
     viewMode === 'month'
       ? format(currentDate, 'MMMM yyyy', { locale: dateLocale })
@@ -267,16 +215,6 @@ const CalendarPage: React.FC = () => {
             <Button to="/tasks/new" variant="outline" size="sm" icon={<Plus size={16} />}>
               {t('newTask')}
             </Button>
-            {user?.role === 'FieldOwner' && (
-              <Button
-                to={selectedFieldId ? `/fields/${selectedFieldId}/task-templates` : '/fields'}
-                variant="primary"
-                size="sm"
-                icon={<Sparkles size={16} />}
-              >
-                {t('fromTemplate')}
-              </Button>
-            )}
           </div>
         </header>
 
@@ -337,7 +275,6 @@ const CalendarPage: React.FC = () => {
                 currentDate={currentDate}
                 selectedDate={selectedDate}
                 events={filteredEvents}
-                recommended={monthRecommendations}
                 locale={i18n.language}
                 onDateSelect={handleDateSelect}
                 onEventClick={handleEventClick}
@@ -347,7 +284,6 @@ const CalendarPage: React.FC = () => {
                 currentDate={currentDate}
                 selectedDate={selectedDate}
                 events={filteredEvents}
-                recommended={monthRecommendations}
                 locale={i18n.language}
                 onDateSelect={handleDateSelect}
                 onEventClick={handleEventClick}
@@ -363,10 +299,8 @@ const CalendarPage: React.FC = () => {
               <CalendarFieldView
                 events={filteredEvents}
                 fields={selectedFieldId ? fields.filter((f) => f.id === selectedFieldId) : fields}
-                recommended={monthRecommendations}
                 locale={i18n.language}
                 onEventClick={handleEventClick}
-                onScheduleTemplate={handleTemplateSelect}
               />
             )}
           </main>
@@ -375,51 +309,18 @@ const CalendarPage: React.FC = () => {
             <CalendarDayPanel
               date={selectedDate}
               events={filteredEvents}
-              recommended={recommended}
               fieldId={selectedFieldId || fields[0]?.id}
               fieldLabel={fieldLabel}
               locale={i18n.language}
               isDrawer
               onClose={() => setDrawerOpen(false)}
               onEventClick={handleEventClick}
-              onScheduleTemplate={(id) => handleTemplateSelect(id)}
               onCreateTask={() =>
                 navigate(`/tasks/new?fieldId=${selectedFieldId || fields[0]?.id || ''}`)
               }
-              onScheduleRecommended={handleScheduleRecommended}
             />
           )}
         </div>
-
-        {monthRecommendations.length > 0 && (
-          <section className="calendar-season-section" aria-labelledby="calendar-season-heading">
-            <h2 id="calendar-season-heading">
-              {t('seasonalSection', { month: format(currentDate, 'MMMM', { locale: dateLocale }) })}
-            </h2>
-            <p className="calendar-season-section-desc">{t('seasonalSectionDesc')}</p>
-            <div className="calendar-season-grid">
-              {monthRecommendations.slice(0, 6).map((entry) => (
-                <CalendarRecommendationCard
-                  key={entry.template.id}
-                  entry={entry}
-                  fieldLabel={fieldLabel}
-                  onSchedule={
-                    user?.role === 'FieldOwner'
-                      ? () => handleTemplateSelect(entry.template.id)
-                      : undefined
-                  }
-                  onDetails={() =>
-                    navigate(
-                      selectedFieldId
-                        ? `/fields/${selectedFieldId}/task-templates`
-                        : '/fields'
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </PageContainer>
   );

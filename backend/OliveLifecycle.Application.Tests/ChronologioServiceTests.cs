@@ -8,6 +8,7 @@ using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
 using Xunit;
@@ -19,8 +20,9 @@ public class ChronologioServiceTests
     private readonly Mock<IFieldAccessService> _access = new();
     private readonly Mock<IFieldService> _fieldService = new();
     private readonly Mock<IFieldRepository> _fields = new();
-    private readonly Mock<ITaskRepository> _tasks = new();
-    private readonly Mock<IFinancialEntryRepository> _finance = new();
+    private readonly Mock<ITaskExecutionRepository> _executions = new();
+    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
+    private readonly Mock<IFinancialTransactionRepository> _finance = new();
     private readonly Mock<IHarvestRecordRepository> _harvests = new();
     private readonly Mock<INoteRepository> _notes = new();
     private readonly Mock<IActivityRepository> _activities = new();
@@ -44,7 +46,8 @@ public class ChronologioServiceTests
             _access.Object,
             _fieldService.Object,
             _fields.Object,
-            _tasks.Object,
+            _executions.Object,
+            _fieldTasks.Object,
             _finance.Object,
             _harvests.Object,
             _notes.Object,
@@ -93,23 +96,30 @@ public class ChronologioServiceTests
         AllowField("field-1", "Βόρειος Ελαιώνας");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
             {
-                new TaskItem
-                {
-                    Id = "task-1",
-                    FieldId = "field-1",
-                    Title = "Ψεκασμός",
-                    Type = "spraying",
-                    Status = WorkTaskStatus.Completed,
-                    AssignedTo = "giorgos",
-                    ActualEnd = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc),
-                    Cost = 280m,
-                    LifecycleYear = "low"
-                }
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "giorgos",
+                CreatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc),
+                ResultYear = 2026
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                TemplateCode = "spraying",
+                Status = FieldTaskStatus.Completed,
+                AssignedUserId = "giorgos",
+                CreatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc)
             });
 
         var entries = await _service.GetForFieldAsync(
@@ -118,70 +128,52 @@ public class ChronologioServiceTests
             Roles.FieldOwner,
             new ChronologioQuery());
 
-        var task = Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.Task);
+        var task = Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.TaskExecution);
+        Assert.Equal("TaskExecution:exec-1", task.Id);
+        Assert.Equal("exec-1", task.SourceId);
         Assert.Equal(new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc), task.OccurredAt);
         Assert.Equal(ChronologioEventTypes.TaskCompleted, task.EventType);
         Assert.Equal("Ψεκασμός", task.Title);
-        Assert.Equal(280m, task.Amount?.Value);
-        Assert.Equal("EUR", task.Amount?.Currency);
+        Assert.Null(task.Amount);
         Assert.Equal("Giorgos Papadopoulos", task.Actor?.DisplayName);
         Assert.Equal("giorgos", task.Actor?.UserId);
+        Assert.Equal("exec-1", task.Details.Task!.ExecutionId);
+        Assert.Equal("task-1", task.Details.Task.TaskId);
+        Assert.Equal("completed", task.Details.Task.Outcome);
         Assert.DoesNotContain(entries, e => e.Title.Contains("pending", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public async Task GetForFieldAsync_OmitsTaskLinkedExpenseWhenCompletedTaskPresent()
+    public async Task GetForFieldAsync_SkipsUndoneExecutions()
     {
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
+        _executions.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new TaskItem
+                new TaskExecution
                 {
-                    Id = "task-1",
+                    Id = "exec-undone",
+                    TaskId = "task-1",
                     FieldId = "field-1",
-                    Title = "Pruning",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
-                    Cost = 320m,
-                    CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                    UndoneAt = new DateTime(2026, 9, 13, 9, 0, 0, DateTimeKind.Utc),
+                    UndoneByUserId = "owner-1",
+                    RecordedByUserId = "giorgos",
+                    CreatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 9, 13, 9, 0, 0, DateTimeKind.Utc)
                 }
             });
 
-        _finance.Setup(r => r.GetByFieldIdAsync("field-1", false, 200, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        _fieldTasks.Setup(r => r.GetByIdAsync("task-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FieldTask
             {
-                new FinancialEntry
-                {
-                    Id = "exp-linked",
-                    FieldId = "field-1",
-                    TaskId = "task-1",
-                    Kind = FinancialEntryKind.Expense,
-                    Status = FinancialEntryStatus.Posted,
-                    Amount = 320m,
-                    Currency = "EUR",
-                    Description = "Pruning labor",
-                    OccurredOn = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
-                    RecordedBy = "maria",
-                    CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
-                },
-                new FinancialEntry
-                {
-                    Id = "exp-standalone",
-                    FieldId = "field-1",
-                    Kind = FinancialEntryKind.Expense,
-                    Status = FinancialEntryStatus.Posted,
-                    Amount = 50m,
-                    Currency = "EUR",
-                    Description = "Fuel",
-                    Category = FinancialCategory.ElectricityFuel,
-                    OccurredOn = new DateTime(2026, 9, 11, 0, 0, 0, DateTimeKind.Utc),
-                    RecordedBy = "maria",
-                    CreatedAt = new DateTime(2026, 9, 11, 0, 0, 0, DateTimeKind.Utc)
-                }
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                Status = FieldTaskStatus.Completed
             });
 
         var entries = await _service.GetForFieldAsync(
@@ -190,10 +182,72 @@ public class ChronologioServiceTests
             Roles.FieldOwner,
             new ChronologioQuery());
 
-        Assert.DoesNotContain(entries, e => e.SourceId == "exp-linked");
+        Assert.DoesNotContain(entries, e => e.SourceType == ChronologioSourceTypes.TaskExecution);
+        Assert.DoesNotContain(entries, e => e.SourceId == "exec-undone");
+    }
+
+    [Fact]
+    public async Task GetForFieldAsync_ShowsPostedTaskLinkedMoneyWithRelatedTask()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
+            {
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Λίπανση φθινοπώρου",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
+            });
+
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                PostedMoney(
+                    "exp-linked",
+                    180m,
+                    new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                    relatedTaskId: "task-1",
+                    description: "Λίπασμα για το Κτήμα Φιλιατρών",
+                    category: FinancialTransactionCategory.Fertilizers),
+                PostedMoney(
+                    "exp-standalone",
+                    50m,
+                    new DateTime(2026, 9, 11, 0, 0, 0, DateTimeKind.Utc),
+                    description: "Fuel",
+                    category: FinancialTransactionCategory.FuelAndEnergy)
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery());
+
+        var linked = Assert.Single(entries, e => e.SourceId == "exp-linked");
+        Assert.Equal(ChronologioSourceTypes.Expense, linked.SourceType);
+        Assert.Equal("task-1", linked.Details.Expense!.LinkedTaskId);
+        Assert.Equal("Λίπανση φθινοπώρου", linked.Details.Expense.RelatedTaskTitle);
+        Assert.Contains("180", linked.Title);
         Assert.Contains(entries, e => e.SourceId == "exp-standalone");
-        var task = Assert.Single(entries, e => e.SourceId == "task-1");
-        Assert.Equal(320m, task.Amount?.Value);
+        var task = Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.TaskExecution);
+        Assert.Equal("exec-1", task.SourceId);
+        Assert.Null(task.Amount);
     }
 
     [Fact]
@@ -222,35 +276,24 @@ public class ChronologioServiceTests
                 }
             });
 
-        _finance.Setup(r => r.GetByFieldIdAsync("field-1", false, 200, It.IsAny<CancellationToken>()))
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new FinancialEntry
-                {
-                    Id = "mill-cost",
-                    FieldId = "field-1",
-                    HarvestId = "harvest-1",
-                    Kind = FinancialEntryKind.Expense,
-                    Status = FinancialEntryStatus.Posted,
-                    Amount = 180m,
-                    Currency = "EUR",
-                    Description = "Mill cost",
-                    OccurredOn = new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc)
-                },
-                new FinancialEntry
-                {
-                    Id = "sale",
-                    FieldId = "field-1",
-                    HarvestId = "harvest-1",
-                    Kind = FinancialEntryKind.Income,
-                    Status = FinancialEntryStatus.Posted,
-                    Amount = 2400m,
-                    Currency = "EUR",
-                    Description = "Oil sale",
-                    OccurredOn = new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc)
-                }
+                PostedMoney(
+                    "mill-cost",
+                    180m,
+                    new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc),
+                    relatedHarvestId: "harvest-1",
+                    description: "Mill cost",
+                    category: FinancialTransactionCategory.Mill),
+                PostedMoney(
+                    "sale",
+                    2400m,
+                    new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc),
+                    type: FinancialTransactionType.Income,
+                    relatedHarvestId: "harvest-1",
+                    description: "Oil sale",
+                    category: FinancialTransactionCategory.OliveOilSale)
             });
 
         var entries = await _service.GetForFieldAsync(
@@ -259,7 +302,12 @@ public class ChronologioServiceTests
             Roles.FieldOwner,
             new ChronologioQuery());
 
-        Assert.DoesNotContain(entries, e => e.SourceId is "mill-cost" or "sale");
+        var mill = Assert.Single(entries, e => e.SourceId == "mill-cost");
+        Assert.Equal("harvest-1", mill.Details.Expense!.LinkedHarvestId);
+        var sale = Assert.Single(entries, e => e.SourceId == "sale");
+        Assert.Equal(ChronologioSourceTypes.Income, sale.SourceType);
+        Assert.Equal(ChronologioCategory.Income.ToApiString(), sale.Category);
+        Assert.DoesNotContain(entries, e => e.SourceId == "sale" && e.Category == ChronologioCategory.Expense.ToApiString());
         var harvest = Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.Harvest);
         Assert.Equal(ChronologioImportance.Positive.ToApiString(), harvest.Importance);
         Assert.Equal(4820, harvest.Details.Harvest!.OliveKg);
@@ -366,37 +414,37 @@ public class ChronologioServiceTests
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
             {
-                new TaskItem
-                {
-                    Id = "task-old-work",
-                    FieldId = "field-1",
-                    Title = "Yesterday spraying",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc)
-                }
+                Id = "exec-old-work",
+                TaskId = "task-old-work",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-old-work",
+                FieldId = "field-1",
+                Title = "Yesterday spraying",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc)
             });
 
-        _finance.Setup(r => r.GetByFieldIdAsync("field-1", false, 200, It.IsAny<CancellationToken>()))
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new FinancialEntry
-                {
-                    Id = "exp-today",
-                    FieldId = "field-1",
-                    Kind = FinancialEntryKind.Expense,
-                    Status = FinancialEntryStatus.Posted,
-                    Amount = 10m,
-                    Currency = "EUR",
-                    Description = "Today expense",
-                    OccurredOn = new DateTime(2026, 9, 8, 0, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 9, 8, 1, 0, 0, DateTimeKind.Utc),
-                    RecordedBy = "owner-1"
-                }
+                PostedMoney(
+                    "exp-today",
+                    10m,
+                    new DateTime(2026, 9, 8, 0, 0, 0, DateTimeKind.Utc),
+                    description: "Today expense")
             });
 
         var entries = await _service.GetForFieldAsync(
@@ -407,7 +455,7 @@ public class ChronologioServiceTests
 
         Assert.Equal(2, entries.Count);
         Assert.Equal("exp-today", entries[0].SourceId);
-        Assert.Equal("task-old-work", entries[1].SourceId);
+        Assert.Equal("exec-old-work", entries[1].SourceId);
     }
 
     [Fact]
@@ -419,22 +467,30 @@ public class ChronologioServiceTests
                 new FieldDto { Id = "field-1", Name = "Κτήμα Καρύστου", OwnerId = "owner-1" }
             });
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
             {
-                new TaskItem
-                {
-                    Id = "task-1",
-                    FieldId = "field-1",
-                    Title = "Irrigation",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc)
-                }
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Irrigation",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc)
             });
-        _finance.Setup(r => r.GetByFieldIdAsync("field-1", false, 200, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<FinancialEntry>());
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FinancialTransaction>());
         _harvests.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<HarvestRecord>());
         _notes.Setup(r => r.GetByOwnerUserIdAsync("owner-1", "field-1", 200, It.IsAny<CancellationToken>()))
@@ -480,27 +536,50 @@ public class ChronologioServiceTests
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecutions(
+            "field-1",
+            new[]
             {
-                new TaskItem
+                new TaskExecution
+                {
+                    Id = "exec-1",
+                    TaskId = "task-1",
+                    FieldId = "field-1",
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
+                    RecordedByUserId = "owner-1",
+                    CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new TaskExecution
+                {
+                    Id = "exec-2",
+                    TaskId = "task-2",
+                    FieldId = "field-1",
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc),
+                    RecordedByUserId = "owner-1",
+                    CreatedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc)
+                }
+            },
+            new[]
+            {
+                new FieldTask
                 {
                     Id = "task-1",
                     FieldId = "field-1",
                     Title = "Pruning",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
-                    Cost = 100m,
+                    Status = FieldTaskStatus.Completed,
                     CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc)
                 },
-                new TaskItem
+                new FieldTask
                 {
                     Id = "task-2",
                     FieldId = "field-1",
                     Title = "Spray",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc),
+                    Status = FieldTaskStatus.Completed,
                     CreatedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc)
                 }
@@ -547,26 +626,50 @@ public class ChronologioServiceTests
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecutions(
+            "field-1",
+            new[]
             {
-                new TaskItem
+                new TaskExecution
+                {
+                    Id = "exec-sep",
+                    TaskId = "task-sep",
+                    FieldId = "field-1",
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc),
+                    RecordedByUserId = "owner-1",
+                    CreatedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new TaskExecution
+                {
+                    Id = "exec-feb",
+                    TaskId = "task-feb",
+                    FieldId = "field-1",
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
+                    RecordedByUserId = "owner-1",
+                    CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc)
+                }
+            },
+            new[]
+            {
+                new FieldTask
                 {
                     Id = "task-sep",
                     FieldId = "field-1",
                     Title = "Harvest prep",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc),
+                    Status = FieldTaskStatus.Completed,
                     CreatedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc)
                 },
-                new TaskItem
+                new FieldTask
                 {
                     Id = "task-feb",
                     FieldId = "field-1",
                     Title = "Pruning",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
+                    Status = FieldTaskStatus.Completed,
                     CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc)
                 }
@@ -589,19 +692,27 @@ public class ChronologioServiceTests
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
             {
-                new TaskItem
-                {
-                    Id = "task-1",
-                    FieldId = "field-1",
-                    Title = "Ψεκασμός",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
-                }
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
             });
 
         var months = await _service.GetMonthSummariesForFieldAsync(
@@ -622,19 +733,27 @@ public class ChronologioServiceTests
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
 
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync("field-1", "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
             {
-                new TaskItem
-                {
-                    Id = "task-1",
-                    FieldId = "field-1",
-                    Title = "Work",
-                    Status = WorkTaskStatus.Completed,
-                    ActualEnd = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
-                    CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)
-                }
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Work",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)
             });
 
         _notes.Setup(r => r.GetByOwnerUserIdAsync("owner-1", "field-1", 200, It.IsAny<CancellationToken>()))
@@ -796,6 +915,36 @@ public class ChronologioServiceTests
 
     private static DateTime Nowish() => new(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
 
+    private static FinancialTransaction PostedMoney(
+        string id,
+        decimal amount,
+        DateTime occurredOn,
+        FinancialTransactionType type = FinancialTransactionType.Expense,
+        string? relatedTaskId = null,
+        string? relatedHarvestId = null,
+        string description = "",
+        FinancialTransactionCategory? category = null) =>
+        new()
+        {
+            Id = id,
+            OwnerUserId = "owner-1",
+            FieldId = "field-1",
+            Type = type,
+            Status = FinancialTransactionStatus.Posted,
+            Amount = amount,
+            Currency = "EUR",
+            Description = description,
+            Category = category,
+            RelatedTaskId = relatedTaskId,
+            RelatedHarvestId = relatedHarvestId,
+            OccurredOn = occurredOn,
+            ResultYear = occurredOn.Year,
+            CreatedByUserId = "maria",
+            CreatedAt = occurredOn,
+            UpdatedAt = occurredOn,
+            PostedAt = occurredOn
+        };
+
     private void AllowField(string fieldId, string name)
     {
         _access.Setup(a => a.CanUserAccessFieldAsync(fieldId, "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
@@ -806,10 +955,10 @@ public class ChronologioServiceTests
 
     private void SetupEmptySources(string fieldId)
     {
-        _tasks.Setup(r => r.GetByFieldIdAndStatusAsync(fieldId, "completed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<TaskItem>());
-        _finance.Setup(r => r.GetByFieldIdAsync(fieldId, false, 200, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<FinancialEntry>());
+        _executions.Setup(r => r.GetByFieldIdAsync(fieldId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<TaskExecution>());
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FinancialTransaction>());
         _harvests.Setup(r => r.GetByFieldIdAsync(fieldId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<HarvestRecord>());
         _notes.Setup(r => r.GetByOwnerUserIdAsync("owner-1", fieldId, 200, It.IsAny<CancellationToken>()))
@@ -822,5 +971,23 @@ public class ChronologioServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Core.Entities.Geospatial.FieldWeatherPeriodReview>());
+    }
+
+    private void SetupActiveExecution(string fieldId, TaskExecution execution, FieldTask fieldTask)
+        => SetupActiveExecutions(fieldId, new[] { execution }, new[] { fieldTask });
+
+    private void SetupActiveExecutions(
+        string fieldId,
+        IReadOnlyList<TaskExecution> executions,
+        IReadOnlyList<FieldTask> fieldTasks)
+    {
+        _executions.Setup(r => r.GetByFieldIdAsync(fieldId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(executions);
+
+        foreach (var task in fieldTasks)
+        {
+            _fieldTasks.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(task);
+        }
     }
 }

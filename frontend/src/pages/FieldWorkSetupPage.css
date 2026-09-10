@@ -1,0 +1,298 @@
+.fw-setup {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding-bottom: 2.5rem;
+}
+
+.fw-setup-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.fw-setup-progress {
+  font-size: calc(1rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.fw-setup-exit {
+  font-size: calc(1rem * var(--font-scale, 1));
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.5rem 0.75rem;
+  text-decoration: underline;
+}
+
+.fw-setup-exit:hover {
+  color: var(--color-text-primary);
+}
+
+.fw-setup-question {
+  font-size: calc(1.35rem * var(--font-scale, 1));
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 0 0 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.fw-setup-hint {
+  font-size: calc(1.125rem * var(--font-scale, 1));
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin: 0 0 1.25rem;
+}
+
+.fw-setup-field-meta {
+  font-size: calc(1.125rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  margin: 0 0 1.5rem;
+}
+
+.fw-setup-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fw-setup-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 48px;
+  text-align: left;
+  padding: 1rem 1.1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+    background var(--transition-fast);
+  font-size: calc(1.125rem * var(--font-scale, 1));
+  line-height: 1.4;
+}
+
+.fw-setup-choice:hover,
+.fw-setup-choice.is-selected {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-card);
+}
+
+.fw-setup-choice.is-selected {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--bg-card));
+}
+
+.fw-setup-choice-check {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.35rem;
+  display: grid;
+  place-items: center;
+}
+
+.fw-setup-choice.is-selected .fw-setup-choice-check {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.fw-setup-choice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.fw-setup-choice-title {
+  font-weight: 600;
+}
+
+.fw-setup-choice-desc {
+  font-size: calc(1rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.fw-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.fw-setup-actions .btn {
+  min-height: 48px;
+  font-size: calc(1.05rem * var(--font-scale, 1));
+}
+
+.fw-setup-status {
+  margin-top: 0.75rem;
+  font-size: calc(0.95rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+}
+
+.fw-setup-status.is-error {
+  color: var(--color-error);
+}
+
+.fw-setup-status.is-offline {
+  color: var(--color-warning-dark, var(--color-warning));
+}
+
+.fw-setup-banner {
+  border: 2px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--bg-card));
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fw-setup-banner h2 {
+  margin: 0;
+  font-size: calc(1.2rem * var(--font-scale, 1));
+}
+
+.fw-setup-banner p {
+  margin: 0;
+  font-size: calc(1.05rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+}
+
+.fw-setup-banner--quiet {
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.fw-setup-banner--quiet p {
+  margin: 0 0 0.75rem;
+  font-size: calc(1.125rem * var(--font-scale, 1));
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fw-setup-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fw-plan-summary {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fw-plan-summary li {
+  font-size: calc(1.1rem * var(--font-scale, 1));
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md, 0.5rem);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--bg-card));
+}
+
+.fw-plan-group {
+  margin: 0 0 1.25rem;
+}
+
+.fw-plan-group-title {
+  font-size: calc(1.2rem * var(--font-scale, 1));
+  font-weight: 650;
+  margin: 0 0 0.65rem;
+  color: var(--color-text-primary);
+}
+
+.fw-plan-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.fw-plan-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.fw-plan-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fw-plan-row-title {
+  font-size: calc(1.1rem * var(--font-scale, 1));
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.fw-plan-row-reason {
+  margin: 0.25rem 0 0;
+  font-size: calc(1rem * var(--font-scale, 1));
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.fw-plan-row-change {
+  flex-shrink: 0;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: calc(1rem * var(--font-scale, 1));
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fw-plan-row-change:hover {
+  color: var(--color-primary-dark, var(--color-primary));
+}
+
+.fw-plan-footer {
+  margin: 0.5rem 0 0;
+  font-size: calc(1rem * var(--font-scale, 1));
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 720px) {
+  .fw-setup-choices {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 719px) {
+  .fw-setup-choices {
+    display: flex;
+    flex-direction: column;
+  }
+}

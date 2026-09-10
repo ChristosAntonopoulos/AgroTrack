@@ -4,6 +4,7 @@ public enum ChronologioCategory
 {
     Task,
     Expense,
+    Income,
     Harvest,
     Note,
     Photo,
@@ -20,6 +21,7 @@ public static class ChronologioCategoryExtensions
     {
         ChronologioCategory.Task => "task",
         ChronologioCategory.Expense => "expense",
+        ChronologioCategory.Income => "income",
         ChronologioCategory.Harvest => "harvest",
         ChronologioCategory.Note => "note",
         ChronologioCategory.Photo => "photo",
@@ -35,6 +37,7 @@ public static class ChronologioCategoryExtensions
     {
         "task" => ChronologioCategory.Task,
         "expense" => ChronologioCategory.Expense,
+        "income" => ChronologioCategory.Income,
         "harvest" => ChronologioCategory.Harvest,
         "note" => ChronologioCategory.Note,
         "photo" => ChronologioCategory.Photo,

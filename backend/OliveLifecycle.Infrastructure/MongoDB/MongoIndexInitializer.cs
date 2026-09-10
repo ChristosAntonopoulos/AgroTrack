@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
+using OliveLifecycle.Infrastructure.Persistence.Documents.FieldWork;
 using OliveLifecycle.Infrastructure.Persistence.Documents.Geospatial;
 
 namespace OliveLifecycle.Infrastructure.MongoDB;
@@ -56,16 +57,6 @@ public class MongoIndexInitializer : IHostedService
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Geo2DSphere("boundary")));
 
-            var tasks = _context.GetCollection<TaskDocument>("tasks");
-            tasks.Indexes.CreateOne(new CreateIndexModel<TaskDocument>(
-                Builders<TaskDocument>.IndexKeys.Ascending(t => t.FieldId)));
-            tasks.Indexes.CreateOne(new CreateIndexModel<TaskDocument>(
-                Builders<TaskDocument>.IndexKeys.Ascending(t => t.AssignedTo)));
-            tasks.Indexes.CreateOne(new CreateIndexModel<TaskDocument>(
-                Builders<TaskDocument>.IndexKeys.Ascending(t => t.Status)));
-            tasks.Indexes.CreateOne(new CreateIndexModel<TaskDocument>(
-                Builders<TaskDocument>.IndexKeys.Ascending(t => t.ScheduledStart)));
-
             var lifecycles = _context.GetCollection<LifecycleDocument>("lifecycles");
             lifecycles.Indexes.CreateOne(
                 new CreateIndexModel<LifecycleDocument>(
@@ -82,11 +73,6 @@ public class MongoIndexInitializer : IHostedService
                     .Ascending(a => a.ActorUserId)
                     .Descending(a => a.Timestamp)));
 
-            var templates = _context.GetCollection<TaskTemplateDocument>("task_templates");
-            templates.Indexes.CreateOne(new CreateIndexModel<TaskTemplateDocument>(
-                Builders<TaskTemplateDocument>.IndexKeys.Ascending(t => t.Type),
-                new CreateIndexOptions { Unique = true }));
-
             var ministryReads = _context.GetCollection<MinistryNotificationReadDocument>("ministry_notification_reads");
             ministryReads.Indexes.CreateOne(new CreateIndexModel<MinistryNotificationReadDocument>(
                 Builders<MinistryNotificationReadDocument>.IndexKeys
@@ -100,21 +86,32 @@ public class MongoIndexInitializer : IHostedService
             harvests.Indexes.CreateOne(new CreateIndexModel<HarvestRecordDocument>(
                 Builders<HarvestRecordDocument>.IndexKeys.Ascending(h => h.FieldId)));
 
-            var financialEntries = _context.GetCollection<FinancialEntryDocument>("financial_entries");
-            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
-                Builders<FinancialEntryDocument>.IndexKeys
+            var financialTransactions = _context.GetCollection<FinancialTransactionDocument>("financial_transactions");
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys
+                    .Ascending(e => e.OwnerUserId)
+                    .Ascending(e => e.ResultYear)
+                    .Ascending(e => e.Status)));
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys
                     .Ascending(e => e.FieldId)
-                    .Descending(e => e.OccurredOn)));
-            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
-                Builders<FinancialEntryDocument>.IndexKeys
-                    .Ascending(e => e.FieldId)
-                    .Ascending(e => e.LifecycleYear)));
-            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
-                Builders<FinancialEntryDocument>.IndexKeys.Ascending(e => e.TaskId),
+                    .Ascending(e => e.ResultYear)
+                    .Ascending(e => e.Status)));
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys.Ascending(e => e.RelatedTaskId),
                 new CreateIndexOptions { Sparse = true }));
-            financialEntries.Indexes.CreateOne(new CreateIndexModel<FinancialEntryDocument>(
-                Builders<FinancialEntryDocument>.IndexKeys.Ascending(e => e.HarvestId),
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys.Ascending(e => e.RelatedHarvestId),
                 new CreateIndexOptions { Sparse = true }));
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys.Descending(e => e.OccurredOn)));
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys
+                    .Ascending(e => e.OwnerUserId)
+                    .Ascending(e => e.IdempotencyKey),
+                new CreateIndexOptions { Unique = true }));
+            financialTransactions.Indexes.CreateOne(new CreateIndexModel<FinancialTransactionDocument>(
+                Builders<FinancialTransactionDocument>.IndexKeys.Ascending(e => e.CreatedByUserId)));
 
             var serviceCategories = _context.GetCollection<ServiceCategoryDocument>("service_categories");
             serviceCategories.Indexes.CreateOne(new CreateIndexModel<ServiceCategoryDocument>(
@@ -304,5 +301,90 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(j => j.FieldId)
                 .Ascending(j => j.JobType)
                 .Ascending(j => j.Status)));
+
+        EnsureFieldWorkIndexes();
+    }
+
+    private void EnsureFieldWorkIndexes()
+    {
+        var templates = _context.GetCollection<FieldWorkTaskTemplateDocument>("field_work_templates");
+        templates.Indexes.CreateOne(new CreateIndexModel<FieldWorkTaskTemplateDocument>(
+            Builders<FieldWorkTaskTemplateDocument>.IndexKeys.Ascending(t => t.Code),
+            new CreateIndexOptions { Unique = true }));
+
+        var versions = _context.GetCollection<FieldWorkTaskTemplateVersionDocument>("field_work_template_versions");
+        versions.Indexes.CreateOne(new CreateIndexModel<FieldWorkTaskTemplateVersionDocument>(
+            Builders<FieldWorkTaskTemplateVersionDocument>.IndexKeys
+                .Ascending(v => v.TemplateCode)
+                .Ascending(v => v.Version),
+            new CreateIndexOptions { Unique = true }));
+
+        var proposals = _context.GetCollection<TaskProposalDocument>("task_proposals");
+        proposals.Indexes.CreateOne(new CreateIndexModel<TaskProposalDocument>(
+            Builders<TaskProposalDocument>.IndexKeys
+                .Ascending(p => p.FieldId)
+                .Ascending(p => p.ResultYear)
+                .Ascending(p => p.Status)));
+            // Unique among open proposals only. Sparse + openDedupKey avoids $in
+            // partial filters, which this MongoDB server rejects.
+            proposals.Indexes.CreateOne(new CreateIndexModel<TaskProposalDocument>(
+                Builders<TaskProposalDocument>.IndexKeys.Ascending(p => p.OpenDedupKey),
+                new CreateIndexOptions
+                {
+                    Unique = true,
+                    Sparse = true,
+                    Name = "dedupKey_open_unique"
+                }));
+        proposals.Indexes.CreateOne(new CreateIndexModel<TaskProposalDocument>(
+            Builders<TaskProposalDocument>.IndexKeys
+                .Ascending(p => p.FieldId)
+                .Ascending(p => p.TemplateCode)
+                .Ascending(p => p.ResultYear)));
+
+        var fieldTasks = _context.GetCollection<FieldTaskDocument>("field_tasks");
+        fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
+            Builders<FieldTaskDocument>.IndexKeys
+                .Ascending(t => t.FieldId)
+                .Ascending(t => t.ResultYear)
+                .Ascending(t => t.Status)));
+        fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
+            Builders<FieldTaskDocument>.IndexKeys
+                .Ascending(t => t.AssignedUserId)
+                .Ascending(t => t.Status)));
+        fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
+            Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.ProposalId),
+            new CreateIndexOptions { Unique = true, Sparse = true }));
+        fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
+            Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.RelatedHarvestId),
+            new CreateIndexOptions { Sparse = true }));
+
+        var executions = _context.GetCollection<TaskExecutionDocument>("task_executions");
+        executions.Indexes.CreateOne(new CreateIndexModel<TaskExecutionDocument>(
+            Builders<TaskExecutionDocument>.IndexKeys.Ascending(e => e.TaskId)));
+        executions.Indexes.CreateOne(new CreateIndexModel<TaskExecutionDocument>(
+            Builders<TaskExecutionDocument>.IndexKeys
+                .Ascending(e => e.FieldId)
+                .Ascending(e => e.ResultYear)));
+
+        var phenology = _context.GetCollection<FieldPhenologyObservationDocument>("field_phenology_observations");
+        phenology.Indexes.CreateOne(new CreateIndexModel<FieldPhenologyObservationDocument>(
+            Builders<FieldPhenologyObservationDocument>.IndexKeys
+                .Ascending(o => o.FieldId)
+                .Descending(o => o.ObservedOn)));
+
+        var profiles = _context.GetCollection<FieldWorkProfileDocument>("field_work_profiles");
+        profiles.Indexes.CreateOne(new CreateIndexModel<FieldWorkProfileDocument>(
+            Builders<FieldWorkProfileDocument>.IndexKeys.Ascending(p => p.FieldId),
+            new CreateIndexOptions { Unique = true, Name = "fieldId_unique" }));
+        profiles.Indexes.CreateOne(new CreateIndexModel<FieldWorkProfileDocument>(
+            Builders<FieldWorkProfileDocument>.IndexKeys
+                .Ascending(p => p.Status)
+                .Ascending(p => p.FieldId)));
+
+        var harvests = _context.GetCollection<HarvestRecordDocument>("harvest_records");
+        harvests.Indexes.CreateOne(new CreateIndexModel<HarvestRecordDocument>(
+            Builders<HarvestRecordDocument>.IndexKeys
+                .Ascending(h => h.FieldId)
+                .Ascending(h => h.ResultYear)));
     }
 }

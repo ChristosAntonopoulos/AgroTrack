@@ -2,15 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
-import { getFieldService, getTaskService, getFinancialEntryService, getMeDashboardService, isMockMode } from '../services/serviceFactory';
-import { FinancialOverview } from '../services/financialEntryService';
+import { getFieldService, getFieldWorkService, getFinancialSummaryService, getMeDashboardService, isMockMode } from '../services/serviceFactory';
+import type { YearFinancialSummary } from '../services/financialSummaryService';
 import type { MeDashboard, MeDashboardPeriod } from '../services/meDashboardService';
 import { emptyMeDashboard } from '../services/meDashboardService';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import { demoStore } from '../services/demo/demoStore';
 import { testUsers } from '../services/testUsers';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -43,20 +43,22 @@ import {
   Handshake,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatOfficialAmount } from '../finance/format';
+import { athensCalendarYear } from '../utils/athensDate';
 import { el, enUS } from 'date-fns/locale';
 import './DashboardPage.css';
 import '../components/Dashboard/DashboardWidgets.css';
 
 const DashboardPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['dashboard', 'common', 'partners', 'fields']);
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'partners', 'fields', 'money']);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isEveryday, showWidget } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const [fields, setFields] = useState<Field[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [moneyOverview, setMoneyOverview] = useState<FinancialOverview | null>(null);
+  const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
   const [period, setPeriod] = useState<MeDashboardPeriod>('week');
   const [meDashboard, setMeDashboard] = useState<MeDashboard>(emptyMeDashboard('week'));
 
@@ -83,21 +85,20 @@ const DashboardPage: React.FC = () => {
     try {
       if (fields.length === 0) setLoading(true);
       const fieldService = getFieldService();
-      const taskService = getTaskService();
+      const fieldWork = getFieldWorkService();
       const [fieldsData, tasksData, overview, dash] = await Promise.all([
         fieldService.getFields().catch(() => []),
-        (isProducer
-          ? taskService.getTasks(undefined, user?.userId)
-          : taskService.getTasks()
-        ).catch(() => []),
+        fieldWork.listFieldTasks().catch(() => [] as FieldTask[]),
         isFieldOwner
-          ? getFinancialEntryService().getOverview().catch(() => null)
+          ? getFinancialSummaryService()
+              .getYear(athensCalendarYear(new Date()), undefined, i18n.language)
+              .catch(() => null)
           : Promise.resolve(null),
         getMeDashboardService().getDashboard(period).catch(() => emptyMeDashboard(period)),
       ]);
       setFields(fieldsData);
       setTasks(tasksData);
-      setMoneyOverview(overview);
+      setYearMoney(overview);
       setMeDashboard(dash);
       setShowingCachedData(!isDeviceOnline());
     } catch (error) {
@@ -117,34 +118,41 @@ const DashboardPage: React.FC = () => {
       demoStore.ensureSeeded();
     }
     const allTasks = isFieldOwner && isMockMode() ? demoStore.getTasks() : tasks;
-    const overdue = allTasks.filter(
+    const scopedTasks =
+      isProducer && user?.userId
+        ? allTasks.filter(
+            (task) => !task.assignedUserId || task.assignedUserId === user.userId
+          )
+        : allTasks;
+    const overdue = scopedTasks.filter(
       (task) =>
         task.status !== 'completed' &&
-        task.scheduledEnd &&
-        new Date(task.scheduledEnd) < today
+        task.status !== 'cancelled' &&
+        task.plannedEnd &&
+        new Date(task.plannedEnd) < today
     );
-    const dueToday = tasks.filter((task) => {
-      if (task.status === 'completed') return false;
-      if (!task.scheduledEnd) return false;
-      const end = new Date(task.scheduledEnd);
+    const dueToday = scopedTasks.filter((task) => {
+      if (task.status === 'completed' || task.status === 'cancelled') return false;
+      if (!task.plannedEnd) return false;
+      const end = new Date(task.plannedEnd);
       return end >= today && end < new Date(today.getTime() + 86400000);
     });
     const pendingApproval = isMockMode()
       ? demoStore.getTasks().filter(
-          (task) => task.status === 'completed' && (task as { approvalStatus?: string }).approvalStatus === 'pending'
+          (task) =>
+            task.status === 'completed' &&
+            (task as { approvalStatus?: string }).approvalStatus === 'pending'
         )
-      : allTasks.filter(
-          (task) => task.status === 'completed' && task.approvalStatus === 'pending'
-        );
+      : [];
     const overdueFieldIds = new Set(overdue.map((task) => task.fieldId));
 
-    const priorityTasks = [...tasks]
-      .filter((task) => task.status !== 'completed')
+    const priorityTasks = [...scopedTasks]
+      .filter((task) => task.status !== 'completed' && task.status !== 'cancelled')
       .sort((a, b) => {
-        const aOverdue = a.scheduledEnd && new Date(a.scheduledEnd) < today ? 0 : 1;
-        const bOverdue = b.scheduledEnd && new Date(b.scheduledEnd) < today ? 0 : 1;
+        const aOverdue = a.plannedEnd && new Date(a.plannedEnd) < today ? 0 : 1;
+        const bOverdue = b.plannedEnd && new Date(b.plannedEnd) < today ? 0 : 1;
         if (aOverdue !== bOverdue) return aOverdue - bOverdue;
-        return new Date(a.scheduledEnd || 0).getTime() - new Date(b.scheduledEnd || 0).getTime();
+        return new Date(a.plannedEnd || 0).getTime() - new Date(b.plannedEnd || 0).getTime();
       })
       .slice(0, 5);
 
@@ -155,14 +163,16 @@ const DashboardPage: React.FC = () => {
       pendingApprovalCount: pendingApproval.length,
       priorityTasks,
     };
-  }, [isFieldOwner, tasks, today]);
+  }, [isFieldOwner, isProducer, tasks, today, user?.userId]);
 
   if (isEveryday) {
     return <Navigate to="/today" replace />;
   }
 
   const totalArea = fields.reduce((sum, field) => sum + field.area, 0);
-  const pendingTasks = tasks.filter((task) => task.status === 'pending').length;
+  const pendingTasks = tasks.filter(
+    (task) => task.status === 'planned' || task.status === 'ready' || task.status === 'pending'
+  ).length;
   const inProgressTasks = tasks.filter((task) => task.status === 'in_progress').length;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
 
@@ -374,11 +384,13 @@ const DashboardPage: React.FC = () => {
                 onClick={() => navigate('/tasks?focus=action')}
               />
               <StatsCard
-                title={t('dashboard:stats.thisWeekCost')}
-                value={new Intl.NumberFormat(undefined, {
-                  style: 'currency',
-                  currency: moneyOverview?.currency || 'EUR',
-                }).format(moneyOverview?.thisWeekExpenses ?? 0)}
+                title={t('dashboard:stats.thisYearCost')}
+                value={formatOfficialAmount(
+                  yearMoney?.totalExpenses,
+                  yearMoney?.currency || 'EUR',
+                  i18n.language,
+                  t('money:unknownAmount')
+                )}
                 icon={<Euro />}
                 color="info"
                 onClick={() => navigate('/money')}
@@ -489,7 +501,7 @@ const DashboardPage: React.FC = () => {
               {taskInsights.priorityTasks.map((task) => {
                 const taskField = fields.find((f) => f.id === task.fieldId);
                 const isOverdue =
-                  task.scheduledEnd && new Date(task.scheduledEnd) < today && task.status !== 'completed';
+                  task.plannedEnd && new Date(task.plannedEnd) < today && task.status !== 'completed' && task.status !== 'cancelled';
                 const statusVariant =
                   task.status === 'completed'
                     ? 'success'

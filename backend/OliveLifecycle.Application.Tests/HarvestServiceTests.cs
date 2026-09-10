@@ -7,6 +7,7 @@ using OliveLifecycle.Application.DTOs.Harvest;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
 using Xunit;
 
@@ -17,7 +18,8 @@ public class HarvestServiceTests
     private readonly Mock<IHarvestRecordRepository> _harvests = new();
     private readonly Mock<IFieldRepository> _fields = new();
     private readonly Mock<IFieldAccessService> _access = new();
-    private readonly Mock<IFinancialEntryService> _finance = new();
+    private readonly Mock<IFinancialTransactionRepository> _transactions = new();
+    private readonly Mock<IFinancialTransactionService> _finance = new();
     private readonly Mock<IMediaAttachmentService> _media = new();
     private readonly Mock<IActivityService> _activities = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
@@ -30,6 +32,7 @@ public class HarvestServiceTests
             _harvests.Object,
             _fields.Object,
             _access.Object,
+            _transactions.Object,
             _finance.Object,
             _media.Object,
             _activities.Object,
@@ -38,7 +41,7 @@ public class HarvestServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_WritesSaleAndMillOntoLedger()
+    public async Task CreateAsync_DoesNotWriteMoneyFromSaleOrMillAmounts()
     {
         AllowAccess("field-1", "owner-1", Roles.FieldOwner, canModify: true);
         _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
@@ -49,8 +52,6 @@ public class HarvestServiceTests
                 record.Id = "harvest-1";
                 return record;
             });
-        _finance.Setup(s => s.CreateAsync(It.IsAny<CreateFinancialEntryDto>(), "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FinancialEntryDto { Id = "entry-1" });
 
         var result = await _service.CreateAsync(
             new CreateHarvestRecordDto
@@ -68,25 +69,13 @@ public class HarvestServiceTests
         Assert.Equal("harvest-1", result.Id);
         Assert.Equal("posted", result.Status);
         Assert.Equal(18, result.OilYieldPercent);
-        _finance.Verify(s => s.CreateAsync(
-            It.Is<CreateFinancialEntryDto>(d =>
-                d.Kind == "income" &&
-                d.Amount == 2400 &&
-                d.HarvestId == "harvest-1" &&
-                d.FieldId == "field-1"),
-            "owner-1",
-            Roles.FieldOwner,
-            It.IsAny<CancellationToken>()), Times.Once);
-        _finance.Verify(s => s.CreateAsync(
-            It.Is<CreateFinancialEntryDto>(d =>
-                d.Kind == "expense" &&
-                d.Amount == 180 &&
-                d.Category == "mill_cost" &&
-                d.Bucket == "harvest" &&
-                d.HarvestId == "harvest-1"),
-            "owner-1",
-            Roles.FieldOwner,
-            It.IsAny<CancellationToken>()), Times.Once);
+        _finance.Verify(
+            s => s.CreateAsync(
+                It.IsAny<CreateFinancialTransactionDto>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
         _activities.Verify(a => a.RecordAsync(
             "field-1",
             "harvest_recorded",
@@ -122,7 +111,7 @@ public class HarvestServiceTests
     }
 
     [Fact]
-    public async Task VoidAsync_OwnerVoidsPostedHarvestAndLinkedLedger()
+    public async Task VoidAsync_OwnerVoidsPostedHarvestAndLinkedTransactions()
     {
         AllowAccess("field-1", "owner-1", Roles.FieldOwner, canModify: true);
         _harvests.Setup(r => r.GetByIdAsync("harvest-1", It.IsAny<CancellationToken>()))
@@ -131,18 +120,30 @@ public class HarvestServiceTests
                 Id = "harvest-1",
                 FieldId = "field-1",
                 OliveKg = 400,
-                Status = OliveLifecycle.Core.Enums.FinancialEntryStatus.Posted
+                Status = FinancialEntryStatus.Posted
             });
         _harvests.Setup(r => r.UpdateAsync(It.IsAny<HarvestRecord>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((HarvestRecord record, CancellationToken _) => record);
-        _finance.Setup(s => s.GetByFieldIdAsync("field-1", "owner-1", Roles.FieldOwner, false, It.IsAny<CancellationToken>()))
+        _transactions.Setup(r => r.GetByRelatedHarvestIdAsync("harvest-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new FinancialEntryDto { Id = "entry-sale", HarvestId = "harvest-1", Status = "posted" },
-                new FinancialEntryDto { Id = "entry-other", HarvestId = null, Status = "posted" }
+                new FinancialTransaction
+                {
+                    Id = "tx-sale",
+                    RelatedHarvestId = "harvest-1",
+                    Status = FinancialTransactionStatus.Posted
+                },
+                new FinancialTransaction
+                {
+                    Id = "tx-draft",
+                    RelatedHarvestId = "harvest-1",
+                    Status = FinancialTransactionStatus.Draft
+                }
             });
-        _finance.Setup(s => s.VoidAsync("entry-sale", It.IsAny<VoidFinancialEntryDto>(), "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FinancialEntryDto { Id = "entry-sale", Status = "voided" });
+        _finance.Setup(s => s.VoidAsync("tx-sale", It.IsAny<VoidFinancialTransactionDto>(), "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FinancialTransactionDto { Id = "tx-sale", Status = "void" });
+        _finance.Setup(s => s.DeleteDraftAsync("tx-draft", "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var result = await _service.VoidAsync(
             "harvest-1",
@@ -153,17 +154,16 @@ public class HarvestServiceTests
         Assert.Equal("voided", result.Status);
         Assert.Equal("wrong kilos", result.VoidReason);
         _finance.Verify(s => s.VoidAsync(
-            "entry-sale",
-            It.IsAny<VoidFinancialEntryDto>(),
+            "tx-sale",
+            It.IsAny<VoidFinancialTransactionDto>(),
             "owner-1",
             Roles.FieldOwner,
             It.IsAny<CancellationToken>()), Times.Once);
-        _finance.Verify(s => s.VoidAsync(
-            "entry-other",
-            It.IsAny<VoidFinancialEntryDto>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _finance.Verify(s => s.DeleteDraftAsync(
+            "tx-draft",
+            "owner-1",
+            Roles.FieldOwner,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class HarvestServiceTests
                 Id = "harvest-1",
                 FieldId = "field-1",
                 OliveKg = 100,
-                Status = OliveLifecycle.Core.Enums.FinancialEntryStatus.Posted
+                Status = FinancialEntryStatus.Posted
             });
 
         await Assert.ThrowsAsync<ForbiddenException>(() =>

@@ -1,0 +1,84 @@
+.fw-profile-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.fw-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fw-profile-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.fw-profile-row-text strong {
+  font-size: calc(1.125rem * var(--font-scale, 1));
+  font-weight: 650;
+  color: var(--color-text-primary);
+}
+
+.fw-profile-row-text span {
+  font-size: calc(1.05rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.fw-profile-change {
+  flex-shrink: 0;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.55rem 0.9rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: calc(1.05rem * var(--font-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fw-profile-change--primary {
+  border-color: var(--color-primary, #2f5d3a);
+  background: var(--color-primary, #2f5d3a);
+  color: #fff;
+}
+
+.fw-profile-section {
+  margin: 1.25rem 0;
+}
+
+.fw-profile-panel {
+  margin-top: 1.25rem;
+  padding: 1rem 0 2rem;
+}
+
+.fw-copy-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-height: 48px;
+  padding: 0.85rem 0;
+  font-size: calc(1.125rem * var(--font-scale, 1));
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.fw-copy-check input {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}

@@ -6,10 +6,13 @@ namespace OliveLifecycle.Core;
 public static class ChronologioEventTypes
 {
     public const string TaskCompleted = "task.completed";
+    public const string TaskPartiallyCompleted = "task.partially_completed";
+    public const string TaskNotDone = "task.not_done";
     public const string TaskCreated = "task.created";
     public const string TaskCancelled = "task.cancelled";
 
     public const string ExpenseRecorded = "expense.recorded";
+    public const string IncomeRecorded = "income.recorded";
 
     public const string HarvestRecorded = "harvest.recorded";
 
@@ -45,7 +48,9 @@ public static class ChronologioEventTypes
 public static class ChronologioSourceTypes
 {
     public const string Task = "Task";
+    public const string TaskExecution = "TaskExecution";
     public const string Expense = "Expense";
+    public const string Income = "Income";
     public const string Harvest = "Harvest";
     public const string Note = "Note";
     public const string Activity = "Activity";

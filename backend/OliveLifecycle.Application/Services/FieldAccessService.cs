@@ -9,16 +9,16 @@ namespace OliveLifecycle.Application.Services;
 public class FieldAccessService : IFieldAccessService
 {
     private readonly IFieldRepository _fieldRepository;
-    private readonly ITaskRepository _taskRepository;
+    private readonly IFieldTaskRepository _fieldTasks;
     private readonly IFamilyMemberRepository _familyMembers;
 
     public FieldAccessService(
         IFieldRepository fieldRepository,
-        ITaskRepository taskRepository,
+        IFieldTaskRepository fieldTasks,
         IFamilyMemberRepository familyMembers)
     {
         _fieldRepository = fieldRepository;
-        _taskRepository = taskRepository;
+        _fieldTasks = fieldTasks;
         _familyMembers = familyMembers;
     }
 
@@ -58,9 +58,11 @@ public class FieldAccessService : IFieldAccessService
 
         if (userRole == Roles.Producer)
         {
-            // Task assignment for Producers grants field access. PartnerUserId must never
-            // be treated as AssignedTo — contacting/hiring a partner does not grant field access.
-            var tasks = await _taskRepository.GetByAssignedToAsync(userId, cancellationToken);
+            // FieldTask AssignedUserId grants field access. AssignedCollaboratorId must never
+            // be treated as assignment — contacting/hiring a partner does not grant field access.
+            var tasks = await _fieldTasks.QueryAsync(
+                new FieldTaskQuery { AssignedUserId = userId },
+                cancellationToken);
             return tasks.Any(t => t.FieldId == fieldId);
         }
 

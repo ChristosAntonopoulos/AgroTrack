@@ -144,14 +144,20 @@
   color: var(--color-primary-lighter);
 }
 
+.field-detail-map--simple,
+.field-detail-map--full,
+.field-detail-map--peek {
+  min-height: 0;
+}
+
 .field-detail-map .leaflet-bar a {
   background-color: var(--bg-elevated) !important;
   color: var(--color-text-primary) !important;
   border-bottom-color: var(--color-border) !important;
-  width: 36px !important;
-  height: 36px !important;
-  line-height: 36px !important;
-  font-size: 18px !important;
+  width: 48px !important;
+  height: 48px !important;
+  line-height: 48px !important;
+  font-size: 20px !important;
 }
 
 .field-detail-map .leaflet-control-attribution {

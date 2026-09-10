@@ -1,5 +1,6 @@
 import { CalendarEvent, CalendarFilters } from '../calendarService';
 import { mockTasks, mockFields, simulateDelay } from './mockData';
+import { getTaskCategoryColor } from '../../utils/taskCategoryColors';
 
 export const mockCalendarService = {
   getEvents: async (
@@ -10,19 +11,18 @@ export const mockCalendarService = {
     await simulateDelay();
     const events: CalendarEvent[] = [];
 
-    // Filter tasks by date range
-    const filteredTasks = mockTasks.filter(task => {
-      if (!task.scheduledStart) return false;
-      const taskStart = new Date(task.scheduledStart);
-      const taskEnd = task.scheduledEnd ? new Date(task.scheduledEnd) : taskStart;
-      const overlaps = (taskStart <= endDate && taskEnd >= startDate);
+    const filteredTasks = mockTasks.filter((task) => {
+      if (!task.plannedStart && !task.plannedEnd) return false;
+      const taskStart = new Date(task.plannedStart || task.plannedEnd!);
+      const taskEnd = task.plannedEnd ? new Date(task.plannedEnd) : taskStart;
+      const overlaps = taskStart <= endDate && taskEnd >= startDate;
       if (!overlaps) return false;
 
       if (filters?.fieldIds && filters.fieldIds.length > 0) {
         if (!filters.fieldIds.includes(task.fieldId)) return false;
       }
       if (filters?.taskTypes && filters.taskTypes.length > 0) {
-        if (!filters.taskTypes.includes(task.type)) return false;
+        if (!task.templateCode || !filters.taskTypes.includes(task.templateCode)) return false;
       }
       if (filters?.statuses && filters.statuses.length > 0) {
         if (!filters.statuses.includes(task.status)) return false;
@@ -31,31 +31,36 @@ export const mockCalendarService = {
     });
 
     if (filters?.showTasks !== false) {
-      filteredTasks.forEach(task => {
-        const field = mockFields.find(f => f.id === task.fieldId);
+      filteredTasks.forEach((task) => {
+        const field = mockFields.find((f) => f.id === task.fieldId);
+        const start = new Date(task.plannedStart || task.plannedEnd!);
+        const end = task.plannedEnd ? new Date(task.plannedEnd) : start;
         events.push({
           id: `task-${task.id}`,
           title: task.title,
-          start: new Date(task.scheduledStart!),
-          end: task.scheduledEnd ? new Date(task.scheduledEnd) : new Date(task.scheduledStart!),
+          start,
+          end,
           type: 'task',
           status: task.status,
+          taskType: task.templateCode,
           fieldId: task.fieldId,
           fieldName: field?.name,
           taskId: task.id,
-          color: getTaskStatusColor(task.status),
+          color: getTaskCategoryColor(task.templateCode) || getTaskStatusColor(task.status),
         });
       });
     }
 
     if (filters?.showDeadlines !== false) {
       filteredTasks
-        .filter(task => task.status !== 'completed' && task.scheduledEnd)
-        .forEach(task => {
-          const deadline = new Date(task.scheduledEnd!);
-          const daysUntilDeadline = Math.ceil((deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        .filter((task) => task.status !== 'completed' && task.status !== 'cancelled' && task.plannedEnd)
+        .forEach((task) => {
+          const deadline = new Date(task.plannedEnd!);
+          const daysUntilDeadline = Math.ceil(
+            (deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          );
           if (daysUntilDeadline <= 7 && daysUntilDeadline >= 0) {
-            const field = mockFields.find(f => f.id === task.fieldId);
+            const field = mockFields.find((f) => f.id === task.fieldId);
             events.push({
               id: `deadline-${task.id}`,
               title: `Deadline: ${task.title}`,
@@ -77,9 +82,10 @@ export const mockCalendarService = {
 
   getTasksForDate: async (date: Date) => {
     await simulateDelay();
-    return mockTasks.filter(task => {
-      if (!task.scheduledStart) return false;
-      const taskDate = new Date(task.scheduledStart);
+    return mockTasks.filter((task) => {
+      const raw = task.plannedStart || task.plannedEnd;
+      if (!raw) return false;
+      const taskDate = new Date(raw);
       return (
         taskDate.getDate() === date.getDate() &&
         taskDate.getMonth() === date.getMonth() &&
@@ -96,6 +102,8 @@ export const mockCalendarService = {
 
 function getTaskStatusColor(status: string): string {
   switch (status) {
+    case 'planned':
+    case 'ready':
     case 'pending':
       return '#ffc107';
     case 'in_progress':

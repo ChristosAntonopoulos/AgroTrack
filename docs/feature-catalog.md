@@ -224,7 +224,7 @@ Full-picture command home. Aggregates fields, tasks, money, and “my actions.�
 - Who: Nav roles `FieldOwner`, `Producer`, `Agronomist`, `Administrator`. ServiceProvider does not have this nav item. Family members do not get extra hiding here beyond mode.
 - Modes: **Full only** (Everyday `Navigate` to `/today`).
 - Information shown:
-  - Mock onboarding: `DemoTourPanel` when mock mode and tour not dismissed
+  - Demo tour checklist: `DemoTourPanel` when mock mode and tour not dismissed (app orientation only; not grove-practice Q&A)
   - Greeting (`firstName` or email local-part), page title, formatted date
   - Period chips `today` / `week` / `month` when `myActionsDetail` (Full)
   - **HeroActionCard** (`myActions`): `topAction` (`complete_task` | `add_evidence` | `log_harvest` | `log_expense` | `contact_partner` | `none`); `pending.overdue`, `dueToday`, `pendingApproval`
@@ -418,29 +418,25 @@ Weather and vegetation time series for one field.
 
 ---
 
-## Feature: Field task templates
+## Feature: Field work personalization
 
-Catalog of olive task templates for one field, used to create scheduled tasks.
+Per-field grove practice profile that drives eligibility, plan preview, and proposals.
 
 ### Website
 
-- **Field task templates** — `/fields/:id/task-templates`
-- Purpose: Browse `OLIVE_TASK_TEMPLATES`, filter, and start the create-task wizard with `templateId` + `fieldId`.
-- Who: **FieldOwner or Administrator**. Other roles see an access-restricted empty state.
-- Modes: Both.
-- Field context strip: `name`, `variety`, irrigation (drip vs rain-fed), static tree type / production / region labels.
-- Information shown:
-  - Filters: search, category, season (`All year` | `Winter` | `Spring` | `Summer` | `Autumn` | `Harvest season`), priority, recommended-only, field-suitable-only
-  - Year calendar with template highlights
-  - Template cards: `category`, `priority`, `title`, `shortDescription`, recommended-now / coming-soon / passed-season, month chips; expand `whyItMatters`, checklist preview
-  - Detail panel: `timingExplanation`, `repetition`, `estimatedDuration`, `requiredInputs`, `checklist`, `warnings`, `completionFields`, Create Task
-  - Empty filter state
-- Catalog (27 templates): general field inspection, soil analysis, leaf analysis, annual fertilization plan, nitrogen application, pre-flowering nutrition check, potassium nutrition check, main pruning, remove pruning residues, sucker removal, weed control / mowing, pre-harvest field access cleanup, irrigation system startup inspection, irrigation event, irrigation filter cleaning, olive fruit fly trap installation, olive fruit fly monitoring, fruit damage sampling, disease scouting, post-pruning disease protection review, ripening index sampling, harvest planning, olive harvest, equipment maintenance, harvest equipment preparation, post-harvest field inspection, post-harvest irrigation check, annual field report.
-- Categories: Observation, Soil & Analysis, Fertilization, Irrigation, Pruning, Weed Management, Pest Monitoring, Disease Management, Harvest, Equipment, Post-Harvest. Priorities: `Low` | `Medium` | `High` | `Critical`.
+- **Work setup** — `/fields/:id/work-setup`
+  - Purpose: Essential onboarding questions (irrigation, fertilisation, pruning, etc.) for one field.
+  - Who: Field owners / managers with field access.
+  - Modes: Both.
+- **Work profile** — `/fields/:id/work-profile`
+  - Purpose: Maintain practice preferences, default assignments, plan preview/activate, copy to other fields, learning prompts.
+  - Who: Same as work setup.
+  - Modes: Both.
+- Does **not** auto-create FieldTasks from onboarding; activate only flips profile status. Plan preview is a dry-run.
 
 ### Mobile
 
-Not a standalone screen. Create Task can start from a template via `CreateTask` params / in-wizard selection.
+Field tasks / proposals / year plan exist. Full work-profile CRUD and learning clients are a follow-up.
 
 ---
 
@@ -451,20 +447,19 @@ List and board of work items.
 ### Website
 
 - **Tasks list** — `/tasks` (query `?focus=`, `?status=`)
-- Purpose: Filter, search, and open tasks; owners add from template.
+- Purpose: Filter, search, and open FieldTasks and proposals.
 - Who: Nav `FieldOwner`, `Producer`, `Agronomist`. Family needs module `tasks`. Producer API filter uses `assignedTo=userId`.
 - Modes: Everyday forces **list** (no board). Full can toggle list/board when `taskBoardView`.
 - Information shown:
   - Title; subtitle producer vs default
-  - Owner: Add from template → `/tasks/new`
+  - Owner: New task → `/tasks/new` (manual or from a proposal)
   - Summary: active, overdue, due today
-  - Filters: search (`title`, `type`, `description`); focus pills `all` | `action` (overdue or due today) | `active` | `completed`; field (owner); sort `due` | `priority` | `field` (owner) | `recent`; status pills `all` | `pending` | `in_progress` | `completed`
-  - Owner recommended templates (up to 4) for a selected field: `category`, `title`, `shortDescription`; Schedule / Browse all
-  - List `TaskCard`: `type` chip, `priority`, template sparkle, `status`, `title`, `description` (non-compact), field name, `scheduledEnd` + overdue/due-today, checklist count. **Approval is not shown on the web list.**
-  - Board (`TasksBoardView`): columns `overdue`, `today`, `thisWeek`, `done`
+  - Filters: search; focus pills; field; sort; status
+  - Proposal cards from FieldWork eligibility / engine
+  - Task rows with status, title, field, schedule
   - Empty: no tasks (owner CTA) or no search results
 
-Task record fields: `id`, `fieldId`, `templateId`, `type`, `title`, `description`, `status` (`pending` | `in_progress` | `completed`), `assignedTo`, `partnerUserId`, `serviceContactRequestId`, `approvalStatus` (`not_required` | `pending` | `approved` | `rejected`), `approvalNote`, `priority` (`Low` | `Medium` | `High` | `Critical`), `estimatedMinutes`, `materials`, `checklist`, `scheduledStart`, `scheduledEnd`, `actualStart`, `actualEnd`, `lifecycleYear`, `harvestPhase` (`prepare` | `daily` | `final` on mobile/API), `cost`, `evidence[]` (`photoUrl`, `notes`, `timestamp`, `kind`), `notes`
+FieldTask-oriented records (proposals + field tasks). Legacy global `TaskItem` / olive template browse UX removed.
 
 ### Mobile
 
@@ -478,26 +473,18 @@ Task record fields: `id`, `fieldId`, `templateId`, `type`, `title`, `description
 
 ## Feature: Task create
 
-Wizard to create a task from a template or manually.
+Create a FieldTask manually or schedule from a proposal.
 
 ### Website
 
-- **New task** — `/tasks/new` (query `templateId`, `fieldId`, `month`)
-- Purpose: Four-step create. `TaskFormPage` also has edit-mode code when `:id` is present; **App.tsx does not register `/tasks/:id/edit`**, though Task detail’s Edit button links there.
-- Who: **FieldOwner only** for the create wizard (header/calendar CTAs). Other roles hitting the page do not get the wizard.
+- **New task** — `/tasks/new` (query `fieldId`, `proposalId`)
+- Purpose: `TaskFormPage` schedules work from a proposal or as a manual task (type, dates, assignee suggestions from FieldWorkProfile).
+- Who: Users who can create FieldTasks for the field.
 - Modes: Both.
-- Steps: `field` → `template` → `schedule` → `review`
-- Forms / inputs:
-  - Field picker
-  - Template search, recommended-only toggle, or manual mode (category + title)
-  - `title`, `description`, `type`, `lifecycleYear` (`low`/`high`), `assignedTo` (producer list), `scheduledStart`, `scheduledEnd`, `priority`, `checklist` (add steps), `repetition`, `completionFields`, `notes`
-- Actions: next/back, create
 
 ### Mobile
 
-- **CreateTask** — stack modal `CreateTask` (`fieldId?`, `scheduledStart?`, `scheduledEnd?`, `templateId?`)
-- Purpose: Create-task wizard with `TaskWizardStepIndicator`. Everyday skips `review` when `taskCreateReview` is off. Harvest jobs from `HARVEST_JOBS` with `harvestPhase` `prepare` | `daily` | `final`.
-- Who: Owners and others who can create (API enforces family `tasks` + `work` for create).
+- **CreateTask** — stack modal for FieldTask create (proposal / manual). Legacy olive-template wizard removed.
 
 ---
 
@@ -531,7 +518,7 @@ Single task: status, assignment, evidence, partner CTA.
 
 ## Feature: Calendar
 
-Scheduled tasks and recommended templates on a calendar.
+Scheduled FieldTasks on a calendar (no seasonal template recommendations).
 
 ### Website
 
@@ -542,13 +529,12 @@ Scheduled tasks and recommended templates on a calendar.
   - **Everyday**: agenda only; view toggle hidden; day drawer closed by default on desktop
   - **Full**: month (`calendarMonthView`), week (`calendarWeekView`), field (`calendarFieldView`), agenda
 - Information shown:
-  - Title, subtitle; New task; FieldOwner From template
+  - Title, subtitle; New task
   - Period nav (prev/next/today); header label month/week
-  - **CalendarFilterBar**: field picker; `showTasks`, `showLifecycles`, `showDeadlines`; status (`all` | `pending` | `in_progress` | `completed` | `overdue`); priority (`all` | `Low` | `Medium` | `High` | `Critical`); category (`all` | `task` | `lifecycle` | `deadline`)
-  - **CalendarLegend**
+  - **CalendarFilterBar**: field picker; status; priority; category
+  - **CalendarLegend** (categories + overdue/completed)
   - Events: click → task or field
-  - Recommendations for month/day; schedule recommended template
-  - **CalendarDayPanel** (drawer): day’s events and recommended templates
+  - **CalendarDayPanel** (drawer): day’s scheduled / overdue / completed events
 - Event filters type: `CalendarFilters`
 
 ### Mobile
@@ -1120,9 +1106,10 @@ Everyday additionally hides Dashboard, Analytics, Reports, Data sources regardle
 | Field map boundary | (wizard step) | FieldMapBoundary | Both | Same as field form |
 | Field detail | `/fields/:id` | FieldDetail | Both (content differs) | Field access + capacities |
 | Field history | `/fields/:id/history` | FieldHistory | Both | Field access |
-| Field task templates | `/fields/:id/task-templates` | Not a screen | Both | FieldOwner, Administrator |
+| Field work setup | `/fields/:id/work-setup` | Follow-up | Both | Field access |
+| Field work profile | `/fields/:id/work-profile` | Follow-up | Both | Field access |
 | Tasks | `/tasks` | Tasks | Both (no board in Everyday) | FieldOwner, Producer, Agronomist; family `tasks` |
-| Task create | `/tasks/new` | CreateTask | Both | Web wizard FieldOwner only; API also family `tasks` + `work` |
+| Task create | `/tasks/new` | CreateTask | Both | FieldTask create (manual / proposal) |
 | Task detail | `/tasks/:id` | TaskDetail | Both | Task access; owner approve/assign |
 | Calendar | `/calendar` | Calendar (hidden) | Web Everyday agenda; mobile Everyday agenda + month; Full week/field | All JWT roles; family `calendar` |
 | Money / costs | `/money` | Money | Both (compact vs detailed) | FieldOwner, Producer, Agronomist, Administrator; family `money` |

@@ -13,13 +13,13 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DemoTourPanel from '../components/Demo/DemoTourPanel';
 import {
   getFieldService,
-  getTaskService,
+  getFieldWorkService,
   getNoteService,
   isMockMode,
 } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
 import { Field } from '../services/fieldService';
-import { Task } from '../services/taskService';
+import type { FieldTask } from '../services/fieldWorkService';
 import { Note } from '../services/noteService';
 import { hasCapacity } from '../services/fieldPeopleService';
 import { locationService, Location } from '../services/locationService';
@@ -67,7 +67,7 @@ const TodayPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [apiFields, setApiFields] = useState<Field[]>([]);
-  const [apiTasks, setApiTasks] = useState<Task[]>([]);
+  const [apiTasks, setApiTasks] = useState<FieldTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [dismissTick, setDismissTick] = useState(0);
@@ -87,7 +87,7 @@ const TodayPage: React.FC = () => {
         } else if (user?.userId) {
           const [fieldsData, tasksData, notesData] = await Promise.all([
             getFieldService().getFields(),
-            getTaskService().getTasks(),
+            getFieldWorkService().listFieldTasks(),
             getNoteService()
               .getNotes({ limit: 50 })
               .catch(() => [] as Note[]),
@@ -164,9 +164,9 @@ const TodayPage: React.FC = () => {
     );
 
     return tasks.filter((task) => {
-      if (task.status === 'completed') return false;
-      if (task.assignedTo === producerId) return true;
-      if (workFieldIds.has(task.fieldId) && (!task.assignedTo || task.assignedTo === producerId)) {
+      if (task.status === 'completed' || task.status === 'cancelled') return false;
+      if (task.assignedUserId === producerId) return true;
+      if (workFieldIds.has(task.fieldId) && (!task.assignedUserId || task.assignedUserId === producerId)) {
         return true;
       }
       return false;
@@ -260,7 +260,7 @@ const TodayPage: React.FC = () => {
 
   const completeTask = async (taskId: string) => {
     try {
-      await getTaskService().updateTaskStatus(taskId, 'completed');
+      await getFieldWorkService().completeFieldTask(taskId, { outcome: 'done' });
       setApiTasks((prev) =>
         prev.map((x) => (x.id === taskId ? { ...x, status: 'completed' } : x))
       );
@@ -488,7 +488,7 @@ const TodayPage: React.FC = () => {
             </div>
             <div className="today-brief-list">
               {dueTodayOnly.map((task) => {
-                const due = task.scheduledStart || task.scheduledEnd;
+                const due = task.plannedStart || task.plannedEnd;
                 const time =
                   due &&
                   new Date(due).toLocaleTimeString(i18n.language, {
@@ -611,7 +611,7 @@ const TodayPage: React.FC = () => {
             </div>
             <div className="today-brief-list">
               {nextTasks.map((task) => {
-                const due = task.scheduledStart || task.scheduledEnd;
+                const due = task.plannedStart || task.plannedEnd;
                 return (
                   <button
                     key={task.id}
