@@ -159,15 +159,15 @@ stages:
           --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
           -f $(frontendDockerfilePath) $(frontendDockerContext)
       displayName: 'Build frontend Docker image'
-      condition: ne('${{ parameters.buildMobileApk }}', true)
+      condition: and(succeeded(), ne('${{ parameters.buildMobileApk }}', true))
 
     - script: 'docker push $(fullFrontendImageName):$(imageTag)'
       displayName: 'Push frontend Docker image with tag'
-      condition: ne('${{ parameters.buildMobileApk }}', true)
+      condition: and(succeeded(), ne('${{ parameters.buildMobileApk }}', true))
 
     - script: 'docker push $(fullFrontendImageName):latest'
       displayName: 'Push frontend Docker image as latest'
-      condition: ne('${{ parameters.buildMobileApk }}', true)
+      condition: and(succeeded(), ne('${{ parameters.buildMobileApk }}', true))
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
