@@ -139,7 +139,7 @@ stages:
         DOCKER_USERNAME: $(DOCKER_USERNAME)
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
-    - script: 'docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)'
+    - script: 'DOCKER_BUILDKIT=1 docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)'
       displayName: 'Build backend Docker image'
 
     - script: 'docker push $(fullImageName):$(imageTag)'
@@ -152,7 +152,7 @@ stages:
       displayName: 'List backend Docker images'
 
     - script: |
-        docker build \
+        DOCKER_BUILDKIT=1 docker build \
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
@@ -227,7 +227,7 @@ stages:
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
     - script: |
-        docker build \
+        DOCKER_BUILDKIT=1 docker build \
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
