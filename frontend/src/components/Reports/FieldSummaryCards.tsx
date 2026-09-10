@@ -9,6 +9,7 @@ import {
   displayOrDash,
 } from '../../data/mockReportData';
 import { formatAreaFromSqm, sqmFromHectares } from '../../utils/area';
+import { numberLocaleFor } from '../../utils/fieldDisplay';
 import './ReportDocument.css';
 
 interface Props {

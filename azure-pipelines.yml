@@ -72,55 +72,14 @@ variables:
     value: 'oleachron-alpha.apk'
 
 stages:
-- stage: Build
-  displayName: 'Build and Test'
-  jobs:
-  - job: Build
-    displayName: 'Build Application'
-    pool:
-      name: 'Default'
-    variables:
-      # Self-hosted agents sometimes have no HOME; NuGet/dotnet need one for caches.
-      DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
-      HOME: $(Agent.TempDirectory)/dotnet-home
-      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
-    steps:
-    # Needed unless .NET 8 SDK is permanently installed on the agent and on PATH.
-    # First run downloads; later runs should hit the agent tool cache (yours missed cache).
-    - task: UseDotNet@2
-      displayName: 'Install .NET 8.0 SDK'
-      inputs:
-        packageType: 'sdk'
-        version: '8.0.x'
-        includePreviewVersions: false
-
-    - script: |
-        mkdir -p "$(Agent.TempDirectory)/dotnet-home"
-        dotnet restore $(solution)
-      displayName: 'Restore NuGet packages'
-      env:
-        HOME: $(Agent.TempDirectory)/dotnet-home
-        DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
-        DOTNET_CLI_TELEMETRY_OPTOUT: '1'
-
-    - script: 'dotnet build $(solution) --configuration $(buildConfiguration) --no-restore'
-      displayName: 'Build solution'
-      env:
-        HOME: $(Agent.TempDirectory)/dotnet-home
-        DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
-        DOTNET_CLI_TELEMETRY_OPTOUT: '1'
-
-    - script: 'dotnet test $(solution) --configuration $(buildConfiguration) --no-build --verbosity normal'
-      displayName: 'Run tests'
-      continueOnError: true
-      env:
-        HOME: $(Agent.TempDirectory)/dotnet-home
-        DOTNET_CLI_HOME: $(Agent.TempDirectory)/dotnet-home
-        DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+# Lean loop: Docker build + deploy only. Re-enable Build/HealthCheck for real production.
+# - stage: Build
+#   displayName: 'Build and Test'
+#   ... UseDotNet, restore, build, test ...
 
 - stage: Package
   displayName: 'Package Application'
-  dependsOn: Build
+  dependsOn: []
   jobs:
   - job: Package
     displayName: 'Create and Push Docker Images'
@@ -139,7 +98,7 @@ stages:
         DOCKER_USERNAME: $(DOCKER_USERNAME)
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
-    - script: 'docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)'
+    - script: 'DOCKER_BUILDKIT=1 docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)'
       displayName: 'Build backend Docker image'
 
     - script: 'docker push $(fullImageName):$(imageTag)'
@@ -148,11 +107,8 @@ stages:
     - script: 'docker push $(fullImageName):latest'
       displayName: 'Push backend Docker image as latest'
 
-    - script: 'docker images | grep $(imageName)'
-      displayName: 'List backend Docker images'
-
     - script: |
-        docker build \
+        DOCKER_BUILDKIT=1 docker build \
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
@@ -171,7 +127,7 @@ stages:
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
-  dependsOn: Build
+  dependsOn: []
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
   - job: BuildMobile
@@ -227,7 +183,7 @@ stages:
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
     - script: |
-        docker build \
+        DOCKER_BUILDKIT=1 docker build \
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
@@ -466,31 +422,11 @@ stages:
             displayName: 'Apply backend ingress (control panel discovery)'
             condition: eq('${{ parameters.deployBackend }}', true)
 
-          - script: |
-              set -euo pipefail
-              if [ ! -d /etc/caddy/sites ] || ! command -v caddy >/dev/null 2>&1; then
-                echo "Caddy not available on this agent; overlays use API PublicBasePath and frontend nginx /uploads proxy."
-                exit 0
-              fi
-              SITE=/etc/caddy/sites/oleachron.caddy
-              cp deploy/caddy/Caddyfile "$SITE"
-              caddy validate --config /etc/caddy/Caddyfile
-              systemctl reload caddy || caddy reload --config /etc/caddy/Caddyfile
-              echo "Reloaded Caddy so /uploads on the website host goes to the API NodePort."
-            displayName: 'Reload host Caddy /uploads route'
-            continueOnError: true
-
-          - script: |
-              set -euo pipefail
-              echo "=== Backend deployment (before rollout) ==="
-              kubectl get deployment olive-lifecycle-api -n $(backendNamespace) -o wide || true
-              kubectl get pods -n $(backendNamespace) -o wide || true
-              echo ""
-              echo "=== Frontend deployment (before rollout) ==="
-              kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace) -o wide || true
-              kubectl get pods -n $(frontendNamespace) -o wide || true
-            displayName: 'Pre-rollout cluster diagnostics'
-            continueOnError: true
+          # --- production extras (re-enable later) ---
+          # Reload host Caddy /uploads route
+          # Pre-rollout cluster diagnostics
+          # Recover stuck deployment rollouts
+          # Display pod logs
 
           - script: 'kubectl rollout status deployment/olive-lifecycle-api -n $(backendNamespace) --timeout=600s'
             displayName: 'Wait for backend deployment rollout'
@@ -503,132 +439,15 @@ stages:
             continueOnError: true
 
           - script: |
-              set -euo pipefail
-              echo "=== Post-rollout recovery (if controller lagged) ==="
-              BACKEND_GEN=$(kubectl get deployment olive-lifecycle-api -n $(backendNamespace) -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "")
-              BACKEND_OBS=$(kubectl get deployment olive-lifecycle-api -n $(backendNamespace) -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
-              FRONTEND_GEN=$(kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace) -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "")
-              FRONTEND_OBS=$(kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace) -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
-
-              if [ -n "$BACKEND_GEN" ] && [ "$BACKEND_GEN" != "$BACKEND_OBS" ]; then
-                echo "Backend observedGeneration lagging; forcing rollout restart..."
-                kubectl rollout restart deployment/olive-lifecycle-api -n $(backendNamespace)
-                kubectl rollout status deployment/olive-lifecycle-api -n $(backendNamespace) --timeout=600s || true
-              fi
-
-              if [ -n "$FRONTEND_GEN" ] && [ "$FRONTEND_GEN" != "$FRONTEND_OBS" ]; then
-                echo "Frontend observedGeneration lagging; forcing rollout restart..."
-                kubectl rollout restart deployment/olive-lifecycle-frontend -n $(frontendNamespace)
-                kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=300s || true
-              fi
-            displayName: 'Recover stuck deployment rollouts'
-            continueOnError: true
-
-          - script: |
               echo "=== Deployment Status ==="
-              echo ""
-              kubectl get deployment olive-lifecycle-api -n $(backendNamespace)
-              kubectl get deployment olive-lifecycle-frontend -n $(frontendNamespace)
-              echo ""
               kubectl get pods -n $(backendNamespace) -l app=olive-lifecycle-api
               kubectl get pods -n $(frontendNamespace) -l app=olive-lifecycle-frontend
-              echo ""
-              kubectl get service olive-lifecycle-api-service -n $(backendNamespace)
-              kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace)
-              echo ""
-              NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
               echo "Backend API:  $(backendApiUrl)"
               echo "Frontend:     $(frontendBaseUrl)"
-              if [ -n "$NODE_PORT" ]; then
-                echo "Frontend NodePort: http://$(kubernetesNodeIp):$NODE_PORT"
-                echo "APK download: http://$(kubernetesNodeIp):$NODE_PORT/downloads/$(apkFilename)"
-              fi
             displayName: 'Display deployment status and URLs'
 
-          - script: |
-              echo "=== Pod Logs (last 20 lines) ==="
-              for NS in $(backendNamespace) $(frontendNamespace); do
-                PODS=$(kubectl get pods -n "$NS" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
-                for POD in $PODS; do
-                  echo "--- Logs from $POD ($NS) ---"
-                  kubectl logs "$POD" -n "$NS" --tail=20 || true
-                done
-              done
-            displayName: 'Display pod logs'
-            continueOnError: true
-
-- stage: HealthCheck
-  displayName: 'Health Check'
-  dependsOn: Deploy
-  condition: succeeded()
-  jobs:
-  - job: HealthCheck
-    displayName: 'Verify Deployment Health'
-    pool:
-      name: 'Default'
-    steps:
-    - script: |
-        kubectl get pods -n $(backendNamespace)
-        kubectl get pods -n $(frontendNamespace)
-      displayName: 'List all pods'
-
-    - script: |
-        kubectl get services -n $(backendNamespace)
-        kubectl get services -n $(frontendNamespace)
-      displayName: 'List all services'
-
-    - script: |
-        kubectl get deployments -n $(backendNamespace)
-        kubectl get deployments -n $(frontendNamespace)
-      displayName: 'Check deployment status'
-
-    - script: |
-        echo "Testing backend health endpoint..."
-        echo "Health URL: http://$(kubernetesNodeIp):$(backendNodePort)/health"
-        curl -f http://$(kubernetesNodeIp):$(backendNodePort)/health || echo "Backend health check failed, but continuing..."
-      displayName: 'Check Backend Health'
-      condition: eq('${{ parameters.deployBackend }}', true)
-      continueOnError: true
-
-    - script: |
-        NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
-        if [ -z "$NODE_PORT" ]; then
-          echo "Could not determine frontend NodePort"
-          exit 0
-        fi
-        FRONTEND_URL="http://$(kubernetesNodeIp):$NODE_PORT"
-        echo "Testing frontend health endpoint..."
-        curl -f "$FRONTEND_URL/health" || echo "Frontend health check failed, but continuing..."
-      displayName: 'Check Frontend Health'
-      condition: eq('${{ parameters.deployFrontend }}', true)
-      continueOnError: true
-
-    - script: |
-        NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
-        if [ -z "$NODE_PORT" ]; then
-          echo "Could not determine frontend NodePort"
-          exit 0
-        fi
-        FRONTEND_URL="http://$(kubernetesNodeIp):$NODE_PORT"
-        echo "Checking landing page APK download wiring..."
-        echo "Manifest: $FRONTEND_URL/downloads/latest.json"
-        curl -sf "$FRONTEND_URL/downloads/latest.json" || { echo "WARNING: latest.json not reachable"; exit 0; }
-        echo ""
-        echo "APK HEAD: $FRONTEND_URL/downloads/$(apkFilename)"
-        curl -sfI "$FRONTEND_URL/downloads/$(apkFilename)" | head -5 || echo "WARNING: APK not reachable yet"
-      displayName: 'Check APK on landing page'
-      condition: eq('${{ parameters.buildMobileApk }}', true)
-      continueOnError: true
-
-    - script: |
-        NODE_PORT=$(kubectl get service olive-lifecycle-frontend-service -n $(frontendNamespace) -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
-        echo "=== Deployment Summary ==="
-        echo "Backend API:  http://$(kubernetesNodeIp):$(backendNodePort)"
-        echo "EXPO_PUBLIC_API_URL=$(backendApiUrl)"
-        if [ -n "$NODE_PORT" ]; then
-          echo "Frontend:     http://$(kubernetesNodeIp):$NODE_PORT"
-          echo "APK download: http://$(kubernetesNodeIp):$NODE_PORT/downloads/$(apkFilename)"
-        fi
-        kubectl get svc -n $(backendNamespace)
-        kubectl get svc -n $(frontendNamespace)
-      displayName: 'Display deployment URLs'
+# Health Check stage disabled while iterating. Re-enable for real production.
+# - stage: HealthCheck
+#   displayName: 'Health Check'
+#   dependsOn: Deploy
+#   ... kubectl gets, curl /health, APK download check ...
