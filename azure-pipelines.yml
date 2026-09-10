@@ -70,6 +70,9 @@ variables:
     value: 'frontend'
   - name: apkFilename
     value: 'oleachron-alpha.apk'
+  # Self-hosted agent has Docker but no buildx. Classic builder only.
+  - name: DOCKER_BUILDKIT
+    value: '0'
 
 stages:
 # Lean loop: Docker build + deploy only. Re-enable Build/HealthCheck for real production.
@@ -98,32 +101,28 @@ stages:
         DOCKER_USERNAME: $(DOCKER_USERNAME)
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
-    - script: 'DOCKER_BUILDKIT=1 docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)'
-      displayName: 'Build backend Docker image'
-
-    - script: 'docker push $(fullImageName):$(imageTag)'
-      displayName: 'Push backend Docker image with tag'
-
-    - script: 'docker push $(fullImageName):latest'
-      displayName: 'Push backend Docker image as latest'
+    - script: |
+        docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)
+        docker push $(fullImageName):$(imageTag)
+        docker push $(fullImageName):latest
+      displayName: 'Build and push backend image'
+      condition: eq('${{ parameters.deployBackend }}', true)
+      env:
+        DOCKER_BUILDKIT: '0'
 
     - script: |
-        DOCKER_BUILDKIT=1 docker build \
+        docker build \
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
           --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
           -f $(frontendDockerfilePath) $(frontendDockerContext)
-      displayName: 'Build frontend Docker image'
-      condition: and(succeeded(), ne('${{ parameters.buildMobileApk }}', true))
-
-    - script: 'docker push $(fullFrontendImageName):$(imageTag)'
-      displayName: 'Push frontend Docker image with tag'
-      condition: and(succeeded(), ne('${{ parameters.buildMobileApk }}', true))
-
-    - script: 'docker push $(fullFrontendImageName):latest'
-      displayName: 'Push frontend Docker image as latest'
-      condition: and(succeeded(), ne('${{ parameters.buildMobileApk }}', true))
+        docker push $(fullFrontendImageName):$(imageTag)
+        docker push $(fullFrontendImageName):latest
+      displayName: 'Build and push frontend image'
+      condition: and(succeeded(), eq('${{ parameters.deployFrontend }}', true), ne('${{ parameters.buildMobileApk }}', true))
+      env:
+        DOCKER_BUILDKIT: '0'
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
@@ -183,19 +182,17 @@ stages:
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
     - script: |
-        DOCKER_BUILDKIT=1 docker build \
+        docker build \
           -t $(fullFrontendImageName):$(imageTag) \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
           --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
           -f $(frontendDockerfilePath) $(frontendDockerContext)
-      displayName: 'Rebuild frontend image with APK'
-
-    - script: 'docker push $(fullFrontendImageName):$(imageTag)'
-      displayName: 'Push frontend image with APK'
-
-    - script: 'docker push $(fullFrontendImageName):latest'
-      displayName: 'Push frontend latest with APK'
+        docker push $(fullFrontendImageName):$(imageTag)
+        docker push $(fullFrontendImageName):latest
+      displayName: 'Rebuild and push frontend image with APK'
+      env:
+        DOCKER_BUILDKIT: '0'
 
     - task: PublishBuildArtifacts@1
       displayName: 'Publish APK as artifact'
@@ -250,33 +247,11 @@ stages:
               kubectl create namespace $(frontendNamespace) --dry-run=client -o yaml | kubectl apply -f -
             displayName: 'Ensure namespaces exist'
 
-          - script: |
-              set -euo pipefail
-              echo "Removing legacy deployment and service names..."
-              kubectl delete deployment backend-deployment -n $(backendNamespace) --ignore-not-found=true
-              kubectl delete deployment frontend-deployment -n $(frontendNamespace) --ignore-not-found=true
-              kubectl delete service backend-service -n $(backendNamespace) --ignore-not-found=true
-              kubectl delete service frontend-service -n $(frontendNamespace) --ignore-not-found=true
-              kubectl delete configmap backend-config -n $(backendNamespace) --ignore-not-found=true
-              kubectl delete configmap frontend-config -n $(frontendNamespace) --ignore-not-found=true
-
-              # Free NodePorts held by pre-rename namespaces (agrotrack-* / mixed-case).
-              # Otherwise apply of olive-lifecycle-*-service fails with:
-              #   Service is invalid: ... nodePort ... provided port is already allocated
-              for ns in agrotrack-backend AgroTrack-backend Agrotrack-backend \
-                        agrotrack-frontend AgroTrack-frontend Agrotrack-frontend \
-                        Oleachron-backend Oleachron-frontend; do
-                if kubectl get namespace "$ns" >/dev/null 2>&1; then
-                  echo "Cleaning leftover services in legacy namespace: $ns"
-                  kubectl delete service --all -n "$ns" --ignore-not-found=true --wait=true --timeout=60s || true
-                fi
-              done
-            displayName: 'Clean up legacy Kubernetes resource names'
-            continueOnError: true
-
-          - script: 'kubectl apply -f backend/k8s/namespace.yaml'
-            displayName: 'Apply backend namespace configuration'
-            condition: eq('${{ parameters.deployBackend }}', true)
+          # Production extra: one-time rename cleanup (deletes live deployments). Skip while iterating.
+          # - script: |
+          #     kubectl delete deployment backend-deployment ...
+          #     ... free leftover agrotrack-* NodePorts ...
+          #   displayName: 'Clean up legacy Kubernetes resource names'
 
           - script: 'kubectl apply -f backend/k8s/configmap.yaml'
             displayName: 'Apply backend ConfigMap'
@@ -350,42 +325,10 @@ stages:
             condition: eq('${{ parameters.deployBackend }}', true)
 
           - script: |
-              set -euo pipefail
-              echo "Applying backend service as NodePort $(backendNodePort)..."
               sed -i "s|nodePort: [0-9]*|nodePort: $(backendNodePort)|" backend/k8s/service.yaml
-
-              # Do NOT delete+recreate: NodePort stays allocated briefly after delete and
-              # apply then fails with "Service ... is invalid: ... port is already allocated".
-              apply_backend_svc() {
-                kubectl apply -f backend/k8s/service.yaml
-              }
-
-              if ! apply_backend_svc; then
-                echo "Initial apply failed; checking what holds NodePort $(backendNodePort)..."
-                kubectl get svc -A -o wide || true
-                kubectl get svc -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{range .spec.ports[*]}{.nodePort}{" "}{end}{"\n"}{end}' \
-                  | awk -v p="$(backendNodePort)" '$0 ~ p {print}' || true
-
-                for attempt in 1 2 3 4 5 6; do
-                  echo "Retry apply (attempt ${attempt}) after waiting for NodePort release..."
-                  sleep 5
-                  if apply_backend_svc; then
-                    break
-                  fi
-                  if [ "${attempt}" -eq 6 ]; then
-                    echo "ERROR: Could not apply olive-lifecycle-api-service"
-                    exit 1
-                  fi
-                done
-              fi
-
-              kubectl get service olive-lifecycle-api-service -n $(backendNamespace) -o wide
+              kubectl apply -f backend/k8s/service.yaml
             displayName: 'Apply backend service'
             condition: eq('${{ parameters.deployBackend }}', true)
-
-          - script: 'kubectl apply -f frontend/k8s/namespace.yaml'
-            displayName: 'Apply frontend namespace configuration'
-            condition: eq('${{ parameters.deployFrontend }}', true)
 
           - task: Bash@3
             displayName: 'Update frontend ConfigMap with API URL'
@@ -398,11 +341,6 @@ stages:
                   --namespace=$(frontendNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
                 echo "ConfigMap updated with API URL: $(backendApiUrl)"
-
-          - script: 'kubectl apply -f frontend/k8s/configmap.yaml'
-            displayName: 'Apply frontend ConfigMap'
-            condition: eq('${{ parameters.deployFrontend }}', true)
-            continueOnError: true
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullFrontendImageName):$(imageTag)|g" frontend/k8s/deployment.yaml
