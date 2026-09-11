@@ -4,10 +4,12 @@
   right: 0;
   width: 380px;
   max-height: 500px;
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--bg-popover, var(--surface-popover, var(--color-surface))) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-floating, var(--shadow-xl));
   z-index: var(--z-dropdown);
   display: flex;
   flex-direction: column;
@@ -150,5 +152,13 @@
   .notification-dropdown {
     width: 320px;
     right: -20px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .notification-dropdown {
+    background: var(--bg-popover, var(--surface-popover, var(--color-surface)));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

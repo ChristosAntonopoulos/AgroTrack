@@ -13,8 +13,8 @@ import {
   Handshake,
   Wheat,
   BookOpen,
+  HeartHandshake,
 } from 'lucide-react';
-import { isEverydayAllowedPath, isEverydayPrimaryPath } from '../experience/catalog';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
 import { CHRONOLOGIO_HOME } from './homePath';
 
@@ -37,6 +37,8 @@ export type NavItem = {
   mockOnly?: boolean;
   /** Shown in phone bottom tab bar when visible for the user */
   mobilePrimary?: boolean;
+  /** Opens an in-app action instead of navigating */
+  action?: 'feedback';
 };
 
 export const navSections: NavSection[] = [
@@ -127,6 +129,14 @@ export const navItems: NavItem[] = [
     section: 'account',
   },
   {
+    path: '__feedback__',
+    labelKey: 'items.feedback',
+    icon: <HeartHandshake />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
+    section: 'account',
+    action: 'feedback',
+  },
+  {
     path: '/settings',
     labelKey: 'items.settings',
     icon: <Settings />,
@@ -142,23 +152,20 @@ export const resolveNavItemLabel = (item: NavItem, _role: AppRole, t: TFunction<
 export const filterNavItemsForUser = (
   items: NavItem[],
   userRole: AppRole,
-  isEveryday: boolean,
   mockMode: boolean,
   familyModules?: ReadonlySet<string> | null
 ): NavItem[] => {
   return items.filter((item) => {
     if (!item.roles.includes(userRole)) return false;
     if (item.mockOnly && !mockMode) return false;
-    // Calendar, Ministry, and Dashboard are hidden from navigation (routes remain reachable by URL).
-    if (item.path === '/calendar' || item.path === '/ministry' || item.path === '/dashboard') return false;
-    if (isEveryday) {
-      if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
-        return false;
-      }
-      if (item.path === '/money' || item.path === '/partners' || item.path === '/chronologio' || item.path === '/harvest') {
-        return true;
-      }
-      return isEverydayAllowedPath(item.path) || isEverydayPrimaryPath(item.path);
+    // Calendar, Ministry, Dashboard, and Reports are hidden from navigation (routes remain reachable by URL).
+    if (
+      item.path === '/calendar' ||
+      item.path === '/ministry' ||
+      item.path === '/dashboard' ||
+      item.path === '/reports'
+    ) {
+      return false;
     }
 
     // Family members acting on a shared grove never see analytics/reports.
@@ -176,7 +183,7 @@ export const filterNavItemsForUser = (
   });
 };
 
-export const roleHomePath = (_role: AppRole, _experienceMode?: 'everyday' | 'full') => {
+export const roleHomePath = (_role: AppRole) => {
   const prefs = settingsService.getPreferences();
   if (prefs.defaultView) {
     return pathForDefaultView(prefs.defaultView);
@@ -185,6 +192,7 @@ export const roleHomePath = (_role: AppRole, _experienceMode?: 'everyday' | 'ful
 };
 
 export const isNavActive = (pathname: string, itemPath: string) => {
+  if (itemPath.startsWith('__')) return false;
   if (itemPath === '/chronologio') return pathname === '/chronologio' || pathname === '/';
   if (itemPath === '/harvest') return pathname === '/harvest' || pathname.startsWith('/harvest/');
   return pathname.startsWith(itemPath);

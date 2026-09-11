@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -17,21 +18,30 @@ namespace OliveLifecycle.Application.Services;
 
 public class AuthService : IAuthService
 {
+    private const int PasswordResetHours = 1;
+    private const int MinimumPasswordLength = 8;
+
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IFamilyService? _familyService;
+    private readonly IOwnerPartnerService? _ownerPartnerService;
+    private readonly IEmailSender? _emailSender;
 
     public AuthService(
         IUserRepository userRepository,
         IConfiguration configuration,
         IDateTimeProvider dateTimeProvider,
-        IFamilyService? familyService = null)
+        IFamilyService? familyService = null,
+        IEmailSender? emailSender = null,
+        IOwnerPartnerService? ownerPartnerService = null)
     {
         _userRepository = userRepository;
         _configuration = configuration;
         _dateTimeProvider = dateTimeProvider;
         _familyService = familyService;
+        _emailSender = emailSender;
+        _ownerPartnerService = ownerPartnerService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
@@ -45,16 +55,11 @@ public class AuthService : IAuthService
         }
 
         var inviteCode = registerDto.InviteCode?.Trim();
+        var inviteKind = InviteKind.None;
         if (!string.IsNullOrWhiteSpace(inviteCode))
         {
-            if (_familyService == null)
-            {
-                throw new ValidationException("Invitation codes are not available.");
-            }
-
-            var invite = await _familyService.GetInviteAsync(inviteCode, null, cancellationToken);
-            if (invite == null
-                || !string.Equals(invite.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            inviteKind = await ResolveInviteKindAsync(inviteCode, cancellationToken);
+            if (inviteKind == InviteKind.None)
             {
                 throw new ValidationException("This invitation code is not valid.");
             }
@@ -79,9 +84,16 @@ public class AuthService : IAuthService
 
         var created = await _userRepository.CreateAsync(user, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(inviteCode) && _familyService != null)
+        if (!string.IsNullOrWhiteSpace(inviteCode))
         {
-            await _familyService.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
+            if (inviteKind == InviteKind.Family && _familyService != null)
+            {
+                await _familyService.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
+            }
+            else if (inviteKind == InviteKind.Partner && _ownerPartnerService != null)
+            {
+                await _ownerPartnerService.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
+            }
         }
 
         return GenerateAuthResponse(created);
@@ -99,7 +111,142 @@ public class AuthService : IAuthService
         return GenerateAuthResponse(user);
     }
 
+    public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(
+        ForgotPasswordDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var response = new ForgotPasswordResponseDto { Sent = true };
+        var email = NormalizeEmail(dto.Email);
+        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+        if (user == null)
+        {
+            return response;
+        }
+
+        var token = CreateResetToken();
+        user.PasswordResetTokenHash = HashResetToken(token);
+        user.PasswordResetExpiresAt = _dateTimeProvider.UtcNow.AddHours(PasswordResetHours);
+        user.UpdatedAt = _dateTimeProvider.UtcNow;
+        await _userRepository.UpdateAsync(user, cancellationToken);
+
+        var publicBase = (_configuration["App:PublicWebBaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var resetUrl = $"{publicBase}/reset-password?token={Uri.EscapeDataString(token)}";
+        var subject = "OleaChron — επαναφορά κωδικού / password reset";
+        var body =
+            $"Λάβαμε αίτημα επαναφοράς κωδικού για τον λογαριασμό OleaChron.\n" +
+            $"We received a request to reset the password for your OleaChron account.\n\n" +
+            $"{resetUrl}\n\n" +
+            $"Ο σύνδεσμος ισχύει για {PasswordResetHours} ώρα.\n" +
+            $"This link expires in {PasswordResetHours} hour.\n\n" +
+            "Αν δεν το ζητήσατε εσείς, αγνοήστε αυτό το μήνυμα.\n" +
+            "If you did not request this, you can ignore this message.";
+
+        if (_emailSender != null)
+        {
+            await _emailSender.SendAsync(user.Email, subject, body, cancellationToken);
+        }
+
+        var exposeDevLink = string.Equals(
+            _configuration["Email:ExposeDevResetLink"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+        if (exposeDevLink && _emailSender?.IsConfigured != true)
+        {
+            response.DevResetToken = token;
+        }
+
+        return response;
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < MinimumPasswordLength)
+        {
+            throw new ValidationException("Password must be at least 8 characters.");
+        }
+
+        var token = dto.Token?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(token))
+        {
+            throw new ValidationException("This reset link is invalid or has expired.");
+        }
+
+        var user = await _userRepository.GetByPasswordResetTokenHashAsync(
+            HashResetToken(token),
+            cancellationToken);
+
+        if (user == null)
+        {
+            throw new ValidationException("This reset link is invalid or has expired.");
+        }
+
+        if (user.PasswordResetExpiresAt is null || user.PasswordResetExpiresAt < _dateTimeProvider.UtcNow)
+        {
+            user.PasswordResetTokenHash = null;
+            user.PasswordResetExpiresAt = null;
+            user.UpdatedAt = _dateTimeProvider.UtcNow;
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            throw new ValidationException("This reset link is invalid or has expired.");
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        user.PasswordResetTokenHash = null;
+        user.PasswordResetExpiresAt = null;
+        user.UpdatedAt = _dateTimeProvider.UtcNow;
+        await _userRepository.UpdateAsync(user, cancellationToken);
+    }
+
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private enum InviteKind
+    {
+        None,
+        Family,
+        Partner
+    }
+
+    private async Task<InviteKind> ResolveInviteKindAsync(string inviteCode, CancellationToken cancellationToken)
+    {
+        if (_familyService != null)
+        {
+            var family = await _familyService.GetInviteAsync(inviteCode, null, cancellationToken);
+            if (family != null
+                && string.Equals(family.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                return InviteKind.Family;
+            }
+        }
+
+        if (_ownerPartnerService != null)
+        {
+            var partner = await _ownerPartnerService.GetInviteAsync(inviteCode, null, cancellationToken);
+            if (partner != null
+                && string.Equals(partner.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                return InviteKind.Partner;
+            }
+        }
+
+        if (_familyService == null && _ownerPartnerService == null)
+        {
+            throw new ValidationException("Invitation codes are not available.");
+        }
+
+        return InviteKind.None;
+    }
+
+    private static string CreateResetToken()
+    {
+        Span<byte> bytes = stackalloc byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private static string HashResetToken(string token)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(token.Trim()));
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
 
     private AuthResponseDto GenerateAuthResponse(User user)
     {

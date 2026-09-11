@@ -1,6 +1,6 @@
 import type { PathOptions } from 'leaflet';
 import { resolveFieldColor } from './fieldColors';
-import { getMapPalette, getCssToken } from '../styles/colorTokens';
+import { getMapPalette } from '../styles/colorTokens';
 
 export type MapLayerType = 'satellite' | 'street' | 'terrain';
 
@@ -31,44 +31,42 @@ export const fieldPolygonStyle = (
 ): PathOptions => {
   const map = getMapPalette();
   const fieldAccent = resolveFieldColor(color, fieldId);
-  const boundary = map.boundary || fieldAccent;
-  const olive = getCssToken('--olive-primary') || boundary;
 
   switch (mode) {
     case 'hover':
       return {
-        color: boundary,
-        weight: 3,
-        fillColor: olive,
-        fillOpacity: 0.1,
+        color: fieldAccent,
+        weight: 3.2,
+        fillColor: fieldAccent,
+        fillOpacity: 0.28,
       };
     case 'selected':
       return {
-        color: boundary,
-        weight: 3.5,
-        fillColor: olive,
-        fillOpacity: 0.18,
+        color: fieldAccent,
+        weight: 3.6,
+        fillColor: fieldAccent,
+        fillOpacity: 0.34,
       };
     case 'warning':
       return {
         color: map.warningOutline,
         weight: 3,
-        fillColor: olive,
-        fillOpacity: 0.08,
+        fillColor: fieldAccent,
+        fillOpacity: 0.1,
       };
     case 'outline':
       return {
-        color: boundary,
+        color: fieldAccent,
         weight: 3,
-        fillColor: olive,
+        fillColor: fieldAccent,
         fillOpacity: 0,
       };
     default:
       return {
-        color: fieldAccent || map.otherOutline,
-        weight: 2.5,
-        fillColor: fieldAccent || olive,
-        fillOpacity: 0.12,
+        color: fieldAccent,
+        weight: 2.6,
+        fillColor: fieldAccent,
+        fillOpacity: 0.22,
       };
   }
 };

@@ -32,4 +32,22 @@ public class AuthController : ControllerBase
         var response = await _authService.LoginAsync(loginDto, cancellationToken);
         return Ok(response);
     }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ForgotPasswordResponseDto>> ForgotPassword(
+        [FromBody] ForgotPasswordDto dto,
+        CancellationToken cancellationToken)
+    {
+        var response = await _authService.ForgotPasswordAsync(dto, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto dto, CancellationToken cancellationToken)
+    {
+        await _authService.ResetPasswordAsync(dto, cancellationToken);
+        return Ok(new { reset = true });
+    }
 }

@@ -6,4 +6,6 @@ public interface IAuthService
 {
     Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default);
     Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default);
+    Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken cancellationToken = default);
+    Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken cancellationToken = default);
 }

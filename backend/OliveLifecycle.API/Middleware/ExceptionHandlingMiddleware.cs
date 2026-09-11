@@ -54,11 +54,16 @@ public class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
 
-        var payload = JsonSerializer.Serialize(new ApiResponse<object>
-        {
-            Success = false,
-            Error = error
-        });
+        var payload = JsonSerializer.Serialize(
+            new ApiResponse<object>
+            {
+                Success = false,
+                Error = error
+            },
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
 
         await context.Response.WriteAsync(payload);
     }

@@ -38,7 +38,6 @@ import {
 import { calendarRodPhase, nextCalendarRodPhase, seasonStoryState } from '../ravdos/seasonStory';
 import type { HarvestRecord } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { formatOfficialAmount } from '../finance/format';
@@ -60,7 +59,6 @@ const numberLocale = (locale: string) =>
 const ThisHarvestPage: React.FC = () => {
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const { locale } = useLocale();
-  const { isEveryday } = useExperienceMode();
   const capture = useCaptureOptional();
   const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
   const bounds = useMemo(() => getSeasonBounds(seasonStartYear), [seasonStartYear]);
@@ -105,12 +103,12 @@ const ThisHarvestPage: React.FC = () => {
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
           })
-          .slice(0, isEveryday ? 3 : 8)
+          .slice(0, 8)
       );
     } finally {
       setLoading(false);
     }
-  }, [bounds, isEveryday, seasonStartYear, moneyYear, i18n.language]);
+  }, [bounds, seasonStartYear, moneyYear, i18n.language]);
 
   useEffect(() => {
     void load();
@@ -185,9 +183,8 @@ const ThisHarvestPage: React.FC = () => {
   }, [progress.milestones, tasks, t]);
 
   const visibleNext = useMemo(() => {
-    const limit = isEveryday ? 4 : 8;
-    return showAllNext ? nextItems : nextItems.slice(0, limit);
-  }, [isEveryday, nextItems, showAllNext]);
+    return showAllNext ? nextItems : nextItems.slice(0, 8);
+  }, [nextItems, showAllNext]);
 
   const oilYield =
     finance.oliveKg > 0 && finance.oilKg > 0 ? (finance.oilKg / finance.oliveKg) * 100 : null;
@@ -434,7 +431,7 @@ const ThisHarvestPage: React.FC = () => {
               <p className="ravdos-empty-line">{t('fields:thisHarvest.millEmpty')}</p>
             ) : (
               <ul className="ravdos-mill">
-                {millVisits.slice(0, isEveryday ? 5 : 12).map((visit, index) => (
+                {millVisits.slice(0, 12).map((visit, index) => (
                   <li key={visit.id || `${visit.fieldId}-${visit.harvestDate}-${index}`}>
                     <Link to={`/fields/${visit.fieldId}`} className="ravdos-mill-link">
                       <span className="ravdos-mill-when">
@@ -458,7 +455,7 @@ const ThisHarvestPage: React.FC = () => {
           </section>
         ) : null}
 
-        {!isEveryday && groveCards.length > 0 ? (
+        {groveCards.length > 0 ? (
           <section className="ravdos-section" aria-labelledby="ravdos-groves">
             <div className="ravdos-section-head">
               <h2 id="ravdos-groves">{t('fields:thisHarvest.fieldsSoft')}</h2>

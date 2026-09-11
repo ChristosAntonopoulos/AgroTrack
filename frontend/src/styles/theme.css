@@ -10,18 +10,18 @@ html {
 
 :root {
   /* Brand constants (shared across themes) */
-  --oleachron-olive: #536B3F;
+  --oleachron-olive: #536D42;
   --oleachron-sage: #9AAA85;
   --oleachron-leaf: #71845B;
   --oleachron-deep-grove: #29382A;
   --oleachron-warm-stone: #D9D5C8;
-  --oleachron-limestone: #F4F3EC;
+  --oleachron-limestone: #F7F6F0;
   --oleachron-gold: #B09A63;
   /* Legacy brand aliases */
   --oleachron-deep-olive: var(--oleachron-deep-grove);
   --oleachron-cream: var(--oleachron-limestone);
   --oleachron-heritage-gold: var(--oleachron-gold);
-  --oleachron-charcoal: #252A23;
+  --oleachron-charcoal: #22281F;
   --oleachron-beige: var(--oleachron-warm-stone);
 
   /* Domain accents (not user-editable) */
@@ -87,14 +87,7 @@ html {
   --bp-md: 768;
   --bp-lg: 1024;
 
-  /* Experience modes (Wong palette — color-blind safe) */
-  --experience-everyday: #0072b2;
-  --experience-everyday-soft: color-mix(in srgb, #0072b2 12%, white);
-  --experience-everyday-ink: #003a5d;
-  --experience-everyday-muted: #56b4e9;
-  --experience-full: #e69f00;
-  --experience-full-soft: color-mix(in srgb, #e69f00 14%, white);
-  --experience-full-ink: #5a4200;
+  /* Comfort (font scale / tap targets — independent of role) */
   --font-scale: 1;
   --tap-min: 44px;
   --ui-density: 1;
@@ -164,57 +157,53 @@ html[data-large-controls='true'] .offline-banner-action {
   }
 }
 
-[data-theme='dark'] {
-  --experience-everyday: #56b4e9;
-  --experience-everyday-soft: color-mix(in srgb, #56b4e9 18%, #1A1E1A);
-  --experience-everyday-ink: #d7efff;
-  --experience-full: #e69f00;
-  --experience-full-soft: color-mix(in srgb, #e69f00 20%, #1A1E1A);
-  --experience-full-ink: #ffe6a8;
-}
-
 /* ============================================
-   LIGHT THEME — olive leaves, limestone, paper
+   LIGHT THEME — Warm Ivory + Olive Ink + Botanical Stone
+   Canvas, sidebar and cards must stay distinct (NN/g layering).
+   Olive is reserved for what matters; neutrals tell what exists.
    ============================================ */
 :root,
 [data-theme='light'] {
-  /* Foundations */
-  --bg-page: #F4F3EC;
-  --bg-sidebar: #ECEBE2;
-  --bg-header: #FAF9F4;
+  /* Foundations — background ≠ sidebar ≠ header */
+  --bg-page: #F7F6F0;
+  --bg-sidebar: #F0F1E7;
+  --bg-header: #FBFAF6;
+  --bg-canvas: url('../assets/images/app-canvas-light.jpg');
 
   /* Surfaces */
-  --surface-1: #FFFEFA;
-  --surface-2: #F7F6EF;
-  --surface-3: #EEEFE6;
-  --surface-hover: #F0F2E8;
-  --surface-selected: #E8EEDF;
+  --surface-1: #FFFDF9;
+  --surface-2: #F2F3EC;
+  --surface-3: #EBECE4;
+  --surface-hover: #F1F4EC;
+  --surface-selected: #E5EADB;
+  --surface-popover: #FFFFFF;
 
   /* Borders */
-  --border-subtle: rgba(51, 62, 44, 0.08);
-  --border-default: rgba(51, 62, 44, 0.14);
-  --border-strong: rgba(51, 62, 44, 0.24);
+  --border-subtle: color-mix(in srgb, #E3E3D9 72%, var(--surface-1));
+  --border-default: #E3E3D9;
+  --border-strong: #D4D4C8;
 
-  /* Typography */
-  --text-primary: #252A23;
-  --text-secondary: #50594C;
-  --text-muted: #737D6E;
-  --text-disabled: #A2A99D;
+  /* Typography — olive-black, not pure black */
+  --text-primary: #22281F;
+  --text-secondary: #697065;
+  --text-muted: #92978E;
+  --text-disabled: #B0B5AA;
 
   /* Olive brand */
-  --olive-primary: #536B3F;
-  --olive-hover: #455B34;
-  --olive-active: #394C2B;
+  --olive-primary: #536D42;
+  --olive-hover: #486038;
+  --olive-active: #3E5430;
   --olive-soft: #E7EDDE;
-  --olive-border: #A8B995;
+  --olive-pale: #F1F4EC;
+  --olive-border: #C5CDB8;
   --on-olive: #FFFFFF;
 
   /* Links */
-  --link: #486235;
-  --link-hover: #334A25;
+  --link: #486038;
+  --link-hover: #3E5430;
 
   /* Focus */
-  --focus-ring: #5E7848;
+  --focus-ring: #536D42;
 
   /* Overlay */
   --backdrop: rgba(24, 29, 21, 0.42);
@@ -245,24 +234,24 @@ html[data-large-controls='true'] .offline-banner-action {
   --status-neutral-soft: rgba(135, 144, 134, 0.16);
 
   /* Map */
-  --map-boundary: #4F7139;
-  --map-selected-fill: rgba(83, 107, 63, 0.18);
-  --map-hover-fill: rgba(83, 107, 63, 0.10);
+  --map-boundary: #536D42;
+  --map-selected-fill: rgba(83, 109, 66, 0.18);
+  --map-hover-fill: rgba(83, 109, 66, 0.10);
   --map-warning-outline: #C96656;
   --map-other-outline: #879086;
 
-  /* Shadows */
+  /* Shadows — paper, not floating chrome */
   --shadow-card:
-    0 1px 2px rgba(10, 15, 9, 0.10),
-    0 4px 14px rgba(10, 15, 9, 0.06);
-  --shadow-floating: 0 8px 24px rgba(10, 15, 9, 0.16);
-  --shadow-overlay: -12px 0 40px rgba(5, 8, 5, 0.28);
+    0 1px 1px rgba(34, 40, 31, 0.04),
+    0 1px 3px rgba(34, 40, 31, 0.04);
+  --shadow-floating: 0 8px 24px rgba(34, 40, 31, 0.12);
+  --shadow-overlay: -12px 0 40px rgba(34, 40, 31, 0.22);
   --shadow-card-hover:
-    0 2px 4px rgba(10, 15, 9, 0.12),
-    0 10px 28px rgba(10, 15, 9, 0.10);
+    0 2px 4px rgba(34, 40, 31, 0.05),
+    0 8px 18px rgba(34, 40, 31, 0.06);
 
   /* Lifecycle backgrounds */
-  --color-lifecycle-low-bg: #E8EDE0;
+  --color-lifecycle-low-bg: #E7EDDE;
   --color-lifecycle-high-bg: #F3EBD4;
 
   /* ---- Legacy aliases (do not remove) ---- */
@@ -272,18 +261,20 @@ html[data-large-controls='true'] .offline-banner-action {
   --color-accent: var(--oleachron-gold);
   --bg-button: var(--olive-primary);
   --bg-button-hover: var(--olive-hover);
+  --color-primary-soft: var(--olive-soft);
 
   --color-bg: var(--bg-page);
   --bg-page-gradient: var(--bg-page);
   --bg-surface: var(--surface-1);
   --bg-surface-hover: var(--surface-hover);
-  --bg-elevated: var(--surface-2);
+  --bg-elevated: var(--surface-popover);
+  --bg-popover: var(--surface-popover);
   --bg-interactive: var(--surface-2);
   --bg-hover: var(--surface-hover);
   --bg-card: var(--surface-1);
   --bg-card-hover: var(--surface-hover);
-  --bg-input: var(--surface-1);
-  --bg-input-focus: var(--surface-1);
+  --bg-input: var(--surface-popover);
+  --bg-input-focus: var(--surface-popover);
   --bg-footer: var(--surface-2);
   --bg-section: var(--surface-2);
   --bg-section-alt: var(--surface-3);
@@ -302,7 +293,7 @@ html[data-large-controls='true'] .offline-banner-action {
   --color-background-gradient: var(--bg-page);
   --color-surface: var(--surface-1);
   --color-surface-hover: var(--surface-hover);
-  --color-surface-elevated: var(--surface-2);
+  --color-surface-elevated: var(--surface-popover);
 
   --color-success: var(--status-success);
   --color-success-light: var(--status-success-soft);
@@ -337,6 +328,7 @@ html[data-large-controls='true'] .offline-banner-action {
   --bg-page: #141714;
   --bg-sidebar: #1A1E1A;
   --bg-header: #202320;
+  --bg-canvas: url('../assets/images/app-canvas-dark.jpg');
 
   /* Surfaces */
   --surface-1: #202520;
@@ -344,6 +336,8 @@ html[data-large-controls='true'] .offline-banner-action {
   --surface-3: #2E352E;
   --surface-hover: #343C34;
   --surface-selected: #29372B;
+  --surface-popover: #272D27;
+  --olive-pale: rgba(113, 132, 91, 0.12);
 
   /* Borders */
   --border-subtle: rgba(235, 239, 230, 0.09);
@@ -433,12 +427,14 @@ html[data-large-controls='true'] .offline-banner-action {
   --bg-surface: var(--surface-1);
   --bg-surface-hover: var(--surface-hover);
   --bg-elevated: var(--surface-2);
+  --bg-popover: var(--surface-popover);
   --bg-interactive: var(--surface-2);
   --bg-hover: var(--surface-hover);
   --bg-card: var(--surface-1);
   --bg-card-hover: var(--surface-hover);
   --bg-input: var(--surface-1);
   --bg-input-focus: var(--surface-2);
+  --color-primary-soft: var(--olive-soft);
   --bg-footer: var(--bg-page);
   --bg-section: var(--bg-sidebar);
   --bg-section-alt: var(--surface-1);

@@ -40,10 +40,6 @@ jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({ user: { userId: 'owner-1', role: 'FieldOwner' } }),
 }));
 
-jest.mock('../context/ExperienceModeContext', () => ({
-  useExperienceMode: () => ({ isFullPicture: false, isEveryday: true }),
-}));
-
 jest.mock('../context/OfflineContext', () => ({
   useOfflineMode: () => ({ refreshGeneration: 0, setShowingCachedData: jest.fn() }),
 }));

@@ -6,10 +6,6 @@
   padding-bottom: var(--spacing-2xl);
 }
 
-.fields-page--everyday .field-card-v2 {
-  padding: calc(0.9rem * var(--ui-density, 1)) calc(1rem * var(--ui-density, 1));
-}
-
 .fields-page-header {
   display: flex;
   justify-content: space-between;

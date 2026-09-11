@@ -83,7 +83,6 @@
 .tasks-view-tab.is-active {
   color: var(--text-primary);
   background: var(--olive-soft);
-  box-shadow: inset 0 0 0 1px var(--olive-border);
 }
 
 .tasks-view-tab-count {

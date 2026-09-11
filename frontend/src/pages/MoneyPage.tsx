@@ -6,7 +6,6 @@ import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
 import { useAuth } from '../context/AuthContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { isDeviceOnline } from '../utils/networkStatus';
@@ -45,7 +44,6 @@ const PAGE_SIZE = 20;
 const MoneyPage: React.FC = () => {
   const { t, i18n } = useTranslation(['money', 'capture', 'common']);
   const { user } = useAuth();
-  const { isFullPicture } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const capture = useCaptureOptional();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -333,8 +331,7 @@ const MoneyPage: React.FC = () => {
             {summary.oliveOil ? (
               <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} />
             ) : null}
-            {isFullPicture &&
-            (summary.costPerHectare != null ||
+            {(summary.costPerHectare != null ||
               summary.incomePerHectare != null ||
               summary.netPerHectare != null ||
               summary.costPerKilogramOfOil != null ||
@@ -414,7 +411,7 @@ const MoneyPage: React.FC = () => {
                 rows={summary.fieldResults}
                 currency={summary.currency}
                 locale={i18n.language}
-                showPerHectare={isFullPicture}
+                showPerHectare={true}
                 fieldNames={fieldNames}
                 onSelectField={(id) => patch({ fieldId: id || null })}
               />
@@ -444,7 +441,6 @@ const MoneyPage: React.FC = () => {
         relatedTaskTitle={relatedTitles.task}
         relatedHarvestTitle={relatedTitles.harvest}
         canManage={canManage}
-        fullPicture={isFullPicture}
         onClose={() => patch({ tx: null })}
         onVoid={async (id, reason) => {
           await getFinancialTransactionService().void(id, reason);

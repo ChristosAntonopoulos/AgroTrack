@@ -1,10 +1,10 @@
 import { normalizeLocale } from '../i18n/config';
-import type { ExperienceMode, FontScale } from '../experience/types';
+import type { FontScale } from '../experience/types';
 
 /** Stored preference. `system` follows the device; `white` is legacy and normalized to `light`. */
 export type Theme = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
-export type { ExperienceMode, FontScale };
+export type { FontScale };
 
 export type DefaultView = 'dashboard' | 'fields' | 'today' | 'chronologio';
 
@@ -18,12 +18,8 @@ export interface UserPreferences {
   deadlineReminders: boolean;
   lifecycleAlerts: boolean;
   reportNotifications: boolean;
-  experienceMode: ExperienceMode;
-  experienceModeChosen: boolean;
   fontScale: FontScale;
   largeControls: boolean;
-  everydayIntelligenceOpens: number;
-  fullPictureOnrampDismissed: boolean;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -36,12 +32,8 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   deadlineReminders: true,
   lifecycleAlerts: true,
   reportNotifications: false,
-  experienceMode: 'everyday',
-  experienceModeChosen: false,
   fontScale: 'default',
   largeControls: false,
-  everydayIntelligenceOpens: 0,
-  fullPictureOnrampDismissed: false,
 };
 
 const STORAGE_KEY = 'olive_lifecycle_preferences';
@@ -92,13 +84,11 @@ export const settingsService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } as UserPreferences;
+        const parsed = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } as UserPreferences &
+          Record<string, unknown>;
         parsed.language = normalizeLocale(parsed.language);
         parsed.theme = normalizeTheme(parsed.theme);
         parsed.defaultView = normalizeDefaultView(parsed.defaultView);
-        if (parsed.experienceMode !== 'everyday' && parsed.experienceMode !== 'full') {
-          parsed.experienceMode = 'everyday';
-        }
         if (parsed.fontScale !== 'default' && parsed.fontScale !== 'large' && parsed.fontScale !== 'xl') {
           parsed.fontScale = 'default';
         }
@@ -110,11 +100,21 @@ export const settingsService = {
         ) {
           parsed.dateFormat = DEFAULT_PREFERENCES.dateFormat;
         }
-        parsed.experienceModeChosen = Boolean(parsed.experienceModeChosen);
         parsed.largeControls = Boolean(parsed.largeControls);
-        parsed.everydayIntelligenceOpens = Number(parsed.everydayIntelligenceOpens) || 0;
-        parsed.fullPictureOnrampDismissed = Boolean(parsed.fullPictureOnrampDismissed);
-        return parsed;
+        // Drop retired experience-mode keys from the in-memory shape.
+        const {
+          experienceMode: _em,
+          experienceModeChosen: _emc,
+          everydayIntelligenceOpens: _eio,
+          fullPictureOnrampDismissed: _fpo,
+          ...clean
+        } = parsed as UserPreferences & {
+          experienceMode?: unknown;
+          experienceModeChosen?: unknown;
+          everydayIntelligenceOpens?: unknown;
+          fullPictureOnrampDismissed?: unknown;
+        };
+        return clean;
       }
     } catch (error) {
       console.error('Error loading preferences:', error);

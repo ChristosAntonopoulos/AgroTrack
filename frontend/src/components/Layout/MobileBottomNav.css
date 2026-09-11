@@ -45,16 +45,21 @@
 }
 
 .mobile-bottom-nav-item.active {
-  color: var(--link);
+  color: var(--olive-primary);
   font-weight: 600;
+}
+
+.mobile-bottom-nav-item.active .mobile-bottom-nav-icon {
+  background: var(--olive-soft);
+  border-radius: 10px;
 }
 
 .mobile-bottom-nav-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
 

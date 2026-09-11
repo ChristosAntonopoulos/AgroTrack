@@ -23,9 +23,6 @@ interface FieldCardProps {
   onHover?: (fieldId: string | null) => void;
 }
 
-const FIELD_PIN_PATH =
-  'M16 1.8C8.54 1.8 2.5 7.84 2.5 15.3c0 9.86 13.5 24.4 13.5 24.4s13.5-14.54 13.5-24.4C29.5 7.84 23.46 1.8 16 1.8z';
-
 const FieldCard: React.FC<FieldCardProps> = ({
   field,
   stats,
@@ -69,15 +66,6 @@ const FieldCard: React.FC<FieldCardProps> = ({
         }
       }}
     >
-      {compact ? (
-        <span className="field-card-v2-pin" style={{ color: accent }} aria-hidden>
-          <svg viewBox="0 0 32 42" width="22" height="28" focusable="false">
-            <path d={FIELD_PIN_PATH} fill="currentColor" />
-            <circle cx="16" cy="15.2" r="5.4" fill="#fff" />
-            <circle cx="16" cy="15.2" r="2.35" fill="currentColor" />
-          </svg>
-        </span>
-      ) : null}
       <div className="field-card-v2-main">
         <FieldIdentity field={field} size="card" />
         <div className="field-card-v2-footer">

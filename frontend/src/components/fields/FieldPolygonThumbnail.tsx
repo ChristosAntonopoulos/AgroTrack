@@ -8,10 +8,11 @@ import './FieldPolygonThumbnail.css';
 type Props = {
   field: Field;
   className?: string;
+  circular?: boolean;
 };
 
 const VIEW = 160;
-const PAD = 18;
+const PAD = 26;
 
 /** Project a lat/lng ring into a fitted SVG path, preserving geographic aspect. */
 export const polygonToSvgPath = (
@@ -41,22 +42,27 @@ export const polygonToSvgPath = (
   return `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ')} Z`;
 };
 
-const FieldPolygonThumbnail: React.FC<Props> = ({ field, className }) => {
+const FieldPolygonThumbnail: React.FC<Props> = ({ field, className, circular = true }) => {
   const uid = useId().replace(/:/g, '');
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
   const d = useMemo(() => (polygon ? polygonToSvgPath(polygon, VIEW, PAD) : ''), [polygon]);
   const accent = resolveFieldColor(field.color, field.id);
+  const thumbClass = `field-poly-thumb${circular ? ' field-poly-thumb--circle' : ''} ${className || ''}`;
 
   if (!d) {
     return (
-      <div className={`field-poly-thumb field-poly-thumb--empty ${className || ''}`} aria-hidden>
-        <MapPin size={28} strokeWidth={1.75} />
+      <div
+        className={`${thumbClass} field-poly-thumb--empty`}
+        style={{ ['--field-accent' as string]: accent }}
+        aria-hidden
+      >
+        <MapPin size={22} strokeWidth={1.75} />
       </div>
     );
   }
 
   return (
-    <div className={`field-poly-thumb ${className || ''}`} aria-hidden>
+    <div className={thumbClass} style={{ ['--field-accent' as string]: accent }} aria-hidden>
       <svg className="field-poly-thumb-svg" viewBox={`0 0 ${VIEW} ${VIEW}`} role="presentation">
         <defs>
           <linearGradient id={`fp-fill-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">

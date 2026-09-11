@@ -5,8 +5,8 @@ import { Plus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useFieldCapacity } from '../hooks/useFieldCapacity';
+import { useGrantedFieldAccess } from '../hooks/useGrantedFieldAccess';
 import {
   getFieldService,
   getFieldWorkService,
@@ -43,8 +43,7 @@ import './FieldWorkSetupPage.css';
 const DISMISS_KEY = (fieldId: string) => `oleachron.workSetupBanner.dismissed.${fieldId}`;
 
 const FieldDetailPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings', 'tasks']);
-  const { isFullPicture } = useExperienceMode();
+  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings', 'tasks', 'partners']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,6 +142,7 @@ const FieldDetailPage: React.FC = () => {
   }, [id, year, refreshGeneration, i18n.language, weatherTick]);
 
   const capacity = useFieldCapacity(field);
+  const grantedAccess = useGrantedFieldAccess(field);
   const canOwn = capacity.canOwn || field?.ownerId === user?.userId;
 
   const showWorkSetupBanner =
@@ -226,7 +226,7 @@ const FieldDetailPage: React.FC = () => {
 
   return (
     <PageContainer maxWidth="full">
-      <div className="field-page" data-field-depth={isFullPicture ? 'full' : 'simple'}>
+      <div className="field-page">
         <Breadcrumbs />
 
         <FieldHeader
@@ -238,6 +238,23 @@ const FieldDetailPage: React.FC = () => {
           onDocuments={() => setTab('details')}
           onDelete={canOwn ? handleDelete : undefined}
         />
+
+        {grantedAccess ? (
+          <p className="field-secondary-access-banner" role="status">
+            {t(
+              grantedAccess.kind === 'partner'
+                ? 'partners:ownerPartner.helpingBanner'
+                : 'partners:family.helpingBanner',
+              {
+                field: field.name,
+                level: t(`partners:family.levels.${grantedAccess.accessLevel}`),
+              }
+            )}
+            {grantedAccess.modules.length > 0
+              ? ` · ${grantedAccess.modules.map((m) => t(`partners:family.modules.${m}`)).join(', ')}`
+              : null}
+          </p>
+        ) : null}
 
         {showWorkSetupBanner ? (
           <div

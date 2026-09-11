@@ -34,7 +34,6 @@ import {
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
 import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
@@ -47,7 +46,6 @@ const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isEveryday } = useExperienceMode();
   const isEdit = !!id;
 
   const [step, setStep] = useState<WizardStep | 'basics-edit'>('method');
@@ -112,16 +110,10 @@ const FieldFormPage: React.FC = () => {
   };
 
   const activeSteps = isEdit
-    ? isEveryday
-      ? (['basics-edit', 'boundary', 'review'] as const)
-      : (['basics-edit', 'boundary', 'crop', 'review'] as const)
+    ? (['basics-edit', 'boundary', 'crop', 'review'] as const)
     : method === 'cadastre'
-      ? isEveryday
-        ? (['method', 'cadastre', 'basics', 'boundary', 'review'] as const)
-        : (['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'] as const)
-      : isEveryday
-        ? (['method', 'basics', 'boundary', 'review'] as const)
-        : WIZARD_STEPS;
+      ? (['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'] as const)
+      : WIZARD_STEPS;
 
   const stepIndex = activeSteps.indexOf(step as never);
   const isFirst = stepIndex <= 0;
@@ -197,7 +189,7 @@ const FieldFormPage: React.FC = () => {
         return t('fields:addField.errors.kaekInvalid');
       }
     }
-    if (step === 'boundary' && !boundary && !isEveryday) return t('fields:addField.errors.boundaryRequired');
+    if (step === 'boundary' && !boundary) return t('fields:addField.errors.boundaryRequired');
     if (step === 'review') {
       if (boundary && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
       if (cadastre && !cadastreAcknowledged) return t('fields:addField.errors.confirmCadastre');
@@ -236,9 +228,7 @@ const FieldFormPage: React.FC = () => {
         locationText: formData.locationText,
         variety: formData.variety,
         treeCount: formData.treeCount,
-        soilType: formData.soilType,
         irrigationType: formData.irrigationType,
-        slope: formData.slope,
         accessNotes: formData.accessNotes,
         color: formData.color,
         greekCadastre: cadastre,
@@ -287,9 +277,7 @@ const FieldFormPage: React.FC = () => {
         locationText: formData.locationText,
         variety: formData.variety,
         treeCount: formData.treeCount,
-        soilType: formData.soilType,
         irrigationType: formData.irrigationType,
-        slope: formData.slope,
         accessNotes: formData.accessNotes,
         color: formData.color,
         greekCadastre: cadastre,
@@ -399,6 +387,7 @@ const FieldFormPage: React.FC = () => {
             <BasicFieldDetailsStep
               formData={formData}
               kaekInput={kaekInput}
+              showKaek={method === 'kaek'}
               fieldId={draftFieldId || id}
               onChange={handleChange}
               onKaekChange={setKaekInput}

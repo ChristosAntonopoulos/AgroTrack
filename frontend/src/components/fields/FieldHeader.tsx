@@ -5,7 +5,6 @@ import type { Field } from '../../services/fieldService';
 import Button from '../Common/Button';
 import FieldIdentity from './FieldIdentity';
 import FieldMoreMenu from './FieldMoreMenu';
-import FieldModeSegment from './FieldModeSegment';
 import FieldResultYearControl from './FieldResultYearControl';
 import './FieldPageShell.css';
 
@@ -39,7 +38,6 @@ const FieldHeader: React.FC<Props> = ({
         <p className="field-header-year-label">{t('page.yearLabel', { year })}</p>
         <div className="field-header-controls">
           <FieldResultYearControl year={year} onYearChange={onYearChange} />
-          <FieldModeSegment />
         </div>
       </div>
       <div className="field-header-actions">

@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OliveLifecycle.Application.Abstractions.Persistence;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Storage;
+using OliveLifecycle.Infrastructure.Email;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence;
 using OliveLifecycle.Infrastructure.Persistence.Repositories;
@@ -48,8 +50,12 @@ public static class DependencyInjection
         services.AddScoped<IFamilyCircleRepository, FamilyCircleRepository>();
         services.AddScoped<IFamilyMemberRepository, FamilyMemberRepository>();
         services.AddScoped<IFamilyInviteRepository, FamilyInviteRepository>();
+        services.AddScoped<IOwnerPartnerLinkRepository, OwnerPartnerLinkRepository>();
+        services.AddScoped<IOwnerPartnerInviteRepository, OwnerPartnerInviteRepository>();
+        services.AddScoped<IUserFeedbackRepository, UserFeedbackRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         services.AddGeospatial(configuration);
 

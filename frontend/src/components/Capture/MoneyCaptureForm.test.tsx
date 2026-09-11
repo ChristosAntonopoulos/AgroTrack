@@ -83,7 +83,6 @@ const renderForm = (
         fields={[field]}
         canRecordIncome
         canRecordExpense
-        isFullPicture={false}
         onSaved={jest.fn()}
         {...props}
       />

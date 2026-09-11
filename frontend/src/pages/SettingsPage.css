@@ -281,11 +281,6 @@
   overflow-wrap: anywhere;
 }
 
-.settings-block .experience-mode-toggle {
-  width: 100%;
-  max-width: 420px;
-}
-
 @media (max-width: 768px) {
   .settings-row {
     grid-template-columns: 1fr;

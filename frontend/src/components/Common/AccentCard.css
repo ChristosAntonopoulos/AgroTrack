@@ -13,30 +13,16 @@
   width: 100%;
   text-align: left;
   border: 1px solid var(--border-subtle);
-  background:
-    /* Faint left wash only — do not tint the whole card */
-    linear-gradient(90deg, var(--accent-wash) 0%, transparent 28%),
-    var(--surface-1);
+  background: var(--surface-1);
   border-radius: 16px;
   padding: 0.9rem 1rem;
-  border-left-width: 4px;
-  border-left-color: var(--accent-color);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--accent-color) 55%, var(--border-default));
   box-shadow: var(--shadow-card);
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease,
     background-color 160ms ease;
   overflow: hidden;
   isolation: isolate;
-}
-
-.accent-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 2px;
-  background: var(--accent-secondary);
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: 1;
 }
 
 .accent-card--compact {

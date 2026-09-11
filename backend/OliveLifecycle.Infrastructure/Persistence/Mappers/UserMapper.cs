@@ -26,6 +26,8 @@ public static class UserMapper
                     ? "en"
                     : document.Preferences.Language
             },
+        PasswordResetTokenHash = document.PasswordResetTokenHash,
+        PasswordResetExpiresAt = document.PasswordResetExpiresAt,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -46,6 +48,8 @@ public static class UserMapper
             LargeControls = entity.Preferences.LargeControls,
             Language = entity.Preferences.Language
         },
+        PasswordResetTokenHash = entity.PasswordResetTokenHash,
+        PasswordResetExpiresAt = entity.PasswordResetExpiresAt,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

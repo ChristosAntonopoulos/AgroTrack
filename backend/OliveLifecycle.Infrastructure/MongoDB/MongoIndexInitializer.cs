@@ -28,6 +28,10 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexModel<UserDocument>(
                     Builders<UserDocument>.IndexKeys.Ascending(u => u.Email),
                     new CreateIndexOptions { Unique = true }));
+            users.Indexes.CreateOne(
+                new CreateIndexModel<UserDocument>(
+                    Builders<UserDocument>.IndexKeys.Ascending(u => u.PasswordResetTokenHash),
+                    new CreateIndexOptions { Sparse = true, Name = "ix_users_passwordResetTokenHash" }));
 
             var fields = _context.GetCollection<FieldDocument>("fields");
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
@@ -193,6 +197,23 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexOptions { Unique = true, Sparse = true }));
             familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
                 Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.CircleId).Ascending(i => i.Status)));
+
+            var ownerPartnerLinks = _context.GetCollection<OwnerPartnerLinkDocument>("owner_partner_links");
+            ownerPartnerLinks.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerLinkDocument>(
+                Builders<OwnerPartnerLinkDocument>.IndexKeys.Ascending(m => m.OwnerUserId).Ascending(m => m.Status)));
+            ownerPartnerLinks.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerLinkDocument>(
+                Builders<OwnerPartnerLinkDocument>.IndexKeys.Ascending(m => m.LinkedUserId),
+                new CreateIndexOptions { Sparse = true }));
+
+            var ownerPartnerInvites = _context.GetCollection<OwnerPartnerInviteDocument>("owner_partner_invites");
+            ownerPartnerInvites.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerInviteDocument>(
+                Builders<OwnerPartnerInviteDocument>.IndexKeys.Ascending(i => i.Token),
+                new CreateIndexOptions { Unique = true }));
+            ownerPartnerInvites.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerInviteDocument>(
+                Builders<OwnerPartnerInviteDocument>.IndexKeys.Ascending(i => i.Code),
+                new CreateIndexOptions { Unique = true, Sparse = true }));
+            ownerPartnerInvites.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerInviteDocument>(
+                Builders<OwnerPartnerInviteDocument>.IndexKeys.Ascending(i => i.OwnerUserId).Ascending(i => i.Status)));
 
             EnsureGeospatialIndexes();
 
@@ -386,5 +407,12 @@ public class MongoIndexInitializer : IHostedService
             Builders<HarvestRecordDocument>.IndexKeys
                 .Ascending(h => h.FieldId)
                 .Ascending(h => h.ResultYear)));
+
+        var feedback = _context.GetCollection<UserFeedbackDocument>("user_feedback");
+        feedback.Indexes.CreateOne(new CreateIndexModel<UserFeedbackDocument>(
+            Builders<UserFeedbackDocument>.IndexKeys
+                .Ascending(f => f.UserId)
+                .Descending(f => f.CreatedAt),
+            new CreateIndexOptions { Name = "ix_user_feedback_userId_createdAt" }));
     }
 }

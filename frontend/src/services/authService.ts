@@ -23,11 +23,23 @@ export interface AuthResponse {
   firstName?: string;
   lastName?: string;
   preferences?: {
-    experienceMode: string;
-    experienceModeChosen: boolean;
     fontScale: string;
     largeControls: boolean;
   };
+}
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  password: string;
+}
+
+export interface ForgotPasswordResponse {
+  sent: boolean;
+  devResetToken?: string | null;
 }
 
 export const authService = {
@@ -39,6 +51,15 @@ export const authService = {
   login: async (data: LoginDto): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/api/v1/auth/login', data);
     return response.data;
+  },
+
+  forgotPassword: async (data: ForgotPasswordDto): Promise<ForgotPasswordResponse> => {
+    const response = await api.post<ForgotPasswordResponse>('/api/v1/auth/forgot-password', data);
+    return response.data;
+  },
+
+  resetPassword: async (data: ResetPasswordDto): Promise<void> => {
+    await api.post('/api/v1/auth/reset-password', data);
   },
 
   logout: () => {

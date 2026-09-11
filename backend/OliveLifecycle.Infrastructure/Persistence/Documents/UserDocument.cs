@@ -27,6 +27,12 @@ public class UserDocument
     [BsonElement("preferences")]
     public UserExperiencePreferencesDocument Preferences { get; set; } = new();
 
+    [BsonElement("passwordResetTokenHash")]
+    public string? PasswordResetTokenHash { get; set; }
+
+    [BsonElement("passwordResetExpiresAt")]
+    public DateTime? PasswordResetExpiresAt { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

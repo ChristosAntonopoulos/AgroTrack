@@ -19,7 +19,6 @@ import { harvestService } from '../../services/harvestService';
 import { fileUploadService } from '../../services/fileUploadService';
 import type { Field } from '../../services/fieldService';
 import { useAuth } from '../../context/AuthContext';
-import { useExperienceMode } from '../../context/ExperienceModeContext';
 import { readLastMoneyFieldId } from '../../finance/lastField';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import './Capture.css';
@@ -58,7 +57,6 @@ const CaptureDrawer: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation(['capture', 'fields', 'common']);
   const { user } = useAuth();
-  const { isFullPicture } = useExperienceMode();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -338,7 +336,6 @@ const CaptureDrawer: React.FC<Props> = ({
                 fields={fields}
                 canRecordIncome={permissions.canRecordIncome}
                 canRecordExpense={permissions.canRecordExpense}
-                isFullPicture={isFullPicture}
                 onSaved={onSaved}
               />
             ) : (

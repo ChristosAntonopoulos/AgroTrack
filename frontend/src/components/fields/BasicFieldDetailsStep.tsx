@@ -6,6 +6,7 @@ import FieldColorPicker from './FieldColorPicker';
 interface Props {
   formData: CreateFieldDto;
   kaekInput: string;
+  showKaek?: boolean;
   fieldId?: string | null;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   onKaekChange: (value: string) => void;
@@ -15,6 +16,7 @@ interface Props {
 const BasicFieldDetailsStep: React.FC<Props> = ({
   formData,
   kaekInput,
+  showKaek,
   fieldId,
   onChange,
   onKaekChange,
@@ -40,41 +42,35 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
         />
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="cropType">{t('addField.cropType')} *</label>
-          <select id="cropType" name="cropType" value={formData.cropType || 'Olive'} onChange={onChange}>
-            <option value="Olive">Olive</option>
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor="locationText">{t('locationLabel')}</label>
-          <input
-            type="text"
-            id="locationText"
-            name="locationText"
-            value={formData.locationText || ''}
-            onChange={onChange}
-            placeholder={t('addField.locationPlaceholder')}
-          />
-        </div>
+      <div className="form-group">
+        <label htmlFor="locationText">{t('locationLabel')}</label>
+        <input
+          type="text"
+          id="locationText"
+          name="locationText"
+          value={formData.locationText || ''}
+          onChange={onChange}
+          placeholder={t('addField.locationPlaceholder')}
+        />
       </div>
 
       <div className="form-group">
         <FieldColorPicker value={formData.color} fieldId={fieldId} onChange={onColorChange} />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="kaek">{t('addField.kaek')}</label>
-        <input
-          type="text"
-          id="kaek"
-          value={kaekInput}
-          onChange={(e) => onKaekChange(e.target.value)}
-          placeholder="362621142088/0/0"
-        />
-        <p className="field-form-hint">{t('addField.kaekHint')}</p>
-      </div>
+      {showKaek ? (
+        <div className="form-group">
+          <label htmlFor="kaek">{t('addField.kaek')}</label>
+          <input
+            type="text"
+            id="kaek"
+            value={kaekInput}
+            onChange={(e) => onKaekChange(e.target.value)}
+            placeholder="362621142088/0/0"
+          />
+          <p className="field-form-hint">{t('addField.kaekHint')}</p>
+        </div>
+      ) : null}
     </div>
   );
 };

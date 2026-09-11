@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { getCalendarService, getFieldService } from '../services/serviceFactory';
 import { isDeviceOnline } from '../utils/networkStatus';
@@ -51,18 +50,15 @@ type ViewMode = 'month' | 'week' | 'agenda' | 'field';
 const CalendarPage: React.FC = () => {
   const { t, i18n } = useTranslation('calendar');
   const { user } = useAuth();
-  const { isEveryday, showWidget } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
   const dateLocale = i18n.language === 'el' ? el : enUS;
   const isMobile = useBreakpoint('md');
 
-  const [viewMode, setViewMode] = useState<ViewMode>(() =>
-    isMobile || !showWidget('calendarMonthView') ? 'agenda' : 'month'
-  );
+  const [viewMode, setViewMode] = useState<ViewMode>(() => (isMobile ? 'agenda' : 'month'));
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [drawerOpen, setDrawerOpen] = useState(!isMobile && !isEveryday);
+  const [drawerOpen, setDrawerOpen] = useState(!isMobile);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState('');
@@ -74,10 +70,10 @@ const CalendarPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isEveryday || (isMobile && viewMode === 'month')) {
+    if (isMobile && viewMode === 'month') {
       setViewMode('agenda');
     }
-  }, [isMobile, isEveryday]);
+  }, [isMobile]);
 
   const filteredEvents = useMemo(() => {
     let list = events;
@@ -188,16 +184,10 @@ const CalendarPage: React.FC = () => {
         : format(currentDate, 'MMMM yyyy', { locale: dateLocale });
 
   const viewTabs: { id: ViewMode; icon: React.ReactNode; label: string }[] = [
-    ...(showWidget('calendarMonthView')
-      ? [{ id: 'month' as const, icon: <LayoutGrid size={16} />, label: t('viewMonth') }]
-      : []),
-    ...(showWidget('calendarWeekView')
-      ? [{ id: 'week' as const, icon: <CalendarDays size={16} />, label: t('viewWeek') }]
-      : []),
+    { id: 'month', icon: <LayoutGrid size={16} />, label: t('viewMonth') },
+    { id: 'week', icon: <CalendarDays size={16} />, label: t('viewWeek') },
     { id: 'agenda', icon: <List size={16} />, label: t('viewAgenda') },
-    ...(showWidget('calendarFieldView')
-      ? [{ id: 'field' as const, icon: <MapPin size={16} />, label: t('viewField') }]
-      : []),
+    { id: 'field', icon: <MapPin size={16} />, label: t('viewField') },
   ];
 
   const fieldLabel = selectedFieldId
@@ -229,23 +219,21 @@ const CalendarPage: React.FC = () => {
             </Button>
           </div>
 
-          {!isEveryday ? (
-            <SegmentedControl
-              role="tablist"
-              ariaLabel={t('viewModeAria')}
-              value={viewMode}
-              onChange={setViewMode}
-              options={viewTabs.map((tab) => ({
-                value: tab.id,
-                label: (
-                  <>
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                  </>
-                ),
-              }))}
-            />
-          ) : null}
+          <SegmentedControl
+            role="tablist"
+            ariaLabel={t('viewModeAria')}
+            value={viewMode}
+            onChange={setViewMode}
+            options={viewTabs.map((tab) => ({
+              value: tab.id,
+              label: (
+                <>
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </>
+              ),
+            }))}
+          />
         </div>
 
         <CalendarFilterBar

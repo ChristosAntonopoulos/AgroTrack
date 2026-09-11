@@ -31,13 +31,6 @@
       "light": "Usa un aspetto chiaro.",
       "dark": "Usa un aspetto scuro."
     },
-    "detailLevel": "Livello di dettaglio",
-    "simple": "Semplice",
-    "simpleShort": "Semplice",
-    "simpleDesc": "Mostra solo le informazioni e azioni essenziali.",
-    "full": "Completo",
-    "fullShort": "Completo",
-    "fullDesc": "Mostra più dati, strumenti e opzioni.",
     "fontScale": "Dimensione testo",
     "fontScales": {
       "default": "Normale",
@@ -114,29 +107,16 @@
     "resetConfirm": "Ripristinare i dati demo? Verranno ripristinati campi, attività e assegnazioni originali."
   },
   "experience": {
-    "label": "Livello di dettaglio",
-    "everyday": "Semplice",
-    "everydayShort": "Semplice",
-    "everydayDesc": "Mostra solo le informazioni e azioni essenziali.",
-    "everydayHint": "Consigliato per la maggior parte delle persone",
-    "full": "Completo",
-    "fullShort": "Completo",
-    "fullDesc": "Mostra più dati, strumenti e opzioni.",
-    "fullHint": "Per agronomi e pianificazione dettagliata",
-    "chooserTitle": "Come vuoi che appaia Oleachron?",
-    "chooserSubtitle": "Stessi campi e attività. Tu scegli la densità.",
-    "chooserFooter": "Puoi cambiarlo dopo nelle Impostazioni.",
-    "comfortTitle": "Quanto grande deve essere il testo?",
-    "comfortSubtitle": "Puoi cambiarlo in qualsiasi momento. Grande aiuta all'aperto.",
-    "comfortSkip": "Mantieni dimensione normale",
-    "onrampTitle": "Vuoi più dettaglio?",
-    "onrampBody": "Hai aperto i dettagli del campo alcune volte. Passa quando vuoi mappe e strumenti più densi.",
-    "onrampSwitch": "Passa a Completo",
-    "onrampDismiss": "Non ora",
-    "peekMoreAboutField": "Altro su questo campo",
-    "switchForDetails": "Passa a Completo per i dettagli",
+    "fontScale": "Dimensione testo",
+    "fontScales": {
+      "default": "Normale",
+      "large": "Grande",
+      "xl": "Extra grande"
+    },
+    "largeControls": "Pulsanti più grandi",
+    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile.",
     "setupPhoneTitle": "Configura questo telefono",
-    "setupPhoneBody": "Semplice · Testo grande · Pulsanti più grandi · Il Cronologio è la home"
+    "setupPhoneBody": "Testo grande · Pulsanti più grandi · Il Cronologio è la home"
   },
   "saveButton": "Salva modifiche",
   "savedLegacy": "Modifiche salvate"

@@ -5,14 +5,16 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LocaleProvider } from './context/LocaleProvider';
 import { NotificationProvider } from './context/NotificationContext';
-import { ExperienceModeProvider, useExperienceMode } from './context/ExperienceModeContext';
+import { ExperienceModeProvider } from './context/ExperienceModeContext';
 import { OfflineProvider } from './context/OfflineContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import ExperienceChooserPage from './pages/ExperienceChooserPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import AuthLayout from './components/Auth/AuthLayout';
 import FieldsPage from './pages/FieldsPage';
 import FieldFormPage from './pages/FieldFormPage';
 import FieldDetailPage from './pages/FieldDetailPage';
@@ -20,6 +22,7 @@ import FieldWeatherVegetationPage from './pages/FieldWeatherVegetationPage';
 import FieldWorkSetupPage from './pages/FieldWorkSetupPage';
 import FieldWorkProfilePage from './pages/FieldWorkProfilePage';
 import ChronologioPage from './pages/ChronologioPage';
+import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import TaskFormPage from './pages/TaskFormPage';
@@ -39,15 +42,9 @@ import MoneyPage from './pages/MoneyPage';
 import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
 import HarvestCampaignPage from './pages/HarvestCampaignPage';
 import FamilyInviteAcceptPage from './pages/FamilyInviteAcceptPage';
+import PartnerInviteAcceptPage from './pages/PartnerInviteAcceptPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import './App.css';
-
-const FullOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-  const { isEveryday } = useExperienceMode();
-  // Only kick off Full-only routes (analytics/reports/data-sources). Stay put elsewhere.
-  if (isEveryday) return <Navigate to={CHRONOLOGIO_HOME} replace />;
-  return children;
-};
 
 const FieldPeopleRedirect: React.FC = () => {
   const { id } = useParams();
@@ -82,18 +79,15 @@ function App() {
               <Router>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
+                  <Route element={<AuthLayout />}>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  </Route>
                   <Route path="/invite/:token" element={<InviteAcceptPage />} />
                   <Route path="/family-invite/:token" element={<FamilyInviteAcceptPage />} />
-                  <Route
-                    path="/experience"
-                    element={
-                      <ProtectedRoute>
-                        <ExperienceChooserPage />
-                      </ProtectedRoute>
-                    }
-                  />
+                  <Route path="/partner-invite/:token" element={<PartnerInviteAcceptPage />} />
                   <Route
                     element={
                       <ProtectedRoute>
@@ -101,7 +95,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   >
-                    <Route path="dashboard" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
+                    <Route path="dashboard" element={<DashboardPage />} />
                     <Route path="fields" element={<FieldsPage />} />
                     <Route path="fields/new" element={<FieldFormPage />} />
                     <Route path="fields/:id/chronologio" element={<FieldChronologioRedirect />} />
@@ -134,26 +128,12 @@ function App() {
                       path="analytics"
                       element={<Navigate to="/reports" replace />}
                     />
-                    <Route
-                      path="reports"
-                      element={
-                        <FullOnlyRoute>
-                          <ReportsPage />
-                        </FullOnlyRoute>
-                      }
-                    />
+                    <Route path="reports" element={<ReportsPage />} />
                     <Route path="today" element={<TodayRedirect />} />
                     <Route path="notes" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
                     <Route path="ministry" element={<MinistryNotificationsPage />} />
                     <Route path="settings" element={<SettingsPage />} />
-                    <Route
-                      path="data-sources"
-                      element={
-                        <FullOnlyRoute>
-                          <DataSourcesPage />
-                        </FullOnlyRoute>
-                      }
-                    />
+                    <Route path="data-sources" element={<DataSourcesPage />} />
                   </Route>
                 </Routes>
               </Router>

@@ -26,7 +26,6 @@
 .badge-primary {
   background: var(--olive-soft);
   color: var(--link);
-  border-color: var(--olive-border);
 }
 
 .badge-success {

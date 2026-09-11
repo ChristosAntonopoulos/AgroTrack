@@ -7,10 +7,10 @@ import { User, LogOut, Menu, MoreVertical, Plus } from 'lucide-react';
 import HarvestHeaderButton from './HarvestHeaderButton';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
-import ExperienceModeToggle from '../Experience/ExperienceModeToggle';
 import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useFeedbackOptional } from '../../context/FeedbackContext';
 import './Header.css';
 import '../Capture/Capture.css';
 
@@ -22,11 +22,11 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const { t } = useTranslation('nav');
   const { t: tCommon } = useTranslation('common');
-  const { t: tSettings } = useTranslation('settings');
   const { t: tCapture } = useTranslation('capture');
   const { user, logout } = useAuth();
   const { resolvedTheme } = useTheme();
   const capture = useCaptureOptional();
+  const feedback = useFeedbackOptional();
   const logoTone = resolvedTheme === 'dark' ? 'on-dark' : 'on-light';
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,7 +38,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
     location.pathname === '/chronologio' ||
     location.pathname === '/harvest';
   const hideHeaderCapture = location.pathname === '/chronologio';
-  const hideAppModeToggle = /^\/fields\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
 
@@ -87,14 +86,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             className="header-logo-lockup"
             variant="horizontal"
             tone={logoTone}
-            size="xs"
-            alt={tCommon('appName')}
-          />
-          <BrandLogo
-            className="header-logo-mark"
-            variant="favicon"
             size="sm"
-            alt=""
+            alt={tCommon('appName')}
           />
         </Link>
       </div>
@@ -114,12 +107,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
               {tCapture('cta')}
             </button>
           ) : null}
-
-          {hideAppModeToggle ? null : (
-            <div className="header-desktop-controls u-hide-below-md">
-              <ExperienceModeToggle compact />
-            </div>
-          )}
 
           <NotificationBell />
 
@@ -151,19 +138,24 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             </button>
             {overflowOpen && (
               <div className="header-overflow-menu" role="menu">
-                {hideAppModeToggle ? null : (
-                  <div className="header-overflow-section">
-                    <div className="header-overflow-label">{tSettings('experience.label')}</div>
-                    <ExperienceModeToggle compact />
-                  </div>
-                )}
                 <div className="header-overflow-user">
                   <User size={18} aria-hidden />
                   <span className="header-overflow-user-name">{displayName}</span>
                 </div>
                 <button
                   type="button"
-                  className="header-overflow-logout"
+                  className="header-overflow-item"
+                  onClick={() => {
+                    setOverflowOpen(false);
+                    feedback?.openFeedback();
+                  }}
+                  role="menuitem"
+                >
+                  {t('items.feedback')}
+                </button>
+                <button
+                  type="button"
+                  className="header-overflow-item"
                   onClick={() => {
                     setOverflowOpen(false);
                     navigate('/settings');

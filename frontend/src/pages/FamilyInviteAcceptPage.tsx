@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FamilyInviteShare, familyService } from '../services/familyService';
 import { useAuth } from '../context/AuthContext';
+import { getApiErrorMessage } from '../utils/translateApiError';
 import PageContainer from '../components/Common/PageContainer';
 import PageHeader from '../components/Common/PageHeader';
 import Card from '../components/Common/Card';
@@ -12,7 +13,7 @@ import './InviteAcceptPage.css';
 
 const FamilyInviteAcceptPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const { t } = useTranslation(['partners', 'common', 'auth']);
+  const { t } = useTranslation(['partners', 'common', 'auth', 'errors']);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [invite, setInvite] = useState<FamilyInviteShare | null>(null);
@@ -24,7 +25,11 @@ const FamilyInviteAcceptPage: React.FC = () => {
     if (!token) return;
     void (async () => {
       try {
-        setInvite(await familyService.getInvite(token));
+        const next = await familyService.getInvite(token);
+        setInvite(next);
+        if (next.status && next.status.toLowerCase() !== 'pending') {
+          setError(t('errors:inviteNoLongerValid'));
+        }
       } catch {
         setError(t('partners:family.inviteMissing'));
       } finally {
@@ -40,14 +45,12 @@ const FamilyInviteAcceptPage: React.FC = () => {
       return;
     }
     setAccepting(true);
+    setError(null);
     try {
       await familyService.acceptInvite(token);
       navigate('/partners');
     } catch (e: unknown) {
-      const message =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        t('partners:family.acceptFailed');
-      setError(message);
+      setError(getApiErrorMessage(e, t) || t('partners:family.acceptFailed'));
     } finally {
       setAccepting(false);
     }
@@ -57,6 +60,7 @@ const FamilyInviteAcceptPage: React.FC = () => {
 
   const moduleLabels =
     invite?.modules?.map((m) => t(`partners:family.modules.${m}`)).join(', ') || '';
+  const canAccept = invite?.status?.toLowerCase() === 'pending';
 
   return (
     <PageContainer maxWidth="sm" className="invite-accept-page">
@@ -74,9 +78,15 @@ const FamilyInviteAcceptPage: React.FC = () => {
                 : t('partners:family.acceptBodyFallback')}
             </p>
             {isAuthenticated ? (
-              <Button onClick={accept} loading={accepting} variant="primary" className="btn-full-width">
-                {t('partners:family.accept')}
-              </Button>
+              canAccept ? (
+                <Button onClick={accept} loading={accepting} variant="primary" className="btn-full-width">
+                  {t('partners:family.accept')}
+                </Button>
+              ) : (
+                <Button onClick={() => navigate('/partners')} variant="primary" className="btn-full-width">
+                  {t('partners:openInPartners')}
+                </Button>
+              )
             ) : (
               <div className="invite-accept-auth">
                 <Link

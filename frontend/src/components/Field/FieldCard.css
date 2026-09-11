@@ -1,7 +1,7 @@
 .field-card-v2 {
   position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: space-between;
   gap: 1.15rem;
   background: var(--surface-1);
@@ -35,7 +35,7 @@
 }
 
 .field-card-v2--has-tasks {
-  border-left: 4px solid var(--olive-primary);
+  border-left: 4px solid var(--field-accent, var(--olive-primary));
 }
 
 .field-card-v2:focus-visible {
@@ -58,6 +58,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: auto;
+  margin-left: 1.45rem;
   padding-top: 0.15rem;
 }
 
@@ -103,26 +104,16 @@
 }
 
 .field-card-v2--compact {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  align-items: start;
   padding: 0.8rem 0.9rem;
-  gap: 0.7rem 0.75rem;
-}
-
-.field-card-v2-pin {
-  display: flex;
-  justify-content: center;
-  padding-top: 0.15rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
-}
-
-.field-card-v2-pin svg {
-  display: block;
+  gap: 0.7rem;
 }
 
 .field-card-v2--compact .field-card-v2-main {
   gap: 0.45rem;
+}
+
+.field-card-v2--compact .field-card-v2-footer {
+  margin-left: 1.17rem;
 }
 
 .field-card-v2--compact .field-identity-place {
@@ -145,8 +136,9 @@
   font-size: 0.98rem;
 }
 
-.field-card-v2--compact .field-identity--card .field-identity-title {
-  padding: 0.16rem 0.65rem 0.18rem 0.75rem;
+.field-card-v2--compact .field-identity--card .field-identity-swatch {
+  width: 0.82rem;
+  height: 0.82rem;
 }
 
 .field-card-v2--compact .field-card-v2-today {

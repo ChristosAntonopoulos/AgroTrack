@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getFieldService, getFieldWorkService, getFinancialSummaryService, getMeDashboardService, isMockMode } from '../services/serviceFactory';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
 import type { MeDashboard, MeDashboardPeriod } from '../services/meDashboardService';
 import { emptyMeDashboard } from '../services/meDashboardService';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { Field } from '../services/fieldService';
@@ -31,7 +30,6 @@ import {
   MapPin,
   AlertTriangle,
   Wheat,
-  FileText,
   Euro,
   PlusCircle,
   Sun,
@@ -53,7 +51,6 @@ const DashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation(['dashboard', 'common', 'partners', 'fields', 'money']);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isEveryday, showWidget } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const [fields, setFields] = useState<Field[]>([]);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
@@ -76,10 +73,9 @@ const DashboardPage: React.FC = () => {
     '';
 
   useEffect(() => {
-    if (isEveryday) return;
     loadDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.userId, isEveryday, refreshGeneration, period]);
+  }, [user?.userId, refreshGeneration, period]);
 
   const loadDashboardData = async () => {
     try {
@@ -165,10 +161,6 @@ const DashboardPage: React.FC = () => {
     };
   }, [isFieldOwner, isProducer, tasks, today, user?.userId]);
 
-  if (isEveryday) {
-    return <Navigate to="/chronologio?focus=today" replace />;
-  }
-
   const totalArea = fields.reduce((sum, field) => sum + field.area, 0);
   const pendingTasks = tasks.filter(
     (task) => task.status === 'planned' || task.status === 'ready' || task.status === 'pending'
@@ -217,31 +209,26 @@ const DashboardPage: React.FC = () => {
           </div>
         </header>
 
-        {showWidget('myActionsDetail') && (
-          <div className="period-chips" role="tablist" aria-label={t('dashboard:myActions.period.week')}>
-            {(['today', 'week', 'month'] as MeDashboardPeriod[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                role="tab"
-                aria-selected={period === p}
-                className={`period-chip${period === p ? ' is-active' : ''}`}
-                onClick={() => setPeriod(p)}
-              >
-                {t(`dashboard:myActions.period.${p}`)}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="period-chips" role="tablist" aria-label={t('dashboard:myActions.period.week')}>
+          {(['today', 'week', 'month'] as MeDashboardPeriod[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              role="tab"
+              aria-selected={period === p}
+              className={`period-chip${period === p ? ' is-active' : ''}`}
+              onClick={() => setPeriod(p)}
+            >
+              {t(`dashboard:myActions.period.${p}`)}
+            </button>
+          ))}
+        </div>
 
-        {showWidget('myActions') && (
-          <HeroActionCard
-            topAction={meDashboard.topAction}
-            pending={meDashboard.pending}
-            role={user?.role}
-            density="full"
-          />
-        )}
+        <HeroActionCard
+          topAction={meDashboard.topAction}
+          pending={meDashboard.pending}
+          role={user?.role}
+        />
 
         {isProducer && (
           <Card className="producer-hero-card" hover onClick={() => navigate('/chronologio?focus=today')}>
@@ -276,11 +263,6 @@ const DashboardPage: React.FC = () => {
                   <Wheat size={20} />
                   <span className="quick-action-title">{t('fields:thisHarvest.title')}</span>
                   <span className="quick-action-sub">{t('fields:thisHarvest.season', { year: new Date().getFullYear() })}</span>
-                </button>
-                <button type="button" className="quick-action-card" onClick={() => navigate('/reports')}>
-                  <FileText size={20} />
-                  <span className="quick-action-title">{t('dashboard:quickActions.reports')}</span>
-                  <span className="quick-action-sub">{t('dashboard:quickActions.reportsSub')}</span>
                 </button>
                 <button type="button" className="quick-action-card" onClick={() => navigate('/tasks/new')}>
                   <PlusCircle size={20} />
@@ -344,20 +326,16 @@ const DashboardPage: React.FC = () => {
           </div>
         ) : null}
 
-        {showWidget('myActions') && (
-          <MyActionsStrip data={meDashboard} density="full" period={period} />
-        )}
+        <MyActionsStrip data={meDashboard} period={period} />
 
-        {showWidget('recentNotes') && (
-          <NotesWidget
-            limit={5}
-            fieldNames={Object.fromEntries(fields.map((f) => [f.id, f.name]))}
-            fields={fields.map((f) => ({ id: f.id, name: f.name }))}
-            showSeeMore
-          />
-        )}
+        <NotesWidget
+          limit={5}
+          fieldNames={Object.fromEntries(fields.map((f) => [f.id, f.name]))}
+          fields={fields.map((f) => ({ id: f.id, name: f.name }))}
+          showSeeMore
+        />
 
-        {showWidget('myActionsDetail') && <ActionSparkline series={meDashboard.series} />}
+        <ActionSparkline series={meDashboard.series} />
 
         <div className="dashboard-stats">
           {isFieldOwner && (
@@ -431,14 +409,12 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
-        {showWidget('myActions') && (
-          <RecentActivityFeed
-            activities={meDashboard.recent}
-            limit={10}
-            fieldNames={Object.fromEntries(fields.map((f) => [f.id, f.name]))}
-            showSeeMore={showWidget('myActionsDetail')}
-          />
-        )}
+        <RecentActivityFeed
+          activities={meDashboard.recent}
+          limit={10}
+          fieldNames={Object.fromEntries(fields.map((f) => [f.id, f.name]))}
+          showSeeMore
+        />
 
         <div className="dashboard-main-grid">
           <section className="dashboard-panel">

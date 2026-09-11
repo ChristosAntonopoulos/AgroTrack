@@ -25,8 +25,9 @@ const initials = (name: string) => {
 
 const PersonCard: React.FC<Props> = ({ person, fieldId, canManage, onEditContact, onRemoved }) => {
   const { t } = useTranslation(['partners', 'common']);
+  const linkFieldId = person.fieldIds?.[0] || fieldId;
   const profileTo = person.listed && person.userId
-    ? `/partners/${person.userId}?${new URLSearchParams({ fieldId }).toString()}`
+    ? `/partners/${person.userId}${linkFieldId ? `?${new URLSearchParams({ fieldId: linkFieldId }).toString()}` : ''}`
     : '';
 
   return (
@@ -41,20 +42,15 @@ const PersonCard: React.FC<Props> = ({ person, fieldId, canManage, onEditContact
             {person.phone ? <p className="partner-person-phone">{person.phone}</p> : null}
           </div>
         </div>
-        {(person.serviceLabels.length > 0 || person.connections.length > 0) && (
-          <div className="partner-chips">
+        {person.serviceLabels.length > 0 ? (
+          <div className="partner-chips" aria-label={t('partners:whatTheyDo')}>
             {person.serviceLabels.map((label) => (
               <span key={label} className="partner-chip partner-chip-job">
                 {label}
               </span>
             ))}
-            {person.connections.map((connection) => (
-              <span key={connection} className="partner-chip">
-                {t(`partners:connection.${connection}`)}
-              </span>
-            ))}
           </div>
-        )}
+        ) : null}
       </div>
       <div className="partner-actions-stack">
         <PhoneActions phone={person.phone} />
@@ -75,7 +71,8 @@ const PersonCard: React.FC<Props> = ({ person, fieldId, canManage, onEditContact
               size="sm"
               onClick={async () => {
                 if (!window.confirm(t('partners:removeMember'))) return;
-                await fieldPeopleService.removeMembership(fieldId, person.userId!);
+                const ids = person.fieldIds?.length ? person.fieldIds : fieldId ? [fieldId] : [];
+                await Promise.all(ids.map((id) => fieldPeopleService.removeMembership(id, person.userId!)));
                 onRemoved?.();
               }}
             >

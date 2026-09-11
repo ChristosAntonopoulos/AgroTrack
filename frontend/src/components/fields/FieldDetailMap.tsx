@@ -21,19 +21,16 @@ import MapLayerPanel from './MapLayerPanel';
 import MapLayerLegend from './MapLayerLegend';
 import SatelliteDateSelector from './SatelliteDateSelector';
 import type { FieldWeather } from '../../services/geospatialService';
-import type { SimpleMapPreset } from '../../utils/fieldMapPresets';
-import { FULL_OVERLAY_CAP, nextOverlayIds, resolveSimplePresetLayer } from '../../utils/fieldMapPresets';
+import { nextOverlayIds } from '../../utils/fieldMapPresets';
 import './FieldDetailMap.css';
 
-export type FieldMapVariant = 'peek' | 'simple' | 'full';
+export type FieldMapVariant = 'peek' | 'full';
 
 interface Props {
   field: Field;
   heightPx?: number;
   variant?: FieldMapVariant;
   weather?: FieldWeather | null;
-  preset?: SimpleMapPreset;
-  onPresetChange?: (preset: SimpleMapPreset) => void;
   onOpenMapTab?: () => void;
   showDataLayers?: boolean;
   compact?: boolean;
@@ -105,16 +102,14 @@ const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
 const FieldDetailMap: React.FC<Props> = ({
   field,
   heightPx = 240,
-  variant = 'simple',
+  variant = 'full',
   weather,
-  preset = 'field',
-  onPresetChange,
   onOpenMapTab,
   showDataLayers,
   compact = false,
 }) => {
   const mode: FieldMapVariant =
-    variant || (showDataLayers === false || compact ? 'peek' : 'simple');
+    variant === 'peek' || showDataLayers === false || compact ? 'peek' : 'full';
   const { t, i18n } = useTranslation(['fields', 'common', 'settings']);
   const isPeek = mode === 'peek';
   const isFull = mode === 'full';
@@ -141,30 +136,18 @@ const FieldDetailMap: React.FC<Props> = ({
     dates,
     selectedDateId,
     loading,
-    selectLayer,
     setOverlayIds,
     selectDate,
     selectCompareDate,
   } = mapLayers;
 
-  const availableIds = useMemo(
-    () => definitions.map((definition) => definition.id),
-    [definitions]
-  );
-  const simpleChoice = resolveSimplePresetLayer(preset, availableIds);
-
-  useEffect(() => {
-    if (isPeek || isFull) return;
-    selectLayer(simpleChoice.layerId);
-  }, [isPeek, isFull, simpleChoice.layerId, selectLayer]);
-
   const overlayBounds = toLeafletBounds(activeLayer?.bounds);
   const compareBounds = toLeafletBounds(compareLayer?.bounds);
   const satelliteLayerActive = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
   const activeDefinition = definitions.find((d) => d.id === activeLayerId);
-  const showDateDock = !isPeek && isFull && satelliteLayerActive;
+  const showDateDock = isFull && satelliteLayerActive;
   const frostLevel = String(weather?.frost?.level || '').toLowerCase();
-  const showFrostNote = preset === 'frost' || (isFull && frostLevel && frostLevel !== 'none');
+  const showFrostNote = isFull && frostLevel && frostLevel !== 'none';
 
   const formatPassDate = (observationId?: string) => {
     const pass = dates.find((d) => d.observationId === observationId);
@@ -225,22 +208,6 @@ const FieldDetailMap: React.FC<Props> = ({
               loading={loading}
               capReached={overlayCapMessage}
             />
-          ) : null}
-
-          {!isPeek && !isFull ? (
-            <div className="field-map-preset-bar" role="group" aria-label={t('fields:mapWorkspace.whatToSee')}>
-              <p className="field-map-preset-label">{t('fields:mapWorkspace.whatToSee')}</p>
-              {(['field', 'water', 'frost', 'vegetation'] as SimpleMapPreset[]).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={preset === item ? 'is-active' : ''}
-                  onClick={() => onPresetChange?.(item)}
-                >
-                  {t(`fields:mapWorkspace.presets.${item}`)}
-                </button>
-              ))}
-            </div>
           ) : null}
 
           <MapContainer
@@ -313,10 +280,6 @@ const FieldDetailMap: React.FC<Props> = ({
             <p className="field-map-frost-note">
               {t('fields:weather.frostRisk', { level: weather?.frost?.level || t('fields:mapWorkspace.unknownFrost') })}
             </p>
-          ) : null}
-
-          {!isPeek && simpleChoice.missingKey ? (
-            <p className="field-map-missing">{t(`fields:${simpleChoice.missingKey}`)}</p>
           ) : null}
 
           {!isPeek && activeLayer?.legend && activeDefinition ? (

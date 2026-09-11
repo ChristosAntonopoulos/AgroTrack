@@ -6,13 +6,16 @@ import { canNativeShare, copyText, nativeShare, qrImageUrl } from '../../utils/s
 
 type Props = {
   invite: FamilyInviteShare;
+  /** i18n key group under partners: — family or ownerPartner */
+  copyNs?: 'family' | 'ownerPartner';
   onDone?: () => void;
 };
 
-const FamilySharePanel: React.FC<Props> = ({ invite, onDone }) => {
+const FamilySharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }) => {
   const { t } = useTranslation(['partners', 'common']);
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
   const code = invite.code?.trim();
+  const ns = `partners:${copyNs}`;
 
   const handleCopyCode = async () => {
     if (!code) return;
@@ -27,21 +30,21 @@ const FamilySharePanel: React.FC<Props> = ({ invite, onDone }) => {
 
   const handleNative = async () => {
     const text = code
-      ? t('partners:family.shareMessageWithCode', { name: invite.displayName || '', code })
-      : t('partners:family.shareMessage', { name: invite.displayName || '' });
-    await nativeShare(t('partners:family.shareTitle'), text, invite.shareUrl);
+      ? t(`${ns}.shareMessageWithCode`, { name: invite.displayName || '', code })
+      : t(`${ns}.shareMessage`, { name: invite.displayName || '' });
+    await nativeShare(t(`${ns}.shareTitle`), text, invite.shareUrl);
   };
 
   return (
     <div className="family-share-panel">
-      <p className="partners-inline-hint">{t('partners:family.inviteReady')}</p>
+      <p className="partners-inline-hint">{t(`${ns}.inviteReady`)}</p>
       {code ? (
         <div className="family-invite-code">
-          <span className="family-invite-code-label">{t('partners:family.inviteCode')}</span>
+          <span className="family-invite-code-label">{t(`${ns}.inviteCode`)}</span>
           <strong className="family-invite-code-value">{code}</strong>
-          <p className="family-invite-code-hint">{t('partners:family.inviteCodeHint')}</p>
+          <p className="family-invite-code-hint">{t(`${ns}.inviteCodeHint`)}</p>
           <Button variant="outline" onClick={() => void handleCopyCode()}>
-            {copied === 'code' ? t('partners:family.codeCopied') : t('partners:family.copyCode')}
+            {copied === 'code' ? t(`${ns}.codeCopied`) : t(`${ns}.copyCode`)}
           </Button>
         </div>
       ) : null}
@@ -49,7 +52,7 @@ const FamilySharePanel: React.FC<Props> = ({ invite, onDone }) => {
         <img
           className="family-qr"
           src={qrImageUrl(invite.shareUrl, 220)}
-          alt={t('partners:family.qrAlt')}
+          alt={t(`${ns}.qrAlt`)}
           width={220}
           height={220}
         />
@@ -59,13 +62,13 @@ const FamilySharePanel: React.FC<Props> = ({ invite, onDone }) => {
       </a>
       <div className="partners-sheet-actions family-share-actions">
         {canNativeShare() ? (
-          <Button onClick={() => void handleNative()}>{t('partners:family.nativeShare')}</Button>
+          <Button onClick={() => void handleNative()}>{t(`${ns}.nativeShare`)}</Button>
         ) : null}
         <a className="btn btn-primary btn-md" href={invite.whatsAppUrl} target="_blank" rel="noreferrer">
           {t('partners:shareWhatsApp')}
         </a>
         <a className="btn btn-outline btn-md" href={invite.mailtoUrl}>
-          {t('partners:family.shareEmail')}
+          {t(`${ns}.shareEmail`)}
         </a>
         {invite.phone ? (
           <a className="btn btn-outline btn-md" href={invite.smsUrl}>
@@ -73,7 +76,7 @@ const FamilySharePanel: React.FC<Props> = ({ invite, onDone }) => {
           </a>
         ) : null}
         <Button variant="outline" onClick={() => void handleCopyLink()}>
-          {copied === 'link' ? t('partners:family.linkCopied') : t('partners:copyLink')}
+          {copied === 'link' ? t(`${ns}.linkCopied`) : t('partners:copyLink')}
         </Button>
         {onDone ? (
           <Button variant="ghost" onClick={onDone}>

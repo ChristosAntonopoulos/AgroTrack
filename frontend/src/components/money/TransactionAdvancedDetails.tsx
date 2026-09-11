@@ -20,7 +20,6 @@ type Props = {
   onAddPhotos: (files: FileList | null) => void;
   onRemovePhoto: (id: string) => void;
   fileRef: React.RefObject<HTMLInputElement | null>;
-  showFullPicture: boolean;
 };
 
 const TransactionAdvancedDetails: React.FC<Props> = ({
@@ -38,7 +37,6 @@ const TransactionAdvancedDetails: React.FC<Props> = ({
   onAddPhotos,
   onRemovePhoto,
   fileRef,
-  showFullPicture,
 }) => {
   const { t, i18n } = useTranslation('capture');
   return (
@@ -48,55 +46,51 @@ const TransactionAdvancedDetails: React.FC<Props> = ({
       </button>
       {open ? (
         <div className="money-more" style={{ display: 'grid', gap: 18, marginTop: 12 }}>
-          {showFullPicture ? (
-            <>
-              <label className="money-form-label">
-                {t('money.paymentMethod')}
-                <select value={paymentMethod} onChange={(e) => onPaymentMethod(e.target.value)}>
-                  <option value="">{t('money.none')}</option>
-                  {PAYMENT_METHODS.map((method) => (
-                    <option key={method} value={method}>
-                      {paymentMethodLabel(method, i18n.language)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="money-form-label">
-                {t('money.counterparty')}
-                <input value={counterpartyName} onChange={(e) => onCounterparty(e.target.value)} />
-              </label>
-              <div className="capture-photos">
-                <div className="capture-photo-row">
-                  {photos.map((photo) => (
-                    <div key={photo.id} className="capture-photo-thumb">
-                      <img src={photo.preview} alt="" />
-                      <button type="button" aria-label={t('photos.remove')} onClick={() => onRemovePhoto(photo.id)}>
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {photos.length < 5 ? (
-                    <button type="button" className="capture-add-photo" onClick={() => fileRef.current?.click()}>
-                      <Camera size={18} />
-                      {t('money.addReceipt')}
-                    </button>
-                  ) : null}
+          <label className="money-form-label">
+            {t('money.paymentMethod')}
+            <select value={paymentMethod} onChange={(e) => onPaymentMethod(e.target.value)}>
+              <option value="">{t('money.none')}</option>
+              {PAYMENT_METHODS.map((method) => (
+                <option key={method} value={method}>
+                  {paymentMethodLabel(method, i18n.language)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="money-form-label">
+            {t('money.counterparty')}
+            <input value={counterpartyName} onChange={(e) => onCounterparty(e.target.value)} />
+          </label>
+          <div className="capture-photos">
+            <div className="capture-photo-row">
+              {photos.map((photo) => (
+                <div key={photo.id} className="capture-photo-thumb">
+                  <img src={photo.preview} alt="" />
+                  <button type="button" aria-label={t('photos.remove')} onClick={() => onRemovePhoto(photo.id)}>
+                    <X size={14} />
+                  </button>
                 </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  multiple
-                  hidden
-                  onChange={(e) => {
-                    onAddPhotos(e.target.files);
-                    e.target.value = '';
-                  }}
-                />
-              </div>
-            </>
-          ) : null}
+              ))}
+              {photos.length < 5 ? (
+                <button type="button" className="capture-add-photo" onClick={() => fileRef.current?.click()}>
+                  <Camera size={18} />
+                  {t('money.addReceipt')}
+                </button>
+              ) : null}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              hidden
+              onChange={(e) => {
+                onAddPhotos(e.target.files);
+                e.target.value = '';
+              }}
+            />
+          </div>
           <label className="money-form-label">
             {t('money.notes')}
             <textarea rows={2} value={notes} onChange={(e) => onNotes(e.target.value)} />

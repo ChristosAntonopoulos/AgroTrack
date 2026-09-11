@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FamilyModule, familyService } from '../services/familyService';
+import { FamilyModule } from '../services/familyService';
+import { ownerPartnerService } from '../services/ownerPartnerService';
 import { useAuth } from '../context/AuthContext';
 
-/** Union of modules from all active family memberships for the signed-in user. */
+/**
+ * Union of modules from active family + partner memberships for the signed-in user.
+ * Used to show nav items the invitee can open on owners' groves.
+ */
 export const useFamilyMembershipModules = (): ReadonlySet<FamilyModule> | null => {
   const { user, isAuthenticated } = useAuth();
   const [modules, setModules] = useState<FamilyModule[] | null>(null);
@@ -14,9 +18,14 @@ export const useFamilyMembershipModules = (): ReadonlySet<FamilyModule> | null =
     }
     let cancelled = false;
     void (async () => {
-      const memberships = await familyService.getMyMemberships();
+      const ctx = await ownerPartnerService.getAccessContext();
       if (cancelled) return;
-      const union = Array.from(new Set(memberships.flatMap((m) => m.modules)));
+      const union = Array.from(
+        new Set([
+          ...ctx.familyMemberships.flatMap((m) => m.modules),
+          ...ctx.partnerMemberships.flatMap((m) => m.modules),
+        ])
+      );
       setModules(union);
     })();
     return () => {

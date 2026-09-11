@@ -4,6 +4,7 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
 using OliveLifecycle.Application.DTOs.Family;
+using OliveLifecycle.Application.DTOs.OwnerPartner;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
@@ -19,13 +20,20 @@ public class FieldAccessServiceTests
     private readonly Mock<IFieldRepository> _fieldRepository = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IFamilyMemberRepository> _familyMembers = new();
+    private readonly Mock<IOwnerPartnerLinkRepository> _partnerLinks = new();
     private readonly FieldAccessService _service;
 
     public FieldAccessServiceTests()
     {
         _familyMembers.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<FamilyMember>());
-        _service = new FieldAccessService(_fieldRepository.Object, _fieldTasks.Object, _familyMembers.Object);
+        _partnerLinks.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<OwnerPartnerLink>());
+        _service = new FieldAccessService(
+            _fieldRepository.Object,
+            _fieldTasks.Object,
+            _familyMembers.Object,
+            _partnerLinks.Object);
     }
 
     [Fact]
@@ -334,13 +342,41 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_RejectsUnknownInviteCode()
+    public async Task RegisterAsync_AcceptsPendingPartnerInvite()
     {
+        const string persistedId = "507f1f77bcf86cd799439015";
         var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.ExistsByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        userRepository
+            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) =>
+            {
+                u.Id = persistedId;
+                return u;
+            });
+
         var family = new Mock<IFamilyService>();
         family
-            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .Setup(f => f.GetInviteAsync("PP12-QQ34", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((FamilyInviteShareDto?)null);
+
+        var partner = new Mock<IOwnerPartnerService>();
+        partner
+            .Setup(f => f.GetInviteAsync("PP12-QQ34", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OwnerPartnerInviteShareDto
+            {
+                Status = FamilyInviteStatuses.Pending,
+                Code = "PP12-QQ34"
+            });
+        partner
+            .Setup(f => f.AcceptInviteAsync("PP12-QQ34", persistedId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OwnerPartnerLinkDto
+            {
+                Status = FamilyMemberStatuses.Active,
+                LinkedUserId = persistedId
+            });
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -355,7 +391,57 @@ public class AuthServiceTests
             userRepository.Object,
             configuration,
             new SystemDateTimeProvider(),
-            family.Object);
+            family.Object,
+            null,
+            partner.Object);
+
+        var response = await service.RegisterAsync(new RegisterDto
+        {
+            Email = "partner@test.com",
+            Password = "password123",
+            FirstName = "Nikos",
+            LastName = "Partner",
+            InviteCode = "PP12-QQ34"
+        });
+
+        Assert.Equal(persistedId, response.UserId);
+        partner.Verify(
+            f => f.AcceptInviteAsync("PP12-QQ34", persistedId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        family.Verify(
+            f => f.AcceptInviteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_RejectsUnknownInviteCode()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        var family = new Mock<IFamilyService>();
+        family
+            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FamilyInviteShareDto?)null);
+        var partner = new Mock<IOwnerPartnerService>();
+        partner
+            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OwnerPartnerInviteShareDto?)null);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(
+            userRepository.Object,
+            configuration,
+            new SystemDateTimeProvider(),
+            family.Object,
+            null,
+            partner.Object);
 
         await Assert.ThrowsAsync<ValidationException>(() => service.RegisterAsync(new RegisterDto
         {
@@ -367,6 +453,210 @@ public class AuthServiceTests
         userRepository.Verify(
             r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task ForgotPasswordAsync_UnknownEmail_StillSucceeds_AndDoesNotSend()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        var email = new Mock<IEmailSender>();
+        email.SetupGet(e => e.IsConfigured).Returns(false);
+
+        var service = new AuthService(
+            userRepository.Object,
+            PasswordResetConfig(),
+            new SystemDateTimeProvider(),
+            emailSender: email.Object);
+
+        var response = await service.ForgotPasswordAsync(new ForgotPasswordDto { Email = "missing@test.com" });
+
+        Assert.True(response.Sent);
+        Assert.Null(response.DevResetToken);
+        email.Verify(
+            e => e.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ForgotPasswordAsync_KnownEmail_StoresHash_AndReturnsDevTokenWhenUnconfigured()
+    {
+        var stored = CreateResetUser();
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByEmailAsync("grower@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stored);
+        userRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) => u);
+        var email = new Mock<IEmailSender>();
+        email.SetupGet(e => e.IsConfigured).Returns(false);
+        email
+            .Setup(e => e.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = new AuthService(
+            userRepository.Object,
+            PasswordResetConfig(),
+            new SystemDateTimeProvider(),
+            emailSender: email.Object);
+
+        var response = await service.ForgotPasswordAsync(new ForgotPasswordDto { Email = "Grower@test.com" });
+
+        Assert.True(response.Sent);
+        Assert.False(string.IsNullOrWhiteSpace(response.DevResetToken));
+        Assert.False(string.IsNullOrWhiteSpace(stored.PasswordResetTokenHash));
+        Assert.NotNull(stored.PasswordResetExpiresAt);
+        email.Verify(
+            e => e.SendAsync("grower@test.com", It.IsAny<string>(), It.Is<string>(body => body.Contains(response.DevResetToken!)), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ForgotPasswordAsync_DoesNotReturnDevToken_WhenSmtpConfigured()
+    {
+        var stored = CreateResetUser();
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByEmailAsync("grower@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stored);
+        userRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) => u);
+        var email = new Mock<IEmailSender>();
+        email.SetupGet(e => e.IsConfigured).Returns(true);
+        email
+            .Setup(e => e.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = new AuthService(
+            userRepository.Object,
+            PasswordResetConfig(),
+            new SystemDateTimeProvider(),
+            emailSender: email.Object);
+
+        var response = await service.ForgotPasswordAsync(new ForgotPasswordDto { Email = "grower@test.com" });
+
+        Assert.True(response.Sent);
+        Assert.Null(response.DevResetToken);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_ValidToken_UpdatesHash_AndClearsToken()
+    {
+        const string token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var stored = CreateResetUser();
+        var previousHash = stored.PasswordHash;
+        stored.PasswordResetTokenHash = HashToken(token);
+        stored.PasswordResetExpiresAt = DateTime.UtcNow.AddMinutes(30);
+
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByPasswordResetTokenHashAsync(stored.PasswordResetTokenHash, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stored);
+        userRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) => u);
+
+        var service = new AuthService(
+            userRepository.Object,
+            PasswordResetConfig(),
+            new SystemDateTimeProvider());
+
+        await service.ResetPasswordAsync(new ResetPasswordDto
+        {
+            Token = token,
+            Password = "new-password-9"
+        });
+
+        Assert.NotEqual(previousHash, stored.PasswordHash);
+        Assert.False(string.IsNullOrWhiteSpace(stored.PasswordHash));
+        Assert.Null(stored.PasswordResetTokenHash);
+        Assert.Null(stored.PasswordResetExpiresAt);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_ExpiredToken_Throws()
+    {
+        const string token = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        var now = new DateTime(2026, 9, 11, 12, 0, 0, DateTimeKind.Utc);
+        var stored = CreateResetUser();
+        stored.PasswordResetTokenHash = HashToken(token);
+        stored.PasswordResetExpiresAt = now.AddMinutes(-1);
+
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByPasswordResetTokenHashAsync(stored.PasswordResetTokenHash, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stored);
+        userRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken _) => u);
+
+        var clock = new Mock<IDateTimeProvider>();
+        clock.SetupGet(c => c.UtcNow).Returns(now);
+
+        var service = new AuthService(
+            userRepository.Object,
+            PasswordResetConfig(),
+            clock.Object);
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => service.ResetPasswordAsync(new ResetPasswordDto
+        {
+            Token = token,
+            Password = "new-password-9"
+        }));
+
+        Assert.Equal("This reset link is invalid or has expired.", ex.Message);
+        Assert.Null(stored.PasswordResetTokenHash);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_InvalidToken_Throws()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByPasswordResetTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var service = new AuthService(
+            userRepository.Object,
+            PasswordResetConfig(),
+            new SystemDateTimeProvider());
+
+        await Assert.ThrowsAsync<ValidationException>(() => service.ResetPasswordAsync(new ResetPasswordDto
+        {
+            Token = "missing-token",
+            Password = "new-password-9"
+        }));
+    }
+
+    private static IConfiguration PasswordResetConfig() =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test",
+                ["Email:ExposeDevResetLink"] = "true",
+                ["App:PublicWebBaseUrl"] = "http://localhost:3000"
+            })
+            .Build();
+
+    private static User CreateResetUser() => new()
+    {
+        Id = "507f1f77bcf86cd799439020",
+        Email = "grower@test.com",
+        PasswordHash = "existing-hash",
+        Role = UserRole.FieldOwner
+    };
+
+    private static string HashToken(string token)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token.Trim()));
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }
 

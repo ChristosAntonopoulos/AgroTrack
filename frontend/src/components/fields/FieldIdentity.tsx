@@ -48,6 +48,7 @@ const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true 
       }
     >
       <div className="field-identity-title">
+        <span className="field-identity-swatch" aria-hidden />
         {size === 'page' ? (
           <h1 className="field-identity-name">{displayName}</h1>
         ) : (

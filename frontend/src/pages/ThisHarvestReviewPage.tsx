@@ -36,7 +36,6 @@ import {
 } from '../ravdos/seasonFinance';
 import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { formatOfficialAmount } from '../finance/format';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { formatDate, formatNumber } from '../utils/localeFormatters';
@@ -48,7 +47,6 @@ const formatKg = (kg: number, locale: string) =>
 const ThisHarvestReviewPage: React.FC = () => {
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const { locale } = useLocale();
-  const { isEveryday } = useExperienceMode();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
@@ -129,10 +127,10 @@ const ThisHarvestReviewPage: React.FC = () => {
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
           .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-          .slice(0, isEveryday ? 4 : 12)
+          .slice(0, 12)
       );
     },
-    [allTasks, anyIrrigated, i18n.language, isEveryday]
+    [allTasks, anyIrrigated, i18n.language]
   );
 
   useEffect(() => {
@@ -271,7 +269,7 @@ const ThisHarvestReviewPage: React.FC = () => {
               <section className="ravdos-section" aria-labelledby="ravdos-happened">
                 <h2 id="ravdos-happened">{t('fields:apologismos.whatHappened')}</h2>
                 <ul className="ravdos-done-list">
-                  {(isEveryday ? doneTitles.slice(0, 6) : doneTitles).map((title) => (
+                  {doneTitles.map((title) => (
                     <li key={title}>{title}</li>
                   ))}
                 </ul>
@@ -310,7 +308,7 @@ const ThisHarvestReviewPage: React.FC = () => {
               </Link>
             )}
 
-            {!isEveryday && finance.fieldCards.length > 0 ? (
+            {finance.fieldCards.length > 0 ? (
               <section className="ravdos-section" aria-labelledby="ravdos-fields-review">
                 <h2 id="ravdos-fields-review">{t('fields:apologismos.fieldsTitle')}</h2>
                 <ul className="ravdos-fields">

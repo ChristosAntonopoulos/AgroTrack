@@ -209,29 +209,40 @@
 .fields-map-pin {
   --pin-color: var(--color-primary);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.35rem;
   width: max-content;
   pointer-events: auto;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.42));
-  transform-origin: 14px 37px;
+  transform-origin: center center;
 }
 
 .fields-map-pin-mark {
   display: block;
-  width: 28px;
-  height: 37px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  line-height: 0;
+  border-radius: 50%;
+  background: var(--pin-color);
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }
 
-.fields-map-pin-mark svg {
-  display: block;
+.fields-map-pin--hover .fields-map-pin-mark {
+  width: 20px;
+  height: 20px;
+}
+
+.fields-map-pin--selected .fields-map-pin-mark {
+  width: 22px;
+  height: 22px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--pin-color) 42%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.42);
 }
 
 .fields-map-pin-label {
   max-width: 11.5rem;
-  margin-bottom: 0.55rem;
   padding: 0.22rem 0.58rem;
   overflow: hidden;
   text-overflow: ellipsis;

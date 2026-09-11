@@ -16,6 +16,7 @@ public class FamilyServiceTests
     private readonly Mock<IFamilyCircleRepository> _circles = new();
     private readonly Mock<IFamilyMemberRepository> _members = new();
     private readonly Mock<IFamilyInviteRepository> _invites = new();
+    private readonly Mock<IOwnerPartnerInviteRepository> _partnerInvites = new();
     private readonly Mock<IFieldRepository> _fields = new();
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
@@ -35,10 +36,13 @@ public class FamilyServiceTests
             .ReturnsAsync(new FamilyCircle { Id = "circle-1", OwnerUserId = "owner-1" });
         _invites.Setup(r => r.GetPendingByCircleIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<FamilyInvite>());
+        _partnerInvites.Setup(r => r.GetByTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OwnerPartnerInvite?)null);
         _service = new FamilyService(
             _circles.Object,
             _members.Object,
             _invites.Object,
+            _partnerInvites.Object,
             _fields.Object,
             _users.Object,
             _clock.Object,
@@ -139,8 +143,8 @@ public class FamilyServiceTests
                 Status = FamilyMemberStatuses.Pending,
                 Modules = ["fields"]
             });
-        _members.Setup(r => r.GetActiveByLinkedUserIdAsync("user-2", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((FamilyMember?)null);
+        _members.Setup(r => r.GetActiveByLinkedUserIdAllAsync("user-2", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FamilyMember>());
 
         var member = await _service.AcceptInviteAsync("tok", "user-2");
 
@@ -153,6 +157,69 @@ public class FamilyServiceTests
         _invites.Verify(r => r.UpdateAsync(
             It.Is<FamilyInvite>(i => i.Status == FamilyInviteStatuses.Accepted && i.AcceptedBy == "user-2"),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AcceptInviteAsync_IsIdempotent_WhenAlreadyAcceptedBySameUser()
+    {
+        _invites.Setup(r => r.GetByTokenAsync("tok", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FamilyInvite
+            {
+                Id = "invite-1",
+                Token = "tok",
+                MemberId = "member-1",
+                OwnerUserId = "owner-1",
+                Status = FamilyInviteStatuses.Accepted,
+                AcceptedBy = "user-2",
+                ExpiresAt = _now.AddDays(7),
+                Modules = ["fields"],
+                AccessLevel = "view"
+            });
+        _members.Setup(r => r.GetByIdAsync("member-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FamilyMember
+            {
+                Id = "member-1",
+                OwnerUserId = "owner-1",
+                DisplayName = "Maria",
+                Status = FamilyMemberStatuses.Active,
+                LinkedUserId = "user-2",
+                Modules = ["fields"]
+            });
+
+        var member = await _service.AcceptInviteAsync("tok", "user-2");
+
+        Assert.Equal("user-2", member.LinkedUserId);
+        _members.Verify(r => r.UpdateAsync(It.IsAny<FamilyMember>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AcceptInviteAsync_RejectsOwnerAcceptingOwnInvite()
+    {
+        _invites.Setup(r => r.GetByTokenAsync("tok", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FamilyInvite
+            {
+                Id = "invite-1",
+                Token = "tok",
+                MemberId = "member-1",
+                OwnerUserId = "owner-1",
+                Status = FamilyInviteStatuses.Pending,
+                ExpiresAt = _now.AddDays(7),
+                Modules = ["fields"],
+                AccessLevel = "view"
+            });
+        _members.Setup(r => r.GetByIdAsync("member-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FamilyMember
+            {
+                Id = "member-1",
+                OwnerUserId = "owner-1",
+                Status = FamilyMemberStatuses.Pending,
+                Modules = ["fields"]
+            });
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
+            _service.AcceptInviteAsync("tok", "owner-1"));
+
+        Assert.Equal("You cannot accept your own family invite.", ex.Message);
     }
 
     [Fact]
@@ -201,11 +268,18 @@ public class FamilyAccessServiceTests
     private readonly Mock<IFieldRepository> _fields = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IFamilyMemberRepository> _family = new();
+    private readonly Mock<IOwnerPartnerLinkRepository> _partners = new();
     private readonly FieldAccessService _service;
 
     public FamilyAccessServiceTests()
     {
-        _service = new FieldAccessService(_fields.Object, _fieldTasks.Object, _family.Object);
+        _partners.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<OwnerPartnerLink>());
+        _service = new FieldAccessService(
+            _fields.Object,
+            _fieldTasks.Object,
+            _family.Object,
+            _partners.Object);
     }
 
     [Fact]
@@ -280,6 +354,60 @@ public class FamilyAccessServiceTests
         var ok = await _service.CanUserAccessFieldDocumentsAsync("field-1", "family-1", "FieldOwner");
 
         Assert.True(ok);
+    }
+
+    [Fact]
+    public async Task CanUserAccessFieldAsync_AllowsActivePartnerWithFieldsModule()
+    {
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Field { Id = "field-1", OwnerId = "owner-1" });
+        _family.Setup(r => r.GetActiveByLinkedUserIdAllAsync("partner-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FamilyMember>());
+        _partners.Setup(r => r.GetActiveByLinkedUserIdAllAsync("partner-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OwnerPartnerLink>
+            {
+                new()
+                {
+                    Id = "p1",
+                    OwnerUserId = "owner-1",
+                    LinkedUserId = "partner-1",
+                    Status = FamilyMemberStatuses.Active,
+                    Modules = [FamilyModules.Fields, FamilyModules.Tasks],
+                    AccessLevel = FamilyAccessLevels.View
+                }
+            });
+
+        var ok = await _service.CanUserAccessFieldAsync("field-1", "partner-1", "FieldOwner");
+
+        Assert.True(ok);
+    }
+
+    [Fact]
+    public async Task CanUserAccessFieldAsync_DeniesPartnerWithoutFieldsModule()
+    {
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Field { Id = "field-1", OwnerId = "owner-1" });
+        _family.Setup(r => r.GetActiveByLinkedUserIdAllAsync("partner-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FamilyMember>());
+        _partners.Setup(r => r.GetActiveByLinkedUserIdAllAsync("partner-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OwnerPartnerLink>
+            {
+                new()
+                {
+                    Id = "p1",
+                    OwnerUserId = "owner-1",
+                    LinkedUserId = "partner-1",
+                    Status = FamilyMemberStatuses.Active,
+                    Modules = [FamilyModules.Money],
+                    AccessLevel = FamilyAccessLevels.Work
+                }
+            });
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Core.Entities.FieldWork.FieldTask>());
+
+        var ok = await _service.CanUserAccessFieldAsync("field-1", "partner-1", "FieldOwner");
+
+        Assert.False(ok);
     }
 
     [Fact]

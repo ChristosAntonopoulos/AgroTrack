@@ -20,14 +20,12 @@ export interface HeroActionCardProps {
   topAction: MeDashboardTopAction;
   pending: MeDashboardPending;
   role?: string;
-  density?: 'everyday' | 'full';
 }
 
 const HeroActionCard: React.FC<HeroActionCardProps> = ({
   topAction,
   pending,
   role,
-  density = 'everyday',
 }) => {
   const { t } = useTranslation(['dashboard', 'common']);
   const navigate = useNavigate();
@@ -111,13 +109,13 @@ const HeroActionCard: React.FC<HeroActionCardProps> = ({
 
   return (
     <Card
-      className={`hero-action-card hero-action-card--${kind} hero-action-card--${density}`}
+      className={`hero-action-card hero-action-card--${kind} hero-action-card--full`}
       hover
       onClick={() => navigate(path)}
     >
       <div className="hero-action-content">
         <div className="hero-action-icon" aria-hidden="true">
-          <Icon size={density === 'everyday' ? 28 : 24} />
+          <Icon size={24} />
         </div>
         <div className="hero-action-text">
           <h2>{title}</h2>

@@ -50,7 +50,6 @@ type Props = {
   fields: Field[];
   canRecordIncome: boolean;
   canRecordExpense: boolean;
-  isFullPicture: boolean;
   onSaved: (
     detail: CaptureSavedDetail,
     message: string,
@@ -69,7 +68,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
   fields,
   canRecordIncome,
   canRecordExpense,
-  isFullPicture,
   onSaved,
 }) => {
   const { t, i18n } = useTranslation(['capture']);
@@ -413,7 +411,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
             setPhotos((prev) => prev.filter((item) => item.id !== id));
           }}
           fileRef={fileRef}
-          showFullPicture={isFullPicture}
         />
         {error ? <p className="capture-error" role="alert">{error}</p> : null}
       </div>

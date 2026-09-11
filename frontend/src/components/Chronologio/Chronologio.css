@@ -47,7 +47,13 @@
 
 /* Header + sticky controls */
 .chronologio-header {
+  position: relative;
+  z-index: 4;
   margin-bottom: 0.5rem;
+}
+
+.chronologio-header:has(.chrono-field-scope.is-open) {
+  z-index: 40;
 }
 
 .chronologio-header-back {
@@ -1271,6 +1277,9 @@
   flex: 0 1 12rem;
   z-index: 2;
 }
+.chrono-field-scope.is-open {
+  z-index: 40;
+}
 .chrono-field-trigger {
   display: inline-flex;
   align-items: center;
@@ -1316,7 +1325,7 @@
   top: calc(100% + 8px);
   left: auto;
   right: 0;
-  z-index: var(--z-context-bar, 30);
+  z-index: var(--z-popover, 1060);
   width: max(100%, 17.5rem);
   max-width: min(22rem, calc(100vw - 2rem));
   margin: 0;
@@ -1764,9 +1773,7 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   padding: 1.15rem 1.2rem 1rem;
   border: 1px solid var(--border-subtle, var(--color-border));
   border-radius: 18px;
-  background:
-    radial-gradient(180px 90px at 100% 0%, var(--olive-soft), transparent 70%),
-    var(--surface-1, var(--color-surface, #fff));
+  background: var(--surface-1, var(--color-surface, #fff));
 }
 .chrono-current-year-card.is-active {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--olive-primary) 40%, transparent);
@@ -2288,10 +2295,8 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   padding: 0.95rem 1rem 0.9rem 1.1rem;
   border: 1px solid var(--border-subtle, var(--color-border));
   border-radius: 16px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--event-accent) 7%, transparent), transparent 44%),
-    var(--surface-1, var(--color-surface));
-  box-shadow: none;
+  background: var(--surface-1, var(--color-surface));
+  box-shadow: var(--shadow-card);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -2302,10 +2307,10 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chronologio-event-card::before {
   content: "";
   position: absolute;
-  inset: 12px auto 12px 0;
-  width: 4px;
-  border-radius: 0 4px 4px 0;
-  background: var(--event-accent);
+  inset: 14px auto 14px 0;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: color-mix(in srgb, var(--event-accent) 55%, var(--border-default, var(--color-border)));
 }
 .chronologio-event-card:hover {
   transform: translateY(-1px);
@@ -2319,16 +2324,9 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chronologio-event-card.is-compact { padding: 0.8rem 0.95rem 0.75rem 1.05rem; }
 .chronologio-event-card.is-featured {
   padding: 1.1rem 1.15rem 1rem 1.2rem;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--event-accent) 12%, transparent), transparent 55%),
-    var(--surface-1, var(--color-surface));
 }
 .chronologio-event-card.is-month-report {
   padding: 1.15rem 1.2rem 1.1rem 1.25rem;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--olive-primary, #536b3f) 16%, transparent), transparent 62%),
-    linear-gradient(320deg, color-mix(in srgb, var(--gold, #c4a35a) 10%, transparent), transparent 48%),
-    var(--surface-1, var(--color-surface));
 }
 .chronologio-event-card.is-month-report .chronologio-card-title {
   -webkit-line-clamp: 2;
@@ -2911,21 +2909,10 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   overflow: hidden;
 }
 .chrono-month-card.is-weather {
-  background:
-    radial-gradient(120px 80px at 100% 0%, color-mix(in srgb, var(--event-weather) 12%, transparent), transparent 70%),
-    var(--surface-1, var(--color-surface, #fff));
+  background: var(--surface-1, var(--color-surface, #fff));
 }
 .chrono-month-card.is-weather::after {
-  content: '';
-  position: absolute;
-  right: 0.4rem;
-  bottom: -0.4rem;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 50%;
-  border: 2px solid var(--event-weather);
-  opacity: 0.07;
-  pointer-events: none;
+  content: none;
 }
 .chrono-month-card-icon {
   width: 40px;

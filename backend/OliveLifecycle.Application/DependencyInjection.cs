@@ -40,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<IUserNotificationService, UserNotificationService>();
         services.AddScoped<IMeDashboardService, MeDashboardService>();
         services.AddScoped<IFamilyService, FamilyService>();
+        services.AddScoped<IOwnerPartnerService, OwnerPartnerService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<IChronologioService, ChronologioService>();
         services.AddScoped<IFieldWorkAuthorizationService, FieldWorkAuthorizationService>();
         services.AddScoped<IFieldWorkTemplateService, FieldWorkTemplateService>();

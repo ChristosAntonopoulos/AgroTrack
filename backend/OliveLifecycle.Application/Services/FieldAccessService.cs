@@ -11,15 +11,18 @@ public class FieldAccessService : IFieldAccessService
     private readonly IFieldRepository _fieldRepository;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly IFamilyMemberRepository _familyMembers;
+    private readonly IOwnerPartnerLinkRepository _partnerLinks;
 
     public FieldAccessService(
         IFieldRepository fieldRepository,
         IFieldTaskRepository fieldTasks,
-        IFamilyMemberRepository familyMembers)
+        IFamilyMemberRepository familyMembers,
+        IOwnerPartnerLinkRepository partnerLinks)
     {
         _fieldRepository = fieldRepository;
         _fieldTasks = fieldTasks;
         _familyMembers = familyMembers;
+        _partnerLinks = partnerLinks;
     }
 
     public async Task<bool> CanUserAccessFieldAsync(
@@ -180,12 +183,21 @@ public class FieldAccessService : IFieldAccessService
         var members = await _familyMembers.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
         var match = members.FirstOrDefault(m =>
             string.Equals(m.OwnerUserId, ownerUserId, StringComparison.Ordinal));
-        if (match == null)
+        if (match != null)
+        {
+            return new FamilyAccessSnapshot(match.OwnerUserId, match.Id, match.Modules, match.AccessLevel);
+        }
+
+        // Owner-wide partner seat uses the same modules + access-level model as family.
+        var partners = await _partnerLinks.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
+        var partner = partners.FirstOrDefault(p =>
+            string.Equals(p.OwnerUserId, ownerUserId, StringComparison.Ordinal));
+        if (partner == null)
         {
             return null;
         }
 
-        return new FamilyAccessSnapshot(match.OwnerUserId, match.Id, match.Modules, match.AccessLevel);
+        return new FamilyAccessSnapshot(partner.OwnerUserId, partner.Id, partner.Modules, partner.AccessLevel);
     }
 
     private static bool HasModule(FamilyAccessSnapshot access, string module) =>

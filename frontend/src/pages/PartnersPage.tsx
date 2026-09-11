@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, MapPin } from 'lucide-react';
+import { Plus, Smartphone } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
-import PageHeader from '../components/Common/PageHeader';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Button from '../components/Common/Button';
 import EmptyState from '../components/Common/EmptyState';
@@ -11,15 +10,17 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import PersonCard from '../components/Partners/PersonCard';
 import AddPersonSheet from '../components/Partners/AddPersonSheet';
 import AddFamilySheet from '../components/Partners/AddFamilySheet';
-import FamilySection from '../components/Partners/FamilySection';
+import AddPartnerSheet from '../components/Partners/AddPartnerSheet';
+import TeamAccessSection from '../components/Partners/TeamAccessSection';
 import SavedContactSheet from '../components/Partners/SavedContactSheet';
+import ImportPhoneContactsSheet from '../components/Partners/ImportPhoneContactsSheet';
 import NeedHelpSection from '../components/Partners/NeedHelpSection';
 import { mergeGrovePeople, GrovePerson } from '../components/Partners/grovePeople';
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { getFieldShortLocation } from '../utils/shortLocation';
 import { fieldPeopleService } from '../services/fieldPeopleService';
 import { FamilyCircle, familyService } from '../services/familyService';
+import { OwnerPartnerSeat, ownerPartnerService } from '../services/ownerPartnerService';
 import {
   SavedContact,
   ServiceCategory,
@@ -29,9 +30,12 @@ import {
   rememberedPartnerFieldId,
 } from '../services/partnerService';
 import { useAuth } from '../context/AuthContext';
-import { useFieldCapacity } from '../hooks/useFieldCapacity';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
+import { canPickDeviceContact } from '../utils/pickDeviceContact';
 import './PartnersPage.css';
+
+/** Marketplace browse / offer / requests — hidden until we ship it. */
+const SHOW_PARTNER_MARKETPLACE = false;
 
 const PartnersPage: React.FC = () => {
   const { t, i18n } = useTranslation(['partners', 'common']);
@@ -46,28 +50,32 @@ const PartnersPage: React.FC = () => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [fieldId, setFieldId] = useState(fieldIdParam || rememberedPartnerFieldId());
   const [people, setPeople] = useState<GrovePerson[]>([]);
-  const [unassigned, setUnassigned] = useState<GrovePerson[]>([]);
   const [family, setFamily] = useState<FamilyCircle | null>(null);
+  const [partnerSeat, setPartnerSeat] = useState<OwnerPartnerSeat | null>(null);
   const [loading, setLoading] = useState(true);
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [familyLoading, setFamilyLoading] = useState(false);
+  const [partnerLoading, setPartnerLoading] = useState(false);
   const [adding, setAdding] = useState(addParam);
   const [addingFamily, setAddingFamily] = useState(false);
+  const [addingPartner, setAddingPartner] = useState(false);
+  const [importingPhone, setImportingPhone] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
   const addPersonDrawer = useDrawerPresence(adding);
   const addFamilyDrawer = useDrawerPresence(addingFamily);
+  const addPartnerDrawer = useDrawerPresence(addingPartner);
+  const importPhoneDrawer = useDrawerPresence(importingPhone);
   const editContactDrawer = useDrawerPresence(editing);
   const [peopleTick, setPeopleTick] = useState(0);
   const [familyTick, setFamilyTick] = useState(0);
+  const [partnerTick, setPartnerTick] = useState(0);
+  const canPickPhone = useMemo(() => canPickDeviceContact(), []);
 
-  const selectedField = fields.find((f) => f.id === fieldId) || null;
-  const capacity = useFieldCapacity(selectedField);
   const canManage =
-    capacity.canOwn || user?.role === 'FieldOwner' || user?.role === 'Administrator' || selectedField?.ownerId === user?.userId;
-  const canManageFamily =
     user?.role === 'FieldOwner' ||
     user?.role === 'Administrator' ||
     fields.some((f) => f.ownerId === user?.userId);
+  const canManageFamily = canManage;
 
   useEffect(() => {
     let cancelled = false;
@@ -100,30 +108,27 @@ const PartnersPage: React.FC = () => {
     void (async () => {
       setPeopleLoading(true);
       try {
-        const [members, outgoing, saved] = await Promise.all([
-          fieldId
-            ? fieldPeopleService.getPeople(fieldId).catch(() => [] as Awaited<ReturnType<typeof fieldPeopleService.getPeople>>)
-            : Promise.resolve([] as Awaited<ReturnType<typeof fieldPeopleService.getPeople>>),
+        const memberLists = await Promise.all(
+          fields.map(async (field) => {
+            const rows = await fieldPeopleService.getPeople(field.id).catch(() => []);
+            return rows.map((member) => ({ ...member, fieldId: field.id }));
+          })
+        );
+        const [outgoing, saved] = await Promise.all([
           getPartnerService()
             .getRequests('outgoing')
             .catch(() => [] as ServiceContactRequest[]),
           getPartnerService()
-            .getContacts(fieldId ? { fieldId, includeUnassigned: true } : undefined)
+            .getContacts()
             .catch(() => [] as SavedContact[]),
         ]);
         if (cancelled) return;
-        const linked = saved.filter((c) => (fieldId ? c.fieldIds.includes(fieldId) : true));
-        const loose = saved.filter((c) => c.fieldIds.length === 0);
-        setPeople(mergeGrovePeople(members, outgoing, linked, fieldId, i18n.language, categories));
-        setUnassigned(
-          fieldId
-            ? mergeGrovePeople([], [], loose, fieldId, i18n.language, categories)
-            : []
+        setPeople(
+          mergeGrovePeople(memberLists.flat(), outgoing, saved, '', i18n.language, categories)
         );
       } catch {
         if (!cancelled) {
           setPeople([]);
-          setUnassigned([]);
         }
       } finally {
         if (!cancelled) setPeopleLoading(false);
@@ -132,29 +137,43 @@ const PartnersPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fieldId, peopleTick, i18n.language, categories]);
+  }, [fields, peopleTick, i18n.language, categories]);
 
   useEffect(() => {
     if (!user) {
       setFamily(null);
+      setPartnerSeat(null);
       return;
     }
     let cancelled = false;
     void (async () => {
       setFamilyLoading(true);
+      setPartnerLoading(true);
       try {
-        const circle = await familyService.getMine();
-        if (!cancelled) setFamily(circle);
+        const [circle, seat] = await Promise.all([
+          familyService.getMine(),
+          ownerPartnerService.getMine(),
+        ]);
+        if (!cancelled) {
+          setFamily(circle);
+          setPartnerSeat(seat);
+        }
       } catch {
-        if (!cancelled) setFamily(null);
+        if (!cancelled) {
+          setFamily(null);
+          setPartnerSeat(null);
+        }
       } finally {
-        if (!cancelled) setFamilyLoading(false);
+        if (!cancelled) {
+          setFamilyLoading(false);
+          setPartnerLoading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, familyTick]);
+  }, [user, familyTick, partnerTick]);
 
   const goSearch = (category: ServiceCategory) => {
     if (!fieldId) return;
@@ -171,6 +190,7 @@ const PartnersPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!SHOW_PARTNER_MARKETPLACE) return;
     if (loading || !fieldId || categories.length === 0) return;
     if (!taskTypeParam || fromParam !== 'task') return;
     const slug = categorySlugForTaskType(taskTypeParam, categories);
@@ -179,24 +199,28 @@ const PartnersPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, fieldId, categories, taskTypeParam, fromParam]);
 
-  const selectField = (id: string) => {
-    setFieldId(id);
-    rememberPartnerFieldId(id);
-  };
-
   const scrollToHelp = () => {
     document.getElementById('need-help')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const fieldOptions = useMemo(() => fields, [fields]);
-  const peopleCount = people.length + unassigned.length;
+  const visiblePeople = useMemo(
+    () =>
+      people.filter((person) => {
+        // Don't list yourself as “looks after the field” — this list is your contacts & helpers.
+        if (user?.userId && person.userId === user.userId && !person.savedContact) {
+          return false;
+        }
+        return true;
+      }),
+    [people, user?.userId]
+  );
+  const peopleCount = visiblePeople.length;
 
   if (loading) {
     return (
       <PageContainer>
         <div className="partners-page">
           <Breadcrumbs />
-          <PageHeader title={t('partners:homeTitle')} subtitle={t('partners:homeLead')} />
           <LoadingSpinner className="page-inline-loading" />
         </div>
       </PageContainer>
@@ -207,91 +231,75 @@ const PartnersPage: React.FC = () => {
     <PageContainer>
       <div className="partners-page">
         <Breadcrumbs />
-        <PageHeader
-          title={t('partners:homeTitle')}
-          subtitle={t('partners:homeLead')}
-          actions={
-            user ? (
-              <Button onClick={() => setAdding(true)} icon={<Plus size={18} aria-hidden />}>
-                {t('partners:addPerson')}
-              </Button>
-            ) : null
-          }
-        />
 
-        {user ? (
-          <FamilySection
-            circle={family}
-            loading={familyLoading}
-            canManage={canManageFamily}
-            onAdd={() => setAddingFamily(true)}
-            onChanged={() => setFamilyTick((n) => n + 1)}
-          />
-        ) : null}
-
-        <div className="partners-context-card">
-          <label className="partners-field-picker" htmlFor="partners-field-select">
-            <span className="partners-field-picker-label">
-              <MapPin size={16} aria-hidden />
-              {t('partners:forWhichField')}
-            </span>
-            <select
-              id="partners-field-select"
-              value={fieldId}
-              onChange={(e) => selectField(e.target.value)}
-            >
-              <option value="">{t('partners:selectField')}</option>
-              {fieldOptions.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.name}
-                  {getFieldShortLocation(field) ? ` — ${getFieldShortLocation(field)}` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          {fields.length === 0 ? (
-            <p className="partners-inline-hint">{t('partners:noFields')}</p>
-          ) : !fieldId ? (
-            <p className="partners-inline-hint">{t('partners:needField')}</p>
-          ) : null}
-        </div>
-
-        <section className="partners-section">
+        <section className="partners-section partners-contacts-hero" aria-labelledby="my-people-title">
           <div className="partners-section-head">
             <div>
-              <h2>
+              <h1 id="my-people-title" className="partners-page-title">
                 {t('partners:myPeople')}
                 {!peopleLoading && peopleCount > 0 ? (
-                  <span className="partners-count">{people.length}</span>
+                  <span className="partners-count">{peopleCount}</span>
                 ) : null}
-              </h2>
-              <p className="partners-lead">{t('partners:myPeopleHint')}</p>
+              </h1>
             </div>
+            {user ? (
+              <div className="partners-hero-actions">
+                {canPickPhone ? (
+                  <Button
+                    onClick={() => setImportingPhone(true)}
+                    icon={<Smartphone size={18} aria-hidden />}
+                  >
+                    {t('partners:importPhone.openPhone')}
+                  </Button>
+                ) : null}
+                <Button
+                  variant={canPickPhone ? 'outline' : 'primary'}
+                  onClick={() => setAdding(true)}
+                  icon={<Plus size={18} aria-hidden />}
+                >
+                  {t('partners:addPerson')}
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           {peopleLoading && <LoadingSpinner className="page-inline-loading" />}
 
-          {!peopleLoading && people.length === 0 && unassigned.length === 0 ? (
+          {!peopleLoading && visiblePeople.length === 0 ? (
             <EmptyState
               title={t('partners:emptyPeople')}
               description={t('partners:emptyPeopleHint')}
               action={
                 <div className="partner-actions">
+                  {user && canPickPhone ? (
+                    <Button
+                      onClick={() => setImportingPhone(true)}
+                      icon={<Smartphone size={18} aria-hidden />}
+                    >
+                      {t('partners:importPhone.openPhone')}
+                    </Button>
+                  ) : null}
                   {user ? (
-                    <Button onClick={() => setAdding(true)} icon={<Plus size={18} aria-hidden />}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setAdding(true)}
+                      icon={<Plus size={18} aria-hidden />}
+                    >
                       {t('partners:addPerson')}
                     </Button>
                   ) : null}
-                  <Button variant="outline" onClick={scrollToHelp}>
-                    {t('partners:findHelp')}
-                  </Button>
+                  {SHOW_PARTNER_MARKETPLACE ? (
+                    <Button variant="outline" onClick={scrollToHelp}>
+                      {t('partners:findHelp')}
+                    </Button>
+                  ) : null}
                 </div>
               }
             />
           ) : null}
 
           <div className="partners-people-list">
-            {people.map((person) => (
+            {visiblePeople.map((person) => (
               <PersonCard
                 key={person.id}
                 person={person}
@@ -304,36 +312,28 @@ const PartnersPage: React.FC = () => {
           </div>
         </section>
 
-        {unassigned.length > 0 ? (
-          <section className="partners-section">
-            <div className="partners-section-head">
-              <div>
-                <h2>
-                  {t('partners:unassignedContacts')}
-                  <span className="partners-count">{unassigned.length}</span>
-                </h2>
-                <p className="partners-lead">{t('partners:unassignedContactsHint')}</p>
-              </div>
-            </div>
-            <div className="partners-people-list">
-              {unassigned.map((person) => (
-                <PersonCard
-                  key={person.id}
-                  person={person}
-                  fieldId={fieldId}
-                  onEditContact={(row) => setEditing(row.savedContact || null)}
-                />
-              ))}
-            </div>
-          </section>
+        {user ? (
+          <TeamAccessSection
+            family={family}
+            partnerSeat={partnerSeat}
+            loading={familyLoading || partnerLoading}
+            canManage={canManageFamily}
+            onAddFamily={() => setAddingFamily(true)}
+            onAddPartner={() => setAddingPartner(true)}
+            onFamilyChanged={() => setFamilyTick((n) => n + 1)}
+            onPartnerChanged={() => setPartnerTick((n) => n + 1)}
+          />
         ) : null}
 
-        <NeedHelpSection categories={categories} disabled={!fieldId} onPick={goSearch} />
-
-        <nav className="partners-footer-links" aria-label={t('partners:nav')}>
-          <Link to="/partners/me">{t('partners:offerCta')}</Link>
-          <Link to="/partners/requests">{t('partners:requests')}</Link>
-        </nav>
+        {SHOW_PARTNER_MARKETPLACE ? (
+          <>
+            <NeedHelpSection categories={categories} disabled={!fieldId} onPick={goSearch} />
+            <nav className="partners-footer-links" aria-label={t('partners:nav')}>
+              <Link to="/partners/me">{t('partners:offerCta')}</Link>
+              <Link to="/partners/requests">{t('partners:requests')}</Link>
+            </nav>
+          </>
+        ) : null}
 
         {addPersonDrawer.mounted ? (
           <AddPersonSheet
@@ -341,10 +341,28 @@ const PartnersPage: React.FC = () => {
             fieldId={fieldId || undefined}
             fields={fields}
             categories={categories}
-            canInvite={Boolean(canManage && fieldId)}
+            canInviteFamily={Boolean(
+              canManageFamily && (family?.seatsUsed ?? 0) < (family?.seatsMax ?? 2)
+            )}
+            canInvitePartner={Boolean(
+              canManageFamily && (partnerSeat?.seatsUsed ?? 0) < (partnerSeat?.seatsMax ?? 1)
+            )}
             onClose={() => setAdding(false)}
-            onInvited={() => setPeopleTick((n) => n + 1)}
             onSaved={() => setPeopleTick((n) => n + 1)}
+            onInviteFamily={() => setAddingFamily(true)}
+            onInvitePartner={() => setAddingPartner(true)}
+            onImportPhone={() => setImportingPhone(true)}
+          />
+        ) : null}
+
+        {importPhoneDrawer.mounted ? (
+          <ImportPhoneContactsSheet
+            open={importPhoneDrawer.open}
+            fieldId={fieldId || undefined}
+            fields={fields}
+            categories={categories}
+            onClose={() => setImportingPhone(false)}
+            onImported={() => setPeopleTick((n) => n + 1)}
           />
         ) : null}
 
@@ -353,6 +371,14 @@ const PartnersPage: React.FC = () => {
             open={addFamilyDrawer.open}
             onClose={() => setAddingFamily(false)}
             onCreated={() => setFamilyTick((n) => n + 1)}
+          />
+        ) : null}
+
+        {addPartnerDrawer.mounted ? (
+          <AddPartnerSheet
+            open={addPartnerDrawer.open}
+            onClose={() => setAddingPartner(false)}
+            onCreated={() => setPartnerTick((n) => n + 1)}
           />
         ) : null}
 

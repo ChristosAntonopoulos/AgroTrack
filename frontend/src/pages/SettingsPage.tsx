@@ -20,7 +20,6 @@ import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import PageHeader from '../components/Common/PageHeader';
 import Button from '../components/Common/Button';
-import ExperienceModeToggle from '../components/Experience/ExperienceModeToggle';
 import './SettingsPage.css';
 
 type SaveStatus = 'idle' | 'saved' | 'error';
@@ -36,7 +35,6 @@ const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
-    experienceMode,
     fontScale,
     setFontScale,
     largeControls,
@@ -127,10 +125,6 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const onExperienceSaved = () => {
-    flashSaved();
-  };
-
   const themeIcon = (value: Theme) => {
     switch (value) {
       case 'system':
@@ -197,11 +191,6 @@ const SettingsPage: React.FC = () => {
             <div className="settings-account-card">
               <p className="settings-account-name">{displayName}</p>
               <p className="settings-account-email">{user?.email}</p>
-              <div className="settings-account-actions">
-                <Button to="/partners/me" variant="outline">
-                  {t('account.myServices')}
-                </Button>
-              </div>
             </div>
           </section>
 
@@ -229,18 +218,6 @@ const SettingsPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="settings-row settings-row-stack">
-              <div className="settings-row-text">
-                <label className="settings-label">{t('appearance.detailLevel')}</label>
-              </div>
-              <ExperienceModeToggle onChanged={onExperienceSaved} />
-              <p className="settings-help">
-                {experienceMode === 'everyday'
-                  ? t('appearance.simpleDesc')
-                  : t('appearance.fullDesc')}
-              </p>
             </div>
 
             <div className="settings-row">

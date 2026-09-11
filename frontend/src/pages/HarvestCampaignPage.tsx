@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, ChevronUp, Plus, Wallet, Wheat } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, Plus, Wallet, Wheat, X } from 'lucide-react';
+import { formatFieldArea } from '../utils/fieldGeo';
 import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { useHarvestCampaign } from '../context/HarvestCampaignContext';
@@ -92,11 +93,51 @@ const HarvestCampaignPage: React.FC = () => {
     return () => window.removeEventListener(CAPTURE_SAVED_EVENT, onSaved);
   }, [load]);
 
+  const harvestableFields = useMemo(() => {
+    const usable = fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived');
+    return usable.length > 0 ? usable : fields.filter((field) => field.status !== 'Archived');
+  }, [fields]);
+
+  const harvestableById = useMemo(
+    () => new Map(harvestableFields.map((field) => [field.id, field])),
+    [harvestableFields]
+  );
+
+  const pickedFields = pickedIds
+    .map((id) => harvestableById.get(id))
+    .filter((field): field is Field => Boolean(field));
+  const restFields = harvestableFields.filter((field) => !pickedIds.includes(field.id));
+  const areaLocale = locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en';
+
   useEffect(() => {
     if (!setupOpen) return;
-    setPickedIds(campaign.fieldOrder.length ? campaign.fieldOrder : fields.map((f) => f.id));
+    const allowed = new Set(harvestableFields.map((field) => field.id));
+    const previous = campaign.fieldOrder.filter((id) => allowed.has(id));
+    setPickedIds(previous.length ? previous : harvestableFields.map((field) => field.id));
     setMillName(campaign.millName || '');
-  }, [setupOpen, fields, campaign.fieldOrder, campaign.millName]);
+    setExpectedLitres(
+      campaign.expectedOilLitres != null && Number.isFinite(campaign.expectedOilLitres)
+        ? String(campaign.expectedOilLitres)
+        : ''
+    );
+  }, [setupOpen, harvestableFields, campaign.fieldOrder, campaign.millName, campaign.expectedOilLitres]);
+
+  const toggleGrove = (id: string) => {
+    setPickedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+    setError(null);
+  };
+
+  const movePicked = (id: string, direction: -1 | 1) => {
+    setPickedIds((prev) => {
+      const index = prev.indexOf(id);
+      const next = index + direction;
+      if (index < 0 || next < 0 || next >= prev.length) return prev;
+      const copy = [...prev];
+      const [row] = copy.splice(index, 1);
+      copy.splice(next, 0, row);
+      return copy;
+    });
+  };
 
   const nextId = nextGroveId(campaign);
   useEffect(() => {
@@ -263,47 +304,136 @@ const HarvestCampaignPage: React.FC = () => {
         </header>
 
         {setupOpen && !isLive ? (
-          <section className="hc-section hc-setup" aria-labelledby="hc-setup-title">
+          <section className="hc-setup-card" aria-labelledby="hc-setup-title">
             <h2 id="hc-setup-title">{t('harvestCampaign.setupTitle')}</h2>
             <p className="hc-help">{t('harvestCampaign.setupHint')}</p>
-            <div className="hc-form">
-              {fields.map((field) => (
-                <label key={field.id} className="hc-check-row">
-                  <input
-                    type="checkbox"
-                    checked={pickedIds.includes(field.id)}
-                    onChange={() =>
-                      setPickedIds((prev) =>
-                        prev.includes(field.id) ? prev.filter((id) => id !== field.id) : [...prev, field.id]
-                      )
-                    }
-                  />
-                  <span>{friendlyFieldLabel(field.name)}</span>
-                </label>
-              ))}
-              {fields.length === 0 ? <p className="hc-help">{t('harvestCampaign.noFields')}</p> : null}
+
+            {harvestableFields.length === 0 ? (
+              <p className="hc-help">{t('harvestCampaign.noFields')}</p>
+            ) : (
+              <ol className="hc-setup-queue">
+                {pickedFields.map((field, index) => {
+                  const name = friendlyFieldLabel(field.name);
+                  const variety = field.variety || field.oliveVariety;
+                  const showVariety =
+                    Boolean(variety) && !name.toLowerCase().includes(String(variety).toLowerCase());
+                  const area = formatFieldArea(field, areaLocale);
+                  const meta = [showVariety ? variety : null, area].filter(Boolean).join(' · ');
+                  return (
+                    <li key={field.id} className={`hc-setup-grove${index === 0 ? ' is-today' : ''}`}>
+                      <span className="hc-setup-num" aria-hidden>
+                        {index + 1}
+                      </span>
+                      <div className="hc-setup-grove-copy">
+                        <strong>{name}</strong>
+                        {index === 0 ? (
+                          <span className="hc-setup-today">{t('harvestCampaign.setupToday')}</span>
+                        ) : null}
+                        {meta ? <span className="hc-setup-meta">{meta}</span> : null}
+                      </div>
+                      <div className="hc-setup-grove-tools">
+                        <button
+                          type="button"
+                          className="hc-icon-btn"
+                          disabled={index === 0}
+                          onClick={() => movePicked(field.id, -1)}
+                          aria-label={t('harvestCampaign.moveUp')}
+                        >
+                          <ChevronUp size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          className="hc-icon-btn"
+                          disabled={index === pickedFields.length - 1}
+                          onClick={() => movePicked(field.id, 1)}
+                          aria-label={t('harvestCampaign.moveDown')}
+                        >
+                          <ChevronDown size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          className="hc-icon-btn hc-setup-remove"
+                          onClick={() => toggleGrove(field.id)}
+                          aria-label={t('harvestCampaign.setupRemoveGrove')}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+
+            {restFields.length > 0 ? (
+              <div className="hc-setup-rest">
+                <p className="hc-setup-rest-title">{t('harvestCampaign.setupOtherTitle')}</p>
+                <ul className="hc-setup-rest-list">
+                  {restFields.map((field) => {
+                    const name = friendlyFieldLabel(field.name);
+                    const variety = field.variety || field.oliveVariety;
+                    const showVariety =
+                      Boolean(variety) && !name.toLowerCase().includes(String(variety).toLowerCase());
+                    return (
+                      <li key={field.id}>
+                        <button type="button" className="hc-setup-add" onClick={() => toggleGrove(field.id)}>
+                          <Plus size={16} aria-hidden />
+                          <span>
+                            {name}
+                            {showVariety ? <em> · {variety}</em> : null}
+                          </span>
+                          <span className="hc-setup-add-label">{t('harvestCampaign.setupAddGrove')}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="hc-setup-optional">
+              <div className="hc-setup-optional-head">
+                <h3>{t('harvestCampaign.setupOptionalTitle')}</h3>
+                <span className="hc-optional-tag">{t('harvestCampaign.optional')}</span>
+              </div>
+              <p className="hc-help">{t('harvestCampaign.setupOptionalHint')}</p>
               <label className="hc-field">
                 <span>{t('harvestCampaign.millOptional')}</span>
-                <input value={millName} onChange={(e) => setMillName(e.target.value)} />
+                <input
+                  value={millName}
+                  onChange={(e) => setMillName(e.target.value)}
+                  placeholder={t('harvestCampaign.millPlaceholder')}
+                  autoComplete="off"
+                />
               </label>
               <label className="hc-field">
                 <span>{t('harvestCampaign.expectedLitres')}</span>
-                <input
-                  inputMode="decimal"
-                  value={expectedLitres}
-                  onChange={(e) => setExpectedLitres(e.target.value)}
-                  placeholder={t('harvestCampaign.optional')}
-                />
+                <span className="hc-input-unit">
+                  <input
+                    inputMode="decimal"
+                    value={expectedLitres}
+                    onChange={(e) => setExpectedLitres(e.target.value)}
+                    placeholder="—"
+                    aria-label={t('harvestCampaign.expectedLitres')}
+                  />
+                  <span aria-hidden>{t('harvestCampaign.litresSuffix')}</span>
+                </span>
               </label>
-              {error ? <p className="hc-error">{error}</p> : null}
-              <div className="hc-hero-actions">
-                <button type="button" className="hc-start" onClick={beginHarvest} disabled={fields.length === 0}>
-                  {t('harvestCampaign.begin')}
-                </button>
-                <button type="button" className="hc-ghost" onClick={() => setSetupOpen(false)}>
-                  {t('common:cancel')}
-                </button>
-              </div>
+            </div>
+
+            {error ? <p className="hc-error">{error}</p> : null}
+            <div className="hc-hero-actions hc-setup-actions">
+              <button
+                type="button"
+                className="hc-start"
+                onClick={beginHarvest}
+                disabled={harvestableFields.length === 0 || pickedIds.length === 0}
+              >
+                {t('harvestCampaign.begin')}
+              </button>
+              <button type="button" className="hc-ghost" onClick={() => setSetupOpen(false)}>
+                {t('common:cancel')}
+              </button>
             </div>
           </section>
         ) : null}

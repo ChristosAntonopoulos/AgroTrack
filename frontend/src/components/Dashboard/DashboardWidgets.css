@@ -9,11 +9,11 @@
 }
 
 .hero-action-card--alert {
-  border-left: 4px solid var(--color-warning);
+  border-left: 2px solid var(--color-warning);
 }
 
 .hero-action-card--action {
-  border-left: 4px solid var(--color-primary);
+  border-left: 2px solid var(--color-primary);
 }
 
 .hero-action-content {
@@ -59,10 +59,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--spacing-md);
-}
-
-.my-actions-strip--everyday .my-actions-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .recent-activity-feed {
@@ -353,7 +349,7 @@
     align-items: stretch;
   }
 
-  .my-actions-strip--everyday .my-actions-grid {
+  .my-actions-grid {
     grid-template-columns: 1fr;
   }
 

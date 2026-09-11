@@ -31,12 +31,7 @@
   flex-direction: column;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 14rem at 100% -2rem, color-mix(in srgb, var(--oleachron-gold) 10%, transparent), transparent 62%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--olive-soft, #e7edde) 42%, var(--surface-1, #fffefa)) 0%,
-      var(--surface-1, #fffefa) 8.5rem
-    );
+    color-mix(in srgb, var(--surface-popover, var(--surface-1, #fffefa)) 94%, transparent);
   color: var(--text-primary, var(--color-text-primary));
   border-left: 1px solid var(--border-default, var(--color-border));
   box-shadow: var(--shadow-overlay, -12px 0 40px rgba(5, 8, 5, 0.28));

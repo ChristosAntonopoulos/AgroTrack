@@ -4,8 +4,6 @@ import { CreateFieldDto } from '../../services/fieldService';
 
 const VARIETY_OPTIONS = ['Koroneiki', 'Kalamon', 'Megaritiki', 'Manaki', 'Unknown', 'Other'];
 const IRRIGATION_OPTIONS = ['Rainfed', 'Drip irrigation', 'Sprinkler', 'Mixed', 'Unknown'];
-const SLOPE_OPTIONS = ['Flat', 'Slight slope', 'Moderate slope', 'Steep', 'Unknown'];
-const SOIL_OPTIONS = ['Clay Loam', 'Sandy Loam', 'Loam', 'Rocky', 'Calcareous', 'Unknown', 'Other'];
 
 interface Props {
   formData: CreateFieldDto;
@@ -38,37 +36,7 @@ const CropDetailsStep: React.FC<Props> = ({ formData, onChange }) => {
             <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
             {VARIETY_OPTIONS.map((v) => (
               <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="irrigationType">{t('addField.irrigationType')}</label>
-          <select
-            id="irrigationType"
-            name="irrigationType"
-            value={formData.irrigationType || ''}
-            onChange={onChange}
-          >
-            <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-            {IRRIGATION_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor="soilType">{t('addField.soilType')}</label>
-          <select id="soilType" name="soilType" value={formData.soilType || ''} onChange={onChange}>
-            <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-            {SOIL_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
+                {t(`addField.varietyOptions.${v}`, { defaultValue: v })}
               </option>
             ))}
           </select>
@@ -76,12 +44,17 @@ const CropDetailsStep: React.FC<Props> = ({ formData, onChange }) => {
       </div>
 
       <div className="form-group">
-        <label htmlFor="slope">{t('addField.slope')}</label>
-        <select id="slope" name="slope" value={formData.slope || ''} onChange={onChange}>
-          <option value="">{t('form.selectOption')}</option>
-          {SLOPE_OPTIONS.map((v) => (
+        <label htmlFor="irrigationType">{t('addField.irrigationType')}</label>
+        <select
+          id="irrigationType"
+          name="irrigationType"
+          value={formData.irrigationType || ''}
+          onChange={onChange}
+        >
+          <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
+          {IRRIGATION_OPTIONS.map((v) => (
             <option key={v} value={v}>
-              {v}
+              {t(`addField.irrigationOptions.${v}`, { defaultValue: v })}
             </option>
           ))}
         </select>

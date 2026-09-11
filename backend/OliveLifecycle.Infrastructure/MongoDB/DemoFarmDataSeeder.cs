@@ -196,7 +196,7 @@ public static class DemoFarmDataSeeder
             Status = FieldStatus.Active,
             CropType = "Olive",
             LocationText = "Φιλιατρών, Μεσσηνία",
-            Color = "#2F6B4F",
+            Color = "#E8C547",
             AccessNotes = "Είσοδος από το χωματόδρομο βόρεια του ΚΑΕΚ. Χώρος για τρακτέρ δίπλα στο κανάλι.",
             GreekCadastre = new GreekCadastreInfoDocument
             {
@@ -247,7 +247,7 @@ public static class DemoFarmDataSeeder
             Status = FieldStatus.Active,
             CropType = "Olive",
             LocationText = "Φιλιατρών, Μεσσηνία",
-            Color = "#3D6EA8",
+            Color = "#B54422",
             AccessNotes = "Ίδια είσοδος με το 088. Τα νεότερα δέντρα είναι στην κάτω πλευρά.",
             GreekCadastre = new GreekCadastreInfoDocument
             {

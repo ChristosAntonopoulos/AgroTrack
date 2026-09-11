@@ -19,8 +19,8 @@ export const demoAccounts: DemoAccount[] = [
     role: 'FieldOwner',
     displayName: 'Γιώργος Παπαδάκης',
     userId: '675555555555555555555501',
-    nameKey: 'login.demoGroveName',
-    subtitleKey: 'login.demoGroveSubtitle',
+    nameKey: 'login.demoOwnerTitle',
+    subtitleKey: 'login.demoOwnerSubtitle',
   },
   {
     id: 'services',
@@ -29,8 +29,8 @@ export const demoAccounts: DemoAccount[] = [
     role: 'Producer',
     displayName: 'Κώστας Μανούσακης',
     userId: '675555555555555555555502',
-    nameKey: 'login.demoServicesName',
-    subtitleKey: 'login.demoServicesSubtitle',
+    nameKey: 'login.demoPartnerTitle',
+    subtitleKey: 'login.demoPartnerSubtitle',
   },
 ];
 

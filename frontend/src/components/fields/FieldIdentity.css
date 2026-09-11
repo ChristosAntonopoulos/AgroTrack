@@ -13,28 +13,19 @@
   display: inline-flex;
   max-width: 100%;
   align-items: center;
-  padding: 0.28rem 0.95rem 0.32rem 1rem;
-  margin: 0 0 0 -0.15rem;
-  border-radius: 12px;
-  background:
-    linear-gradient(
-      90deg,
-      var(--field-accent-wash) 0%,
-      var(--field-accent-soft) 48%,
-      transparent 88%
-    );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--field-accent) 22%, transparent);
+  gap: 0.55rem;
+  margin: 0;
 }
 
-.field-identity-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.18em;
-  bottom: 0.18em;
-  width: 5px;
-  border-radius: 999px;
+.field-identity-swatch {
+  flex-shrink: 0;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
   background: var(--field-accent);
+  box-shadow:
+    0 0 0 2px var(--surface-1),
+    0 0 0 4px var(--field-accent-soft);
 }
 
 .field-identity-name {
@@ -49,41 +40,20 @@
   font-size: 1.2rem;
 }
 
-.field-identity--card .field-identity-title {
-  padding: 0.22rem 0.8rem 0.24rem 0.9rem;
-  border-radius: 10px;
-}
-
-.field-identity--card .field-identity-title::before {
-  width: 4px;
-}
-
 .field-identity--page .field-identity-name {
   font-size: clamp(1.875rem, 3vw, 2rem);
 }
 
-.field-identity--page .field-identity-title {
-  padding: 0.42rem 1.2rem 0.48rem 1.25rem;
-  border-radius: 16px;
-  background:
-    linear-gradient(
-      105deg,
-      var(--field-accent-wash) 0%,
-      var(--field-accent-soft) 36%,
-      color-mix(in srgb, var(--field-accent) 4%, transparent) 62%,
-      transparent 92%
-    );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--field-accent) 28%, transparent);
-}
-
-.field-identity--page .field-identity-title::before {
-  width: 6px;
-  top: 0.22em;
-  bottom: 0.22em;
+.field-identity--page .field-identity-swatch {
+  width: 1.05rem;
+  height: 1.05rem;
+  box-shadow:
+    0 0 0 3px var(--surface-1),
+    0 0 0 6px var(--field-accent-soft);
 }
 
 .field-identity-place {
-  margin: 0.45rem 0 0;
+  margin: 0.45rem 0 0 1.45rem;
   font-size: 0.95rem;
   color: var(--text-secondary);
   line-height: 1.35;
@@ -91,16 +61,20 @@
 
 .field-identity--page .field-identity-place {
   font-size: 1.05rem;
-  margin-top: 0.55rem;
+  margin: 0.55rem 0 0 1.5rem;
 }
 
 .field-identity-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: 0.55rem 0 0;
+  margin: 0.55rem 0 0 1.45rem;
   padding: 0;
   list-style: none;
+}
+
+.field-identity--page .field-identity-chips {
+  margin-left: 1.5rem;
 }
 
 .field-identity-chip {

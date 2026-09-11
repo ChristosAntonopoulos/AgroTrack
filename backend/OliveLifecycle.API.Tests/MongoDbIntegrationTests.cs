@@ -31,6 +31,8 @@ public class MongoDbIntegrationFixture : IAsyncLifetime
             builder.UseSetting("JWT:Issuer", "OliveLifecycleAPI");
             builder.UseSetting("JWT:Audience", "OliveLifecycleClients");
             builder.UseSetting("Auth:AllowAnonymous", "false");
+            builder.UseSetting("Email:ExposeDevResetLink", "true");
+            builder.UseSetting("App:PublicWebBaseUrl", "http://localhost:3000");
         });
 
         Client = Factory.CreateClient();
@@ -124,12 +126,61 @@ public class AuthAndFieldIntegrationTests : IClassFixture<MongoDbIntegrationFixt
         Assert.Contains(fields, f => f.Id == createdField.Id && f.Name == "Integration Test Grove");
     }
 
+    [Fact]
+    public async Task ForgotPassword_Reset_ThenLogin_WithNewPassword()
+    {
+        var email = $"reset-{Guid.NewGuid():N}@test.com";
+        const string password = "Password123!";
+        const string nextPassword = "NewPass456!";
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/v1/auth/register", new
+        {
+            email,
+            password,
+            firstName = "Reset",
+            lastName = "User"
+        });
+        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+
+        var forgotResponse = await _client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email });
+        Assert.Equal(HttpStatusCode.OK, forgotResponse.StatusCode);
+        var forgotBody = await forgotResponse.Content.ReadFromJsonAsync<ForgotPasswordResponse>(JsonOptions);
+        Assert.NotNull(forgotBody);
+        Assert.True(forgotBody.Sent);
+        Assert.False(string.IsNullOrWhiteSpace(forgotBody.DevResetToken));
+
+        var unknownForgot = await _client.PostAsJsonAsync("/api/v1/auth/forgot-password", new
+        {
+            email = $"missing-{Guid.NewGuid():N}@test.com"
+        });
+        Assert.Equal(HttpStatusCode.OK, unknownForgot.StatusCode);
+
+        var resetResponse = await _client.PostAsJsonAsync("/api/v1/auth/reset-password", new
+        {
+            token = forgotBody.DevResetToken,
+            password = nextPassword
+        });
+        Assert.Equal(HttpStatusCode.OK, resetResponse.StatusCode);
+
+        var oldLogin = await _client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
+        Assert.Equal(HttpStatusCode.Forbidden, oldLogin.StatusCode);
+
+        var newLogin = await _client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = nextPassword });
+        Assert.Equal(HttpStatusCode.OK, newLogin.StatusCode);
+    }
+
     private sealed class AuthResponse
     {
         public string Token { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+    }
+
+    private sealed class ForgotPasswordResponse
+    {
+        public bool Sent { get; set; }
+        public string? DevResetToken { get; set; }
     }
 
     private sealed class FieldResponse

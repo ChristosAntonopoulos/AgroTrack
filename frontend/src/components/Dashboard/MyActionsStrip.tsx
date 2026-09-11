@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Camera,
   CheckCircle2,
-  Clock,
   Euro,
   Handshake,
   Leaf,
@@ -20,7 +19,6 @@ import './DashboardWidgets.css';
 
 export interface MyActionsStripProps {
   data: MeDashboard;
-  density?: 'everyday' | 'full';
   period?: MeDashboardPeriod;
 }
 
@@ -30,14 +28,10 @@ type TileKey =
   | 'evidenceAdded'
   | 'harvestsRecorded'
   | 'expensesLogged'
-  | 'contactsSent'
-  | 'dueToday'
-  | 'overdue'
-  | 'open';
+  | 'contactsSent';
 
 const MyActionsStrip: React.FC<MyActionsStripProps> = ({
   data,
-  density = 'everyday',
   period,
 }) => {
   const { t } = useTranslation('dashboard');
@@ -45,35 +39,6 @@ const MyActionsStrip: React.FC<MyActionsStripProps> = ({
   const activePeriod = period || data.period;
 
   const tiles = useMemo(() => {
-    const openEstimate =
-      data.pending.overdue + data.pending.dueToday + Math.max(0, data.counts.tasksStarted);
-    const everyday: { key: TileKey; value: number; prev?: number; color: 'primary' | 'success' | 'warning' | 'error' | 'info'; path: string; icon: React.ReactNode }[] = [
-      {
-        key: 'tasksCompleted',
-        value: data.counts.tasksCompleted,
-        prev: data.previousCounts.tasksCompleted,
-        color: 'success',
-        path: `/tasks?status=completed&period=${activePeriod}`,
-        icon: <CheckCircle2 />,
-      },
-      {
-        key: 'open',
-        value: openEstimate,
-        color: data.pending.overdue > 0 ? 'warning' : 'primary',
-        path: '/tasks?focus=action',
-        icon: <Clock />,
-      },
-      {
-        key: 'dueToday',
-        value: data.pending.dueToday,
-        color: 'info',
-        path: '/chronologio?focus=today',
-        icon: <PlayCircle />,
-      },
-    ];
-
-    if (density === 'everyday') return everyday;
-
     return [
       {
         key: 'tasksCompleted' as TileKey,
@@ -124,10 +89,10 @@ const MyActionsStrip: React.FC<MyActionsStripProps> = ({
         icon: <Handshake />,
       },
     ];
-  }, [data, density, activePeriod]);
+  }, [data, activePeriod]);
 
   return (
-    <section className={`my-actions-strip my-actions-strip--${density}`} aria-label={t('myActions.stripTitle')}>
+    <section className="my-actions-strip my-actions-strip--full" aria-label={t('myActions.stripTitle')}>
       <h2 className="dashboard-section-label">{t('myActions.stripTitle')}</h2>
       <div className="my-actions-grid">
         {tiles.map((tile) => {

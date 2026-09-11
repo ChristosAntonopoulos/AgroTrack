@@ -19,6 +19,7 @@ import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
+import enFeedback from '../locales/en/feedback.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -39,6 +40,7 @@ import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
+import elFeedback from '../locales/el/feedback.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -57,6 +59,7 @@ import itPartners from '../locales/it/partners.json';
 import itChronologio from '../locales/it/chronologio.json';
 import itCapture from '../locales/it/capture.json';
 import itMoney from '../locales/it/money.json';
+import itFeedback from '../locales/it/feedback.json';
 
 const bundle = (
   common: object,
@@ -124,6 +127,7 @@ export const resources: Record<
       enCapture
     ),
     money: enMoney,
+    feedback: enFeedback,
   },
   el: {
     ...bundle(
@@ -147,6 +151,7 @@ export const resources: Record<
       elCapture
     ),
     money: elMoney,
+    feedback: elFeedback,
   },
   it: {
     ...bundle(
@@ -170,5 +175,6 @@ export const resources: Record<
       itCapture
     ),
     money: itMoney,
+    feedback: itFeedback,
   },
 };

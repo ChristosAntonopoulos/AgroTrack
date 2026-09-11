@@ -3,6 +3,8 @@ import { authService, AuthResponse } from '../services/authService';
 import { mockAuthService } from '../services/mock/mockAuthService';
 import { isMockDataEnabled } from '../config/apiConfig';
 import { setUnauthorizedHandler } from '../services/api';
+import { EntityCache } from '../utils/entityCache';
+import { OfflineQueue } from '../utils/offlineQueue';
 
 interface AuthContextType {
   user: AuthResponse | null;
@@ -14,6 +16,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const persistSession = (response: AuthResponse) => {
+  localStorage.setItem('token', response.token);
+  localStorage.setItem('user', JSON.stringify(response));
+};
+
+const clearSessionCaches = () => {
+  EntityCache.clearAll();
+  void OfflineQueue.clearQueue();
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthResponse | null>(null);
@@ -32,8 +44,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     const service = isMockDataEnabled() ? mockAuthService : authService;
     const response = await service.login({ email, password });
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response));
+    clearSessionCaches();
+    persistSession(response);
     setUser(response);
   };
 
@@ -52,19 +64,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       lastName,
       inviteCode: inviteCode?.trim() || undefined,
     });
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response));
+    clearSessionCaches();
+    persistSession(response);
     setUser(response);
   };
 
   const logout = useCallback(() => {
-    try {
-      // Clear entity cache on logout so the next user never sees stale data.
-      void import('../utils/entityCache').then(({ EntityCache }) => EntityCache.clearAll());
-      void import('../utils/offlineQueue').then(({ OfflineQueue }) => OfflineQueue.clearQueue());
-    } catch {
-      // ignore
-    }
+    clearSessionCaches();
     authService.logout();
     setUser(null);
   }, []);

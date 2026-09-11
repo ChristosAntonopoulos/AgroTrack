@@ -28,7 +28,6 @@ type Props = {
 
 const SavedContactSheet: React.FC<Props> = ({
   open = true,
-  fieldId,
   fields,
   categories = [],
   existing,
@@ -40,9 +39,7 @@ const SavedContactSheet: React.FC<Props> = ({
   const [phone, setPhone] = useState(existing?.phone || '');
   const [email, setEmail] = useState(existing?.email || '');
   const [notes, setNotes] = useState(existing?.notes || '');
-  const [fieldIds, setFieldIds] = useState<string[]>(
-    existing?.fieldIds?.length ? existing.fieldIds : fieldId ? [fieldId] : []
-  );
+  const fieldIds = existing?.fieldIds?.length ? existing.fieldIds : fields.map((field) => field.id);
   const [serviceCategoryIds, setServiceCategoryIds] = useState<string[]>(existing?.serviceCategoryIds || []);
   const [source, setSource] = useState<'Manual' | 'PhoneBook'>(existing?.source || 'Manual');
   const [saving, setSaving] = useState(false);
@@ -50,10 +47,6 @@ const SavedContactSheet: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(Boolean(existing));
   const canPick = useMemo(() => canPickDeviceContact(), []);
-
-  const toggleField = (id: string) => {
-    setFieldIds((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));
-  };
 
   const toggleCategory = (id: string) => {
     setServiceCategoryIds((current) =>
@@ -169,24 +162,27 @@ const SavedContactSheet: React.FC<Props> = ({
         <PhoneActions phone={phone} />
         <p className="partners-field-hint">{t('partners:saveLaterHint')}</p>
 
-        {fields.length > 0 ? (
+        {categories.length > 0 ? (
           <fieldset className="partners-fieldset">
-            <legend>{t('partners:linkToField')}</legend>
+            <legend>{t('partners:whatTheyDo')}</legend>
+            <p className="partners-field-hint">{t('partners:importPhone.skillsHint')}</p>
             <div className="partners-chip-select">
-              {fields.map((field) => {
-                const on = fieldIds.includes(field.id);
-                return (
-                  <button
-                    key={field.id}
-                    type="button"
-                    className={`partners-select-chip ${on ? 'is-on' : ''}`}
-                    aria-pressed={on}
-                    onClick={() => toggleField(field.id)}
-                  >
-                    {field.name}
-                  </button>
-                );
-              })}
+              {categories
+                .filter((c) => c.isProminent || serviceCategoryIds.includes(c.id))
+                .map((category) => {
+                  const on = serviceCategoryIds.includes(category.id);
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className={`partners-select-chip ${on ? 'is-on' : ''}`}
+                      aria-pressed={on}
+                      onClick={() => toggleCategory(category.id)}
+                    >
+                      {categoryName(category, i18n.language)}
+                    </button>
+                  );
+                })}
             </div>
           </fieldset>
         ) : null}
@@ -210,29 +206,6 @@ const SavedContactSheet: React.FC<Props> = ({
               <span>{t('partners:contactNotes')}</span>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
             </label>
-            {categories.length > 0 ? (
-              <fieldset className="partners-fieldset">
-                <legend>{t('partners:whatTheyDo')}</legend>
-                <div className="partners-chip-select">
-                  {categories
-                    .filter((c) => c.isProminent || serviceCategoryIds.includes(c.id))
-                    .map((category) => {
-                      const on = serviceCategoryIds.includes(category.id);
-                      return (
-                        <button
-                          key={category.id}
-                          type="button"
-                          className={`partners-select-chip ${on ? 'is-on' : ''}`}
-                          aria-pressed={on}
-                          onClick={() => toggleCategory(category.id)}
-                        >
-                          {categoryName(category, i18n.language)}
-                        </button>
-                      );
-                    })}
-                </div>
-              </fieldset>
-            ) : null}
           </div>
         ) : null}
 

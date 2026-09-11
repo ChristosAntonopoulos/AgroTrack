@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
@@ -13,6 +12,7 @@ import { locationService } from '../services/locationService';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { getFieldShortLocation } from '../utils/shortLocation';
 import { countTasksToday, fieldSearchHaystack, getFieldOpenPath } from '../utils/fieldDisplay';
+import { distinctFieldColors } from '../utils/fieldColors';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
@@ -30,7 +30,6 @@ type ViewMode = 'list' | 'map';
 const FieldsPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common', 'errors']);
   const { user } = useAuth();
-  const { isEveryday } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
@@ -141,6 +140,12 @@ const FieldsPage: React.FC = () => {
     });
   }, [fields, search, sortBy, userCoords]);
 
+  const fieldAccents = useMemo(() => distinctFieldColors(fields), [fields]);
+  const paintField = (field: Field): Field => ({
+    ...field,
+    color: fieldAccents[field.id] || field.color,
+  });
+
   useEffect(() => {
     if (selectedFieldId && !filteredFields.some((field) => field.id === selectedFieldId)) {
       setSelectedFieldId(null);
@@ -171,7 +176,7 @@ const FieldsPage: React.FC = () => {
 
   return (
     <PageContainer>
-      <div className={`fields-page ${isEveryday ? 'fields-page--everyday' : ''}`}>
+      <div className="fields-page">
         <Breadcrumbs />
 
         <header className="fields-page-header">
@@ -277,7 +282,7 @@ const FieldsPage: React.FC = () => {
                   <div className="fields-split">
                     <div className="fields-split-map">
                       <FieldsMap
-                        fields={filteredFields}
+                        fields={filteredFields.map(paintField)}
                         selectedFieldId={selectedFieldId || undefined}
                         hoveredFieldId={hoveredFieldId}
                         onFieldSelect={(fieldId) => setSelectedFieldId(fieldId)}
@@ -296,7 +301,7 @@ const FieldsPage: React.FC = () => {
                           role="listitem"
                         >
                           <FieldCard
-                            field={field}
+                            field={paintField(field)}
                             stats={getFieldCardStats(field.id)}
                             compact
                             selected={selectedFieldId === field.id}
@@ -310,7 +315,7 @@ const FieldsPage: React.FC = () => {
                 ) : (
                   <div className="fields-list">
                     {filteredFields.map((field) => (
-                      <FieldCard key={field.id} field={field} stats={getFieldCardStats(field.id)} />
+                      <FieldCard key={field.id} field={paintField(field)} stats={getFieldCardStats(field.id)} />
                     ))}
                   </div>
                 )}

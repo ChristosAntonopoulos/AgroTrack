@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useExperienceMode } from '../../context/ExperienceModeContext';
 import { useFamilyMembershipModules } from '../../hooks/useFamilyMembershipModules';
 import { isMockMode } from '../../services/serviceFactory';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
@@ -23,21 +22,20 @@ interface MobileBottomNavProps {
 const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
   const { t } = useTranslation(['nav', 'common']);
   const { user } = useAuth();
-  const { isEveryday } = useExperienceMode();
   const familyModules = useFamilyMembershipModules();
   const harvest = useHarvestCampaignOptional();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
   const primaryItems = useMemo(() => {
-    const visible = filterNavItemsForUser(navItems, userRole, isEveryday, isMockMode(), familyModules);
+    const visible = filterNavItemsForUser(navItems, userRole, isMockMode(), familyModules);
     const harvestItem = visible.find((item) => item.path === '/harvest');
     let items = visible.filter((item) => item.mobilePrimary);
     if (harvest?.isLive && harvestItem) {
       items = [harvestItem, ...items.filter((item) => item.path !== '/chronologio' && item.path !== '/harvest')];
     }
     return items.slice(0, 3);
-  }, [userRole, isEveryday, familyModules, harvest?.isLive]);
+  }, [userRole, familyModules, harvest?.isLive]);
 
   const primaryActive = primaryItems.some((item) => isNavActive(location.pathname, item.path));
 

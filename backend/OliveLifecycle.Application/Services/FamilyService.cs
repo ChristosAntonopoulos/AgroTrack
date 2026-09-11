@@ -14,6 +14,7 @@ public class FamilyService : IFamilyService
     private readonly IFamilyCircleRepository _circles;
     private readonly IFamilyMemberRepository _members;
     private readonly IFamilyInviteRepository _invites;
+    private readonly IOwnerPartnerInviteRepository _partnerInvites;
     private readonly IFieldRepository _fields;
     private readonly IUserRepository _users;
     private readonly IDateTimeProvider _clock;
@@ -23,6 +24,7 @@ public class FamilyService : IFamilyService
         IFamilyCircleRepository circles,
         IFamilyMemberRepository members,
         IFamilyInviteRepository invites,
+        IOwnerPartnerInviteRepository partnerInvites,
         IFieldRepository fields,
         IUserRepository users,
         IDateTimeProvider clock,
@@ -31,6 +33,7 @@ public class FamilyService : IFamilyService
         _circles = circles;
         _members = members;
         _invites = invites;
+        _partnerInvites = partnerInvites;
         _fields = fields;
         _users = users;
         _clock = clock;
@@ -302,6 +305,22 @@ public class FamilyService : IFamilyService
         var invite = await _invites.GetByTokenAsync(token, cancellationToken)
             ?? throw new NotFoundException("Invite not found.");
 
+        var member = await _members.GetByIdAsync(invite.MemberId, cancellationToken)
+            ?? throw new NotFoundException("Family member not found.");
+
+        // Already accepted by this user (e.g. register-with-code, then open the link again).
+        if (string.Equals(invite.Status, FamilyInviteStatuses.Accepted, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(invite.AcceptedBy, userId, StringComparison.Ordinal))
+        {
+            return ToMemberDto(member, null, null, null);
+        }
+
+        if (string.Equals(member.Status, FamilyMemberStatuses.Active, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(member.LinkedUserId, userId, StringComparison.Ordinal))
+        {
+            return ToMemberDto(member, null, null, null);
+        }
+
         if (!string.Equals(invite.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
         {
             throw new ValidationException("This invite is no longer valid.");
@@ -320,18 +339,18 @@ public class FamilyService : IFamilyService
             throw new ValidationException("You cannot accept your own family invite.");
         }
 
-        var member = await _members.GetByIdAsync(invite.MemberId, cancellationToken)
-            ?? throw new NotFoundException("Family member not found.");
-
         if (!string.Equals(member.Status, FamilyMemberStatuses.Pending, StringComparison.OrdinalIgnoreCase))
         {
             throw new ValidationException("This family seat is no longer pending.");
         }
 
-        var existing = await _members.GetActiveByLinkedUserIdAsync(userId, cancellationToken);
-        if (existing != null && existing.Id != member.Id)
+        var existingForOwner = (await _members.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken))
+            .FirstOrDefault(m =>
+                string.Equals(m.OwnerUserId, invite.OwnerUserId, StringComparison.Ordinal)
+                && m.Id != member.Id);
+        if (existingForOwner != null)
         {
-            throw new ValidationException("You are already linked to a family circle.");
+            throw new ValidationException("You are already linked to this family.");
         }
 
         var now = _clock.UtcNow;
@@ -609,7 +628,13 @@ public class FamilyService : IFamilyService
         {
             var code = FamilyInviteCodes.Generate();
             var existing = await _invites.GetByTokenAsync(code, cancellationToken);
-            if (existing == null)
+            if (existing != null)
+            {
+                continue;
+            }
+
+            var partnerHit = await _partnerInvites.GetByTokenAsync(code, cancellationToken);
+            if (partnerHit == null)
             {
                 return code;
             }

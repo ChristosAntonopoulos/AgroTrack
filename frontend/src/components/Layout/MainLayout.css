@@ -4,7 +4,6 @@
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--bg-page);
-  background-attachment: fixed;
   transition: background var(--transition-base);
   overflow-x: clip;
 }
@@ -38,9 +37,34 @@
   min-height: calc(100vh - var(--header-height) - var(--safe-top));
   min-height: calc(100dvh - var(--header-height) - var(--safe-top));
   min-width: 0;
+  position: relative;
+  isolation: isolate;
   transition: margin-left var(--transition-base);
   background: transparent;
   overflow-x: clip;
+}
+
+.app-canvas {
+  position: sticky;
+  top: 0;
+  height: calc(100dvh - var(--header-height) - var(--safe-top));
+  margin-bottom: calc(-1 * (100dvh - var(--header-height) - var(--safe-top)));
+  background-color: var(--bg-page);
+  background-image: var(--bg-canvas, url('../../assets/images/app-canvas-light.jpg'));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme='dark'] .app-canvas {
+  background-image: var(--bg-canvas, url('../../assets/images/app-canvas-dark.jpg'));
+}
+
+.main-content > *:not(.app-canvas) {
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-overlay {
@@ -59,6 +83,11 @@
     margin-left: 0;
     padding: var(--spacing-md);
     padding-bottom: calc(var(--spacing-md) + var(--bottom-nav-height) + var(--safe-bottom));
+  }
+
+  .app-canvas {
+    height: calc(100dvh - var(--header-height) - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom));
+    margin-bottom: calc(-1 * (100dvh - var(--header-height) - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom)));
   }
 
   .sidebar-overlay {

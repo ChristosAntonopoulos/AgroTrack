@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   PenLine,
-  CloudRain,
+  CalendarClock,
   Share2,
   ClipboardList,
   Camera,
@@ -11,7 +11,7 @@ import {
   CircleDollarSign,
   Heart,
   Users,
-  Leaf,
+  Landmark,
   Download,
   Mail,
   Check,
@@ -24,6 +24,7 @@ import {
 import { useLocale } from '../context/LocaleProvider';
 import { SupportedLocale } from '../i18n/config';
 import BrandLogo from '../components/Common/BrandLogo';
+import ThemeModeToggle from '../components/Common/ThemeModeToggle';
 import {
   ALPHA_APK_URL,
   ALPHA_APK_FILENAME,
@@ -54,7 +55,7 @@ const shotsFor = (locale: SupportedLocale): Record<ShotKey, string> =>
 
 const PROMISES = [
   { key: 'record', icon: PenLine },
-  { key: 'data', icon: CloudRain },
+  { key: 'data', icon: CalendarClock },
   { key: 'pass', icon: Share2 },
 ] as const;
 
@@ -68,7 +69,7 @@ const CHRONO_PILLARS = [
 const SHARE_ROLES = [
   { key: 'family', icon: Heart },
   { key: 'partners', icon: Users },
-  { key: 'agronomist', icon: Leaf },
+  { key: 'agronomist', icon: Landmark },
 ] as const;
 
 const LandingPage: React.FC = () => {
@@ -82,7 +83,10 @@ const LandingPage: React.FC = () => {
   const [demoForm, setDemoForm] = useState({ name: '', email: '', org: '', message: '' });
 
   const lines = useCallback(
-    (key: string) => t(key, { returnObjects: true }) as string[],
+    (key: string) => {
+      const value = t(key, { returnObjects: true });
+      return Array.isArray(value) ? (value as string[]) : [];
+    },
     [t]
   );
 
@@ -116,7 +120,10 @@ const LandingPage: React.FC = () => {
 
   const headerCtas = (
     <>
-      <Link to="/login" className="landing-btn landing-btn--outline landing-btn--sm landing-btn--on-hero landing-header-signin">
+      <Link
+        to="/login"
+        className="landing-btn landing-btn--outline landing-btn--sm landing-btn--on-hero landing-header-signin"
+      >
         <LogIn size={16} aria-hidden />
         <span>{t('header.signIn')}</span>
       </Link>
@@ -125,6 +132,9 @@ const LandingPage: React.FC = () => {
       </Link>
     </>
   );
+
+  const knowledgeTitle = t('knowledge.title').split('\n');
+  const futureTitle = t('future.title').split('\n');
 
   return (
     <div className="landing">
@@ -158,18 +168,21 @@ const LandingPage: React.FC = () => {
           </nav>
 
           <div className="landing-header-actions">
-            <div className="landing-lang landing-lang--desktop" role="group" aria-label="Language">
-              {(['el', 'en'] as SupportedLocale[]).map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  className={locale === code ? 'active' : ''}
-                  onClick={() => setLocale(code)}
-                  aria-pressed={locale === code}
-                >
-                  {code.toUpperCase()}
-                </button>
-              ))}
+            <div className="landing-chrome-prefs landing-chrome-prefs--desktop">
+              <ThemeModeToggle surface={scrolled ? 'landing-scrolled' : 'landing'} />
+              <div className="landing-lang" role="group" aria-label="Language">
+                {(['el', 'en'] as SupportedLocale[]).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    className={locale === code ? 'active' : ''}
+                    onClick={() => setLocale(code)}
+                    aria-pressed={locale === code}
+                  >
+                    {code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
             {headerCtas}
             <button
@@ -195,18 +208,21 @@ const LandingPage: React.FC = () => {
               ))}
             </nav>
             <div className="landing-mobile-menu-actions">
-              <div className="landing-lang" role="group" aria-label="Language">
-                {(['el', 'en'] as SupportedLocale[]).map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    className={locale === code ? 'active' : ''}
-                    onClick={() => setLocale(code)}
-                    aria-pressed={locale === code}
-                  >
-                    {code.toUpperCase()}
-                  </button>
-                ))}
+              <div className="landing-chrome-prefs">
+                <ThemeModeToggle surface={scrolled ? 'landing-scrolled' : 'landing'} />
+                <div className="landing-lang" role="group" aria-label="Language">
+                  {(['el', 'en'] as SupportedLocale[]).map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      className={locale === code ? 'active' : ''}
+                      onClick={() => setLocale(code)}
+                      aria-pressed={locale === code}
+                    >
+                      {code.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
               <Link
                 to="/login"
@@ -229,15 +245,19 @@ const LandingPage: React.FC = () => {
       </header>
 
       <main id="top">
-        <section className="landing-hero">
-          <div className="landing-container landing-hero-grid">
+        {/* 1. HERO — mood: deep olive */}
+        <section className="landing-hero landing-mood-hero">
+          <div className="landing-mood-layer" aria-hidden data-mood="hero" />
+          <div className="landing-container landing-hero-grid landing-hero-grid--solo">
             <div className="landing-hero-copy">
               <p className="landing-eyebrow">{t('hero.eyebrow')}</p>
               <h1>{t('hero.title')}</h1>
-              <p className="landing-lead">
-                <strong>{t('hero.leadYou')}</strong> {t('hero.leadProduct')}
-              </p>
-              <p className="landing-hero-body">{t('hero.body')}</p>
+              <p className="landing-lead">{t('hero.sub')}</p>
+              <ul className="landing-hero-benefits">
+                {lines('hero.benefits').map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
               <div className="landing-hero-ctas">
                 <Link to="/register" className="landing-btn landing-btn--hero-primary">
                   {t('hero.ctaPrimary')}
@@ -245,22 +265,19 @@ const LandingPage: React.FC = () => {
                 <button
                   type="button"
                   className="landing-btn landing-btn--hero-secondary"
-                  onClick={() => scrollTo('chronologio')}
+                  onClick={() => scrollTo('how-it-works')}
                 >
                   {t('hero.ctaSecondary')}
                 </button>
               </div>
-            </div>
-
-            <div className="landing-hero-visual">
-              <figure className="landing-device landing-device--phone landing-device--hero">
-                <img src={shots.phoneField} alt={t('hero.shotAlt')} />
-              </figure>
+              <p className="landing-trust">{t('hero.trust')}</p>
             </div>
           </div>
         </section>
 
-        <section id="features" className="landing-section landing-section--cream">
+        {/* 2. Three practical cards */}
+        <section id="features" className="landing-section landing-mood-grove">
+          <div className="landing-mood-layer" aria-hidden data-mood="grove" />
           <div className="landing-container landing-shift-grid">
             {PROMISES.map(({ key, icon: Icon }) => (
               <article key={key} className="landing-shift-card">
@@ -274,46 +291,43 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="landing-section">
+        {/* 3. Problem — mood: warm paper */}
+        <section className="landing-section landing-mood-paper">
+          <div className="landing-mood-layer" aria-hidden data-mood="paper" />
           <div className="landing-container landing-prose">
             <h2>{t('problem.title')}</h2>
             <ul className="landing-questions">
-              {lines('problem.questions').map((q) => (
+              {lines('problem.lines').map((q) => (
                 <li key={q}>{q}</li>
               ))}
             </ul>
-            <p>{t('problem.someRemember')}</p>
-            <p>{t('problem.someScattered')}</p>
-            <p>{t('problem.someLost')}</p>
+            <p>{t('problem.bridge')}</p>
+            <p>{t('problem.solution')}</p>
             <p className="landing-close">{t('problem.close')}</p>
           </div>
         </section>
 
-        <section className="landing-section landing-section--olive">
+        {/* 4. Chapter / memory — mood: olive dark */}
+        <section className="landing-section landing-section--olive landing-mood-olive">
+          <div className="landing-mood-layer" aria-hidden data-mood="olive" />
           <div className="landing-container landing-moment">
-            <h2>
-              {t('brandMoment.title1')}
-              <br />
-              {t('brandMoment.title2')}
-            </h2>
+            <h2>{t('brandMoment.title')}</h2>
             <p className="landing-moment-intro">{t('brandMoment.intro')}</p>
-            <ul className="landing-moment-lines">
-              {lines('brandMoment.lines').map((line) => (
-                <li key={line}>{line}</li>
+            <ol className="landing-flow">
+              {lines('brandMoment.flow').map((step) => (
+                <li key={step}>{step}</li>
               ))}
-            </ul>
-            <p>{t('brandMoment.notScattered')}</p>
-            <p className="landing-close">{t('brandMoment.together')}</p>
+            </ol>
+            <p className="landing-close">{t('brandMoment.close')}</p>
           </div>
         </section>
 
-        <section id="chronologio" className="landing-section landing-section--muted">
+        {/* 5. Chronologio product — mood: clean */}
+        <section id="chronologio" className="landing-section landing-section--clean landing-mood-clean">
           <div className="landing-container landing-chrono">
             <div className="landing-section-head landing-section-head--left">
-              <p className="landing-eyebrow landing-eyebrow--on-light">{t('chronologio.eyebrow')}</p>
               <h2>{t('chronologio.title')}</h2>
               <p>{t('chronologio.text')}</p>
-              <p>{t('chronologio.range')}</p>
             </div>
             <div className="landing-chrono-body">
               <div className="landing-pillar-grid">
@@ -331,26 +345,32 @@ const LandingPage: React.FC = () => {
                 <img src={shots.phoneField} alt={t('chronologio.shotAlt')} />
               </figure>
             </div>
+            <p className="landing-chrono-foot">{t('chronologio.foot')}</p>
             <Link to="/register" className="landing-btn landing-btn--primary">
               {t('chronologio.cta')}
             </Link>
           </div>
         </section>
 
-        <section className="landing-section">
-          <div className="landing-container landing-prose">
-            <h2>{t('knowledge.title')}</h2>
+        {/* 6. Differentiation — data the farmer knows */}
+        <section className="landing-section landing-mood-know">
+          <div className="landing-mood-layer" aria-hidden data-mood="know" />
+          <div className="landing-container landing-prose landing-knowledge">
+            <h2>
+              {knowledgeTitle.map((line) => (
+                <span key={line} className="landing-title-line">
+                  {line}
+                </span>
+              ))}
+            </h2>
             <p>{t('knowledge.p1')}</p>
             <p>{t('knowledge.p2')}</p>
-            <p>{t('knowledge.p3')}</p>
-            <p className="landing-close">{t('knowledge.youKnow')}</p>
-            <p className="landing-close">{t('knowledge.weRemember')}</p>
-            <p>{t('knowledge.together')}</p>
             <p className="landing-knowledge-close">{t('knowledge.close')}</p>
           </div>
         </section>
 
-        <section className="landing-section landing-section--cream">
+        {/* 7. One grove / one memory */}
+        <section className="landing-section landing-section--cream landing-mood-clean">
           <div className="landing-container">
             <div className="landing-section-head">
               <h2>{t('beforeAfter.title')}</h2>
@@ -373,62 +393,89 @@ const LandingPage: React.FC = () => {
                 </ul>
               </article>
             </div>
+            <p className="landing-section-close">{t('beforeAfter.close')}</p>
           </div>
         </section>
 
-        <section id="partners" className="landing-section">
-          <div className="landing-container landing-section-head">
-            <h2>{t('sharing.title')}</h2>
-            <p>{t('sharing.text')}</p>
-            <p>{t('sharing.share')}</p>
-          </div>
-          <div className="landing-container landing-shift-grid">
-            {SHARE_ROLES.map(({ key, icon: Icon }) => (
-              <article key={key} className="landing-shift-card">
-                <div className="landing-card-icon">
-                  <Icon size={22} strokeWidth={1.75} />
-                </div>
-                <h3>{t(`sharing.${key}Title`)}</h3>
-                <p>{t(`sharing.${key}Text`)}</p>
-              </article>
-            ))}
+        {/* 8. Transfer / heritage — sharing */}
+        <section id="partners" className="landing-section landing-mood-share">
+          <div className="landing-mood-layer" aria-hidden data-mood="share" />
+          <div className="landing-container landing-share-body">
+            <div className="landing-section-head landing-section-head--left">
+              <h2>{t('sharing.title')}</h2>
+              <p>{t('sharing.text')}</p>
+            </div>
+            <div className="landing-shift-grid">
+              {SHARE_ROLES.map(({ key, icon: Icon }) => (
+                <article key={key} className="landing-shift-card">
+                  <div className="landing-card-icon">
+                    <Icon size={22} strokeWidth={1.75} />
+                  </div>
+                  <h3>{t(`sharing.${key}Title`)}</h3>
+                  <p>{t(`sharing.${key}Text`)}</p>
+                </article>
+              ))}
+            </div>
+            <p className="landing-section-close">{t('sharing.close')}</p>
           </div>
         </section>
 
-        <section className="landing-section landing-section--muted">
+        {/* 9. Compounding years */}
+        <section className="landing-section landing-section--cream landing-mood-clean">
           <div className="landing-container landing-years-wrap">
             <h2>{t('timeValue.title')}</h2>
             <ol className="landing-years">
               <li>
                 <span>1</span>
-                <p>{t('timeValue.year1')}</p>
+                <div>
+                  <strong>{t('timeValue.year1Label')}</strong>
+                  <p>{t('timeValue.year1')}</p>
+                </div>
               </li>
               <li>
                 <span>2</span>
-                <p>{t('timeValue.year2')}</p>
+                <div>
+                  <strong>{t('timeValue.year2Label')}</strong>
+                  <p>{t('timeValue.year2')}</p>
+                </div>
               </li>
               <li>
-                <span>3</span>
-                <p>{t('timeValue.year3')}</p>
+                <span>3+</span>
+                <div>
+                  <strong>{t('timeValue.year3Label')}</strong>
+                  <p>{t('timeValue.year3')}</p>
+                </div>
               </li>
             </ol>
-            <p className="landing-years-bridge">{t('timeValue.bridge')}</p>
+            <ul className="landing-questions landing-questions--inline">
+              {lines('timeValue.questions').map((q) => (
+                <li key={q}>{q}</li>
+              ))}
+            </ul>
             <p className="landing-knowledge-close">{t('timeValue.close')}</p>
           </div>
         </section>
 
-        <section className="landing-section">
+        {/* 10. Field simplicity + product shot */}
+        <section className="landing-section landing-mood-clean">
           <div className="landing-container landing-simple">
             <div className="landing-prose landing-prose--flush">
               <h2>{t('simpleUse.title')}</h2>
-              <p>{t('simpleUse.p1')}</p>
-              <ul className="landing-actions">
-                {lines('simpleUse.actions').map((item) => (
+              <ul className="landing-questions">
+                {lines('simpleUse.lines').map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-              <p>{t('simpleUse.keepGoing')}</p>
-              <p className="landing-close">{t('simpleUse.close')}</p>
+              <ul className="landing-actions">
+                {lines('simpleUse.steps').map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <ul className="landing-bullet-row">
+                {lines('simpleUse.bullets').map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
             <figure className="landing-device landing-device--phone">
               <img src={shots.phoneTask} alt={t('simpleUse.shotAlt')} />
@@ -436,9 +483,11 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="how-it-works" className="landing-section landing-section--cream">
+        {/* 11. Onboarding */}
+        <section id="how-it-works" className="landing-section landing-section--cream landing-mood-clean">
           <div className="landing-container landing-section-head">
             <h2>{t('steps.title')}</h2>
+            <p>{t('steps.lead')}</p>
           </div>
           <div className="landing-container landing-steps">
             {[1, 2, 3].map((n) => (
@@ -449,19 +498,44 @@ const LandingPage: React.FC = () => {
               </article>
             ))}
           </div>
+          <div className="landing-container landing-section-cta">
+            <Link to="/register" className="landing-btn landing-btn--primary">
+              {t('steps.cta')}
+            </Link>
+          </div>
         </section>
 
-        <section className="landing-section landing-section--olive">
+        {/* 12. Continuity — mood: earth-dark */}
+        <section className="landing-section landing-section--earth landing-mood-earth">
+          <div className="landing-mood-layer" aria-hidden data-mood="earth" />
           <div className="landing-container landing-moment">
-            <h2>{t('future.title')}</h2>
-            <p>{t('future.p1')}</p>
-            <p>{t('future.p2')}</p>
-            <p className="landing-future-lockup">{t('future.lockup')}</p>
+            <h2>
+              {futureTitle.map((line) => (
+                <span key={line} className="landing-title-line">
+                  {line}
+                </span>
+              ))}
+            </h2>
+            <div className="landing-future-grid">
+              <article>
+                <h3>{t('future.pastTitle')}</h3>
+                <p>{t('future.pastText')}</p>
+              </article>
+              <article>
+                <h3>{t('future.todayTitle')}</h3>
+                <p>{t('future.todayText')}</p>
+              </article>
+              <article>
+                <h3>{t('future.nextTitle')}</h3>
+                <p>{t('future.nextText')}</p>
+              </article>
+            </div>
             <p className="landing-close">{t('future.close')}</p>
           </div>
         </section>
 
-        <section id="pricing" className="landing-section landing-section--muted">
+        {/* 13. Free plan */}
+        <section id="pricing" className="landing-section landing-section--clean landing-mood-clean">
           <div className="landing-container landing-alpha-grid">
             <div className="landing-section-head">
               <h2>{t('alpha.title')}</h2>
@@ -485,20 +559,7 @@ const LandingPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              <dl className="landing-apk-meta">
-                <div>
-                  <dt>{t('alpha.version')}</dt>
-                  <dd>{t('alpha.versionValue')}</dd>
-                </div>
-                <div>
-                  <dt>{t('alpha.platform')}</dt>
-                  <dd>{t('alpha.platformValue')}</dd>
-                </div>
-                <div>
-                  <dt>{t('alpha.status')}</dt>
-                  <dd>{t('alpha.statusValue')}</dd>
-                </div>
-              </dl>
+              <p className="landing-trust landing-trust--on-light">{t('alpha.trust')}</p>
               <Link to="/register" className="landing-btn landing-btn--primary landing-btn--block">
                 {t('alpha.webCta')}
               </Link>
@@ -519,7 +580,7 @@ const LandingPage: React.FC = () => {
                 {t('alpha.installGuide')}
                 <ChevronDown size={16} className={installOpen ? 'open' : ''} aria-hidden />
               </button>
-              {installOpen && (
+              {installOpen ? (
                 <div className="landing-apk-guide">
                   <h4>{t('alpha.installTitle')}</h4>
                   <ol>
@@ -528,7 +589,7 @@ const LandingPage: React.FC = () => {
                     ))}
                   </ol>
                 </div>
-              )}
+              ) : null}
               <p className="landing-apk-warning">
                 <AlertCircle size={14} aria-hidden />
                 {t('alpha.safety')}
@@ -537,7 +598,9 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="landing-cta">
+        {/* 14. Final CTA — mood: earth */}
+        <section className="landing-cta landing-mood-earth">
+          <div className="landing-mood-layer" aria-hidden data-mood="cta" />
           <div className="landing-container landing-cta-inner">
             <p className="landing-eyebrow">{t('cta.kicker')}</p>
             <h2>{t('cta.title')}</h2>
@@ -605,7 +668,7 @@ const LandingPage: React.FC = () => {
         </div>
       </footer>
 
-      {demoOpen && (
+      {demoOpen ? (
         <div className="landing-modal-backdrop" role="presentation" onClick={() => setDemoOpen(false)}>
           <div
             className="landing-modal"
@@ -662,7 +725,7 @@ const LandingPage: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

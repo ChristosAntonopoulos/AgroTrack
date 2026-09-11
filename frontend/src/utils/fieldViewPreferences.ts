@@ -6,7 +6,6 @@ export type FieldViewTab = 'overview' | 'map' | 'chronologio' | 'details';
 
 export type FieldViewPreferences = {
   lastTab?: FieldViewTab;
-  lastPreset?: 'field' | 'water' | 'frost' | 'vegetation';
   lastBase?: 'satellite' | 'street' | 'terrain';
   lastOverlays?: string[];
 };
@@ -21,13 +20,6 @@ export const readFieldViewPreferences = (): FieldViewPreferences => {
     const parsed = JSON.parse(raw) as FieldViewPreferences;
     return {
       lastTab: isTab(parsed.lastTab) ? parsed.lastTab : undefined,
-      lastPreset:
-        parsed.lastPreset === 'field' ||
-        parsed.lastPreset === 'water' ||
-        parsed.lastPreset === 'frost' ||
-        parsed.lastPreset === 'vegetation'
-          ? parsed.lastPreset
-          : undefined,
       lastBase:
         parsed.lastBase === 'satellite' || parsed.lastBase === 'street' || parsed.lastBase === 'terrain'
           ? parsed.lastBase

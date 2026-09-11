@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useExperienceMode } from '../../context/ExperienceModeContext';
 import type { Field } from '../../services/fieldService';
 import { fieldPeopleService, type FieldMembership } from '../../services/fieldPeopleService';
 import { geospatialService, type FieldSpatialProfile } from '../../services/geospatialService';
@@ -27,8 +26,6 @@ const Row: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, valu
 
 const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const { isEveryday } = useExperienceMode();
-  const [more, setMore] = useState(!isEveryday);
   const [people, setPeople] = useState<FieldMembership[]>([]);
   const [spatial, setSpatial] = useState<FieldSpatialProfile | null>(null);
 
@@ -114,74 +111,66 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn }) => {
         </dl>
       </section>
 
-      {!isEveryday || more ? (
-        <>
-          <section className="field-details-card">
-            <h3>{t('fields:details.water')}</h3>
-            <dl>
-              <Row
-                label={t('fields:form.irrigationLabel')}
-                value={field.irrigationStatus ? t('fields:card.irrigationYes') : t('fields:details.rainfed')}
-              />
-              <Row label={t('fields:details.irrigationType')} value={field.irrigationType || unknown} />
-            </dl>
-          </section>
+      <section className="field-details-card">
+        <h3>{t('fields:details.water')}</h3>
+        <dl>
+          <Row
+            label={t('fields:form.irrigationLabel')}
+            value={field.irrigationStatus ? t('fields:card.irrigationYes') : t('fields:details.rainfed')}
+          />
+          <Row label={t('fields:details.irrigationType')} value={field.irrigationType || unknown} />
+        </dl>
+      </section>
 
-          <section className="field-details-card">
-            <h3>{t('fields:details.terrain')}</h3>
-            <dl>
-              <Row label={t('fields:form.groundType')} value={field.groundType || field.soilType || unknown} />
-              <Row label={t('fields:details.slope')} value={field.slope || unknown} />
-              <Row
-                label={t('fields:details.elevation')}
-                value={
-                  spatial?.terrain?.averageElevationM != null
-                    ? `${Math.round(spatial.terrain.averageElevationM)} m`
-                    : unknown
-                }
-              />
-            </dl>
-          </section>
+      <section className="field-details-card">
+        <h3>{t('fields:details.terrain')}</h3>
+        <dl>
+          <Row label={t('fields:form.groundType')} value={field.groundType || field.soilType || unknown} />
+          <Row label={t('fields:details.slope')} value={field.slope || unknown} />
+          <Row
+            label={t('fields:details.elevation')}
+            value={
+              spatial?.terrain?.averageElevationM != null
+                ? `${Math.round(spatial.terrain.averageElevationM)} m`
+                : unknown
+            }
+          />
+        </dl>
+      </section>
 
-          <section className="field-details-card">
-            <h3>{t('fields:details.people')}</h3>
-            {people.length === 0 ? (
-              <p>{t('fields:details.noPeople')}</p>
-            ) : (
-              <ul className="field-details-people">
-                {people.map((person) => (
-                  <li key={person.userId}>
-                    <strong>{person.displayName || person.email || person.userId}</strong>
-                    <span>{person.capacities.join(', ')}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {canOwn ? (
-              <Link className="fd-text-link" to={`/partners?fieldId=${encodeURIComponent(field.id)}`}>
-                {t('fields:page.manageAccess')}
-              </Link>
-            ) : null}
-          </section>
+      <section className="field-details-card">
+        <h3>{t('fields:details.people')}</h3>
+        {people.length === 0 ? (
+          <p>{t('fields:details.noPeople')}</p>
+        ) : (
+          <ul className="field-details-people">
+            {people.map((person) => (
+              <li key={person.userId}>
+                <strong>{person.displayName || person.email || person.userId}</strong>
+                <span>{person.capacities.join(', ')}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {canOwn ? (
+          <Link className="fd-text-link" to={`/partners?fieldId=${encodeURIComponent(field.id)}`}>
+            {t('fields:page.manageAccess')}
+          </Link>
+        ) : null}
+      </section>
 
-          <section className="field-details-card">
-            <h3>{t('fields:page.documents')}</h3>
-            {(field.documents || []).length === 0 ? (
-              <p>{t('fields:details.noDocuments')}</p>
-            ) : (
-              <ul>
-                {(field.documents || []).map((doc) => (
-                  <li key={doc.id}>{doc.fileName}</li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      ) : (
-        <button type="button" className="field-attention-secondary" onClick={() => setMore(true)}>
-          {t('fields:details.more')}
-        </button>
-      )}
+      <section className="field-details-card">
+        <h3>{t('fields:page.documents')}</h3>
+        {(field.documents || []).length === 0 ? (
+          <p>{t('fields:details.noDocuments')}</p>
+        ) : (
+          <ul>
+            {(field.documents || []).map((doc) => (
+              <li key={doc.id}>{doc.fileName}</li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };

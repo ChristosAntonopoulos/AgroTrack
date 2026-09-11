@@ -42,6 +42,8 @@ import { chronologioService } from './chronologioService';
 import { mockChronologioService } from './mock/mockChronologioService';
 import { fieldWorkService } from './fieldWorkService';
 import { mockFieldWorkService } from './mock/mockFieldWorkService';
+import { feedbackService } from './feedbackService';
+import { mockFeedbackService } from './mock/mockFeedbackService';
 import { isMockDataEnabled } from '../config/apiConfig';
 
 const useMockData = isMockDataEnabled();
@@ -67,6 +69,8 @@ export const getChronologioService = () =>
   useMockData ? mockChronologioService : chronologioService;
 export const getFieldWorkService = () =>
   useMockData ? mockFieldWorkService : fieldWorkService;
+export const getFeedbackService = () =>
+  useMockData ? mockFeedbackService : feedbackService;
 
-// Export a helper to check if mock mode is active
+/** Whether the UI is running against in-browser demo data. */
 export const isMockMode = () => useMockData;

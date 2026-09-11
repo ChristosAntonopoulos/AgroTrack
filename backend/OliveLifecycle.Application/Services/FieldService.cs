@@ -33,6 +33,7 @@ public class FieldService : IFieldService
     private readonly ILifecycleRepository _lifecycleRepository;
     private readonly IGeospatialJobQueue _geospatialJobQueue;
     private readonly IFamilyMemberRepository _familyMembers;
+    private readonly IOwnerPartnerLinkRepository _partnerLinks;
     private readonly ILogger<FieldService> _logger;
 
     public FieldService(
@@ -51,6 +52,7 @@ public class FieldService : IFieldService
         ILifecycleRepository lifecycleRepository,
         IGeospatialJobQueue geospatialJobQueue,
         IFamilyMemberRepository familyMembers,
+        IOwnerPartnerLinkRepository partnerLinks,
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
@@ -68,6 +70,7 @@ public class FieldService : IFieldService
         _lifecycleRepository = lifecycleRepository;
         _geospatialJobQueue = geospatialJobQueue;
         _familyMembers = familyMembers;
+        _partnerLinks = partnerLinks;
         _logger = logger;
     }
 
@@ -226,6 +229,13 @@ public class FieldService : IFieldService
             fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(access.OwnerUserId, cancellationToken));
         }
 
+        var partnerAccesses = await _partnerLinks.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
+        foreach (var access in partnerAccesses.Where(a =>
+                     a.Modules.Any(m => string.Equals(m, FamilyModules.Fields, StringComparison.OrdinalIgnoreCase))))
+        {
+            fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(access.OwnerUserId, cancellationToken));
+        }
+
         var includeDocuments = userRole == Roles.FieldOwner || userRole == Roles.Administrator;
         return fields.DistinctBy(f => f.Id).Select(f =>
         {
@@ -233,11 +243,15 @@ public class FieldService : IFieldService
             var familyDocs = familyAccesses.Any(a =>
                 string.Equals(a.OwnerUserId, f.OwnerId, StringComparison.Ordinal)
                 && a.Modules.Any(m => string.Equals(m, FamilyModules.Documents, StringComparison.OrdinalIgnoreCase)));
+            var partnerDocs = partnerAccesses.Any(a =>
+                string.Equals(a.OwnerUserId, f.OwnerId, StringComparison.Ordinal)
+                && a.Modules.Any(m => string.Equals(m, FamilyModules.Documents, StringComparison.OrdinalIgnoreCase)));
             return FieldMapper.ToDto(
                 f,
                 includeDocuments
                 || FieldMembershipSync.HasCapacity(f, userId, FieldCapacities.Own)
-                || familyDocs);
+                || familyDocs
+                || partnerDocs);
         });
     }
 
@@ -794,8 +808,8 @@ public class FieldService : IFieldService
 
     private static readonly string[] DefaultFieldColors =
     {
-        "#2F6B4F", "#3D6EA8", "#C47A1A", "#8B5E3C",
-        "#5B7C99", "#6B8F3A", "#A65D4E", "#5C6B8A"
+        "#E8C547", "#B54422", "#F0D48A", "#6F3D1E",
+        "#E08A1F", "#C45C48", "#C9A07A", "#8B5A32"
     };
 
     private static string? NormalizeFieldColor(string? color)

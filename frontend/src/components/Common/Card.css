@@ -26,11 +26,8 @@
 }
 
 .card-featured {
-  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-1) 68%);
-  border: 1px solid var(--olive-border);
-  box-shadow:
-    0 1px 3px rgba(10, 15, 9, 0.14),
-    0 12px 32px rgba(10, 15, 9, 0.10);
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
 }
 
 /* Card as Link */

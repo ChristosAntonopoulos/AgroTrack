@@ -61,3 +61,18 @@ public interface IFamilyInviteRepository : IRepository<FamilyInvite, string>
     Task<FamilyInvite?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FamilyInvite>> GetPendingByCircleIdAsync(string circleId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Owner-wide work-partner seat (max 1). Not marketplace providers.</summary>
+public interface IOwnerPartnerLinkRepository : IRepository<OwnerPartnerLink, string>
+{
+    Task<IReadOnlyList<OwnerPartnerLink>> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
+    Task<OwnerPartnerLink?> GetActiveByLinkedUserIdAsync(string linkedUserId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OwnerPartnerLink>> GetActiveByLinkedUserIdAllAsync(string linkedUserId, CancellationToken cancellationToken = default);
+    Task<int> CountOccupiedSeatsAsync(string ownerUserId, CancellationToken cancellationToken = default);
+}
+
+public interface IOwnerPartnerInviteRepository : IRepository<OwnerPartnerInvite, string>
+{
+    Task<OwnerPartnerInvite?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OwnerPartnerInvite>> GetPendingByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
+}

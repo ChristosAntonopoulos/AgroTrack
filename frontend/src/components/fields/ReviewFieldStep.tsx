@@ -1,13 +1,17 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check, Droplets, Leaf, MapPin, Pentagon, Trees } from 'lucide-react';
 import {
   CreateFieldDto,
+  Field,
   FieldAreaValidationResponse,
   GeoJsonPolygon,
   GreekCadastreInfo,
 } from '../../services/fieldService';
+import { normalizeLocale } from '../../i18n/config';
 import GreekCadastreInfoCard from './GreekCadastreInfoCard';
 import AreaComparisonCard from './AreaComparisonCard';
+import FieldPolygonThumbnail from './FieldPolygonThumbnail';
 
 interface Props {
   formData: CreateFieldDto;
@@ -32,45 +36,110 @@ const ReviewFieldStep: React.FC<Props> = ({
   onCadastreAcknowledgedChange,
   onWorksMyselfChange,
 }) => {
-  const { t } = useTranslation('fields');
+  const { t, i18n } = useTranslation('fields');
+  const locale = normalizeLocale(i18n.language);
+  const varietyLabel = formData.variety
+    ? t(`addField.varietyOptions.${formData.variety}`, { defaultValue: formData.variety })
+    : null;
+  const irrigationLabel = formData.irrigationType
+    ? t(`addField.irrigationOptions.${formData.irrigationType}`, {
+        defaultValue: formData.irrigationType,
+      })
+    : null;
+  const treeCountLabel =
+    formData.treeCount != null
+      ? Number(formData.treeCount).toLocaleString(locale === 'el' ? 'el-GR' : locale === 'it' ? 'it-IT' : 'en-US')
+      : null;
+
+  const previewField = {
+    id: formData.name || 'draft',
+    name: formData.name,
+    color: formData.color,
+    boundary,
+  } as Field;
+
+  const facts = [
+    treeCountLabel != null
+      ? {
+          key: 'trees',
+          label: t('addField.treeCount'),
+          value: treeCountLabel,
+          icon: Trees,
+        }
+      : null,
+    varietyLabel
+      ? {
+          key: 'variety',
+          label: t('addField.oliveVariety'),
+          value: varietyLabel,
+          icon: Leaf,
+        }
+      : null,
+    irrigationLabel
+      ? {
+          key: 'irrigation',
+          label: t('addField.irrigationType'),
+          value: irrigationLabel,
+          icon: Droplets,
+        }
+      : null,
+    {
+      key: 'boundary',
+      label: t('addField.boundary'),
+      value: boundary ? t('addField.boundaryDrawn') : t('addField.notDrawn'),
+      icon: Pentagon,
+      tone: boundary ? 'ok' : 'muted',
+    },
+  ].filter(Boolean) as Array<{
+    key: string;
+    label: string;
+    value: string;
+    icon: typeof Trees;
+    tone?: 'ok' | 'muted';
+  }>;
 
   return (
-    <div className="field-form-panel">
-      <h2>{t('addField.steps.review')}</h2>
-      <p className="field-form-panel-desc">{t('addField.reviewDesc')}</p>
+    <div className="field-form-panel field-review">
+      <header className="field-review-header">
+        <h2>{t('addField.steps.review')}</h2>
+        <p className="field-form-panel-desc">{t('addField.reviewDesc')}</p>
+      </header>
 
-      <dl className="field-review-list">
-        <div>
-          <dt>{t('form.name')}</dt>
-          <dd>{formData.name}</dd>
+      <section className="field-review-hero" aria-label={t('form.name')}>
+        <div className="field-review-hero-copy">
+          <p className="field-review-kicker">{t('form.name')}</p>
+          <h3 className="field-review-name">{formData.name || '—'}</h3>
+          {formData.locationText ? (
+            <p className="field-review-place">
+              <MapPin size={16} strokeWidth={2} aria-hidden />
+              <span>{formData.locationText}</span>
+            </p>
+          ) : null}
         </div>
-        <div>
-          <dt>{t('addField.cropType')}</dt>
-          <dd>{formData.cropType}</dd>
-        </div>
-        {formData.locationText && (
-          <div>
-            <dt>{t('locationLabel')}</dt>
-            <dd>{formData.locationText}</dd>
-          </div>
-        )}
-        {formData.treeCount != null && (
-          <div>
-            <dt>{t('addField.treeCount')}</dt>
-            <dd>{formData.treeCount}</dd>
-          </div>
-        )}
-        {formData.variety && (
-          <div>
-            <dt>{t('addField.oliveVariety')}</dt>
-            <dd>{formData.variety}</dd>
-          </div>
-        )}
-        <div>
-          <dt>{t('addField.boundary')}</dt>
-          <dd>{boundary ? t('addField.boundaryDrawn') : t('addField.notDrawn')}</dd>
-        </div>
+        <FieldPolygonThumbnail field={previewField} />
+      </section>
+
+      <dl className="field-review-facts">
+        {facts.map((fact) => {
+          const Icon = fact.icon;
+          return (
+            <div key={fact.key} className={`field-review-fact${fact.tone ? ` is-${fact.tone}` : ''}`}>
+              <dt>
+                <Icon size={16} strokeWidth={1.85} aria-hidden />
+                {fact.label}
+              </dt>
+              <dd>{fact.value}</dd>
+            </div>
+          );
+        })}
       </dl>
+
+      {formData.accessNotes ? (
+        <div className="field-review-notes">
+          <p className="field-review-kicker">{t('addField.accessNotes')}</p>
+          <p>{formData.accessNotes}</p>
+        </div>
+      ) : null}
 
       <AreaComparisonCard
         validation={areaValidation}
@@ -81,7 +150,7 @@ const ReviewFieldStep: React.FC<Props> = ({
       {cadastre && <GreekCadastreInfoCard cadastre={cadastre} />}
 
       <div className="review-checkboxes">
-        <label className="review-checkbox">
+        <label className={`review-checkbox${formData.worksThisFieldMyself !== false ? ' is-checked' : ''}`}>
           <input
             type="checkbox"
             checked={formData.worksThisFieldMyself !== false}
@@ -92,22 +161,27 @@ const ReviewFieldStep: React.FC<Props> = ({
             <em>{t('addField.worksThisFieldMyselfHint')}</em>
           </span>
         </label>
-        <label className="review-checkbox">
+        <label className={`review-checkbox${boundaryConfirmed ? ' is-checked' : ''}`}>
           <input
             type="checkbox"
             checked={boundaryConfirmed}
             onChange={(e) => onBoundaryConfirmedChange(e.target.checked)}
           />
-          <span>{t('addField.confirmBoundary')}</span>
+          <span>
+            <strong>{t('addField.confirmBoundary')}</strong>
+          </span>
+          {boundaryConfirmed ? <Check className="review-checkbox-mark" size={18} strokeWidth={2.4} aria-hidden /> : null}
         </label>
         {cadastre && (
-          <label className="review-checkbox">
+          <label className={`review-checkbox${cadastreAcknowledged ? ' is-checked' : ''}`}>
             <input
               type="checkbox"
               checked={cadastreAcknowledged}
               onChange={(e) => onCadastreAcknowledgedChange(e.target.checked)}
             />
-            <span>{t('addField.confirmCadastre')}</span>
+            <span>
+              <strong>{t('addField.confirmCadastre')}</strong>
+            </span>
           </label>
         )}
       </div>
