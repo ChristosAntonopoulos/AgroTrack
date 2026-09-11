@@ -5,6 +5,7 @@ import type {
   ChronologioPeriodSummary,
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { yearComparison } from '../../chronologio/yearPresentation';
 
 type Props = {
   left: ChronologioPeriodSummary | null;
@@ -37,6 +38,8 @@ const ChronologioCompare: React.FC<Props> = ({
     const fmt = new Intl.DateTimeFormat(i18n.language, { month: 'short', timeZone: 'UTC' });
     return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(Date.UTC(2020, i, 1))));
   }, [i18n.language]);
+
+  const comparison = yearComparison(left, right);
 
   const rows = [
     ...(left?.expenseTotal || right?.expenseTotal
@@ -148,6 +151,15 @@ const ChronologioCompare: React.FC<Props> = ({
           ))}
         </tbody>
       </table>
+
+      {comparison ? (
+        <p className="chrono-compare-conclusion">
+          {t(`yearView.compare.${comparison.kind}${comparison.percent >= 0 ? 'Up' : 'Down'}`, {
+            pct: Math.abs(comparison.percent),
+            year: comparison.previousYear,
+          })}
+        </p>
+      ) : null}
 
       <div className="chrono-compare-spines">
         <div>

@@ -15,18 +15,24 @@
 | App icon (store / home screen) | `oleachron-app-icon-dark.png` |
 | Κάρτα APK στη landing | `oleachron-app-icon-light.png` |
 | Favicon / compact chrome | `oleachron-favicon-mark.png` |
-| Splash | Horizontal dark σε `#2E4A2E` |
+| Splash | Horizontal dark σε `#29382A` (deep grove) |
 
 ## Tagline
 
 The story of every olive tree lives on.
 
-## Χρώματα (minimum system)
+## Χρώματα (Oleachron colour system)
 
-| Όνομα | Hex |
-|---|---|
-| Deep Olive | `#2E4A2E` |
-| Sage | `#6B7F5E` |
-| Cream | `#F8F7EE` |
-| Beige | `#D9D5C3` |
-| Gold | `#B8A373` |
+| Όνομα | Hex | Χρήση |
+|---|---|---|
+| Oleachron olive | `#536B3F` | Primary buttons, active navigation |
+| Soft sage | `#9AAA85` | Decorative highlights, previous-year charts |
+| Olive leaf | `#71845B` | Dark-theme primary accent |
+| Deep grove | `#29382A` | Premium dark surfaces |
+| Warm stone | `#D9D5C8` | Borders, secondary backgrounds |
+| Limestone | `#F4F3EC` | Light page background (not pure white) |
+| Olive-gold | `#B09A63` | Logo details, harvest/premium accents only |
+
+Gold: logo, harvest result highlight, premium/historical milestone, tiny divider — never buttons, nav, or large backgrounds.
+
+Runtime tokens: [`frontend/src/styles/theme.css`](../../../frontend/src/styles/theme.css). Brand mirror: [`brand/brand-tokens.css`](../../../brand/brand-tokens.css).

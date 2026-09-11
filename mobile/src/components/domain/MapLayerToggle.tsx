@@ -41,7 +41,7 @@ const MapLayerToggle: React.FC<MapLayerToggleProps> = ({ value, onChange, compac
             onPress={() => onChange(opt.key)}
             style={[
               styles.btn,
-              active && { backgroundColor: colors.primaryDark },
+              active && { backgroundColor: colors.primary },
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
@@ -49,7 +49,7 @@ const MapLayerToggle: React.FC<MapLayerToggleProps> = ({ value, onChange, compac
             <Text
               style={[
                 styles.label,
-                { color: active ? colors.textInverse : colors.textSecondary },
+                { color: active ? colors.onOlive : colors.textSecondary },
               ]}
             >
               {opt.label}

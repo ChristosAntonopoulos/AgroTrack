@@ -161,7 +161,7 @@
   background: none;
   border: none;
   text-align: start;
-  color: var(--color-primary, #166534);
+  color: var(--olive-primary);
   cursor: pointer;
   padding: 0.5rem 0;
 }

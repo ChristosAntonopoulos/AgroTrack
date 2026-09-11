@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications, Notification } from '../../context/NotificationContext';
+import { migrateLegacyHomePath } from '../../navigation/homePath';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { Check, X, Trash2 } from 'lucide-react';
 import './NotificationDropdown.css';
@@ -19,7 +20,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
     if (notification.actionUrl) {
-      navigate(notification.actionUrl);
+      navigate(migrateLegacyHomePath(notification.actionUrl));
       onClose();
     }
   };

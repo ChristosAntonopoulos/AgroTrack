@@ -30,7 +30,6 @@ export const isWidgetVisible = (
 
 /** Nav paths that stay in the primary Everyday sidebar (others move under More / Settings). */
 export const EVERYDAY_PRIMARY_PATHS: ReadonlySet<string> = new Set([
-  '/today',
   '/chronologio',
   '/fields',
   '/tasks',

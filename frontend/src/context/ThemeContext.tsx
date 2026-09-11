@@ -17,8 +17,20 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const applyResolved = (resolved: ResolvedTheme) => {
-  document.documentElement.setAttribute('data-theme', resolved);
+const THEME_TRANSITION_MS = 200;
+
+const applyResolved = (resolved: ResolvedTheme, withTransition = false) => {
+  const root = document.documentElement;
+  root.setAttribute('data-theme', resolved);
+  root.style.colorScheme = resolved;
+
+  if (!withTransition || typeof document === 'undefined') return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  document.body.classList.add('theme-transition');
+  window.setTimeout(() => {
+    document.body.classList.remove('theme-transition');
+  }, THEME_TRANSITION_MS);
 };
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -30,10 +42,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     resolveTheme(settingsService.getPreferences().theme)
   );
 
-  const syncResolved = useCallback((pref: Theme) => {
+  const syncResolved = useCallback((pref: Theme, withTransition = false) => {
     const resolved = resolveTheme(pref);
     setResolvedTheme(resolved);
-    applyResolved(resolved);
+    applyResolved(resolved, withTransition);
   }, []);
 
   useEffect(() => {
@@ -52,7 +64,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    syncResolved(newTheme);
+    syncResolved(newTheme, true);
     settingsService.savePreferences({ theme: newTheme });
   };
 

@@ -10,6 +10,7 @@ import '../../pages/PartnersPage.css';
 type FieldOption = { id: string; name: string };
 
 type Props = {
+  open?: boolean;
   note?: Note;
   fields: FieldOption[];
   initialBody?: string;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 const NoteSheet: React.FC<Props> = ({
+  open = true,
   note,
   fields,
   initialBody = '',
@@ -77,6 +79,7 @@ const NoteSheet: React.FC<Props> = ({
 
   return (
     <PartnersSheet
+      open={open}
       title={note ? t('dashboard:notes.editTitle') : t('dashboard:notes.newTitle')}
       subtitle={t('dashboard:notes.subtitle')}
       onClose={onClose}

@@ -205,6 +205,12 @@ describe('proposal presentation', () => {
     expect(chips.some((chip) => chip.id === 'unknown')).toBe(true);
   });
 
+  it('tolerates weather stubs without reasonCodes', () => {
+    const stub = { templateCode: 'T06', sourceType: '' } as unknown as TaskProposal;
+    expect(() => proposalChips(stub, 'good')).not.toThrow();
+    expect(proposalChips(stub, 'good')[0]?.id).toBe('good');
+  });
+
   it('builds a schedule path without a template code', () => {
     expect(scheduleProposalPath(proposal({ id: 'abc', fieldId: 'field-9' }))).toBe(
       '/tasks/new?proposalId=abc&fieldId=field-9'

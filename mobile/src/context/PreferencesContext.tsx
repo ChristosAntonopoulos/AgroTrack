@@ -73,7 +73,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [fullTutorialSeen, setFullTutorialSeen] = useState(false);
   const [everydayIntelligenceOpens, setEverydayIntelligenceOpens] = useState(0);
   const [fullPictureOnrampDismissed, setFullPictureOnrampDismissed] = useState(false);
-  const [defaultView, setDefaultViewState] = useState<DefaultStartView>('today');
+  const [defaultView, setDefaultViewState] = useState<DefaultStartView>('chronologio');
   const [dateFormat, setDateFormatState] = useState<DateFormatPref>('dd/MM/yyyy');
   const [isReady, setIsReady] = useState(false);
 
@@ -120,13 +120,9 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           setFontScaleState(storedFont);
         }
         if (storedLarge === 'true') setLargeControlsState(true);
-        if (storedDefaultView === 'dashboard') {
-          setDefaultViewState('today');
-        } else if (
-          storedDefaultView === 'today' ||
-          storedDefaultView === 'fields' ||
-          storedDefaultView === 'chronologio'
-        ) {
+        if (storedDefaultView === 'dashboard' || storedDefaultView === 'today') {
+          setDefaultViewState('chronologio');
+        } else if (storedDefaultView === 'fields' || storedDefaultView === 'chronologio') {
           setDefaultViewState(storedDefaultView);
         }
         if (

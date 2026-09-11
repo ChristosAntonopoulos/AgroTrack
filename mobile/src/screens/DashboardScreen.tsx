@@ -319,7 +319,7 @@ const DashboardScreen = () => {
                   return;
                 }
                 if (target === 'Today') {
-                  navigation.navigate('Main', { screen: 'Today' });
+                  navigation.navigate('Main', { screen: 'ChronologioTab' });
                   return;
                 }
                 goTab(target === 'Fields' ? 'Fields' : 'Tasks');
@@ -336,7 +336,7 @@ const DashboardScreen = () => {
                   return;
                 }
                 if (target === 'Today') {
-                  navigation.navigate('Main', { screen: 'Today' });
+                  navigation.navigate('Main', { screen: 'ChronologioTab' });
                   return;
                 }
                 goTab(target === 'Fields' ? 'Fields' : 'Tasks');

@@ -7,6 +7,8 @@ public class ChronologioEntryDto
     public ChronologioFieldRefDto Field { get; set; } = new();
     public string? CropCycleId { get; set; }
     public string? LifecycleYear { get; set; }
+    /// <summary>Olive agricultural / harvest year. Same identifier as ResultYear on source records.</summary>
+    public int? ResultYear { get; set; }
     public DateTime OccurredAt { get; set; }
     public DateTime? CreatedAt { get; set; }
     public string Category { get; set; } = string.Empty;
@@ -15,6 +17,8 @@ public class ChronologioEntryDto
     public string? Summary { get; set; }
     public string SourceType { get; set; } = string.Empty;
     public string SourceId { get; set; } = string.Empty;
+    /// <summary>Optional occurrence within a repeating source (e.g. a task execution id).</summary>
+    public string? OccurrenceId { get; set; }
     public bool IsSystemGenerated { get; set; }
     public ChronologioActorDto? Actor { get; set; }
     public string Importance { get; set; } = "normal";
@@ -84,6 +88,8 @@ public class ChronologioExpenseDetailsDto
 {
     public string ExpenseId { get; set; } = string.Empty;
     public string? ExpenseCategory { get; set; }
+    /// <summary>Localized category label. UI must prefer this over <see cref="ExpenseCategory"/>.</summary>
+    public string? ExpenseCategoryLabel { get; set; }
     public string? LinkedTaskId { get; set; }
     public string? LinkedHarvestId { get; set; }
     public string? RelatedTaskTitle { get; set; }
@@ -97,6 +103,7 @@ public class ChronologioHarvestDetailsDto
     public string HarvestId { get; set; } = string.Empty;
     public double OliveKg { get; set; }
     public double? OilKg { get; set; }
+    public decimal? OilLitres { get; set; }
     public double? OilYieldPercent { get; set; }
     public string? Mill { get; set; }
     public string? Quality { get; set; }
@@ -142,18 +149,58 @@ public class ChronologioWeatherDetailsDto
     public double? RainfallMm { get; set; }
     public double? TemperatureMin { get; set; }
     public double? TemperatureMax { get; set; }
+    public double? TemperatureAvg { get; set; }
     public int? FrostNights { get; set; }
     public int? HeatDays { get; set; }
     public int? HeavyRainDays { get; set; }
     public int? LongestDryStreakDays { get; set; }
+    public int? RainyDays { get; set; }
+    public int? DryDays { get; set; }
+    public double? Et0TotalMm { get; set; }
+    public double? WaterBalanceMm { get; set; }
+    public double? AverageHumidityPercent { get; set; }
+    public double? MaxWindGustKmh { get; set; }
     public double? RainVsPreviousPercent { get; set; }
     public int? WettestMonth { get; set; }
     public double? NdviMean { get; set; }
     public double? NdviDeltaPercent { get; set; }
+    public double? NdviStartEndDeltaPercent { get; set; }
+    public double? NdmiMean { get; set; }
+    public double? NdreMean { get; set; }
+    public double? NdwiMean { get; set; }
+    public double? SaviMean { get; set; }
+    public ChronologioWeatherSceneDto? OpeningScene { get; set; }
+    public ChronologioWeatherSceneDto? ClosingScene { get; set; }
+    public IReadOnlyList<ChronologioWeatherInsightDto>? Insights { get; set; }
     public IReadOnlyList<double>? RainSeries { get; set; }
     public IReadOnlyList<string>? RainLabels { get; set; }
+    public IReadOnlyList<double?>? TemperatureMinSeries { get; set; }
+    public IReadOnlyList<double?>? TemperatureMaxSeries { get; set; }
     public string? Source { get; set; }
     public string? VegetationNote { get; set; }
+    public int? DaysWithData { get; set; }
+    public int? ExpectedDays { get; set; }
+    public int? DaysWithRainData { get; set; }
+    public bool IncludesForecast { get; set; }
+    public bool CoverageSufficient { get; set; }
+}
+
+public class ChronologioWeatherSceneDto
+{
+    public string? ObservationId { get; set; }
+    public DateTime? ObservationDate { get; set; }
+    public string? Role { get; set; }
+    public string? TrueColorUrl { get; set; }
+    public string? NdviUrl { get; set; }
+    public double? NdviMean { get; set; }
+    public double? NdmiMean { get; set; }
+    public double? CloudCoverPercent { get; set; }
+}
+
+public class ChronologioWeatherInsightDto
+{
+    public string Kind { get; set; } = string.Empty;
+    public string Severity { get; set; } = "info";
 }
 
 public class ChronologioIntelligenceDetailsDto

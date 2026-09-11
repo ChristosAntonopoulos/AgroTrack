@@ -1,33 +1,34 @@
 /* Oleachron public landing — notebook-simple, olive agricultural palette */
 
 .landing {
-  --lp-bg: #F8F7EE;
-  --lp-bg-muted: #EFECE3;
-  --lp-bg-olive: #2E4A2E;
-  --lp-cream: #F8F7EE;
-  --lp-text: #3C3C2E;
-  --lp-text-muted: #6B7F5E;
-  --lp-text-light: #F8F7EE;
-  --lp-text-light-muted: color-mix(in srgb, #F8F7EE 78%, transparent);
-  --lp-primary: #2E4A2E;
-  --lp-primary-light: #6B7F5E;
-  --lp-accent: #B8A373;
-  --lp-border: rgba(46, 74, 46, 0.12);
-  --lp-shadow: 0 8px 32px rgba(26, 38, 18, 0.08);
-  --lp-shadow-lg: 0 20px 50px rgba(26, 38, 18, 0.12);
+  --lp-bg: var(--oleachron-limestone, #F4F3EC);
+  --lp-bg-muted: var(--surface-2, #F7F6EF);
+  --lp-bg-olive: var(--oleachron-deep-grove, #29382A);
+  --lp-cream: var(--oleachron-limestone, #F4F3EC);
+  --lp-text: var(--text-primary, #252A23);
+  --lp-text-muted: var(--text-secondary, #50594C);
+  --lp-text-light: #F3F4EF;
+  --lp-text-light-muted: color-mix(in srgb, #F3F4EF 78%, transparent);
+  --lp-primary: var(--olive-primary, #536B3F);
+  --lp-primary-light: var(--oleachron-sage, #9AAA85);
+  --lp-accent: var(--oleachron-gold, #B09A63);
+  --lp-border: var(--border-default, rgba(51, 62, 44, 0.14));
+  --lp-shadow: var(--shadow-card);
+  --lp-shadow-lg: var(--shadow-floating);
   --lp-radius: 12px;
   --lp-radius-lg: 20px;
   --lp-header-h: 64px;
   --lp-max: 1140px;
-  --lp-hero-overlay-left: rgba(26, 38, 18, 0.72);
-  --lp-hero-overlay-mid: rgba(26, 38, 18, 0.45);
-  --lp-hero-overlay-right: rgba(18, 28, 14, 0.82);
+  --lp-hero-overlay-left: rgba(24, 29, 21, 0.72);
+  --lp-hero-overlay-mid: rgba(24, 29, 21, 0.45);
+  --lp-hero-overlay-right: rgba(18, 22, 16, 0.82);
 
   position: relative;
   color: var(--lp-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
   scroll-behavior: smooth;
+  background: var(--lp-bg);
 }
 
 .landing-page-bg {
@@ -922,7 +923,7 @@
 
 /* Footer */
 .landing-footer {
-  background: #2E4A2E;
+  background: var(--olive-primary);
   color: var(--lp-text-light-muted);
   padding: 2.5rem 0 1.5rem;
 }

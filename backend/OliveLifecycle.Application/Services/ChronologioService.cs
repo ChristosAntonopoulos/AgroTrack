@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
+using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Chronologio;
@@ -9,6 +10,7 @@ using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Entities.Geospatial;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
+using OliveLifecycle.Core.Time;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -43,6 +45,7 @@ public class ChronologioService : IChronologioService
     private readonly IUserRepository _userRepository;
     private readonly IMediaAttachmentRepository _mediaAttachmentRepository;
     private readonly IFieldWeatherPeriodReviewRepository _weatherReviewRepository;
+    private readonly IGeospatialStorageService _geospatialStorage;
     private readonly ILogger<ChronologioService> _logger;
 
     public ChronologioService(
@@ -58,6 +61,7 @@ public class ChronologioService : IChronologioService
         IUserRepository userRepository,
         IMediaAttachmentRepository mediaAttachmentRepository,
         IFieldWeatherPeriodReviewRepository weatherReviewRepository,
+        IGeospatialStorageService geospatialStorage,
         ILogger<ChronologioService> logger)
     {
         _fieldAccessService = fieldAccessService;
@@ -72,6 +76,7 @@ public class ChronologioService : IChronologioService
         _userRepository = userRepository;
         _mediaAttachmentRepository = mediaAttachmentRepository;
         _weatherReviewRepository = weatherReviewRepository;
+        _geospatialStorage = geospatialStorage;
         _logger = logger;
     }
 
@@ -116,6 +121,8 @@ public class ChronologioService : IChronologioService
                 .Where(f => string.Equals(f.Id, query.FieldId, StringComparison.Ordinal))
                 .ToList();
         }
+
+        fields = fields.Where(f => IsPublishedField(f.Status)).ToList();
 
         if (fields.Count == 0)
         {
@@ -220,6 +227,8 @@ public class ChronologioService : IChronologioService
                 .ToList();
         }
 
+        fields = fields.Where(f => IsPublishedField(f.Status)).ToList();
+
         return (
             fields.Select(f => f.Id).ToList(),
             fields.ToDictionary(
@@ -261,9 +270,11 @@ public class ChronologioService : IChronologioService
     {
         var axis = ChronologioAxis.Normalize(query.Axis);
         var periodYear = query.PeriodYear
-            ?? (ChronologioAxis.IsSeason(axis)
-                ? ChronologioSeasonCalendar.GetSeasonStartYear(DateTime.UtcNow)
-                : DateTime.UtcNow.Year);
+            ?? (ChronologioAxis.IsAgricultural(axis)
+                ? AgriculturalYear.For(DateTime.UtcNow)
+                : ChronologioAxis.IsSeason(axis)
+                    ? ChronologioSeasonCalendar.GetSeasonStartYear(DateTime.UtcNow)
+                    : DateTime.UtcNow.Year);
 
         var (from, to) = ChronologioSeasonCalendar.BoundsForPeriod(periodYear, axis);
         var entries = await BuildTimelineAsync(
@@ -289,7 +300,7 @@ public class ChronologioService : IChronologioService
         IReadOnlyList<ChronologioEntryDto> entries,
         string axis)
     {
-        var groups = entries.GroupBy(e => ChronologioSeasonCalendar.PeriodKeyFor(e.OccurredAt, axis));
+        var groups = entries.GroupBy(e => ChronologioReadModel.PeriodYearOf(e, axis));
         var result = new List<ChronologioPeriodSummaryDto>();
 
         foreach (var group in groups.OrderByDescending(g => g.Key))
@@ -464,6 +475,12 @@ public class ChronologioService : IChronologioService
             if (string.Equals(category, ChronologioCategory.Task.ToApiString(), StringComparison.OrdinalIgnoreCase))
             {
                 stats.TaskCount++;
+                if (e.Amount != null)
+                {
+                    stats.ExpenseTotal += e.Amount.Value;
+                    stats.Currency = e.Amount.Currency;
+                }
+
                 if (!string.IsNullOrWhiteSpace(e.Title))
                 {
                     taskTitles[e.Title] = taskTitles.TryGetValue(e.Title, out var c) ? c + 1 : 1;
@@ -491,7 +508,10 @@ public class ChronologioService : IChronologioService
                 if (e.Details.Harvest != null)
                 {
                     stats.OliveKg += e.Details.Harvest.OliveKg;
-                    stats.OilKg += e.Details.Harvest.OilKg ?? 0;
+                    if (e.Details.Harvest.OilKg is > 0)
+                    {
+                        stats.OilKg += e.Details.Harvest.OilKg.Value;
+                    }
                 }
 
                 if (highlights.Count < MaxHighlights
@@ -508,16 +528,21 @@ public class ChronologioService : IChronologioService
             else if (string.Equals(category, ChronologioCategory.Note.ToApiString(), StringComparison.OrdinalIgnoreCase))
             {
                 stats.NoteCount++;
-                if (observation == null && !string.IsNullOrWhiteSpace(e.Title))
+                if (observation == null)
                 {
-                    observation = e.Title;
+                    var highlight = e.Details.Note?.BodyPreview ?? e.Summary;
+                    if (!string.IsNullOrWhiteSpace(highlight))
+                    {
+                        observation = highlight;
+                    }
                 }
 
+                var noteHighlight = e.Details.Note?.BodyPreview ?? e.Summary ?? e.Title;
                 if (highlights.Count < MaxHighlights
-                    && !string.IsNullOrWhiteSpace(e.Title)
-                    && !highlights.Contains(e.Title, StringComparer.Ordinal))
+                    && !string.IsNullOrWhiteSpace(noteHighlight)
+                    && !highlights.Contains(noteHighlight, StringComparer.Ordinal))
                 {
-                    highlights.Add(e.Title);
+                    highlights.Add(noteHighlight);
                 }
             }
 
@@ -590,8 +615,9 @@ public class ChronologioService : IChronologioService
         }
 
         var categoryFilter = ChronologioCategoryExtensions.FromApiString(query.Category);
-        // Journal pages keep weather out of the Days feed; category=weather (peek) still needs reviews.
-        var includeWeatherReviews = !pageResults
+        // Days journal includes month-end weather reports. Year rollups stay out unless
+        // the caller asked for weather (peek / year tiles) or a non-paged summary.
+        var includeYearWeatherReviews = !pageResults
             || categoryFilter == ChronologioCategory.Weather;
 
         IReadOnlyList<TaskExecution> executions;
@@ -610,10 +636,8 @@ public class ChronologioService : IChronologioService
             harvests = (await _harvestRecordRepository.GetByFieldIdAsync(fieldId, cancellationToken)).ToList();
             activities = (await _activityRepository.GetByFieldIdAsync(fieldId, ActivityFetchLimit, cancellationToken)).ToList();
             notes = (await _noteRepository.GetByOwnerUserIdAsync(userId, fieldId, limit: 200, cancellationToken)).ToList();
-            weatherReviews = includeWeatherReviews
-                ? await _weatherReviewRepository.GetByFieldIdsAsync(
-                    fieldIds, query.From, query.To, cancellationToken)
-                : Array.Empty<FieldWeatherPeriodReview>();
+            weatherReviews = await _weatherReviewRepository.GetByFieldIdsAsync(
+                fieldIds, query.From, query.To, cancellationToken);
         }
         else
         {
@@ -630,10 +654,8 @@ public class ChronologioService : IChronologioService
             notes = (await _noteRepository.GetByOwnerUserIdAsync(userId, fieldId: null, limit: 200, cancellationToken))
                 .Where(n => n.FieldId != null && fieldIds.Contains(n.FieldId, StringComparer.Ordinal))
                 .ToList();
-            weatherReviews = includeWeatherReviews
-                ? await _weatherReviewRepository.GetByFieldIdsAsync(
-                    fieldIds, query.From, query.To, cancellationToken)
-                : Array.Empty<FieldWeatherPeriodReview>();
+            weatherReviews = await _weatherReviewRepository.GetByFieldIdsAsync(
+                fieldIds, query.From, query.To, cancellationToken);
         }
 
         money = await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
@@ -717,10 +739,26 @@ public class ChronologioService : IChronologioService
 
         foreach (var review in weatherReviews)
         {
+            var isYearReview = string.Equals(
+                review.PeriodType,
+                WeatherPeriodTypes.Year,
+                StringComparison.OrdinalIgnoreCase);
+            if (isYearReview && !includeYearWeatherReviews)
+            {
+                continue;
+            }
+
+            // Incomplete months are dated on the last calendar day — keep them off Days until that day.
+            if (pageResults && categoryFilter != ChronologioCategory.Weather
+                && review.OccurredAt > DateTime.UtcNow)
+            {
+                continue;
+            }
+
             entries.Add(MapWeatherReview(review, fieldLabels));
         }
 
-        IEnumerable<ChronologioEntryDto> filtered = entries;
+        IEnumerable<ChronologioEntryDto> filtered = ChronologioReadModel.Canonicalize(entries, categoryFilter);
 
         if (query.From.HasValue)
         {
@@ -736,15 +774,12 @@ public class ChronologioService : IChronologioService
 
         if (!string.IsNullOrWhiteSpace(query.LifecycleYear))
         {
-            filtered = filtered.Where(e =>
-                string.Equals(e.LifecycleYear, query.LifecycleYear, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(e => ChronologioReadModel.MatchesResultYear(e, query.LifecycleYear));
         }
 
-        if (categoryFilter.HasValue)
+        if (!string.IsNullOrWhiteSpace(query.Category))
         {
-            var category = categoryFilter.Value.ToApiString();
-            filtered = filtered.Where(e =>
-                string.Equals(e.Category, category, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(e => ChronologioReadModel.MatchesCategory(e, query.Category));
         }
 
         var result = filtered
@@ -782,9 +817,7 @@ public class ChronologioService : IChronologioService
 
         var assigneeName = ResolveName(task?.AssignedUserId, displayNames);
         var (eventType, summary) = MapOutcome(execution.Outcome);
-        var title = string.IsNullOrWhiteSpace(task?.Title)
-            ? (task?.TemplateCode ?? "Task")
-            : task!.Title;
+        var title = ResolveTaskTitle(task);
 
         var media = new List<ChronologioMediaDto>();
         if (attachments is { Count: > 0 })
@@ -804,9 +837,8 @@ public class ChronologioService : IChronologioService
             FieldId = execution.FieldId,
             Field = FieldRef(execution.FieldId, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = execution.ResultYear > 0
-                ? execution.ResultYear.ToString(CultureInfo.InvariantCulture)
-                : null,
+            LifecycleYear = YearLabel(execution.ResultYear, occurredAt),
+            ResultYear = ResolveResultYear(execution.ResultYear, occurredAt),
             OccurredAt = EnsureUtc(occurredAt),
             CreatedAt = EnsureUtc(execution.CreatedAt),
             Category = ChronologioCategory.Task.ToApiString(),
@@ -815,6 +847,7 @@ public class ChronologioService : IChronologioService
             Summary = string.IsNullOrWhiteSpace(execution.Notes) ? summary : execution.Notes,
             SourceType = ChronologioSourceTypes.TaskExecution,
             SourceId = execution.Id,
+            OccurrenceId = execution.Id,
             IsSystemGenerated = false,
             Actor = BuildActor(actorUserId, displayNames),
             Importance = ChronologioImportance.Normal.ToApiString(),
@@ -838,11 +871,23 @@ public class ChronologioService : IChronologioService
         };
     }
 
+    private static string ResolveTaskTitle(FieldTask? task)
+    {
+        if (!string.IsNullOrWhiteSpace(task?.Title) && !ChronologioDisplayLabels.LooksLikeCode(task.Title))
+        {
+            return task.Title;
+        }
+
+        return ChronologioDisplayLabels.TaskFallbackTitle();
+    }
+
     private static (string EventType, string Summary) MapOutcome(TaskExecutionOutcome outcome) => outcome switch
     {
-        TaskExecutionOutcome.PartiallyCompleted => (ChronologioEventTypes.TaskPartiallyCompleted, "Partially completed"),
-        TaskExecutionOutcome.NotDone => (ChronologioEventTypes.TaskNotDone, "Not done"),
-        _ => (ChronologioEventTypes.TaskCompleted, "Completed")
+        TaskExecutionOutcome.PartiallyCompleted =>
+            (ChronologioEventTypes.TaskPartiallyCompleted, ChronologioDisplayLabels.OutcomeSummary(outcome)),
+        TaskExecutionOutcome.NotDone =>
+            (ChronologioEventTypes.TaskNotDone, ChronologioDisplayLabels.OutcomeSummary(outcome)),
+        _ => (ChronologioEventTypes.TaskCompleted, ChronologioDisplayLabels.OutcomeSummary(outcome))
     };
 
     private static ChronologioEntryDto MapFinancialTransaction(
@@ -866,7 +911,7 @@ public class ChronologioService : IChronologioService
             : string.Join(" · ", new[] { categoryLabel, fieldName }.Where(s => !string.IsNullOrWhiteSpace(s)));
         var harvestTitle = relatedHarvest == null
             ? null
-            : $"Συγκομιδή {relatedHarvest.HarvestDate:yyyy}";
+            : $"{ChronologioDisplayLabels.HarvestTitle()} {ResolveResultYear(relatedHarvest.ResultYear, relatedHarvest.HarvestDate)}";
 
         return new ChronologioEntryDto
         {
@@ -874,9 +919,8 @@ public class ChronologioService : IChronologioService
             FieldId = transaction.FieldId ?? string.Empty,
             Field = FieldRef(transaction.FieldId ?? string.Empty, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = transaction.ResultYear > 0
-                ? transaction.ResultYear.ToString(CultureInfo.InvariantCulture)
-                : null,
+            LifecycleYear = YearLabel(transaction.ResultYear, transaction.OccurredOn),
+            ResultYear = ResolveResultYear(transaction.ResultYear, transaction.OccurredOn),
             OccurredAt = EnsureUtc(transaction.OccurredOn),
             CreatedAt = EnsureUtc(transaction.CreatedAt),
             Category = (isIncome ? ChronologioCategory.Income : ChronologioCategory.Expense).ToApiString(),
@@ -885,6 +929,7 @@ public class ChronologioService : IChronologioService
             Summary = string.IsNullOrWhiteSpace(summary) ? typeWord : summary,
             SourceType = isIncome ? ChronologioSourceTypes.Income : ChronologioSourceTypes.Expense,
             SourceId = transaction.Id,
+            OccurrenceId = null,
             IsSystemGenerated = false,
             Actor = BuildActor(transaction.CreatedByUserId, displayNames),
             Importance = isIncome
@@ -897,6 +942,7 @@ public class ChronologioService : IChronologioService
                 {
                     ExpenseId = transaction.Id,
                     ExpenseCategory = transaction.Category?.ToApiString(),
+                    ExpenseCategoryLabel = categoryLabel,
                     LinkedTaskId = transaction.RelatedTaskId,
                     LinkedHarvestId = transaction.RelatedHarvestId,
                     RelatedTaskTitle = relatedTask?.Title,
@@ -913,19 +959,12 @@ public class ChronologioService : IChronologioService
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         IReadOnlyList<MediaAttachment>? attachments = null)
     {
-        var summaryParts = new List<string>
-        {
-            $"{FormatNumber(harvest.OliveKg)} kg olives"
-        };
-        if (harvest.OilKg.HasValue)
-        {
-            summaryParts.Add($"{FormatNumber(harvest.OilKg.Value)} kg oil");
-        }
-
-        if (harvest.OilYieldPercent.HasValue)
-        {
-            summaryParts.Add($"{FormatNumber(harvest.OilYieldPercent.Value)}%");
-        }
+        var resultYear = ResolveResultYear(harvest.ResultYear, harvest.HarvestDate);
+        var summary = ChronologioDisplayLabels.HarvestSummary(
+            harvest.OliveKg,
+            harvest.OilKg,
+            harvest.OilLitres,
+            harvest.OilYieldPercent);
 
         var media = (attachments ?? Array.Empty<MediaAttachment>())
             .Select(a => new ChronologioMediaDto
@@ -943,13 +982,14 @@ public class ChronologioService : IChronologioService
             FieldId = harvest.FieldId,
             Field = FieldRef(harvest.FieldId, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = null,
+            LifecycleYear = resultYear.ToString(CultureInfo.InvariantCulture),
+            ResultYear = resultYear,
             OccurredAt = EnsureUtc(harvest.HarvestDate),
             CreatedAt = EnsureUtc(harvest.CreatedAt),
             Category = ChronologioCategory.Harvest.ToApiString(),
             EventType = ChronologioEventTypes.HarvestRecorded,
-            Title = "Harvest",
-            Summary = string.Join(" · ", summaryParts),
+            Title = ChronologioDisplayLabels.HarvestTitle(),
+            Summary = summary,
             SourceType = ChronologioSourceTypes.Harvest,
             SourceId = harvest.Id,
             IsSystemGenerated = false,
@@ -963,9 +1003,14 @@ public class ChronologioService : IChronologioService
                     HarvestId = harvest.Id,
                     OliveKg = harvest.OliveKg,
                     OilKg = harvest.OilKg,
+                    OilLitres = harvest.OilLitres,
                     OilYieldPercent = harvest.OilYieldPercent,
                     Mill = harvest.MillName,
-                    Quality = string.IsNullOrWhiteSpace(harvest.QualityGrade) ? null : harvest.QualityGrade,
+                    Quality = string.IsNullOrWhiteSpace(harvest.QualityGrade)
+                        ? null
+                        : (ChronologioDisplayLabels.HarvestQuality(harvest.QualityGrade) is { Length: > 0 } quality
+                            ? quality
+                            : harvest.QualityGrade),
                     Workers = harvest.WorkersUsed,
                     HarvestMethod = string.IsNullOrWhiteSpace(harvest.HarvestMethod) ? null : harvest.HarvestMethod
                 }
@@ -998,12 +1043,13 @@ public class ChronologioService : IChronologioService
             FieldId = fieldId,
             Field = FieldRef(fieldId, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = null,
+            LifecycleYear = YearLabel(null, occurredAt),
+            ResultYear = ResolveResultYear(null, occurredAt),
             OccurredAt = EnsureUtc(occurredAt),
             CreatedAt = EnsureUtc(note.CreatedAt),
             Category = ChronologioCategory.Note.ToApiString(),
             EventType = ChronologioEventTypes.NoteCreated,
-            Title = "Observation",
+            Title = ChronologioDisplayLabels.NoteTitle(),
             Summary = string.IsNullOrWhiteSpace(preview) && media.Count > 0 ? null : preview,
             SourceType = ChronologioSourceTypes.Note,
             SourceId = note.Id,
@@ -1046,21 +1092,15 @@ public class ChronologioService : IChronologioService
                 "lifecycle_corrected" => ChronologioEventTypes.LifecycleCorrected,
                 _ => ChronologioEventTypes.ActivityGeneric
             };
-            title = type switch
-            {
-                "lifecycle_year_changed" => "Lifecycle year changed",
-                "lifecycle_stage_changed" => "Lifecycle stage changed",
-                "lifecycle_corrected" => "Lifecycle corrected",
-                _ => "Lifecycle"
-            };
+            title = ChronologioDisplayLabels.ActivityTitle(type);
             details = new ChronologioDetailsDto
             {
                 Lifecycle = new ChronologioLifecycleDetailsDto
                 {
                     PreviousYear = GetMeta(meta, "previousYear"),
                     NewYear = GetMeta(meta, "newYear"),
-                    PreviousStage = GetMeta(meta, "previousStage"),
-                    NewStage = GetMeta(meta, "newStage"),
+                    PreviousStage = LocalizedStage(GetMeta(meta, "previousStage")),
+                    NewStage = LocalizedStage(GetMeta(meta, "newStage")),
                     Message = activity.Message
                 }
             };
@@ -1075,13 +1115,7 @@ public class ChronologioService : IChronologioService
                 "partner_contact_accepted" => ChronologioEventTypes.CollaboratorPartnerAccepted,
                 _ => ChronologioEventTypes.ActivityGeneric
             };
-            title = type switch
-            {
-                "producer_assigned" => "Producer assigned",
-                "producer_unassigned" => "Producer unassigned",
-                "partner_contact_accepted" => "Partner contact accepted",
-                _ => "Collaborator"
-            };
+            title = ChronologioDisplayLabels.ActivityTitle(type);
             details = new ChronologioDetailsDto
             {
                 Collaborator = new ChronologioCollaboratorDetailsDto
@@ -1096,7 +1130,7 @@ public class ChronologioService : IChronologioService
         {
             category = ChronologioCategory.Activity.ToApiString();
             eventType = ChronologioEventTypes.ActivityGeneric;
-            title = "Activity";
+            title = ChronologioDisplayLabels.ActivityTitle(type);
             details = new ChronologioDetailsDto
             {
                 Activity = new ChronologioActivityDetailsDto
@@ -1114,7 +1148,8 @@ public class ChronologioService : IChronologioService
             FieldId = activity.FieldId,
             Field = FieldRef(activity.FieldId, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = null,
+            LifecycleYear = YearLabel(null, activity.Timestamp),
+            ResultYear = ResolveResultYear(null, activity.Timestamp),
             OccurredAt = EnsureUtc(activity.Timestamp),
             CreatedAt = EnsureUtc(activity.CreatedAt),
             Category = category,
@@ -1130,7 +1165,7 @@ public class ChronologioService : IChronologioService
         };
     }
 
-    private static ChronologioEntryDto MapWeatherReview(
+    private ChronologioEntryDto MapWeatherReview(
         FieldWeatherPeriodReview review,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels)
     {
@@ -1142,33 +1177,23 @@ public class ChronologioService : IChronologioService
         string title;
         if (isMonth && review.Month is { } month)
         {
-            var monthName = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
-            title = $"{monthName} {review.Year} weather";
+            title = ChronologioDisplayLabels.WeatherMonthTitle(review.Year, month);
         }
         else
         {
-            title = $"{review.Year} weather";
+            title = ChronologioDisplayLabels.WeatherYearTitle(review.Year);
         }
 
-        var summaryParts = new List<string>
-        {
-            $"{review.RainTotalMm:0.#} mm rain"
-        };
-        if (review.MaxTemperatureC.HasValue)
-        {
-            summaryParts.Add($"high {review.MaxTemperatureC.Value:0.#}°C");
-        }
+        var summary = ChronologioDisplayLabels.WeatherReviewSummary(
+            review.DaysWithRainData > 0 || review.RainTotalMm > 0 ? review.RainTotalMm : null,
+            review.MinTemperatureC,
+            review.MaxTemperatureC,
+            review.FrostNights > 0 ? review.FrostNights : null,
+            isMonth);
 
-        if (isMonth && review.MinTemperatureC.HasValue)
-        {
-            summaryParts.Add($"low {review.MinTemperatureC.Value:0.#}°C");
-        }
-        else if (!isMonth)
-        {
-            summaryParts.Add($"{review.FrostNights} frost nights");
-        }
-
-        var vegetationNote = BuildVegetationNote(review);
+        var vegetationNote = ChronologioDisplayLabels.VegetationNote(
+            review.NdviDeltaPercent ?? 0,
+            isMonth);
         var sourceParts = new List<string>();
         if (!string.IsNullOrWhiteSpace(review.WeatherProvider))
         {
@@ -1186,13 +1211,14 @@ public class ChronologioService : IChronologioService
             FieldId = review.FieldId,
             Field = FieldRef(review.FieldId, fieldLabels),
             CropCycleId = null,
-            LifecycleYear = null,
+            LifecycleYear = YearLabel(null, review.OccurredAt),
+            ResultYear = ResolveResultYear(null, review.OccurredAt),
             OccurredAt = EnsureUtc(review.OccurredAt),
             CreatedAt = EnsureUtc(review.UpdatedAt),
             Category = ChronologioCategory.Weather.ToApiString(),
             EventType = eventType,
             Title = title,
-            Summary = string.Join(" · ", summaryParts),
+            Summary = summary,
             SourceType = ChronologioSourceTypes.WeatherReview,
             SourceId = review.Id,
             IsSystemGenerated = true,
@@ -1208,41 +1234,74 @@ public class ChronologioService : IChronologioService
                     RainfallMm = review.RainTotalMm,
                     TemperatureMin = review.MinTemperatureC,
                     TemperatureMax = review.MaxTemperatureC,
+                    TemperatureAvg = review.AverageTemperatureC,
                     FrostNights = review.FrostNights,
                     HeatDays = review.HeatDays,
                     HeavyRainDays = review.HeavyRainDays,
                     LongestDryStreakDays = review.LongestDryStreakDays,
+                    RainyDays = review.RainyDays,
+                    DryDays = review.DryDays,
+                    Et0TotalMm = review.Et0TotalMm,
+                    WaterBalanceMm = review.WaterBalanceMm,
+                    AverageHumidityPercent = review.AverageHumidityPercent,
+                    MaxWindGustKmh = review.MaxWindGustKmh,
                     RainVsPreviousPercent = review.RainVsPreviousPercent,
                     WettestMonth = review.WettestMonth,
                     NdviMean = review.NdviMean,
                     NdviDeltaPercent = review.NdviDeltaPercent,
+                    NdviStartEndDeltaPercent = review.NdviStartEndDeltaPercent,
+                    NdmiMean = review.NdmiMean,
+                    NdreMean = review.NdreMean,
+                    NdwiMean = review.NdwiMean,
+                    SaviMean = review.SaviMean,
+                    OpeningScene = MapWeatherScene(review.OpeningScene),
+                    ClosingScene = MapWeatherScene(review.ClosingScene),
+                    Insights = review.Insights
+                        .Select(i => new ChronologioWeatherInsightDto { Kind = i.Kind, Severity = i.Severity })
+                        .ToList(),
                     RainSeries = review.RainSeries,
                     RainLabels = review.RainLabels,
+                    TemperatureMinSeries = review.TemperatureMinSeries,
+                    TemperatureMaxSeries = review.TemperatureMaxSeries,
                     Source = sourceParts.Count > 0 ? string.Join(" / ", sourceParts) : null,
-                    VegetationNote = vegetationNote
+                    VegetationNote = string.IsNullOrWhiteSpace(vegetationNote) ? null : vegetationNote,
+                    DaysWithData = review.DayCount,
+                    ExpectedDays = review.ExpectedDays > 0 ? review.ExpectedDays : null,
+                    DaysWithRainData = review.DaysWithRainData,
+                    IncludesForecast = review.IncludesForecast,
+                    CoverageSufficient = review.ExpectedDays <= 0
+                        || review.DayCount >= review.ExpectedDays
+                        || review.DayCount >= (isMonth ? 20 : 200)
                 }
             }
         };
     }
 
-    private static string? BuildVegetationNote(FieldWeatherPeriodReview review)
+    private ChronologioWeatherSceneDto? MapWeatherScene(WeatherReviewSatelliteScene? scene)
     {
-        if (review.NdviDeltaPercent is not { } delta || Math.Abs(delta) < 5)
+        if (scene == null) return null;
+        return new ChronologioWeatherSceneDto
         {
-            return null;
-        }
-
-        if (string.Equals(review.PeriodType, WeatherPeriodTypes.Month, StringComparison.OrdinalIgnoreCase))
-        {
-            return delta > 0
-                ? "Trees looked greener than the previous month."
-                : "Trees looked less green than the previous month.";
-        }
-
-        return delta > 0
-            ? "Trees looked greener than the previous year."
-            : "Trees looked less green than the previous year.";
+            ObservationId = scene.ObservationId,
+            ObservationDate = EnsureUtc(scene.ObservationDate),
+            Role = scene.Role,
+            TrueColorUrl = _geospatialStorage.GetPublicUrl(scene.TrueColorPath),
+            NdviUrl = _geospatialStorage.GetPublicUrl(scene.NdviPath),
+            NdviMean = scene.NdviMean,
+            NdmiMean = scene.NdmiMean,
+            CloudCoverPercent = scene.CloudCoverPercent
+        };
     }
+
+    private static bool IsPublishedField(string? status) =>
+        !string.Equals(status, nameof(FieldStatus.Draft), StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(status, nameof(FieldStatus.Archived), StringComparison.OrdinalIgnoreCase);
+
+    private static int ResolveResultYear(int? stored, DateTime occurredAt) =>
+        stored is > 0 ? stored.Value : AgriculturalYear.For(occurredAt);
+
+    private static string YearLabel(int? stored, DateTime occurredAt) =>
+        ResolveResultYear(stored, occurredAt).ToString(CultureInfo.InvariantCulture);
 
     private static HashSet<string> CollectUserIds(
         IEnumerable<TaskExecution> executions,
@@ -1316,7 +1375,23 @@ public class ChronologioService : IChronologioService
     private static string DisplayName(User user)
     {
         var name = $"{user.FirstName} {user.LastName}".Trim();
-        return string.IsNullOrWhiteSpace(name) ? user.Email : name;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return user.Email;
+        }
+
+        return ChronologioDisplayLabels.ActorName(name);
+    }
+
+    private static string? LocalizedStage(string? stage)
+    {
+        if (string.IsNullOrWhiteSpace(stage))
+        {
+            return null;
+        }
+
+        var label = ChronologioDisplayLabels.LifecycleStage(stage);
+        return string.IsNullOrWhiteSpace(label) ? null : label;
     }
 
     private static ChronologioActorDto? BuildActor(
@@ -1388,9 +1463,6 @@ public class ChronologioService : IChronologioService
             ? $"{formatted} €"
             : $"{formatted} {currency}";
     }
-
-    private static string FormatNumber(double value) =>
-        value.ToString("0.##", CultureInfo.InvariantCulture);
 
     private static DateTime EnsureUtc(DateTime value) =>
         value.Kind == DateTimeKind.Unspecified

@@ -142,7 +142,7 @@ const TaskListScreen = () => {
 
             {fieldName ? (
               <View style={[styles.fieldBanner, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
-                <Ionicons name="leaf" size={16} color={colors.primaryDark} />
+                <Ionicons name="leaf" size={16} color={colors.primary} />
                 <Text style={[styles.fieldBannerText, { color: colors.textPrimary }]} numberOfLines={1}>
                   {fieldName}
                 </Text>
@@ -153,7 +153,7 @@ const TaskListScreen = () => {
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={[styles.clearLink, { color: colors.primaryDark }]}>
+                  <Text style={[styles.clearLink, { color: colors.link }]}>
                     {t('tasks:showAll')}
                   </Text>
                 </TouchableOpacity>
@@ -207,12 +207,12 @@ const TaskListScreen = () => {
           sortedTasks.length === 0 && styles.emptyContainer,
         ]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryDark} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <EmptyState
-            icon={<Ionicons name="clipboard-outline" size={36} color={colors.primaryDark} />}
+            icon={<Ionicons name="clipboard-outline" size={36} color={colors.primary} />}
             title={t('common:empty.noTasks')}
             description={emptyDescription}
             action={isFieldOwner() ? { label: t('tasks:createTask'), onPress: handleCreate } : undefined}
@@ -224,14 +224,14 @@ const TaskListScreen = () => {
         <TouchableOpacity
           style={[
             styles.fab,
-            { backgroundColor: colors.primaryDark, ...createElevation(colors, 'lg') },
+            { backgroundColor: colors.primary, ...createElevation(colors, 'lg') },
           ]}
           onPress={handleCreate}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel={t('tasks:createTask')}
         >
-          <Ionicons name="add" size={28} color={colors.textInverse} />
+          <Ionicons name="add" size={28} color={colors.onOlive} />
         </TouchableOpacity>
       ) : null}
     </ScreenLayout>

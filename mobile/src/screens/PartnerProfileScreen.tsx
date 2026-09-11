@@ -75,7 +75,7 @@ const PartnerProfileScreen = () => {
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.md }}>{t('contactNoAccess')}</Text>
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.md }}>{t('privacy')}</Text>
       {sent ? (
-        <Text style={{ color: colors.primaryDark, fontWeight: '700' }}>{t('sent')}</Text>
+        <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('sent')}</Text>
       ) : (
         <>
           <TextInput
@@ -91,7 +91,7 @@ const PartnerProfileScreen = () => {
       )}
       {params.fieldId ? (
         added ? (
-          <Text style={{ color: colors.primaryDark, fontWeight: '700', marginTop: spacing.md }}>{t('addedToField')}</Text>
+          <Text style={{ color: colors.primary, fontWeight: '700', marginTop: spacing.md }}>{t('addedToField')}</Text>
         ) : (
           <Button title={t('addToField')} variant="text" onPress={() => void addToField()} />
         )

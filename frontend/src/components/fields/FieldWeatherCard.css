@@ -1,5 +1,13 @@
 .field-weather-card {
-  color: var(--text-primary, var(--color-text-primary));
+  color: var(--text-primary);
+  background:
+    radial-gradient(
+      circle at 90% 0%,
+      var(--weather-blue-soft),
+      transparent 42%
+    ),
+    var(--surface-1);
+  border-radius: 16px;
 }
 
 .field-weather-card--loading,
@@ -32,7 +40,7 @@
 
 .field-weather-updated {
   font-size: 0.7rem;
-  color: var(--color-success);
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -109,13 +117,13 @@
 }
 
 .field-weather-chip--rain {
-  background: color-mix(in srgb, var(--color-info, #3d7ea6) 18%, var(--bg-hover));
-  color: var(--color-text-primary);
+  background: var(--weather-blue-soft);
+  color: var(--rain);
 }
 
 .field-weather-chip--frost {
-  background: color-mix(in srgb, var(--color-warning) 20%, transparent);
-  color: var(--color-warning-dark);
+  background: color-mix(in srgb, var(--frost) 18%, transparent);
+  color: var(--frost);
 }
 
 .field-weather-advice {

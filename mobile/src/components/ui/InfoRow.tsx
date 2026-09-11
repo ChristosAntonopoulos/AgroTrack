@@ -20,7 +20,7 @@ const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value, showDivider = tru
     <>
       <View style={styles.row}>
         <View style={[styles.iconWrap, { backgroundColor: colors.primary + '14' }]}>
-          <Ionicons name={icon} size={16} color={colors.primaryDark} />
+          <Ionicons name={icon} size={16} color={colors.primary} />
         </View>
         <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
         <Text style={[styles.value, { color: colors.textPrimary }]} numberOfLines={2}>

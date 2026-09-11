@@ -12,12 +12,13 @@ import { isDeviceOnline } from '../utils/networkStatus';
 import { locationService } from '../services/locationService';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { getFieldShortLocation } from '../utils/shortLocation';
-import { countTasksToday, fieldSearchHaystack } from '../utils/fieldDisplay';
+import { countTasksToday, fieldSearchHaystack, getFieldOpenPath } from '../utils/fieldDisplay';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import EmptyState from '../components/Common/EmptyState';
+import SegmentedControl from '../components/Common/SegmentedControl';
 import FieldsMap from '../components/Field/FieldsMap';
 import FieldCard, { FieldCardStats } from '../components/Field/FieldCard';
 import { Plus, Layers, Map as MapIcon, List as ListIcon, Search } from 'lucide-react';
@@ -41,6 +42,7 @@ const FieldsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('name');
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -139,6 +141,20 @@ const FieldsPage: React.FC = () => {
     });
   }, [fields, search, sortBy, userCoords]);
 
+  useEffect(() => {
+    if (selectedFieldId && !filteredFields.some((field) => field.id === selectedFieldId)) {
+      setSelectedFieldId(null);
+    }
+  }, [filteredFields, selectedFieldId]);
+
+  useEffect(() => {
+    if (!selectedFieldId) return;
+    document.getElementById(`fields-split-item-${selectedFieldId}`)?.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [selectedFieldId]);
+
   const subtitle =
     user?.role === 'Producer'
       ? t('fields:subtitleProducer')
@@ -147,6 +163,11 @@ const FieldsPage: React.FC = () => {
         : t('fields:subtitleDefault');
 
   const canCreate = user?.role !== 'Producer';
+
+  const tasksTodayTotal = useMemo(() => {
+    if (!tasksReady) return 0;
+    return fields.reduce((sum, field) => sum + countTasksToday(fieldTasks.get(field.id) || []), 0);
+  }, [fields, fieldTasks, tasksReady]);
 
   return (
     <PageContainer>
@@ -186,9 +207,18 @@ const FieldsPage: React.FC = () => {
               />
             ) : (
               <>
+                <div className="fields-summary-strip" aria-live="polite">
+                  <span className="fields-summary-item">
+                    <strong>{fields.length}</strong> {t('fields:summary.fields')}
+                  </span>
+                  <span className={`fields-summary-item${tasksTodayTotal > 0 ? ' fields-summary-item--active' : ''}`}>
+                    <strong>{tasksReady ? tasksTodayTotal : '…'}</strong> {t('fields:summary.activeTasks')}
+                  </span>
+                </div>
+
                 <div className="fields-toolbar">
                   <div className="fields-search-wrap">
-                    <Search size={18} className="fields-search-icon" />
+                    <Search size={18} className="fields-search-icon" aria-hidden />
                     <input
                       type="search"
                       className="fields-search-input"
@@ -200,7 +230,7 @@ const FieldsPage: React.FC = () => {
                   </div>
                   <div className="fields-toolbar-right">
                     <label className="fields-sort">
-                      <span className="sr-only">{t('fields:sortLabel')}</span>
+                      <span className="fields-sort-label">{t('fields:sortLabel')}</span>
                       <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
                         <option value="name">{t('fields:sortName')}</option>
                         <option value="area">{t('fields:sortArea')}</option>
@@ -210,24 +240,31 @@ const FieldsPage: React.FC = () => {
                         ) : null}
                       </select>
                     </label>
-                    <div className="fields-view-toggle" role="group" aria-label={t('fields:viewModeAria')}>
-                      <button
-                        type="button"
-                        className={`fields-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                        onClick={() => setViewMode('list')}
-                      >
-                        <ListIcon size={16} />
-                        <span>{t('fields:viewList')}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`fields-view-btn ${viewMode === 'map' ? 'active' : ''}`}
-                        onClick={() => setViewMode('map')}
-                      >
-                        <MapIcon size={16} />
-                        <span>{t('fields:viewMap')}</span>
-                      </button>
-                    </div>
+                    <SegmentedControl
+                      ariaLabel={t('fields:viewModeAria')}
+                      value={viewMode}
+                      onChange={setViewMode}
+                      options={[
+                        {
+                          value: 'list',
+                          label: (
+                            <>
+                              <ListIcon size={16} aria-hidden />
+                              <span>{t('fields:viewList')}</span>
+                            </>
+                          ),
+                        },
+                        {
+                          value: 'map',
+                          label: (
+                            <>
+                              <MapIcon size={16} aria-hidden />
+                              <span>{t('fields:viewMap')}</span>
+                            </>
+                          ),
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -242,20 +279,31 @@ const FieldsPage: React.FC = () => {
                       <FieldsMap
                         fields={filteredFields}
                         selectedFieldId={selectedFieldId || undefined}
+                        hoveredFieldId={hoveredFieldId}
                         onFieldSelect={(fieldId) => setSelectedFieldId(fieldId)}
-                        onFieldPress={(fieldId) => navigate(`/fields/${fieldId}`)}
-                        heightPx={560}
+                        onFieldHover={setHoveredFieldId}
+                        onFieldPress={(fieldId) => {
+                          const field = filteredFields.find((f) => f.id === fieldId);
+                          navigate(field ? getFieldOpenPath(field) : `/fields/${fieldId}`);
+                        }}
                       />
                     </div>
-                    <div className="fields-split-list">
+                    <div className="fields-split-list" role="list" aria-label={t('fields:title')}>
                       {filteredFields.map((field) => (
-                        <FieldCard
+                        <div
                           key={field.id}
-                          field={field}
-                          stats={getFieldCardStats(field.id)}
-                          compact
-                          selected={selectedFieldId === field.id}
-                        />
+                          id={`fields-split-item-${field.id}`}
+                          role="listitem"
+                        >
+                          <FieldCard
+                            field={field}
+                            stats={getFieldCardStats(field.id)}
+                            compact
+                            selected={selectedFieldId === field.id}
+                            onSelect={setSelectedFieldId}
+                            onHover={setHoveredFieldId}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>

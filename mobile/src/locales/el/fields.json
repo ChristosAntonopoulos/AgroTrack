@@ -120,6 +120,12 @@
     "overview": "Επισκόπηση",
     "timeline": "Χρονολόγιο"
   },
+  "page": {
+    "tabsAria": "Ενότητες χωραφιού",
+    "mapData": "Χάρτης",
+    "details": "Στοιχεία"
+  },
+  "viewModeAria": "Προβολή",
   "fieldStatus": {
     "Draft": "Πρόχειρο",
     "NeedsBoundaryConfirmation": "Χρειάζεται όριο",

@@ -78,7 +78,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   initialType = '',
   initialStart = '',
   initialEnd = '',
-  initialAssigneeKey = 'later',
+  initialAssigneeKey = '',
   saving,
   error,
   onFieldChange,
@@ -86,6 +86,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   onSubmit,
 }) => {
   const { t, i18n } = useTranslation('tasks');
+  const selfKey = assigneeOptions.find((option) => option.group === 'self')?.key || assigneeOptions[0]?.key || 'later';
   const [title, setTitle] = useState(initialTitle);
   const [fieldId, setFieldId] = useState(initialFieldId);
   const [typeId, setTypeId] = useState<TaskFormTypeId | ''>(initialType);
@@ -93,7 +94,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [start, setStart] = useState(initialStart);
   const [end, setEnd] = useState(initialEnd);
   const [multiDay, setMultiDay] = useState(Boolean(initialStart && initialEnd && initialStart !== initialEnd));
-  const [assigneeKey, setAssigneeKey] = useState(initialAssigneeKey);
+  const [assigneeKey, setAssigneeKey] = useState(initialAssigneeKey || selfKey);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [timeWindow, setTimeWindow] = useState<TimeWindowId | ''>('');
   const [specificTime, setSpecificTime] = useState('');

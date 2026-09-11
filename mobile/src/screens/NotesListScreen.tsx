@@ -96,7 +96,7 @@ const NotesListScreen = () => {
             >
               <View style={styles.rowTop}>
                 {note.pinned ? (
-                  <Ionicons name="pin" size={14} color={colors.primaryDark} style={{ marginRight: 6 }} />
+                  <Ionicons name="pin" size={14} color={colors.primary} style={{ marginRight: 6 }} />
                 ) : null}
                 <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
                   {notePreviewTitle(note.body)}

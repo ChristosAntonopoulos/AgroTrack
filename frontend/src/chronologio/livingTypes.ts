@@ -5,14 +5,47 @@ import type {
   ChronologioPeriodSummary,
   ChronologioSummaryFilters,
 } from '../services/chronologioService';
+import { agriculturalYearBounds, agriculturalYearFor } from './agriculturalYear';
 
 export type ChronologioZoom = 'years' | 'year' | 'month';
+export type ChronologioView = 'days' | 'months' | 'years';
 
 /** Zoom-in direction for gestures: years → year → month */
 export const ZOOM_ORDER: ChronologioZoom[] = ['years', 'year', 'month'];
 
+/** Public URL views: Ημέρες / Μήνες / Χρονιές */
+export const VIEW_ORDER: ChronologioView[] = ['days', 'months', 'years'];
+
+export const VIEW_TO_ZOOM: Record<ChronologioView, ChronologioZoom> = {
+  days: 'month',
+  months: 'year',
+  years: 'years',
+};
+
+export const ZOOM_TO_VIEW: Record<ChronologioZoom, ChronologioView> = {
+  month: 'days',
+  year: 'months',
+  years: 'years',
+};
+
+export const VIEW_PANEL_ID: Record<ChronologioView, string> = {
+  days: 'chrono-panel-days',
+  months: 'chrono-panel-months',
+  years: 'chrono-panel-years',
+};
+
 /** Toolbar segment order: Days → Months → Years */
 export const ZOOM_DISPLAY_ORDER: ChronologioZoom[] = ['month', 'year', 'years'];
+
+export const parseChronologioView = (value?: string | null): ChronologioView => {
+  const key = (value || '').trim().toLowerCase();
+  if (key === 'days' || key === 'day' || key === 'month') return 'days';
+  if (key === 'months' || key === 'year') return 'months';
+  if (key === 'years') return 'years';
+  return 'days';
+};
+
+export const viewFromZoom = (zoom: ChronologioZoom): ChronologioView => ZOOM_TO_VIEW[zoom];
 
 export const SEASON_START_MONTH = 9;
 
@@ -41,8 +74,10 @@ export const getSeasonStartYear = (d: Date): number => {
   return month >= SEASON_START_MONTH ? year : year - 1;
 };
 
-export const getPeriodYear = (d: Date, axis: ChronologioAxis): number =>
-  axis === 'season' ? getSeasonStartYear(d) : d.getUTCFullYear();
+export const getPeriodYear = (d: Date, axis: ChronologioAxis): number => {
+  if (axis === 'agricultural') return agriculturalYearFor(d);
+  return axis === 'season' ? getSeasonStartYear(d) : d.getUTCFullYear();
+};
 
 export const calendarMonthBounds = (year: number, month: number): { from: string; to: string } => {
   const from = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
@@ -54,6 +89,10 @@ export const periodBounds = (
   periodYear: number,
   axis: ChronologioAxis
 ): { from: string; to: string } => {
+  if (axis === 'agricultural') {
+    const bounds = agriculturalYearBounds(periodYear);
+    return { from: bounds.from.toISOString(), to: bounds.to.toISOString() };
+  }
   if (axis === 'season') {
     const from = new Date(Date.UTC(periodYear, SEASON_START_MONTH - 1, 1, 0, 0, 0));
     const to = new Date(Date.UTC(periodYear + 1, SEASON_START_MONTH - 1, 1, 0, 0, 0));
@@ -67,6 +106,9 @@ export const periodBounds = (
 };
 
 export const focusDateForPeriod = (periodYear: number, axis: ChronologioAxis): string => {
+  if (axis === 'agricultural') {
+    return toIsoDate(new Date(Date.UTC(periodYear, 5, 15)));
+  }
   if (axis === 'season') {
     return toIsoDate(new Date(Date.UTC(periodYear, SEASON_START_MONTH - 1, 15)));
   }
@@ -76,9 +118,11 @@ export const focusDateForPeriod = (periodYear: number, axis: ChronologioAxis): s
 export const focusDateForMonth = (year: number, month: number): string =>
   toIsoDate(new Date(Date.UTC(year, month - 1, 15)));
 
+export type LivingCategory = ChronologioCategory | 'all' | 'work' | 'observation' | 'money' | 'field_change';
+
 export type LivingFilters = {
   fieldId?: string;
-  category: ChronologioCategory | 'all';
+  category: LivingCategory;
   lifecycleYear: string;
 };
 

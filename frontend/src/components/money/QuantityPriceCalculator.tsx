@@ -65,12 +65,14 @@ const QuantityPriceCalculator: React.FC<Props> = ({
       </div>
 
       {mode === 'total_only' ? (
-        <TransactionAmountInput
-          value={amount}
-          onChange={onAmountChange}
-          onBlur={onAmountBlur}
-          inputRef={amountRef}
-        />
+        <div style={{ marginTop: 12 }}>
+          <TransactionAmountInput
+            value={amount}
+            onChange={onAmountChange}
+            onBlur={onAmountBlur}
+            inputRef={amountRef}
+          />
+        </div>
       ) : (
         <>
           <div className="money-qty-grid" style={{ marginTop: 12 }}>

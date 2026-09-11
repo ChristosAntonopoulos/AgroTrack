@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import RightDrawer from '../Common/RightDrawer';
 import './LearningPromptSheet.css';
 
 export type LearningAction = {
@@ -10,6 +10,7 @@ export type LearningAction = {
 };
 
 type Props = {
+  open?: boolean;
   title: string;
   message: string;
   actions: LearningAction[];
@@ -20,6 +21,7 @@ type Props = {
 
 /** Lightweight Greek-first learning prompt (large targets). */
 const LearningPromptSheet: React.FC<Props> = ({
+  open = true,
   title,
   message,
   actions,
@@ -29,44 +31,18 @@ const LearningPromptSheet: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation('common');
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onClose();
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [busy, onClose]);
-
   return (
-    <div className="fw-learning-sheet" role="dialog" aria-modal="true" aria-labelledby="fw-learning-title">
-      <button
-        type="button"
-        className="fw-learning-sheet-backdrop"
-        aria-label={t('close')}
-        onClick={() => {
-          if (!busy) onClose();
-        }}
-      />
-      <div className="fw-learning-sheet-card">
-        <header className="fw-learning-sheet-header">
-          <h2 id="fw-learning-title">{title}</h2>
-          <button
-            type="button"
-            className="fw-learning-sheet-close"
-            onClick={() => {
-              if (!busy) onClose();
-            }}
-            aria-label={t('close')}
-          >
-            <X size={20} aria-hidden />
-          </button>
-        </header>
-        <p className="fw-learning-sheet-message">{message}</p>
+    <RightDrawer
+      open={open}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+      title={title}
+      size="sm"
+      closeDisabled={busy}
+      closeLabel={t('close')}
+      footerClassName="oa-drawer-footer--stack"
+      footer={
         <div className="fw-learning-sheet-actions">
           {actions.map((action) => (
             <button
@@ -80,8 +56,10 @@ const LearningPromptSheet: React.FC<Props> = ({
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="fw-learning-sheet-message">{message}</p>
+    </RightDrawer>
   );
 };
 

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  Modal,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +28,8 @@ import CalendarEventRow from '../components/calendar/CalendarEventRow';
 import CalendarWeekStrip from '../components/calendar/CalendarWeekStrip';
 import CalendarMonthGrid from '../components/calendar/CalendarMonthGrid';
 import CalendarFilterSheet from '../components/calendar/CalendarFilterSheet';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import Sheet from '../components/ui/Sheet';
 import {
   AGENDA_GROUP_ORDER,
   groupEventsByAgenda,
@@ -174,7 +175,7 @@ const CalendarScreen = () => {
               onPress={jumpToToday}
               style={[styles.headerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
             >
-              <Text style={{ color: colors.primaryDark, fontWeight: '700', fontSize: 12 }}>
+              <Text style={{ color: colors.link, fontWeight: '700', fontSize: 12 }}>
                 {t('today')}
               </Text>
             </TouchableOpacity>
@@ -182,7 +183,7 @@ const CalendarScreen = () => {
               onPress={() => setFiltersOpen(true)}
               style={[styles.headerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
             >
-              <Ionicons name="options-outline" size={16} color={colors.primaryDark} />
+              <Ionicons name="options-outline" size={16} color={colors.primary} />
               {activeFilterCount > 0 ? (
                 <View style={[styles.filterDot, { backgroundColor: colors.error }]} />
               ) : null}
@@ -193,12 +194,12 @@ const CalendarScreen = () => {
 
       {fieldFilterName ? (
         <View style={[styles.fieldBanner, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
-          <Ionicons name="leaf" size={16} color={colors.primaryDark} />
+          <Ionicons name="leaf" size={16} color={colors.primary} />
           <Text style={[styles.fieldBannerText, { color: colors.textPrimary }]} numberOfLines={1}>
             {fieldFilterName}
           </Text>
           <TouchableOpacity onPress={clearFieldFilter}>
-            <Text style={{ color: colors.primaryDark, fontWeight: '700', fontSize: 12 }}>
+            <Text style={{ color: colors.link, fontWeight: '700', fontSize: 12 }}>
               {t('tasks:showAll')}
             </Text>
           </TouchableOpacity>
@@ -214,61 +215,31 @@ const CalendarScreen = () => {
       </View>
 
       {!isEveryday ? (
-      <View style={styles.viewToggle}>
-        {(['agenda', 'week', 'month', 'field'] as ViewMode[]).map(mode => (
-          <TouchableOpacity
-            key={mode}
-            style={[
-              styles.toggleChip,
-              {
-                flex: 1,
-                backgroundColor: viewMode === mode ? colors.primaryDark : colors.surface,
-                borderColor: viewMode === mode ? colors.primaryDark : colors.border,
-              },
-            ]}
-            onPress={() => setViewMode(mode)}
-          >
-            <Text
-              style={{
-                color: viewMode === mode ? colors.textInverse : colors.textSecondary,
-                fontWeight: '600',
-                fontSize: 12,
-                textAlign: 'center',
-              }}
-            >
-              {viewModeLabels[mode]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.viewToggle}>
+          <SegmentedControl
+            fullWidth
+            ariaLabel={t('title')}
+            value={viewMode}
+            onChange={setViewMode}
+            options={(['agenda', 'week', 'month', 'field'] as ViewMode[]).map(mode => ({
+              value: mode,
+              label: viewModeLabels[mode],
+            }))}
+          />
+        </View>
       ) : (
-      <View style={styles.viewToggle}>
-        {(['agenda', 'month'] as ViewMode[]).map(mode => (
-          <TouchableOpacity
-            key={mode}
-            style={[
-              styles.toggleChip,
-              {
-                flex: 1,
-                backgroundColor: viewMode === mode ? colors.primaryDark : colors.surface,
-                borderColor: viewMode === mode ? colors.primaryDark : colors.border,
-              },
-            ]}
-            onPress={() => setViewMode(mode)}
-          >
-            <Text
-              style={{
-                color: viewMode === mode ? colors.textInverse : colors.textSecondary,
-                fontWeight: '600',
-                fontSize: 12,
-                textAlign: 'center',
-              }}
-            >
-              {viewModeLabels[mode]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.viewToggle}>
+          <SegmentedControl
+            fullWidth
+            ariaLabel={t('title')}
+            value={viewMode === 'week' || viewMode === 'field' ? 'agenda' : viewMode}
+            onChange={setViewMode}
+            options={(['agenda', 'month'] as ViewMode[]).map(mode => ({
+              value: mode,
+              label: viewModeLabels[mode],
+            }))}
+          />
+        </View>
       )}
 
       {viewMode === 'month' ? (
@@ -300,13 +271,13 @@ const CalendarScreen = () => {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryDark} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         showsVerticalScrollIndicator={false}
       >
         {!hasVisibleEvents ? (
           <EmptyState
-            icon={<Ionicons name="calendar-outline" size={36} color={colors.primaryDark} />}
+            icon={<Ionicons name="calendar-outline" size={36} color={colors.primary} />}
             title={t('noEventsDay')}
             description={readOnly ? t('agendaEmpty') : t('emptyOwnerHint')}
             action={
@@ -369,11 +340,11 @@ const CalendarScreen = () => {
         <TouchableOpacity
           style={[
             styles.fab,
-            { backgroundColor: colors.primaryDark, ...createElevation(colors, 'lg') },
+            { backgroundColor: colors.primary, ...createElevation(colors, 'lg') },
           ]}
           onPress={() => openCreateTask(anchorDate)}
         >
-          <Ionicons name="add" size={28} color={colors.textInverse} />
+          <Ionicons name="add" size={28} color={colors.onOlive} />
         </TouchableOpacity>
       ) : null}
 
@@ -385,31 +356,13 @@ const CalendarScreen = () => {
         onClose={() => setFiltersOpen(false)}
       />
 
-      <Modal visible={daySheetDate !== null} transparent animationType="slide">
-        <View style={styles.overlay}>
-          <View style={[styles.daySheet, { backgroundColor: colors.surfaceElevated }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {daySheetDate ? format(daySheetDate, 'PPP', { locale }) : ''}
-            </Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              {daySheetEvents.length === 0 ? (
-                <Text style={{ color: colors.textSecondary, paddingVertical: spacing.md }}>
-                  {t('noEventsDay')}
-                </Text>
-              ) : (
-                daySheetEvents.map(event => (
-                  <CalendarEventRow
-                    key={event.id}
-                    event={event}
-                    language={i18n.language}
-                    onPress={() => {
-                      setDaySheetDate(null);
-                      openTask(event.taskId);
-                    }}
-                  />
-                ))
-              )}
-            </ScrollView>
+      <Sheet
+        open={daySheetDate !== null}
+        onClose={() => setDaySheetDate(null)}
+        edge="end"
+        title={daySheetDate ? format(daySheetDate, 'PPP', { locale }) : ''}
+        footer={
+          <View style={{ gap: spacing.sm }}>
             {!readOnly && daySheetDate ? (
               <Button
                 title={t('newTask')}
@@ -419,7 +372,6 @@ const CalendarScreen = () => {
                   openCreateTask(d);
                 }}
                 fullWidth
-                style={{ marginTop: spacing.md }}
               />
             ) : null}
             <Button
@@ -427,11 +379,28 @@ const CalendarScreen = () => {
               variant="outline"
               onPress={() => setDaySheetDate(null)}
               fullWidth
-              style={{ marginTop: spacing.sm }}
             />
           </View>
-        </View>
-      </Modal>
+        }
+      >
+        {daySheetEvents.length === 0 ? (
+          <Text style={{ color: colors.textSecondary, paddingVertical: spacing.md }}>
+            {t('noEventsDay')}
+          </Text>
+        ) : (
+          daySheetEvents.map(event => (
+            <CalendarEventRow
+              key={event.id}
+              event={event}
+              language={i18n.language}
+              onPress={() => {
+                setDaySheetDate(null);
+                openTask(event.taskId);
+              }}
+            />
+          ))
+        )}
+      </Sheet>
     </ScreenLayout>
   );
 };
@@ -450,7 +419,7 @@ const SummaryPill = ({
   accent?: string;
 }) => (
   <View style={styles.summaryPill}>
-    <Ionicons name={icon} size={16} color={accent ?? colors.primaryDark} />
+    <Ionicons name={icon} size={16} color={accent ?? colors.primary} />
     <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{value}</Text>
     <Text style={[styles.summaryLabel, { color: colors.textSecondary }]} numberOfLines={1}>
       {label}
@@ -504,21 +473,10 @@ const styles = StyleSheet.create({
   summaryLabel: { ...typography.styles.caption, fontSize: 10, textAlign: 'center' },
   summaryDivider: { width: 1, alignSelf: 'stretch', marginVertical: spacing.xs },
   viewToggle: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
   },
-  toggleChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
   content: { paddingBottom: 100 },
-  sectionTitle: { ...typography.styles.h3, fontWeight: '700', marginBottom: spacing.sm },
   fab: {
     position: 'absolute',
     right: spacing.base,
@@ -528,17 +486,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  daySheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: spacing.base,
-    maxHeight: '70%',
   },
 });
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Lightbulb } from 'lucide-react';
 import { ReportInsight } from '../../data/mockReportData';
+import { getChartPalette, getStatusPalette } from '../../styles/colorTokens';
 
 export const InsightList: React.FC<{ insights: ReportInsight[] }> = ({ insights }) => {
   const { t } = useTranslation('reports');
@@ -30,7 +31,9 @@ export const VerticalBars: React.FC<{
   values: number[];
   labels: string[];
   color?: string;
-}> = ({ values, labels, color = '#2E4A2E' }) => {
+}> = ({ values, labels, color }) => {
+  const fill = color ?? getChartPalette().olive;
+  const negative = getStatusPalette().danger;
   const max = Math.max(...values.map((v) => Math.abs(v)), 0.01);
   return (
     <div className="report-spark-row" role="img">
@@ -41,7 +44,7 @@ export const VerticalBars: React.FC<{
               className="report-spark-fill"
               style={{
                 height: `${value === 0 ? 0 : Math.max(4, (Math.abs(value) / max) * 100)}%`,
-                background: value < 0 ? '#dc2626' : color,
+                background: value < 0 ? negative : fill,
               }}
             />
           </div>
@@ -58,7 +61,10 @@ export const DualBars: React.FC<{
   labels: string[];
   firstColor?: string;
   secondColor?: string;
-}> = ({ first, second, labels, firstColor = '#2E4A2E', secondColor = '#c5a35a' }) => {
+}> = ({ first, second, labels, firstColor, secondColor }) => {
+  const palette = getChartPalette();
+  const a = firstColor ?? palette.olive;
+  const b = secondColor ?? palette.sage;
   const max = Math.max(...first, ...second, 0.01);
   return (
     <div className="report-spark-row">
@@ -67,11 +73,11 @@ export const DualBars: React.FC<{
           <div className="report-spark-track report-spark-track-dual">
             <div
               className="report-spark-fill"
-              style={{ height: `${(first[i] ?? 0) === 0 ? 0 : Math.max(3, ((first[i] ?? 0) / max) * 100)}%`, background: firstColor }}
+              style={{ height: `${(first[i] ?? 0) === 0 ? 0 : Math.max(3, ((first[i] ?? 0) / max) * 100)}%`, background: a }}
             />
             <div
               className="report-spark-fill"
-              style={{ height: `${(second[i] ?? 0) === 0 ? 0 : Math.max(3, ((second[i] ?? 0) / max) * 100)}%`, background: secondColor }}
+              style={{ height: `${(second[i] ?? 0) === 0 ? 0 : Math.max(3, ((second[i] ?? 0) / max) * 100)}%`, background: b }}
             />
           </div>
           <span className="report-spark-label">{label}</span>

@@ -41,7 +41,7 @@ const FieldFinanceSummary: React.FC<Props> = ({ summary, onSeeFinance }) => {
         </Text>
       </View>
       <Pressable onPress={onSeeFinance} style={styles.link}>
-        <Text style={[styles.linkText, { color: colors.primaryDark }]}>{t('overview.seeFinance')}</Text>
+        <Text style={[styles.linkText, { color: colors.primary }]}>{t('overview.seeFinance')}</Text>
       </Pressable>
     </View>
   );

@@ -120,6 +120,12 @@
     "overview": "Overview",
     "timeline": "Chronologio"
   },
+  "page": {
+    "tabsAria": "Field sections",
+    "mapData": "Map",
+    "details": "Details"
+  },
+  "viewModeAria": "View mode",
   "fieldStatus": {
     "Draft": "Draft",
     "NeedsBoundaryConfirmation": "Needs boundary",

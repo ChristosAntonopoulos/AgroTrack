@@ -78,12 +78,12 @@ const ReportsScreen = () => {
               styles.chip,
               {
                 minHeight: tapMin,
-                backgroundColor: type === item.id ? colors.primaryDark : colors.surfaceElevated,
-                borderColor: type === item.id ? colors.primaryDark : colors.border,
+                backgroundColor: type === item.id ? colors.primaryLight : colors.surface,
+                borderColor: type === item.id ? colors.oliveBorder : colors.border,
               },
             ]}
           >
-            <Text style={{ color: type === item.id ? colors.textInverse : colors.textPrimary, fontWeight: '700' }}>
+            <Text style={{ color: type === item.id ? colors.primary : colors.textPrimary, fontWeight: '700' }}>
               {item.label}
             </Text>
           </Pressable>

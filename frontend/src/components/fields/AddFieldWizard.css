@@ -6,24 +6,26 @@
 }
 
 .add-field-method-card {
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
   padding: 1.25rem;
   text-align: left;
-  background: var(--bg-card);
-  color: var(--color-text-primary);
+  min-height: 140px;
+  background: var(--surface-1);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
 .add-field-method-card:hover,
 .add-field-method-card.active {
-  border-color: var(--color-primary-light);
+  border-color: var(--olive-border);
+  background: var(--olive-soft);
   box-shadow: var(--shadow-card);
 }
 
 .add-field-method-icon {
-  color: var(--color-primary-light);
+  color: var(--olive-primary);
   margin-bottom: 0.75rem;
 }
 
@@ -135,75 +137,276 @@
 }
 
 .field-boundary-map {
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   overflow: hidden;
   margin: 0.75rem 0 1rem;
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+
+.field-boundary-map.is-drawing {
+  box-shadow: inset 0 0 0 3px var(--olive-border), var(--shadow-card);
+  cursor: crosshair;
 }
 
 .field-boundary-map .leaflet-container {
-  background: var(--bg-hover);
+  background: var(--surface-2);
   font-family: inherit;
+}
+
+.boundary-steps-guide {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  list-style: none;
+  counter-reset: boundary-step;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+}
+
+.boundary-steps-guide li {
+  counter-increment: boundary-step;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 36px;
+  font-size: 1rem;
+  font-weight: 550;
+  color: var(--text-muted);
+}
+
+.boundary-steps-guide li::before {
+  content: counter(boundary-step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.boundary-steps-guide li.is-current {
+  color: var(--text-primary);
+}
+
+.boundary-steps-guide li.is-current::before {
+  background: var(--olive-primary);
+  color: var(--on-olive);
+}
+
+.boundary-steps-guide li.is-done {
+  color: var(--link);
+}
+
+.boundary-steps-guide li.is-done::before {
+  background: var(--olive-soft);
+  color: var(--link);
+  content: '✓';
+}
+
+.boundary-coach {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  background: var(--olive-soft);
+  border: 1px solid var(--olive-border);
+  color: var(--link);
+}
+
+.boundary-coach p {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
 .boundary-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.55rem;
   margin-bottom: 0.75rem;
 }
 
 .boundary-search-input {
   flex: 1;
   min-width: 180px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 0.9375rem;
-  background: var(--bg-input);
-  color: var(--color-text-primary);
+  min-height: 48px;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  font-size: 1rem;
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
 .boundary-search-input:focus {
   outline: none;
-  border-color: var(--color-primary-light);
+  border-color: var(--olive-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 35%, transparent);
+}
+
+.boundary-tool-btn {
+  min-height: 48px;
+  gap: 0.4rem;
+}
+
+.boundary-primary-action {
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+.boundary-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.boundary-done-note {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.boundary-corner-count {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text-secondary);
 }
 
 .boundary-layer-toggle {
   display: inline-flex;
   gap: 0;
   margin-bottom: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--bg-card);
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-2);
 }
 
 .boundary-layer-btn {
-  padding: 0.45rem 0.9rem;
+  min-height: 44px;
+  padding: 0 1rem;
   border: none;
+  border-radius: 10px;
   background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .boundary-layer-btn + .boundary-layer-btn {
-  border-left: 1px solid var(--color-border);
+  border-left: none;
 }
 
 .boundary-layer-btn:hover {
-  background: var(--bg-hover);
-  color: var(--color-text-primary);
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .boundary-layer-btn.active {
-  background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-card));
-  color: var(--color-primary-light);
-  font-weight: 600;
+  background: var(--olive-soft);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--olive-border);
+}
+
+.field-boundary-map .leaflet-bar a,
+.field-boundary-map .leaflet-draw-toolbar a {
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  font-size: 18px;
+}
+
+.field-boundary-map .leaflet-control-attribution {
+  font-size: 10px;
+}
+
+.boundary-corner-tip {
+  background: #F5C842 !important;
+  border: 2px solid #1C1A14 !important;
+  color: #1C1A14 !important;
+  font-weight: 800 !important;
+  border-radius: 999px !important;
+  padding: 0.12rem 0.45rem !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45) !important;
+}
+
+.boundary-corner-tip::before {
+  border-top-color: #1C1A14 !important;
+}
+
+.review-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+}
+
+.review-checkbox {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-1);
+  font-size: 1rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.review-checkbox input {
+  width: 22px;
+  height: 22px;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  accent-color: var(--olive-primary);
+}
+
+.review-checkbox span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  line-height: 1.4;
+}
+
+.review-checkbox strong {
+  font-weight: 700;
+}
+
+.review-checkbox em {
+  font-style: normal;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.field-form-hint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .boundary-action-bar .btn,
+  .boundary-toolbar .btn {
+    flex: 1 1 100%;
+  }
 }
 
 [data-theme='dark'] .boundary-layer-btn.active {
@@ -260,27 +463,6 @@
 
 [data-theme='dark'] .area-comparison-card.severity-warning .area-comparison-message {
   color: var(--color-warning);
-}
-
-.review-checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-}
-
-.review-checkbox {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  font-size: 0.95rem;
-  color: var(--color-text-primary);
-}
-
-.field-form-hint {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  margin-top: 0.25rem;
 }
 
 .cadastre-warnings-list {

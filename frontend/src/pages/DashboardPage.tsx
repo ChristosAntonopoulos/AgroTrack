@@ -166,7 +166,7 @@ const DashboardPage: React.FC = () => {
   }, [isFieldOwner, isProducer, tasks, today, user?.userId]);
 
   if (isEveryday) {
-    return <Navigate to="/today" replace />;
+    return <Navigate to="/chronologio?focus=today" replace />;
   }
 
   const totalArea = fields.reduce((sum, field) => sum + field.area, 0);
@@ -244,7 +244,7 @@ const DashboardPage: React.FC = () => {
         )}
 
         {isProducer && (
-          <Card className="producer-hero-card" hover onClick={() => navigate('/today')}>
+          <Card className="producer-hero-card" hover onClick={() => navigate('/chronologio?focus=today')}>
             <div className="producer-hero-content">
               <div className="producer-hero-icon">
                 <Sun size={28} />
@@ -264,7 +264,7 @@ const DashboardPage: React.FC = () => {
           <h2 className="dashboard-section-label">{t('dashboard:quickActions.title')}</h2>
           <div className="quick-actions-grid">
             {isProducer && (
-              <button type="button" className="quick-action-card" onClick={() => navigate('/today')}>
+              <button type="button" className="quick-action-card" onClick={() => navigate('/chronologio?focus=today')}>
                 <Sun size={20} />
                 <span className="quick-action-title">{t('dashboard:quickActions.today')}</span>
                 <span className="quick-action-sub">{t('dashboard:quickActions.todaySub')}</span>
@@ -380,7 +380,7 @@ const DashboardPage: React.FC = () => {
                 title={t('dashboard:stats.overdue')}
                 value={taskInsights.overdueCount}
                 icon={<AlertTriangle />}
-                color={taskInsights.overdueCount > 0 ? 'warning' : 'success'}
+                color={taskInsights.overdueCount > 0 ? 'warning' : 'primary'}
                 onClick={() => navigate('/tasks?focus=action')}
               />
               <StatsCard
@@ -404,7 +404,7 @@ const DashboardPage: React.FC = () => {
                 value={taskInsights.dueTodayCount}
                 icon={<Clock />}
                 color="warning"
-                onClick={() => navigate('/today')}
+                onClick={() => navigate('/chronologio?focus=today')}
               />
               <StatsCard
                 title={t('dashboard:stats.inProgress')}
@@ -492,7 +492,7 @@ const DashboardPage: React.FC = () => {
           <section className="dashboard-panel">
             <div className="panel-header">
               <h2>{t('dashboard:tasksSection.title')}</h2>
-              <Link to={isProducer ? '/today' : '/tasks'} className="panel-link">
+              <Link to={isProducer ? '/chronologio?focus=today' : '/tasks'} className="panel-link">
                 {isProducer ? t('dashboard:tasksSection.viewToday') : t('common:viewAll')}
                 <ChevronRight size={14} />
               </Link>

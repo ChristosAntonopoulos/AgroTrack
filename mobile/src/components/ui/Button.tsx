@@ -13,7 +13,7 @@ import { typography, spacing, radii, motion, createElevation } from '../../theme
 export interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'text' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'text' | 'ghost' | 'success' | 'warning' | 'error';
   size?: 'small' | 'medium' | 'large';
   loading?: boolean;
   disabled?: boolean;
@@ -42,39 +42,57 @@ const Button: React.FC<ButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: touchableDisabled ? colors.gray300 : colors.primaryDark,
+          backgroundColor: touchableDisabled ? colors.gray300 : colors.primary,
           borderColor: 'transparent',
-          textColor: colors.textInverse,
+          textColor: colors.onOlive,
         };
       case 'secondary':
         return {
-          backgroundColor: touchableDisabled ? colors.gray300 : colors.secondary,
+          backgroundColor: touchableDisabled ? colors.gray300 : colors.surfaceMuted,
+          borderColor: colors.border,
+          textColor: touchableDisabled ? colors.gray400 : colors.textPrimary,
+        };
+      case 'success':
+        return {
+          backgroundColor: touchableDisabled ? colors.gray300 : colors.success,
           borderColor: 'transparent',
-          textColor: colors.textInverse,
+          textColor: colors.onOlive,
+        };
+      case 'warning':
+        return {
+          backgroundColor: touchableDisabled ? colors.gray300 : colors.warning,
+          borderColor: 'transparent',
+          textColor: colors.onOlive,
+        };
+      case 'error':
+        return {
+          backgroundColor: touchableDisabled ? colors.gray300 : colors.error,
+          borderColor: 'transparent',
+          textColor: colors.onOlive,
         };
       case 'outline':
         return {
           backgroundColor: colors.surface,
-          borderColor: touchableDisabled ? colors.gray300 : colors.primaryDark,
-          textColor: touchableDisabled ? colors.gray400 : colors.primaryDark,
+          borderColor: touchableDisabled ? colors.gray300 : colors.oliveBorder,
+          textColor: touchableDisabled ? colors.gray400 : colors.primary,
         };
       case 'ghost':
         return {
-          backgroundColor: colors.surfaceMuted,
-          borderColor: colors.border,
-          textColor: touchableDisabled ? colors.gray400 : colors.textPrimary,
+          backgroundColor: colors.primaryLight,
+          borderColor: 'transparent',
+          textColor: touchableDisabled ? colors.gray400 : colors.primary,
         };
       case 'text':
         return {
           backgroundColor: 'transparent',
           borderColor: 'transparent',
-          textColor: touchableDisabled ? colors.gray400 : colors.primaryDark,
+          textColor: touchableDisabled ? colors.gray400 : colors.link,
         };
       default:
         return {
-          backgroundColor: colors.primaryDark,
+          backgroundColor: colors.primary,
           borderColor: 'transparent',
-          textColor: colors.textInverse,
+          textColor: colors.onOlive,
         };
     }
   };
@@ -86,14 +104,14 @@ const Button: React.FC<ButtonProps> = ({
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
           fontSize: typography.fontSize.sm * fontScaleMultiplier,
-          minHeight: tapMin,
+          minHeight: Math.max(40, tapMin * 0.9),
         };
       case 'large':
         return {
-          paddingVertical: spacing.lg,
+          paddingVertical: spacing.base,
           paddingHorizontal: spacing.xl,
           fontSize: typography.fontSize.lg * fontScaleMultiplier,
-          minHeight: Math.max(tapMin * 1.3, 56),
+          minHeight: Math.max(tapMin * 1.2, 52),
         };
       default:
         return {
@@ -107,7 +125,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = getVariantStyles();
   const sizeStyles = getSizeStyles();
-  const bordered = variant === 'outline' || variant === 'ghost';
+  const bordered = variant === 'outline' || variant === 'secondary';
 
   return (
     <TouchableOpacity
@@ -155,7 +173,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
   },
   inner: {
     flexDirection: 'row',
@@ -163,7 +181,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: '650' as unknown as '600',
     textAlign: 'center',
   },
   iconLeft: { marginRight: spacing.xs },

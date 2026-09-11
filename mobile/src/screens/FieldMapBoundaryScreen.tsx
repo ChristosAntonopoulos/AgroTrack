@@ -61,9 +61,9 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
       points.map((p, i) => ({
         id: `vertex-${i}`,
         coordinate: p,
-        color: colors.primaryDark,
+        color: colors.primary,
       })),
-    [points, colors.primaryDark]
+    [points, colors.primary]
   );
 
   const saveBoundary = async () => {
@@ -115,11 +115,11 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
         </Pressable>
         <Pressable
-          style={[styles.btnPrimary, { backgroundColor: colors.primaryDark }]}
+          style={[styles.btnPrimary, { backgroundColor: colors.primary }]}
           onPress={saveBoundary}
           disabled={saving}
         >
-          <Text style={[styles.btnPrimaryText, { color: colors.textInverse }]}>
+          <Text style={[styles.btnPrimaryText, { color: colors.onOlive }]}>
             {saving ? '…' : t('addFieldWizard.saveBoundary')}
           </Text>
         </Pressable>

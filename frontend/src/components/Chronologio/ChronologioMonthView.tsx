@@ -1,11 +1,17 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { CloudSun } from 'lucide-react';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { groupChronologioEntries } from '../../utils/chronologioGrouping';
+import { agriculturalYearFor, agriculturalYearTitle } from '../../chronologio/agriculturalYear';
+import {
+  buildDayWeatherView,
+  dayWeatherDateKey,
+  type DayWeatherInput,
+} from '../../chronologio/dayWeather';
+import { eventCardSpan } from '../../chronologio/eventCardLayout';
 import ChronologioEvent from './ChronologioEvent';
+import DailyWeatherStrip from './DailyWeatherStrip';
 import type { SupportedLocale } from '../../i18n/config';
 
 type Props = {
@@ -15,18 +21,37 @@ type Props = {
   selectedEntryId?: string | null;
   hasMore: boolean;
   loadingMore: boolean;
+  hiddenEntryIds?: ReadonlySet<string>;
+  weatherByDate?: Record<string, DayWeatherInput>;
+  todayWeather?: DayWeatherInput | null;
   onLoadMore: () => void;
   onSelect: (entry: ChronologioEntry) => void;
-  onOpenWeather?: (year: number, month: number) => void;
+  onOpenWeather?: (year: number, month: number, dateKey: string) => void;
 };
 
 type FlatRow =
-  | { kind: 'day'; key: string; label: string; shortLabel: string; year: number; month: number }
-  | { kind: 'entry'; key: string; entry: ChronologioEntry }
+  | {
+      kind: 'day';
+      key: string;
+      dateKey: string;
+      label: string;
+      monthLabel: string;
+      agriLabel: string;
+      year: number;
+      month: number;
+      entries: ChronologioEntry[];
+      monthReviews: ChronologioEntry[];
+    }
+  | { kind: 'gap'; key: string; months: number }
+  | { kind: 'monthBreak'; key: string; label: string }
+  | { kind: 'yearBreak'; key: string; year: number }
   | { kind: 'status'; key: string; label: string };
 
-const isPeriodWeatherEntry = (e: ChronologioEntry) =>
-  e.eventType === 'weather.monthReview' || e.eventType === 'weather.yearReview';
+const daysBetween = (newer: Date, older: Date) =>
+  Math.round(Math.abs(newer.getTime() - older.getTime()) / 86_400_000);
+
+const isYearWeatherReview = (e: ChronologioEntry) => e.eventType === 'weather.yearReview';
+const isMonthWeatherReview = (e: ChronologioEntry) => e.eventType === 'weather.monthReview';
 
 const ChronologioMonthView: React.FC<Props> = ({
   entries,
@@ -35,179 +60,142 @@ const ChronologioMonthView: React.FC<Props> = ({
   selectedEntryId,
   hasMore,
   loadingMore,
+  hiddenEntryIds,
+  weatherByDate,
+  todayWeather,
   onLoadMore,
   onSelect,
   onOpenWeather,
 }) => {
-  const { t, i18n } = useTranslation('chronologio');
+  const { t, i18n } = useTranslation(['chronologio', 'today']);
   const parentRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
-  const nowYear = new Date().getFullYear();
-  const [stickyDate, setStickyDate] = useState<{
-    label: string;
-    shortLabel: string;
-    year: number;
-    month: number;
-  } | null>(null);
+  const todayKey = dayWeatherDateKey(new Date());
+  const numberLocale = i18n.language?.startsWith('el')
+    ? 'el-GR'
+    : i18n.language?.startsWith('it')
+      ? 'it-IT'
+      : 'en-US';
+  const weatherFor = (dateKey: string): DayWeatherInput | null => {
+    if (dateKey === todayKey && todayWeather) return todayWeather;
+    return weatherByDate?.[dateKey] ?? null;
+  };
 
   const rows = useMemo(() => {
     const model = groupChronologioEntries(entries);
-    const flat: FlatRow[] = [];
+    const days: Extract<FlatRow, { kind: 'day' }>[] = [];
     for (const month of model.months) {
       for (const day of month.days) {
-        const includeYear = day.date.getFullYear() !== nowYear;
-        const label =
-          day.kind === 'today'
-            ? t('today')
-            : day.kind === 'yesterday'
-              ? t('yesterday')
-              : day.date.toLocaleDateString(i18n.language, {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: includeYear ? 'numeric' : undefined,
-                });
-        const shortLabel =
-          day.kind === 'today'
-            ? t('today')
-            : day.kind === 'yesterday'
-              ? t('yesterday')
-              : day.date.toLocaleDateString(i18n.language, {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                  year: includeYear ? '2-digit' : undefined,
-                });
-        flat.push({
+        const visible = day.entries.filter(
+          (entry) => !isYearWeatherReview(entry) && !hiddenEntryIds?.has(entry.id)
+        );
+        if (visible.length === 0) continue;
+        const monthReviews = showField ? visible.filter(isMonthWeatherReview) : [];
+        const rest = showField ? visible.filter((entry) => !isMonthWeatherReview(entry)) : visible;
+        const agriYear = agriculturalYearFor(day.date);
+        days.push({
           kind: 'day',
           key: `d-${day.key}`,
-          label,
-          shortLabel,
+          dateKey: day.key,
+          label: day.date.toLocaleDateString(i18n.language, {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }),
+          monthLabel: day.date.toLocaleDateString(i18n.language, { month: 'long' }),
+          agriLabel: agriculturalYearTitle(agriYear, i18n.language),
           year: day.date.getFullYear(),
           month: day.date.getMonth() + 1,
+          entries: rest,
+          monthReviews,
         });
-        for (const entry of day.entries) {
-          if (isPeriodWeatherEntry(entry)) continue;
-          flat.push({ kind: 'entry', key: entry.id, entry });
-        }
       }
     }
+
+    const flat: FlatRow[] = [];
+    let previous: Extract<FlatRow, { kind: 'day' }> | null = null;
+    days.forEach((day) => {
+      if (previous && previous.year !== day.year) {
+        flat.push({ kind: 'yearBreak', key: `y-${day.year}-${day.dateKey}`, year: day.year });
+      } else if (previous && previous.month !== day.month) {
+        const gap = daysBetween(new Date(previous.dateKey), new Date(day.dateKey));
+        if (gap >= 45) {
+          flat.push({
+            kind: 'gap',
+            key: `g-${previous.dateKey}-${day.dateKey}`,
+            months: Math.max(2, Math.round(gap / 30)),
+          });
+        }
+        flat.push({
+          kind: 'monthBreak',
+          key: `m-${day.year}-${day.month}-${day.dateKey}`,
+          label: new Date(day.year, day.month - 1, 1).toLocaleDateString(i18n.language, {
+            month: 'long',
+            year: 'numeric',
+          }),
+        });
+      } else if (previous) {
+        const gap = daysBetween(new Date(previous.dateKey), new Date(day.dateKey));
+        if (gap >= 45) {
+          flat.push({
+            kind: 'gap',
+            key: `g-${previous.dateKey}-${day.dateKey}`,
+            months: Math.max(2, Math.round(gap / 30)),
+          });
+        }
+      }
+      flat.push(day);
+      previous = day;
+    });
+
     if (loadingMore) {
       flat.push({ kind: 'status', key: 'loading-older', label: t('living.loadingOlder') });
     } else if (!hasMore && entries.length > 0) {
       flat.push({ kind: 'status', key: 'end-journal', label: t('living.endOfJournal') });
     }
     return flat;
-  }, [entries, hasMore, i18n.language, loadingMore, nowYear, t]);
+  }, [entries, hasMore, hiddenEntryIds, i18n.language, loadingMore, showField, t]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
+    getItemKey: (i) => rows[i]?.key ?? i,
     estimateSize: (i) => {
       const row = rows[i];
-      if (row?.kind === 'day') return 44;
       if (row?.kind === 'status') return 48;
+      if (row?.kind === 'gap' || row?.kind === 'monthBreak') return 56;
+      if (row?.kind === 'yearBreak') return 72;
+      if (row?.kind === 'day') {
+        const featured =
+          row.entries.length === 1
+            ? row.entries
+            : row.entries.filter((e) => eventCardSpan(e) === 2);
+        const compact = row.entries.length <= 1 ? 0 : row.entries.length - featured.length;
+        const richMonth = featured.filter(isMonthWeatherReview).length;
+        const otherFeatured = featured.length - richMonth;
+        const pickH = row.monthReviews.length > 0 ? 196 : 0;
+        return 88 + pickH + richMonth * 360 + otherFeatured * 168 + Math.ceil(compact / 2) * 168;
+      }
       return 168;
     },
     overscan: 8,
+    paddingEnd: 32,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
   const lastIndex = virtualItems[virtualItems.length - 1]?.index ?? -1;
-  const firstIndex = virtualItems[0]?.index ?? 0;
 
   useEffect(() => {
     if (!hasMore || loadingMore || rows.length === 0) return;
-    if (lastIndex >= rows.length - 4) {
-      onLoadMore();
-    }
+    if (lastIndex >= rows.length - 3) onLoadMore();
   }, [hasMore, lastIndex, loadingMore, onLoadMore, rows.length]);
 
-  useEffect(() => {
-    if (rows.length === 0) {
-      setStickyDate(null);
-      return;
-    }
-    let next: {
-      label: string;
-      shortLabel: string;
-      year: number;
-      month: number;
-    } | null = null;
-    for (let i = firstIndex; i >= 0; i -= 1) {
-      const row = rows[i];
-      if (row?.kind === 'day') {
-        next = {
-          label: row.label,
-          shortLabel: row.shortLabel,
-          year: row.year,
-          month: row.month,
-        };
-        break;
-      }
-    }
-    if (!next) {
-      const firstDay = rows.find((r): r is Extract<FlatRow, { kind: 'day' }> => r.kind === 'day');
-      if (firstDay) {
-        next = {
-          label: firstDay.label,
-          shortLabel: firstDay.shortLabel,
-          year: firstDay.year,
-          month: firstDay.month,
-        };
-      }
-    }
-    setStickyDate((prev) => {
-      if (
-        prev?.label === next?.label &&
-        prev?.shortLabel === next?.shortLabel &&
-        prev?.year === next?.year &&
-        prev?.month === next?.month
-      ) {
-        return prev;
-      }
-      return next;
-    });
-  }, [firstIndex, rows]);
-
   return (
-    <div className="chrono-month-view chrono-journal-view">
+    <div className="chrono-month-view chrono-journal-view chrono-day-timeline">
       <div ref={parentRef} className="chrono-month-scroll chrono-journal-scroll">
-        <div className="chrono-sticky-date-host" aria-live="polite">
-          <AnimatePresence mode="wait" initial={false}>
-            {stickyDate ? (
-              <motion.div
-                key={`${stickyDate.year}-${stickyDate.month}-${stickyDate.label}`}
-                className="chrono-sticky-date-stack"
-                initial={reduceMotion ? false : { opacity: 0, y: -6, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: 6, filter: 'blur(4px)' }}
-                transition={{ duration: reduceMotion ? 0 : 0.22, ease: 'easeOut' }}
-              >
-                <div className="chrono-sticky-date" title={stickyDate.label}>
-                  <span className="chrono-sticky-date-short">{stickyDate.shortLabel}</span>
-                  <span className="chrono-sticky-date-full">{stickyDate.label}</span>
-                </div>
-                {onOpenWeather ? (
-                  <button
-                    type="button"
-                    className="chrono-sticky-weather-btn"
-                    onClick={() => onOpenWeather(stickyDate.year, stickyDate.month)}
-                  >
-                    <CloudSun size={14} aria-hidden />
-                    {t('living.weatherButton')}
-                  </button>
-                ) : null}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
-
         <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
           {virtualItems.map((vRow) => {
             const row = rows[vRow.index];
-            const isActiveDay =
-              row.kind === 'day' && stickyDate != null && row.label === stickyDate.label;
             return (
               <div
                 key={row.key}
@@ -222,21 +210,83 @@ const ChronologioMonthView: React.FC<Props> = ({
                 ref={virtualizer.measureElement}
                 data-index={vRow.index}
               >
-                {row.kind === 'day' ? (
-                  <h3 className={`chrono-day-heading ${isActiveDay ? 'is-sticky-active' : ''}`}>
-                    {row.label}
-                  </h3>
-                ) : row.kind === 'status' ? (
+                {row.kind === 'status' ? (
                   <p className="chrono-journal-status">{row.label}</p>
+                ) : row.kind === 'gap' ? (
+                  <p className="chrono-timeline-gap">{t('timeline.gapMonths', { count: row.months })}</p>
+                ) : row.kind === 'monthBreak' ? (
+                  <p className="chrono-timeline-month">{row.label}</p>
+                ) : row.kind === 'yearBreak' ? (
+                  <p className="chrono-timeline-year">{t('timeline.yearLandmark', { year: row.year })}</p>
                 ) : (
-                  <ChronologioEvent
-                    entry={row.entry}
-                    density="card"
-                    showField={showField}
-                    locale={locale}
-                    selected={selectedEntryId === row.entry.id}
-                    onSelect={onSelect}
-                  />
+                  <section className="chrono-day-group" aria-labelledby={`chrono-day-${row.dateKey}`}>
+                    <header className="chrono-day-header">
+                      <h3 id={`chrono-day-${row.dateKey}`} className="chrono-day-heading">
+                        {row.label}
+                      </h3>
+                      <p className="chrono-day-meta">
+                        <DailyWeatherStrip
+                          weather={buildDayWeatherView(weatherFor(row.dateKey), numberLocale)}
+                          onOpen={
+                            onOpenWeather
+                              ? () => onOpenWeather(row.year, row.month, row.dateKey)
+                              : undefined
+                          }
+                        />
+                        <span>
+                          {t('timeline.entryCount', {
+                            count: row.entries.length + row.monthReviews.length,
+                          })}
+                        </span>
+                      </p>
+                    </header>
+                    {row.monthReviews.length > 0 ? (
+                      <div className="chrono-weather-cluster">
+                        <p className="chrono-weather-cluster-kicker">{t('weatherReview.pickGrove')}</p>
+                        <div className="chrono-weather-cluster-row" role="list">
+                          {row.monthReviews.map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="chrono-day-event-cell is-field-pick"
+                              role="listitem"
+                            >
+                              <ChronologioEvent
+                                entry={entry}
+                                density="card"
+                                showField
+                                locale={locale}
+                                selected={selectedEntryId === entry.id}
+                                weatherTile
+                                onSelect={onSelect}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {row.entries.length > 0 ? (
+                    <div className="chrono-day-event-grid">
+                      {row.entries.map((entry) => {
+                        const featured = row.entries.length === 1 || eventCardSpan(entry) === 2;
+                        return (
+                          <div
+                            key={entry.id}
+                            className={`chrono-day-event-cell${featured ? ' is-featured' : ''}`}
+                          >
+                            <ChronologioEvent
+                              entry={entry}
+                              density="card"
+                              showField={showField}
+                              locale={locale}
+                              selected={selectedEntryId === entry.id}
+                              onSelect={onSelect}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    ) : null}
+                  </section>
                 )}
               </div>
             );

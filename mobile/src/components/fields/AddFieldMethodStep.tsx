@@ -81,14 +81,14 @@ const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = fals
               style={[
                 styles.card,
                 {
-                  backgroundColor: active ? colors.primaryDark + '14' : colors.surfaceElevated,
-                  borderColor: active ? colors.primaryDark : colors.borderLight,
+                  backgroundColor: active ? colors.primary + '14' : colors.surfaceElevated,
+                  borderColor: active ? colors.primary : colors.borderLight,
                   opacity: card.enabled ? 1 : 0.55,
                 },
               ]}
             >
-              <View style={[styles.iconWrap, { backgroundColor: colors.primaryDark + '18' }]}>
-                <Ionicons name={card.icon} size={26} color={colors.primaryDark} />
+              <View style={[styles.iconWrap, { backgroundColor: colors.primary + '18' }]}>
+                <Ionicons name={card.icon} size={26} color={colors.primary} />
               </View>
               <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{card.title}</Text>
               <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{card.desc}</Text>

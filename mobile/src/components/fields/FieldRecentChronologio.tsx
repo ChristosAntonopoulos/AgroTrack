@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { useTheme } from '../../context/ThemeContext';
 import { chronologioDetailLine, formatDayMonth, numberLocaleFor } from '../../utils/fieldDisplay';
+import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import { spacing, typography } from '../../theme';
 
 type Props = {
@@ -24,6 +25,7 @@ const FieldRecentChronologio: React.FC<Props> = ({ entries, onSeeAll }) => {
         <Text style={{ color: colors.textTertiary }}>{t('chronologio:emptyFieldDescription')}</Text>
       ) : (
         items.map((entry) => {
+          const presented = presentChronologioEvent(entry, i18n.language);
           const detail = chronologioDetailLine(entry, locale);
           const thumb = entry.media?.find((m) => m.thumbnailUrl || m.url);
           const uri = thumb?.thumbnailUrl || thumb?.url;
@@ -34,7 +36,7 @@ const FieldRecentChronologio: React.FC<Props> = ({ entries, onSeeAll }) => {
                   {formatDayMonth(entry.occurredAt, locale)}
                 </Text>
                 <Text style={[styles.entryTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                  {entry.title}
+                  {presented.label}
                 </Text>
                 {detail ? (
                   <Text style={{ color: colors.textSecondary }} numberOfLines={2}>
@@ -48,7 +50,7 @@ const FieldRecentChronologio: React.FC<Props> = ({ entries, onSeeAll }) => {
         })
       )}
       <Pressable onPress={onSeeAll} style={styles.link}>
-        <Text style={[styles.linkText, { color: colors.primaryDark }]}>
+        <Text style={[styles.linkText, { color: colors.primary }]}>
           {t('fields:overview.seeAllChronologio')}
         </Text>
       </Pressable>

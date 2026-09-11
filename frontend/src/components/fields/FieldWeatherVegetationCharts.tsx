@@ -10,6 +10,7 @@ import EmptyState from '../Common/EmptyState';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import LineChart from '../Analytics/LineChart';
 import BarChart from '../Analytics/BarChart';
+import { getCssToken, getChartPalette } from '../../styles/colorTokens';
 import './FieldWeatherVegetationCharts.css';
 
 type HistoryRange = '90d' | '1y' | '3y';
@@ -221,22 +222,22 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
                 xAxisKey="label"
                 title={t('chronologio:weatherVegetation.temperatureTitle')}
                 lines={[
-                  { dataKey: 'max', name: t('chronologio:weatherVegetation.maxTemp'), color: '#c45c26' },
-                  { dataKey: 'min', name: t('chronologio:weatherVegetation.minTemp'), color: '#2d6a9f' },
+                  { dataKey: 'max', name: t('chronologio:weatherVegetation.maxTemp'), color: getCssToken('--temperature') },
+                  { dataKey: 'min', name: t('chronologio:weatherVegetation.minTemp'), color: getCssToken('--weather-blue') },
                 ]}
               />
               <BarChart
                 data={weatherPoints}
                 xAxisKey="label"
                 title={t('chronologio:weatherVegetation.rainTitle')}
-                bars={[{ dataKey: 'rain', name: t('chronologio:weatherVegetation.rainMm'), color: '#2d6a9f' }]}
+                bars={[{ dataKey: 'rain', name: t('chronologio:weatherVegetation.rainMm'), color: getCssToken('--rain') }]}
               />
               <LineChart
                 data={weatherPoints}
                 dataKey="et0"
                 xAxisKey="label"
                 title={t('chronologio:weatherVegetation.etTitle')}
-                lines={[{ dataKey: 'et0', name: t('chronologio:weatherVegetation.et0Mm'), color: '#4a7c2a' }]}
+                lines={[{ dataKey: 'et0', name: t('chronologio:weatherVegetation.et0Mm'), color: getChartPalette().olive }]}
               />
             </>
           ) : null}
@@ -248,8 +249,8 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
               xAxisKey="label"
               title={t('chronologio:weatherVegetation.vegetationTitle')}
               lines={[
-                { dataKey: 'ndvi', name: t('chronologio:weatherVegetation.ndvi'), color: '#2d5016' },
-                { dataKey: 'ndmi', name: t('chronologio:weatherVegetation.ndmi'), color: '#17a2b8' },
+                { dataKey: 'ndvi', name: t('chronologio:weatherVegetation.ndvi'), color: getChartPalette().olive },
+                { dataKey: 'ndmi', name: t('chronologio:weatherVegetation.ndmi'), color: getChartPalette().weather },
               ]}
             />
           ) : (

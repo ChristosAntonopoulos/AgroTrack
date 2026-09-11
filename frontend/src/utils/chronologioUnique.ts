@@ -1,14 +1,14 @@
+import { chronologioEventKey, chronologioEventKeyId } from '../chronologio/eventPresentation';
 import type { ChronologioEntry } from '../services/chronologioService';
 
-/** One Chronologio fact appears once, even when the API repeats source rows. */
+/** Pagination / merge safety. Source dedup belongs in the Chronologio read model. */
 export function uniqueChronologioEntries(entries: ChronologioEntry[]): ChronologioEntry[] {
   const seen = new Set<string>();
-  return [...entries]
-    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
-    .filter((entry) => {
-      const keys = [entry.id, entry.sourceId ? `${entry.eventType}:${entry.sourceId}` : ''].filter(Boolean);
-      if (keys.some((key) => seen.has(key))) return false;
-      keys.forEach((key) => seen.add(key));
-      return true;
-    });
+  return entries.filter((entry) => {
+    const identity = chronologioEventKeyId(chronologioEventKey(entry)) || entry.id;
+    if (seen.has(identity) || seen.has(entry.id)) return false;
+    seen.add(identity);
+    seen.add(entry.id);
+    return true;
+  });
 }

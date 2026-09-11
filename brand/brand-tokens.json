@@ -2,10 +2,17 @@
   "brand": "OLEACHRON",
   "tagline": "The story of every olive tree lives on",
   "colors": {
-    "deep_olive": "#2E4A2E",
-    "sage": "#6B7F5E",
-    "cream": "#F8F7EE",
-    "beige": "#D9D5C3",
-    "gold": "#B8A373"
+    "olive": "#536B3F",
+    "sage": "#9AAA85",
+    "leaf": "#71845B",
+    "deep_grove": "#29382A",
+    "warm_stone": "#D9D5C8",
+    "limestone": "#F4F3EC",
+    "gold": "#B09A63"
+  },
+  "legacy_aliases": {
+    "deep_olive": "#29382A",
+    "cream": "#F4F3EC",
+    "beige": "#D9D5C8"
   }
 }

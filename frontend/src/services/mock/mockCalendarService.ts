@@ -1,6 +1,7 @@
 import { CalendarEvent, CalendarFilters } from '../calendarService';
 import { mockTasks, mockFields, simulateDelay } from './mockData';
 import { getTaskCategoryColor } from '../../utils/taskCategoryColors';
+import { getStatusPalette } from '../../styles/colorTokens';
 
 export const mockCalendarService = {
   getEvents: async (
@@ -71,7 +72,9 @@ export const mockCalendarService = {
               fieldId: task.fieldId,
               fieldName: field?.name,
               taskId: task.id,
-              color: daysUntilDeadline <= 3 ? '#dc3545' : '#ffc107',
+              color: daysUntilDeadline <= 3
+                ? getStatusPalette().danger
+                : getStatusPalette().warning,
             });
           }
         });
@@ -101,16 +104,17 @@ export const mockCalendarService = {
 };
 
 function getTaskStatusColor(status: string): string {
+  const s = getStatusPalette();
   switch (status) {
     case 'planned':
     case 'ready':
     case 'pending':
-      return '#ffc107';
+      return s.warning;
     case 'in_progress':
-      return '#17a2b8';
+      return s.olive || s.info;
     case 'completed':
-      return '#28a745';
+      return s.success;
     default:
-      return '#6c757d';
+      return s.neutral;
   }
 }

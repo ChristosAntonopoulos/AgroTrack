@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Modal,
   Alert,
   DeviceEventEmitter,
 } from 'react-native';
@@ -15,6 +14,7 @@ import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import Sheet from '../components/ui/Sheet';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
@@ -356,12 +356,12 @@ const MoneyScreen = () => {
                       styles.kindChip,
                       {
                         minHeight: tapMin,
-                        borderColor: kind === value ? colors.primary : colors.border,
-                        backgroundColor: kind === value ? colors.primary + '18' : colors.surfaceElevated,
+                        borderColor: kind === value ? colors.oliveBorder : colors.border,
+                        backgroundColor: kind === value ? colors.primaryLight : colors.surface,
                       },
                     ]}
                   >
-                    <Text style={{ fontWeight: '600', color: kind === value ? colors.primaryDark : colors.textSecondary }}>
+                    <Text style={{ fontWeight: '600', color: kind === value ? colors.primary : colors.textSecondary }}>
                       {t(`money:${key}`)}
                     </Text>
                   </Pressable>
@@ -397,111 +397,118 @@ const MoneyScreen = () => {
         </>
       )}
 
-      <Modal visible={fieldPickerOpen} transparent animationType="fade" onRequestClose={() => setFieldPickerOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setFieldPickerOpen(false)}>
-          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-            <Pressable
-              onPress={() => {
-                setFieldId('');
-                setFieldPickerOpen(false);
-              }}
-              style={{ minHeight: tapMin, justifyContent: 'center' }}
-            >
-              <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{t('money:allFields')}</Text>
-            </Pressable>
-            {fields.map((field) => (
-              <Pressable
-                key={field.id}
-                onPress={() => {
-                  setFieldId(field.id);
-                  setFieldPickerOpen(false);
-                }}
-                style={{ minHeight: tapMin, justifyContent: 'center' }}
-              >
-                <Text style={{ color: colors.textPrimary }}>{friendlyFieldLabel(field.name)}</Text>
-              </Pressable>
-            ))}
-            <Pressable
-              onPress={() => {
-                setFieldId(UNASSIGNED_FIELD_QUERY);
-                setFieldPickerOpen(false);
-              }}
-              style={{ minHeight: tapMin, justifyContent: 'center' }}
-            >
-              <Text style={{ color: colors.textPrimary }}>{unassignedFieldLabel(locale)}</Text>
-            </Pressable>
-          </View>
+      <Sheet
+        open={fieldPickerOpen}
+        onClose={() => setFieldPickerOpen(false)}
+        edge="end"
+        title={t('money:allFields')}
+        size="sm"
+      >
+        <Pressable
+          onPress={() => {
+            setFieldId('');
+            setFieldPickerOpen(false);
+          }}
+          style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.border }]}
+        >
+          <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{t('money:allFields')}</Text>
         </Pressable>
-      </Modal>
+        {fields.map((field) => (
+          <Pressable
+            key={field.id}
+            onPress={() => {
+              setFieldId(field.id);
+              setFieldPickerOpen(false);
+            }}
+            style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.border }]}
+          >
+            <Text style={{ color: colors.textPrimary }}>{friendlyFieldLabel(field.name)}</Text>
+          </Pressable>
+        ))}
+        <Pressable
+          onPress={() => {
+            setFieldId(UNASSIGNED_FIELD_QUERY);
+            setFieldPickerOpen(false);
+          }}
+          style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.border }]}
+        >
+          <Text style={{ color: colors.textPrimary }}>{unassignedFieldLabel(locale)}</Text>
+        </Pressable>
+      </Sheet>
 
-      <Modal visible={Boolean(selected)} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-        <View style={styles.sheetBackdrop}>
-          <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-            {selected ? (
-              <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-                  {labelOr(selected.typeLabel, financialTypeLabel(selected.type, locale))}
-                </Text>
-                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>{selected.description}</Text>
-                <Text style={{ fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: spacing.sm }}>
-                  {formatOfficialAmount(selected.amount, selected.currency, locale, unknown)}
-                </Text>
-                <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-                  {labelOr(selected.statusLabel, financialStatusLabel(selected.status, locale))}
-                </Text>
-                {selected.status === 'draft' ? (
-                  <>
-                    <Button
-                      title={t('money:postDraft')}
-                      onPress={() =>
-                        void getFinancialTransactionService()
-                          .post(selected.id)
-                          .then(() => {
-                            setSelected(null);
-                            setReloadToken((n) => n + 1);
-                          })
-                      }
-                    />
-                    <Button
-                      title={t('money:deleteDraft')}
-                      variant="outline"
-                      onPress={() =>
-                        void getFinancialTransactionService()
-                          .deleteDraft(selected.id)
-                          .then(() => {
-                            setSelected(null);
-                            setReloadToken((n) => n + 1);
-                          })
-                      }
-                      style={{ marginTop: spacing.sm }}
-                    />
-                  </>
-                ) : null}
-                {selected.status === 'posted' && isFieldOwner() ? (
+      <Sheet
+        open={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        edge="end"
+        title={selected?.description}
+        subtitle={
+          selected
+            ? labelOr(selected.typeLabel, financialTypeLabel(selected.type, locale))
+            : undefined
+        }
+        footer={
+          selected ? (
+            <View style={{ gap: spacing.sm }}>
+              {selected.status === 'draft' ? (
+                <>
                   <Button
-                    title={t('money:voidPosted')}
+                    title={t('money:postDraft')}
+                    onPress={() =>
+                      void getFinancialTransactionService()
+                        .post(selected.id)
+                        .then(() => {
+                          setSelected(null);
+                          setReloadToken((n) => n + 1);
+                        })
+                    }
+                  />
+                  <Button
+                    title={t('money:deleteDraft')}
                     variant="outline"
                     onPress={() =>
-                      Alert.prompt
-                        ? Alert.prompt(t('money:voidPosted'), t('money:voidReasonPrompt'), (reason) => {
-                            if (reason?.trim()) void handleVoid(selected.id, reason.trim());
-                          })
-                        : void handleVoid(selected.id, t('capture:money.undoReason'))
+                      void getFinancialTransactionService()
+                        .deleteDraft(selected.id)
+                        .then(() => {
+                          setSelected(null);
+                          setReloadToken((n) => n + 1);
+                        })
                     }
-                    style={{ marginTop: spacing.sm }}
                   />
-                ) : null}
+                </>
+              ) : null}
+              {selected.status === 'posted' && isFieldOwner() ? (
                 <Button
-                  title={t('common:cancel', { defaultValue: 'Cancel' })}
+                  title={t('money:voidPosted')}
                   variant="outline"
-                  onPress={() => setSelected(null)}
-                  style={{ marginTop: spacing.sm }}
+                  onPress={() =>
+                    Alert.prompt
+                      ? Alert.prompt(t('money:voidPosted'), t('money:voidReasonPrompt'), (reason) => {
+                          if (reason?.trim()) void handleVoid(selected.id, reason.trim());
+                        })
+                      : void handleVoid(selected.id, t('capture:money.undoReason'))
+                  }
                 />
-              </>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+              ) : null}
+              <Button
+                title={t('common:cancel', { defaultValue: 'Cancel' })}
+                variant="outline"
+                onPress={() => setSelected(null)}
+              />
+            </View>
+          ) : null
+        }
+      >
+        {selected ? (
+          <>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: spacing.sm }}>
+              {formatOfficialAmount(selected.amount, selected.currency, locale, unknown)}
+            </Text>
+            <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+              {labelOr(selected.statusLabel, financialStatusLabel(selected.status, locale))}
+            </Text>
+          </>
+        ) : null}
+      </Sheet>
     </ScreenLayout>
   );
 };
@@ -555,24 +562,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   monthRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  pickerRow: {
     justifyContent: 'center',
-    padding: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: spacing.sm,
   },
-  modalCard: { borderRadius: radii.md, padding: spacing.md, gap: spacing.xs },
-  sheetBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  sheet: {
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    padding: spacing.lg,
-  },
-  sheetTitle: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
 });
 
 export default MoneyScreen;

@@ -3,6 +3,7 @@ import api from './api';
 export type ChronologioCategory =
   | 'task'
   | 'expense'
+  | 'income'
   | 'harvest'
   | 'note'
   | 'photo'
@@ -21,7 +22,9 @@ export type ChronologioImportance =
 
 export type ChronologioSourceType =
   | 'Task'
+  | 'TaskExecution'
   | 'Expense'
+  | 'Income'
   | 'Harvest'
   | 'Note'
   | 'Activity'
@@ -62,6 +65,7 @@ export interface ChronologioTaskDetails {
 export interface ChronologioExpenseDetails {
   expenseId: string;
   expenseCategory?: string;
+  expenseCategoryLabel?: string;
   linkedTaskId?: string;
   description?: string;
 }
@@ -103,6 +107,22 @@ export interface ChronologioActivityDetails {
   metadata?: Record<string, string>;
 }
 
+export interface ChronologioWeatherScene {
+  observationId?: string;
+  observationDate?: string;
+  role?: string;
+  trueColorUrl?: string;
+  ndviUrl?: string;
+  ndviMean?: number;
+  ndmiMean?: number;
+  cloudCoverPercent?: number;
+}
+
+export interface ChronologioWeatherInsight {
+  kind: string;
+  severity: string;
+}
+
 export interface ChronologioWeatherDetails {
   period?: string;
   year?: number;
@@ -110,16 +130,33 @@ export interface ChronologioWeatherDetails {
   rainfallMm?: number;
   temperatureMin?: number;
   temperatureMax?: number;
+  temperatureAvg?: number;
   frostNights?: number;
   heatDays?: number;
   heavyRainDays?: number;
   longestDryStreakDays?: number;
+  rainyDays?: number;
+  dryDays?: number;
+  et0TotalMm?: number;
+  waterBalanceMm?: number;
+  averageHumidityPercent?: number;
+  maxWindGustKmh?: number;
   rainVsPreviousPercent?: number;
   wettestMonth?: number;
   ndviMean?: number;
   ndviDeltaPercent?: number;
+  ndviStartEndDeltaPercent?: number;
+  ndmiMean?: number;
+  ndreMean?: number;
+  ndwiMean?: number;
+  saviMean?: number;
+  openingScene?: ChronologioWeatherScene;
+  closingScene?: ChronologioWeatherScene;
+  insights?: ChronologioWeatherInsight[];
   rainSeries?: number[];
   rainLabels?: string[];
+  temperatureMinSeries?: Array<number | null>;
+  temperatureMaxSeries?: Array<number | null>;
   source?: string;
   vegetationNote?: string;
 }
@@ -156,6 +193,7 @@ export interface ChronologioEntryBase {
   summary?: string | null;
   sourceType: ChronologioSourceType | string;
   sourceId: string;
+  occurrenceId?: string | null;
   isSystemGenerated: boolean;
   actor?: ChronologioActor | null;
   importance: ChronologioImportance | string;

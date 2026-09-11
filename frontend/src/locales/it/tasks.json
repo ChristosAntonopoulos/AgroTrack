@@ -137,6 +137,15 @@
       "person": "Chi lo fa?",
       "unassigned": "Deciderò più tardi",
       "assigneeMe": "Io",
+      "assigneeMeHint": "Lo farai tu — puoi assegnarlo a qualcun altro se serve.",
+      "assigneeSomeoneElse": "Qualcun altro",
+      "assigneeGroupPartners": "Collaboratori e famiglia",
+      "assigneeGroupContacts": "Contatti",
+      "assigneeGroupOthers": "Altri",
+      "assigneeHintPartner": "Collaboratore",
+      "assigneeHintFamily": "Famiglia",
+      "assigneeHintAdvisor": "Consulente",
+      "assigneeHintContact": "Contatto",
       "decideLater": "Deciderò più tardi",
       "collaborator": "Collaboratore",
       "more": "Altro",
@@ -229,7 +238,16 @@
       "noActual": "Nessun costo registrato ancora",
       "addExpense": "Registra uscita",
       "seeMoney": "Vedi in Denaro",
-      "estimateHint": "La stima non entra nei totali ufficiali dell’anno."
+      "estimateHint": "La stima non entra nei totali ufficiali dell’anno.",
+      "nextStep": "Prossimo passo",
+      "nextStepStart": "Inizia il lavoro quando sei in campo.",
+      "nextStepComplete": "Quando finisci, registra il risultato e i controlli.",
+      "checklistHint": "Le risposte si compilano in completamento — qui vedi lo stato.",
+      "checkPending": "In sospeso",
+      "noChecks": "Non ci sono controlli per questo lavoro.",
+      "fillChecks": "Compila i controlli",
+      "notesOnComplete": "Puoi aggiungere note quando completi il lavoro.",
+      "noNotes": "Nessuna nota."
     },
     "onboarding": {
       "progress": "{{current}} di {{total}}",
@@ -255,6 +273,36 @@
       },
       "planPreview": {
         "title": "Il piano del {{year}}",
+        "intro": "Da quello che hai detto, {{count}} lavori stanno in quest’anno — con i periodi usuali.",
+        "tabsAria": "Piano e risposte",
+        "tabs": {
+          "year": "L’anno",
+          "answers": "Le tue risposte"
+        },
+        "seasons": {
+          "winter": "Inverno",
+          "spring": "Primavera",
+          "summer": "Estate",
+          "autumn": "Autunno"
+        },
+        "tone": {
+          "planned": "Quest’anno",
+          "done": "Già fatto",
+          "ifNeeded": "Se serve",
+          "skipped": "Non quest’anno"
+        },
+        "skippedToggle": "Altri {{count}} lavori non proposti quest’anno",
+        "returnNote": "Cambia quello che vuoi — poi torni al piano.",
+        "backToPlan": "Torna al piano",
+        "answers": {
+          "lastYear": "Ultima volta nel {{year}}",
+          "doneThisYear": "Già fatto quest’anno",
+          "notYetThisYear": "Non ancora fatto quest’anno",
+          "analyses": "Analisi",
+          "needsMill": "Serve prenotare il frantoio",
+          "noMill": "Senza prenotazione del frantoio",
+          "reminders": "Promemoria"
+        },
         "summaryEnabled": "{{count}} lavori potrebbero riguardarti",
         "summaryAskFirst": "{{count}} compariranno solo se c’è un segnale correlato",
         "summarySuppressed": "{{count}} proposte generali sono state disattivate",
@@ -263,8 +311,8 @@
         "groupSuppressed": "Non proposte di routine",
         "changeRow": "Modifica",
         "usePlan": "Usa questo piano",
-        "changes": "Modifiche",
-        "footer": "I lavori non vengono programmati automaticamente. Scegli tu quali proposte accettare.",
+        "changes": "Vedi le risposte",
+        "footer": "Niente si prenota da solo. Scegli tu quali lavori tenere.",
         "loadFailed": "Impossibile caricare l’anteprima del piano.",
         "activateFailed": "Impossibile attivare il piano. Riprova.",
         "activating": "Attivazione…"

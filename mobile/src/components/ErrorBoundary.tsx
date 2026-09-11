@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     marginTop: spacing.md,
-    backgroundColor: colors.primaryDark,
+    backgroundColor: colors.primary,
     borderRadius: spacing.sm,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,

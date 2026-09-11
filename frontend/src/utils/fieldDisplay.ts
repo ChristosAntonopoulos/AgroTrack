@@ -1,9 +1,49 @@
 import type { TFunction } from 'i18next';
 import type { ChronologioEntry } from '../services/chronologioService';
-import type { Field } from '../services/fieldService';
+import type { Field, FieldStatus } from '../services/fieldService';
 import type { FieldTask } from '../services/fieldWorkService';
 import { isTaskDueToday } from './taskListUtils';
 import { formatChronologioMoney } from './chronologioGrouping';
+
+/** Incomplete setup — open the create/edit wizard, not the live field page. */
+export const INCOMPLETE_FIELD_STATUSES: ReadonlySet<FieldStatus> = new Set([
+  'Draft',
+  'NeedsBoundaryConfirmation',
+  'NeedsAreaReview',
+]);
+
+export const isFieldSetupIncomplete = (status?: string | null): boolean =>
+  Boolean(status && INCOMPLETE_FIELD_STATUSES.has(status as FieldStatus));
+
+/** Groves the Chronologio scope menu should offer — not drafts, leftovers, or unnamed pins. */
+export const isListedGrove = (field: Pick<Field, 'status' | 'name'>): boolean => {
+  if (field.status === 'Archived' || isFieldSetupIncomplete(field.status)) return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  const leftover = name.length < 8 && !/\s/.test(name) && !/\d/.test(name);
+  return !leftover;
+};
+
+/** Route when tapping a field from the list or map. */
+export const getFieldOpenPath = (field: Pick<Field, 'id' | 'status'>): string =>
+  isFieldSetupIncomplete(field.status) ? `/fields/${field.id}/edit` : `/fields/${field.id}`;
+
+export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
+  const ring = field.boundary?.coordinates?.[0];
+  return Boolean(ring && ring.length >= 4);
+};
+
+/** Best wizard step when resuming an incomplete field. */
+export const getFieldSetupResumeStep = (
+  field: Pick<Field, 'name' | 'status' | 'boundary'>
+): 'basics-edit' | 'boundary' | 'review' => {
+  const hasName = Boolean(field.name?.trim());
+  const hasBoundary = fieldHasBoundary(field);
+
+  if (!hasName) return 'basics-edit';
+  if (!hasBoundary || field.status === 'NeedsBoundaryConfirmation') return 'boundary';
+  return 'review';
+};
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());

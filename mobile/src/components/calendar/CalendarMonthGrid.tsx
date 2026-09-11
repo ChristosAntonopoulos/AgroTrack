@@ -46,11 +46,11 @@ const CalendarMonthGrid: React.FC<Props> = ({ month, events, language, onSelectD
     <View style={styles.wrap}>
       <View style={styles.nav}>
         <Pressable onPress={() => onChangeMonth(addMonths(month, -1))}>
-          <Text style={[styles.navBtn, { color: colors.primaryDark }]}>‹</Text>
+          <Text style={[styles.navBtn, { color: colors.primary }]}>‹</Text>
         </Pressable>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{format(month, 'LLLL yyyy', { locale })}</Text>
         <Pressable onPress={() => onChangeMonth(addMonths(month, 1))}>
-          <Text style={[styles.navBtn, { color: colors.primaryDark }]}>›</Text>
+          <Text style={[styles.navBtn, { color: colors.primary }]}>›</Text>
         </Pressable>
       </View>
       <View style={styles.grid}>
@@ -66,15 +66,17 @@ const CalendarMonthGrid: React.FC<Props> = ({ month, events, language, onSelectD
               style={[
                 styles.cell,
                 {
-                  backgroundColor: today ? colors.primaryDark + '18' : 'transparent',
+                  backgroundColor: today ? colors.primaryLight : 'transparent',
+                  borderWidth: today ? 1 : 0,
+                  borderColor: today ? colors.oliveBorder : 'transparent',
                   opacity: inMonth ? 1 : 0.4,
                 },
               ]}
             >
-              <Text style={{ color: colors.textPrimary, fontWeight: today ? '800' : '500' }}>
+              <Text style={{ color: today ? colors.primary : colors.textPrimary, fontWeight: today ? '800' : '500' }}>
                 {format(day, 'd')}
               </Text>
-              {count > 0 ? <View style={[styles.dot, { backgroundColor: colors.primaryDark }]} /> : null}
+              {count > 0 ? <View style={[styles.dot, { backgroundColor: colors.primary }]} /> : null}
             </Pressable>
           );
         })}

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using OliveLifecycle.Application.Abstractions.Geospatial;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Chronologio;
@@ -29,6 +30,7 @@ public class ChronologioServiceTests
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IMediaAttachmentRepository> _media = new();
     private readonly Mock<IFieldWeatherPeriodReviewRepository> _weatherReviews = new();
+    private readonly Mock<IGeospatialStorageService> _storage = new();
     private readonly ChronologioService _service;
 
     public ChronologioServiceTests()
@@ -55,6 +57,7 @@ public class ChronologioServiceTests
             _users.Object,
             _media.Object,
             _weatherReviews.Object,
+            _storage.Object,
             NullLogger<ChronologioService>.Instance);
 
         _users.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
@@ -135,7 +138,7 @@ public class ChronologioServiceTests
         Assert.Equal(ChronologioEventTypes.TaskCompleted, task.EventType);
         Assert.Equal("Ψεκασμός", task.Title);
         Assert.Null(task.Amount);
-        Assert.Equal("Giorgos Papadopoulos", task.Actor?.DisplayName);
+        Assert.Equal("Γιώργος Παπαδόπουλος", task.Actor?.DisplayName);
         Assert.Equal("giorgos", task.Actor?.UserId);
         Assert.Equal("exec-1", task.Details.Task!.ExecutionId);
         Assert.Equal("task-1", task.Details.Task.TaskId);
@@ -239,15 +242,17 @@ public class ChronologioServiceTests
             Roles.FieldOwner,
             new ChronologioQuery());
 
-        var linked = Assert.Single(entries, e => e.SourceId == "exp-linked");
-        Assert.Equal(ChronologioSourceTypes.Expense, linked.SourceType);
-        Assert.Equal("task-1", linked.Details.Expense!.LinkedTaskId);
-        Assert.Equal("Λίπανση φθινοπώρου", linked.Details.Expense.RelatedTaskTitle);
-        Assert.Contains("180", linked.Title);
-        Assert.Contains(entries, e => e.SourceId == "exp-standalone");
+        Assert.DoesNotContain(entries, e => e.SourceId == "exp-linked");
+        var standalone = Assert.Single(entries, e => e.SourceId == "exp-standalone");
+        Assert.Equal(ChronologioSourceTypes.Expense, standalone.SourceType);
+        Assert.Equal("Καύσιμα και ενέργεια", standalone.Details.Expense!.ExpenseCategoryLabel);
         var task = Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.TaskExecution);
         Assert.Equal("exec-1", task.SourceId);
-        Assert.Null(task.Amount);
+        Assert.NotNull(task.Amount);
+        Assert.Equal(180m, task.Amount!.Value);
+        Assert.Equal("task-1", task.Details.Expense!.LinkedTaskId);
+        Assert.Equal("Λίπανση φθινοπώρου", task.Details.Expense.RelatedTaskTitle);
+        Assert.Equal("Λιπάσματα", task.Details.Expense.ExpenseCategoryLabel);
     }
 
     [Fact]
@@ -315,7 +320,11 @@ public class ChronologioServiceTests
         Assert.Equal(15.2, harvest.Details.Harvest.OilYieldPercent);
         Assert.Equal("Local mill", harvest.Details.Harvest.Mill);
         Assert.Equal(new DateTime(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc), harvest.OccurredAt);
+        Assert.Equal(2026, harvest.ResultYear);
+        Assert.Equal("2026", harvest.LifecycleYear);
         Assert.Contains("4820", harvest.Summary);
+        Assert.Contains("ελιές", harvest.Summary);
+        Assert.DoesNotContain("olives", harvest.Summary);
     }
 
     [Fact]
@@ -347,6 +356,7 @@ public class ChronologioServiceTests
 
         var note = Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.Note);
         Assert.Equal(ChronologioEventTypes.NoteCreated, note.EventType);
+        Assert.Equal("Παρατήρηση", note.Title);
         Assert.Contains("δάκου", note.Summary);
         Assert.True(note.Details.Note!.Pinned);
         Assert.Equal("Owner One", note.Actor?.DisplayName);
@@ -405,7 +415,7 @@ public class ChronologioServiceTests
         Assert.Equal(ChronologioCategory.Lifecycle.ToApiString(), life.Category);
         Assert.Equal(ChronologioEventTypes.LifecycleStageChanged, life.EventType);
         Assert.True(life.IsSystemGenerated);
-        Assert.Equal("flowering", life.Details.Lifecycle!.NewStage);
+        Assert.Equal("Άνθιση", life.Details.Lifecycle!.NewStage);
     }
 
     [Fact]
@@ -456,6 +466,59 @@ public class ChronologioServiceTests
         Assert.Equal(2, entries.Count);
         Assert.Equal("exp-today", entries[0].SourceId);
         Assert.Equal("exec-old-work", entries[1].SourceId);
+    }
+
+    [Fact]
+    public async Task GetForUserAsync_ExcludesDraftFields()
+    {
+        _fieldService.Setup(s => s.GetFieldsForUserAsync("owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new FieldDto { Id = "draft-1", Name = "Draft grove", OwnerId = "owner-1", Status = "Draft" }
+            });
+
+        var entries = await _service.GetForUserAsync(
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery());
+
+        Assert.Empty(entries);
+        _executions.Verify(
+            r => r.GetByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetYearSummariesForFieldAsync_AgriculturalAxis_KeepsJanuaryHarvestInResultYear()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        _harvests.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new HarvestRecord
+                {
+                    Id = "harvest-jan",
+                    FieldId = "field-1",
+                    HarvestDate = new DateTime(2027, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                    ResultYear = 2026,
+                    OliveKg = 1200,
+                    Status = FinancialEntryStatus.Posted,
+                    CreatedAt = new DateTime(2027, 1, 12, 0, 0, 0, DateTimeKind.Utc)
+                }
+            });
+
+        var years = await _service.GetYearSummariesForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioSummaryQuery { Axis = ChronologioAxis.Agricultural });
+
+        var y2026 = Assert.Single(years, y => y.PeriodYear == 2026);
+        Assert.Equal(1, y2026.HarvestCount);
+        Assert.Equal(1200, y2026.OliveKg);
+        Assert.DoesNotContain(years, y => y.PeriodYear == 2027 && y.HarvestCount > 0);
     }
 
     [Fact]
@@ -783,7 +846,235 @@ public class ChronologioServiceTests
     }
 
     [Fact]
-    public async Task GetForFieldAsync_ExcludesWeatherPeriodReviewsFromJournal()
+    public async Task GetForFieldAsync_DeduplicatesIdenticalNotes()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        _notes.Setup(r => r.GetByOwnerUserIdAsync("owner-1", "field-1", 200, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new Note
+                {
+                    Id = "note-1",
+                    OwnerUserId = "owner-1",
+                    FieldId = "field-1",
+                    Body = "Εντοπίστηκαν σημάδια δάκου.",
+                    OccurredAt = new DateTime(2026, 9, 8, 18, 40, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2026, 9, 8, 18, 40, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 9, 8, 18, 40, 0, DateTimeKind.Utc)
+                },
+                new Note
+                {
+                    Id = "note-1-copy",
+                    OwnerUserId = "owner-1",
+                    FieldId = "field-1",
+                    Body = "Εντοπίστηκαν σημάδια δάκου.",
+                    OccurredAt = new DateTime(2026, 9, 8, 18, 40, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2026, 9, 8, 18, 41, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 9, 8, 18, 41, 0, DateTimeKind.Utc)
+                }
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery());
+
+        Assert.Single(entries, e => e.SourceType == ChronologioSourceTypes.Note);
+    }
+
+    [Fact]
+    public async Task GetForFieldAsync_CompletingOneTask_CreatesExactlyOneEvent()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        SetupActiveExecutions(
+            "field-1",
+            new[]
+            {
+                new TaskExecution
+                {
+                    Id = "exec-old",
+                    TaskId = "task-1",
+                    FieldId = "field-1",
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Utc),
+                    RecordedByUserId = "giorgos",
+                    CreatedAt = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Utc)
+                },
+                new TaskExecution
+                {
+                    Id = "exec-new",
+                    TaskId = "task-1",
+                    FieldId = "field-1",
+                    Outcome = TaskExecutionOutcome.Completed,
+                    CompletedAt = new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc),
+                    RecordedByUserId = "giorgos",
+                    CreatedAt = new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc)
+                }
+            },
+            new[]
+            {
+                new FieldTask
+                {
+                    Id = "task-1",
+                    FieldId = "field-1",
+                    Title = "Παρατήρηση",
+                    TemplateCode = "observation",
+                    Status = FieldTaskStatus.Completed,
+                    CreatedAt = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc)
+                }
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery());
+
+        var task = Assert.Single(entries);
+        Assert.Equal("exec-new", task.SourceId);
+        Assert.Equal("Παρατήρηση", task.Title);
+    }
+
+    [Fact]
+    public async Task GetForFieldAsync_ExpenseFilter_KeepsTaskLinkedMoney()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
+            {
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Λίπανση φθινοπώρου",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
+            });
+
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                PostedMoney(
+                    "exp-linked",
+                    180m,
+                    new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                    relatedTaskId: "task-1",
+                    description: "Λίπασμα",
+                    category: FinancialTransactionCategory.Fertilizers)
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery { Category = "expense" });
+
+        var linked = Assert.Single(entries);
+        Assert.Equal("exp-linked", linked.SourceId);
+        Assert.Equal("Λιπάσματα", linked.Details.Expense!.ExpenseCategoryLabel);
+    }
+
+    [Fact]
+    public async Task GetMonthSummariesForFieldAsync_UsesDeduplicatedCollection()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
+            {
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "owner-1",
+                CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                Status = FieldTaskStatus.Completed,
+                CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
+            });
+
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                PostedMoney(
+                    "exp-linked",
+                    42m,
+                    new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                    relatedTaskId: "task-1",
+                    category: FinancialTransactionCategory.PlantProtection)
+            });
+
+        _notes.Setup(r => r.GetByOwnerUserIdAsync("owner-1", "field-1", 200, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new Note
+                {
+                    Id = "note-1",
+                    OwnerUserId = "owner-1",
+                    FieldId = "field-1",
+                    Body = "Δάκος στη βόρεια πλευρά.",
+                    OccurredAt = new DateTime(2026, 4, 12, 16, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2026, 4, 12, 16, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 4, 12, 16, 0, 0, DateTimeKind.Utc)
+                },
+                new Note
+                {
+                    Id = "note-1b",
+                    OwnerUserId = "owner-1",
+                    FieldId = "field-1",
+                    Body = "Δάκος στη βόρεια πλευρά.",
+                    OccurredAt = new DateTime(2026, 4, 12, 16, 0, 0, DateTimeKind.Utc),
+                    CreatedAt = new DateTime(2026, 4, 12, 16, 5, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2026, 4, 12, 16, 5, 0, DateTimeKind.Utc)
+                }
+            });
+
+        var months = await _service.GetMonthSummariesForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioSummaryQuery { Axis = ChronologioAxis.Calendar, PeriodYear = 2026 });
+
+        var apr = Assert.Single(months, m => m.Month == 4);
+        Assert.Equal(1, apr.TaskCount);
+        Assert.Equal(0, apr.ExpenseCount);
+        Assert.Equal(1, apr.NoteCount);
+        Assert.Equal(42m, apr.ExpenseTotal);
+    }
+
+    [Fact]
+    public async Task GetForFieldAsync_IncludesMonthWeatherReviewsInJournal()
     {
         AllowField("field-1", "Grove A");
         SetupEmptySources("field-1");
@@ -812,6 +1103,62 @@ public class ChronologioServiceTests
                     DayCount = 31,
                     WeatherProvider = "Open-Meteo",
                     SatelliteSource = "Sentinel-2",
+                    CreatedAt = Nowish(),
+                    UpdatedAt = Nowish()
+                },
+                new Core.Entities.Geospatial.FieldWeatherPeriodReview
+                {
+                    Id = "field-1_year_2025",
+                    FieldId = "field-1",
+                    PeriodType = Core.Entities.Geospatial.WeatherPeriodTypes.Year,
+                    Year = 2025,
+                    OccurredAt = new DateTime(2025, 12, 31, 12, 0, 0, DateTimeKind.Utc),
+                    RainTotalMm = 500,
+                    DayCount = 365,
+                    WeatherProvider = "Open-Meteo",
+                    CreatedAt = Nowish(),
+                    UpdatedAt = Nowish()
+                }
+            });
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "owner-1",
+            Roles.FieldOwner,
+            new ChronologioQuery());
+
+        var review = Assert.Single(entries);
+        Assert.Equal("weather.monthReview", review.EventType);
+        Assert.Equal("weather", review.Category);
+    }
+
+    [Fact]
+    public async Task GetForFieldAsync_ExcludesFutureMonthWeatherReviewsFromJournal()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        var futureMonthEnd = DateTime.UtcNow.Date.AddMonths(1);
+        var lastDay = DateTime.DaysInMonth(futureMonthEnd.Year, futureMonthEnd.Month);
+
+        _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new Core.Entities.Geospatial.FieldWeatherPeriodReview
+                {
+                    Id = $"field-1_month_{futureMonthEnd:yyyyMM}",
+                    FieldId = "field-1",
+                    PeriodType = Core.Entities.Geospatial.WeatherPeriodTypes.Month,
+                    Year = futureMonthEnd.Year,
+                    Month = futureMonthEnd.Month,
+                    OccurredAt = new DateTime(futureMonthEnd.Year, futureMonthEnd.Month, lastDay, 12, 0, 0, DateTimeKind.Utc),
+                    RainTotalMm = 12,
+                    DayCount = 10,
+                    WeatherProvider = "Open-Meteo",
                     CreatedAt = Nowish(),
                     UpdatedAt = Nowish()
                 }

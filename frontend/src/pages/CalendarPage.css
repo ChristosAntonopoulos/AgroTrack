@@ -62,41 +62,7 @@
   color: var(--color-text-primary);
 }
 
-.calendar-view-toggle {
-  display: inline-flex;
-  flex-wrap: wrap;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.calendar-view-toggle button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: none;
-  background: var(--bg-surface);
-  color: var(--color-text-secondary);
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-
-.calendar-view-toggle button + button {
-  border-left: 1px solid var(--color-border);
-}
-
-.calendar-view-toggle button.active {
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-surface));
-  color: var(--color-text-primary);
-  font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--color-primary);
-}
-
-.calendar-view-toggle button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
+/* View toggle: shared .view-tabs / .view-tab (SegmentedControl.css) */
 
 .calendar-workspace {
   display: grid;
@@ -115,12 +81,7 @@
 }
 
 .calendar-drawer-backdrop {
-  position: fixed;
-  inset: 0;
   z-index: calc(var(--z-modal) - 1);
-  border: none;
-  background: rgba(0, 0, 0, 0.45);
-  cursor: pointer;
 }
 
 .calendar-season-section {
@@ -160,18 +121,18 @@
     align-items: stretch;
   }
 
-  .calendar-view-toggle {
+  .calendar-page-v2-toolbar .view-tabs {
     width: 100%;
   }
 
-  .calendar-view-toggle button {
+  .calendar-page-v2-toolbar .view-tab {
     flex: 1 1 25%;
     justify-content: center;
     padding: 8px 6px;
     min-height: var(--tap-min, 44px);
   }
 
-  .calendar-view-toggle button span {
+  .calendar-page-v2-toolbar .view-tab span {
     display: none;
   }
 

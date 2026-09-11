@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { roleHomePath } from '../../navigation/navConfig';
 import { User, LogOut, Menu, MoreVertical, Plus } from 'lucide-react';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
@@ -30,7 +31,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const location = useLocation();
   const role = (user?.role || '') as AppRole;
   const pageTitle = resolvePageTitle(location.pathname, role, t);
-  const hidePageTitle = location.pathname === '/tasks' || location.pathname === '/tasks/new';
+  const hidePageTitle =
+    location.pathname === '/tasks' ||
+    location.pathname === '/tasks/new' ||
+    location.pathname === '/chronologio';
+  const hideHeaderCapture = location.pathname === '/chronologio';
   const hideAppModeToggle = /^\/fields\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
@@ -75,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
           <Menu />
         </button>
         ) : null}
-        <div className="header-brand">
+        <Link to={roleHomePath(role)} className="header-brand" aria-label={tCommon('home')}>
           <BrandLogo
             className="header-logo-lockup"
             variant="horizontal"
@@ -87,16 +92,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             className="header-logo-mark"
             variant="favicon"
             size="sm"
-            alt={tCommon('appName')}
+            alt=""
           />
-        </div>
+        </Link>
       </div>
 
       <div className="header-main">
         {hidePageTitle ? null : <h1 className="page-title">{pageTitle}</h1>}
 
         <div className="header-right">
-          {capture ? (
+          {capture && !hideHeaderCapture ? (
             <button
               type="button"
               className="capture-header-cta"

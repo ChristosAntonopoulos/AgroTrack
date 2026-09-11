@@ -17,6 +17,7 @@ import PartnersSheet from './PartnersSheet';
 type FieldOption = Pick<Field, 'id' | 'name'>;
 
 type Props = {
+  open?: boolean;
   fieldId?: string;
   fields: FieldOption[];
   categories?: ServiceCategory[];
@@ -26,6 +27,7 @@ type Props = {
 };
 
 const SavedContactSheet: React.FC<Props> = ({
+  open = true,
   fieldId,
   fields,
   categories = [],
@@ -117,6 +119,7 @@ const SavedContactSheet: React.FC<Props> = ({
 
   return (
     <PartnersSheet
+      open={open}
       title={existing ? t('partners:editContact') : t('partners:saveContact')}
       subtitle={t('partners:saveContactHint')}
       onClose={onClose}

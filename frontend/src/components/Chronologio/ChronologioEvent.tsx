@@ -17,6 +17,7 @@ import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import ChronologioEntryCard from './ChronologioEntryCard';
 import ChronologioThumbnail from './ChronologioThumbnail';
 import { pickRealMediaUrl } from '../../chronologio/mediaGuard';
+import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import type { SupportedLocale } from '../../i18n/config';
 
 export type EventDensity = 'summary' | 'compact' | 'card';
@@ -82,6 +83,7 @@ const ChronologioEvent: React.FC<Props> = ({
     : i18n.language?.startsWith('it')
       ? 'it-IT'
       : 'en-US';
+  const presented = presentChronologioEvent(entry, i18n.language);
   const category = entry.category as ChronologioCategory;
   const harvest = entry.details.harvest;
   const time = formatEventTime(entry.occurredAt, i18n.language);
@@ -100,15 +102,17 @@ const ChronologioEvent: React.FC<Props> = ({
         <span className="chrono-event-summary-icon" aria-hidden>
           {iconFor(category)}
         </span>
-        <span className="chrono-event-summary-label">
-          {t(`categoryLabel.${category}`, { defaultValue: category })}
-        </span>
-        <span>{entry.title}</span>
+        <span className="chrono-event-summary-label">{presented.shortLabel}</span>
+        <span>{presented.label}</span>
       </button>
     );
   }
 
   if (density === 'compact') {
+    const money =
+      (category === 'expense' || category === 'income' || entry.amount) && entry.amount
+        ? formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)
+        : null;
     return (
       <button
         type="button"
@@ -116,72 +120,31 @@ const ChronologioEvent: React.FC<Props> = ({
         onClick={() => onSelect?.(entry)}
       >
         <span className="chrono-event-compact-time">{time}</span>
-        <span className="chrono-event-compact-rail" aria-hidden>
-          <span className="chrono-event-compact-dot" />
-          <span className="chrono-event-compact-line" />
-        </span>
         <span className="chrono-event-compact-body">
           <span className="chrono-event-compact-cat">
             <span className="chrono-event-compact-icon" aria-hidden>
               {iconFor(category)}
             </span>
-            {t(`categoryLabel.${category}`, { defaultValue: category })}
+            {presented.shortLabel}
           </span>
-          <span className="chrono-event-compact-title">{entry.title}</span>
-          {category === 'harvest' && harvest && harvest.oliveKg > 0 ? (
-            <span className="chrono-event-compact-meta">
-              {harvest.oliveKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} kg
-              {harvest.oilKg != null && harvest.oilKg > 0
-                ? ` · ${t('harvestOil', {
-                    kg: harvest.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 }),
-                  })}`
-                : ''}
-              {harvest.oilYieldPercent != null && harvest.oilYieldPercent > 0
-                ? ` · ${t('harvestYield', { pct: harvest.oilYieldPercent })}`
-                : ''}
-            </span>
-          ) : null}
-          {category === 'expense' || category === 'income' ? (
-            <span className="chrono-event-compact-meta">
-              {entry.amount
-                ? formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)
-                : null}
-            </span>
-          ) : null}
-          {category === 'weather' &&
-          (entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview') ? (
-            <>
-              <span className="chrono-event-compact-meta">
-                {entry.details.weather?.rainfallMm != null
-                  ? `${entry.details.weather.rainfallMm.toLocaleString(numberLocale, {
-                      maximumFractionDigits: 0,
-                    })} mm`
-                  : null}
-                {entry.details.weather?.temperatureMax != null
-                  ? ` · ${entry.details.weather.temperatureMax.toFixed(0)}°`
-                  : ''}
-                {entry.eventType === 'weather.monthReview' &&
-                entry.details.weather?.temperatureMin != null
-                  ? ` / ${entry.details.weather.temperatureMin.toFixed(0)}°`
-                  : ''}
-                {entry.eventType === 'weather.yearReview' &&
-                (entry.details.weather?.frostNights ?? 0) > 0
-                  ? ` · ${entry.details.weather!.frostNights} frost`
-                  : ''}
-              </span>
-            </>
-          ) : null}
+          <span className="chrono-event-compact-title">{presented.label}</span>
           {showField && entry.field?.name ? (
             <span className="chrono-event-compact-field">{entry.field.name}</span>
           ) : null}
-          {thumb ? (
-            <ChronologioThumbnail
-              src={thumb}
-              className="chrono-event-compact-thumb"
-              extraCount={extraPhotos}
-            />
-          ) : null}
         </span>
+        {money ? <span className="chrono-event-compact-value">{money}</span> : null}
+        {category === 'harvest' && harvest && harvest.oliveKg > 0 ? (
+          <span className="chrono-event-compact-value">
+            {harvest.oliveKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} kg
+          </span>
+        ) : null}
+        {thumb ? (
+          <ChronologioThumbnail
+            src={thumb}
+            className="chrono-event-compact-thumb"
+            extraCount={extraPhotos}
+          />
+        ) : null}
       </button>
     );
   }
@@ -192,6 +155,7 @@ const ChronologioEvent: React.FC<Props> = ({
         entry={entry}
         showField={showField}
         locale={locale}
+        selected={selected}
         weatherTile={weatherTile}
         onSelect={onSelect}
       />

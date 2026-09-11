@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { HarvestRecord } from '../../services/harvestService';
@@ -28,8 +28,15 @@ const RelatedRecordSelector: React.FC<Props> = ({
   const [picking, setPicking] = useState<'task' | 'harvest' | null>(
     taskId || harvestId ? (taskId ? 'task' : 'harvest') : null
   );
+
+  useEffect(() => {
+    if (taskId) setPicking('task');
+    else if (harvestId) setPicking('harvest');
+  }, [taskId, harvestId]);
+
   if (!fieldId) return null;
   const suggestion = tasks[0];
+  const noLink = !taskId && !harvestId && picking === null;
 
   return (
     <div>
@@ -44,21 +51,45 @@ const RelatedRecordSelector: React.FC<Props> = ({
           <span>
             {t('money.possibleLink')} · {suggestion.title}
           </span>
-          <button type="button" onClick={() => onTaskChange(suggestion.id)}>
+          <button
+            type="button"
+            onClick={() => {
+              setPicking('task');
+              onHarvestChange('');
+              onTaskChange(suggestion.id);
+            }}
+          >
             {t('money.connect')}
           </button>
         </div>
       ) : null}
-      <div className="money-date-quick">
-        <button type="button" className="money-chip" onClick={() => setPicking('task')}>
+      <div className="money-date-quick" role="group" aria-label={t('money.linkTaskOrHarvest')}>
+        <button
+          type="button"
+          className={`money-chip${picking === 'task' || Boolean(taskId) ? ' is-active' : ''}`}
+          aria-pressed={picking === 'task' || Boolean(taskId)}
+          onClick={() => {
+            setPicking('task');
+            onHarvestChange('');
+          }}
+        >
           {t('money.pickTask')}
         </button>
-        <button type="button" className="money-chip" onClick={() => setPicking('harvest')}>
+        <button
+          type="button"
+          className={`money-chip${picking === 'harvest' || Boolean(harvestId) ? ' is-active' : ''}`}
+          aria-pressed={picking === 'harvest' || Boolean(harvestId)}
+          onClick={() => {
+            setPicking('harvest');
+            onTaskChange('');
+          }}
+        >
           {t('money.pickHarvest')}
         </button>
         <button
           type="button"
-          className="money-chip"
+          className={`money-chip${noLink ? ' is-active' : ''}`}
+          aria-pressed={noLink}
           onClick={() => {
             onTaskChange('');
             onHarvestChange('');
@@ -69,7 +100,7 @@ const RelatedRecordSelector: React.FC<Props> = ({
         </button>
       </div>
       {picking === 'task' ? (
-        <label className="money-form-label">
+        <label className="money-form-label" style={{ marginTop: 12 }}>
           {t('money.relatedTask')}
           <select
             value={taskId}
@@ -89,7 +120,7 @@ const RelatedRecordSelector: React.FC<Props> = ({
         </label>
       ) : null}
       {picking === 'harvest' ? (
-        <label className="money-form-label">
+        <label className="money-form-label" style={{ marginTop: 12 }}>
           {t('money.relatedHarvest')}
           <select
             value={harvestId}

@@ -1,5 +1,6 @@
 {
   "cta": "Record",
+  "ctaPlus": "+ Record",
   "title": "Record",
   "whatToRecord": "What do you want to record?",
   "types": {

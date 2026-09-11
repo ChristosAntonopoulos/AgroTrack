@@ -31,6 +31,7 @@ export interface FieldSummaryData {
 }
 
 export interface HarvestRecord {
+  id?: string;
   fieldId: string;
   fieldName: string;
   harvestDate: string;

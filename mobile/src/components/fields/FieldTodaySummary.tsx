@@ -66,7 +66,7 @@ const FieldTodaySummary: React.FC<Props> = ({ fieldId, tasks, onOpenWeather }) =
         <Text style={[styles.body, { color: colors.textTertiary }]}>{t('fields:overview.noNextTask')}</Text>
       )}
       <Pressable onPress={onOpenWeather} style={styles.link}>
-        <Text style={[styles.linkText, { color: colors.primaryDark }]}>
+        <Text style={[styles.linkText, { color: colors.primary }]}>
           {t('chronologio:weatherVegetation.button')} →
         </Text>
       </Pressable>

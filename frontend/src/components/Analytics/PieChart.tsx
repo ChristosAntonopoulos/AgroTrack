@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PieChart as RechartsPieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getChartSeriesColors } from '../../styles/colorTokens';
 import './Chart.css';
 
 interface PieChartProps {
@@ -8,7 +9,9 @@ interface PieChartProps {
   colors?: string[];
 }
 
-const PieChart: React.FC<PieChartProps> = ({ data, title, colors = ['#2d5016', '#4a7c2a', '#6b9a3f', '#8b9a46', '#28a745', '#ffc107', '#17a2b8'] }) => {
+const PieChart: React.FC<PieChartProps> = ({ data, title, colors }) => {
+  const palette = useMemo(() => colors ?? getChartSeriesColors(), [colors]);
+
   return (
     <div className="chart-container">
       {title && <h3 className="chart-title">{title}</h3>}
@@ -21,11 +24,11 @@ const PieChart: React.FC<PieChartProps> = ({ data, title, colors = ['#2d5016', '
             labelLine={false}
             label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
             outerRadius={80}
-            fill="#8884d8"
+            fill={palette[0]}
             dataKey="value"
           >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            {data.map((_entry, index) => (
+              <Cell key={`cell-${index}`} fill={palette[index % palette.length]} />
             ))}
           </Pie>
           <Tooltip />

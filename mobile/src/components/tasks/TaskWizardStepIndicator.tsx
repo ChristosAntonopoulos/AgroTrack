@@ -35,18 +35,18 @@ const TaskWizardStepIndicator: React.FC<Props> = ({ steps, current, currentIndex
               style={[
                 styles.dot,
                 {
-                  backgroundColor: done || active ? colors.primaryDark : colors.surface,
-                  borderColor: done || active ? colors.primaryDark : colors.borderLight,
+                  backgroundColor: done || active ? colors.primaryLight : colors.surface,
+                  borderColor: done || active ? colors.oliveBorder : colors.borderLight,
                 },
               ]}
             >
               {done ? (
-                <Ionicons name="checkmark" size={12} color={colors.textInverse} />
+                <Ionicons name="checkmark" size={12} color={colors.primary} />
               ) : (
                 <Ionicons
                   name={STEP_ICONS[step]}
                   size={12}
-                  color={active ? colors.textInverse : colors.textTertiary}
+                  color={active ? colors.primary : colors.textTertiary}
                 />
               )}
             </View>
@@ -54,7 +54,7 @@ const TaskWizardStepIndicator: React.FC<Props> = ({ steps, current, currentIndex
               <View
                 style={[
                   styles.line,
-                  { backgroundColor: done ? colors.primaryDark : colors.borderLight },
+                  { backgroundColor: done ? colors.primary : colors.borderLight },
                 ]}
               />
             ) : null}

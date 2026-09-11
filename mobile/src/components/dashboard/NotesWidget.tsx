@@ -91,7 +91,7 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({
             style={{ minHeight: tapMin, justifyContent: 'center', paddingHorizontal: 4 }}
             accessibilityRole="button"
           >
-            <Text style={[styles.seeAll, { color: colors.primaryDark }]}>{t('capture:cta')}</Text>
+            <Text style={[styles.seeAll, { color: colors.primary }]}>{t('capture:cta')}</Text>
           </TouchableOpacity>
           {showSeeMore ? (
             <TouchableOpacity
@@ -99,7 +99,7 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({
               style={{ minHeight: tapMin, justifyContent: 'center', paddingHorizontal: 4 }}
               accessibilityRole="button"
             >
-              <Text style={[styles.seeAll, { color: colors.primaryDark }]}>{t('notes.seeAll')}</Text>
+              <Text style={[styles.seeAll, { color: colors.primary }]}>{t('notes.seeAll')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>

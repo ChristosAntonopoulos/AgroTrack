@@ -1,24 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowLeft, Filter, GitCompare, Wallet, X } from 'lucide-react';
+import { ArrowLeft, GitCompare, Plus } from 'lucide-react';
 import Button from '../Common/Button';
-import ChronologioZoomBar from './ChronologioZoomBar';
+import ChronologioViewTabs from './ChronologioViewTabs';
+import CategoryFilterRail, { type RailCategory } from './CategoryFilterRail';
+import FieldScopeSelector from './FieldScopeSelector';
 import { useCaptureOptional } from '../../context/CaptureContext';
-import type { ChronologioAxis, ChronologioCategory } from '../../services/chronologioService';
 import type { Field } from '../../services/fieldService';
-import type { ChronologioZoom, LivingFilters } from '../../chronologio/livingTypes';
-
-const FILTER_CATEGORIES: Array<ChronologioCategory | 'all'> = [
-  'all',
-  'task',
-  'expense',
-  'harvest',
-  'note',
-  'weather',
-  'intelligence',
-  'lifecycle',
-];
+import {
+  viewFromZoom,
+  VIEW_TO_ZOOM,
+  type ChronologioView,
+  type ChronologioZoom,
+  type LivingFilters,
+} from '../../chronologio/livingTypes';
 
 type Props = {
   fieldMode: boolean;
@@ -26,22 +21,35 @@ type Props = {
   fieldId?: string;
   fields: Field[];
   filters: LivingFilters;
-  axis: ChronologioAxis;
   zoom: ChronologioZoom;
   compareOpen: boolean;
   embedded?: boolean;
   onBack?: () => void;
   onSetZoom: (z: ChronologioZoom) => void;
   onOpenJournal?: () => void;
-  onSetAxis: (a: ChronologioAxis) => void;
   onSetFilters: (f: Partial<LivingFilters>) => void;
-  onClearFilters: () => void;
   onCompareToggle: () => void;
 };
 
+const railFromFilter = (category: LivingFilters['category']): RailCategory => {
+  if (category === 'task') return 'work';
+  if (category === 'note' || category === 'photo') return 'observation';
+  if (category === 'expense' || category === 'income') return 'money';
+  if (
+    category === 'all' ||
+    category === 'work' ||
+    category === 'observation' ||
+    category === 'money' ||
+    category === 'harvest' ||
+    category === 'weather'
+  ) {
+    return category;
+  }
+  return 'all';
+};
+
 /**
- * Locked shell: title → tagline → field → zoom | money capture | filters | Compare.
- * Generic Καταγραφή stays in the app header; Chronologio adds one money CTA.
+ * Chronologio page chrome: title, field scope, capture, view tabs, category rail.
  */
 const ChronologioChrome: React.FC<Props> = ({
   fieldMode,
@@ -49,52 +57,27 @@ const ChronologioChrome: React.FC<Props> = ({
   fieldId,
   fields,
   filters,
-  axis,
   zoom,
   compareOpen,
   embedded = false,
   onBack,
   onSetZoom,
   onOpenJournal,
-  onSetAxis,
   onSetFilters,
-  onClearFilters,
   onCompareToggle,
 }) => {
   const { t } = useTranslation(['chronologio', 'capture']);
   const capture = useCaptureOptional();
-  const reduceMotion = useReducedMotion();
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const filterPanelRef = useRef<HTMLDivElement>(null);
+  const view = viewFromZoom(zoom);
+  const railCategory = railFromFilter(filters.category);
 
-  useEffect(() => {
-    if (!filtersOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
-        setFiltersOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [filtersOpen]);
-
-  const filtersDirty = Boolean(
-    (!fieldMode && filters.fieldId) || filters.lifecycleYear || filters.category !== 'all'
-  );
-
-  const showCompare = zoom === 'years';
-
-  const categoryChip =
-    filters.category !== 'all' ? (
-      <button
-        type="button"
-        className="chrono-active-chip"
-        onClick={() => onSetFilters({ category: 'all' })}
-      >
-        {t(`chronologio:categories.${filters.category}`)}
-        <X size={12} aria-hidden />
-      </button>
-    ) : null;
+  const setView = (next: ChronologioView) => {
+    if (next === 'days' && onOpenJournal) {
+      onOpenJournal();
+      return;
+    }
+    onSetZoom(VIEW_TO_ZOOM[next]);
+  };
 
   const TitleTag = embedded ? 'h2' : 'h1';
 
@@ -108,144 +91,42 @@ const ChronologioChrome: React.FC<Props> = ({
             </Button>
           </div>
         ) : null}
-        <TitleTag>{t('chronologio:title')}</TitleTag>
-        <p className="chronologio-tagline">
-          {fieldMode ? t('chronologio:taglineField') : t('chronologio:taglineGlobal')}
-        </p>
 
-        {!fieldMode ? (
-          <div className="chrono-field-row">
-            <label className="sr-only" htmlFor="chrono-field-select">
-              {t('chronologio:allFields')}
-            </label>
-            <select
-              id="chrono-field-select"
-              className="chronologio-select chrono-field-select"
-              value={filters.fieldId || ''}
-              onChange={(e) => onSetFilters({ fieldId: e.target.value })}
-            >
-              <option value="">{t('chronologio:allFields')}</option>
-              {fields.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
+        <div className="chrono-header-top">
+          <div className="chrono-header-copy">
+            <TitleTag>{t('chronologio:title')}</TitleTag>
+            <p className="chronologio-tagline">
+              {fieldMode ? t('chronologio:taglineField') : t('chronologio:taglineGlobal')}
+            </p>
           </div>
-        ) : embedded ? null : (
-          <p className="chrono-field-locked">{fieldName}</p>
-        )}
-      </header>
 
-      <div className="chronologio-sticky chrono-locked-toolbar">
-        <div className="chrono-toolbar-row">
-          <ChronologioZoomBar
-            zoom={zoom}
-            onSetZoom={(z) => (z === 'month' && onOpenJournal ? onOpenJournal() : onSetZoom(z))}
-          />
+          <div className="chrono-header-actions">
+            {!fieldMode ? (
+              <FieldScopeSelector
+                fields={fields}
+                value={filters.fieldId}
+                onChange={(next) => onSetFilters({ fieldId: next })}
+              />
+            ) : embedded ? null : (
+              <p className="chrono-field-locked">{fieldName}</p>
+            )}
 
-          <div className="chrono-toolbar-actions">
             {capture ? (
               <button
                 type="button"
-                className="chrono-money-cta"
+                className="chrono-capture-cta"
                 onClick={() =>
                   capture.openCapture({
-                    preferredType: 'money',
                     fieldId: filters.fieldId || fieldId || undefined,
                   })
                 }
               >
-                <Wallet size={16} aria-hidden />
-                {t('capture:money.ctaPlus')}
+                <Plus size={18} aria-hidden />
+                {t('chronologio:captureNew')}
               </button>
             ) : null}
-            <div className="chronologio-filter-popover" ref={filterPanelRef}>
-              <button
-                type="button"
-                className={`chronologio-filter-btn${filtersOpen || filtersDirty ? ' is-active' : ''}`}
-                onClick={() => setFiltersOpen((v) => !v)}
-                aria-expanded={filtersOpen}
-              >
-                <Filter size={15} aria-hidden />
-                {t('chronologio:filters')}
-              </button>
-              <AnimatePresence>
-                {filtersOpen ? (
-                  <motion.div
-                    className="chronologio-filter-panel chrono-filter-wide"
-                    role="dialog"
-                    aria-label={t('chronologio:filtersTitle')}
-                    initial={reduceMotion ? false : { opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
-                    transition={{ duration: reduceMotion ? 0 : 0.2 }}
-                  >
-                    <p className="chrono-filter-label">{t('chronologio:living.yearAxis')}</p>
-                    <div className="chrono-chip-row">
-                      <button
-                        type="button"
-                        className={`chronologio-chip${axis === 'calendar' ? ' is-active' : ''}`}
-                        onClick={() => onSetAxis('calendar')}
-                      >
-                        {t('chronologio:living.axisCalendar')}
-                      </button>
-                      <button
-                        type="button"
-                        className={`chronologio-chip${axis === 'season' ? ' is-active' : ''}`}
-                        onClick={() => onSetAxis('season')}
-                      >
-                        {t('chronologio:living.axisSeason')}
-                      </button>
-                    </div>
 
-                    <p className="chrono-filter-label">{t('chronologio:living.lifecycleYear')}</p>
-                    <div className="chrono-chip-row">
-                      <button
-                        type="button"
-                        className={`chronologio-chip${!filters.lifecycleYear ? ' is-active' : ''}`}
-                        onClick={() => onSetFilters({ lifecycleYear: '' })}
-                      >
-                        {t('chronologio:allSeasons')}
-                      </button>
-                      <button
-                        type="button"
-                        className={`chronologio-chip${filters.lifecycleYear === 'low' ? ' is-active' : ''}`}
-                        onClick={() => onSetFilters({ lifecycleYear: 'low' })}
-                      >
-                        {t('chronologio:seasonLow')}
-                      </button>
-                      <button
-                        type="button"
-                        className={`chronologio-chip${filters.lifecycleYear === 'high' ? ' is-active' : ''}`}
-                        onClick={() => onSetFilters({ lifecycleYear: 'high' })}
-                      >
-                        {t('chronologio:seasonHigh')}
-                      </button>
-                    </div>
-
-                    <p className="chrono-filter-label">{t('chronologio:filtersTitle')}</p>
-                    <div className="chrono-chip-row">
-                      {FILTER_CATEGORIES.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          className={`chronologio-chip${filters.category === c ? ' is-active' : ''}`}
-                          onClick={() => {
-                            onSetFilters({ category: c });
-                            setFiltersOpen(false);
-                          }}
-                        >
-                          {t(`chronologio:categories.${c}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
-
-            {showCompare ? (
+            {zoom === 'years' ? (
               <Button
                 variant={compareOpen ? 'primary' : 'outline'}
                 size="sm"
@@ -257,27 +138,14 @@ const ChronologioChrome: React.FC<Props> = ({
             ) : null}
           </div>
         </div>
+      </header>
 
-        {filtersDirty ? (
-          <div className="chrono-active-chips">
-            {categoryChip}
-            {filters.lifecycleYear ? (
-              <button
-                type="button"
-                className="chrono-active-chip"
-                onClick={() => onSetFilters({ lifecycleYear: '' })}
-              >
-                {filters.lifecycleYear === 'low'
-                  ? t('chronologio:seasonLow')
-                  : t('chronologio:seasonHigh')}
-                <X size={12} aria-hidden />
-              </button>
-            ) : null}
-            <button type="button" className="chronologio-clear-btn" onClick={onClearFilters}>
-              {t('chronologio:clearFilters')}
-            </button>
-          </div>
-        ) : null}
+      <div className="chronologio-sticky chrono-locked-toolbar">
+        <ChronologioViewTabs view={view} onChange={setView} />
+        <CategoryFilterRail
+          value={railCategory}
+          onChange={(category) => onSetFilters({ category: category === 'all' ? 'all' : category })}
+        />
       </div>
     </>
   );

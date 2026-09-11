@@ -44,11 +44,11 @@
   "logout": "Αποσύνδεση",
   "logoutAria": "Αποσύνδεση",
   "roles": {
-    "FieldOwner": "Ιδιοκτήτης Αγροτεμαχίου",
-    "Producer": "Παραγωγός",
+    "FieldOwner": "Ιδιοκτήτης ελαιώνα",
+    "Producer": "Συνεργάτης αγρού",
     "Agronomist": "Γεωπόνος",
-    "Administrator": "Διαχειριστής",
-    "ServiceProvider": "Πάροχος Υπηρεσιών"
+    "Administrator": "Υπεύθυνος λογαριασμού",
+    "ServiceProvider": "Πάροχος υπηρεσιών"
   },
   "taskStatus": {
     "pending": "Εκκρεμεί",

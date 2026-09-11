@@ -23,6 +23,8 @@ import FieldsMap from '../components/domain/FieldsMap';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
+import PageHeader from '../components/layout/PageHeader';
+import SegmentedControl from '../components/ui/SegmentedControl';
 import { spacing, typography, radii } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { fieldSearchHaystack } from '../utils/fieldDisplay';
@@ -113,34 +115,28 @@ const FieldsListScreen = () => {
   }
 
   const refreshControl = (
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryDark} />
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
   );
 
   const sortKeys: SortKey[] = canSortByDistance
     ? ['name', 'area', 'activity', 'distance']
     : ['name', 'area', 'activity'];
 
+  const addAction = isFieldOwner() ? (
+    <Pressable
+      onPress={() => navigation.navigate('FieldForm', {})}
+      style={[styles.addBtn, { backgroundColor: colors.primary, minHeight: tapMin }]}
+      accessibilityRole="button"
+    >
+      <Ionicons name="add" size={18} color={colors.onOlive} />
+      <Text style={{ color: colors.onOlive, fontWeight: '700' }}>{t('fields:addFieldLabel')}</Text>
+    </Pressable>
+  ) : null;
+
   const listHeader =
     fields.length > 0 ? (
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>{t('fields:title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
-          </View>
-          {isFieldOwner() ? (
-            <Pressable
-              onPress={() => navigation.navigate('FieldForm', {})}
-              style={[
-                styles.addBtn,
-                { backgroundColor: colors.primaryDark, minHeight: tapMin },
-              ]}
-            >
-              <Ionicons name="add" size={18} color={colors.textInverse} />
-              <Text style={{ color: colors.textInverse, fontWeight: '700' }}>{t('fields:addFieldLabel')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <PageHeader title={t('fields:title')} subtitle={subtitle} action={addAction} />
         <TextInput
           value={search}
           onChangeText={setSearch}
@@ -151,63 +147,51 @@ const FieldsListScreen = () => {
             {
               borderColor: colors.border,
               color: colors.textPrimary,
-              backgroundColor: colors.surfaceElevated,
+              backgroundColor: colors.surface,
               minHeight: tapMin,
             },
           ]}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
-          {sortKeys.map((key) => (
-            <Pressable
-              key={key}
-              onPress={() => setSortBy(key)}
-              style={[
-                styles.sortChip,
-                {
-                  minHeight: tapMin,
-                  borderColor: sortBy === key ? colors.primary : colors.border,
-                  backgroundColor: sortBy === key ? colors.primary + '18' : colors.surfaceElevated,
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  fontWeight: '600',
-                  color: sortBy === key ? colors.primaryDark : colors.textSecondary,
-                }}
+          {sortKeys.map((key) => {
+            const active = sortBy === key;
+            return (
+              <Pressable
+                key={key}
+                onPress={() => setSortBy(key)}
+                style={[
+                  styles.sortChip,
+                  {
+                    minHeight: tapMin,
+                    borderColor: active ? colors.oliveBorder : colors.border,
+                    backgroundColor: active ? colors.primaryLight : colors.surface,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
               >
-                {t(`fields:sort${key.charAt(0).toUpperCase()}${key.slice(1)}`)}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={{
+                    fontWeight: '600',
+                    color: active ? colors.primary : colors.textSecondary,
+                  }}
+                >
+                  {t(`fields:sort${key.charAt(0).toUpperCase()}${key.slice(1)}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
-        <View style={[styles.viewToggle, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          {(['list', 'map'] as const).map((mode) => (
-            <Pressable
-              key={mode}
-              onPress={() => setViewMode(mode)}
-              style={[
-                styles.viewBtn,
-                { minHeight: tapMin },
-                viewMode === mode && { backgroundColor: colors.primaryDark },
-              ]}
-            >
-              <Ionicons
-                name={mode === 'list' ? 'list' : 'map'}
-                size={16}
-                color={viewMode === mode ? colors.textInverse : colors.textSecondary}
-              />
-              <Text
-                style={{
-                  fontWeight: '600',
-                  color: viewMode === mode ? colors.textInverse : colors.textSecondary,
-                }}
-              >
-                {mode === 'list' ? t('fields:viewList') : t('fields:viewMap')}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <SegmentedControl
+          fullWidth
+          ariaLabel={t('fields:viewModeAria', { defaultValue: 'View mode' })}
+          value={viewMode}
+          onChange={setViewMode}
+          options={[
+            { value: 'list', label: t('fields:viewList') },
+            { value: 'map', label: t('fields:viewMap') },
+          ]}
+        />
       </View>
     ) : null;
 
@@ -258,7 +242,7 @@ const FieldsListScreen = () => {
               <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
             ) : (
               <EmptyState
-                icon={<Ionicons name="leaf-outline" size={36} color={colors.primaryDark} />}
+                icon={<Ionicons name="leaf-outline" size={36} color={colors.primary} />}
                 title={t('fields:emptyTitle')}
                 description={isFieldOwner() ? t('fields:emptyDescription') : t('fields:emptyWorker')}
                 action={
@@ -278,9 +262,6 @@ const FieldsListScreen = () => {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  title: { ...typography.styles.h2, fontWeight: '800', fontSize: 26 },
-  subtitle: { marginTop: 4, ...typography.styles.bodySmall },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,6 +273,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
+    ...typography.styles.body,
   },
   sortRow: { gap: spacing.sm, paddingVertical: 2 },
   sortChip: {
@@ -299,22 +281,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 3,
-    gap: 4,
-  },
-  viewBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 8,
   },
   mapScrollContent: { flexGrow: 1 },
   mapFlex: {

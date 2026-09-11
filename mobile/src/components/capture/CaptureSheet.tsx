@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useOfflineMode } from '../../context/OfflineContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import Button from '../ui/Button';
+import Sheet from '../ui/Sheet';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import {
   getFieldService,
@@ -31,7 +31,7 @@ import {
 } from '../../services/serviceFactory';
 import type { Field } from '../../services/fieldService';
 import type { RootStackParamList } from '../../navigation/types';
-import { spacing, typography } from '../../theme';
+import { spacing, typography, radii } from '../../theme';
 import { readLastMoneyFieldId } from '../../finance/lastField';
 
 const MAX_PHOTOS = 5;
@@ -237,275 +237,290 @@ const CaptureSheet: React.FC<Props> = ({
   const fieldLocked = Boolean(context.fieldId);
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
 
-  return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated, maxHeight: step === 'choose' ? '70%' : '92%' }]}>
-          <View style={styles.handle} />
-          <View style={styles.header}>
-            <Pressable
-              onPress={() => (step === 'choose' ? onClose() : setStep('choose'))}
-              style={[styles.iconBtn, { minHeight: tapMin, minWidth: tapMin }]}
-            >
-              <Ionicons name={step === 'choose' ? 'close' : 'arrow-back'} size={22} color={colors.textPrimary} />
-            </Pressable>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>
-              {step === 'choose'
-                ? t('capture:title')
-                : isMoneyStep
-                  ? t('capture:types.money.title')
-                  : t(`capture:types.${step}.title`)}
-            </Text>
-          </View>
+  const sheetTitle =
+    step === 'choose'
+      ? t('capture:title')
+      : isMoneyStep
+        ? t('capture:types.money.title')
+        : t(`capture:types.${step}.title`);
 
-          {isMoneyStep ? (
-            <MoneyCaptureForm
-              context={{
-                ...context,
-                fieldId: context.fieldId || fieldId || undefined,
-                preferredType: step === 'money' ? 'money' : step,
-              }}
-              fields={fields}
-              canRecordIncome={permissions.canRecordIncome}
-              canRecordExpense={permissions.canRecordExpense}
-              isFullPicture={isFullPicture}
-              onSaved={onSaved}
-            />
+  return (
+    <Sheet
+      open={open}
+      onClose={step === 'choose' ? onClose : () => setStep('choose')}
+      edge="end"
+      title={sheetTitle}
+      maxHeightPercent={step === 'choose' ? 70 : 92}
+      scrollable={false}
+      footer={
+        step !== 'choose' && !isMoneyStep ? (
+          <Button
+            title={submitting ? t('capture:saving') : t('capture:save')}
+            onPress={() => void save()}
+            loading={submitting}
+            fullWidth
+            size="large"
+          />
+        ) : undefined
+      }
+    >
+      {isMoneyStep ? (
+        <MoneyCaptureForm
+          context={{
+            ...context,
+            fieldId: context.fieldId || fieldId || undefined,
+            preferredType: step === 'money' ? 'money' : step,
+          }}
+          fields={fields}
+          canRecordIncome={permissions.canRecordIncome}
+          canRecordExpense={permissions.canRecordExpense}
+          isFullPicture={isFullPicture}
+          onSaved={onSaved}
+        />
+      ) : (
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          {step === 'choose' ? (
+            <>
+              <Text style={[styles.prompt, { color: colors.textSecondary }]}>{t('capture:whatToRecord')}</Text>
+              {typeCards
+                .filter(c => c.enabled)
+                .map(card => (
+                  <Pressable
+                    key={card.type}
+                    style={[
+                      styles.typeCard,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                        minHeight: Math.max(72, tapMin + 24),
+                      },
+                    ]}
+                    onPress={() => setStep(card.type)}
+                  >
+                    <View style={[styles.typeIcon, { backgroundColor: colors.primaryLight }]}>
+                      <Ionicons name={card.icon} size={22} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
+                        {t(`capture:types.${card.type}.title`)}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+                        {t(`capture:types.${card.type}.description`)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+            </>
           ) : (
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            {step === 'choose' ? (
-              <>
-                <Text style={[styles.prompt, { color: colors.textSecondary }]}>{t('capture:whatToRecord')}</Text>
-                {typeCards
-                  .filter((c) => c.enabled)
-                  .map((card) => (
+            <>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:fieldLabel')}</Text>
+              {fieldLocked ? (
+                <Text style={[styles.lockedField, { color: colors.textPrimary, borderColor: colors.border }]}>
+                  {fields.find(f => f.id === fieldId)?.name || fieldId}
+                </Text>
+              ) : (
+                <View style={styles.chipRow}>
+                  {fields.map(f => (
                     <Pressable
-                      key={card.type}
-                      style={[styles.typeCard, { borderColor: colors.border, minHeight: Math.max(72, tapMin + 24) }]}
-                      onPress={() => setStep(card.type)}
+                      key={f.id}
+                      style={[
+                        styles.chip,
+                        {
+                          borderColor: fieldId === f.id ? colors.oliveBorder : colors.border,
+                          backgroundColor: fieldId === f.id ? colors.primaryLight : colors.surface,
+                          minHeight: tapMin,
+                        },
+                      ]}
+                      onPress={() => {
+                        setFieldId(f.id);
+                        onContextChange({ ...context, fieldId: f.id });
+                      }}
                     >
-                      <View style={[styles.typeIcon, { backgroundColor: colors.primary + '22' }]}>
-                        <Ionicons name={card.icon} size={22} color={colors.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
-                          {t(`capture:types.${card.type}.title`)}
-                        </Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-                          {t(`capture:types.${card.type}.description`)}
-                        </Text>
-                      </View>
+                      <Text style={{ color: fieldId === f.id ? colors.primary : colors.textPrimary }}>{f.name}</Text>
                     </Pressable>
                   ))}
-              </>
-            ) : (
-              <>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:fieldLabel')}</Text>
-                {fieldLocked ? (
-                  <Text style={[styles.lockedField, { color: colors.textPrimary, borderColor: colors.border }]}>
-                    {fields.find((f) => f.id === fieldId)?.name || fieldId}
-                  </Text>
-                ) : (
+                </View>
+              )}
+
+              {step === 'observation' ? (
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.textarea,
+                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                  ]}
+                  placeholder={t('capture:observation.placeholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  multiline
+                  value={body}
+                  onChangeText={setBody}
+                />
+              ) : null}
+
+              {step === 'work' ? (
+                <>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:work.whatWork')}</Text>
                   <View style={styles.chipRow}>
-                    {fields.map((f) => (
+                    {workOptions.map(w => (
                       <Pressable
-                        key={f.id}
+                        key={w.id}
                         style={[
                           styles.chip,
                           {
-                            borderColor: fieldId === f.id ? colors.primary : colors.border,
-                            backgroundColor: fieldId === f.id ? colors.primary + '22' : 'transparent',
+                            borderColor: workId === w.id ? colors.oliveBorder : colors.border,
+                            backgroundColor: workId === w.id ? colors.primaryLight : colors.surface,
                             minHeight: tapMin,
                           },
                         ]}
-                        onPress={() => {
-                          setFieldId(f.id);
-                          onContextChange({ ...context, fieldId: f.id });
-                        }}
+                        onPress={() => setWorkId(w.id)}
                       >
-                        <Text style={{ color: fieldId === f.id ? colors.primary : colors.textPrimary }}>{f.name}</Text>
+                        <Text style={{ color: workId === w.id ? colors.primary : colors.textPrimary }}>{w.title}</Text>
                       </Pressable>
                     ))}
                   </View>
-                )}
-
-                {step === 'observation' ? (
                   <TextInput
-                    style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]}
-                    placeholder={t('capture:observation.placeholder')}
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    value={body}
-                    onChangeText={setBody}
+                    style={[
+                      styles.input,
+                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                    ]}
+                    placeholder={t('capture:work.optionalCost')}
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="decimal-pad"
+                    value={workCost}
+                    onChangeText={setWorkCost}
                   />
-                ) : null}
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.textarea,
+                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                    ]}
+                    placeholder={t('capture:work.optionalNote')}
+                    placeholderTextColor={colors.textTertiary}
+                    multiline
+                    value={workNote}
+                    onChangeText={setWorkNote}
+                  />
+                  <Pressable
+                    onPress={() => {
+                      onClose();
+                      navigation.navigate('CreateTask', { fieldId: fieldId || undefined });
+                    }}
+                  >
+                    <Text style={{ color: colors.link, fontWeight: '700', marginTop: 8 }}>
+                      {t('capture:scheduleLater')}
+                    </Text>
+                  </Pressable>
+                </>
+              ) : null}
 
-                {step === 'work' ? (
-                  <>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:work.whatWork')}</Text>
-                    <View style={styles.chipRow}>
-                      {workOptions.map((w) => (
-                        <Pressable
-                          key={w.id}
-                          style={[
-                            styles.chip,
-                            {
-                              borderColor: workId === w.id ? colors.primary : colors.border,
-                              backgroundColor: workId === w.id ? colors.primary + '22' : 'transparent',
-                              minHeight: tapMin,
-                            },
-                          ]}
-                          onPress={() => setWorkId(w.id)}
-                        >
-                          <Text style={{ color: workId === w.id ? colors.primary : colors.textPrimary }}>{w.title}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                    <TextInput
-                      style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-                      placeholder={t('capture:work.optionalCost')}
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={workCost}
-                      onChangeText={setWorkCost}
-                    />
-                    <TextInput
-                      style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]}
-                      placeholder={t('capture:work.optionalNote')}
-                      placeholderTextColor={colors.textSecondary}
-                      multiline
-                      value={workNote}
-                      onChangeText={setWorkNote}
-                    />
-                    <Pressable
-                      onPress={() => {
-                        onClose();
-                        navigation.navigate('CreateTask', { fieldId: fieldId || undefined });
-                      }}
-                    >
-                      <Text style={{ color: colors.primary, fontWeight: '700', marginTop: 8 }}>
-                        {t('capture:scheduleLater')}
-                      </Text>
-                    </Pressable>
-                  </>
-                ) : null}
+              {step === 'harvest' ? (
+                <>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                    ]}
+                    placeholder={t('capture:harvest.olives')}
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="decimal-pad"
+                    value={oliveKg}
+                    onChangeText={setOliveKg}
+                  />
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                    ]}
+                    placeholder={t('capture:harvest.oil')}
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="decimal-pad"
+                    value={oilKg}
+                    onChangeText={setOilKg}
+                  />
+                  {yieldPct != null ? (
+                    <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
+                      {t('capture:harvest.yield')}: {yieldPct}%
+                    </Text>
+                  ) : null}
+                  <Pressable onPress={() => setMoreOpen(v => !v)}>
+                    <Text style={{ color: colors.link, fontWeight: '700' }}>
+                      {moreOpen ? t('capture:less') : t('capture:more')}
+                    </Text>
+                  </Pressable>
+                  {moreOpen ? (
+                    <>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                        ]}
+                        placeholder={t('capture:harvest.mill')}
+                        placeholderTextColor={colors.textTertiary}
+                        value={mill}
+                        onChangeText={setMill}
+                      />
+                      <TextInput
+                        style={[
+                          styles.input,
+                          styles.textarea,
+                          { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                        ]}
+                        placeholder={t('capture:harvest.notes')}
+                        placeholderTextColor={colors.textTertiary}
+                        multiline
+                        value={harvestNotes}
+                        onChangeText={setHarvestNotes}
+                      />
+                    </>
+                  ) : null}
+                </>
+              ) : null}
 
-                {step === 'harvest' ? (
-                  <>
-                    <TextInput
-                      style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-                      placeholder={t('capture:harvest.olives')}
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={oliveKg}
-                      onChangeText={setOliveKg}
-                    />
-                    <TextInput
-                      style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-                      placeholder={t('capture:harvest.oil')}
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={oilKg}
-                      onChangeText={setOilKg}
-                    />
-                    {yieldPct != null ? (
-                      <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
-                        {t('capture:harvest.yield')}: {yieldPct}%
-                      </Text>
-                    ) : null}
-                    <Pressable onPress={() => setMoreOpen((v) => !v)}>
-                      <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                        {moreOpen ? t('capture:less') : t('capture:more')}
-                      </Text>
-                    </Pressable>
-                    {moreOpen ? (
-                      <>
-                        <TextInput
-                          style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-                          placeholder={t('capture:harvest.mill')}
-                          placeholderTextColor={colors.textSecondary}
-                          value={mill}
-                          onChangeText={setMill}
-                        />
-                        <TextInput
-                          style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]}
-                          placeholder={t('capture:harvest.notes')}
-                          placeholderTextColor={colors.textSecondary}
-                          multiline
-                          value={harvestNotes}
-                          onChangeText={setHarvestNotes}
-                        />
-                      </>
-                    ) : null}
-                  </>
-                ) : null}
-
-                {(step === 'observation' || step === 'work' || step === 'harvest') && (
-                  <View style={{ marginTop: 12, gap: 8 }}>
-                    <View style={styles.photoRow}>
-                      {photos.map((uri) => (
-                        <Image key={uri} source={{ uri }} style={styles.thumb} />
-                      ))}
-                    </View>
-                    <View style={styles.photoActions}>
-                      <Button title={t('capture:takePhoto')} onPress={() => void pickPhoto(true)} variant="outline" size="large" />
-                      <Button title={t('capture:chooseLibrary')} onPress={() => void pickPhoto(false)} variant="outline" size="large" />
-                    </View>
+              {(step === 'observation' || step === 'work' || step === 'harvest') && (
+                <View style={{ marginTop: 12, gap: 8 }}>
+                  <View style={styles.photoRow}>
+                    {photos.map(uri => (
+                      <Image key={uri} source={{ uri }} style={styles.thumb} />
+                    ))}
                   </View>
-                )}
-              </>
-            )}
-          </ScrollView>
+                  <View style={styles.photoActions}>
+                    <Button title={t('capture:takePhoto')} onPress={() => void pickPhoto(true)} variant="outline" size="large" />
+                    <Button title={t('capture:chooseLibrary')} onPress={() => void pickPhoto(false)} variant="outline" size="large" />
+                  </View>
+                </View>
+              )}
+            </>
           )}
-
-          {step !== 'choose' && !isMoneyStep ? (
-            <View style={styles.footer}>
-              <Button
-                title={submitting ? t('capture:saving') : t('capture:save')}
-                onPress={() => void save()}
-                loading={submitting}
-                fullWidth
-                size="large"
-              />
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </Modal>
+        </ScrollView>
+      )}
+    </Sheet>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: { borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 12 },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: '#999', marginTop: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  iconBtn: { alignItems: 'center', justifyContent: 'center' },
-  title: { ...typography.styles.h3, fontWeight: '700', flex: 1 },
-  body: { padding: spacing.md, paddingBottom: 24 },
+  body: { paddingBottom: 24 },
   prompt: { fontSize: 16, marginBottom: 12 },
   typeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: radii.xl,
     padding: 14,
     marginBottom: 10,
   },
-  typeIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  typeIcon: { width: 44, height: 44, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center' },
   typeTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
-  lockedField: { borderWidth: 1, borderRadius: 10, padding: 12, fontWeight: '700', marginBottom: 8 },
+  lockedField: { borderWidth: 1, borderRadius: radii.lg, padding: 12, fontWeight: '700', marginBottom: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 10, fontSize: 16 },
+  chip: { borderWidth: 1, borderRadius: radii.full, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
+  input: { borderWidth: 1, borderRadius: radii.lg, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 10, fontSize: 16 },
   textarea: { minHeight: 96, textAlignVertical: 'top' },
-  amount: { fontSize: 28, fontWeight: '700', minHeight: 56 },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  thumb: { width: 72, height: 72, borderRadius: 10 },
+  thumb: { width: 72, height: 72, borderRadius: radii.lg },
   photoActions: { gap: 8 },
-  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });
 
 export default CaptureSheet;

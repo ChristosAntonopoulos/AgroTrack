@@ -17,6 +17,7 @@ import { dedupeTaskProposals } from '../utils/taskProposalDedup';
 import { scheduleProposalPath, stashProposalForSchedule } from '../utils/proposalPresentation';
 import type { ProposalDismissDecision } from '../components/Tasks/ProposalActionsMenu';
 import LearningPromptSheet from '../components/FieldWork/LearningPromptSheet';
+import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import {
   buildTaskSearchParams,
   parseTaskFieldId,
@@ -71,6 +72,7 @@ const TasksPage: React.FC = () => {
   const [weatherByField, setWeatherByField] = useState<Record<string, FieldWeather | null>>({});
   const [personNames, setPersonNames] = useState<Record<string, string>>({});
   const [dismissalPrompt, setDismissalPrompt] = useState<DismissalLearningPrompt | null>(null);
+  const dismissalDrawer = useDrawerPresence(dismissalPrompt);
   const [learningBusy, setLearningBusy] = useState(false);
 
   const fieldNames = useMemo(
@@ -475,10 +477,11 @@ const TasksPage: React.FC = () => {
         ) : null}
       </div>
 
-      {dismissalPrompt ? (
+      {dismissalDrawer.mounted && dismissalDrawer.value ? (
         <LearningPromptSheet
+          open={dismissalDrawer.open}
           title={t('fieldWork.profile.learning.dismissalTitle')}
-          message={dismissalPrompt.message}
+          message={dismissalDrawer.value.message}
           busy={learningBusy}
           onClose={() => setDismissalPrompt(null)}
           onAction={(actionId) => void applyDismissalLearning(actionId as DismissalLearningChoice)}

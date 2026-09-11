@@ -1,16 +1,16 @@
-import { athensCalendarYear } from './athensDate';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { parseIsoDateParts } from './taskFormDates';
 
 /**
- * ResultYear follows the Athens calendar year of the planned day.
- * January–February work can still belong to the previous harvest.
+ * ResultYear follows the olive agricultural year (1 Feb Y – 31 Jan Y+1).
+ * January work stays with the harvest that started the previous February.
  */
 export const deriveResultYear = (plannedIso?: string | null, now = new Date()): number => {
   if (plannedIso) {
     const parts = parseIsoDateParts(plannedIso);
-    if (parts) return parts.year;
+    if (parts) return parts.month >= 2 ? parts.year : parts.year - 1;
   }
-  return athensCalendarYear(now);
+  return agriculturalYearFor(now);
 };
 
 export const crossesHarvestYear = (plannedIso?: string | null): boolean => {
@@ -22,5 +22,7 @@ export const crossesHarvestYear = (plannedIso?: string | null): boolean => {
 export const resultYearChoices = (plannedIso?: string | null, now = new Date()): number[] => {
   const derived = deriveResultYear(plannedIso, now);
   if (!crossesHarvestYear(plannedIso)) return [derived];
-  return [derived - 1, derived];
+  const parts = parseIsoDateParts(plannedIso);
+  const calendar = parts?.year ?? derived;
+  return [...new Set([derived, calendar])].sort((a, b) => a - b);
 };

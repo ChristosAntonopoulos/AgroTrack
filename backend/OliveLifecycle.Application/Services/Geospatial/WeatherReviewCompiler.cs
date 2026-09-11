@@ -153,28 +153,54 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
 
         if (days.Count < requiredDays) return null;
 
+        var expectedDays = effectiveEnd.DayNumber - monthStart.DayNumber + 1;
         var rainByDay = new double[daysInMonth];
         var labels = new string[daysInMonth];
         for (var d = 1; d <= daysInMonth; d++)
         {
             labels[d - 1] = d.ToString();
             var snap = days.FirstOrDefault(s => s.Date.Day == d);
+            // Chart alignment keeps a slot per calendar day; totals below ignore missing measurements.
             rainByDay[d - 1] = snap?.RainTotalMm ?? 0;
         }
 
+        var rainDays = days.Where(s => s.RainTotalMm.HasValue).ToList();
         var mins = days.Where(s => s.MinTemperatureC.HasValue).Select(s => s.MinTemperatureC!.Value).ToList();
         var maxs = days.Where(s => s.MaxTemperatureC.HasValue).Select(s => s.MaxTemperatureC!.Value).ToList();
+        var avgs = days.Where(s => s.AverageTemperatureC.HasValue).Select(s => s.AverageTemperatureC!.Value).ToList();
         var heatThreshold = _options.TaskRules.HeatStressTempC;
         var frostNights = days.Count(s => s.MinTemperatureC is <= 0);
         var heatDays = days.Count(s => s.MaxTemperatureC is { } max && max >= heatThreshold);
-        var heavyRainDays = days.Count(s => (s.RainTotalMm ?? 0) >= HeavyRainMm);
-        var dryStreak = LongestDryStreak(days);
-        var rainTotal = Math.Round(days.Sum(s => s.RainTotalMm ?? 0), 1);
-        var rainVsPrevious = RainChangePercent(
-            rainTotal,
-            snapshots
-                .Where(s => s.Date.Year == year - 1 && s.Date.Month == month)
-                .Sum(s => s.RainTotalMm ?? 0));
+        var heavyRainDays = rainDays.Count(s => s.RainTotalMm >= HeavyRainMm);
+        var dryStreak = LongestDryStreak(rainDays);
+        var rainTotal = Math.Round(rainDays.Sum(s => s.RainTotalMm!.Value), 1);
+        var rainyDays = rainDays.Count(s => s.RainTotalMm > DryDayMaxMm);
+        var dryDays = rainDays.Count(s => s.RainTotalMm <= DryDayMaxMm);
+        var et0Days = days.Where(s => s.Et0Mm.HasValue).ToList();
+        var et0Total = et0Days.Count > 0 ? Math.Round(et0Days.Sum(s => s.Et0Mm!.Value), 1) : (double?)null;
+        var waterBalance = et0Total.HasValue ? Math.Round(rainTotal - et0Total.Value, 1) : (double?)null;
+        var humidityDays = days.Where(s => s.AverageHumidityPercent.HasValue).ToList();
+        var humidity = humidityDays.Count > 0
+            ? Math.Round(humidityDays.Average(s => s.AverageHumidityPercent!.Value), 0)
+            : (double?)null;
+        var gusts = days.Where(s => s.MaximumWindGustKmh.HasValue).Select(s => s.MaximumWindGustKmh!.Value).ToList();
+        var tempMinSeries = new double?[daysInMonth];
+        var tempMaxSeries = new double?[daysInMonth];
+        for (var d = 1; d <= daysInMonth; d++)
+        {
+            var snap = days.FirstOrDefault(s => s.Date.Day == d);
+            tempMinSeries[d - 1] = snap?.MinTemperatureC;
+            tempMaxSeries[d - 1] = snap?.MaxTemperatureC;
+        }
+
+        var previousMonth = snapshots
+            .Where(s => s.Date.Year == year - 1 && s.Date.Month == month && s.Date <= effectiveEnd)
+            .ToList();
+        var rainVsPrevious = previousMonth.Count >= MinMonthDays
+            ? RainChangePercent(
+                rainTotal,
+                previousMonth.Where(s => s.RainTotalMm.HasValue).Sum(s => s.RainTotalMm!.Value))
+            : null;
 
         var obsInMonth = observations
             .Where(o =>
@@ -184,12 +210,9 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
             })
             .ToList();
 
-        double? ndviMean = obsInMonth.Count > 0
-            ? obsInMonth.Average(o => o.NdviStats!.Mean)
-            : null;
-
+        var veg = MeanVegetation(obsInMonth);
         double? ndviDelta = null;
-        if (ndviMean.HasValue)
+        if (veg.Ndvi.HasValue)
         {
             var prev = monthStart.AddMonths(-1);
             var prevObs = observations
@@ -199,18 +222,25 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
                     return d.Year == prev.Year && d.Month == prev.Month && o.IsUsable && o.NdviStats != null;
                 })
                 .ToList();
-            if (prevObs.Count > 0)
-            {
-                var prevMean = prevObs.Average(o => o.NdviStats!.Mean);
-                if (Math.Abs(prevMean) > 0.001)
-                {
-                    ndviDelta = (ndviMean.Value - prevMean) / Math.Abs(prevMean) * 100.0;
-                }
-            }
+            ndviDelta = RelativeChangePercent(veg.Ndvi, MeanVegetation(prevObs).Ndvi);
         }
+
+        var (opening, closing) = BookendScenes(observations, monthStart, effectiveEnd);
+        var ndviStartEnd = RelativeChangePercent(closing?.NdviMean, opening?.NdviMean);
+        var ndmiStartEnd = RelativeChangePercent(closing?.NdmiMean, opening?.NdmiMean);
 
         var occurredAt = new DateTime(year, month, daysInMonth, 12, 0, 0, DateTimeKind.Utc);
         var provider = days.Select(d => d.Provider).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p)) ?? "Open-Meteo";
+        var insights = BuildInsights(
+            frostNights,
+            heatDays,
+            heavyRainDays,
+            dryStreak,
+            waterBalance,
+            rainVsPrevious,
+            ndviDelta ?? ndviStartEnd,
+            ndmiStartEnd,
+            isMonth: true);
 
         return new FieldWeatherPeriodReview
         {
@@ -223,20 +253,44 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
             RainTotalMm = rainTotal,
             MinTemperatureC = mins.Count > 0 ? Math.Round(mins.Min(), 1) : null,
             MaxTemperatureC = maxs.Count > 0 ? Math.Round(maxs.Max(), 1) : null,
+            AverageTemperatureC = avgs.Count > 0
+                ? Math.Round(avgs.Average(), 1)
+                : mins.Count > 0 && maxs.Count > 0
+                    ? Math.Round((mins.Average() + maxs.Average()) / 2.0, 1)
+                    : null,
             FrostNights = frostNights,
             HeatDays = heatDays,
             HeavyRainDays = heavyRainDays,
             LongestDryStreakDays = dryStreak,
+            RainyDays = rainyDays,
+            DryDays = dryDays,
+            Et0TotalMm = et0Total,
+            WaterBalanceMm = waterBalance,
+            AverageHumidityPercent = humidity,
+            MaxWindGustKmh = gusts.Count > 0 ? Math.Round(gusts.Max(), 1) : null,
             RainVsPreviousPercent = rainVsPrevious,
             WettestMonth = null,
-            NdviMean = ndviMean.HasValue ? Math.Round(ndviMean.Value, 3) : null,
-            NdviDeltaPercent = ndviDelta.HasValue ? Math.Round(ndviDelta.Value, 1) : null,
+            NdviMean = veg.Ndvi,
+            NdviDeltaPercent = ndviDelta,
+            NdviStartEndDeltaPercent = ndviStartEnd,
+            NdmiMean = veg.Ndmi,
+            NdreMean = veg.Ndre,
+            NdwiMean = veg.Ndwi,
+            SaviMean = veg.Savi,
+            OpeningScene = opening,
+            ClosingScene = closing,
+            Insights = insights,
             RainSeries = rainByDay,
             RainLabels = labels,
+            TemperatureMinSeries = tempMinSeries,
+            TemperatureMaxSeries = tempMaxSeries,
             DayCount = days.Count,
+            ExpectedDays = expectedDays,
+            DaysWithRainData = rainDays.Count,
+            IncludesForecast = false,
             UsableSatelliteCount = obsInMonth.Count,
             WeatherProvider = provider,
-            SatelliteSource = obsInMonth.Count > 0 ? "Sentinel-2" : null,
+            SatelliteSource = opening != null || closing != null || obsInMonth.Count > 0 ? "Sentinel-2" : null,
             CreatedAt = _dateTimeProvider.UtcNow,
             UpdatedAt = _dateTimeProvider.UtcNow
         };
@@ -273,24 +327,40 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
 
         if (days.Count < requiredDays) return null;
 
+        var expectedDays = effectiveEnd.DayNumber - yearStart.DayNumber + 1;
+        var rainDays = days.Where(s => s.RainTotalMm.HasValue).ToList();
         var monthlyRain = new double[12];
         for (var m = 1; m <= 12; m++)
         {
             monthlyRain[m - 1] = Math.Round(
-                days.Where(s => s.Date.Month == m).Sum(s => s.RainTotalMm ?? 0), 1);
+                rainDays.Where(s => s.Date.Month == m).Sum(s => s.RainTotalMm!.Value), 1);
         }
 
         var heatThreshold = _options.TaskRules.HeatStressTempC;
         var frostNights = days.Count(s => s.MinTemperatureC is <= 0);
         var heatDays = days.Count(s => s.MaxTemperatureC is { } max && max >= heatThreshold);
-        var heavyRainDays = days.Count(s => (s.RainTotalMm ?? 0) >= HeavyRainMm);
-        var dryStreak = LongestDryStreak(days);
+        var heavyRainDays = rainDays.Count(s => s.RainTotalMm >= HeavyRainMm);
+        var dryStreak = LongestDryStreak(rainDays);
         var mins = days.Where(s => s.MinTemperatureC.HasValue).Select(s => s.MinTemperatureC!.Value).ToList();
         var maxs = days.Where(s => s.MaxTemperatureC.HasValue).Select(s => s.MaxTemperatureC!.Value).ToList();
-        var rainTotal = Math.Round(days.Sum(s => s.RainTotalMm ?? 0), 1);
-        var rainVsPrevious = RainChangePercent(
-            rainTotal,
-            snapshots.Where(s => s.Date.Year == year - 1).Sum(s => s.RainTotalMm ?? 0));
+        var avgs = days.Where(s => s.AverageTemperatureC.HasValue).Select(s => s.AverageTemperatureC!.Value).ToList();
+        var rainTotal = Math.Round(rainDays.Sum(s => s.RainTotalMm!.Value), 1);
+        var rainyDays = rainDays.Count(s => s.RainTotalMm > DryDayMaxMm);
+        var dryDays = rainDays.Count(s => s.RainTotalMm <= DryDayMaxMm);
+        var et0Days = days.Where(s => s.Et0Mm.HasValue).ToList();
+        var et0Total = et0Days.Count > 0 ? Math.Round(et0Days.Sum(s => s.Et0Mm!.Value), 1) : (double?)null;
+        var waterBalance = et0Total.HasValue ? Math.Round(rainTotal - et0Total.Value, 1) : (double?)null;
+        var humidityDays = days.Where(s => s.AverageHumidityPercent.HasValue).ToList();
+        var humidity = humidityDays.Count > 0
+            ? Math.Round(humidityDays.Average(s => s.AverageHumidityPercent!.Value), 0)
+            : (double?)null;
+        var gusts = days.Where(s => s.MaximumWindGustKmh.HasValue).Select(s => s.MaximumWindGustKmh!.Value).ToList();
+        var previousYear = snapshots.Where(s => s.Date.Year == year - 1 && s.Date <= effectiveEnd).ToList();
+        var rainVsPrevious = previousYear.Count >= MinYearDays
+            ? RainChangePercent(
+                rainTotal,
+                previousYear.Where(s => s.RainTotalMm.HasValue).Sum(s => s.RainTotalMm!.Value))
+            : null;
 
         int? wettestMonth = null;
         var wettestMm = -1.0;
@@ -313,12 +383,9 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
             })
             .ToList();
 
-        double? ndviMean = obsInYear.Count >= 3
-            ? obsInYear.Average(o => o.NdviStats!.Mean)
-            : null;
-
+        var veg = obsInYear.Count >= 3 ? MeanVegetation(obsInYear) : default;
         double? ndviDelta = null;
-        if (ndviMean.HasValue)
+        if (veg.Ndvi.HasValue)
         {
             var prevObs = observations
                 .Where(o =>
@@ -329,15 +396,24 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
                 .ToList();
             if (prevObs.Count >= 3)
             {
-                var prevMean = prevObs.Average(o => o.NdviStats!.Mean);
-                if (Math.Abs(prevMean) > 0.001)
-                {
-                    ndviDelta = (ndviMean.Value - prevMean) / Math.Abs(prevMean) * 100.0;
-                }
+                ndviDelta = RelativeChangePercent(veg.Ndvi, MeanVegetation(prevObs).Ndvi);
             }
         }
 
+        var (opening, closing) = BookendScenes(observations, yearStart, effectiveEnd);
+        var ndviStartEnd = RelativeChangePercent(closing?.NdviMean, opening?.NdviMean);
+        var ndmiStartEnd = RelativeChangePercent(closing?.NdmiMean, opening?.NdmiMean);
         var provider = days.Select(d => d.Provider).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p)) ?? "Open-Meteo";
+        var insights = BuildInsights(
+            frostNights,
+            heatDays,
+            heavyRainDays,
+            dryStreak,
+            waterBalance,
+            rainVsPrevious,
+            ndviDelta ?? ndviStartEnd,
+            ndmiStartEnd,
+            isMonth: false);
 
         return new FieldWeatherPeriodReview
         {
@@ -350,20 +426,42 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
             RainTotalMm = rainTotal,
             MinTemperatureC = mins.Count > 0 ? Math.Round(mins.Min(), 1) : null,
             MaxTemperatureC = maxs.Count > 0 ? Math.Round(maxs.Max(), 1) : null,
+            AverageTemperatureC = avgs.Count > 0
+                ? Math.Round(avgs.Average(), 1)
+                : mins.Count > 0 && maxs.Count > 0
+                    ? Math.Round((mins.Average() + maxs.Average()) / 2.0, 1)
+                    : null,
             FrostNights = frostNights,
             HeatDays = heatDays,
             HeavyRainDays = heavyRainDays,
             LongestDryStreakDays = dryStreak,
+            RainyDays = rainyDays,
+            DryDays = dryDays,
+            Et0TotalMm = et0Total,
+            WaterBalanceMm = waterBalance,
+            AverageHumidityPercent = humidity,
+            MaxWindGustKmh = gusts.Count > 0 ? Math.Round(gusts.Max(), 1) : null,
             RainVsPreviousPercent = rainVsPrevious,
             WettestMonth = wettestMonth,
-            NdviMean = ndviMean.HasValue ? Math.Round(ndviMean.Value, 3) : null,
-            NdviDeltaPercent = ndviDelta.HasValue ? Math.Round(ndviDelta.Value, 1) : null,
+            NdviMean = veg.Ndvi,
+            NdviDeltaPercent = ndviDelta,
+            NdviStartEndDeltaPercent = ndviStartEnd,
+            NdmiMean = veg.Ndmi,
+            NdreMean = veg.Ndre,
+            NdwiMean = veg.Ndwi,
+            SaviMean = veg.Savi,
+            OpeningScene = opening,
+            ClosingScene = closing,
+            Insights = insights,
             RainSeries = monthlyRain,
             RainLabels = MonthLabels,
             DayCount = days.Count,
+            ExpectedDays = expectedDays,
+            DaysWithRainData = rainDays.Count,
+            IncludesForecast = false,
             UsableSatelliteCount = obsInYear.Count,
             WeatherProvider = provider,
-            SatelliteSource = obsInYear.Count > 0 ? "Sentinel-2" : null,
+            SatelliteSource = opening != null || closing != null || obsInYear.Count > 0 ? "Sentinel-2" : null,
             CreatedAt = _dateTimeProvider.UtcNow,
             UpdatedAt = _dateTimeProvider.UtcNow
         };
@@ -380,7 +478,13 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
         var current = 0;
         foreach (var day in days.OrderBy(d => d.Date))
         {
-            if ((day.RainTotalMm ?? 0) <= DryDayMaxMm)
+            if (!day.RainTotalMm.HasValue)
+            {
+                current = 0;
+                continue;
+            }
+
+            if (day.RainTotalMm.Value <= DryDayMaxMm)
             {
                 current++;
                 if (current > longest) longest = current;
@@ -399,4 +503,173 @@ public class WeatherReviewCompiler : IWeatherReviewCompiler
         if (previousMm < 5) return null;
         return Math.Round((currentMm - previousMm) / previousMm * 100.0, 0);
     }
+
+    private static double? RelativeChangePercent(double? current, double? previous)
+    {
+        if (!current.HasValue || !previous.HasValue || Math.Abs(previous.Value) < 0.001)
+        {
+            return null;
+        }
+
+        return Math.Round((current.Value - previous.Value) / Math.Abs(previous.Value) * 100.0, 1);
+    }
+
+    private static (WeatherReviewSatelliteScene? Opening, WeatherReviewSatelliteScene? Closing) BookendScenes(
+        IReadOnlyList<FieldSatelliteObservation> observations,
+        DateOnly periodStart,
+        DateOnly periodEnd)
+    {
+        var usable = observations
+            .Where(o => o.IsUsable)
+            .OrderBy(o => o.ObservationDate)
+            .ToList();
+
+        var startDt = periodStart.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var endDt = periodEnd.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var inPeriod = usable.Where(o => o.ObservationDate >= startDt && o.ObservationDate <= endDt).ToList();
+        var before = usable.Where(o => o.ObservationDate < startDt).ToList();
+
+        var closingObs = inPeriod.LastOrDefault();
+        var openingObs = before.LastOrDefault() ?? inPeriod.FirstOrDefault();
+        if (openingObs != null && closingObs != null && openingObs.Id == closingObs.Id && before.Count == 0)
+        {
+            openingObs = null;
+        }
+
+        return (
+            openingObs == null ? null : ToScene(openingObs, "opening"),
+            closingObs == null ? null : ToScene(closingObs, "closing"));
+    }
+
+    private static WeatherReviewSatelliteScene ToScene(FieldSatelliteObservation observation, string role) =>
+        new()
+        {
+            ObservationId = observation.Id,
+            ObservationDate = observation.ObservationDate,
+            Role = role,
+            TrueColorPath = observation.TrueColorStoragePath,
+            NdviPath = observation.NdviStoragePath,
+            NdviMean = observation.NdviStats == null ? null : Math.Round(observation.NdviStats.Mean, 3),
+            NdmiMean = observation.NdmiStats == null ? null : Math.Round(observation.NdmiStats.Mean, 3),
+            CloudCoverPercent = observation.FieldCloudCoverPercent ?? observation.CloudCoverPercent
+        };
+
+    private static VegetationMeans MeanVegetation(IReadOnlyList<FieldSatelliteObservation> observations)
+    {
+        if (observations.Count == 0) return default;
+        return new VegetationMeans(
+            RoundMean(observations.Select(o => o.NdviStats?.Mean)),
+            RoundMean(observations.Select(o => o.NdmiStats?.Mean)),
+            RoundMean(observations.Select(o => o.NdreStats?.Mean)),
+            RoundMean(observations.Select(o => o.NdwiStats?.Mean)),
+            RoundMean(observations.Select(o => o.SaviStats?.Mean)));
+    }
+
+    private static double? RoundMean(IEnumerable<double?> values)
+    {
+        var present = values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        return present.Count == 0 ? null : Math.Round(present.Average(), 3);
+    }
+
+    private static IReadOnlyList<WeatherPeriodInsight> BuildInsights(
+        int frostNights,
+        int heatDays,
+        int heavyRainDays,
+        int dryStreak,
+        double? waterBalanceMm,
+        double? rainVsPrevious,
+        double? ndviDelta,
+        double? ndmiDelta,
+        bool isMonth)
+    {
+        var insights = new List<WeatherPeriodInsight>();
+        if (frostNights > 0)
+        {
+            insights.Add(new WeatherPeriodInsight
+            {
+                Kind = WeatherInsightKinds.Frost,
+                Severity = frostNights >= (isMonth ? 3 : 12) ? WeatherInsightSeverity.Alert : WeatherInsightSeverity.Watch
+            });
+        }
+
+        if (heatDays > 0)
+        {
+            insights.Add(new WeatherPeriodInsight
+            {
+                Kind = WeatherInsightKinds.Heat,
+                Severity = heatDays >= (isMonth ? 5 : 20) ? WeatherInsightSeverity.Alert : WeatherInsightSeverity.Watch
+            });
+        }
+
+        if (heavyRainDays > 0)
+        {
+            insights.Add(new WeatherPeriodInsight
+            {
+                Kind = WeatherInsightKinds.HeavyRain,
+                Severity = heavyRainDays >= 3 ? WeatherInsightSeverity.Watch : WeatherInsightSeverity.Info
+            });
+        }
+
+        if (dryStreak >= 10)
+        {
+            insights.Add(new WeatherPeriodInsight
+            {
+                Kind = WeatherInsightKinds.Dry,
+                Severity = dryStreak >= 18 ? WeatherInsightSeverity.Alert : WeatherInsightSeverity.Watch
+            });
+        }
+
+        if (waterBalanceMm is < -30)
+        {
+            insights.Add(new WeatherPeriodInsight
+            {
+                Kind = WeatherInsightKinds.WaterDeficit,
+                Severity = waterBalanceMm < -80 ? WeatherInsightSeverity.Alert : WeatherInsightSeverity.Watch
+            });
+        }
+        else if (waterBalanceMm is > 40)
+        {
+            insights.Add(new WeatherPeriodInsight
+            {
+                Kind = WeatherInsightKinds.WaterSurplus,
+                Severity = WeatherInsightSeverity.Info
+            });
+        }
+
+        if (rainVsPrevious is >= 15)
+        {
+            insights.Add(new WeatherPeriodInsight { Kind = WeatherInsightKinds.Wetter, Severity = WeatherInsightSeverity.Info });
+        }
+        else if (rainVsPrevious is <= -15)
+        {
+            insights.Add(new WeatherPeriodInsight { Kind = WeatherInsightKinds.Drier, Severity = WeatherInsightSeverity.Watch });
+        }
+
+        if (ndviDelta is >= 5)
+        {
+            insights.Add(new WeatherPeriodInsight { Kind = WeatherInsightKinds.Greener, Severity = WeatherInsightSeverity.Info });
+        }
+        else if (ndviDelta is <= -5)
+        {
+            insights.Add(new WeatherPeriodInsight { Kind = WeatherInsightKinds.Browner, Severity = WeatherInsightSeverity.Watch });
+        }
+
+        if (ndmiDelta is >= 8)
+        {
+            insights.Add(new WeatherPeriodInsight { Kind = WeatherInsightKinds.MoistureUp, Severity = WeatherInsightSeverity.Info });
+        }
+        else if (ndmiDelta is <= -8)
+        {
+            insights.Add(new WeatherPeriodInsight { Kind = WeatherInsightKinds.MoistureDown, Severity = WeatherInsightSeverity.Watch });
+        }
+
+        return insights;
+    }
+
+    private readonly record struct VegetationMeans(
+        double? Ndvi,
+        double? Ndmi,
+        double? Ndre,
+        double? Ndwi,
+        double? Savi);
 }

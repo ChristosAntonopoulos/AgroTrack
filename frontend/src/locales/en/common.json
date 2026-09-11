@@ -44,11 +44,11 @@
   "logout": "Logout",
   "logoutAria": "Logout",
   "roles": {
-    "FieldOwner": "Field Owner",
-    "Producer": "Producer",
+    "FieldOwner": "Grove owner",
+    "Producer": "Field partner",
     "Agronomist": "Agronomist",
-    "Administrator": "Administrator",
-    "ServiceProvider": "Service Provider"
+    "Administrator": "Account manager",
+    "ServiceProvider": "Service partner"
   },
   "taskStatus": {
     "pending": "Pending",

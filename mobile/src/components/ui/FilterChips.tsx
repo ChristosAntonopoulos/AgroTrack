@@ -38,8 +38,8 @@ function FilterChips<T extends string = string>({
             style={[
               styles.chip,
               {
-                backgroundColor: active ? colors.primaryDark : colors.surfaceElevated,
-                borderColor: active ? colors.primaryDark : colors.border,
+                backgroundColor: active ? colors.primaryLight : colors.surface,
+                borderColor: active ? colors.oliveBorder : colors.border,
                 minHeight: tapMin,
               },
             ]}
@@ -50,7 +50,10 @@ function FilterChips<T extends string = string>({
             <Text
               style={[
                 styles.label,
-                { color: active ? colors.textInverse : colors.textPrimary, fontSize: 13 * fontScaleMultiplier },
+                {
+                  color: active ? colors.primary : colors.textPrimary,
+                  fontSize: 13 * fontScaleMultiplier,
+                },
               ]}
               numberOfLines={1}
             >
@@ -61,14 +64,17 @@ function FilterChips<T extends string = string>({
                 style={[
                   styles.countBadge,
                   {
-                    backgroundColor: active ? colors.textInverse + '25' : colors.surfaceMuted,
+                    backgroundColor: active ? colors.primary + '22' : colors.surfaceMuted,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.countText,
-                    { color: active ? colors.textInverse : colors.textSecondary, fontSize: 11 * fontScaleMultiplier },
+                    {
+                      color: active ? colors.primary : colors.textSecondary,
+                      fontSize: 11 * fontScaleMultiplier,
+                    },
                   ]}
                 >
                   {option.count}

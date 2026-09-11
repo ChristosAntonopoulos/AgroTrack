@@ -393,12 +393,12 @@ const PartnersHomeScreen = () => {
             styles.fieldRow,
             {
               minHeight: tapMin,
-              borderColor: fieldId === field.id ? colors.primaryDark : colors.border,
-              backgroundColor: colors.surfaceElevated,
+              borderColor: fieldId === field.id ? colors.oliveBorder : colors.border,
+              backgroundColor: fieldId === field.id ? colors.primaryLight : colors.surfaceElevated,
             },
           ]}
         >
-          <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 * fontScaleMultiplier }}>
+          <Text style={{ color: fieldId === field.id ? colors.primary : colors.textPrimary, fontWeight: '700', fontSize: 16 * fontScaleMultiplier }}>
             {field.name}
           </Text>
         </Pressable>
@@ -540,7 +540,7 @@ const PartnersHomeScreen = () => {
             onPress={() => onParent(cat)}
             style={[styles.card, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, minHeight: 110 }]}
           >
-            <Ionicons name="leaf-outline" size={22} color={colors.primaryDark} />
+            <Ionicons name="leaf-outline" size={22} color={colors.primary} />
             <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
               {categoryName(cat, i18n.language)}
             </Text>
@@ -654,12 +654,12 @@ const PartnersHomeScreen = () => {
                       style={[
                         styles.chip,
                         {
-                          backgroundColor: on ? colors.primaryDark : colors.background,
-                          borderColor: on ? colors.primaryDark : colors.border,
+                          backgroundColor: on ? colors.primaryLight : colors.surface,
+                          borderColor: on ? colors.oliveBorder : colors.border,
                         },
                       ]}
                     >
-                      <Text style={{ color: on ? '#fff' : colors.textPrimary, fontWeight: '600' }}>
+                      <Text style={{ color: on ? colors.primary : colors.textPrimary, fontWeight: '600' }}>
                         {t(`partners:family.modules.${module}`)}
                       </Text>
                     </Pressable>
@@ -679,8 +679,8 @@ const PartnersHomeScreen = () => {
                       style={[
                         styles.levelCard,
                         {
-                          borderColor: on ? colors.primaryDark : colors.border,
-                          backgroundColor: on ? colors.primaryDark + '18' : colors.background,
+                          borderColor: on ? colors.oliveBorder : colors.border,
+                          backgroundColor: on ? colors.primaryLight : colors.surface,
                           minHeight: tapMin,
                         },
                       ]}

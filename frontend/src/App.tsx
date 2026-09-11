@@ -29,7 +29,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import DataSourcesPage from './pages/DataSourcesPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
-import TodayPage from './pages/TodayPage';
+import { CHRONOLOGIO_HOME, migrateLegacyHomePath } from './navigation/homePath';
 import PartnersPage from './pages/PartnersPage';
 import PartnerSearchPage from './pages/PartnerSearchPage';
 import PartnerProfilePage from './pages/PartnerProfilePage';
@@ -45,7 +45,7 @@ import './App.css';
 const FullOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isEveryday } = useExperienceMode();
   // Only kick off Full-only routes (analytics/reports/data-sources). Stay put elsewhere.
-  if (isEveryday) return <Navigate to="/today" replace />;
+  if (isEveryday) return <Navigate to={CHRONOLOGIO_HOME} replace />;
   return children;
 };
 
@@ -53,6 +53,12 @@ const FieldPeopleRedirect: React.FC = () => {
   const { id } = useParams();
   const search = id ? `?fieldId=${encodeURIComponent(id)}` : '';
   return <Navigate to={`/partners${search}`} replace />;
+};
+
+const TodayRedirect: React.FC = () => {
+  const [params] = useSearchParams();
+  const search = params.toString();
+  return <Navigate to={migrateLegacyHomePath(search ? `/today?${search}` : '/today')} replace />;
 };
 
 const FieldChronologioRedirect: React.FC = () => {
@@ -95,7 +101,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   >
-                    <Route path="dashboard" element={<Navigate to="/today" replace />} />
+                    <Route path="dashboard" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
                     <Route path="fields" element={<FieldsPage />} />
                     <Route path="fields/new" element={<FieldFormPage />} />
                     <Route path="fields/:id/chronologio" element={<FieldChronologioRedirect />} />
@@ -135,8 +141,8 @@ function App() {
                         </FullOnlyRoute>
                       }
                     />
-                    <Route path="today" element={<TodayPage />} />
-                    <Route path="notes" element={<Navigate to="/chronologio" replace />} />
+                    <Route path="today" element={<TodayRedirect />} />
+                    <Route path="notes" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
                     <Route path="ministry" element={<MinistryNotificationsPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route

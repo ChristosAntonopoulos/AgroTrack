@@ -4,6 +4,7 @@ import AppHeader from '../components/layout/AppHeader';
 import OfflineBanner from '../components/OfflineBanner';
 import MainTabs from './MainTabs';
 import ExperienceChooserScreen from '../screens/ExperienceChooserScreen';
+import { MoreMenuProvider } from '../context/MoreMenuContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 
@@ -20,11 +21,13 @@ const MainLayout = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <AppHeader />
-      <OfflineBanner />
-      <MainTabs />
-    </View>
+    <MoreMenuProvider>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <AppHeader />
+        <OfflineBanner />
+        <MainTabs />
+      </View>
+    </MoreMenuProvider>
   );
 };
 

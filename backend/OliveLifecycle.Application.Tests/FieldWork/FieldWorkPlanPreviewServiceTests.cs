@@ -116,6 +116,11 @@ public class FieldWorkPlanPreviewServiceTests
             Assert.DoesNotContain("FrequencyType", item.Reason, StringComparison.Ordinal);
             Assert.DoesNotContain("PreferenceMode", item.Reason, StringComparison.Ordinal);
         });
+
+        var review = preview.Enabled.Concat(preview.AskFirst).Concat(preview.Suppressed)
+            .First(i => i.TemplateCode == "T01");
+        Assert.Equal(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), review.WindowStart);
+        Assert.Equal(new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(-1), review.WindowEnd);
     }
 
     [Fact]

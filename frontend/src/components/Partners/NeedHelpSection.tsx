@@ -10,6 +10,7 @@ import {
 } from '../../services/partnerService';
 import { categoryIcon } from './categoryIcons';
 import PartnersSheet from './PartnersSheet';
+import { useDrawerPresence } from '../../hooks/useDrawerPresence';
 
 type Props = {
   categories: ServiceCategory[];
@@ -21,6 +22,7 @@ const NeedHelpSection: React.FC<Props> = ({ categories, disabled, onPick }) => {
   const { t, i18n } = useTranslation(['partners', 'common']);
   const [showAll, setShowAll] = useState(false);
   const [pickedParent, setPickedParent] = useState<ServiceCategory | null>(null);
+  const helpDrawer = useDrawerPresence(pickedParent);
 
   const parents = useMemo(() => parentCategories(categories), [categories]);
   const prominent = parents.filter((c) => c.isProminent);
@@ -79,9 +81,10 @@ const NeedHelpSection: React.FC<Props> = ({ categories, disabled, onPick }) => {
         )}
       </div>
 
-      {pickedParent ? (
+      {helpDrawer.mounted && helpDrawer.value ? (
         <PartnersSheet
-          title={categoryName(pickedParent, i18n.language)}
+          open={helpDrawer.open}
+          title={categoryName(helpDrawer.value, i18n.language)}
           subtitle={t('partners:pickSubservice')}
           onClose={() => setPickedParent(null)}
           footer={
@@ -91,10 +94,10 @@ const NeedHelpSection: React.FC<Props> = ({ categories, disabled, onPick }) => {
           }
         >
           <div className="partners-subservice-list">
-            <button type="button" className="partners-subservice-item partners-subservice-item--all" onClick={() => onPick(pickedParent)}>
+            <button type="button" className="partners-subservice-item partners-subservice-item--all" onClick={() => onPick(helpDrawer.value!)}>
               {t('partners:allInCategory')}
             </button>
-            {childCategories(categories, pickedParent.id).map((child) => (
+            {childCategories(categories, helpDrawer.value.id).map((child) => (
               <button
                 key={child.id}
                 type="button"

@@ -30,6 +30,7 @@ import {
 } from '../services/partnerService';
 import { useAuth } from '../context/AuthContext';
 import { useFieldCapacity } from '../hooks/useFieldCapacity';
+import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import './PartnersPage.css';
 
 const PartnersPage: React.FC = () => {
@@ -53,6 +54,9 @@ const PartnersPage: React.FC = () => {
   const [adding, setAdding] = useState(addParam);
   const [addingFamily, setAddingFamily] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
+  const addPersonDrawer = useDrawerPresence(adding);
+  const addFamilyDrawer = useDrawerPresence(addingFamily);
+  const editContactDrawer = useDrawerPresence(editing);
   const [peopleTick, setPeopleTick] = useState(0);
   const [familyTick, setFamilyTick] = useState(0);
 
@@ -331,8 +335,9 @@ const PartnersPage: React.FC = () => {
           <Link to="/partners/requests">{t('partners:requests')}</Link>
         </nav>
 
-        {adding ? (
+        {addPersonDrawer.mounted ? (
           <AddPersonSheet
+            open={addPersonDrawer.open}
             fieldId={fieldId || undefined}
             fields={fields}
             categories={categories}
@@ -343,19 +348,21 @@ const PartnersPage: React.FC = () => {
           />
         ) : null}
 
-        {addingFamily ? (
+        {addFamilyDrawer.mounted ? (
           <AddFamilySheet
+            open={addFamilyDrawer.open}
             onClose={() => setAddingFamily(false)}
             onCreated={() => setFamilyTick((n) => n + 1)}
           />
         ) : null}
 
-        {editing ? (
+        {editContactDrawer.mounted && editContactDrawer.value ? (
           <SavedContactSheet
+            open={editContactDrawer.open}
             fieldId={fieldId || undefined}
             fields={fields}
             categories={categories}
-            existing={editing}
+            existing={editContactDrawer.value}
             onClose={() => setEditing(null)}
             onSaved={() => {
               setEditing(null);

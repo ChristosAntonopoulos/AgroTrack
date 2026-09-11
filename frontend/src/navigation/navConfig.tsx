@@ -7,7 +7,6 @@ import {
   FileText,
   Calendar,
   Bell,
-  Route,
   Wallet,
   Settings,
   Database,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { isEverydayAllowedPath, isEverydayPrimaryPath } from '../experience/catalog';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
+import { CHRONOLOGIO_HOME } from './homePath';
 
 export type AppRole = 'FieldOwner' | 'Producer' | 'Agronomist' | 'Administrator' | 'ServiceProvider' | '';
 
@@ -47,19 +47,10 @@ export const navSections: NavSection[] = [
 
 export const navItems: NavItem[] = [
   {
-    path: '/today',
-    labelKey: 'items.today',
-    mobileLabelKey: 'items.todayMobile',
-    icon: <Route />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
-    section: 'primary',
-    mobilePrimary: true,
-  },
-  {
     path: '/chronologio',
     labelKey: 'items.chronologio',
     icon: <BookOpen />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
     section: 'primary',
     mobilePrimary: true,
   },
@@ -190,11 +181,12 @@ export const roleHomePath = (_role: AppRole, _experienceMode?: 'everyday' | 'ful
   if (prefs.defaultView) {
     return pathForDefaultView(prefs.defaultView);
   }
-  return '/today';
+  return CHRONOLOGIO_HOME;
 };
 
 export const isNavActive = (pathname: string, itemPath: string) => {
-  if (itemPath === '/dashboard') return pathname === '/dashboard' || pathname === '/';
+  if (itemPath === '/chronologio') return pathname === '/chronologio' || pathname === '/';
+  if (itemPath === '/dashboard') return pathname === '/dashboard';
   return pathname.startsWith(itemPath);
 };
 

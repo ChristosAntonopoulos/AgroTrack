@@ -376,6 +376,8 @@ export interface FieldWorkPlanPreviewItem {
   reasonCode: string;
   reason: string;
   practiceCategory: string;
+  windowStart?: string | null;
+  windowEnd?: string | null;
 }
 
 export interface FieldWorkPlanPreview {

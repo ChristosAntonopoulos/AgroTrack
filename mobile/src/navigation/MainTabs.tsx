@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
-import TodayScreen from '../screens/TodayScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
@@ -16,9 +15,10 @@ import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useMoreMenuOptional } from '../context/MoreMenuContext';
 import { useTasks } from '../hooks/useTasks';
 import { isTaskOverdue } from '../utils/taskListUtils';
-import { typography, spacing } from '../theme';
+import { typography, spacing, createElevation } from '../theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -29,14 +29,12 @@ const TabIcon = ({
   focused,
   color,
   pillColor,
-  accentColor,
   tapMin,
 }: {
   name: IconName;
   focused: boolean;
   color: string;
   pillColor: string;
-  accentColor: string;
   tapMin: number;
 }) => (
   <View
@@ -48,8 +46,6 @@ const TabIcon = ({
         borderRadius: 20,
         paddingHorizontal: 14,
         paddingVertical: 5,
-        borderWidth: 1,
-        borderColor: accentColor + '40',
       },
     ]}
   >
@@ -65,29 +61,30 @@ const hiddenTabOptions = {
 const CapturePlaceholder = () => <View />;
 
 const MainTabs = () => {
-  const { colors, isDark, tapMin, fontScaleMultiplier } = useTheme();
+  const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const { defaultView } = usePreferences();
   const capture = useCaptureOptional();
+  const moreMenu = useMoreMenuOptional();
   const { t } = useTranslation('nav');
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
 
   const taskBadgeCount = useMemo(
-    () => tasks.filter((tk) => isTaskOverdue(tk)).length,
+    () => tasks.filter(tk => isTaskOverdue(tk)).length,
     [tasks]
   );
 
-  const labelSize = Math.max(12, Math.round(12 * fontScaleMultiplier));
+  const labelSize = Math.max(11, Math.round(11 * fontScaleMultiplier));
   const tabBarHeight =
-    Math.max(64, tapMin + 20) + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
-  const tabAccent = colors.headerAccent;
+    Math.max(60, tapMin + 16) + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
+
   const startMap = {
-    today: 'Today',
-    dashboard: 'Today',
+    today: 'ChronologioTab',
+    dashboard: 'ChronologioTab',
     fields: 'Fields',
     chronologio: 'ChronologioTab',
   } as const;
-  const initialRouteName = startMap[defaultView] ?? 'Today';
+  const initialRouteName = startMap[defaultView] ?? 'ChronologioTab';
 
   return (
     <Tab.Navigator
@@ -103,16 +100,12 @@ const MainTabs = () => {
           paddingTop: spacing.xs,
           paddingBottom: Math.max(insets.bottom, spacing.xs),
           height: tabBarHeight,
-          elevation: isDark ? 16 : 12,
-          shadowColor: colors.shadowDark,
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: isDark ? 0.35 : 0.2,
-          shadowRadius: 8,
+          ...createElevation(colors, 'sm'),
         },
         tabBarLabelStyle: {
           ...typography.styles.caption,
           fontSize: labelSize,
-          fontWeight: '700',
+          fontWeight: '600',
           marginTop: 0,
         },
         tabBarItemStyle: {
@@ -121,14 +114,24 @@ const MainTabs = () => {
         },
       }}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: t('dashboard'), ...hiddenTabOptions }} />
       <Tab.Screen
-        name="Today"
-        component={TodayScreen}
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ tabBarLabel: t('dashboard'), ...hiddenTabOptions }}
+      />
+      <Tab.Screen
+        name="ChronologioTab"
+        component={ChronologioScreen}
         options={{
-          tabBarLabel: t('today'),
+          tabBarLabel: t('chronologio'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'sunny' : 'sunny-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
+            <TabIcon
+              name={focused ? 'time' : 'time-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+              tapMin={tapMin}
+            />
           ),
         }}
       />
@@ -138,7 +141,13 @@ const MainTabs = () => {
         options={{
           tabBarLabel: t('fields'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'leaf' : 'leaf-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
+            <TabIcon
+              name={focused ? 'leaf' : 'leaf-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+              tapMin={tapMin}
+            />
           ),
         }}
       />
@@ -146,7 +155,7 @@ const MainTabs = () => {
         name="Capture"
         component={CapturePlaceholder}
         listeners={{
-          tabPress: (e) => {
+          tabPress: e => {
             e.preventDefault();
             capture?.openCapture();
           },
@@ -154,24 +163,43 @@ const MainTabs = () => {
         options={{
           tabBarLabel: () => null,
           tabBarIcon: () => (
-            <View style={{ width: Math.max(52, tapMin), height: Math.max(52, tapMin), borderRadius: 999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Ionicons name="add" size={28} color="#fff" />
+            <View
+              style={{
+                width: Math.max(52, tapMin),
+                height: Math.max(52, tapMin),
+                borderRadius: 999,
+                backgroundColor: colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 8,
+                ...createElevation(colors, 'md'),
+              }}
+            >
+              <Ionicons name="add" size={28} color={colors.onOlive} />
             </View>
           ),
-          tabBarButton: (props) => (
-            <Pressable accessibilityRole="button" accessibilityLabel="Capture" onPress={() => capture?.openCapture()} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              {props.children}
+          tabBarButton: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Capture"
+              onPress={() => capture?.openCapture()}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <View
+                style={{
+                  width: Math.max(52, tapMin),
+                  height: Math.max(52, tapMin),
+                  borderRadius: 999,
+                  backgroundColor: colors.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8,
+                  ...createElevation(colors, 'md'),
+                }}
+              >
+                <Ionicons name="add" size={28} color={colors.onOlive} />
+              </View>
             </Pressable>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ChronologioTab"
-        component={ChronologioScreen}
-        options={{
-          tabBarLabel: t('chronologio'),
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'time' : 'time-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
           ),
         }}
       />
@@ -180,22 +208,58 @@ const MainTabs = () => {
         component={TaskListScreen}
         options={{
           tabBarLabel: t('tasks'),
-          tabBarBadge: taskBadgeCount > 0 ? (taskBadgeCount > 99 ? '99+' : String(taskBadgeCount)) : undefined,
+          tabBarBadge:
+            taskBadgeCount > 0
+              ? taskBadgeCount > 99
+                ? '99+'
+                : String(taskBadgeCount)
+              : undefined,
           ...hiddenTabOptions,
         }}
       />
-      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: t('calendar'), ...hiddenTabOptions }} />
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarScreen}
+        options={{ tabBarLabel: t('calendar'), ...hiddenTabOptions }}
+      />
       <Tab.Screen
         name="More"
         component={MoreScreen}
+        listeners={{
+          tabPress: e => {
+            e.preventDefault();
+            moreMenu?.openMore();
+          },
+        }}
         options={{
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'menu' : 'menu-outline'} focused={focused} color={color} pillColor={colors.tabBarActivePill} accentColor={tabAccent} tapMin={tapMin} />
+            <TabIcon
+              name={focused || moreMenu?.isOpen ? 'menu' : 'menu-outline'}
+              focused={focused || !!moreMenu?.isOpen}
+              color={moreMenu?.isOpen ? colors.tabBarForeground : color}
+              pillColor={colors.tabBarActivePill}
+              tapMin={tapMin}
+            />
+          ),
+          tabBarButton: props => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('more')}
+              onPress={() => moreMenu?.openMore()}
+              style={props.style}
+            >
+              {props.children}
+            </Pressable>
           ),
         }}
       />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('settings'), ...hiddenTabOptions }} />
+      {/* Keep registered for deep links / programmatic navigate */}
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ tabBarLabel: t('settings'), ...hiddenTabOptions }}
+      />
     </Tab.Navigator>
   );
 };

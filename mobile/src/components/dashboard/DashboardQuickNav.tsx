@@ -34,7 +34,7 @@ const NavTile: React.FC<DashboardNavItem> = ({
   onPress,
 }) => {
   const { colors } = useTheme();
-  const accent = urgent ? colors.error : colors.primaryDark;
+  const accent = urgent ? colors.error : colors.primary;
   const tint = urgent ? colors.errorLight : colors.primary + '14';
 
   return (
@@ -55,8 +55,8 @@ const NavTile: React.FC<DashboardNavItem> = ({
       <View style={[styles.iconWrap, { backgroundColor: tint }]}>
         <Ionicons name={icon} size={22} color={accent} />
         {badge != null && badge > 0 ? (
-          <View style={[styles.badge, { backgroundColor: urgent ? colors.error : colors.primaryDark }]}>
-            <Text style={[styles.badgeText, { color: colors.textInverse }]}>
+          <View style={[styles.badge, { backgroundColor: urgent ? colors.error : colors.primary }]}>
+            <Text style={[styles.badgeText, { color: colors.onOlive }]}>
               {badge > 99 ? '99+' : badge}
             </Text>
           </View>

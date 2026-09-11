@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { resolveChronologioCategoryAccent } from '../../utils/chronologioCategoryAccents';
 import CardAccentFades from '../common/CardAccentFades';
+import { radii } from '../../theme';
 
 type Props = {
   entry: ChronologioEntry;
@@ -65,6 +67,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
   onPress,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
+  const presented = presentChronologioEvent(entry, i18n.language);
   const { colors } = useTheme();
   const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
   const categoryAccent = resolveChronologioCategoryAccent(
@@ -80,7 +83,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
   });
 
   const metaBits: string[] = [];
-  if (entry.category === 'expense' && entry.amount && entry.amount.value > 0) {
+  if (entry.amount && entry.amount.value > 0 && (entry.category === 'expense' || entry.category === 'income' || entry.category === 'task')) {
     metaBits.push(formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale));
   }
   if (entry.category === 'harvest' && entry.details.harvest?.oliveKg) {
@@ -107,8 +110,8 @@ const ChronologioEntryCard: React.FC<Props> = ({
       style={[
         styles.card,
         {
-          borderColor: colors.border,
-          backgroundColor: colors.surfaceElevated,
+          borderColor: colors.borderLight,
+          backgroundColor: colors.surface,
           minHeight,
           borderLeftColor: fieldAccent,
         },
@@ -123,11 +126,11 @@ const ChronologioEntryCard: React.FC<Props> = ({
           <View style={styles.metaRow}>
             <Ionicons name={iconFor(entry.category)} size={14} color={categoryAccent} />
             <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>
-              {time} · {t(`categoryLabel.${entry.category}`, { defaultValue: entry.category })}
+              {time} · {presented.shortLabel}
             </Text>
           </View>
           <Text style={{ fontWeight: '700', color: colors.textPrimary, marginTop: 4, fontSize: 16 }}>
-            {entry.title}
+            {presented.label}
           </Text>
           {metaBits.length > 0 ? (
             <Text style={{ color: colors.textSecondary, marginTop: 4, fontSize: 13 }} numberOfLines={2}>
@@ -147,8 +150,8 @@ const ChronologioEntryCard: React.FC<Props> = ({
           <View style={styles.thumbWrap}>
             <Image source={{ uri: thumb }} style={styles.thumb} />
             {extraPhotos > 0 ? (
-              <View style={styles.thumbBadge}>
-                <Text style={styles.thumbBadgeText}>+{extraPhotos}</Text>
+              <View style={[styles.thumbBadge, { backgroundColor: colors.charcoal + 'B8' }]}>
+                <Text style={[styles.thumbBadgeText, { color: colors.onOlive }]}>+{extraPhotos}</Text>
               </View>
             ) : null}
           </View>
@@ -162,7 +165,7 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderLeftWidth: 4,
-    borderRadius: 12,
+    borderRadius: radii.xl,
     padding: 12,
     marginBottom: 8,
     overflow: 'hidden',
@@ -176,7 +179,7 @@ const styles = StyleSheet.create({
   thumbWrap: {
     width: 72,
     height: 72,
-    borderRadius: 10,
+    borderRadius: radii.lg,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -185,12 +188,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 4,
     bottom: 4,
-    backgroundColor: 'rgba(20,24,18,0.72)',
     borderRadius: 6,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  thumbBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  thumbBadgeText: { fontSize: 10, fontWeight: '700' },
 });
 
 export default ChronologioEntryCard;

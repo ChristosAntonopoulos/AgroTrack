@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   ArrowLeft,
   Camera,
@@ -11,6 +10,7 @@ import {
   Wheat,
   X,
 } from 'lucide-react';
+import RightDrawer from '../Common/RightDrawer';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../../capture/types';
 import { getAvailableCaptureActions } from '../../capture/permissions';
 import { getFieldService } from '../../services/serviceFactory';
@@ -60,7 +60,6 @@ const CaptureDrawer: React.FC<Props> = ({
   const { user } = useAuth();
   const { isFullPicture } = useExperienceMode();
   const navigate = useNavigate();
-  const reduceMotion = useReducedMotion();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<'choose' | CaptureType>(context.preferredType || 'choose');
@@ -141,16 +140,6 @@ const CaptureDrawer: React.FC<Props> = ({
       .then(setFields)
       .catch(() => setFields([]));
   }, [open, context.preferredType, context.fieldId, context.occurredAt, context.taskId]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, dirty]);
 
   const markDirty = () => setDirty(true);
 
@@ -299,56 +288,46 @@ const CaptureDrawer: React.FC<Props> = ({
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <>
-          <motion.button
+    <RightDrawer
+      open={open}
+      onClose={requestClose}
+      resetKey={`${step}:${context.fieldId || ''}`}
+      size={isMoneyStep ? 'lg' : 'md'}
+      title={
+        isMoneyStep
+          ? t('capture:money.cta')
+          : step === 'choose'
+            ? t('capture:title')
+            : t(`capture:types.${step}.title`)
+      }
+      subtitle={!isMoneyStep && step !== 'choose' ? selectedFieldName : undefined}
+      hideClose={!isMoneyStep}
+      leading={
+        isMoneyStep ? undefined : (
+          <button
             type="button"
-            className={`capture-backdrop${isMoneyStep ? ' is-money-scrim' : ''}`}
-            aria-label={t('capture:cancel')}
-            onClick={requestClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.2 }}
-          />
-          <motion.aside
-            className={`capture-drawer${isMoneyStep ? ' is-money-drawer' : ''}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label={isMoneyStep ? t('capture:money.cta') : t('capture:title')}
-            initial={reduceMotion ? false : { x: 24, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={reduceMotion ? undefined : { x: 16, opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.26, ease: 'easeOut' }}
+            className="oa-drawer-icon-btn"
+            onClick={goBack}
+            aria-label={step === 'choose' ? t('capture:cancel') : t('capture:back')}
           >
-            <header className={`capture-drawer-header${isMoneyStep ? ' is-money' : ''}`}>
-              {isMoneyStep ? (
-                <>
-                  <div>
-                    <h2>{t('capture:money.cta')}</h2>
-                  </div>
-                  <button type="button" className="capture-icon-btn" onClick={requestClose} aria-label={t('common:close', { defaultValue: 'Κλείσιμο' })}>
-                    <X size={20} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button type="button" className="capture-icon-btn" onClick={goBack} aria-label={t('capture:back')}>
-                    {step === 'choose' ? <X size={20} /> : <ArrowLeft size={20} />}
-                  </button>
-                  <div>
-                    <h2>
-                      {step === 'choose' ? t('capture:title') : t(`capture:types.${step}.title`)}
-                    </h2>
-                    {step !== 'choose' && selectedFieldName ? (
-                      <p className="capture-header-meta">{selectedFieldName}</p>
-                    ) : null}
-                  </div>
-                </>
-              )}
-            </header>
-
+            {step === 'choose' ? <X size={18} aria-hidden /> : <ArrowLeft size={18} aria-hidden />}
+          </button>
+        )
+      }
+      bodyClassName={isMoneyStep ? 'oa-drawer-body--flush' : undefined}
+      footer={
+        step !== 'choose' && !isMoneyStep ? (
+          <button
+            type="button"
+            className="capture-save-btn"
+            disabled={submitting}
+            onClick={() => void handleSave()}
+          >
+            {submitting ? t('capture:saving') : t('capture:save')}
+          </button>
+        ) : undefined
+      }
+    >
             {isMoneyStep ? (
               <MoneyCaptureForm
                 context={{
@@ -363,7 +342,7 @@ const CaptureDrawer: React.FC<Props> = ({
                 onSaved={onSaved}
               />
             ) : (
-              <div className="capture-drawer-body">
+              <>
               {step === 'choose' ? (
                 <div className="capture-type-list">
                   <p className="capture-prompt">{t('capture:whatToRecord')}</p>
@@ -556,25 +535,9 @@ const CaptureDrawer: React.FC<Props> = ({
                   {error ? <p className="capture-error">{error}</p> : null}
                 </div>
               )}
-            </div>
+              </>
             )}
-
-            {step !== 'choose' && !isMoneyStep ? (
-              <footer className="capture-drawer-footer">
-                <button
-                  type="button"
-                  className="capture-save-btn"
-                  disabled={submitting}
-                  onClick={() => void handleSave()}
-                >
-                  {submitting ? t('capture:saving') : t('capture:save')}
-                </button>
-              </footer>
-            ) : null}
-          </motion.aside>
-        </>
-      ) : null}
-    </AnimatePresence>
+    </RightDrawer>
   );
 };
 

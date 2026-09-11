@@ -39,8 +39,8 @@ public class DataSeeder : IHostedService
 
     private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName)[] DemoUsers =
     [
-        ("675555555555555555555501", "owner@olivefarm.com", "password123", Roles.FieldOwner, "Giorgos", "Papadakis"),
-        ("675555555555555555555502", "producer1@olivefarm.com", "password123", Roles.Producer, "Kostas", "Manousakis"),
+        ("675555555555555555555501", "owner@olivefarm.com", "password123", Roles.FieldOwner, "Γιώργος", "Παπαδάκης"),
+        ("675555555555555555555502", "producer1@olivefarm.com", "password123", Roles.Producer, "Κώστας", "Μανούσακης"),
     ];
 
     private async Task SeedDemoUsersAsync(CancellationToken cancellationToken)

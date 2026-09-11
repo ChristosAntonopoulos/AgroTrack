@@ -1,19 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import StatusBadge from '../StatusBadge';
+import AccentCard from '../ui/AccentCard';
 import { typography, spacing } from '../../theme';
-import { createElevation } from '../../theme/elevation';
 import { FieldTask, fieldTaskTypeKey } from '../../services/fieldWorkService';
 import { formatDate } from '../../utils/formatters';
 import { getTaskCategoryColor } from '../../utils/calendarCategoryColors';
 import { isTaskOverdue } from '../../utils/taskListUtils';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
-import CardAccentFades from '../common/CardAccentFades';
 
 export interface TaskCardProps {
   task: FieldTask;
@@ -27,7 +26,7 @@ export interface TaskCardProps {
 
 /**
  * Task list card accents:
- * left edge = field color + wash, right fade = system category / type color.
+ * left edge = field color + AccentCard wash, right fade = system category / type color.
  * Overdue keeps a thin top strip only.
  */
 const TaskCard: React.FC<TaskCardProps> = ({
@@ -55,22 +54,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
     task.plannedEnd && task.status !== 'completed' ? formatDate(task.plannedEnd) : null;
 
   return (
-    <TouchableOpacity
+    <AccentCard
       onPress={onPress}
-      activeOpacity={0.72}
+      accentColor={fieldAccent}
+      padding="none"
       style={[
         styles.wrapper,
-        embedded && styles.wrapperEmbedded,
-        {
-          backgroundColor: colors.surfaceElevated,
-          borderColor: colors.borderLight,
-          borderLeftColor: fieldAccent,
-          minHeight: Math.max(tapMin, 88),
-          ...createElevation(colors, 'sm'),
-        },
+        embedded ? styles.wrapperEmbedded : undefined,
+        { minHeight: Math.max(tapMin, 88) },
       ]}
     >
-      <CardAccentFades fieldColor={fieldAccent} endColor={categoryAccent} />
+      <View
+        style={[styles.categoryWash, { backgroundColor: categoryAccent + '14' }]}
+        pointerEvents="none"
+      />
 
       {overdue ? (
         <View style={[styles.overdueStrip, { backgroundColor: colors.error }]} />
@@ -159,7 +156,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           ) : null}
         </View>
       </View>
-    </TouchableOpacity>
+    </AccentCard>
   );
 };
 
@@ -199,16 +196,21 @@ const MetaCell = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderLeftWidth: 4,
     marginBottom: spacing.md,
-    overflow: 'hidden',
     position: 'relative',
+    overflow: 'hidden',
   },
   wrapperEmbedded: {
     marginBottom: 0,
     height: '100%',
+  },
+  categoryWash: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '42%',
+    opacity: 0.7,
   },
   overdueStrip: {
     position: 'absolute',

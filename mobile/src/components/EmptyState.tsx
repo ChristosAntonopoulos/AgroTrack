@@ -36,7 +36,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, actio
           style={[
             styles.actionButton,
             {
-              backgroundColor: colors.primaryDark,
+              backgroundColor: colors.primary,
               minHeight: tapMin,
               ...createElevation(colors, 'sm'),
             },
@@ -44,7 +44,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, actio
           onPress={action.onPress}
           activeOpacity={motion.pressOpacity}
         >
-          <Text style={[styles.actionText, { color: colors.textInverse, fontSize: 16 * fontScaleMultiplier }]}>
+          <Text style={[styles.actionText, { color: colors.onOlive, fontSize: 16 * fontScaleMultiplier }]}>
             {action.label}
           </Text>
         </TouchableOpacity>
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     marginTop: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',

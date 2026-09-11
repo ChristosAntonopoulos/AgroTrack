@@ -43,7 +43,7 @@ const FieldAttentionCard: React.FC<Props> = ({ entries, onSeeObservation }) => {
         {t('overview.recorded', { when: formatRelativeTime(attention.occurredAt, locale) })}
       </Text>
       <Pressable onPress={() => onSeeObservation(attention.id)} style={styles.link}>
-        <Text style={[styles.linkText, { color: colors.primaryDark }]}>{t('overview.seeObservation')}</Text>
+        <Text style={[styles.linkText, { color: colors.primary }]}>{t('overview.seeObservation')}</Text>
       </Pressable>
     </View>
   );

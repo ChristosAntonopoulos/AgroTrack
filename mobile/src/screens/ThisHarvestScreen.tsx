@@ -212,7 +212,7 @@ const ThisHarvestScreen = () => {
                 <Ionicons
                   name={m.done ? 'checkmark-circle' : 'ellipse-outline'}
                   size={24}
-                  color={m.done ? colors.primaryDark : colors.textSecondary}
+                  color={m.done ? colors.primary : colors.textSecondary}
                 />
               </Pressable>
               <TouchableOpacity

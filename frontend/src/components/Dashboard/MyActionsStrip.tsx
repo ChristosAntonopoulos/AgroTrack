@@ -67,7 +67,7 @@ const MyActionsStrip: React.FC<MyActionsStripProps> = ({
         key: 'dueToday',
         value: data.pending.dueToday,
         color: 'info',
-        path: '/today',
+        path: '/chronologio?focus=today',
         icon: <PlayCircle />,
       },
     ];

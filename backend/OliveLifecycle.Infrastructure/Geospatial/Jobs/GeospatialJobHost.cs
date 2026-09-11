@@ -144,10 +144,14 @@ public class GeospatialJobHost : BackgroundService
                 var weather = provider.GetRequiredService<IWeatherIntelligenceService>();
                 await weather.BackfillHistoryAsync(field, ct);
 
+                // Chronologio's right-hand weather pane reads compiled month/year
+                // reviews. Build them as soon as daily snapshots exist so the
+                // journal is not empty while monthly Sentinel history downloads.
+                var reviews = provider.GetRequiredService<IWeatherReviewCompiler>();
+                await reviews.RebuildForFieldAsync(item.FieldId, ct);
+
                 var satellite = provider.GetRequiredService<ISatelliteProcessingService>();
                 await satellite.ProcessHistoricalAsync(item.FieldId, ct);
-
-                var reviews = provider.GetRequiredService<IWeatherReviewCompiler>();
                 await reviews.RebuildForFieldAsync(item.FieldId, ct);
             }, ct);
         }

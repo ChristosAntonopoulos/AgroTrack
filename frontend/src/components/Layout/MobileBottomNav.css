@@ -45,7 +45,7 @@
 }
 
 .mobile-bottom-nav-item.active {
-  color: var(--color-primary);
+  color: var(--link);
   font-weight: 600;
 }
 

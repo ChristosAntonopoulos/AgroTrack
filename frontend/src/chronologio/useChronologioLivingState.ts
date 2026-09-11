@@ -3,20 +3,28 @@ import { useSearchParams } from 'react-router-dom';
 import type { ChronologioAxis, ChronologioCategory } from '../services/chronologioService';
 import {
   ZOOM_ORDER,
+  VIEW_TO_ZOOM,
   focusDateForMonth,
   focusDateForPeriod,
   getPeriodYear,
+  parseChronologioView,
   parseFocusDate,
   stepZoom,
   toIsoDate,
+  viewFromZoom,
   type ChronologioZoom,
   type LivingFilters,
 } from './livingTypes';
 
-const parseZoom = (v: string | null): ChronologioZoom =>
-  v === 'year' || v === 'month' || v === 'years' ? v : 'month';
+const parseZoom = (view: string | null, zoom: string | null, focusToday: boolean): ChronologioZoom => {
+  if (focusToday) return 'month';
+  return VIEW_TO_ZOOM[parseChronologioView(view || zoom)];
+};
 
-const parseAxis = (v: string | null): ChronologioAxis => (v === 'season' ? 'season' : 'calendar');
+const parseAxis = (v: string | null, zoom: ChronologioZoom): ChronologioAxis => {
+  if (v === 'agricultural' || v === 'season' || v === 'calendar') return v;
+  return zoom === 'year' || zoom === 'years' ? 'agricultural' : 'calendar';
+};
 
 const parseCompare = (v: string | null): [number, number] | null => {
   if (!v) return null;
@@ -30,14 +38,17 @@ const parseCompare = (v: string | null): [number, number] | null => {
 export const useChronologioLivingState = (fieldModeFieldId?: string) => {
   const [params, setParams] = useSearchParams();
 
-  const zoom = parseZoom(params.get('zoom') || params.get('view'));
-  const axis = parseAxis(params.get('axis'));
+  const focusToday = params.get('focus') === 'today';
+  const zoom = parseZoom(params.get('view'), params.get('zoom'), focusToday);
+  const axis = parseAxis(params.get('axis'), zoom);
   const yearParam = params.get('year');
   const focusDate =
-    params.get('date') ||
-    (yearParam && Number.isFinite(Number(yearParam))
-      ? focusDateForPeriod(Number(yearParam), axis)
-      : toIsoDate(new Date()));
+    focusToday
+      ? toIsoDate(new Date())
+      : params.get('date') ||
+        (yearParam && Number.isFinite(Number(yearParam))
+          ? focusDateForPeriod(Number(yearParam), axis)
+          : toIsoDate(new Date()));
   const compareYears = parseCompare(params.get('compare'));
   const compareOpen = params.get('compareMode') === '1' || Boolean(compareYears);
   const selectedEntryId = params.get('entry');
@@ -70,19 +81,25 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
 
   const setZoom = useCallback(
     (next: ChronologioZoom) => {
-      patch({ view: next });
+      patch({
+        view: viewFromZoom(next),
+        zoom: null,
+        focus: next === 'month' ? undefined : null,
+        axis: next === 'month' ? undefined : 'agricultural',
+      });
     },
     [patch]
   );
 
-  /** Journal from the toolbar — live feed from today, not a drilled-in month. */
+  /** Day view from today — the product home of Chronologio. */
   const openJournal = useCallback(() => {
-    patch({ view: 'month', date: toIsoDate(new Date()) });
+    patch({ view: 'days', zoom: null, date: toIsoDate(new Date()), focus: 'today' });
   }, [patch]);
 
   const zoomBy = useCallback(
     (delta: 1 | -1) => {
-      patch({ view: stepZoom(zoom, delta) });
+      const next = stepZoom(zoom, delta);
+      patch({ view: viewFromZoom(next), zoom: null, focus: next === 'month' ? undefined : null });
     },
     [patch, zoom]
   );
@@ -104,20 +121,42 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
   const openPeriod = useCallback(
     (periodYear: number) => {
       patch({
-        view: 'year',
-        zoom: 'year',
+        view: 'months',
+        zoom: null,
         year: String(periodYear),
         date: focusDateForPeriod(periodYear, axis),
+        focus: null,
       });
     },
     [axis, patch]
   );
 
+  const openSeasonYear = useCallback((periodYear: number) => {
+    patch({
+      axis: 'agricultural',
+      view: 'months',
+      zoom: null,
+      year: String(periodYear),
+      date: focusDateForPeriod(periodYear, 'agricultural'),
+      focus: null,
+    });
+  }, [patch]);
+
+  const focusSeasonYear = useCallback((periodYear: number) => {
+    patch({
+      axis: 'agricultural',
+      year: String(periodYear),
+      date: focusDateForPeriod(periodYear, 'agricultural'),
+    });
+  }, [patch]);
+
   const openMonth = useCallback(
     (year: number, month: number) => {
       patch({
-        view: 'month',
+        view: 'days',
+        zoom: null,
         date: focusDateForMonth(year, month),
+        focus: null,
       });
     },
     [patch]
@@ -203,6 +242,8 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     setAxis,
     setFocusDate,
     openPeriod,
+    openSeasonYear,
+    focusSeasonYear,
     openMonth,
     setFilters,
     clearFilters,

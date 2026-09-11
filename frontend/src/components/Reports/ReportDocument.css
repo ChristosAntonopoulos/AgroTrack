@@ -1,7 +1,7 @@
 /* Shared report document styles — used in preview and PDF capture */
 
 .report-document {
-  background: #ffffff;
+  background: var(--oleachron-limestone, #F4F3EC);
   color: #1a2e12;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
@@ -20,7 +20,7 @@
   align-items: flex-start;
   padding-bottom: 1.25rem;
   margin-bottom: 1.5rem;
-  border-bottom: 2px solid #2E4A2E;
+  border-bottom: 2px solid var(--olive-primary);
 }
 
 .report-doc-brand {
@@ -37,7 +37,7 @@
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
-  color: #2E4A2E;
+  color: var(--olive-primary);
 }
 
 .report-doc-brand-text p {
@@ -74,7 +74,7 @@
   gap: 0.5rem;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #2E4A2E;
+  color: var(--olive-primary);
   margin: 0 0 0.85rem;
   padding-bottom: 0.4rem;
   border-bottom: 1px solid #e5e7eb;
@@ -134,7 +134,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   background: #e8f0e0;
-  color: #2E4A2E;
+  color: var(--olive-primary);
 }
 
 .report-badge-oil {
@@ -143,7 +143,7 @@
 }
 
 .report-badge-warning {
-  background: #fff3cd;
+  background: var(--status-warning-soft);
   color: #856404;
 }
 
@@ -197,7 +197,7 @@
 .report-metric-value {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #2E4A2E;
+  color: var(--olive-primary);
   line-height: 1.2;
 }
 
@@ -266,7 +266,7 @@
 
 .report-table th {
   background: #f0f4ec;
-  color: #2E4A2E;
+  color: var(--olive-primary);
   font-weight: 700;
   text-align: left;
   padding: 0.65rem 0.85rem;
@@ -295,7 +295,7 @@
 
 .report-table .highlight-cell {
   font-weight: 700;
-  color: #2E4A2E;
+  color: var(--olive-primary);
 }
 
 /* Pest pressure badges in table */
@@ -318,7 +318,7 @@
 
 .report-insight-box svg {
   flex-shrink: 0;
-  color: #4a7c2a;
+  color: var(--olive-primary);
   margin-top: 0.1rem;
 }
 
@@ -359,7 +359,7 @@
 
 .report-pl-card.income .report-pl-card-value { color: #16a34a; }
 .report-pl-card.expense .report-pl-card-value { color: #dc2626; }
-.report-pl-card.profit .report-pl-card-value { color: #2E4A2E; }
+.report-pl-card.profit .report-pl-card-value { color: var(--olive-primary); }
 .report-pl-card-value.negative { color: #dc2626; }
 
 .report-pl-card-label {
@@ -427,7 +427,7 @@
 }
 
 .report-insight-item svg {
-  color: #4a7c2a;
+  color: var(--olive-primary);
   flex-shrink: 0;
 }
 
@@ -499,11 +499,11 @@
   min-width: 28px;
 }
 
-.report-bar-fill.labor { background: #2E4A2E; }
-.report-bar-fill.fertilizer { background: #4a7c2a; }
+ .report-bar-fill.labor { background: var(--chart-olive, var(--olive-primary)); }
+ .report-bar-fill.fertilizer { background: var(--chart-sage, var(--oleachron-sage)); }
 .report-bar-fill.harvest { background: #6b9a3f; }
 .report-bar-fill.irrigation { background: #8b9a46; }
-.report-bar-fill.treatments { background: #17a2b8; }
+.report-bar-fill.treatments { background: var(--chart-weather, var(--weather-blue)); }
 .report-bar-fill.other { background: #6c757d; }
 
 /* Footer */

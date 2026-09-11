@@ -346,8 +346,8 @@ const CreateTaskScreen = () => {
                   style={[
                     styles.fieldCard,
                     {
-                      borderColor: active ? colors.primaryDark : colors.borderLight,
-                      backgroundColor: active ? colors.primaryDark + '10' : colors.surface,
+                      borderColor: active ? colors.oliveBorder : colors.borderLight,
+                      backgroundColor: active ? colors.primaryLight : colors.surface,
                       minHeight: isEveryday ? tapMin + 8 : undefined,
                     },
                   ]}
@@ -366,7 +366,7 @@ const CreateTaskScreen = () => {
                     </Text>
                   </View>
                   {active ? (
-                    <Ionicons name="checkmark-circle" size={22} color={colors.primaryDark} />
+                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
                   ) : null}
                 </Pressable>
               );
@@ -383,9 +383,9 @@ const CreateTaskScreen = () => {
               {t('tasks:createWizard.templateDesc')}
             </Text>
             {selectedField ? (
-              <View style={[styles.contextChip, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-                <Ionicons name="leaf-outline" size={14} color={colors.primaryDark} />
-                <Text style={[styles.contextChipText, { color: colors.textSecondary }]} numberOfLines={1}>
+              <View style={[styles.contextChip, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
+                <Ionicons name="leaf-outline" size={14} color={colors.primary} />
+                <Text style={[styles.contextChipText, { color: colors.primary }]} numberOfLines={1}>
                   {selectedField.name}
                 </Text>
               </View>
@@ -393,7 +393,7 @@ const CreateTaskScreen = () => {
             {jobChoices.map((tpl) => {
               const active = templateId === tpl.id || (templateId == null && type === tpl.type);
               const harvest = getHarvestJob(tpl.type);
-              const tint = harvest ? colors.primaryDark : getTaskCategoryColor(tpl.type);
+              const tint = harvest ? colors.primary : getTaskCategoryColor(tpl.type);
               return (
                 <Pressable
                   key={tpl.id}
@@ -401,8 +401,8 @@ const CreateTaskScreen = () => {
                   style={[
                     styles.templateCard,
                     {
-                      borderColor: active ? colors.primaryDark : colors.borderLight,
-                      backgroundColor: active ? colors.primaryDark + '08' : colors.surface,
+                      borderColor: active ? colors.oliveBorder : colors.borderLight,
+                      backgroundColor: active ? colors.primaryLight : colors.surface,
                       minHeight: isEveryday ? tapMin + 8 : undefined,
                     },
                   ]}
@@ -440,12 +440,12 @@ const CreateTaskScreen = () => {
                 styles.templateCard,
                 styles.customCard,
                 {
-                  borderColor: isCustom ? colors.primaryDark : colors.borderLight,
-                  backgroundColor: isCustom ? colors.primaryDark + '08' : colors.surface,
+                  borderColor: isCustom ? colors.oliveBorder : colors.borderLight,
+                  backgroundColor: isCustom ? colors.primaryLight : colors.surface,
                 },
               ]}
             >
-              <Ionicons name="create-outline" size={20} color={colors.primaryDark} />
+              <Ionicons name="create-outline" size={20} color={colors.primary} />
               <View style={styles.customCardText}>
                 <Text style={[styles.templateTitle, { color: colors.textPrimary }]}>
                   {t('tasks:createWizard.customTask')}

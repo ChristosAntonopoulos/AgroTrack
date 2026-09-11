@@ -60,7 +60,7 @@ const SEASONAL_FALLBACK_EN = 'Seasonal reminder — there is not yet field evide
 
 export const isOfficialProposal = (proposal: TaskProposal): boolean => {
   const source = String(proposal.sourceType || '').toLowerCase();
-  const reasons = proposal.reasonCodes.map((code) => code.toLowerCase());
+  const reasons = (proposal.reasonCodes || []).map((code) => String(code || '').toLowerCase());
   return (
     source.includes('warning') ||
     source.includes('official') ||
@@ -130,7 +130,7 @@ const looksGeneric = (text: string): boolean => {
 export const proposalExplanation = (proposal: TaskProposal, language = 'el'): string => {
   const greek = language.toLowerCase().startsWith('el');
   const raw = (greek ? proposal.greekExplanation || proposal.explanation : proposal.explanation || proposal.greekExplanation || '').trim();
-  const reason = (proposal.reasonCodes[0] || '').toLowerCase();
+  const reason = (proposal.reasonCodes?.[0] || '').toLowerCase();
   const mapped = greek ? REASON_EXPLANATION_EL[reason] : REASON_EXPLANATION_EN[reason];
   if (mapped && (!raw || looksGeneric(raw))) return mapped;
   if (raw && !looksGeneric(raw)) return raw;

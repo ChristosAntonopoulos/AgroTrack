@@ -1,15 +1,17 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing, radii, motion, createElevation } from '../../theme';
 
 export interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
-  variant?: 'default' | 'elevated' | 'outlined' | 'muted';
+  variant?: 'default' | 'elevated' | 'outlined' | 'muted' | 'featured';
+  /** Left accent bar color (4px) — tasks/events */
+  accentColor?: string;
   header?: React.ReactNode;
   footer?: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   padding?: 'none' | 'small' | 'medium' | 'large';
 }
 
@@ -17,6 +19,7 @@ const Card: React.FC<CardProps> = ({
   children,
   onPress,
   variant = 'default',
+  accentColor,
   header,
   footer,
   style,
@@ -29,7 +32,8 @@ const Card: React.FC<CardProps> = ({
       case 'elevated':
         return {
           backgroundColor: colors.surfaceElevated,
-          borderWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.borderLight,
           ...createElevation(colors, 'md'),
         };
       case 'outlined':
@@ -37,13 +41,19 @@ const Card: React.FC<CardProps> = ({
           backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: colors.border,
-          ...createElevation(colors, 'sm'),
         };
       case 'muted':
         return {
           backgroundColor: colors.surfaceMuted,
           borderWidth: 1,
           borderColor: colors.borderLight,
+        };
+      case 'featured':
+        return {
+          backgroundColor: colors.primaryLight,
+          borderWidth: 1,
+          borderColor: colors.oliveBorder,
+          ...createElevation(colors, 'sm'),
         };
       default:
         return {
@@ -72,6 +82,12 @@ const Card: React.FC<CardProps> = ({
     styles.card,
     getVariantStyles(),
     { padding: getPadding() },
+    accentColor
+      ? {
+          borderLeftWidth: 4,
+          borderLeftColor: accentColor,
+        }
+      : null,
     style,
   ];
 
@@ -96,7 +112,8 @@ const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
+    overflow: 'hidden',
   },
   header: {
     marginBottom: spacing.sm,

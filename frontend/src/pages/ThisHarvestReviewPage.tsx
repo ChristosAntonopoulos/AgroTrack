@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Wallet, BookOpen, ArrowLeft } from 'lucide-react';
@@ -179,16 +179,34 @@ const ThisHarvestReviewPage: React.FC = () => {
               </select>
             </div>
 
-            <section className="ravdos-section" aria-labelledby="ravdos-result">
-              <h2 id="ravdos-result">{t('fields:apologismos.resultTitle')}</h2>
-              <p className="ravdos-help">
+            <section className="ravdos-story" aria-labelledby="ravdos-result">
+              <div className="ravdos-story-top">
+                <p className="ravdos-eyebrow">
+                  {selectedYear != null ? formatSeasonLabel(selectedYear) : t('fields:apologismos.resultTitle')}
+                </p>
+                <span className="ravdos-pill ravdos-pill-closing">{t('fields:apologismos.resultTitle')}</span>
+              </div>
+              <h2 id="ravdos-result" className="ravdos-story-now">
+                {finance.oilKg > 0
+                  ? `${formatKg(finance.oilKg, locale)} ${t('fields:thisHarvest.oilUnit')}`
+                  : finance.oliveKg > 0
+                    ? `${formatKg(finance.oliveKg, locale)} ${t('fields:thisHarvest.olivesUnit')}`
+                    : t('fields:apologismos.progressNone')}
+              </h2>
+              <p className="ravdos-story-kicker">
                 {progressTotal > 0
                   ? t('fields:apologismos.progressDone', { done: progressDone, total: progressTotal })
-                  : t('fields:apologismos.progressNone')}
+                  : ''}
                 {selectedYear != null
-                  ? ` · ${formatSeasonLabel(selectedYear)} · ${formatSeasonRange(selectedYear, locale === 'el' ? 'el-GR' : locale)}`
+                  ? `${progressTotal > 0 ? ' · ' : ''}${formatSeasonRange(selectedYear, locale === 'el' ? 'el-GR' : locale)}`
                   : ''}
               </p>
+            </section>
+
+            <section className="ravdos-section" aria-labelledby="ravdos-review-pulse">
+              <div className="ravdos-section-head">
+                <h2 id="ravdos-review-pulse">{t('fields:apologismos.numbersTitle')}</h2>
+              </div>
               <div className="ravdos-money-grid">
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.olives')}</span>
@@ -198,6 +216,12 @@ const ThisHarvestReviewPage: React.FC = () => {
                   <span>{t('fields:apologismos.oil')}</span>
                   <strong>{formatKg(finance.oilKg, locale)} kg</strong>
                 </div>
+                {finance.oliveKg > 0 && finance.oilKg > 0 ? (
+                  <div className="ravdos-money-stat">
+                    <span>{t('fields:thisHarvest.oilYieldSoFar')}</span>
+                    <strong>{formatKg((finance.oilKg / finance.oliveKg) * 100, locale)}%</strong>
+                  </div>
+                ) : null}
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.spent')}</span>
                   <strong>
@@ -243,24 +267,20 @@ const ThisHarvestReviewPage: React.FC = () => {
               </div>
             </section>
 
-            <section className="ravdos-section" aria-labelledby="ravdos-happened">
-              <h2 id="ravdos-happened">{t('fields:apologismos.whatHappened')}</h2>
-              {doneTitles.length === 0 ? (
-                <p className="ravdos-empty-line">{t('fields:thisHarvest.milestonesEmpty')}</p>
-              ) : (
+            {doneTitles.length > 0 ? (
+              <section className="ravdos-section" aria-labelledby="ravdos-happened">
+                <h2 id="ravdos-happened">{t('fields:apologismos.whatHappened')}</h2>
                 <ul className="ravdos-done-list">
                   {(isEveryday ? doneTitles.slice(0, 6) : doneTitles).map((title) => (
                     <li key={title}>{title}</li>
                   ))}
                 </ul>
-              )}
-            </section>
+              </section>
+            ) : null}
 
-            <section className="ravdos-section" aria-labelledby="ravdos-notes-review">
-              <h2 id="ravdos-notes-review">{t('fields:apologismos.notesTitle')}</h2>
-              {notes.length === 0 ? (
-                <p className="ravdos-empty-line">{t('fields:apologismos.notesEmpty')}</p>
-              ) : (
+            {notes.length > 0 ? (
+              <section className="ravdos-section" aria-labelledby="ravdos-notes-review">
+                <h2 id="ravdos-notes-review">{t('fields:apologismos.notesTitle')}</h2>
                 <ul className="ravdos-notes">
                   {notes.map((note) => (
                     <li key={note.id}>
@@ -272,18 +292,23 @@ const ThisHarvestReviewPage: React.FC = () => {
                           {notePreviewTitle(note.body) || t('fields:thisHarvest.untitledNote')}
                         </span>
                         <span className="ravdos-note-meta">
-                          {formatDate(note.occurredAt || note.createdAt, { locale })}
+                          {formatDate(note.occurredAt || note.createdAt, { locale, dateFormat: 'medium' })}
                         </span>
                       </Link>
                     </li>
                   ))}
                 </ul>
-              )}
+                <Link to="/chronologio" className="ravdos-section-link">
+                  <BookOpen size={16} aria-hidden /> {t('fields:apologismos.openChronologio')}{' '}
+                  <ChevronRight size={16} aria-hidden />
+                </Link>
+              </section>
+            ) : (
               <Link to="/chronologio" className="ravdos-section-link">
                 <BookOpen size={16} aria-hidden /> {t('fields:apologismos.openChronologio')}{' '}
                 <ChevronRight size={16} aria-hidden />
               </Link>
-            </section>
+            )}
 
             {!isEveryday && finance.fieldCards.length > 0 ? (
               <section className="ravdos-section" aria-labelledby="ravdos-fields-review">

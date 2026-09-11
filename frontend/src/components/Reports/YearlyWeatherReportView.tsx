@@ -13,6 +13,7 @@ import {
 import { numberLocaleFor } from '../../utils/fieldDisplay';
 import ReportDocumentShell from './ReportDocumentShell';
 import { DualBars, InsightList, VerticalBars } from './ReportVisuals';
+import { getChartPalette } from '../../styles/colorTokens';
 import './ReportDocument.css';
 
 interface Props {
@@ -176,7 +177,7 @@ const YearlyWeatherReportView: React.FC<Props> = ({ data, season, id }) => {
               <h4 className="report-section-title">
                 <CloudRain size={16} /> {t('doc.monthlyRain')}
               </h4>
-              <VerticalBars values={field.monthlyRainMm} labels={monthLabels} color="#3b6ea5" />
+              <VerticalBars values={field.monthlyRainMm} labels={monthLabels} color={getChartPalette().weather} />
             </section>
 
             <section className="report-section">
@@ -187,8 +188,8 @@ const YearlyWeatherReportView: React.FC<Props> = ({ data, season, id }) => {
                 first={field.monthlyCost.map(Number)}
                 second={field.monthlyRevenue.map(Number)}
                 labels={monthLabels}
-                firstColor="#dc2626"
-                secondColor="#16a34a"
+                firstColor={getChartPalette().gold}
+                secondColor={getChartPalette().olive}
               />
             </section>
 
@@ -196,7 +197,7 @@ const YearlyWeatherReportView: React.FC<Props> = ({ data, season, id }) => {
               <h4 className="report-section-title">
                 <ClipboardList size={16} /> {t('doc.monthlyTasks')}
               </h4>
-              <VerticalBars values={field.monthlyTasksCompleted} labels={monthLabels} color="#2E4A2E" />
+              <VerticalBars values={field.monthlyTasksCompleted} labels={monthLabels} />
             </section>
 
             <InsightList insights={field.insights} />

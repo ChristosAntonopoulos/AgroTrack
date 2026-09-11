@@ -1,4 +1,14 @@
-/** Category colors for FieldTask template codes / legacy category labels. */
+/**
+ * Category colours for FieldTask template codes / legacy category labels.
+ * Aligned with Chronologio `--event-*` tokens (Mediterranean olive system).
+ * Soft backgrounds for chips only — not full card fills.
+ */
+
+import {
+  getCssToken,
+  getEventCategoryColor,
+  type EventCategoryKey,
+} from '../styles/colorTokens';
 
 export type CategoryColorStyle = {
   bg: string;
@@ -7,29 +17,83 @@ export type CategoryColorStyle = {
   chipBg: string;
 };
 
-export const CATEGORY_STYLES: Record<string, CategoryColorStyle> = {
-  Observation: { bg: '#e8f0fe', border: '#4285f4', text: '#1a56db', chipBg: '#dbeafe' },
-  observation: { bg: '#e8f0fe', border: '#4285f4', text: '#1a56db', chipBg: '#dbeafe' },
-  'Soil & Analysis': { bg: '#f3ebe3', border: '#8b6914', text: '#6b4f1d', chipBg: '#ede0d4' },
-  soil: { bg: '#f3ebe3', border: '#8b6914', text: '#6b4f1d', chipBg: '#ede0d4' },
-  Fertilization: { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', chipBg: '#c8e6c9' },
-  fertilization: { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', chipBg: '#c8e6c9' },
-  Irrigation: { bg: '#e0f7fa', border: '#00838f', text: '#006064', chipBg: '#b2ebf2' },
-  irrigation: { bg: '#e0f7fa', border: '#00838f', text: '#006064', chipBg: '#b2ebf2' },
-  Pruning: { bg: '#f3e5f5', border: '#7b1fa2', text: '#6a1b9a', chipBg: '#e1bee7' },
-  pruning: { bg: '#f3e5f5', border: '#7b1fa2', text: '#6a1b9a', chipBg: '#e1bee7' },
-  'Weed Management': { bg: '#f1f8e9', border: '#689f38', text: '#558b2f', chipBg: '#dcedc8' },
-  'Pest Monitoring': { bg: '#fbe9e7', border: '#e64a19', text: '#bf360c', chipBg: '#ffccbc' },
-  'Pest Control': { bg: '#fbe9e7', border: '#e64a19', text: '#bf360c', chipBg: '#ffccbc' },
-  plant_protection: { bg: '#fbe9e7', border: '#e64a19', text: '#bf360c', chipBg: '#ffccbc' },
-  'Disease Management': { bg: '#fff8e1', border: '#f9a825', text: '#f57f17', chipBg: '#ffecb3' },
-  Harvest: { bg: '#fffde7', border: '#f9a825', text: '#8d6e00', chipBg: '#fff9c4' },
-  harvest: { bg: '#fffde7', border: '#f9a825', text: '#8d6e00', chipBg: '#fff9c4' },
-  Harvesting: { bg: '#fffde7', border: '#f9a825', text: '#8d6e00', chipBg: '#fff9c4' },
-  Equipment: { bg: '#eceff1', border: '#607d8b', text: '#455a64', chipBg: '#cfd8dc' },
-  maintenance: { bg: '#eceff1', border: '#607d8b', text: '#455a64', chipBg: '#cfd8dc' },
-  'Post-Harvest': { bg: '#e8eaf6', border: '#3949ab', text: '#283593', chipBg: '#c5cae9' },
+type CategoryMapping = {
+  event: EventCategoryKey;
+  /** Agronomic subtype of work/observation — still uses event token family */
 };
+
+const CATEGORY_EVENT: Record<string, EventCategoryKey> = {
+  Observation: 'observation',
+  observation: 'observation',
+  Inspection: 'observation',
+  'Soil & Analysis': 'observation',
+  soil: 'observation',
+  'Soil Analysis': 'observation',
+  Fertilization: 'work',
+  fertilization: 'work',
+  Irrigation: 'work',
+  irrigation: 'work',
+  Pruning: 'work',
+  pruning: 'work',
+  'Weed Management': 'work',
+  'Pest Monitoring': 'warning',
+  'Pest Control': 'warning',
+  plant_protection: 'warning',
+  Spraying: 'warning',
+  'Disease Management': 'warning',
+  Harvest: 'harvest',
+  harvest: 'harvest',
+  Harvesting: 'harvest',
+  'Post-Harvest': 'harvest',
+  Equipment: 'field_change',
+  maintenance: 'field_change',
+  Task: 'work',
+};
+
+function styleFromEvent(key: EventCategoryKey): CategoryColorStyle {
+  const border = getEventCategoryColor(key);
+  const soft = getCssToken(`--event-${key.replace(/_/g, '-')}-soft`);
+  return {
+    bg: soft || 'transparent',
+    border,
+    text: border,
+    chipBg: soft || 'transparent',
+  };
+}
+
+/** Build styles live from theme so light/dark stay in sync. */
+export const getCategoryStylesMap = (): Record<string, CategoryColorStyle> => {
+  const map: Record<string, CategoryColorStyle> = {};
+  for (const [label, event] of Object.entries(CATEGORY_EVENT)) {
+    map[label] = styleFromEvent(event);
+  }
+  return map;
+};
+
+/** @deprecated Prefer getTaskCategoryStyle — kept for callers that expect a static map. */
+export const CATEGORY_STYLES: Record<string, CategoryColorStyle> = new Proxy(
+  {} as Record<string, CategoryColorStyle>,
+  {
+    get(_target, prop: string) {
+      if (typeof prop !== 'string') return undefined;
+      const event = CATEGORY_EVENT[prop] ?? CATEGORY_EVENT[prop.toLowerCase()];
+      if (!event) return undefined;
+      return styleFromEvent(event);
+    },
+    has(_target, prop: string) {
+      return prop in CATEGORY_EVENT || String(prop).toLowerCase() in CATEGORY_EVENT;
+    },
+    ownKeys() {
+      return Reflect.ownKeys(CATEGORY_EVENT);
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      if (typeof prop === 'string' && prop in CATEGORY_EVENT) {
+        return { configurable: true, enumerable: true, value: styleFromEvent(CATEGORY_EVENT[prop]) };
+      }
+      return undefined;
+    },
+  }
+);
 
 /** Legend categories shown on the calendar. */
 export const LEGEND_CATEGORIES = [
@@ -42,12 +106,20 @@ export const LEGEND_CATEGORIES = [
 ] as const;
 
 export const getTaskCategoryColor = (type?: string | null): string => {
-  if (!type) return '#6c757d';
-  const style = CATEGORY_STYLES[type] ?? CATEGORY_STYLES[type.toLowerCase()];
-  return style?.border ?? '#6c757d';
+  if (!type) return getCssToken('--status-neutral');
+  const event = CATEGORY_EVENT[type] ?? CATEGORY_EVENT[type.toLowerCase()];
+  if (event) return getEventCategoryColor(event);
+  return getCssToken('--status-neutral');
 };
 
 export const getTaskCategoryStyle = (type?: string | null): CategoryColorStyle | undefined => {
   if (!type) return undefined;
-  return CATEGORY_STYLES[type] ?? CATEGORY_STYLES[type.toLowerCase()];
+  const event = CATEGORY_EVENT[type] ?? CATEGORY_EVENT[type.toLowerCase()];
+  if (!event) return undefined;
+  return styleFromEvent(event);
+};
+
+export const resolveCategoryEventKey = (type?: string | null): EventCategoryKey | undefined => {
+  if (!type) return undefined;
+  return CATEGORY_EVENT[type] ?? CATEGORY_EVENT[type.toLowerCase()];
 };

@@ -93,7 +93,7 @@ public class ChronologioController : BaseApiController
         [FromQuery] string? category = null,
         CancellationToken cancellationToken = default)
     {
-        var periodYear = ChronologioAxis.IsSeason(axis) ? season ?? year : year ?? season;
+        var periodYear = ChronologioAxis.ResolvePeriodYear(axis, year, season);
         var summaries = await _chronologioService.GetMonthSummariesForFieldAsync(
             fieldId,
             UserContext.UserId,

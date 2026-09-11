@@ -10,26 +10,28 @@ import {
   DeviceEventEmitter,
   Image,
   ViewToken,
-  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
+import PageHeader from '../components/layout/PageHeader';
 import EmptyState from '../components/EmptyState';
 import ChronologioPeekSheet, {
   ChronologioPeekTarget,
 } from '../components/chronologio/ChronologioPeekSheet';
 import ChronologioComparePanel from '../components/chronologio/ChronologioComparePanel';
 import ChronologioEntryCard from '../components/chronologio/ChronologioEntryCard';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import Sheet from '../components/ui/Sheet';
+import AccentCard from '../components/ui/AccentCard';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
-import { typography, spacing } from '../theme';
+import { typography, spacing, radii } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { getChronologioService, getFieldService } from '../services/serviceFactory';
 import type {
@@ -78,8 +80,7 @@ const isRealMedia = (url?: string | null) => {
   return u.includes('/uploads/') || u.startsWith('file:') || u.startsWith('content:');
 };
 
-const isPeriodWeatherEntry = (e: ChronologioEntry) =>
-  e.eventType === 'weather.monthReview' || e.eventType === 'weather.yearReview';
+const isYearWeatherReview = (e: ChronologioEntry) => e.eventType === 'weather.yearReview';
 
 type ChronologioViewProps = {
   fieldId?: string;
@@ -366,7 +367,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         labels.push(label);
         months.push(ym);
         for (const e of d.entries) {
-          if (isPeriodWeatherEntry(e)) continue;
+          if (isYearWeatherReview(e)) continue;
           rows.push({ key: e.id, kind: 'entry', entry: e });
           labels.push(label);
           months.push(ym);
@@ -481,7 +482,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       : svc.getMyChronologio({ from, to, limit: 8, ...journalFilterParams });
     void req
       .then((rows) => {
-        const recent = rows.filter((e) => !isPeriodWeatherEntry(e)).slice(0, 5);
+        const recent = rows.filter((e) => !isYearWeatherReview(e)).slice(0, 5);
         setPeek((prev) =>
           prev?.mode === 'month' &&
           prev.summary.year === summary.year &&
@@ -531,82 +532,103 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         onPress: () => navigation.navigate('Main', { screen: 'Fields' }),
       };
 
+  const softSelected = {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.oliveBorder,
+  };
+  const softIdle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderLight,
+  };
+
   const body = (
     <>
       {embedded ? null : (
-        <ScreenHeader
+        <PageHeader
           title={t('chronologio:title')}
-          subtitle={fieldMode ? fieldName || t('chronologio:taglineField') : t('chronologio:taglineGlobal')}
-          actionLabel={capture ? t('capture:money.ctaPlus') : undefined}
-          onActionPress={
-            capture
-              ? () =>
+          subtitle={
+            fieldMode ? fieldName || t('chronologio:taglineField') : t('chronologio:taglineGlobal')
+          }
+          action={
+            capture ? (
+              <TouchableOpacity
+                onPress={() =>
                   capture.openCapture({
                     preferredType: 'money',
                     fieldId: fieldId || filterFieldId || undefined,
                   })
-              : undefined
+                }
+                style={[
+                  styles.headerAction,
+                  {
+                    backgroundColor: colors.primaryLight,
+                    borderColor: colors.oliveBorder,
+                    minHeight: Math.max(tapMin, 40),
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+                  {t('capture:money.ctaPlus')}
+                </Text>
+              </TouchableOpacity>
+            ) : undefined
           }
         />
       )}
 
-      <View style={[styles.zoomBar, { borderColor: colors.border }]}>
-        {ZOOM_DISPLAY_ORDER.map((z) => (
-          <TouchableOpacity
-            key={z}
-            style={[
-              styles.zoomLevel,
-              {
-                backgroundColor: zoom === z ? colors.primary : 'transparent',
-                minHeight: Math.max(tapMin, 44),
-              },
-            ]}
-            onPress={() => {
-              if (z === 'month') {
-                const now = new Date();
-                setMonthYear(now.getUTCFullYear());
-                setMonth(now.getUTCMonth() + 1);
-              }
-              setZoom(z);
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: zoom === z }}
-          >
-            <Text style={{ color: zoom === z ? '#fff' : colors.textPrimary, fontWeight: '600', fontSize: 14 }}>
-              {t(`chronologio:living.zoom.${z}`)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <SegmentedControl
+        fullWidth
+        value={zoom}
+        ariaLabel={t('chronologio:living.zoomLabel', { defaultValue: 'View' })}
+        style={{ marginBottom: spacing.md }}
+        options={ZOOM_DISPLAY_ORDER.map((z) => ({
+          value: z,
+          label: t(`chronologio:living.zoom.${z}`),
+        }))}
+        onChange={(z) => {
+          if (z === 'month') {
+            const now = new Date();
+            setMonthYear(now.getUTCFullYear());
+            setMonth(now.getUTCMonth() + 1);
+          }
+          setZoom(z);
+        }}
+      />
 
       <View style={styles.axisRow}>
         <TouchableOpacity
           style={[
             styles.axisChip,
-            {
-              borderColor: colors.border,
-              backgroundColor: axis === 'calendar' ? colors.primary + '22' : 'transparent',
-              minHeight: Math.max(tapMin, 44),
-            },
+            softIdle,
+            axis === 'calendar' ? softSelected : null,
+            { minHeight: Math.max(tapMin, 44) },
           ]}
           onPress={() => setAxis('calendar')}
         >
-          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+          <Text
+            style={{
+              color: axis === 'calendar' ? colors.primary : colors.textPrimary,
+              fontWeight: axis === 'calendar' ? '700' : '600',
+            }}
+          >
             {t('chronologio:living.axisCalendar')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.axisChip,
-            {
-              borderColor: colors.border,
-              backgroundColor: axis === 'season' ? colors.primary + '22' : 'transparent',
-              minHeight: Math.max(tapMin, 44),
-            },
+            softIdle,
+            axis === 'season' ? softSelected : null,
+            { minHeight: Math.max(tapMin, 44) },
           ]}
           onPress={() => setAxis('season')}
         >
-          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+          <Text
+            style={{
+              color: axis === 'season' ? colors.primary : colors.textPrimary,
+              fontWeight: axis === 'season' ? '700' : '600',
+            }}
+          >
             {t('chronologio:living.axisSeason')}
           </Text>
         </TouchableOpacity>
@@ -614,11 +636,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
           <TouchableOpacity
             style={[
               styles.axisChip,
-              {
-                borderColor: colors.border,
-                backgroundColor: compareOpen ? colors.primary + '22' : 'transparent',
-                minHeight: Math.max(tapMin, 44),
-              },
+              softIdle,
+              compareOpen ? softSelected : null,
+              { minHeight: Math.max(tapMin, 44) },
             ]}
             onPress={() => {
               if (!compareOpen) {
@@ -628,7 +648,12 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
               setCompareOpen((v) => !v);
             }}
           >
-            <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+            <Text
+              style={{
+                color: compareOpen ? colors.primary : colors.textPrimary,
+                fontWeight: compareOpen ? '700' : '600',
+              }}
+            >
               {t('chronologio:living.compare')}
             </Text>
           </TouchableOpacity>
@@ -636,9 +661,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         <TouchableOpacity
           style={[
             styles.axisChip,
+            softIdle,
+            filtersOpen || filtersDirty ? softSelected : null,
             {
-              borderColor: colors.border,
-              backgroundColor: filtersOpen || filtersDirty ? colors.primary + '22' : 'transparent',
               minHeight: Math.max(tapMin, 44),
               flexDirection: 'row',
               gap: 6,
@@ -652,7 +677,12 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             size={16}
             color={filtersDirty ? colors.primary : colors.textPrimary}
           />
-          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+          <Text
+            style={{
+              color: filtersDirty || filtersOpen ? colors.primary : colors.textPrimary,
+              fontWeight: filtersDirty || filtersOpen ? '700' : '600',
+            }}
+          >
             {t('chronologio:filters')}
           </Text>
         </TouchableOpacity>
@@ -663,20 +693,20 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
           <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 2 }}>
             {filterCategory !== 'all' ? (
               <TouchableOpacity
-                style={[styles.filterChip, { borderColor: colors.border, backgroundColor: colors.primary + '18' }]}
+                style={[styles.filterChip, softSelected]}
                 onPress={() => setFilterCategory('all')}
               >
-                <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 12 }}>
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
                   {t(`chronologio:categories.${filterCategory}`)} ×
                 </Text>
               </TouchableOpacity>
             ) : null}
             {lifecycleYear ? (
               <TouchableOpacity
-                style={[styles.filterChip, { borderColor: colors.border, backgroundColor: colors.primary + '18' }]}
+                style={[styles.filterChip, softSelected]}
                 onPress={() => setLifecycleYear('')}
               >
-                <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 12 }}>
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
                   {lifecycleYear === 'low'
                     ? t('chronologio:seasonLow')
                     : t('chronologio:seasonHigh')}{' '}
@@ -686,16 +716,16 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             ) : null}
             {!fieldMode && filterFieldId ? (
               <TouchableOpacity
-                style={[styles.filterChip, { borderColor: colors.border, backgroundColor: colors.primary + '18' }]}
+                style={[styles.filterChip, softSelected]}
                 onPress={() => setFilterFieldId('')}
               >
-                <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 12 }}>
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
                   {fields.find((f) => f.id === filterFieldId)?.name || filterFieldId} ×
                 </Text>
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
-              style={[styles.filterChip, { borderColor: colors.border }]}
+              style={[styles.filterChip, softIdle]}
               onPress={() => {
                 setFilterCategory('all');
                 setLifecycleYear('');
@@ -714,11 +744,8 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         <TouchableOpacity
           style={[
             styles.returnToday,
-            {
-              borderColor: colors.border,
-              backgroundColor: colors.surfaceElevated,
-              minHeight: Math.max(tapMin, 40),
-            },
+            softSelected,
+            { minHeight: Math.max(tapMin, 40) },
           ]}
           onPress={returnToToday}
         >
@@ -767,28 +794,38 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
               const metrics = yearFixedMetrics(item, numberLocale, tt);
               const weather = weatherFactBits(item, tt);
               return (
-                <TouchableOpacity
-                  style={styles.historyCard}
+                <AccentCard
+                  accentColor={isActive || isCurrent ? colors.primary : colors.oliveBorder}
                   onPress={() => {
                     setPeriodYear(item.periodYear);
                     openYearPeek(item);
                   }}
-                  accessibilityRole="button"
+                  style={styles.historyCard}
+                  padding="medium"
                 >
                   <View
                     style={[
                       styles.historyMedia,
                       {
-                        backgroundColor: colors.primary + '24',
-                        borderColor: isActive ? colors.primary : 'transparent',
+                        backgroundColor: colors.primaryLight,
+                        borderColor: isActive ? colors.oliveBorder : colors.borderLight,
                       },
                     ]}
                   >
                     {hero ? <Image source={{ uri: hero }} style={styles.historyHero} /> : null}
-                    <View style={styles.historyOverlay}>
-                      <Text style={styles.historyYear}>{item.periodYear}</Text>
+                    <View
+                      style={[
+                        styles.historyOverlay,
+                        { backgroundColor: colors.surface + 'E6' },
+                      ]}
+                    >
+                      <Text style={[styles.historyYear, { color: colors.textPrimary }]}>
+                        {item.periodYear}
+                      </Text>
                       {isCurrent ? (
-                        <Text style={styles.historyPill}>{t('chronologio:living.currentYear')}</Text>
+                        <Text style={[styles.historyPill, { color: colors.primary }]}>
+                          {t('chronologio:living.currentYear')}
+                        </Text>
                       ) : null}
                     </View>
                   </View>
@@ -807,7 +844,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                       {weather.join(' · ')}
                     </Text>
                   ) : null}
-                </TouchableOpacity>
+                </AccentCard>
               );
             }}
             ListFooterComponent={
@@ -864,10 +901,12 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
               const hero = isRealMedia(m.heroMediaUrl) ? m.heroMediaUrl : undefined;
               const facts = monthChapterFacts(m, numberLocale, tt);
               return (
-                <TouchableOpacity
+                <AccentCard
                   key={m.key}
-                  style={count === 0 ? styles.monthQuiet : styles.monthPoster}
+                  accentColor={isNow ? colors.primary : count === 0 ? colors.borderLight : colors.primary}
                   onPress={() => openMonthPeek(m)}
+                  style={count === 0 ? styles.monthQuiet : styles.monthPoster}
+                  padding={count === 0 ? 'small' : 'medium'}
                 >
                   {count === 0 ? (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
@@ -922,21 +961,24 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                       <View
                         style={[
                           styles.monthChapterMedia,
-                          { backgroundColor: colors.primary + '18' },
+                          {
+                            backgroundColor: colors.primaryLight,
+                            borderColor: colors.borderLight,
+                          },
                         ]}
                       >
                         {hero ? <Image source={{ uri: hero }} style={styles.historyHero} /> : null}
                       </View>
                     </View>
                   )}
-                </TouchableOpacity>
+                </AccentCard>
               );
             })}
         </ScrollView>
       ) : null}
 
       {!loading && zoom === 'month' ? (
-        entries.filter((e) => !isPeriodWeatherEntry(e)).length === 0 ? (
+        entries.filter((e) => !isYearWeatherReview(e)).length === 0 ? (
           <EmptyState
             title={t('chronologio:living.emptyMonthTitle')}
             description={t('chronologio:living.emptyMonthDescription')}
@@ -951,8 +993,8 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                   style={[
                     styles.stickyDate,
                     {
-                      backgroundColor: colors.surfaceElevated,
-                      borderColor: colors.border,
+                      backgroundColor: colors.surface,
+                      borderColor: colors.borderLight,
                     },
                   ]}
                 >
@@ -968,8 +1010,8 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                     style={[
                       styles.stickyWeatherBtn,
                       {
-                        backgroundColor: colors.surfaceElevated,
-                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                        borderColor: colors.borderLight,
                         minHeight: Math.max(tapMin, 32),
                       },
                     ]}
@@ -1032,146 +1074,173 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         )
       ) : null}
 
-      <Modal visible={filtersOpen} animationType="slide" transparent onRequestClose={() => setFiltersOpen(false)}>
-        <View style={styles.sheetBackdrop}>
-          <View style={[styles.filterSheet, { backgroundColor: colors.surfaceElevated }]}>
-            <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 18, marginBottom: 12 }}>
-              {t('chronologio:filters')}
+      <Sheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        edge="end"
+        title={t('chronologio:filters')}
+        accent
+        footer={
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={[
+                styles.filterAction,
+                {
+                  borderColor: colors.borderLight,
+                  borderWidth: 1,
+                  backgroundColor: colors.surface,
+                  minHeight: Math.max(tapMin, 44),
+                },
+              ]}
+              onPress={() => {
+                setFilterCategory('all');
+                setLifecycleYear('');
+                setFilterFieldId('');
+              }}
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                {t('chronologio:clearFilters')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterAction,
+                {
+                  backgroundColor: colors.primary,
+                  minHeight: Math.max(tapMin, 44),
+                  flex: 1,
+                },
+              ]}
+              onPress={() => setFiltersOpen(false)}
+            >
+              <Text style={{ color: colors.onOlive, fontWeight: '700' }}>
+                {t('chronologio:applyFilters')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        }
+      >
+        {!fieldMode && fields.length > 0 ? (
+          <>
+            <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
+              {t('chronologio:allFields')}
             </Text>
-            {!fieldMode && fields.length > 0 ? (
-              <>
-                <Text style={styles.filterLabel}>{t('chronologio:allFields')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      style={[
-                        styles.filterChip,
-                        {
-                          borderColor: colors.border,
-                          backgroundColor: !filterFieldId ? colors.primary + '22' : 'transparent',
-                        },
-                      ]}
-                      onPress={() => setFilterFieldId('')}
-                    >
-                      <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                        {t('chronologio:allFields')}
-                      </Text>
-                    </TouchableOpacity>
-                    {fields.map((f) => (
-                      <TouchableOpacity
-                        key={f.id}
-                        style={[
-                          styles.filterChip,
-                          {
-                            borderColor: colors.border,
-                            backgroundColor: filterFieldId === f.id ? colors.primary + '22' : 'transparent',
-                          },
-                        ]}
-                        onPress={() => setFilterFieldId(f.id)}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 99,
-                              backgroundColor: resolveFieldColor(f.color, f.id),
-                            }}
-                          />
-                          <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                            {f.name}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-              </>
-            ) : null}
-
-            <Text style={styles.filterLabel}>{t('chronologio:living.lifecycleYear')}</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-              {(
-                [
-                  { id: '' as const, label: t('chronologio:allSeasons') },
-                  { id: 'low' as const, label: t('chronologio:seasonLow') },
-                  { id: 'high' as const, label: t('chronologio:seasonHigh') },
-                ] as const
-              ).map((opt) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
-                  key={opt.id || 'all'}
                   style={[
                     styles.filterChip,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: lifecycleYear === opt.id ? colors.primary + '22' : 'transparent',
-                    },
+                    softIdle,
+                    !filterFieldId ? softSelected : null,
                   ]}
-                  onPress={() => setLifecycleYear(opt.id)}
+                  onPress={() => setFilterFieldId('')}
                 >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 13 }}>{opt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.filterLabel}>{t('chronologio:filtersTitle')}</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {FILTER_CATEGORIES.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[
-                    styles.filterChip,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: filterCategory === c ? colors.primary + '22' : 'transparent',
-                    },
-                  ]}
-                  onPress={() => setFilterCategory(c)}
-                >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                    {t(`chronologio:categories.${c}`)}
+                  <Text
+                    style={{
+                      color: !filterFieldId ? colors.primary : colors.textPrimary,
+                      fontWeight: !filterFieldId ? '700' : '600',
+                      fontSize: 13,
+                    }}
+                  >
+                    {t('chronologio:allFields')}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+                {fields.map((f) => (
+                  <TouchableOpacity
+                    key={f.id}
+                    style={[
+                      styles.filterChip,
+                      softIdle,
+                      filterFieldId === f.id ? softSelected : null,
+                    ]}
+                    onPress={() => setFilterFieldId(f.id)}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 99,
+                          backgroundColor: resolveFieldColor(f.color, f.id),
+                        }}
+                      />
+                      <Text
+                        style={{
+                          color: filterFieldId === f.id ? colors.primary : colors.textPrimary,
+                          fontWeight: filterFieldId === f.id ? '700' : '600',
+                          fontSize: 13,
+                        }}
+                      >
+                        {f.name}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </>
+        ) : null}
 
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                style={[
-                  styles.filterAction,
-                  {
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                    minHeight: Math.max(tapMin, 44),
-                  },
-                ]}
-                onPress={() => {
-                  setFilterCategory('all');
-                  setLifecycleYear('');
-                  setFilterFieldId('');
+        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
+          {t('chronologio:living.lifecycleYear')}
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          {(
+            [
+              { id: '' as const, label: t('chronologio:allSeasons') },
+              { id: 'low' as const, label: t('chronologio:seasonLow') },
+              { id: 'high' as const, label: t('chronologio:seasonHigh') },
+            ] as const
+          ).map((opt) => (
+            <TouchableOpacity
+              key={opt.id || 'all'}
+              style={[
+                styles.filterChip,
+                softIdle,
+                lifecycleYear === opt.id ? softSelected : null,
+              ]}
+              onPress={() => setLifecycleYear(opt.id)}
+            >
+              <Text
+                style={{
+                  color: lifecycleYear === opt.id ? colors.primary : colors.textPrimary,
+                  fontWeight: lifecycleYear === opt.id ? '700' : '600',
+                  fontSize: 13,
                 }}
               >
-                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                  {t('chronologio:clearFilters')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterAction,
-                  {
-                    backgroundColor: colors.primary,
-                    minHeight: Math.max(tapMin, 44),
-                    flex: 1,
-                  },
-                ]}
-                onPress={() => setFiltersOpen(false)}
-              >
-                <Text style={{ color: '#fff', fontWeight: '700' }}>{t('chronologio:applyFilters')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </Modal>
+
+        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
+          {t('chronologio:filtersTitle')}
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+          {FILTER_CATEGORIES.map((c) => (
+            <TouchableOpacity
+              key={c}
+              style={[
+                styles.filterChip,
+                softIdle,
+                filterCategory === c ? softSelected : null,
+              ]}
+              onPress={() => setFilterCategory(c)}
+            >
+              <Text
+                style={{
+                  color: filterCategory === c ? colors.primary : colors.textPrimary,
+                  fontWeight: filterCategory === c ? '700' : '600',
+                  fontSize: 13,
+                }}
+              >
+                {t(`chronologio:categories.${c}`)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Sheet>
 
       <ChronologioPeekSheet
         peek={
@@ -1205,24 +1274,18 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
 };
 
 const styles = StyleSheet.create({
-  zoomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerAction: {
     borderWidth: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  zoomLevel: {
-    flex: 1,
-    alignItems: 'center',
+    borderRadius: radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    alignItems: 'center',
   },
   axisRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   axisChip: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: 'center',
@@ -1230,7 +1293,7 @@ const styles = StyleSheet.create({
   returnToday: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 14,
     paddingVertical: 8,
     marginBottom: 10,
@@ -1238,22 +1301,22 @@ const styles = StyleSheet.create({
   historyCard: { marginBottom: 18 },
   historyMedia: {
     height: 112,
-    borderRadius: 14,
+    borderRadius: radii.xl,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 1,
     justifyContent: 'flex-end',
+    marginBottom: 4,
   },
   historyHero: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   historyOverlay: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: 'rgba(18,22,16,0.45)',
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 8,
   },
-  historyYear: { color: '#fff', fontSize: 28, fontWeight: '700', letterSpacing: -0.6 },
-  historyPill: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  historyYear: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6 },
+  historyPill: { fontSize: 12, fontWeight: '700' },
   metricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
   metricCell: { minWidth: '28%', flexGrow: 1 },
   monthPoster: { marginBottom: 16 },
@@ -1262,8 +1325,9 @@ const styles = StyleSheet.create({
   monthChapterMedia: {
     width: 88,
     height: 88,
-    borderRadius: 14,
+    borderRadius: radii.xl,
     overflow: 'hidden',
+    borderWidth: 1,
   },
   yearTitle: { ...typography.styles.h2, fontWeight: '800', marginBottom: 8 },
   dayLabel: {
@@ -1277,7 +1341,7 @@ const styles = StyleSheet.create({
   stickyDate: {
     maxWidth: '100%',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
     shadowColor: '#000',
@@ -1297,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   stickyWeatherBtn: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
     justifyContent: 'center',
@@ -1309,7 +1373,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -1319,25 +1383,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: 8,
-    opacity: 0.7,
-  },
-  filterSheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: spacing.lg,
-    maxHeight: '88%',
   },
   filterAction: {
-    borderRadius: 10,
+    borderRadius: radii.lg,
     paddingHorizontal: 14,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'flex-end',
   },
 });
 

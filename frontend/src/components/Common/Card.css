@@ -1,10 +1,14 @@
 .card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border-radius: 16px;
   box-shadow: var(--shadow-card);
-  border: 1px solid var(--color-border-light);
-  transition: background var(--transition-base), box-shadow var(--transition-base),
-    border-color var(--transition-base), transform var(--transition-ui, var(--transition-base));
+  border: 1px solid var(--border-subtle);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -15,10 +19,18 @@
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
+  background: var(--surface-hover);
+  border-color: var(--border-default);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-card-hover);
-  border-color: var(--color-primary-light);
-  background: var(--bg-card-hover);
+}
+
+.card-featured {
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-1) 68%);
+  border: 1px solid var(--olive-border);
+  box-shadow:
+    0 1px 3px rgba(10, 15, 9, 0.14),
+    0 12px 32px rgba(10, 15, 9, 0.10);
 }
 
 /* Card as Link */
@@ -62,29 +74,29 @@
 
 /* Header */
 .card-header {
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
 }
 
 .card-title {
   margin: 0;
   font-size: calc(1.25rem * var(--font-scale, 1));
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   line-height: 1.4;
 }
 
 .card-subtitle {
   margin: var(--spacing-xs) 0 0 0;
   font-size: calc(0.875rem * var(--font-scale, 1));
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
 /* Body */
 .card-body {
   flex: 1;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
 }
 
 .card-padding-none .card-body {
@@ -93,8 +105,8 @@
 
 /* Footer */
 .card-footer {
-  border-top: 1px solid var(--color-border-light);
-  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-2);
   margin-top: auto;
 }
 

@@ -62,6 +62,7 @@ describe('fieldWorkLearning', () => {
       isSelf: false,
     });
     expect(assigneeOptionKey(suggestAssigneeFromProfile(profile, 'T06', 'me'), 'me')).toBe('user:u-1');
+    expect(assigneeOptionKey(null, 'me')).toBe('user:me');
     expect(practiceKeyFromTemplate('T06')).toBe('pruning');
   });
 });

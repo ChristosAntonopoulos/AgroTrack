@@ -35,7 +35,7 @@ const TaskStatusStepper: React.FC<TaskStatusStepperProps> = ({ status }) => {
       {STEPS.map((step, idx) => {
         const done = currentIdx > idx;
         const active = currentIdx === idx;
-        const dotColor = done || active ? colors.primaryDark : colors.border;
+        const dotColor = done || active ? colors.primary : colors.border;
         const textColor = active ? colors.textPrimary : colors.textSecondary;
 
         return (
@@ -45,16 +45,20 @@ const TaskStatusStepper: React.FC<TaskStatusStepperProps> = ({ status }) => {
                 style={[
                   styles.dot,
                   {
-                    backgroundColor: done ? colors.primaryDark : colors.surfaceElevated,
-                    borderColor: dotColor,
+                    backgroundColor: done
+                      ? colors.primary
+                      : active
+                        ? colors.primaryLight
+                        : colors.surfaceElevated,
+                    borderColor: active ? colors.oliveBorder : dotColor,
                   },
-                  active && { borderWidth: 2, borderColor: colors.primaryDark },
+                  active && { borderWidth: 2, borderColor: colors.oliveBorder },
                 ]}
               >
                 {done ? (
-                  <Ionicons name="checkmark" size={12} color={colors.textInverse} />
+                  <Ionicons name="checkmark" size={12} color={colors.onOlive} />
                 ) : active ? (
-                  <View style={[styles.activeInner, { backgroundColor: colors.primaryDark }]} />
+                  <View style={[styles.activeInner, { backgroundColor: colors.primary }]} />
                 ) : null}
               </View>
               <Text style={[styles.label, { color: textColor, fontWeight: active ? '700' : '500' }]}>
@@ -65,7 +69,7 @@ const TaskStatusStepper: React.FC<TaskStatusStepperProps> = ({ status }) => {
               <View
                 style={[
                   styles.line,
-                  { backgroundColor: currentIdx > idx ? colors.primaryDark : colors.border },
+                  { backgroundColor: currentIdx > idx ? colors.primary : colors.border },
                 ]}
               />
             ) : null}

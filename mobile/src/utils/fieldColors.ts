@@ -55,10 +55,11 @@ export const resolveWeatherMood = (weather?: WeatherMoodInput | null): WeatherMo
   return 'mild';
 };
 
+/** Aligned with web weather tokens (--rain, --temperature, --frost, --weather-blue) */
 export const WEATHER_MOOD_COLORS: Record<WeatherMood, string> = {
-  wet: '#2D6A9F',
-  dry: '#C27803',
-  heat: '#C45C26',
-  frost: '#5B8FC7',
-  mild: '#5C6B8A',
+  wet: '#588EA5',
+  dry: '#CB8B55',
+  heat: '#C96656',
+  frost: '#8CA9BF',
+  mild: '#70A9BA',
 };

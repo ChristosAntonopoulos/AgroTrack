@@ -46,7 +46,9 @@ const TaskFormPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldId, setFieldId] = useState(fieldIdParam || proposal?.fieldId || '');
-  const [suggestedAssigneeKey, setSuggestedAssigneeKey] = useState('later');
+  const [suggestedAssigneeKey, setSuggestedAssigneeKey] = useState(
+    () => (user?.userId ? `user:${user.userId}` : 'later')
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -68,11 +70,12 @@ const TaskFormPage: React.FC = () => {
   }, [fieldIdParam, proposal?.fieldId, t]);
 
   useEffect(() => {
+    const meKey = user?.userId ? `user:${user.userId}` : 'later';
     if (!fieldId) {
       setPeople([]);
       setContacts([]);
       setWeather(null);
-      setSuggestedAssigneeKey('later');
+      setSuggestedAssigneeKey(meKey);
       return;
     }
     let cancelled = false;
@@ -97,7 +100,7 @@ const TaskFormPage: React.FC = () => {
         );
         setSuggestedAssigneeKey(assigneeOptionKey(suggestion, user?.userId));
       } else {
-        setSuggestedAssigneeKey('later');
+        setSuggestedAssigneeKey(meKey);
       }
     })();
     return () => {
@@ -105,18 +108,35 @@ const TaskFormPage: React.FC = () => {
     };
   }, [fieldId, mode, proposal?.templateCode, user?.userId]);
 
+  const capacityHint = (capacities: FieldMembership['capacities']): { group: AssigneeOption['group']; hint: string } => {
+    if (capacities.includes('work')) {
+      return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
+    }
+    if (capacities.includes('help')) {
+      return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
+    }
+    if (capacities.includes('advise')) {
+      return { group: 'partner', hint: t('fieldWork.form.assigneeHintAdvisor') };
+    }
+    return { group: 'partner', hint: t('fieldWork.form.collaborator') };
+  };
+
   const assigneeOptions = useMemo<AssigneeOption[]>(() => {
     const options: AssigneeOption[] = [
       {
         key: user?.userId ? `user:${user.userId}` : 'later',
         label: t('fieldWork.form.assigneeMe'),
+        group: 'self',
       },
     ];
     people.forEach((person) => {
       if (person.userId && person.userId === user?.userId) return;
+      const meta = capacityHint(person.capacities || []);
       options.push({
         key: `user:${person.userId}`,
         label: person.displayName || person.email || t('fieldWork.form.collaborator'),
+        hint: meta.hint,
+        group: meta.group,
       });
     });
     contacts.forEach((contact) => {
@@ -126,10 +146,15 @@ const TaskFormPage: React.FC = () => {
       options.push({
         key: `contact:${contact.id}`,
         label: contact.displayName,
-        hint: contact.phone || undefined,
+        hint: contact.phone || t('fieldWork.form.assigneeHintContact'),
+        group: 'contact',
       });
     });
-    options.push({ key: 'later', label: t('fieldWork.form.decideLater') });
+    options.push({
+      key: 'later',
+      label: t('fieldWork.form.decideLater'),
+      group: 'later',
+    });
     return options;
   }, [people, contacts, user?.userId, t]);
 

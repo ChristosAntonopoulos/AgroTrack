@@ -53,11 +53,11 @@ const FieldDetailToolbar: React.FC<FieldDetailToolbarProps> = ({ actions }) => {
               <Ionicons
                 name={action.icon}
                 size={20}
-                color={action.disabled ? colors.textTertiary : colors.primaryDark}
+                color={action.disabled ? colors.textTertiary : colors.primary}
               />
               {action.badge != null && action.badge > 0 ? (
                 <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                  <Text style={[styles.badgeText, { color: colors.textInverse }]}>
+                  <Text style={[styles.badgeText, { color: colors.onOlive }]}>
                     {action.badge > 9 ? '9+' : action.badge}
                   </Text>
                 </View>

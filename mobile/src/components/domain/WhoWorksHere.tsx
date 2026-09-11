@@ -49,7 +49,7 @@ const WhoWorksHere: React.FC<Props> = ({ people, compact = false, onPress, onAdd
                 },
               ]}
             >
-              <Ionicons name="person-outline" size={16} color={colors.primaryDark} />
+              <Ionicons name="person-outline" size={16} color={colors.primary} />
               <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 14 * fontScaleMultiplier }}>
                 {person.displayName}
               </Text>

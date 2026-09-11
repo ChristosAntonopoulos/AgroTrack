@@ -194,3 +194,132 @@
   font-weight: 650;
   color: color-mix(in srgb, var(--color-primary-light) 80%, var(--color-text-secondary));
 }
+
+.fields-map .leaflet-div-icon.fields-map-pin-wrap,
+.fields-map .leaflet-div-icon.fields-map-you-wrap {
+  background: transparent;
+  border: none;
+  overflow: visible;
+}
+
+.fields-map .leaflet-marker-icon {
+  overflow: visible !important;
+}
+
+.fields-map-pin {
+  --pin-color: var(--color-primary);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  width: max-content;
+  pointer-events: auto;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.42));
+  transform-origin: 14px 37px;
+}
+
+.fields-map-pin-mark {
+  display: block;
+  width: 28px;
+  height: 37px;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.fields-map-pin-mark svg {
+  display: block;
+}
+
+.fields-map-pin-label {
+  max-width: 11.5rem;
+  margin-bottom: 0.55rem;
+  padding: 0.22rem 0.58rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--pin-color) 62%, rgba(255, 255, 255, 0.28));
+  background: color-mix(in srgb, #10160e 82%, transparent);
+  color: #f6f3ea;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+}
+
+.fields-map-pin--hover,
+.fields-map-pin--selected {
+  z-index: 2;
+}
+
+.fields-map-pin--hover .fields-map-pin-label,
+.fields-map-pin--selected .fields-map-pin-label {
+  max-width: 14rem;
+  border-color: color-mix(in srgb, var(--pin-color) 85%, #fff);
+  background: color-mix(in srgb, #141c12 88%, var(--pin-color) 12%);
+}
+
+.fields-map-pin--flip {
+  flex-direction: row-reverse;
+}
+
+.fields-map-pin--selected {
+  transform: scale(1.08);
+}
+
+.fields-map-pin--selected .fields-map-pin-label {
+  font-size: 0.78rem;
+  padding: 0.26rem 0.7rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--pin-color) 45%, transparent),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.fields-map-you {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+
+.fields-map-you-dot {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7ec8ff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(12, 28, 48, 0.35);
+}
+
+.fields-map-you-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(126, 200, 255, 0.35);
+  animation: fields-map-you-pulse 1.8s ease-out infinite;
+}
+
+@keyframes fields-map-you-pulse {
+  from {
+    transform: scale(0.55);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fields-map-you-pulse {
+    animation: none;
+    opacity: 0.35;
+  }
+
+  .fields-map-pin--selected {
+    transform: none;
+  }
+}

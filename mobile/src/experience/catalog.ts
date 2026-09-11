@@ -24,9 +24,9 @@ export const isWidgetVisible = (
   return EVERYDAY_WIDGETS.has(widget);
 };
 
-/** Both modes: Today, Fields, Capture, Chronologio, More. Dashboard and Calendar stay off the visible nav. */
+/** Both modes: Chronologio, Fields, Capture, More. Dashboard and Calendar stay off the visible nav. */
 export const EVERYDAY_PRIMARY_TABS: ReadonlySet<string> = new Set([
-  'Today',
+  'ChronologioTab',
   'Fields',
   'Tasks',
   'More',

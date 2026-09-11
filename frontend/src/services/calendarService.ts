@@ -1,5 +1,6 @@
 import { getFieldWorkService } from './serviceFactory';
 import { getTaskCategoryColor } from '../utils/taskCategoryColors';
+import { getStatusPalette } from '../styles/colorTokens';
 import type { FieldTask } from './fieldWorkService';
 
 export interface CalendarEvent {
@@ -107,7 +108,9 @@ export const calendarService = {
               status: task.status,
               fieldId: task.fieldId,
               taskId: task.id,
-              color: daysUntilDeadline <= 3 ? '#dc3545' : '#ffc107',
+              color: daysUntilDeadline <= 3
+                ? getStatusPalette().danger
+                : getStatusPalette().warning,
             });
           }
         });
@@ -141,18 +144,19 @@ export const calendarService = {
 };
 
 function getTaskStatusColor(status: string): string {
+  const s = getStatusPalette();
   switch (status) {
     case 'planned':
     case 'ready':
     case 'pending':
-      return '#ffc107';
+      return s.warning;
     case 'in_progress':
-      return '#17a2b8';
+      return s.olive || s.info;
     case 'blocked':
-      return '#fd7e14';
+      return s.warning;
     case 'completed':
-      return '#28a745';
+      return s.success;
     default:
-      return '#6c757d';
+      return s.neutral;
   }
 }

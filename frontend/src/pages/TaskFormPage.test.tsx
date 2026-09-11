@@ -154,6 +154,40 @@ describe('TaskFormPage Phase 4', () => {
     expect(screen.queryByText(/T0\d/)).not.toBeInTheDocument();
   });
 
+  it('defaults assignee to me and opens people dropdown when requested', async () => {
+    mockGetPeople.mockResolvedValue([
+      {
+        userId: 'partner-1',
+        displayName: 'Κώστας',
+        capacities: ['work'],
+        status: 'Active',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    mockGetContacts.mockResolvedValue([
+      {
+        id: 'c-1',
+        displayName: 'Θείος Νίκος',
+        phone: '6900000000',
+        serviceCategoryIds: [],
+        fieldIds: ['field-1'],
+        source: 'Manual',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    renderForm('fieldId=field-1');
+
+    expect(await screen.findByRole('radio', { name: 'Εγώ' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText(/Θα την κάνεις εσύ/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Κάποιος άλλος' }));
+    const select = await screen.findByLabelText('Κάποιος άλλος');
+    expect(select).toBeInTheDocument();
+    expect(within(select).getByRole('option', { name: /Κώστας/ })).toBeInTheDocument();
+    expect(within(select).getByRole('option', { name: /Θείος Νίκος/ })).toBeInTheDocument();
+  });
+
   it('explains why the action is disabled until a date is chosen', async () => {
     renderForm();
     const title = await screen.findByLabelText('Τι χρειάζεται να γίνει;');
@@ -182,6 +216,7 @@ describe('TaskFormPage Phase 4', () => {
     expect(input.plannedStart).toMatch(/^20\d{2}-\d{2}-\d{2}T/);
     expect(input.title).toBe('Κλάδεμα των ξερών κλαδιών');
     expect(input.templateCode).toBeUndefined();
+    expect(input.assignedUserId).toBe('owner-1');
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.stringMatching(/^\/tasks\?view=planned&year=\d{4}&field=field-1&created=created-1$/)
     );
@@ -247,8 +282,8 @@ describe('TaskFormPage Phase 4', () => {
     expect(screen.queryByLabelText('Χρονιά αποτελέσματος')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: '+ Περισσότερες λεπτομέρειες' }));
     const year = await screen.findByLabelText('Χρονιά αποτελέσματος');
-    expect(year).toHaveValue('2027');
-    expect(within(year).getByRole('option', { name: '2026' })).toBeInTheDocument();
+    expect(year).toHaveValue('2026');
+    expect(within(year).getByRole('option', { name: '2027' })).toBeInTheDocument();
     expect(screen.getByText(/προηγούμενη συγκομιδή/)).toBeInTheDocument();
   });
 

@@ -22,7 +22,7 @@ const ExperienceModeToggle: React.FC<ExperienceModeToggleProps> = ({ compact = f
     if (mode === experienceMode) return;
     setExperienceMode(mode);
     if (mode === 'everyday' && !isEverydayAllowedPath(location.pathname)) {
-      navigate('/today');
+      navigate('/chronologio');
     }
     onChanged?.();
   };

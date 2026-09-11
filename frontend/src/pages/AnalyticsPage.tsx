@@ -15,6 +15,7 @@ import BarChart from '../components/Analytics/BarChart';
 import PieChart from '../components/Analytics/PieChart';
 import { TrendingUp, DollarSign, CheckCircle, Clock } from 'lucide-react';
 import { subDays, subMonths, subWeeks, startOfDay, endOfDay, format } from 'date-fns';
+import { getChartPalette } from '../styles/colorTokens';
 import './AnalyticsPage.css';
 
 type TimePeriod = 'week' | 'month' | 'quarter' | 'year';
@@ -228,7 +229,7 @@ const AnalyticsPage: React.FC = () => {
               <BarChart
                 data={costByFieldData}
                 xAxisKey="name"
-                bars={[{ dataKey: 'cost', name: 'Cost', color: '#2d5016' }]}
+                bars={[{ dataKey: 'cost', name: 'Cost', color: getChartPalette().gold }]}
                 title={t('costByField')}
               />
             </div>
@@ -237,14 +238,14 @@ const AnalyticsPage: React.FC = () => {
               <BarChart
                 data={costByTaskTypeData}
                 xAxisKey="name"
-                bars={[{ dataKey: 'cost', name: 'Cost', color: '#4a7c2a' }]}
+                bars={[{ dataKey: 'cost', name: 'Cost', color: getChartPalette().gold }]}
                 title="Cost by Task Type"
               />
               <LineChart
                 data={completionRateData}
                 dataKey="rate"
                 xAxisKey="month"
-                lines={[{ dataKey: 'rate', name: 'Completion Rate (%)', color: '#28a745' }]}
+                lines={[{ dataKey: 'rate', name: 'Completion Rate (%)', color: getChartPalette().olive }]}
                 title={t('monthlyCompletion')}
               />
             </div>

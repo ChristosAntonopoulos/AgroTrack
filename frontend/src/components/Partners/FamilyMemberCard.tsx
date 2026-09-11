@@ -13,6 +13,7 @@ import {
   familyService,
 } from '../../services/familyService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
+import { useDrawerPresence } from '../../hooks/useDrawerPresence';
 import '../../pages/PartnersPage.css';
 
 type Props = {
@@ -32,6 +33,8 @@ const FamilyMemberCard: React.FC<Props> = ({ member, canManage, onChanged }) => 
   const { t } = useTranslation(['partners', 'common']);
   const [editing, setEditing] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const editDrawer = useDrawerPresence(editing);
+  const shareDrawer = useDrawerPresence(sharing);
   const [name, setName] = useState(member.displayName);
   const [phone, setPhone] = useState(member.phone || '');
   const [email, setEmail] = useState(member.email || '');
@@ -154,8 +157,9 @@ const FamilyMemberCard: React.FC<Props> = ({ member, canManage, onChanged }) => 
         </div>
       </Card>
 
-      {editing ? (
+      {editDrawer.mounted ? (
         <PartnersSheet
+          open={editDrawer.open}
           title={t('partners:family.editAccess')}
           subtitle={member.displayName}
           onClose={() => setEditing(false)}
@@ -201,8 +205,9 @@ const FamilyMemberCard: React.FC<Props> = ({ member, canManage, onChanged }) => 
         </PartnersSheet>
       ) : null}
 
-      {sharing && member.pendingInvite ? (
+      {shareDrawer.mounted && member.pendingInvite ? (
         <PartnersSheet
+          open={shareDrawer.open}
           title={t('partners:family.reshare')}
           subtitle={member.displayName}
           onClose={() => setSharing(false)}

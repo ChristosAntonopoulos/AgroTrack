@@ -26,7 +26,7 @@ import './SettingsPage.css';
 type SaveStatus = 'idle' | 'saved' | 'error';
 
 const DATE_FORMAT_VALUES = ['dd/MM/yyyy', 'yyyy-MM-dd', 'medium'] as const;
-const START_VIEWS: DefaultView[] = ['today', 'fields', 'chronologio'];
+const START_VIEWS: DefaultView[] = ['chronologio', 'fields'];
 const THEME_OPTIONS: Theme[] = ['system', 'light', 'dark'];
 const SAMPLE_DATE = new Date(2026, 8, 9);
 
@@ -158,7 +158,7 @@ const SettingsPage: React.FC = () => {
 
   const startView = (START_VIEWS.includes(preferences.defaultView as DefaultView)
     ? preferences.defaultView
-    : 'today') as DefaultView;
+    : 'chronologio') as DefaultView;
 
   return (
     <PageContainer>

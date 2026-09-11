@@ -46,6 +46,11 @@ public static class ChronologioCategoryExtensions
         "activity" => ChronologioCategory.Activity,
         "collaborator" => ChronologioCategory.Collaborator,
         "lifecycle" => ChronologioCategory.Lifecycle,
+        "work" => ChronologioCategory.Task,
+        "observation" or "observations" => ChronologioCategory.Note,
+        "money" => ChronologioCategory.Expense,
+        "field_change" or "field-change" => ChronologioCategory.Lifecycle,
+        "weather_warning" => ChronologioCategory.Weather,
         _ => null
     };
 }

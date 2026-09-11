@@ -46,7 +46,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
       ]}
     >
       <View style={styles.header}>
-        <Ionicons name="time-outline" size={16} color={colors.primaryDark} />
+        <Ionicons name="time-outline" size={16} color={colors.primary} />
         <Text style={[styles.title, { color: colors.textPrimary }]}>
           {t('myActions.recentTitle', { defaultValue: t('recentActivity') })}
         </Text>

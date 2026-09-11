@@ -1,5 +1,6 @@
 import type { PathOptions } from 'leaflet';
 import { resolveFieldColor } from './fieldColors';
+import { getMapPalette, getCssToken } from '../styles/colorTokens';
 
 export type MapLayerType = 'satellite' | 'street' | 'terrain';
 
@@ -20,24 +21,55 @@ export const TERRAIN_TILE =
 export const TERRAIN_LABELS_TILE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}';
 
-export type FieldPolygonMode = 'default' | 'hover' | 'selected' | 'outline';
+export type FieldPolygonMode = 'default' | 'hover' | 'selected' | 'outline' | 'warning';
 
-/** Boundary fill/stroke from the field's own color (not a fixed green). */
+/** Boundary fill/stroke using map tokens + optional field accent. */
 export const fieldPolygonStyle = (
   color?: string | null,
   fieldId?: string | null,
   mode: FieldPolygonMode = 'default'
 ): PathOptions => {
-  const accent = resolveFieldColor(color, fieldId);
+  const map = getMapPalette();
+  const fieldAccent = resolveFieldColor(color, fieldId);
+  const boundary = map.boundary || fieldAccent;
+  const olive = getCssToken('--olive-primary') || boundary;
+
   switch (mode) {
     case 'hover':
-      return { color: accent, weight: 3, fillColor: accent, fillOpacity: 0.34 };
+      return {
+        color: boundary,
+        weight: 3,
+        fillColor: olive,
+        fillOpacity: 0.1,
+      };
     case 'selected':
-      return { color: accent, weight: 3.5, fillColor: accent, fillOpacity: 0.4 };
+      return {
+        color: boundary,
+        weight: 3.5,
+        fillColor: olive,
+        fillOpacity: 0.18,
+      };
+    case 'warning':
+      return {
+        color: map.warningOutline,
+        weight: 3,
+        fillColor: olive,
+        fillOpacity: 0.08,
+      };
     case 'outline':
-      return { color: accent, weight: 3, fillColor: accent, fillOpacity: 0 };
+      return {
+        color: boundary,
+        weight: 3,
+        fillColor: olive,
+        fillOpacity: 0,
+      };
     default:
-      return { color: accent, weight: 2.5, fillColor: accent, fillOpacity: 0.28 };
+      return {
+        color: fieldAccent || map.otherOutline,
+        weight: 2.5,
+        fillColor: fieldAccent || olive,
+        fillOpacity: 0.12,
+      };
   }
 };
 

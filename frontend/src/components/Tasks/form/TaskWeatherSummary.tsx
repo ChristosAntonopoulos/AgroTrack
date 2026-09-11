@@ -17,7 +17,11 @@ interface TaskWeatherSummaryProps {
 
 const TaskWeatherSummary: React.FC<TaskWeatherSummaryProps> = ({ templateCode, weather }) => {
   const { t, i18n } = useTranslation('tasks');
-  const stub = { templateCode: templateCode || '' } as unknown as TaskProposal;
+  const stub = {
+    templateCode: templateCode || '',
+    sourceType: '',
+    reasonCodes: [] as string[],
+  } as unknown as TaskProposal;
   const evaluated = evaluateProposalWeather(stub, weather);
   if (evaluated.kind === 'not_sensitive') return null;
 

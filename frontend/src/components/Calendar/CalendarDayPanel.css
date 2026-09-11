@@ -1,9 +1,15 @@
 .cal-day-panel {
   display: flex;
   flex-direction: column;
-  background: var(--bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--olive-soft, #e7edde) 22%, var(--surface-1)) 0%,
+      var(--surface-1) 6rem
+    );
+  border: 1px solid var(--border-default, var(--color-border));
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   min-height: 0;
 }
@@ -19,24 +25,25 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--bg-section);
+  padding: 1.1rem 1.15rem 0.95rem;
+  border-bottom: 1px solid var(--border-subtle, var(--color-border-light));
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
 }
 
 .cal-day-panel-weekday {
   margin: 0 0 2px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
+  letter-spacing: 0.06em;
+  color: var(--olive-primary);
 }
 
 .cal-day-panel-date {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
   color: var(--color-text-primary);
 }
 
@@ -47,22 +54,8 @@
   line-height: 1.4;
 }
 
-.cal-day-panel-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.cal-day-panel-close:hover {
-  color: var(--color-text-primary);
-  border-color: var(--color-border-hover);
+.cal-day-panel--drawer .oa-drawer-handle {
+  display: none;
 }
 
 .cal-day-panel-body {
@@ -203,8 +196,12 @@
     inset: auto 0 0 0;
     top: auto;
     z-index: var(--z-modal);
-    max-height: 75vh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    box-shadow: var(--shadow-xl);
+    max-height: min(92dvh, 100dvh);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -18px 52px rgba(10, 15, 9, 0.22);
+  }
+
+  .cal-day-panel--drawer .oa-drawer-handle {
+    display: block;
   }
 }

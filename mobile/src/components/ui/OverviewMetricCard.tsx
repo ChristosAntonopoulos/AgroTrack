@@ -33,7 +33,7 @@ const OverviewMetricCard: React.FC<OverviewMetricCardProps> = ({
   width,
 }) => {
   const { colors } = useTheme();
-  const accent = accentColor ?? colors.primaryDark;
+  const accent = accentColor ?? colors.primary;
   const subColor = subtitleColor ?? colors.textTertiary;
 
   const body = (

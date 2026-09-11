@@ -1,7 +1,14 @@
 :root {
-  --oleachron-deep-olive: #2E4A2E;
-  --oleachron-sage: #6B7F5E;
-  --oleachron-cream: #F8F7EE;
-  --oleachron-beige: #D9D5C3;
-  --oleachron-gold: #B8A373;
+  --oleachron-olive: #536B3F;
+  --oleachron-sage: #9AAA85;
+  --oleachron-leaf: #71845B;
+  --oleachron-deep-grove: #29382A;
+  --oleachron-warm-stone: #D9D5C8;
+  --oleachron-limestone: #F4F3EC;
+  --oleachron-gold: #B09A63;
+  /* Legacy aliases */
+  --oleachron-deep-olive: #29382A;
+  --oleachron-cream: #F4F3EC;
+  --oleachron-beige: #D9D5C8;
+  --oleachron-heritage-gold: #B09A63;
 }

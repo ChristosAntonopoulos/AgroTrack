@@ -9,6 +9,7 @@ import { getNoteService } from '../../services/serviceFactory';
 import { Note, notePreviewTitle } from '../../services/noteService';
 import NoteSheet from './NoteSheet';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useDrawerPresence } from '../../hooks/useDrawerPresence';
 import { CAPTURE_SAVED_EVENT, type CaptureSavedDetail } from '../../capture/types';
 import './DashboardWidgets.css';
 
@@ -32,6 +33,7 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({
   const [notes, setNotes] = useState<Note[]>([]);
   const [editing, setEditing] = useState<Note | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const noteDrawer = useDrawerPresence(sheetOpen && editing ? editing : null);
 
   const load = useCallback(async () => {
     try {
@@ -113,9 +115,10 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({
         </ul>
       )}
 
-      {sheetOpen && editing ? (
+      {noteDrawer.mounted && noteDrawer.value ? (
         <NoteSheet
-          note={editing}
+          open={noteDrawer.open}
+          note={noteDrawer.value}
           fields={[]}
           onClose={() => {
             setSheetOpen(false);

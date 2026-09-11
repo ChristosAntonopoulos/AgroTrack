@@ -21,6 +21,7 @@ import CalendarLegend from '../components/Calendar/CalendarLegend';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import SegmentedControl from '../components/Common/SegmentedControl';
 import {
   addDays,
   addMonths,
@@ -229,21 +230,21 @@ const CalendarPage: React.FC = () => {
           </div>
 
           {!isEveryday ? (
-          <div className="calendar-view-toggle" role="tablist" aria-label={t('viewModeAria')}>
-            {viewTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={viewMode === tab.id}
-                className={viewMode === tab.id ? 'active' : ''}
-                onClick={() => setViewMode(tab.id)}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
+            <SegmentedControl
+              role="tablist"
+              ariaLabel={t('viewModeAria')}
+              value={viewMode}
+              onChange={setViewMode}
+              options={viewTabs.map((tab) => ({
+                value: tab.id,
+                label: (
+                  <>
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </>
+                ),
+              }))}
+            />
           ) : null}
         </div>
 
@@ -260,7 +261,7 @@ const CalendarPage: React.FC = () => {
         {drawerOpen && isMobile && (
           <button
             type="button"
-            className="calendar-drawer-backdrop"
+            className="oa-drawer-backdrop calendar-drawer-backdrop"
             aria-label={t('closePanel')}
             onClick={() => setDrawerOpen(false)}
           />

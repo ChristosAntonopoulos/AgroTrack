@@ -7,16 +7,16 @@
   --login-panel-border: color-mix(in srgb, #d4c4a0 22%, transparent);
   --login-chrome-text: #f5f0e6;
   --login-chrome-muted: color-mix(in srgb, #f5f0e6 72%, transparent);
-  --login-card-bg: #ffffff;
-  --login-card-border: color-mix(in srgb, var(--color-primary) 10%, #e8e4dc);
-  --login-card-shadow: 0 24px 60px rgba(15, 26, 10, 0.22);
-  --login-surface: #f7f6f2;
-  --login-input-bg: #ffffff;
-  --login-input-border: #d8d4c8;
-  --login-text: #1a1f16;
-  --login-text-muted: #5c6356;
-  --login-link: var(--color-primary);
-  --login-link-hover: var(--color-primary-light);
+  --login-card-bg: var(--surface-1, #FFFEFA);
+  --login-card-border: var(--border-default);
+  --login-card-shadow: var(--shadow-floating);
+  --login-surface: var(--surface-2, #F7F6EF);
+  --login-input-bg: var(--surface-1, #FFFEFA);
+  --login-input-border: var(--border-default);
+  --login-text: var(--text-primary, #252A23);
+  --login-text-muted: var(--text-secondary, #50594C);
+  --login-link: var(--link, #486235);
+  --login-link-hover: var(--link-hover, #334A25);
   --login-card-max: 460px;
 
   position: relative;
@@ -26,21 +26,21 @@
 }
 
 .login-page--dark {
-  --login-overlay-left: rgba(8, 12, 6, 0.72);
-  --login-overlay-mid: rgba(12, 18, 8, 0.45);
-  --login-overlay-right: rgba(6, 10, 5, 0.9);
-  --login-panel-bg: color-mix(in srgb, #0a1008 88%, var(--color-primary));
-  --login-panel-border: color-mix(in srgb, #c4b896 14%, transparent);
-  --login-card-bg: #2a3124;
-  --login-card-border: color-mix(in srgb, #c4b896 18%, #1a2016);
-  --login-card-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-  --login-surface: #222a1c;
-  --login-input-bg: #1a2016;
-  --login-input-border: #3d4634;
-  --login-text: #f0ebe0;
-  --login-text-muted: #a8a090;
-  --login-link: #9ab973;
-  --login-link-hover: #b8c98a;
+  --login-overlay-left: rgba(7, 10, 7, 0.72);
+  --login-overlay-mid: rgba(7, 10, 7, 0.45);
+  --login-overlay-right: rgba(7, 10, 7, 0.9);
+  --login-panel-bg: var(--bg-sidebar, #1A1E1A);
+  --login-panel-border: var(--olive-border);
+  --login-card-bg: var(--surface-1, #202520);
+  --login-card-border: var(--border-default);
+  --login-card-shadow: var(--shadow-floating);
+  --login-surface: var(--surface-2, #272D27);
+  --login-input-bg: var(--surface-2, #272D27);
+  --login-input-border: var(--border-default);
+  --login-text: var(--text-primary, #F3F4EF);
+  --login-text-muted: var(--text-muted, #9DA699);
+  --login-link: var(--link, #A9BE91);
+  --login-link-hover: var(--link-hover, #C5D5B3);
 }
 
 .login-page-bg {

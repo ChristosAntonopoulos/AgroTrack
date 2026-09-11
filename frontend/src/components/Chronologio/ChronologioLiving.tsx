@@ -15,15 +15,34 @@ import ChronologioPeekDrawer from './ChronologioPeekDrawer';
 import type { ChronologioPeekTarget } from './ChronologioPeekDrawer';
 import ChronologioDateRail from './ChronologioDateRail';
 import ChronologioCompare from './ChronologioCompare';
+import TodaySummary from './TodaySummary';
 import { getChronologioService, getFieldService } from '../../services/serviceFactory';
+import { geospatialService } from '../../services/geospatialService';
+import { useTodaySummary } from '../../chronologio/useTodaySummary';
+import { dayWeatherDateKey, type DayWeatherInput } from '../../chronologio/dayWeather';
 import type {
   ChronologioEntry,
   ChronologioMonthSummary,
   ChronologioPeriodSummary,
+  ChronologioWeatherDetails,
 } from '../../services/chronologioService';
 import type { Field } from '../../services/fieldService';
-import { calendarMonthBounds, focusDateForPeriod, toIsoDate } from '../../chronologio/livingTypes';
+import {
+  calendarMonthBounds,
+  focusDateForPeriod,
+  getPeriodYear,
+  periodBounds,
+  toIsoDate,
+  VIEW_PANEL_ID,
+  viewFromZoom,
+} from '../../chronologio/livingTypes';
+import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
+import {
+  ensureCurrentAgriculturalYear,
+  previousYearSummary,
+} from '../../chronologio/yearPresentation';
 import { PAGE_SIZE } from '../../utils/chronologioGrouping';
+import { uniqueChronologioEntries } from '../../utils/chronologioUnique';
 import { useChronologioLivingState } from '../../chronologio/useChronologioLivingState';
 import type { SupportedLocale } from '../../i18n/config';
 import { useCaptureOptional } from '../../context/CaptureContext';
@@ -61,6 +80,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const [compareLeftMonths, setCompareLeftMonths] = useState<ChronologioMonthSummary[]>([]);
   const [compareRightMonths, setCompareRightMonths] = useState<ChronologioMonthSummary[]>([]);
   const [monthEntries, setMonthEntries] = useState<ChronologioEntry[]>([]);
+  const [yearEntries, setYearEntries] = useState<ChronologioEntry[]>([]);
   const [journalHasMore, setJournalHasMore] = useState(false);
   const [journalLoadingMore, setJournalLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,6 +91,8 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     | { mode: 'month'; year: number; month: number }
     | { mode: 'year'; periodYear: number }
     | { mode: 'monthWeather'; year: number; month: number }
+    | { mode: 'dayWeather'; year: number; month: number; dateKey: string }
+    | { mode: 'todayWeather' }
     | null
   >(null);
   const [peekMonths, setPeekMonths] = useState<ChronologioMonthSummary[]>([]);
@@ -79,6 +101,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const [peekWeatherReviews, setPeekWeatherReviews] = useState<ChronologioEntry[]>([]);
   const [peekWeatherLoading, setPeekWeatherLoading] = useState(false);
   const [weatherEventPeek, setWeatherEventPeek] = useState<ChronologioEntry | null>(null);
+  const [yearWeatherReviews, setYearWeatherReviews] = useState<ChronologioEntry[]>([]);
   const journalLoadLock = useRef(false);
 
   const scopedFieldId = fieldMode ? fieldId : living.filters.fieldId;
@@ -142,7 +165,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         axis: living.axis,
         category: living.filters.category === 'all' ? undefined : living.filters.category,
         fieldId: !fieldMode ? living.filters.fieldId : undefined,
-        year: living.axis === 'calendar' ? periodYear : undefined,
+        year: living.axis === 'season' ? undefined : periodYear,
         season: living.axis === 'season' ? periodYear : undefined,
       };
       if (scopedFieldId) return svc.getFieldMonthSummaries(scopedFieldId, filters);
@@ -152,6 +175,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   );
 
   const isLiveJournalMonth = living.monthYear === nowYear && living.month === nowMonth;
+  const showTodaySummary = living.zoom === 'month' && isLiveJournalMonth && !living.compareOpen;
 
   const fetchJournalPage = useCallback(
     async (offset: number) => {
@@ -204,10 +228,30 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         if (living.zoom === 'month') {
           const entries = await fetchJournalPage(0);
           if (cancelled) return;
-          setMonthEntries(entries);
+          setMonthEntries(uniqueChronologioEntries(entries));
           setJournalHasMore(entries.length >= PAGE_SIZE);
+          setYearEntries([]);
+        } else if (living.zoom === 'year') {
+          const { from, to } = periodBounds(living.periodYear, living.axis);
+          const svc = getChronologioService();
+          const filters = {
+            from,
+            to,
+            category: living.filters.category === 'all' ? undefined : living.filters.category,
+            lifecycleYear: living.filters.lifecycleYear || undefined,
+            fieldId: !fieldMode ? living.filters.fieldId : undefined,
+            limit: 200,
+          };
+          const yearRows = scopedFieldId
+            ? await svc.getFieldChronologio(scopedFieldId, filters)
+            : await svc.getMyChronologio(filters);
+          if (cancelled) return;
+          setYearEntries(uniqueChronologioEntries(yearRows));
+          setMonthEntries([]);
+          setJournalHasMore(false);
         } else {
           setMonthEntries([]);
+          setYearEntries([]);
         }
       } catch (err) {
         if (!cancelled) {
@@ -215,6 +259,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
           setYearSummaries([]);
           setMonthSummaries([]);
           setMonthEntries([]);
+          setYearEntries([]);
           setJournalHasMore(false);
         }
       } finally {
@@ -228,11 +273,17 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     fetchJournalPage,
     fetchMonths,
     fetchYears,
+    fieldMode,
+    living.axis,
     living.compareOpen,
-    living.periodYear,
+    living.filters.category,
+    living.filters.fieldId,
+    living.filters.lifecycleYear,
+    living.zoom === 'year' || living.compareOpen ? living.periodYear : 0,
     living.zoom,
     loadErrorMessage,
     reloadToken,
+    scopedFieldId,
   ]);
 
   const loadMoreJournal = useCallback(async () => {
@@ -243,10 +294,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     setJournalLoadingMore(true);
     try {
       const next = await fetchJournalPage(monthEntries.length);
-      setMonthEntries((prev) => {
-        const seen = new Set(prev.map((e) => e.id));
-        return [...prev, ...next.filter((e) => !seen.has(e.id))];
-      });
+      setMonthEntries((prev) => uniqueChronologioEntries([...prev, ...next]));
       setJournalHasMore(next.length >= PAGE_SIZE);
       if (next.length === 0) setJournalHasMore(false);
     } catch {
@@ -304,20 +352,31 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
 
   useEffect(() => {
     const away =
-      living.periodYear !== nowYear ||
+      living.periodYear !== getPeriodYear(new Date(), living.axis) ||
       (living.zoom === 'month' &&
         (living.monthYear !== nowYear || living.month !== nowMonth));
     setShowReturnToday(away);
-  }, [living.month, living.monthYear, living.periodYear, living.zoom, nowMonth, nowYear]);
+  }, [living.axis, living.month, living.monthYear, living.periodYear, living.zoom, nowMonth, nowYear]);
 
-  const activePeriod = useMemo(
-    () => yearSummaries.find((y) => y.periodYear === living.periodYear) || null,
-    [living.periodYear, yearSummaries]
-  );
+  const weatherByMonth = useMemo(() => {
+    const map: Record<string, ChronologioWeatherDetails> = {};
+    for (const row of yearWeatherReviews) {
+      const y = row.details.weather?.year;
+      const m = row.details.weather?.month;
+      if (y == null || m == null || !row.details.weather) continue;
+      const key = `${y}-${String(m).padStart(2, '0')}`;
+      if (!map[key]) map[key] = row.details.weather;
+    }
+    return map;
+  }, [yearWeatherReviews]);
 
   const selectedEntry = useMemo(
-    () => monthEntries.find((e) => e.id === living.selectedEntryId) || null,
-    [living.selectedEntryId, monthEntries]
+    () =>
+      monthEntries.find((e) => e.id === living.selectedEntryId) ||
+      yearEntries.find((e) => e.id === living.selectedEntryId) ||
+      yearWeatherReviews.find((e) => e.id === living.selectedEntryId) ||
+      null,
+    [living.selectedEntryId, monthEntries, yearEntries, yearWeatherReviews]
   );
 
   useEffect(() => {
@@ -437,14 +496,52 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     };
   }, [chapterPeek, fieldId, fieldMode, scopedFieldId]);
 
+  useEffect(() => {
+    if (living.zoom !== 'year') {
+      setYearWeatherReviews([]);
+      return;
+    }
+    let cancelled = false;
+    const { from, to } = periodBounds(living.periodYear, living.axis);
+    const svc = getChronologioService();
+    const filters = {
+      from,
+      to,
+      category: 'weather' as const,
+      limit: 80,
+      ...(scopedFieldId && !fieldMode ? { fieldId: scopedFieldId } : {}),
+    };
+    const request =
+      fieldMode && fieldId
+        ? svc.getFieldChronologio(fieldId, filters)
+        : svc.getMyChronologio(filters);
+    void request
+      .then((rows) => {
+        if (!cancelled) {
+          setYearWeatherReviews(rows.filter((e) => e.eventType === 'weather.monthReview'));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setYearWeatherReviews([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldId, fieldMode, living.axis, living.periodYear, living.zoom, scopedFieldId]);
+
   const peekTarget: ChronologioPeekTarget | null = useMemo(() => {
     if (weatherEventPeek) return { mode: 'event', entry: weatherEventPeek };
     if (selectedEntry) return { mode: 'event', entry: selectedEntry };
     if (chapterPeek?.mode === 'year') {
-      const summary =
-        yearSummaries.find((y) => y.periodYear === chapterPeek.periodYear) || null;
+      const rows = ensureCurrentAgriculturalYear(yearSummaries);
+      const summary = rows.find((y) => y.periodYear === chapterPeek.periodYear) || null;
       if (!summary) return null;
-      return { mode: 'year', summary, months: peekMonths.length ? peekMonths : monthSummaries };
+      return {
+        mode: 'year',
+        summary,
+        previous: previousYearSummary(rows, summary.periodYear),
+        months: peekMonths.length ? peekMonths : monthSummaries,
+      };
     }
     if (chapterPeek?.mode === 'month') {
       const summary =
@@ -514,18 +611,156 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     !loading &&
     !error &&
     yearSummaries.length === 0 &&
-    monthEntries.length === 0;
+    monthEntries.length === 0 &&
+    !showTodaySummary;
 
-  const cta =
-    fieldMode && fieldId ? (
-      <Button variant="primary" onClick={() => capture?.openCapture({ fieldId })}>
-        {t('capture:cta')}
-      </Button>
-    ) : (
-      <Button to="/fields" variant="primary">
-        {t('chronologio:ctaViewFields')}
-      </Button>
+  const cta = capture ? (
+    <Button
+      variant="primary"
+      onClick={() => capture.openCapture({ fieldId: scopedFieldId || fieldId })}
+    >
+      {t('capture:ctaPlus')}
+    </Button>
+  ) : fieldMode && fieldId ? (
+    <Button variant="primary" to={`/fields/${fieldId}`}>
+      {t('chronologio:backToField')}
+    </Button>
+  ) : (
+    <Button to="/fields" variant="primary">
+      {t('chronologio:ctaViewFields')}
+    </Button>
+  );
+
+  const today = useTodaySummary({
+    enabled: showTodaySummary && !loading && !error,
+    fieldId: scopedFieldId,
+    fields,
+  });
+
+  const [weatherByDate, setWeatherByDate] = useState<Record<string, DayWeatherInput>>({});
+
+  useEffect(() => {
+    const weatherField = scopedFieldId || fields[0]?.id;
+    if (!weatherField || living.zoom !== 'month') return;
+    const dates = monthEntries
+      .map((e) => dayWeatherDateKey(e.occurredAt))
+      .filter(Boolean)
+      .sort();
+    if (dates.length === 0 && !isLiveJournalMonth) return;
+    const from = dates[0] || todayIso;
+    const to = todayIso;
+    let cancelled = false;
+    void geospatialService
+      .getWeatherHistory(weatherField, from, to)
+      .then((rows) => {
+        if (cancelled) return;
+        const next: Record<string, DayWeatherInput> = {};
+        for (const row of rows) {
+          next[dayWeatherDateKey(row.date)] = {
+            minC: row.minTemperatureC,
+            maxC: row.maxTemperatureC,
+            rainMm: row.rainTotalMm,
+            et0Mm: row.et0Mm,
+          };
+        }
+        setWeatherByDate(next);
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherByDate({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fields, isLiveJournalMonth, living.zoom, monthEntries, scopedFieldId, todayIso]);
+
+  const todayWeather: DayWeatherInput | null = today.weather
+    ? {
+        currentC: today.weather.temperature,
+        minC: today.weather.low,
+        maxC: today.weather.high,
+        rainMm: today.fieldWeather?.current?.precipitationMm ?? today.weather.precipitation,
+        windKmh: today.weather.windSpeed,
+        gustKmh: today.fieldWeather?.current?.windGustKmh,
+        humidityPercent: today.fieldWeather?.current?.humidityPercent,
+        et0Mm: today.fieldWeather?.evapotranspiration?.todayMm,
+        source: today.fieldWeather?.metadata?.source,
+        updatedAt: today.fieldWeather?.lastUpdatedAt,
+        frost: Boolean(
+          today.fieldWeather?.frost?.level &&
+            today.fieldWeather.frost.level !== 'None' &&
+            today.fieldWeather.frost.level !== 'Low'
+        ),
+      }
+    : null;
+
+  const resolvedPeek: ChronologioPeekTarget | null = useMemo(() => {
+    if (chapterPeek?.mode === 'todayWeather') {
+      const groves = fields.filter((f) => {
+        if (f.status === 'Draft' || f.status === 'Archived') return false;
+        const placed = f.latitude != null || Boolean(f.boundary);
+        if (!placed) return false;
+        return Boolean(
+          f.variety ||
+            f.oliveVariety ||
+            f.id === today.weatherFieldId ||
+            monthEntries.some((e) => e.fieldId === f.id)
+        );
+      });
+      const visible = scopedFieldId ? fields.filter((f) => f.id === scopedFieldId) : groves;
+      return {
+        mode: 'todayWeather',
+        fields: visible.map((f) => ({
+          id: f.id,
+          name: f.name,
+          color: f.color,
+          status: f.status,
+          hasPlace: f.latitude != null || Boolean(f.boundary),
+        })),
+        primaryFieldId: scopedFieldId || today.weatherFieldId || visible[0]?.id,
+        seed:
+          today.fieldWeather && today.weatherFieldId
+            ? { fieldId: today.weatherFieldId, weather: today.fieldWeather }
+            : undefined,
+      };
+    }
+    if (chapterPeek?.mode !== 'dayWeather') return peekTarget;
+    const weatherField =
+      fields.find((f) => f.id === scopedFieldId) ||
+      fields.find((f) => f.id === today.weatherFieldId) ||
+      fields[0];
+    const events = monthEntries.filter(
+      (e) =>
+        dayWeatherDateKey(e.occurredAt) === chapterPeek.dateKey &&
+        e.eventType !== 'weather.monthReview' &&
+        e.eventType !== 'weather.yearReview'
     );
+    const weather =
+      (chapterPeek.dateKey === todayIso && todayWeather) ||
+      weatherByDate[chapterPeek.dateKey] ||
+      null;
+    return {
+      mode: 'dayWeather',
+      dateKey: chapterPeek.dateKey,
+      year: chapterPeek.year,
+      month: chapterPeek.month,
+      weather,
+      fieldId: weatherField?.id,
+      fieldName: weatherField?.name,
+      fieldColor: weatherField?.color,
+      events,
+    };
+  }, [
+    chapterPeek,
+    fields,
+    monthEntries,
+    peekTarget,
+    scopedFieldId,
+    today.fieldWeather,
+    today.weatherFieldId,
+    todayIso,
+    todayWeather,
+    weatherByDate,
+  ]);
 
   const scrollToYearChapter = useCallback(
     (periodYear: number) => {
@@ -542,7 +777,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const returnToToday = useCallback(() => {
     living.setFocusDate(todayIso);
     if (living.zoom === 'years') {
-      const el = document.getElementById(`chrono-year-${nowYear}`);
+      const el = document.getElementById(`chrono-year-${agriculturalYearFor(new Date())}`);
       el?.scrollIntoView({
         block: 'center',
         behavior: reduceMotion ? 'auto' : 'smooth',
@@ -563,16 +798,13 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         fieldId={fieldId}
         fields={fields}
         filters={living.filters}
-        axis={living.axis}
         zoom={living.zoom}
         compareOpen={living.compareOpen}
         embedded={embedded}
         onBack={embedded || !fieldId ? undefined : () => navigate(`/fields/${fieldId}`)}
         onSetZoom={living.setZoom}
         onOpenJournal={living.openJournal}
-        onSetAxis={living.setAxis}
         onSetFilters={living.setFilters}
-        onClearFilters={living.clearFilters}
         onCompareToggle={() => living.setCompareOpen(!living.compareOpen)}
       />
 
@@ -622,11 +854,14 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       ) : null}
 
       {!loading && !error && !living.compareOpen && !empty ? (
-        <div className="chronologio-layout chrono-living-layout">
+        <div className={`chronologio-layout chrono-living-layout${living.zoom !== 'years' && yearSummaries.length >= 5 ? ' has-date-rail' : ''}`}>
           <div className="chronologio-main chrono-living-main">
             <AnimatePresence mode="wait">
               <motion.div
                 key={living.zoom}
+                id={VIEW_PANEL_ID[viewFromZoom(living.zoom)]}
+                role="tabpanel"
+                aria-labelledby={`chrono-tab-${viewFromZoom(living.zoom)}`}
                 initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
@@ -635,69 +870,102 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                 {living.zoom === 'years' ? (
                   <ChronologioYearsView
                     summaries={yearSummaries}
-                    activePeriodYear={living.periodYear}
                     numberLocale={numberLocale}
-                    onPeekYear={(periodYear) => {
-                      living.setSelectedEntry(null);
-                      setWeatherEventPeek(null);
-                      setChapterPeek({ mode: 'year', periodYear });
-                    }}
+                    onOpenYear={living.openSeasonYear}
                   />
                 ) : null}
                 {living.zoom === 'year' ? (
                   <ChronologioYearView
-                    period={activePeriod}
+                    periodYear={living.periodYear}
+                    axis={living.axis}
                     months={monthSummaries}
+                    entries={yearEntries}
+                    weatherReviews={yearWeatherReviews}
                     focusMonth={living.month}
                     focusMonthYear={living.monthYear}
                     numberLocale={numberLocale}
+                    locale={locale}
+                    weatherByMonth={weatherByMonth}
+                    fieldId={scopedFieldId || fieldId}
+                    showField={!fieldMode}
+                    selectedEntryId={living.selectedEntryId}
                     onPeekMonth={(year, month) => {
                       living.setSelectedEntry(null);
                       setWeatherEventPeek(null);
                       setChapterPeek({ mode: 'month', year, month });
                     }}
+                    onOpenMonthDays={(year, month) => living.openMonth(year, month)}
+                    onPeekMonthWeather={(year, month) => {
+                      living.setSelectedEntry(null);
+                      setWeatherEventPeek(null);
+                      setChapterPeek({ mode: 'monthWeather', year, month });
+                    }}
+                    onSelect={(e) => living.setSelectedEntry(e.id)}
                   />
                 ) : null}
                 {living.zoom === 'month' ? (
-                  monthEntries.length === 0 ? (
-                    <EmptyState
-                      icon={<BookOpen size={28} />}
-                      title={t('chronologio:living.emptyMonthTitle')}
-                      description={t('chronologio:living.emptyMonthDescription')}
-                      action={cta}
-                    />
-                  ) : (
-                    <ChronologioMonthView
-                      entries={monthEntries}
-                      showField={!fieldMode}
-                      locale={locale}
-                      selectedEntryId={living.selectedEntryId}
-                      hasMore={journalHasMore}
-                      loadingMore={journalLoadingMore}
-                      onLoadMore={loadMoreJournal}
-                      onSelect={(e) => living.setSelectedEntry(e.id)}
-                      onOpenWeather={(year, month) => {
-                        living.setSelectedEntry(null);
-                        setWeatherEventPeek(null);
-                        setChapterPeek({ mode: 'monthWeather', year, month });
-                      }}
-                    />
-                  )
+                  <>
+                    {showTodaySummary ? (
+                      <TodaySummary
+                        today={today}
+                        fieldId={scopedFieldId || fieldId}
+                        onOpenWeather={() => {
+                          living.setSelectedEntry(null);
+                          setWeatherEventPeek(null);
+                          setChapterPeek({ mode: 'todayWeather' });
+                        }}
+                      />
+                    ) : null}
+                    {monthEntries.length === 0 ? (
+                      showTodaySummary ? null : (
+                        <EmptyState
+                          icon={<BookOpen size={28} />}
+                          title={t('chronologio:living.emptyMonthTitle')}
+                          description={t('chronologio:living.emptyMonthDescription')}
+                          action={cta}
+                        />
+                      )
+                    ) : (
+                      <ChronologioMonthView
+                        entries={monthEntries}
+                        showField={!fieldMode}
+                        locale={locale}
+                        selectedEntryId={living.selectedEntryId}
+                        hasMore={journalHasMore}
+                        loadingMore={journalLoadingMore}
+                        weatherByDate={weatherByDate}
+                        todayWeather={todayWeather}
+                        onLoadMore={loadMoreJournal}
+                        onSelect={(e) => living.setSelectedEntry(e.id)}
+                        onOpenWeather={(year, month, dateKey) => {
+                          living.setSelectedEntry(null);
+                          setWeatherEventPeek(null);
+                          if (dateKey) {
+                            setChapterPeek({ mode: 'dayWeather', year, month, dateKey });
+                            return;
+                          }
+                          setChapterPeek({ mode: 'monthWeather', year, month });
+                        }}
+                      />
+                    )}
+                  </>
                 ) : null}
               </motion.div>
             </AnimatePresence>
           </div>
-          <ChronologioDateRail
-            summaries={yearSummaries}
-            activePeriodYear={living.periodYear}
-            axis={living.axis}
-            zoom={living.zoom}
-            onScrollToYear={scrollToYearChapter}
-            onJumpToYear={(iso) => {
-              living.setFocusDate(iso);
-              if (living.zoom === 'years') living.setZoom('year');
-            }}
-          />
+          {living.zoom === 'years' ? null : (
+            <ChronologioDateRail
+              summaries={yearSummaries}
+              activePeriodYear={living.periodYear}
+              axis={living.axis}
+              zoom={living.zoom}
+              onScrollToYear={scrollToYearChapter}
+              onJumpToYear={(iso) => {
+                living.setFocusDate(iso);
+                if (living.zoom === 'years') living.setZoom('year');
+              }}
+            />
+          )}
         </div>
       ) : null}
 
@@ -709,8 +977,9 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       ) : null}
 
       <ChronologioPeekDrawer
-        peek={peekTarget}
+        peek={resolvedPeek}
         numberLocale={numberLocale}
+        weatherByDate={weatherByDate}
         onClose={closePeek}
         onDrillToMonths={(periodYear) => {
           setChapterPeek(null);

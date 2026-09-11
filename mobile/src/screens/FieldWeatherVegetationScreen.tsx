@@ -175,7 +175,7 @@ const FieldWeatherVegetationScreen = () => {
     <ScreenLayout scroll contentContainerStyle={styles.content}>
       <View style={styles.intro}>
         <View style={styles.kickerRow}>
-          <Ionicons name="time-outline" size={16} color={colors.primaryDark} />
+          <Ionicons name="time-outline" size={16} color={colors.primary} />
           <Text style={[styles.kicker, { color: colors.textSecondary }]}>{t('chronologio:weatherVegetation.kicker')}</Text>
         </View>
         <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -204,12 +204,12 @@ const FieldWeatherVegetationScreen = () => {
               style={[
                 styles.rangeChip,
                 {
-                  backgroundColor: active ? colors.primaryDark : colors.surfaceElevated,
-                  borderColor: active ? colors.primaryDark : colors.border,
+                  backgroundColor: active ? colors.primary : colors.surfaceElevated,
+                  borderColor: active ? colors.primary : colors.border,
                 },
               ]}
             >
-              <Text style={[styles.rangeLabel, { color: active ? colors.textInverse : colors.textPrimary }]}>
+              <Text style={[styles.rangeLabel, { color: active ? colors.onOlive : colors.textPrimary }]}>
                 {item.label}
               </Text>
             </Pressable>

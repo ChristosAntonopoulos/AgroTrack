@@ -3,6 +3,8 @@ export const radii = {
   md: 8,
   lg: 12,
   xl: 16,
+  /** Phone bottom-sheet top corners (web RightDrawer mobile) */
+  sheet: 22,
   full: 9999,
 } as const;
 

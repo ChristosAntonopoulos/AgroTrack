@@ -29,6 +29,8 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  text-decoration: none;
+  color: inherit;
 }
 
 .header-logo-lockup {
@@ -90,6 +92,7 @@
   align-items: center;
   gap: var(--spacing-md);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .header-desktop-controls {
@@ -118,8 +121,8 @@
 }
 
 .icon-button:hover {
-  color: var(--color-primary);
-  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  background-color: var(--surface-hover);
 }
 
 .notification-badge {
@@ -161,13 +164,14 @@
 }
 
 .header-lang-btn-active {
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
+  background: var(--olive-soft);
+  color: var(--link);
+  box-shadow: inset 0 0 0 1px var(--olive-border);
 }
 
 .header-lang-btn-active:hover {
-  background: var(--color-primary-light);
-  color: var(--color-text-inverse);
+  background: var(--olive-soft);
+  color: var(--link-hover);
 }
 
 .user-menu {

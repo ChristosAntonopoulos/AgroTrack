@@ -4,8 +4,8 @@ namespace OliveLifecycle.Core.FieldWork;
 
 /// <summary>
 /// Resolves ResultYear for proposals, tasks, executions, and harvests.
-/// Defaults to the Athens calendar year of the planned date; callers may keep
-/// the previous harvest year when work continues into January.
+/// Defaults to the olive agricultural year (1 Feb Y – 31 Jan Y+1) so a harvest
+/// that continues in January is not split across two result years.
 /// </summary>
 public static class ResultYearResolver
 {
@@ -18,10 +18,10 @@ public static class ResultYearResolver
 
         if (plannedDate.HasValue)
         {
-            return AthensTime.CalendarYear(plannedDate.Value);
+            return AgriculturalYear.For(plannedDate.Value);
         }
 
-        return AthensTime.CalendarYear(utcNow);
+        return AgriculturalYear.For(utcNow);
     }
 
     /// <summary>

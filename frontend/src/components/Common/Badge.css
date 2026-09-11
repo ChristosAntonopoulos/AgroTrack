@@ -2,10 +2,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
+  font-weight: 550;
+  border-radius: 8px;
   white-space: nowrap;
   vertical-align: middle;
+  border: 1px solid transparent;
 }
 
 /* Sizes */
@@ -21,28 +22,39 @@
   line-height: 1.3;
 }
 
-/* Variants */
+/* Soft tinted backgrounds — readable text, not saturated pills */
 .badge-primary {
-  background: var(--color-primary-light);
-  color: var(--color-text-inverse);
+  background: var(--olive-soft);
+  color: var(--link);
+  border-color: var(--olive-border);
 }
 
 .badge-success {
-  background: var(--color-success);
-  color: var(--color-text-inverse);
+  background: var(--status-success-soft);
+  color: var(--status-success);
+  border-color: color-mix(in srgb, var(--status-success) 28%, transparent);
 }
 
 .badge-warning {
-  background: var(--color-warning);
-  color: var(--color-text-primary);
+  background: var(--status-warning-soft);
+  color: var(--color-warning-dark, var(--status-warning));
+  border-color: color-mix(in srgb, var(--status-warning) 28%, transparent);
 }
 
 .badge-error {
-  background: var(--color-error);
-  color: var(--color-text-inverse);
+  background: var(--status-danger-soft);
+  color: var(--status-danger);
+  border-color: color-mix(in srgb, var(--status-danger) 28%, transparent);
 }
 
 .badge-info {
-  background: var(--color-info);
-  color: var(--color-text-inverse);
+  background: var(--status-info-soft);
+  color: var(--status-info);
+  border-color: color-mix(in srgb, var(--status-info) 28%, transparent);
+}
+
+.badge-neutral {
+  background: var(--status-neutral-soft);
+  color: var(--status-neutral);
+  border-color: color-mix(in srgb, var(--status-neutral) 28%, transparent);
 }

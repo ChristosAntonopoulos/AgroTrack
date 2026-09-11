@@ -49,8 +49,8 @@ const CalendarWeekStrip: React.FC<Props> = ({ anchorDate, events, onSelectDate, 
               style={[
                 styles.day,
                 {
-                  backgroundColor: selected ? colors.primaryDark : colors.surfaceMuted,
-                  borderColor: today ? colors.primaryDark : colors.border,
+                  backgroundColor: selected ? colors.primaryLight : colors.surfaceMuted,
+                  borderColor: selected ? colors.oliveBorder : today ? colors.primary : colors.border,
                 },
               ]}
               onPress={() => onSelectDate(date)}
@@ -58,7 +58,7 @@ const CalendarWeekStrip: React.FC<Props> = ({ anchorDate, events, onSelectDate, 
               <Text
                 style={[
                   styles.weekday,
-                  { color: selected ? colors.white : colors.textSecondary },
+                  { color: selected ? colors.primary : colors.textSecondary },
                 ]}
               >
                 {format(date, 'EEE', { locale })}
@@ -66,7 +66,7 @@ const CalendarWeekStrip: React.FC<Props> = ({ anchorDate, events, onSelectDate, 
               <Text
                 style={[
                   styles.dayNum,
-                  { color: selected ? colors.white : colors.textPrimary },
+                  { color: selected ? colors.primary : colors.textPrimary },
                 ]}
               >
                 {format(date, 'd')}
@@ -75,7 +75,7 @@ const CalendarWeekStrip: React.FC<Props> = ({ anchorDate, events, onSelectDate, 
                 <View
                   style={[
                     styles.dot,
-                    { backgroundColor: selected ? colors.white : colors.primary },
+                    { backgroundColor: colors.primary },
                   ]}
                 />
               ) : null}

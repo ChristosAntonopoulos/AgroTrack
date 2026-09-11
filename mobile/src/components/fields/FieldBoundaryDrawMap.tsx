@@ -124,9 +124,9 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
       points.map((p, i) => ({
         id: `vertex-${i}`,
         coordinate: p,
-        color: colors.primaryDark,
+        color: colors.primary,
       })),
-    [points, colors.primaryDark]
+    [points, colors.primary]
   );
 
   const centerOnUser = async () => {
@@ -201,10 +201,10 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
           <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
         </Pressable>
         <Pressable
-          style={[styles.toolBtn, { borderColor: colors.primaryDark, backgroundColor: colors.primaryDark + '12' }]}
+          style={[styles.toolBtn, { borderColor: colors.primary, backgroundColor: colors.primary + '12' }]}
           onPress={centerOnUser}
         >
-          <Text style={{ color: colors.primaryDark }}>{t('addField.useCurrentLocation')}</Text>
+          <Text style={{ color: colors.primary }}>{t('addField.useCurrentLocation')}</Text>
         </Pressable>
       </View>
 

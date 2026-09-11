@@ -1,136 +1,237 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ChronologioMonthSummary, ChronologioPeriodSummary } from '../../services/chronologioService';
-import { isRealChronologioMediaUrl } from '../../chronologio/mediaGuard';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import type {
+  ChronologioAxis,
+  ChronologioEntry,
+  ChronologioMonthSummary,
+  ChronologioWeatherDetails,
+} from '../../services/chronologioService';
 import {
-  monthChapterFacts,
-  periodEventCount,
-  yearFixedMetrics,
-  weatherFactBits,
-} from '../../chronologio/summaryFacts';
-import ChronologioThumbnail from './ChronologioThumbnail';
+  agriculturalYearFor,
+  agriculturalYearRangeLabel,
+} from '../../chronologio/agriculturalYear';
+import {
+  harvestHasResult,
+  monthHasActivity,
+  monthsForOverview,
+} from '../../chronologio/monthPresentation';
+import {
+  monthSeasonStage,
+  seasonStageIndex,
+  type SeasonStage,
+} from '../../chronologio/yearPresentation';
+import type { SupportedLocale } from '../../i18n/config';
+import ChronologioSeasonTrack from './ChronologioSeasonTrack';
+import ChronologioMonthSection from './ChronologioMonthSection';
 
 type Props = {
-  period: ChronologioPeriodSummary | null;
+  periodYear: number;
+  axis: ChronologioAxis;
   months: ChronologioMonthSummary[];
+  entries?: ChronologioEntry[];
+  weatherReviews?: ChronologioEntry[];
   focusMonth: number;
   focusMonthYear: number;
   numberLocale: string;
-  /** Opens month Peek — does not jump to Ημέρες. */
+  locale: SupportedLocale;
+  weatherByMonth?: Record<string, ChronologioWeatherDetails>;
+  fieldId?: string;
+  showField?: boolean;
+  selectedEntryId?: string | null;
   onPeekMonth: (year: number, month: number) => void;
+  onOpenMonthDays: (year: number, month: number) => void;
+  onPeekMonthWeather: (year: number, month: number) => void;
+  onSelect?: (entry: ChronologioEntry) => void;
 };
 
+const monthWeatherKey = (year: number, month: number) =>
+  `${year}-${String(month).padStart(2, '0')}`;
+
+const isMonthReview = (entry: ChronologioEntry) =>
+  entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
+
+const entryMonthKey = (entry: ChronologioEntry) => {
+  const y = entry.details.weather?.year;
+  const m = entry.details.weather?.month;
+  if (entry.eventType === 'weather.monthReview' && y != null && m != null) {
+    return monthWeatherKey(y, m);
+  }
+  const d = new Date(entry.occurredAt);
+  return monthWeatherKey(d.getFullYear(), d.getMonth() + 1);
+};
+
+type FlatRow =
+  | { kind: 'season'; key: string; stage: SeasonStage }
+  | {
+      kind: 'month';
+      key: string;
+      month: ChronologioMonthSummary;
+      reviews: ChronologioEntry[];
+      entries: ChronologioEntry[];
+    };
+
 const ChronologioYearView: React.FC<Props> = ({
-  period,
+  periodYear,
+  axis,
   months,
+  entries = [],
+  weatherReviews = [],
   focusMonth,
   focusMonthYear,
   numberLocale,
+  locale,
+  weatherByMonth,
+  fieldId,
+  showField = false,
+  selectedEntryId,
   onPeekMonth,
+  onOpenMonthDays,
+  onPeekMonthWeather,
+  onSelect,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
+  const parentRef = useRef<HTMLDivElement>(null);
   const now = new Date();
   const nowMonth = now.getMonth() + 1;
   const nowYear = now.getFullYear();
-
-  const orderedMonths = useMemo(() => {
-    return [...months]
-      .filter((m) => m.year < nowYear || (m.year === nowYear && m.month <= nowMonth))
-      .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-  }, [months, nowMonth, nowYear]);
-
-  const periodMetrics = useMemo(
-    () => (period ? yearFixedMetrics(period, numberLocale, t) : []),
-    [numberLocale, period, t]
+  const orderedMonths = useMemo(
+    () => monthsForOverview(months, periodYear, axis, { year: nowYear, month: nowMonth }),
+    [axis, months, nowMonth, nowYear, periodYear]
   );
-  const periodWeather = useMemo(
-    () => (period ? weatherFactBits(period, t) : []),
-    [period, t]
-  );
+  const reviewsByMonth = useMemo(() => {
+    const map: Record<string, ChronologioEntry[]> = {};
+    for (const row of weatherReviews) {
+      const key = entryMonthKey(row);
+      (map[key] ||= []).push(row);
+    }
+    return map;
+  }, [weatherReviews]);
+  const entriesByMonth = useMemo(() => {
+    const map: Record<string, ChronologioEntry[]> = {};
+    for (const row of entries) {
+      if (isMonthReview(row)) continue;
+      const key = entryMonthKey(row);
+      (map[key] ||= []).push(row);
+    }
+    return map;
+  }, [entries]);
 
-  const monthTitle = (m: ChronologioMonthSummary) =>
-    new Date(Date.UTC(m.year, m.month - 1, 1)).toLocaleDateString(i18n.language, {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
+  const rows = useMemo(() => {
+    const flat: FlatRow[] = [];
+    let lastStage: SeasonStage | null = null;
+    for (const month of orderedMonths) {
+      const stage = monthSeasonStage(month.month);
+      if (stage !== lastStage) {
+        flat.push({ kind: 'season', key: `s-${stage}-${month.key}`, stage });
+        lastStage = stage;
+      }
+      flat.push({
+        kind: 'month',
+        key: `m-${month.key}`,
+        month,
+        reviews: reviewsByMonth[monthWeatherKey(month.year, month.month)] || [],
+        entries: entriesByMonth[monthWeatherKey(month.year, month.month)] || [],
+      });
+    }
+    return flat;
+  }, [entriesByMonth, orderedMonths, reviewsByMonth]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    getItemKey: (i) => rows[i]?.key ?? i,
+    estimateSize: (i) => {
+      const row = rows[i];
+      if (!row) return 168;
+      if (row.kind === 'season') return 48;
+      const picks = showField ? row.reviews.length : 0;
+      const cards = row.entries.length || 2;
+      const empty = !monthHasActivity(row.month) && row.entries.length === 0 && row.reviews.length === 0;
+      if (empty) return 96;
+      return 108 + (picks > 1 ? 176 : 0) + Math.ceil(Math.max(1, cards) / 2) * 156;
+    },
+    overscan: 6,
+    paddingEnd: 32,
+  });
+
+  const live = axis === 'agricultural' && periodYear === agriculturalYearFor(now);
+  const oilKg = months.reduce((sum, month) => sum + month.oilKg, 0);
+  const oliveKg = months.reduce((sum, month) => sum + month.oliveKg, 0);
+  const range = axis === 'agricultural' ? agriculturalYearRangeLabel(periodYear, i18n.language) : '';
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="chrono-year-view">
-      <header className="chrono-year-view-header">
-        <h2 className="chrono-year-view-title">{period?.periodYear ?? period?.key ?? '—'}</h2>
-        {periodMetrics.length > 0 ? (
-          <ul className="chrono-year-metrics chrono-year-view-metrics">
-            {periodMetrics.map((m) => (
-              <li key={m.label}>
-                <span className="chrono-metric-value">{m.value}</span>
-                <span className="chrono-metric-label">{m.label}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="chrono-year-inline-summary is-muted">
-            {t('living.emptyYear', { year: period?.periodYear ?? '' })}
+    <div className="chrono-year-view chrono-year-feed chrono-journal-view chrono-day-timeline">
+      <header className="chrono-year-hero">
+        <p className="chrono-year-hero-kicker">
+          {live ? t('yearView.liveYear') : t('yearView.closedYear')}
+        </p>
+        <h2 className="chrono-year-view-title">{periodYear}</h2>
+        {range ? <p className="chrono-year-range">{range}</p> : null}
+        {live ? (
+          <ChronologioSeasonTrack currentIndex={seasonStageIndex(now)} />
+        ) : harvestHasResult({ oliveKg, oilKg }) ? (
+          <p className="chrono-year-oil-hero">
+            {oilKg > 0
+              ? `${oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
+              : `${Math.round(oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
           </p>
-        )}
-        {periodWeather.length > 0 ? (
-          <p className="chrono-year-weather-line">{periodWeather.join(' · ')}</p>
         ) : null}
       </header>
 
-      <ul className="chrono-month-gallery">
-        {orderedMonths.map((m) => {
-          const eventCount = periodEventCount(m);
-          const active = m.month === focusMonth && m.year === focusMonthYear;
-          const isNow = m.month === nowMonth && m.year === nowYear;
-          const highlights = (m.highlightTitles || []).filter(Boolean).slice(0, 2);
-          const hero = isRealChronologioMediaUrl(m.heroMediaUrl) ? m.heroMediaUrl! : undefined;
-          const title = monthTitle(m);
-          const facts = monthChapterFacts(m, numberLocale, t);
-
-          if (eventCount === 0) {
+      <div ref={parentRef} className="chrono-month-scroll chrono-journal-scroll">
+        <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+          {virtualItems.map((vRow) => {
+            const row = rows[vRow.index];
             return (
-              <li key={m.key}>
-                <button
-                  type="button"
-                  className={`chrono-month-quiet-row${active ? ' is-active' : ''}`}
-                  onClick={() => onPeekMonth(m.year, m.month)}
-                >
-                  <span className="chrono-month-quiet-title">{title}</span>
-                  <span className="chrono-month-quiet-hint">{t('living.emptyPeriod')}</span>
-                </button>
-              </li>
-            );
-          }
-
-          return (
-            <li key={m.key}>
-              <button
-                type="button"
-                className={`chrono-month-chapter${active ? ' is-active' : ''}${isNow ? ' is-now' : ''}`}
-                onClick={() => onPeekMonth(m.year, m.month)}
-                aria-label={t('living.seeMonth', { month: title })}
+              <div
+                key={row.key}
+                className="chrono-month-virtual-row"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${vRow.start}px)`,
+                }}
+                ref={virtualizer.measureElement}
+                data-index={vRow.index}
               >
-                <span className="chrono-month-chapter-text">
-                  <span className="chrono-month-poster-title-row">
-                    <span className="chrono-month-poster-title">{title}</span>
-                    {isNow ? <span className="chrono-month-now">{t('living.thisMonth')}</span> : null}
-                  </span>
-                  {highlights.length > 0 ? (
-                    <span className="chrono-month-highlights">{highlights.join(' · ')}</span>
-                  ) : null}
-                  {facts.length > 0 ? (
-                    <span className="chrono-month-meta">{facts.join(' · ')}</span>
-                  ) : null}
-                </span>
-                {hero ? (
-                  <ChronologioThumbnail src={hero} className="chrono-month-chapter-hero" />
-                ) : null}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                {row.kind === 'season' ? (
+                  <p className="chrono-year-season-mark">{t(`yearView.stages.${row.stage}`)}</p>
+                ) : (
+                  <ChronologioMonthSection
+                    month={row.month}
+                    weather={
+                      row.reviews[0]?.details.weather ||
+                      weatherByMonth?.[monthWeatherKey(row.month.year, row.month.month)]
+                    }
+                    weatherReviews={row.reviews}
+                    entries={row.entries}
+                    numberLocale={numberLocale}
+                    locale={locale}
+                    fieldId={fieldId}
+                    showField={showField}
+                    selectedEntryId={selectedEntryId}
+                    active={row.month.month === focusMonth && row.month.year === focusMonthYear}
+                    isCurrent={row.month.month === nowMonth && row.month.year === nowYear}
+                    empty={
+                      !monthHasActivity(row.month) &&
+                      row.entries.length === 0 &&
+                      row.reviews.length === 0
+                    }
+                    onOpenMonth={() => onPeekMonth(row.month.year, row.month.month)}
+                    onOpenDays={() => onOpenMonthDays(row.month.year, row.month.month)}
+                    onSelect={onSelect}
+                    onPeekWeather={() => onPeekMonthWeather(row.month.year, row.month.month)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

@@ -42,10 +42,10 @@
   "logout": "Esci",
   "logoutAria": "Esci",
   "roles": {
-    "FieldOwner": "Proprietario campo",
-    "Producer": "Produttore",
+    "FieldOwner": "Proprietario dell’uliveto",
+    "Producer": "Partner di campo",
     "Agronomist": "Agronomo",
-    "Administrator": "Amministratore",
+    "Administrator": "Responsabile account",
     "ServiceProvider": "Fornitore di servizi"
   },
   "taskStatus": {

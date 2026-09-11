@@ -60,6 +60,60 @@ public class WeatherReviewCompilerTests
     }
 
     [Fact]
+    public void BuildMonthReview_MissingRainIsNotZeroInTotals()
+    {
+        var days = new List<FieldDailyWeatherSnapshot>();
+        for (var d = 1; d <= 28; d++)
+        {
+            days.Add(new FieldDailyWeatherSnapshot
+            {
+                FieldId = "f1",
+                Date = new DateOnly(2025, 2, d),
+                RainTotalMm = d <= 10 ? 2 : null,
+                MinTemperatureC = 4,
+                MaxTemperatureC = 14,
+                Provider = "Open-Meteo"
+            });
+        }
+
+        var review = _compiler.BuildMonthReview(
+            "f1", 2025, 2, days, Array.Empty<FieldSatelliteObservation>(), DateOnly.FromDateTime(Now));
+
+        Assert.NotNull(review);
+        Assert.Equal(20, review!.RainTotalMm);
+        Assert.Equal(10, review.DaysWithRainData);
+        Assert.Equal(28, review.ExpectedDays);
+        Assert.False(review.IncludesForecast);
+    }
+
+    [Fact]
+    public void BuildMonthReview_CurrentMonthExcludesTodayAndFuture()
+    {
+        var days = new List<FieldDailyWeatherSnapshot>();
+        for (var d = 1; d <= 20; d++)
+        {
+            days.Add(new FieldDailyWeatherSnapshot
+            {
+                FieldId = "f1",
+                Date = new DateOnly(2026, 3, d),
+                RainTotalMm = d == 15 ? 40 : 1,
+                MinTemperatureC = 6,
+                MaxTemperatureC = 16,
+                Provider = "Open-Meteo"
+            });
+        }
+
+        var review = _compiler.BuildMonthReview(
+            "f1", 2026, 3, days, Array.Empty<FieldSatelliteObservation>(), new DateOnly(2026, 3, 15));
+
+        Assert.NotNull(review);
+        Assert.Equal(14, review!.DayCount);
+        Assert.Equal(14, review.ExpectedDays);
+        Assert.DoesNotContain(40, review.RainSeries.Take(14));
+        Assert.False(review.IncludesForecast);
+    }
+
+    [Fact]
     public void BuildMonthReview_SkipsIncompleteMonth()
     {
         var days = Enumerable.Range(1, 10).Select(d => new FieldDailyWeatherSnapshot
@@ -229,6 +283,64 @@ public class WeatherReviewCompilerTests
         Assert.Equal(2, review!.HeavyRainDays);
         Assert.Equal(5, review.LongestDryStreakDays);
         Assert.NotNull(review.RainVsPreviousPercent);
+    }
+
+    [Fact]
+    public void BuildMonthReview_CompilesWaterBalanceAndSatelliteBookends()
+    {
+        var days = BuildMonthDays(2025, 4, day => new FieldDailyWeatherSnapshot
+        {
+            FieldId = "f1",
+            Date = day,
+            RainTotalMm = 2,
+            MinTemperatureC = 8,
+            MaxTemperatureC = 22,
+            AverageTemperatureC = 15,
+            Et0Mm = 3,
+            AverageHumidityPercent = 55,
+            MaximumWindGustKmh = 18,
+            Provider = "Open-Meteo"
+        });
+
+        var observations = new List<FieldSatelliteObservation>
+        {
+            new()
+            {
+                Id = "mar",
+                FieldId = "f1",
+                ObservationDate = new DateTime(2025, 3, 28, 0, 0, 0, DateTimeKind.Utc),
+                IsUsable = true,
+                TrueColorStoragePath = "fields/f1/satellite/20250328-mar/truecolor.png",
+                NdviStoragePath = "fields/f1/satellite/20250328-mar/ndvi.png",
+                NdviStats = new VegetationIndexStats { Mean = 0.40 },
+                NdmiStats = new VegetationIndexStats { Mean = 0.12 }
+            },
+            new()
+            {
+                Id = "apr",
+                FieldId = "f1",
+                ObservationDate = new DateTime(2025, 4, 22, 0, 0, 0, DateTimeKind.Utc),
+                IsUsable = true,
+                TrueColorStoragePath = "fields/f1/satellite/20250422-apr/truecolor.png",
+                NdviStoragePath = "fields/f1/satellite/20250422-apr/ndvi.png",
+                NdviStats = new VegetationIndexStats { Mean = 0.52 },
+                NdmiStats = new VegetationIndexStats { Mean = 0.18 }
+            }
+        };
+
+        var review = _compiler.BuildMonthReview("f1", 2025, 4, days, observations, DateOnly.FromDateTime(Now));
+
+        Assert.NotNull(review);
+        Assert.Equal(60, review!.RainTotalMm);
+        Assert.Equal(90, review.Et0TotalMm);
+        Assert.Equal(-30, review.WaterBalanceMm);
+        Assert.Equal(0.52, review.NdviMean);
+        Assert.Equal("mar", review.OpeningScene?.ObservationId);
+        Assert.Equal("apr", review.ClosingScene?.ObservationId);
+        Assert.NotNull(review.NdviStartEndDeltaPercent);
+        Assert.True(review.NdviStartEndDeltaPercent > 0);
+        Assert.Contains(review.Insights, i => i.Kind == WeatherInsightKinds.Greener);
+        Assert.Equal(30, review.TemperatureMinSeries.Count);
     }
 
     private static List<FieldDailyWeatherSnapshot> BuildMonthDays(

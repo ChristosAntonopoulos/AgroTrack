@@ -168,8 +168,8 @@ export function assigneeOptionKey(
   suggestion: SuggestedAssignee | null,
   actingUserId?: string | null
 ): string {
-  if (!suggestion) return 'later';
-  if (suggestion.isSelf && actingUserId) return `user:${actingUserId}`;
-  if (suggestion.assignedUserId) return `user:${suggestion.assignedUserId}`;
+  if (suggestion?.isSelf && actingUserId) return `user:${actingUserId}`;
+  if (suggestion?.assignedUserId) return `user:${suggestion.assignedUserId}`;
+  if (actingUserId) return `user:${actingUserId}`;
   return 'later';
 }

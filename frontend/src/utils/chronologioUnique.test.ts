@@ -14,10 +14,10 @@ const entry = (overrides: Partial<ChronologioEntry>): ChronologioEntry =>
 describe('uniqueChronologioEntries', () => {
   it('keeps one row when the same source is repeated', () => {
     const rows = uniqueChronologioEntries([
-      entry({ id: '1', sourceId: 'note-8' }),
-      entry({ id: '2', sourceId: 'note-8' }),
+      entry({ id: 'Note:note-8', sourceType: 'Note', sourceId: 'note-8' }),
+      entry({ id: 'Note:note-8-copy', sourceType: 'Note', sourceId: 'note-8' }),
     ]);
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe('1');
+    expect(rows[0].id).toBe('Note:note-8');
   });
 });

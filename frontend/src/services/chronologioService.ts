@@ -68,6 +68,7 @@ export interface ChronologioTaskDetails {
 export interface ChronologioExpenseDetails {
   expenseId: string;
   expenseCategory?: string;
+  expenseCategoryLabel?: string;
   linkedTaskId?: string;
   linkedHarvestId?: string;
   relatedTaskTitle?: string;
@@ -80,6 +81,7 @@ export interface ChronologioHarvestDetails {
   harvestId: string;
   oliveKg: number;
   oilKg?: number;
+  oilLitres?: number;
   oilYieldPercent?: number;
   mill?: string;
   quality?: string;
@@ -113,6 +115,22 @@ export interface ChronologioActivityDetails {
   metadata?: Record<string, string>;
 }
 
+export interface ChronologioWeatherScene {
+  observationId?: string;
+  observationDate?: string;
+  role?: string;
+  trueColorUrl?: string;
+  ndviUrl?: string;
+  ndviMean?: number;
+  ndmiMean?: number;
+  cloudCoverPercent?: number;
+}
+
+export interface ChronologioWeatherInsight {
+  kind: string;
+  severity: string;
+}
+
 export interface ChronologioWeatherDetails {
   period?: string;
   year?: number;
@@ -120,18 +138,40 @@ export interface ChronologioWeatherDetails {
   rainfallMm?: number;
   temperatureMin?: number;
   temperatureMax?: number;
+  temperatureAvg?: number;
   frostNights?: number;
   heatDays?: number;
   heavyRainDays?: number;
   longestDryStreakDays?: number;
+  rainyDays?: number;
+  dryDays?: number;
+  et0TotalMm?: number;
+  waterBalanceMm?: number;
+  averageHumidityPercent?: number;
+  maxWindGustKmh?: number;
   rainVsPreviousPercent?: number;
   wettestMonth?: number;
   ndviMean?: number;
   ndviDeltaPercent?: number;
+  ndviStartEndDeltaPercent?: number;
+  ndmiMean?: number;
+  ndreMean?: number;
+  ndwiMean?: number;
+  saviMean?: number;
+  openingScene?: ChronologioWeatherScene;
+  closingScene?: ChronologioWeatherScene;
+  insights?: ChronologioWeatherInsight[];
   rainSeries?: number[];
   rainLabels?: string[];
+  temperatureMinSeries?: Array<number | null>;
+  temperatureMaxSeries?: Array<number | null>;
   source?: string;
   vegetationNote?: string;
+  daysWithData?: number;
+  expectedDays?: number;
+  daysWithRainData?: number;
+  includesForecast?: boolean;
+  coverageSufficient?: boolean;
 }
 
 export interface ChronologioIntelligenceDetails {
@@ -159,6 +199,7 @@ export interface ChronologioEntryBase {
   field: ChronologioFieldRef;
   cropCycleId?: string | null;
   lifecycleYear?: string | null;
+  resultYear?: number | null;
   occurredAt: string;
   createdAt?: string | null;
   eventType: string;
@@ -166,6 +207,7 @@ export interface ChronologioEntryBase {
   summary?: string | null;
   sourceType: ChronologioSourceType | string;
   sourceId: string;
+  occurrenceId?: string | null;
   isSystemGenerated: boolean;
   actor?: ChronologioActor | null;
   importance: ChronologioImportance | string;
@@ -195,7 +237,7 @@ export interface ChronologioFilters {
   offset?: number;
 }
 
-export type ChronologioAxis = 'calendar' | 'season';
+export type ChronologioAxis = 'calendar' | 'season' | 'agricultural';
 
 export interface ChronologioSummaryFilters {
   axis?: ChronologioAxis | string;

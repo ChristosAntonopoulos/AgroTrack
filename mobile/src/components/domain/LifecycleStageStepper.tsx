@@ -28,24 +28,24 @@ const LifecycleStageStepper: React.FC<LifecycleStageStepperProps> = ({ currentSt
               styles.chip,
               {
                 backgroundColor: isActive
-                  ? colors.primaryDark
+                  ? colors.primary
                   : isPast
                     ? colors.successLight
                     : colors.surfaceMuted,
-                borderColor: isActive ? colors.primaryDark : colors.borderLight,
+                borderColor: isActive ? colors.primary : colors.borderLight,
               },
             ]}
           >
             {isPast ? (
               <Ionicons name="checkmark-circle" size={12} color={colors.successDark} />
             ) : isActive ? (
-              <View style={[styles.activeDot, { backgroundColor: colors.textInverse }]} />
+              <View style={[styles.activeDot, { backgroundColor: colors.onOlive }]} />
             ) : null}
             <Text
               style={[
                 styles.label,
                 {
-                  color: isActive ? colors.textInverse : isPast ? colors.successDark : colors.textSecondary,
+                  color: isActive ? colors.onOlive : isPast ? colors.successDark : colors.textSecondary,
                   fontWeight: isActive ? '700' : '500',
                 },
               ]}

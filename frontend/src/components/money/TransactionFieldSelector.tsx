@@ -17,15 +17,23 @@ const TransactionFieldSelector: React.FC<Props> = ({ value, fields, onChange }) 
       {t('money.whichField')}
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={t('fieldPrompt')}>
         <option value="">{unassignedFieldLabel(i18n.language)}</option>
-        {fields.map((field) => (
-          <option key={field.id} value={field.id}>
-            {friendlyFieldLabel(field.name)}
-            {field.variety ? ` · ${field.variety}` : ''}
-            {field.areaHectares
-              ? ` · ${field.areaHectares.toLocaleString(i18n.language, { maximumFractionDigits: 2 })} ha`
-              : ''}
-          </option>
-        ))}
+        {fields.map((field) => {
+          const name = friendlyFieldLabel(field.name);
+          const variety =
+            field.variety && !name.toLowerCase().includes(field.variety.toLowerCase())
+              ? ` · ${field.variety}`
+              : '';
+          const area = field.areaHectares
+            ? ` · ${field.areaHectares.toLocaleString(i18n.language, { maximumFractionDigits: 2 })} ha`
+            : '';
+          return (
+            <option key={field.id} value={field.id}>
+              {name}
+              {variety}
+              {area}
+            </option>
+          );
+        })}
       </select>
     </label>
   );

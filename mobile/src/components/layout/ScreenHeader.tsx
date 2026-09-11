@@ -54,7 +54,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             },
           ]}
         >
-          <Text style={[styles.actionText, { color: colors.primaryDark, fontSize: 12 * fontScaleMultiplier }]}>
+          <Text style={[styles.actionText, { color: colors.link, fontSize: 12 * fontScaleMultiplier }]}>
             {actionLabel}
           </Text>
         </TouchableOpacity>

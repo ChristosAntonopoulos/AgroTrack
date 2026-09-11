@@ -39,7 +39,7 @@ const HeroActionCard: React.FC<HeroActionCardProps> = ({
   let title = t('dashboard:myActions.hero.defaultTitle');
   let subtitle = t('dashboard:myActions.hero.defaultSubtitle');
   let cta = t('dashboard:myActions.hero.defaultCta');
-  let path = isProducer ? '/today' : isPartner ? '/partners' : '/tasks';
+  let path = isProducer ? '/chronologio?focus=today' : isPartner ? '/partners' : '/tasks';
   let Icon = Sun;
 
   if (pending.overdue > 0) {
@@ -63,7 +63,7 @@ const HeroActionCard: React.FC<HeroActionCardProps> = ({
         title: t('dashboard:myActions.hero.completeTaskTitle'),
         subtitle: t('dashboard:myActions.hero.completeTaskSubtitle'),
         cta: t('dashboard:myActions.hero.completeTaskCta'),
-        path: isProducer ? '/today' : '/tasks',
+        path: isProducer ? '/chronologio?focus=today' : '/tasks',
         Icon: ListTodo,
       },
       add_evidence: {

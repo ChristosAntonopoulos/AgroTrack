@@ -14,6 +14,12 @@ type Props = {
   showMeta?: boolean;
 };
 
+type MetaChip = {
+  key: string;
+  label: string;
+  kind: 'status' | 'variety' | 'area' | 'stage';
+};
+
 const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true }) => {
   const { t } = useTranslation(['fields', 'common']);
   const displayName = friendlyFieldLabel(field.name);
@@ -24,7 +30,11 @@ const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true 
   const variety = field.variety || field.oliveVariety;
   const area = formatFieldArea(field);
 
-  const meta = [status, variety, area, size === 'page' ? stage : null].filter(Boolean);
+  const chips: MetaChip[] = [];
+  if (status) chips.push({ key: 'status', label: status, kind: 'status' });
+  if (variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
+  if (area) chips.push({ key: 'area', label: area, kind: 'area' });
+  if (size === 'page' && stage) chips.push({ key: 'stage', label: stage, kind: 'stage' });
 
   return (
     <div
@@ -45,20 +55,14 @@ const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true 
         )}
       </div>
       {shortLocation ? <p className="field-identity-place">{shortLocation}</p> : null}
-      {showMeta && meta.length > 0 ? (
-        <p className="field-identity-meta">
-          {meta.map((part, index) => (
-            <React.Fragment key={`${part}-${index}`}>
-              {index > 0 ? (
-                <span className="field-identity-dot" aria-hidden>
-                  {' '}
-                  ·{' '}
-                </span>
-              ) : null}
-              <span>{part}</span>
-            </React.Fragment>
+      {showMeta && chips.length > 0 ? (
+        <ul className="field-identity-chips" aria-label={t('fields:card.metaAria', { defaultValue: 'Field details' })}>
+          {chips.map((chip) => (
+            <li key={chip.key} className={`field-identity-chip field-identity-chip--${chip.kind}`}>
+              {chip.label}
+            </li>
           ))}
-        </p>
+        </ul>
       ) : null}
     </div>
   );

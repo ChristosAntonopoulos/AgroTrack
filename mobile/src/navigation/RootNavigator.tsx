@@ -75,7 +75,7 @@ const RootNavigator = () => {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {
       ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-      primary: colors.primaryDark,
+          primary: colors.primary,
       background: colors.background,
       card: colors.surfaceElevated,
       text: colors.textPrimary,
@@ -109,7 +109,7 @@ const RootNavigator = () => {
             Main: {
               screens: {
                 Dashboard: 'dashboard',
-                Today: 'today',
+                ChronologioTab: 'today',
                 Calendar: 'calendar',
                 Fields: 'fields',
                 Tasks: 'tasks',
@@ -136,7 +136,7 @@ const RootNavigator = () => {
         <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: colors.surfaceElevated },
-          headerTintColor: colors.primaryDark,
+          headerTintColor: colors.primary,
           headerTitleStyle: { color: colors.textPrimary, fontWeight: '700', fontSize: headerTitleSize },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.background },

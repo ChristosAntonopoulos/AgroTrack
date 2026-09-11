@@ -306,8 +306,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   if (!kind) {
     return (
-      <div className="money-drawer__body">
-        <p className="capture-hint">{t('capture:money.noPermission')}</p>
+      <div className="money-drawer">
+        <div className="money-drawer__body">
+          <p className="capture-hint">{t('capture:money.noPermission')}</p>
+        </div>
       </div>
     );
   }
@@ -319,7 +321,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
       : undefined;
 
   return (
-    <>
+    <div className="money-drawer">
       <div className="money-drawer__body">
         <MoneyTypeToggle
           value={kind}
@@ -425,7 +427,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
         onSubmit={() => void save(false)}
         onDraft={() => void save(true)}
       />
-    </>
+    </div>
   );
 };
 

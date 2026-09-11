@@ -1,5 +1,7 @@
 @import './styles/theme.css';
 @import './styles/responsive.css';
+@import './components/Common/SegmentedControl.css';
+@import './components/Common/RightDrawer.css';
 
 * {
   box-sizing: border-box;

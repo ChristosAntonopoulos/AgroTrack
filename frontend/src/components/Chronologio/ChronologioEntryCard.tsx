@@ -2,31 +2,21 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  CheckSquare,
-  Wallet,
-  Wheat,
-  StickyNote,
-  CloudRain,
-  Sparkles,
-  Leaf,
-  Users,
-  Activity,
-  Camera,
-  Pin,
-} from 'lucide-react';
+import { Pin } from 'lucide-react';
+import ChronologioCategoryIcon from './ChronologioCategoryIcon';
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
-import { financialCategoryI18nKey, taskStatusI18nKey } from '../../utils/categoryNormalize';
-import type { SupportedLocale } from '../../i18n/config';
+import { taskStatusI18nKey } from '../../utils/categoryNormalize';
 import {
-  resolveFieldColor,
-  resolveWeatherMood,
-  WEATHER_MOOD_COLORS,
-} from '../../utils/fieldColors';
-import { resolveChronologioCategoryAccent } from '../../utils/chronologioCategoryAccents';
-import AccentCard from '../Common/AccentCard';
-import WeatherReviewSummary from './WeatherReviewSummary';
+  presentActorName,
+  presentChronologioEvent,
+  presentExpenseChip,
+  presentHarvestQuality,
+} from '../../chronologio/eventPresentation';
+import type { SupportedLocale } from '../../i18n/config';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
+import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import './Chronologio.css';
 
 type Props = {
@@ -34,34 +24,9 @@ type Props = {
   showField: boolean;
   locale: SupportedLocale;
   onSelect?: (entry: ChronologioEntry) => void;
+  selected?: boolean;
   /** Side-by-side multi-field weather tile — field first, minimal stats. */
   weatherTile?: boolean;
-};
-
-const iconFor = (category: string) => {
-  switch (category) {
-    case 'task':
-      return <CheckSquare size={16} />;
-    case 'expense':
-    case 'income':
-      return <Wallet size={16} />;
-    case 'harvest':
-      return <Wheat size={16} />;
-    case 'note':
-      return <StickyNote size={16} />;
-    case 'weather':
-      return <CloudRain size={16} />;
-    case 'intelligence':
-      return <Sparkles size={16} />;
-    case 'lifecycle':
-      return <Leaf size={16} />;
-    case 'collaborator':
-      return <Users size={16} />;
-    case 'photo':
-      return <Camera size={16} />;
-    default:
-      return <Activity size={16} />;
-  }
 };
 
 const categoryTone = (category: string, importance: string): string => {
@@ -77,7 +42,13 @@ const categoryTone = (category: string, importance: string): string => {
   return '';
 };
 
-const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, weatherTile = false }) => {
+const ChronologioEntryCard: React.FC<Props> = ({
+  entry,
+  showField,
+  onSelect,
+  selected = false,
+  weatherTile = false,
+}) => {
   const { t, i18n } = useTranslation(['chronologio', 'common', 'fields']);
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
@@ -88,6 +59,7 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
       ? 'it-IT'
       : 'en-US';
 
+  const presented = presentChronologioEvent(entry, i18n.language);
   const category = entry.category as ChronologioCategory;
   const tone = categoryTone(category, String(entry.importance));
   const harvest = entry.details.harvest;
@@ -132,11 +104,15 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
   const isPeriodReview =
     entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
   const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
-  const categoryAccent = resolveChronologioCategoryAccent(category, String(entry.importance));
-  const weatherMood = isPeriodReview ? resolveWeatherMood(weather) : null;
-  const weatherAccent = weatherMood ? WEATHER_MOOD_COLORS[weatherMood] : null;
-  /** Period weather on the journal stays mini; full charts open in the drawer. */
-  const compactWeather = isPeriodReview;
+  const accent = eventAccentToken(category, String(entry.importance));
+  const size = weatherTile ? 'compact' : eventCardSize(entry);
+  const time = (() => {
+    const d = new Date(entry.occurredAt);
+    return Number.isNaN(d.getTime())
+      ? ''
+      : d.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', hour12: false });
+  })();
+  const photoCount = entry.media?.length || 0;
 
   const hasExtraDetails = Boolean(
     lifecycle?.message ||
@@ -149,58 +125,46 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
   );
 
   return (
-    <AccentCard
-      as="button"
-      className={`chronologio-card ${tone}${weatherTile ? ' is-weather-tile' : ''}`}
-      accentColor={fieldAccent}
-      secondaryColor={weatherAccent}
-      endColor={categoryAccent}
-      compact={compactWeather}
+    <button
+      type="button"
+      className={`chronologio-event-card chronologio-event-card--${accent} is-${size}${tone ? ` ${tone}` : ''}${selected ? ' is-selected' : ''}${weatherTile ? ' is-weather-tile' : ''}${isPeriodReview && !weatherTile ? ' is-month-report' : ''}`}
+      style={weatherTile ? ({ '--field-accent': fieldAccent } as React.CSSProperties) : undefined}
+      aria-pressed={weatherTile ? selected : undefined}
       onClick={onActivate}
     >
       <div className="chronologio-card-top">
         {!weatherTile ? (
-          <div
-            className={`chronologio-card-icon ${tone}`}
-            style={
-              weatherAccent
-                ? {
-                    background: `color-mix(in srgb, ${weatherAccent} 16%, transparent)`,
-                    color: weatherAccent,
-                  }
-                : category === 'weather'
-                  ? undefined
-                  : {
-                      background: `color-mix(in srgb, ${categoryAccent} 14%, transparent)`,
-                      color: categoryAccent,
-                    }
-            }
-          >
-            {iconFor(category)}
+          <div className={`chronologio-card-icon ${tone}`}>
+            <ChronologioCategoryIcon category={category} />
           </div>
         ) : null}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {weatherTile && entry.field?.name ? (
-            <div className="accent-card-field-chip weather-tile-field">
-              <span className="accent-card-field-dot" aria-hidden />
-              <span>{entry.field.name}</span>
+        <div className="chronologio-card-body">
+          {weatherTile ? (
+            <div className="weather-pick-field">
+              <span className="chrono-field-dot" style={{ background: fieldAccent }} aria-hidden />
+              <h3 className="weather-pick-title">{entry.field?.name || presented.label}</h3>
             </div>
           ) : null}
           {!weatherTile ? (
             <div className="chronologio-card-meta">
-              {t(`chronologio:categoryLabel.${category}`, { defaultValue: category })}
+              <span>
+                {isPeriodReview
+                  ? t(
+                      entry.eventType === 'weather.yearReview'
+                        ? 'chronologio:weatherReview.yearReport'
+                        : 'chronologio:weatherReview.monthReport'
+                    )
+                  : presented.shortLabel}
+              </span>
               {note?.pinned ? (
-                <>
-                  {' · '}
-                  <Pin size={11} style={{ verticalAlign: 'middle' }} /> {t('chronologio:pinned')}
-                </>
+                <span>
+                  <Pin size={11} aria-hidden /> {t('chronologio:pinned')}
+                </span>
               ) : null}
+              {!isPeriodReview && time ? <time dateTime={entry.occurredAt}>{time}</time> : null}
             </div>
           ) : null}
-          {!weatherTile ? <h3 className="chronologio-card-title">{entry.title}</h3> : null}
-          {weatherTile ? (
-            <p className="weather-tile-period">{entry.title}</p>
-          ) : null}
+          {!weatherTile ? <h3 className="chronologio-card-title">{presented.label}</h3> : null}
           {category === 'harvest' && harvest ? (
             <div className="chronologio-harvest-stats">
               <div className="chronologio-harvest-stat">
@@ -231,21 +195,20 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
             </div>
           ) : null}
 
-          {category === 'expense' || category === 'income' ? (
+          {category === 'expense' || category === 'income' || (category === 'task' && entry.amount) ? (
             <div className="chronologio-expense-row">
               {entry.amount ? (
                 <span className="chronologio-card-amount">
                   {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
                 </span>
               ) : null}
-              {expense?.expenseCategory ? (
+              {presentExpenseChip(entry, i18n.language) &&
+              presentExpenseChip(entry, i18n.language) !== presented.label ? (
                 <span className="chronologio-expense-cat">
-                  {t(financialCategoryI18nKey(expense.expenseCategory), {
-                    defaultValue: expense.expenseCategory,
-                  })}
+                  {presentExpenseChip(entry, i18n.language)}
                 </span>
               ) : null}
-              {expense?.relatedTaskTitle ? (
+              {category !== 'task' && expense?.relatedTaskTitle ? (
                 <span className="chronologio-expense-cat">
                   {t('chronologio:relatedTask', { title: expense.relatedTaskTitle })}
                 </span>
@@ -269,7 +232,9 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
             </>
           ) : null}
 
-          {category === 'note' ? (
+          {category === 'note' &&
+          (note?.bodyPreview || entry.summary) &&
+          (note?.bodyPreview || entry.summary) !== presented.label ? (
             <p className="chronologio-note-body">
               {note?.bodyPreview || entry.summary || ''}
             </p>
@@ -277,13 +242,48 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
 
           {category === 'weather' ? (
             <>
-              {isPeriodReview && weather ? (
-                <WeatherReviewSummary
+              {isPeriodReview && weather && weatherTile ? (
+                <div className="weather-pick-metrics">
+                  {weather.rainfallMm != null ? (
+                    <div className="weather-pick-metric">
+                      <strong>
+                        {weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
+                      </strong>
+                      <span>{t('chronologio:weatherReview.rainMm')}</span>
+                    </div>
+                  ) : null}
+                  {weather.temperatureMin != null && weather.temperatureMax != null ? (
+                    <div className="weather-pick-metric">
+                      <strong>
+                        {weather.temperatureMin.toFixed(0)}°–{weather.temperatureMax.toFixed(0)}°
+                      </strong>
+                      <span>{t('chronologio:weatherReview.tempRange')}</span>
+                    </div>
+                  ) : null}
+                  <div
+                    className={`weather-pick-metric${
+                      weather.waterBalanceMm == null
+                        ? ''
+                        : weather.waterBalanceMm < 0
+                          ? ' is-deficit'
+                          : ' is-surplus'
+                    }`}
+                  >
+                    <strong>
+                      {weather.waterBalanceMm == null
+                        ? '—'
+                        : `${weather.waterBalanceMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm`}
+                    </strong>
+                    <span>{t('chronologio:weatherReview.waterBalance')}</span>
+                  </div>
+                </div>
+              ) : isPeriodReview && weather ? (
+                <WeatherMonthSnapshot
                   weather={weather}
                   eventType={entry.eventType}
-                  compact={compactWeather}
                   numberLocale={numberLocale}
                   locale={i18n.language}
+                  variant="card"
                 />
               ) : (
                 <>
@@ -307,15 +307,30 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
             <p className="chronologio-card-summary">{entry.summary}</p>
           ) : null}
 
-          {showField && !weatherTile && entry.field?.name ? (
-            <div className="accent-card-field-chip">
-              <span className="accent-card-field-dot" aria-hidden />
-              <span>{entry.field.name}</span>
-            </div>
-          ) : null}
-          {entry.actor?.displayName ? (
-            <div className="chronologio-card-actor">
-              {t('chronologio:fromActor', { name: entry.actor.displayName })}
+          {(showField && !weatherTile && entry.field?.name) ||
+          presentActorName(entry.actor?.displayName, i18n.language) ||
+          photoCount > 0 ? (
+            <div className="chronologio-card-foot">
+              {showField && !weatherTile && entry.field?.name ? (
+                <div className="chronologio-card-field">
+                  <span className="chrono-field-dot" style={{ background: fieldAccent }} aria-hidden />
+                  <span>{entry.field.name}</span>
+                </div>
+              ) : null}
+              {presentActorName(entry.actor?.displayName, i18n.language) || photoCount > 0 ? (
+                <div className="chronologio-card-actor">
+                  {[
+                    presentActorName(entry.actor?.displayName, i18n.language)
+                      ? t('chronologio:fromActor', {
+                          name: presentActorName(entry.actor?.displayName, i18n.language),
+                        })
+                      : null,
+                    photoCount > 0 ? t('chronologio:living.photoCount', { count: photoCount }) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -355,9 +370,9 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
                     {t('chronologio:mill')}: {harvest.mill}
                   </p>
                 ) : null}
-                {harvest?.quality ? (
+                {presentHarvestQuality(harvest?.quality, i18n.language) ? (
                   <p>
-                    {t('chronologio:quality')}: {harvest.quality}
+                    {t('chronologio:quality')}: {presentHarvestQuality(harvest?.quality, i18n.language)}
                   </p>
                 ) : null}
                 {expense?.description ? <p>{expense.description}</p> : null}
@@ -366,7 +381,7 @@ const ChronologioEntryCard: React.FC<Props> = ({ entry, showField, onSelect, wea
           </AnimatePresence>
         </div>
       </div>
-    </AccentCard>
+    </button>
   );
 };
 

@@ -152,7 +152,7 @@ const FieldHarvestCard: React.FC<Props> = ({
           </Text>
           {canVoid ? (
             <Pressable onPress={() => confirmVoid(saved.id)} style={{ minHeight: tapMin, justifyContent: 'center' }}>
-              <Text style={[styles.undo, { color: colors.primaryDark }]}>{t('fields:harvest.undo')}</Text>
+              <Text style={[styles.undo, { color: colors.primary }]}>{t('fields:harvest.undo')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -197,7 +197,7 @@ const FieldHarvestCard: React.FC<Props> = ({
               onPress={() => setShowMore(true)}
               style={{ minHeight: tapMin, justifyContent: 'center' }}
             >
-              <Text style={[styles.more, { color: colors.primaryDark }]}>{t('fields:harvest.addMore')}</Text>
+              <Text style={[styles.more, { color: colors.primary }]}>{t('fields:harvest.addMore')}</Text>
             </Pressable>
           )}
           {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}

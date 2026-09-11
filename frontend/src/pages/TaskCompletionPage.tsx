@@ -16,6 +16,7 @@ import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import LearningPromptSheet from '../components/FieldWork/LearningPromptSheet';
+import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import { useCaptureOptional } from '../context/CaptureContext';
 import '../components/FieldWork/FieldWorkCards.css';
 
@@ -62,6 +63,7 @@ const TaskCompletionPage: React.FC = () => {
     resultYear: number;
     suggestNextYear: number;
   } | null>(null);
+  const completionDrawer = useDrawerPresence(completionPrompt);
   const [learningBusy, setLearningBusy] = useState(false);
   const [step, setStep] = useState<Step>('outcome');
   const [draft, setDraft] = useState<CompletionDraft>({
@@ -290,10 +292,11 @@ const TaskCompletionPage: React.FC = () => {
             </Button>
           </div>
         </div>
-        {completionPrompt ? (
+        {completionDrawer.mounted && completionDrawer.value ? (
           <LearningPromptSheet
+            open={completionDrawer.open}
             title={t('fieldWork.profile.learning.completionTitle')}
-            message={completionPrompt.message}
+            message={completionDrawer.value.message}
             busy={learningBusy}
             onClose={() => setCompletionPrompt(null)}
             onAction={(actionId) => void applyCompletionLearning(actionId as CompletionFrequencyChoice)}

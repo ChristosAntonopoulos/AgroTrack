@@ -44,7 +44,7 @@
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-lg);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-decoration: none;
   transition: background var(--transition-fast), color var(--transition-fast),
     border-color var(--transition-fast), opacity var(--transition-fast);
@@ -53,9 +53,8 @@
 }
 
 .nav-link:hover {
-  background-color: var(--bg-hover);
-  color: var(--color-primary);
-  border-left-color: var(--color-primary-light);
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .nav-link:active {
@@ -63,10 +62,10 @@
 }
 
 .nav-link.active {
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  color: var(--color-primary);
+  background: var(--olive-soft);
+  color: var(--link);
   font-weight: 500;
-  border-left-color: var(--color-primary);
+  border-left-color: var(--olive-primary);
 }
 
 .nav-icon {

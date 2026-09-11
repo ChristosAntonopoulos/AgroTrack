@@ -30,7 +30,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
   dateFormat: 'dd/MM/yyyy',
   language: 'el',
-  defaultView: 'today',
+  defaultView: 'chronologio',
   emailNotifications: true,
   taskAssignmentNotifications: true,
   deadlineReminders: true,
@@ -53,8 +53,8 @@ const normalizeTheme = (raw: unknown): Theme => {
 };
 
 const normalizeDefaultView = (raw: unknown): UserPreferences['defaultView'] => {
-  if (raw === 'dashboard' || raw === 'calendar') return 'today';
-  if (raw === 'fields' || raw === 'today' || raw === 'chronologio' || raw === 'tasks') {
+  if (raw === 'dashboard' || raw === 'calendar' || raw === 'today') return 'chronologio';
+  if (raw === 'fields' || raw === 'chronologio' || raw === 'tasks') {
     return raw;
   }
   return DEFAULT_PREFERENCES.defaultView;
@@ -76,17 +76,14 @@ export const pathForDefaultView = (view: UserPreferences['defaultView']): string
   switch (view) {
     case 'fields':
       return '/fields';
-    case 'dashboard':
-      return '/today';
-    case 'chronologio':
-      return '/chronologio';
     case 'tasks':
       return '/tasks';
+    case 'chronologio':
+    case 'dashboard':
     case 'calendar':
-      return '/today';
     case 'today':
     default:
-      return '/today';
+      return '/chronologio';
   }
 };
 

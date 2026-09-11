@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, typography, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing, motion } from '../../theme';
 import Button from '../ui/Button';
 
 export interface PageHeaderProps {
@@ -8,10 +9,11 @@ export interface PageHeaderProps {
   subtitle?: string;
   showBackButton?: boolean;
   onBackPress?: () => void;
+  action?: React.ReactNode;
   actions?: Array<{
     label: string;
     onPress: () => void;
-    variant?: 'primary' | 'secondary' | 'outline' | 'text';
+    variant?: 'primary' | 'secondary' | 'outline' | 'text' | 'ghost';
   }>;
 }
 
@@ -20,38 +22,58 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   subtitle,
   showBackButton = false,
   onBackPress,
+  action,
   actions,
 }) => {
+  const { colors, fontScaleMultiplier, tapMin } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        {showBackButton && (
+        {showBackButton ? (
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { minWidth: tapMin, minHeight: tapMin }]}
             onPress={onBackPress}
-            activeOpacity={0.7}
+            activeOpacity={motion.pressOpacity}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={[styles.backIcon, { color: colors.primary }]}>←</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          <Text
+            style={[
+              styles.title,
+              { color: colors.textPrimary, fontSize: 24 * fontScaleMultiplier },
+            ]}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={[
+                styles.subtitle,
+                { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier },
+              ]}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
+        {action}
       </View>
-      {actions && actions.length > 0 && (
+      {actions && actions.length > 0 ? (
         <View style={styles.actions}>
-          {actions.map((action, index) => (
+          {actions.map((a, index) => (
             <Button
               key={index}
-              title={action.label}
-              onPress={action.onPress}
-              variant={action.variant || 'primary'}
+              title={a.label}
+              onPress={a.onPress}
+              variant={a.variant || 'primary'}
               size="small"
             />
           ))}
         </View>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -59,33 +81,32 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingBottom: spacing.base,
-    marginBottom: spacing.base,
+    marginBottom: spacing.sm,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   backButton: {
-    marginRight: spacing.base,
-    padding: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: colors.primary,
   },
   titleContainer: {
     flex: 1,
   },
   title: {
     ...typography.styles.h2,
-    color: colors.textPrimary,
     fontWeight: typography.fontWeight.bold,
     marginBottom: spacing.xs,
+    letterSpacing: -0.3,
   },
   subtitle: {
     ...typography.styles.body,
-    color: colors.textSecondary,
   },
   actions: {
     flexDirection: 'row',

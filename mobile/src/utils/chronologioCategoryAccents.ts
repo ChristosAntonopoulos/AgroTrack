@@ -1,24 +1,24 @@
 /**
- * Keep in sync with frontend/src/utils/chronologioCategoryAccents.ts
- * Chronologio journal-category accents — distinct from Tasks work-type palette.
+ * Chronologio journal-category accents — aligned with web `--event-*` tokens.
+ * Soft washes live on theme.colors.event*Soft; these are the strong accents.
  */
 export const CHRONOLOGIO_CATEGORY_ACCENTS: Record<string, string> = {
-  task: '#C47A1A',
-  expense: '#3D6EA8',
-  income: '#2F7A4B',
-  harvest: '#4A7C2A',
-  note: '#7A5EA8',
-  weather: '#2D7A9A',
-  intelligence: '#8A6D3B',
-  lifecycle: '#5C7A3A',
-  collaborator: '#5A6B8A',
-  photo: '#6B7280',
-  default: '#5A6A5C',
+  task: '#5E7848',
+  expense: '#99662D',
+  income: '#36734D',
+  harvest: '#8B4F49',
+  note: '#755D8C',
+  weather: '#39798D',
+  intelligence: '#59696B',
+  lifecycle: '#5E7848',
+  collaborator: '#59696B',
+  photo: '#879086',
+  default: '#879086',
 };
 
 const IMPORTANCE_ACCENTS: Record<string, string> = {
-  critical: '#B33A3A',
-  warning: '#C47A1A',
+  critical: '#A74435',
+  warning: '#C8924E',
 };
 
 export const resolveChronologioCategoryAccent = (

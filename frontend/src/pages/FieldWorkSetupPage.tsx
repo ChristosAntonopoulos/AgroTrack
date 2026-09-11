@@ -41,11 +41,8 @@ import {
   readWorkProfileDraft,
   writeWorkProfileDraft,
 } from '../utils/fieldWorkProfileDraft';
-import {
-  groupPlanPreviewItems,
-  practiceCategoryToStep,
-} from '../utils/fieldWorkPlanPreview';
 import WorkProfileCopyWizard from '../components/FieldWork/WorkProfileCopyWizard';
+import FieldWorkPlanReview from '../components/FieldWork/FieldWorkPlanReview';
 import './FieldWorkSetupPage.css';
 import './FieldWorkProfilePage.css';
 
@@ -367,6 +364,21 @@ const FieldWorkSetupPage: React.FC = () => {
   }, [fieldId, step, resultYear, t]);
 
   const goBack = () => {
+    if (returnToPlanAfterSave) {
+      setReturnToPlanAfterSave(false);
+      setStep('planPreview');
+      if (fieldId) {
+        const draft = readWorkProfileDraft(fieldId);
+        writeWorkProfileDraft({
+          fieldId,
+          stepId: 'planPreview',
+          pendingUpdate: draft?.pendingUpdate ?? {},
+          needsSync: Boolean(draft?.needsSync),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      return;
+    }
     if (step === 'planPreview') {
       setStep('reminders');
       if (fieldId) {
@@ -571,6 +583,15 @@ const FieldWorkSetupPage: React.FC = () => {
           </button>
         </div>
 
+        {returnToPlanAfterSave &&
+        step !== 'planPreview' &&
+        step !== 'finished' &&
+        step !== 'similarFields' &&
+        step !== 'completion' ? (
+          <p className="fw-setup-return-note">{t('tasks:fieldWork.onboarding.planPreview.returnNote')}</p>
+        ) : null}
+
+        <div key={step} className="fw-setup-pane">
         {step === 'welcome' && (
           <>
             <h1 className="fw-setup-question">{t('tasks:fieldWork.onboarding.welcome.title')}</h1>
@@ -1370,102 +1391,15 @@ const FieldWorkSetupPage: React.FC = () => {
           <>
             {planLoading && !planPreview ? (
               <LoadingSpinner />
-            ) : (
-              <>
-                <h1 className="fw-setup-question">
-                  {t('tasks:fieldWork.onboarding.planPreview.title', {
-                    year: planPreview?.resultYear ?? resultYear,
-                  })}
-                </h1>
-                {planPreview ? (
-                  <>
-                    <ul className="fw-plan-summary" aria-label="summary">
-                      <li>
-                        {t('tasks:fieldWork.onboarding.planPreview.summaryEnabled', {
-                          count: planPreview.enabledCount,
-                        })}
-                      </li>
-                      <li>
-                        {t('tasks:fieldWork.onboarding.planPreview.summaryAskFirst', {
-                          count: planPreview.askFirstCount,
-                        })}
-                      </li>
-                      <li>
-                        {t('tasks:fieldWork.onboarding.planPreview.summarySuppressed', {
-                          count: planPreview.suppressedCount,
-                        })}
-                      </li>
-                    </ul>
-
-                    {groupPlanPreviewItems(planPreview).map((group) =>
-                      group.items.length === 0 ? null : (
-                        <section key={group.key} className="fw-plan-group">
-                          <h2 className="fw-plan-group-title">
-                            {t(
-                              `tasks:fieldWork.onboarding.planPreview.group${
-                                group.key === 'enabled'
-                                  ? 'Enabled'
-                                  : group.key === 'askFirst'
-                                    ? 'AskFirst'
-                                    : 'Suppressed'
-                              }`
-                            )}
-                          </h2>
-                          <ul className="fw-plan-rows">
-                            {group.items.map((row) => (
-                              <li key={`${group.key}-${row.templateCode}`} className="fw-plan-row">
-                                <div className="fw-plan-row-body">
-                                  <div className="fw-plan-row-title">{row.templateName}</div>
-                                  <p className="fw-plan-row-reason">{row.reason}</p>
-                                </div>
-                                {row.practiceCategory !== 'other' ? (
-                                  <button
-                                    type="button"
-                                    className="fw-plan-row-change"
-                                    onClick={() =>
-                                      jumpToPreference(practiceCategoryToStep(row.practiceCategory))
-                                    }
-                                  >
-                                    {t('tasks:fieldWork.onboarding.planPreview.changeRow')}
-                                  </button>
-                                ) : null}
-                              </li>
-                            ))}
-                          </ul>
-                        </section>
-                      )
-                    )}
-
-                    <p className="fw-plan-footer">
-                      {t('tasks:fieldWork.onboarding.planPreview.footer')}
-                    </p>
-                  </>
-                ) : null}
-
-                <div className="fw-setup-actions">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    disabled={activating || planLoading || !planPreview}
-                    onClick={() => void acceptPlan()}
-                  >
-                    {activating
-                      ? t('tasks:fieldWork.onboarding.planPreview.activating')
-                      : t('tasks:fieldWork.onboarding.planPreview.usePlan')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    fullWidth
-                    disabled={activating}
-                    onClick={() => jumpToPreference('purpose')}
-                  >
-                    {t('tasks:fieldWork.onboarding.planPreview.changes')}
-                  </Button>
-                </div>
-              </>
-            )}
+            ) : planPreview ? (
+              <FieldWorkPlanReview
+                profile={profile}
+                preview={planPreview}
+                activating={activating}
+                onChangeAnswer={jumpToPreference}
+                onAccept={() => void acceptPlan()}
+              />
+            ) : null}
           </>
         )}
 
@@ -1589,7 +1523,9 @@ const FieldWorkSetupPage: React.FC = () => {
         step !== 'completion' ? (
           <div className="fw-setup-actions">
             <Button variant="ghost" size="lg" onClick={goBack} disabled={saving}>
-              {t('common:back', { defaultValue: 'Πίσω' })}
+              {returnToPlanAfterSave
+                ? t('tasks:fieldWork.onboarding.planPreview.backToPlan')
+                : t('common:back', { defaultValue: 'Πίσω' })}
             </Button>
           </div>
         ) : null}
@@ -1600,6 +1536,8 @@ const FieldWorkSetupPage: React.FC = () => {
         {syncNote ? (
           <p className={`fw-setup-status${!isOnline ? ' is-offline' : ''}`}>{syncNote}</p>
         ) : null}
+        </div>
+
         {error ? <p className="fw-setup-status is-error">{error}</p> : null}
         {!canOwn && field ? (
           <p className="fw-setup-status is-error">

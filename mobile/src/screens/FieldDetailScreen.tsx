@@ -45,7 +45,14 @@ import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
-type FieldMode = 'overview' | 'chronologio';
+type FieldTab = 'overview' | 'map' | 'details' | 'chronologio';
+
+const FIELD_TABS: FieldTab[] = ['overview', 'map', 'details', 'chronologio'];
+
+const parseTab = (mode?: string): FieldTab => {
+  if (mode === 'map' || mode === 'details' || mode === 'chronologio') return mode;
+  return 'overview';
+};
 
 const FieldDetailScreen = () => {
   const route = useRoute<Route>();
@@ -65,7 +72,7 @@ const FieldDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
 
-  const mode: FieldMode = modeParam === 'chronologio' ? 'chronologio' : 'overview';
+  const tab = parseTab(modeParam);
 
   const load = useCallback(async () => {
     try {
@@ -118,8 +125,21 @@ const FieldDetailScreen = () => {
   }, [field?.name, navigation]);
 
   const canOwn = isFieldOwner() || field?.ownerId === user?.id;
-  const setMode = (next: FieldMode) => {
+  const setTab = (next: FieldTab) => {
     navigation.setParams({ mode: next === 'overview' ? undefined : next });
+  };
+
+  const tabLabel = (id: FieldTab): string => {
+    switch (id) {
+      case 'overview':
+        return t('fields:detail.overview');
+      case 'map':
+        return t('fields:page.mapData');
+      case 'details':
+        return t('fields:page.details');
+      case 'chronologio':
+        return t('fields:detail.timeline');
+    }
   };
 
   const handleDelete = () => {
@@ -157,6 +177,36 @@ const FieldDetailScreen = () => {
     );
   }
 
+  const renderMapPanel = () => (
+    <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
+      <FieldDetailMap field={field} height={isEveryday ? 280 : 360} />
+      {field.boundary && showWidget('fieldIntelligence') ? (
+        <FieldIntelligenceCard fieldId={field.id} />
+      ) : null}
+      {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
+        everydayFieldPeek ? (
+          <FieldIntelligenceCard fieldId={field.id} />
+        ) : (
+          <Pressable
+            onPress={() => {
+              setEverydayFieldPeek(true);
+              void recordIntelligenceOpen();
+            }}
+            style={[
+              styles.peekBtn,
+              { borderColor: colors.borderLight, backgroundColor: colors.surface, minHeight: tapMin },
+            ]}
+            accessibilityRole="button"
+          >
+            <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+              {t('settings:experience.peekMoreAboutField')}
+            </Text>
+          </Pressable>
+        )
+      ) : null}
+    </ScrollView>
+  );
+
   return (
     <ScreenLayout>
       <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
@@ -166,7 +216,7 @@ const FieldDetailScreen = () => {
             field={field}
             canOwn={Boolean(canOwn)}
             onDelete={canOwn ? handleDelete : undefined}
-            onOpenChronologio={() => setMode('chronologio')}
+            onOpenChronologio={() => setTab('chronologio')}
           />
         </View>
         {capture ? (
@@ -177,65 +227,52 @@ const FieldDetailScreen = () => {
             style={{ alignSelf: 'flex-start', marginTop: spacing.sm }}
           />
         ) : null}
-        <View style={[styles.modeSwitch, { backgroundColor: colors.surfaceMuted }]}>
-          {(['overview', 'chronologio'] as const).map((next) => (
-            <Pressable
-              key={next}
-              onPress={() => setMode(next)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: mode === next }}
-              style={[
-                styles.modeBtn,
-                {
-                  minHeight: tapMin,
-                  backgroundColor: mode === next ? colors.surface : 'transparent',
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  fontWeight: '700',
-                  color: mode === next ? colors.textPrimary : colors.textSecondary,
-                }}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.localNav}
+          accessibilityRole="tablist"
+          accessibilityLabel={t('fields:page.tabsAria')}
+        >
+          {FIELD_TABS.map((id) => {
+            const selected = tab === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setTab(id)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                style={[
+                  styles.localTab,
+                  {
+                    minHeight: tapMin,
+                    borderBottomColor: selected ? colors.primary : 'transparent',
+                  },
+                ]}
               >
-                {next === 'overview' ? t('fields:detail.overview') : t('fields:detail.timeline')}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+                <Text
+                  style={{
+                    fontWeight: '700',
+                    fontSize: 15,
+                    color: selected ? colors.textPrimary : colors.textSecondary,
+                  }}
+                >
+                  {tabLabel(id)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {mode === 'chronologio' ? (
+      {tab === 'chronologio' ? (
         <View style={styles.flex}>
           <ChronologioScreen fieldId={field.id} embedded />
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.overview} showsVerticalScrollIndicator={false}>
-          <FieldDetailMap field={field} height={isEveryday ? 240 : 340} />
-          {field.boundary && showWidget('fieldIntelligence') ? (
-            <FieldIntelligenceCard fieldId={field.id} />
-          ) : null}
-          {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
-            everydayFieldPeek ? (
-              <FieldIntelligenceCard fieldId={field.id} />
-            ) : (
-              <Pressable
-                onPress={() => {
-                  setEverydayFieldPeek(true);
-                  void recordIntelligenceOpen();
-                }}
-                style={[
-                  styles.peekBtn,
-                  { borderColor: colors.borderLight, backgroundColor: colors.surface, minHeight: tapMin },
-                ]}
-                accessibilityRole="button"
-              >
-                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                  {t('settings:experience.peekMoreAboutField')}
-                </Text>
-              </Pressable>
-            )
-          ) : null}
+      ) : null}
+
+      {tab === 'overview' ? (
+        <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
           <FieldTodaySummary
             fieldId={field.id}
             tasks={tasks}
@@ -243,16 +280,23 @@ const FieldDetailScreen = () => {
           />
           <FieldAttentionCard
             entries={recentEntries}
-            onSeeObservation={() => setMode('chronologio')}
+            onSeeObservation={() => setTab('chronologio')}
           />
           <FieldFinanceSummary
             summary={costSummary}
             onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id })}
           />
-          <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setMode('chronologio')} />
+          <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
+        </ScrollView>
+      ) : null}
+
+      {tab === 'map' ? renderMapPanel() : null}
+
+      {tab === 'details' ? (
+        <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
           <FieldFacts field={field} />
         </ScrollView>
-      )}
+      ) : null}
     </ScreenLayout>
   );
 };
@@ -262,24 +306,21 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.base,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   identityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  modeSwitch: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 4,
-    marginTop: spacing.md,
+  localNav: {
     gap: 4,
+    paddingTop: spacing.md,
+    paddingBottom: 0,
   },
-  modeBtn: {
-    flex: 1,
-    borderRadius: 10,
-    alignItems: 'center',
+  localTab: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: 10,
+    borderBottomWidth: 3,
     justifyContent: 'center',
   },
-  overview: {
+  panel: {
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: spacing['3xl'],

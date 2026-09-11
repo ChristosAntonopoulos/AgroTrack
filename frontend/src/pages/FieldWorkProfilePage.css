@@ -50,8 +50,8 @@
 }
 
 .fw-profile-change--primary {
-  border-color: var(--color-primary, #2f5d3a);
-  background: var(--color-primary, #2f5d3a);
+  border-color: var(--olive-primary);
+  background: var(--olive-primary);
   color: #fff;
 }
 

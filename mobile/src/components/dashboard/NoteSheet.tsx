@@ -118,11 +118,11 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
                   styles.chip,
                   {
                     borderColor: !fieldId ? colors.primary : colors.border,
-                    backgroundColor: !fieldId ? colors.primaryDark : 'transparent',
+                    backgroundColor: !fieldId ? colors.primary : 'transparent',
                   },
                 ]}
               >
-                <Text style={{ color: !fieldId ? colors.textInverse : colors.textPrimary }}>
+                <Text style={{ color: !fieldId ? colors.onOlive : colors.textPrimary }}>
                   {t('dashboard:notes.noField')}
                 </Text>
               </Pressable>
@@ -136,11 +136,11 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
                       styles.chip,
                       {
                         borderColor: active ? colors.primary : colors.border,
-                        backgroundColor: active ? colors.primaryDark : 'transparent',
+                        backgroundColor: active ? colors.primary : 'transparent',
                       },
                     ]}
                   >
-                    <Text style={{ color: active ? colors.textInverse : colors.textPrimary }}>
+                    <Text style={{ color: active ? colors.onOlive : colors.textPrimary }}>
                       {f.name}
                     </Text>
                   </Pressable>

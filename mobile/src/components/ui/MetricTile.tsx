@@ -27,7 +27,7 @@ const MetricTile: React.FC<MetricTileProps> = ({
   onPress,
 }) => {
   const { colors } = useTheme();
-  const accent = accentColor ?? colors.primaryDark;
+  const accent = accentColor ?? colors.primary;
   const subColor = subtitleColor ?? colors.textTertiary;
 
   const content = (

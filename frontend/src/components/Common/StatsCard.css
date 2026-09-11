@@ -67,9 +67,35 @@
 }
 
 .stats-card-icon {
-  font-size: 1.5rem;
-  color: var(--color-primary);
-  opacity: 0.7;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--olive-primary);
+  font-size: 1.25rem;
+  opacity: 1;
+}
+
+.stats-card-success .stats-card-icon {
+  background: var(--status-success-soft);
+  color: var(--status-success);
+}
+
+.stats-card-warning .stats-card-icon {
+  background: var(--status-warning-soft);
+  color: var(--status-warning);
+}
+
+.stats-card-error .stats-card-icon {
+  background: var(--status-danger-soft);
+  color: var(--status-danger);
+}
+
+.stats-card-info .stats-card-icon {
+  background: var(--status-info-soft);
+  color: var(--status-info);
 }
 
 .stats-card-value {

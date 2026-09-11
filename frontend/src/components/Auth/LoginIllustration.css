@@ -6,7 +6,7 @@
   height: 100%;
   padding: var(--spacing-xl);
   position: relative;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 50%, var(--color-success) 100%);
+  background: linear-gradient(135deg, var(--oleachron-sage) 0%, var(--olive-primary) 55%, var(--oleachron-limestone) 100%);
   background-attachment: fixed;
 }
 

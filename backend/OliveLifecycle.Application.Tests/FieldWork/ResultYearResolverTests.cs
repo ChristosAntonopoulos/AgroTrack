@@ -6,10 +6,18 @@ namespace OliveLifecycle.Application.Tests.FieldWork;
 public class ResultYearResolverTests
 {
     [Fact]
-    public void Resolve_DefaultsToAthensYearOfPlannedDate()
+    public void Resolve_DefaultsToAgriculturalYearOfPlannedDate()
     {
         var planned = new DateTime(2026, 3, 18, 10, 0, 0, DateTimeKind.Utc);
         var year = ResultYearResolver.Resolve(planned, explicitResultYear: null, utcNow: planned);
+        Assert.Equal(2026, year);
+    }
+
+    [Fact]
+    public void Resolve_KeepsJanuaryInsidePreviousAgriculturalYear()
+    {
+        var taskDate = new DateTime(2027, 1, 5, 8, 0, 0, DateTimeKind.Utc);
+        var year = ResultYearResolver.Resolve(taskDate, explicitResultYear: null, utcNow: taskDate);
         Assert.Equal(2026, year);
     }
 

@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using OliveLifecycle.Core.Entities.Geospatial;
 
 namespace OliveLifecycle.Infrastructure.Persistence.Documents.Geospatial;
 
@@ -114,17 +115,37 @@ public class FieldWeatherPeriodReviewDocument
     public double RainTotalMm { get; set; }
     public double? MinTemperatureC { get; set; }
     public double? MaxTemperatureC { get; set; }
+    public double? AverageTemperatureC { get; set; }
     public int FrostNights { get; set; }
     public int HeatDays { get; set; }
     public int HeavyRainDays { get; set; }
     public int LongestDryStreakDays { get; set; }
+    public int RainyDays { get; set; }
+    public int DryDays { get; set; }
+    public double? Et0TotalMm { get; set; }
+    public double? WaterBalanceMm { get; set; }
+    public double? AverageHumidityPercent { get; set; }
+    public double? MaxWindGustKmh { get; set; }
     public double? RainVsPreviousPercent { get; set; }
     public int? WettestMonth { get; set; }
     public double? NdviMean { get; set; }
     public double? NdviDeltaPercent { get; set; }
+    public double? NdviStartEndDeltaPercent { get; set; }
+    public double? NdmiMean { get; set; }
+    public double? NdreMean { get; set; }
+    public double? NdwiMean { get; set; }
+    public double? SaviMean { get; set; }
+    public WeatherReviewSatelliteScene? OpeningScene { get; set; }
+    public WeatherReviewSatelliteScene? ClosingScene { get; set; }
+    public List<WeatherPeriodInsight> Insights { get; set; } = new();
     public List<double> RainSeries { get; set; } = new();
     public List<string> RainLabels { get; set; } = new();
+    public List<double?> TemperatureMinSeries { get; set; } = new();
+    public List<double?> TemperatureMaxSeries { get; set; } = new();
     public int DayCount { get; set; }
+    public int ExpectedDays { get; set; }
+    public int DaysWithRainData { get; set; }
+    public bool IncludesForecast { get; set; }
     public int UsableSatelliteCount { get; set; }
     public string WeatherProvider { get; set; } = string.Empty;
     public string? SatelliteSource { get; set; }

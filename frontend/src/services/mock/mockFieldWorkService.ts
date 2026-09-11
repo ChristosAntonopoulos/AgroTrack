@@ -494,6 +494,10 @@ export const mockFieldWorkService = {
     const current = mockProfiles.get(fieldId);
     if (!current) throw new Error('Profile not found');
     const resultYear = year ?? current.resultYearCreated;
+    const windowFor = (start: string, end: string) => ({
+      windowStart: `${resultYear}-${start}`,
+      windowEnd: end.startsWith('01-') ? `${resultYear + 1}-${end}` : `${resultYear}-${end}`,
+    });
     const enabled = Object.entries(FIELD_WORK_TEMPLATE_META)
       .slice(0, 8)
       .map(([code, meta]) => ({
@@ -503,6 +507,10 @@ export const mockFieldWorkService = {
         reasonCode: 'mock_enabled',
         reason: 'Ταιριάζει με τις απαντήσεις σας για φέτος.',
         practiceCategory: meta.category === 'ground' ? 'ground_cover' : meta.category,
+        ...windowFor(
+          code === 'T01' ? '01-01' : code === 'T06' ? '02-15' : '03-01',
+          code === 'T01' ? '01-31' : code === 'T06' ? '04-15' : '05-31'
+        ),
       }));
     const askFirst =
       current.irrigation.preferenceMode === 'ask_first'
@@ -514,6 +522,7 @@ export const mockFieldWorkService = {
               reasonCode: 'irrigation_ask_first',
               reason: 'Θα ρωτήσουμε πριν προτείνουμε πότισμα.',
               practiceCategory: 'irrigation',
+              ...windowFor('06-01', '08-31'),
             },
           ]
         : [];
@@ -527,6 +536,7 @@ export const mockFieldWorkService = {
               reasonCode: 'pruning_disabled',
               reason: 'Οι συνήθεις προτάσεις κλαδέματος είναι απενεργοποιημένες.',
               practiceCategory: 'pruning',
+              ...windowFor('02-15', '04-15'),
             },
           ]
         : [];

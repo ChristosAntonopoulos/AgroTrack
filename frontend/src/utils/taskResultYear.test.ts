@@ -1,9 +1,10 @@
 import { crossesHarvestYear, deriveResultYear, resultYearChoices } from './taskResultYear';
 
 describe('task result year', () => {
-  it('derives the Athens year of the planned day', () => {
+  it('derives the agricultural year of the planned day', () => {
     expect(deriveResultYear('2026-09-10')).toBe(2026);
-    expect(deriveResultYear('2027-01-05')).toBe(2027);
+    expect(deriveResultYear('2027-01-05')).toBe(2026);
+    expect(deriveResultYear('2027-02-01')).toBe(2027);
     expect(deriveResultYear(undefined, new Date('2026-09-10T12:00:00Z'))).toBe(2026);
   });
 

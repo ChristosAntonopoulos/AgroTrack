@@ -111,7 +111,7 @@ public class FieldWorkPlanPreviewService : IFieldWorkPlanPreviewService
                             || profile.PestManagement.DecisionApproach == PestDecisionApproach.Agronomist
                     });
 
-                var item = ToItem(entry, category, result, language);
+                var item = ToItem(entry, category, result, language, year, profile);
                 switch (result.Status)
                 {
                     case TemplateEligibilityStatus.AskFirst:
@@ -150,9 +150,12 @@ public class FieldWorkPlanPreviewService : IFieldWorkPlanPreviewService
         FieldWorkCatalogueEntry entry,
         PracticeCategory category,
         TemplateEligibilityResult result,
-        string language)
+        string language,
+        int resultYear,
+        FieldWorkProfile profile)
     {
         var en = language.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+        var window = ResolvePreviewWindow(entry, category, profile, resultYear);
         return new FieldWorkPlanPreviewItemDto
         {
             TemplateCode = entry.Code,
@@ -160,8 +163,44 @@ public class FieldWorkPlanPreviewService : IFieldWorkPlanPreviewService
             EligibilityStatus = result.Status.ToApiString(),
             ReasonCode = result.ReasonCode,
             Reason = FieldWorkProfileEligibilityLabels.ForReason(result.ReasonCode, language),
-            PracticeCategory = MapPracticeCategory(category)
+            PracticeCategory = MapPracticeCategory(category),
+            WindowStart = window?.Start,
+            WindowEnd = window?.End
         };
+    }
+
+    /// <summary>
+    /// Catalogue season window, shifted to the grower's harvest month when they gave one.
+    /// </summary>
+    internal static (DateTime Start, DateTime End)? ResolvePreviewWindow(
+        FieldWorkCatalogueEntry entry,
+        PracticeCategory category,
+        FieldWorkProfile profile,
+        int resultYear)
+    {
+        var range = entry.CandidateMonthRange;
+        var harvestMonth = profile.Harvest?.ExpectedStartMonth;
+        if (harvestMonth is >= 1 and <= 12
+            && category is PracticeCategory.HarvestPrep or PracticeCategory.PreHarvestReadiness
+            && range is not null)
+        {
+            var offset = harvestMonth.Value - range.StartMonth;
+            range = new MonthDayRange
+            {
+                StartMonth = ShiftMonth(range.StartMonth, offset),
+                StartDay = range.StartDay,
+                EndMonth = ShiftMonth(range.EndMonth, offset),
+                EndDay = range.EndDay
+            };
+        }
+
+        return CandidateWindowCalculator.Resolve(range, resultYear);
+    }
+
+    private static int ShiftMonth(int month, int offset)
+    {
+        var shifted = ((month - 1 + offset) % 12 + 12) % 12;
+        return shifted + 1;
     }
 
     /// <summary>Maps eligibility practice buckets to onboarding jump-back keys.</summary>

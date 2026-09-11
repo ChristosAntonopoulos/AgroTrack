@@ -23,7 +23,12 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  FieldDetail: { fieldId: string; focus?: 'harvest' | 'harvest-final' | 'money'; mode?: 'overview' | 'chronologio' };
+  FieldDetail: {
+    fieldId: string;
+    focus?: 'harvest' | 'harvest-final' | 'money';
+    /** Local field page tab (web-aligned). Legacy `chronologio` / `overview` still accepted. */
+    mode?: 'overview' | 'map' | 'details' | 'chronologio';
+  };
   InviteAccept: { token: string };
   FamilyInviteAccept: { token: string };
   ThisHarvest: undefined;

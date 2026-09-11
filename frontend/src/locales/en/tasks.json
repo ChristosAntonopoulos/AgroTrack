@@ -307,6 +307,15 @@
       "person": "Who will do it?",
       "unassigned": "I’ll decide later",
       "assigneeMe": "Me",
+      "assigneeMeHint": "You’ll do it — you can assign someone else if needed.",
+      "assigneeSomeoneElse": "Someone else",
+      "assigneeGroupPartners": "Partners & family",
+      "assigneeGroupContacts": "Contacts",
+      "assigneeGroupOthers": "Others",
+      "assigneeHintPartner": "Partner",
+      "assigneeHintFamily": "Family",
+      "assigneeHintAdvisor": "Advisor",
+      "assigneeHintContact": "Contact",
       "decideLater": "I’ll decide later",
       "collaborator": "Collaborator",
       "more": "More",
@@ -428,7 +437,16 @@
       "noActual": "No cost has been recorded yet",
       "addExpense": "Record expense",
       "seeMoney": "See in Money",
-      "estimateHint": "The estimate never enters the year’s official totals."
+      "estimateHint": "The estimate never enters the year’s official totals.",
+      "nextStep": "Next step",
+      "nextStepStart": "Start the task when you are in the field.",
+      "nextStepComplete": "When you finish, record the outcome and checks.",
+      "checklistHint": "Answers are filled in at completion — here you see progress.",
+      "checkPending": "Pending",
+      "noChecks": "There are no checks for this task.",
+      "fillChecks": "Fill in checks",
+      "notesOnComplete": "You can add notes when you complete the task.",
+      "noNotes": "No notes."
     },
     "onboarding": {
       "progress": "{{current}} of {{total}}",
@@ -454,6 +472,36 @@
       },
       "planPreview": {
         "title": "The plan for {{year}}",
+        "intro": "From what you told us, {{count}} jobs fit this year — with their usual dates.",
+        "tabsAria": "Plan and answers",
+        "tabs": {
+          "year": "The year",
+          "answers": "Your answers"
+        },
+        "seasons": {
+          "winter": "Winter",
+          "spring": "Spring",
+          "summer": "Summer",
+          "autumn": "Autumn"
+        },
+        "tone": {
+          "planned": "This year",
+          "done": "Already done",
+          "ifNeeded": "If needed",
+          "skipped": "Not this year"
+        },
+        "skippedToggle": "{{count}} other jobs that are not suggested this year",
+        "returnNote": "Change what you need — then you come back to the plan.",
+        "backToPlan": "Back to the plan",
+        "answers": {
+          "lastYear": "Last time in {{year}}",
+          "doneThisYear": "Already done this year",
+          "notYetThisYear": "Not done yet this year",
+          "analyses": "Analyses",
+          "needsMill": "Needs a mill booking",
+          "noMill": "No mill booking",
+          "reminders": "Reminders"
+        },
         "summaryEnabled": "{{count}} tasks may concern you",
         "summaryAskFirst": "{{count}} will appear only if there is a related signal",
         "summarySuppressed": "{{count}} general proposals were turned off",
@@ -462,8 +510,8 @@
         "groupSuppressed": "Not proposed routinely",
         "changeRow": "Change",
         "usePlan": "Use this plan",
-        "changes": "Changes",
-        "footer": "Tasks are not scheduled automatically. You choose which proposals to accept.",
+        "changes": "See your answers",
+        "footer": "Nothing is booked on its own. You choose which jobs to keep.",
         "loadFailed": "Could not load the plan preview.",
         "activateFailed": "Could not activate the plan. Please try again.",
         "activating": "Activating…"

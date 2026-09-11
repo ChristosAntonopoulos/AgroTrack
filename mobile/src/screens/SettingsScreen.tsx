@@ -32,7 +32,7 @@ import { changeAppLanguage } from '../i18n';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const THEME_OPTIONS: ThemeMode[] = ['system', 'light', 'dark'];
-const START_VIEWS: DefaultStartView[] = ['today', 'fields', 'chronologio'];
+const START_VIEWS: DefaultStartView[] = ['chronologio', 'fields'];
 const DATE_FORMATS: DateFormatPref[] = ['dd/MM/yyyy', 'yyyy-MM-dd', 'medium'];
 const SAMPLE = new Date(2026, 8, 9);
 
@@ -117,8 +117,8 @@ const SettingsScreen = () => {
         styles.option,
         {
           minHeight: Math.max(44, tapMin),
-          backgroundColor: selected ? colors.primaryDark : colors.surfaceMuted,
-          borderColor: selected ? colors.primaryDark : colors.border,
+          backgroundColor: selected ? colors.primaryLight : colors.surfaceMuted,
+          borderColor: selected ? colors.oliveBorder : colors.border,
         },
       ]}
     >
@@ -126,7 +126,7 @@ const SettingsScreen = () => {
         style={[
           styles.optionText,
           {
-            color: selected ? colors.textInverse : colors.textPrimary,
+            color: selected ? colors.primary : colors.textPrimary,
             fontSize: 14 * fontScaleMultiplier,
           },
         ]}
@@ -256,8 +256,8 @@ const SettingsScreen = () => {
             onValueChange={(v) => {
               void setLargeControls(v).then(flashSaved);
             }}
-            trackColor={{ false: colors.border, true: colors.primaryDark }}
-            thumbColor={colors.textInverse}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.onOlive}
           />
         </View>
       </Section>

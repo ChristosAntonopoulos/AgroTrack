@@ -90,7 +90,7 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />
+        <Ionicons name="calendar-outline" size={18} color={colors.primary} />
         <Text
           style={[
             styles.triggerText,
@@ -138,9 +138,9 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
             />
             <TouchableOpacity
               onPress={() => commitDate(draft)}
-              style={[styles.doneBtn, { backgroundColor: colors.primaryDark }]}
+              style={[styles.doneBtn, { backgroundColor: colors.primary }]}
             >
-              <Text style={[styles.doneBtnText, { color: colors.textInverse }]}>
+              <Text style={[styles.doneBtnText, { color: colors.onOlive }]}>
                 {t('confirm')}
               </Text>
             </TouchableOpacity>

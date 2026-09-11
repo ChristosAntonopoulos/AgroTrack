@@ -1,14 +1,15 @@
-/** Category border colors aligned with web calendar legend */
+/** Category border colors aligned with web Mediterranean event palette */
 const CATEGORY_COLORS: Record<string, string> = {
-  Pruning: '#4a7c2a',
-  Harvesting: '#8b9a46',
-  Fertilization: '#6b8e23',
-  Irrigation: '#17a2b8',
-  'Pest Control': '#dc3545',
-  'Soil Analysis': '#6c757d',
-  Spraying: '#fd7e14',
-  Inspection: '#6610f2',
+  Pruning: '#5E7848',
+  Harvesting: '#8B4F49',
+  Fertilization: '#5E7848',
+  Irrigation: '#39798D',
+  'Pest Control': '#A74435',
+  'Soil Analysis': '#755D8C',
+  'Soil Testing': '#755D8C',
+  Spraying: '#A74435',
+  Inspection: '#755D8C',
 };
 
 export const getTaskCategoryColor = (type: string): string =>
-  CATEGORY_COLORS[type] ?? '#6c757d';
+  CATEGORY_COLORS[type] ?? '#879086';

@@ -257,7 +257,7 @@ const TaskDetailScreen = () => {
             {task.title}
           </Text>
           {phase ? (
-            <Text style={[styles.phaseWord, { color: colors.primaryDark, fontSize: 15 * fontScaleMultiplier }]}>
+            <Text style={[styles.phaseWord, { color: colors.primary, fontSize: 15 * fontScaleMultiplier }]}>
               {t('tasks:harvest.word')} · {t(`tasks:harvest.phases.${phase}`)}
             </Text>
           ) : null}
@@ -273,8 +273,8 @@ const TaskDetailScreen = () => {
           </View>
           {field ? (
             <TouchableOpacity style={styles.fieldLink} onPress={() => navigation.navigate('FieldDetail', { fieldId: field.id })}>
-              <Ionicons name="leaf-outline" size={14} color={colors.primaryDark} />
-              <Text style={{ color: colors.primaryDark, fontWeight: '600' }}>{field.name}</Text>
+              <Ionicons name="leaf-outline" size={14} color={colors.link} />
+              <Text style={{ color: colors.link, fontWeight: '600' }}>{field.name}</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
             </TouchableOpacity>
           ) : null}
@@ -341,15 +341,15 @@ const TaskDetailScreen = () => {
                     styles.checkRow,
                     {
                       minHeight: tapMin,
-                      borderColor: on ? colors.primaryDark : colors.borderLight,
-                      backgroundColor: colors.surfaceElevated,
+                      borderColor: on ? colors.oliveBorder : colors.borderLight,
+                      backgroundColor: on ? colors.primaryLight : colors.surfaceElevated,
                     },
                   ]}
                 >
                   <Ionicons
                     name={on ? 'checkbox' : 'square-outline'}
                     size={22}
-                    color={on ? colors.primaryDark : colors.textTertiary}
+                    color={on ? colors.primary : colors.textTertiary}
                   />
                   <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 16 * fontScaleMultiplier }}>
                     {item}

@@ -14,7 +14,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   fullScreen = false,
 }) => {
   const { colors } = useTheme();
-  const spinnerColor = color ?? colors.primaryDark;
+  const spinnerColor = color ?? colors.primary;
 
   return (
     <View

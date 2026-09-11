@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import BrandLogo from '../ui/BrandLogo';
 import { typography, spacing, createElevation } from '../../theme';
 
+/** Light brand bar — matches web Header (`--bg-header`) */
 const AppHeader = () => {
   const { user } = useAuth();
   const { colors, isDark, fontScaleMultiplier } = useTheme();
@@ -20,34 +21,29 @@ const AppHeader = () => {
         {
           backgroundColor: colors.headerBackground,
           borderBottomColor: colors.headerBorder,
-          ...createElevation(colors, isDark ? 'lg' : 'md'),
+          ...createElevation(colors, 'sm'),
         },
       ]}
     >
-      {isDark ? (
-        <View
-          style={[styles.accentLine, { backgroundColor: colors.headerAccent }]}
-          pointerEvents="none"
-        />
-      ) : null}
-
       <View style={styles.inner}>
-        <BrandLogo variant="horizontal" tone="on-dark" size={22} />
+        <BrandLogo variant="horizontal" tone={isDark ? 'on-dark' : 'on-light'} size={22} />
         {displayName ? (
           <View
             style={[
               styles.badge,
               {
-                backgroundColor: isDark
-                  ? colors.headerAccent + '22'
-                  : colors.headerForeground + '18',
-                borderColor: isDark ? colors.headerAccent + '55' : colors.headerForeground + '40',
+                backgroundColor: colors.primaryLight,
+                borderColor: colors.oliveBorder,
               },
             ]}
           >
-            <Ionicons name="person-circle-outline" size={14} color={colors.headerAccent} />
+            <Ionicons name="person-circle-outline" size={14} color={colors.primary} />
             <Text
-              style={[styles.badgeText, { color: colors.headerForeground, fontSize: 10 * fontScaleMultiplier }]}
+              style={[
+                styles.badgeText,
+                { color: colors.headerForeground, fontSize: 10 * fontScaleMultiplier },
+              ]}
+              numberOfLines={1}
             >
               {displayName}
             </Text>
@@ -61,15 +57,6 @@ const AppHeader = () => {
 const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
-  },
-  accentLine: {
-    position: 'absolute',
-    bottom: 0,
-    left: spacing.base,
-    right: spacing.base,
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.85,
   },
   inner: {
     flexDirection: 'row',

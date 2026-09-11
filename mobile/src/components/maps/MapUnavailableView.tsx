@@ -1,9 +1,8 @@
 import React from 'react';
-import { StyleProp, StyleSheet, Text, useColorScheme, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { colors as lightColors } from '../../theme/colors';
-import { darkColors } from '../../theme/themes';
+import { useTheme } from '../../context/ThemeContext';
 
 type MapUnavailableViewProps = {
   style?: StyleProp<ViewStyle>;
@@ -11,8 +10,7 @@ type MapUnavailableViewProps = {
 
 const MapUnavailableView: React.FC<MapUnavailableViewProps> = ({ style }) => {
   const { t } = useTranslation('fields');
-  const isDark = useColorScheme() === 'dark';
-  const colors = isDark ? darkColors : lightColors;
+  const { colors } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceMuted }, style]}>

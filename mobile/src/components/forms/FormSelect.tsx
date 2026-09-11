@@ -83,19 +83,19 @@ const FormSelect: React.FC<FormSelectProps> = ({
                   }}
                   style={[
                     styles.option,
-                    active && { backgroundColor: colors.primaryDark + '14' },
+                    active && { backgroundColor: colors.primary + '14' },
                   ]}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      { color: active ? colors.primaryDark : colors.textPrimary },
+                      { color: active ? colors.primary : colors.textPrimary },
                     ]}
                   >
                     {item.label}
                   </Text>
                   {active ? (
-                    <Ionicons name="checkmark" size={18} color={colors.primaryDark} />
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
                   ) : null}
                 </Pressable>
               );

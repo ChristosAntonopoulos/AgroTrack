@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
 import { getFieldStatusLabel } from '../../utils/fieldDisplay';
-import { spacing } from '../../theme';
+import { spacing, radii } from '../../theme';
 
 type Props = { field: Field };
 
@@ -38,7 +38,7 @@ const FieldFacts: React.FC<Props> = ({ field }) => {
 };
 
 const styles = StyleSheet.create({
-  block: { borderWidth: 1, borderRadius: 14, padding: spacing.md, gap: 10 },
+  block: { borderWidth: 1, borderRadius: radii.xl, padding: spacing.base, gap: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
 });
 

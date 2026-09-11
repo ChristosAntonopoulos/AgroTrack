@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import ChronologioEvent from '../Chronologio/ChronologioEvent';
 import { useLocale } from '../../context/LocaleProvider';
-import { uniqueChronologioEntries } from '../../utils/chronologioUnique';
 
 type Props = {
   fieldId: string;
@@ -15,7 +14,7 @@ type Props = {
 const FieldRecentChronologio: React.FC<Props> = ({ fieldId, entries, onSelect }) => {
   const { t } = useTranslation(['fields', 'chronologio']);
   const { locale } = useLocale();
-  const items = uniqueChronologioEntries(entries).slice(0, 3);
+  const items = entries.slice(0, 3);
 
   return (
     <section className="field-recent-chrono" aria-labelledby="field-recent-chrono-title">

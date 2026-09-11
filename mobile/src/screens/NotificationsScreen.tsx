@@ -64,13 +64,13 @@ const NotificationsScreen = () => {
             variant="elevated"
             style={{
               marginBottom: spacing.sm,
-              ...(item.isRead ? {} : { borderLeftWidth: 4, borderLeftColor: colors.primaryDark }),
+              ...(item.isRead ? {} : { borderLeftWidth: 4, borderLeftColor: colors.primary }),
             }}
           >
             <View style={styles.row}>
               <Text style={[styles.title, { color: colors.textPrimary }]}>{item.title}</Text>
-              <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.badgeText, { color: colors.primaryDark }]}>
+              <View style={[styles.badge, { backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.oliveBorder }]}>
+                <Text style={[styles.badgeText, { color: colors.primary }]}>
                   {t('nav:inbox', { defaultValue: 'Inbox' })}
                 </Text>
               </View>

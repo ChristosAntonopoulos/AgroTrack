@@ -45,11 +45,11 @@
 .task-form-card {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
   padding: 24px;
-  border: 1px solid var(--color-border, #d6d3d1);
+  border: 1px solid var(--color-border, var(--border-default, #d6d3d1));
   border-radius: 16px;
-  background: var(--color-surface, #fff);
+  background: var(--color-surface, var(--surface-1, #fff));
 }
 
 .task-form-field {
@@ -72,16 +72,16 @@
 }
 
 .task-form-title {
-  min-height: 96px;
+  min-height: 88px;
   resize: vertical;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border: 1px solid var(--color-border, var(--border-default));
+  border-radius: 14px;
   font: inherit;
   font-size: 1.0625rem;
   line-height: 1.4;
-  background: var(--color-surface);
-  color: var(--color-text-primary);
+  background: var(--bg-input, var(--color-surface, var(--surface-1)));
+  color: var(--color-text-primary, var(--text-primary));
 }
 
 .task-form-title:focus,
@@ -133,9 +133,44 @@
 .task-type-chip.is-selected,
 .task-form-choice.is-selected,
 .task-field-option.is-selected,
-.task-assignee-option.is-selected {
-  border-color: var(--color-primary);
-  background: rgba(45, 80, 22, 0.06);
+.task-assignee-option.is-selected,
+.task-assignee-chip.is-selected {
+  border-color: var(--color-primary, var(--olive-primary));
+  background: color-mix(in srgb, var(--color-primary, var(--olive-primary)) 12%, transparent);
+}
+
+.task-assignee-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.task-assignee-toggle:not(.is-compact) .task-assignee-chip:last-child {
+  grid-column: 1 / -1;
+}
+
+.task-assignee-chip {
+  min-height: max(48px, var(--tap-min, 44px));
+  padding: 10px 14px;
+  border: 1px solid var(--color-border, var(--border-default));
+  border-radius: 14px;
+  background: var(--color-surface, var(--surface-1));
+  color: var(--color-text-primary, var(--text-primary));
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.task-assignee-select-wrap {
+  margin-top: 2px;
+}
+
+.task-assignee-select {
+  appearance: none;
+  padding-right: 2.4rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a9188' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
 }
 
 .task-field-list {
@@ -153,9 +188,9 @@
   width: 100%;
   min-height: max(48px, var(--tap-min, 44px));
   padding: 12px 14px;
-  border: 2px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface);
+  border: 1px solid var(--color-border, var(--border-default));
+  border-radius: 14px;
+  background: var(--color-surface, var(--surface-1));
   color: inherit;
   font: inherit;
   text-align: left;

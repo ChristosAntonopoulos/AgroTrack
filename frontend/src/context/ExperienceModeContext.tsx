@@ -124,7 +124,7 @@ export const ExperienceModeProvider: React.FC<{ children: ReactNode }> = ({ chil
     applyDocumentComfort(fontScale, largeControls, experienceMode);
   }, [fontScale, largeControls, experienceMode]);
 
-  const rehomePathForMode = useCallback((_mode: ExperienceMode, _role?: string) => '/today', []);
+  const rehomePathForMode = useCallback((_mode: ExperienceMode, _role?: string) => '/chronologio', []);
 
   const setExperienceMode = useCallback((mode: ExperienceMode) => {
     setExperienceModeState(mode);

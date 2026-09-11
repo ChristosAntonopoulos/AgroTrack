@@ -50,7 +50,7 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
           labelKey: 'onboarding.producer.step1.label',
           hintKey: 'onboarding.producer.step1.hint',
           actionLabelKey: 'onboarding.producer.step1.action',
-          action: () => navigate('/today'),
+          action: () => navigate('/chronologio?focus=today'),
         },
         {
           key: 'producer_start_task',

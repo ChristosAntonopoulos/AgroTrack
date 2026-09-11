@@ -32,7 +32,7 @@ export const SummaryChip: React.FC<FieldsSummaryChipProps> = ({
   onPress,
 }) => {
   const { colors } = useTheme();
-  const accent = accentColor ?? colors.primaryDark;
+  const accent = accentColor ?? colors.primary;
 
   const content = (
     <View
@@ -57,7 +57,7 @@ export const SummaryChip: React.FC<FieldsSummaryChipProps> = ({
       </View>
       {badge != null && badge > 0 ? (
         <View style={[styles.badge, { backgroundColor: colors.error }]}>
-          <Text style={[styles.badgeText, { color: colors.textInverse }]}>{badge}</Text>
+          <Text style={[styles.badgeText, { color: colors.onOlive }]}>{badge}</Text>
         </View>
       ) : null}
     </View>
@@ -97,9 +97,9 @@ const FieldsSummaryHeader: React.FC<FieldsSummaryHeaderProps> = ({
           <Pressable
             onPress={onAddPress}
             accessibilityLabel={addLabel}
-            style={[styles.addBtn, { backgroundColor: colors.primaryDark }]}
+            style={[styles.addBtn, { backgroundColor: colors.primary }]}
           >
-            <Ionicons name="add" size={22} color={colors.textInverse} />
+            <Ionicons name="add" size={22} color={colors.onOlive} />
           </Pressable>
         ) : null}
       </View>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, typography, spacing, spacingPatterns } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, spacing, motion } from '../../theme';
 import { toBoolean } from '../../utils/booleanConverter';
 
 export interface ListItemProps {
@@ -24,16 +25,13 @@ const ListItem: React.FC<ListItemProps> = ({
   variant = 'default',
   showDivider = true,
 }) => {
-  const validVariants = ['default', 'selected', 'disabled'];
-  if (!validVariants.includes(variant)) {
-    console.warn(`Invalid variant prop in ListItem. Received: ${variant}. Using default.`);
-    variant = 'default';
-  }
+  const { colors } = useTheme();
+  const safeVariant = ['default', 'selected', 'disabled'].includes(variant) ? variant : 'default';
 
   const getVariantStyles = () => {
-    switch (variant) {
+    switch (safeVariant) {
       case 'selected':
-        return { backgroundColor: colors.primaryLight + '10' };
+        return { backgroundColor: colors.surfaceSelected };
       case 'disabled':
         return { opacity: 0.5 };
       default:
@@ -41,22 +39,28 @@ const ListItem: React.FC<ListItemProps> = ({
     }
   };
 
-  const isPressable = !!onPress && variant !== 'disabled';
-  const safeDisabled = toBoolean(variant === 'disabled');
+  const isPressable = !!onPress && safeVariant !== 'disabled';
+  const safeDisabled = toBoolean(safeVariant === 'disabled');
 
   const content = (
     <>
       {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
       <View style={styles.content}>
         <Text
-          style={[styles.title, variant === 'disabled' && styles.titleDisabled]}
+          style={[
+            styles.title,
+            { color: safeVariant === 'disabled' ? colors.textTertiary : colors.textPrimary },
+          ]}
           numberOfLines={1}
         >
           {title}
         </Text>
         {subtitle ? (
           <Text
-            style={[styles.subtitle, variant === 'disabled' && styles.subtitleDisabled]}
+            style={[
+              styles.subtitle,
+              { color: safeVariant === 'disabled' ? colors.textTertiary : colors.textSecondary },
+            ]}
             numberOfLines={2}
           >
             {subtitle}
@@ -72,17 +76,19 @@ const ListItem: React.FC<ListItemProps> = ({
     <>
       {isPressable ? (
         <TouchableOpacity
-          style={[styles.container, getVariantStyles(), styles.pressable]}
+          style={[styles.container, getVariantStyles()]}
           onPress={onPress}
           disabled={safeDisabled}
-          activeOpacity={0.7}
+          activeOpacity={motion.pressOpacity}
         >
           {content}
         </TouchableOpacity>
       ) : (
         <View style={[styles.container, getVariantStyles()]}>{content}</View>
       )}
-      {showDivider ? <View style={styles.divider} /> : null}
+      {showDivider ? (
+        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
+      ) : null}
     </>
   );
 };
@@ -95,7 +101,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     minHeight: 56,
   },
-  pressable: {},
   leftIcon: {
     marginRight: spacing.base,
     justifyContent: 'center',
@@ -107,19 +112,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.styles.body,
-    color: colors.textPrimary,
     fontWeight: typography.fontWeight.medium,
     marginBottom: spacing.xs / 2,
   },
-  titleDisabled: {
-    color: colors.textTertiary,
-  },
   subtitle: {
     ...typography.styles.bodySmall,
-    color: colors.textSecondary,
-  },
-  subtitleDisabled: {
-    color: colors.textTertiary,
   },
   rightContent: {
     marginLeft: spacing.sm,
@@ -131,7 +128,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colors.borderLight,
     marginLeft: spacing.base,
   },
 });

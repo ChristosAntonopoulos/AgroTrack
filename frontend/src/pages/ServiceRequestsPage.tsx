@@ -7,6 +7,7 @@ import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import SegmentedControl from '../components/Common/SegmentedControl';
 import { getPartnerService } from '../services/serviceFactory';
 import { ServiceContactRequest, categoryName } from '../services/partnerService';
 import { getApiErrorMessage } from '../utils/translateApiError';
@@ -44,14 +45,16 @@ const ServiceRequestsPage: React.FC = () => {
       <div className="partners-page">
         <Breadcrumbs />
         <h1>{t('partners:requests')}</h1>
-        <div className="partners-tabs">
-          <Button variant={tab === 'incoming' ? 'primary' : 'outline'} onClick={() => setTab('incoming')}>
-            {t('partners:inbox')}
-          </Button>
-          <Button variant={tab === 'outgoing' ? 'primary' : 'outline'} onClick={() => setTab('outgoing')}>
-            {t('partners:sent')}
-          </Button>
-        </div>
+        <SegmentedControl
+          className="partners-tabs"
+          ariaLabel={t('partners:requests')}
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'incoming', label: t('partners:inbox') },
+            { value: 'outgoing', label: t('partners:sent') },
+          ]}
+        />
         {loading && <LoadingSpinner className="page-inline-loading" />}
         {error && <div className="error-message">{error}</div>}
         {!loading && rows.length === 0 && <EmptyState title={t('partners:noRequests')} />}

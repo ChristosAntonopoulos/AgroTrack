@@ -42,3 +42,83 @@ export function groupPlanPreviewItems(preview: {
     { key: 'suppressed', items: preview.suppressed },
   ];
 }
+
+export type PlanTaskTone = 'planned' | 'done' | 'ifNeeded' | 'skipped';
+
+export type PlanSeasonKey = 'winter' | 'spring' | 'summer' | 'autumn';
+
+export type PlanSeasonGroup = {
+  key: PlanSeasonKey;
+  items: FieldWorkPlanPreviewItem[];
+};
+
+const SEASON_ORDER: PlanSeasonKey[] = ['winter', 'spring', 'summer', 'autumn'];
+
+const monthFromIso = (value?: string | null): number | null => {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (match) return Number(match[2]);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.getUTCMonth() + 1;
+};
+
+export function seasonForMonth(month: number | null): PlanSeasonKey {
+  if (month == null) return 'winter';
+  if (month <= 2) return 'winter';
+  if (month <= 5) return 'spring';
+  if (month <= 8) return 'summer';
+  return 'autumn';
+}
+
+export function planTaskTone(item: FieldWorkPlanPreviewItem): PlanTaskTone {
+  if (item.reasonCode === 'already_completed_this_year') return 'done';
+  const status = (item.eligibilityStatus || '').toLowerCase();
+  if (status === 'ask_first' || status === 'askfirst') return 'ifNeeded';
+  if (status === 'suppressed') return 'skipped';
+  return 'planned';
+}
+
+export function flattenPlanPreviewItems(preview: {
+  enabled: FieldWorkPlanPreviewItem[];
+  askFirst: FieldWorkPlanPreviewItem[];
+  suppressed: FieldWorkPlanPreviewItem[];
+}): FieldWorkPlanPreviewItem[] {
+  return [...preview.enabled, ...preview.askFirst, ...preview.suppressed];
+}
+
+/** Year timeline: this year's / if-needed work, grouped by season and date. */
+export function groupPlanPreviewBySeason(
+  items: FieldWorkPlanPreviewItem[]
+): PlanSeasonGroup[] {
+  const buckets: Record<PlanSeasonKey, FieldWorkPlanPreviewItem[]> = {
+    winter: [],
+    spring: [],
+    summer: [],
+    autumn: [],
+  };
+
+  const dated = items.filter((item) => planTaskTone(item) !== 'skipped');
+  dated
+    .slice()
+    .sort((a, b) => {
+      const aStart = a.windowStart || '';
+      const bStart = b.windowStart || '';
+      if (aStart !== bStart) return aStart.localeCompare(bStart);
+      return a.templateCode.localeCompare(b.templateCode);
+    })
+    .forEach((item) => {
+      buckets[seasonForMonth(monthFromIso(item.windowStart))].push(item);
+    });
+
+  return SEASON_ORDER.filter((key) => buckets[key].length > 0).map((key) => ({
+    key,
+    items: buckets[key],
+  }));
+}
+
+export function skippedPlanItems(items: FieldWorkPlanPreviewItem[]): FieldWorkPlanPreviewItem[] {
+  return items
+    .filter((item) => planTaskTone(item) === 'skipped')
+    .sort((a, b) => (a.windowStart || '').localeCompare(b.windowStart || ''));
+}

@@ -67,6 +67,7 @@ const CalendarDayPanel: React.FC<Props> = ({
       className={`cal-day-panel${isDrawer ? ' cal-day-panel--drawer' : ''}`}
       aria-label={t('calendar:dayDetailsAria', { date: format(date, 'd MMMM yyyy', { locale: dateLocale }) })}
     >
+      {isDrawer ? <div className="oa-drawer-handle" aria-hidden="true" /> : null}
       <header className="cal-day-panel-header">
         <div>
           <p className="cal-day-panel-weekday">{format(date, 'EEEE', { locale: dateLocale })}</p>
@@ -79,8 +80,8 @@ const CalendarDayPanel: React.FC<Props> = ({
           </p>
         </div>
         {isDrawer && onClose && (
-          <button type="button" className="cal-day-panel-close" onClick={onClose} aria-label={t('calendar:closePanel')}>
-            <X size={18} />
+          <button type="button" className="oa-drawer-close" onClick={onClose} aria-label={t('calendar:closePanel')}>
+            <X size={18} aria-hidden />
           </button>
         )}
       </header>

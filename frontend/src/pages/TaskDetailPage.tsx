@@ -16,21 +16,38 @@ import type { TaskFinancialSummary } from '../services/financialSummaryService';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { formatOfficialAmount, formatOfficialNet } from '../finance/format';
 import { getApiErrorMessage } from '../utils/translateApiError';
+import { taskDisplayTitle } from '../utils/taskDisplayTitle';
+import { formatTaskDateRange, formatTaskDay } from '../utils/taskDateRange';
+import { checklistProgress } from '../utils/plannedTaskGroups';
+import { resolveWeatherKind } from '../utils/taskWeather';
+import { isWeatherSensitiveTemplate } from '../data/fieldWorkCatalogueLabels';
+import { weatherExplanationCopy, type ProposalChip } from '../utils/proposalPresentation';
+import { friendlyFieldLabel } from '../utils/fieldLabels';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import '../components/FieldWork/FieldWorkCards.css';
+import WeatherSuitabilityBadge from '../components/Tasks/WeatherSuitabilityBadge';
+import '../components/Tasks/form/TaskForm.css';
+import '../components/Tasks/TaskProposalCard.css';
 import './TaskDetailPage.css';
-
-type ChecklistAnswers = Record<
-  string,
-  { boolValue?: boolean; textValue?: string; numberValue?: number }
->;
 
 const checklistLabel = (item: FieldTaskChecklistItem, lang: string) => {
   if (lang.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
   return item.englishLabel || item.label;
+};
+
+const checklistValue = (item: FieldTaskChecklistItem, lang: string): string | null => {
+  if (!item.isAnswered) return null;
+  const type = (item.itemType || '').toLowerCase();
+  if (type === 'number' && item.numberValue != null) {
+    return `${item.numberValue}${item.unit ? ` ${item.unit}` : ''}`;
+  }
+  if (type === 'text' && item.textValue) return item.textValue;
+  if (type === 'choice' && item.textValue) return item.textValue;
+  if (item.boolValue === true) return lang.toLowerCase().startsWith('el') ? 'Ναι' : 'Yes';
+  if (item.boolValue === false) return lang.toLowerCase().startsWith('el') ? 'Όχι' : 'No';
+  return lang.toLowerCase().startsWith('el') ? 'Έγινε' : 'Done';
 };
 
 const TaskDetailPage: React.FC = () => {
@@ -48,8 +65,6 @@ const TaskDetailPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMoreChecks, setShowMoreChecks] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [answers, setAnswers] = useState<ChecklistAnswers>({});
   const [assigneeKey, setAssigneeKey] = useState('');
 
   const load = async () => {
@@ -59,18 +74,9 @@ const TaskDetailPage: React.FC = () => {
       const fw = getFieldWorkService();
       const data = await fw.getFieldTask(id);
       setTask(data);
-      setNotes(data.notes || '');
-      const initial: ChecklistAnswers = {};
-      data.checklist.forEach((c) => {
-        initial[c.key] = {
-          boolValue: c.boolValue ?? (c.isAnswered ? true : undefined),
-          textValue: c.textValue,
-          numberValue: c.numberValue,
-        };
-      });
-      setAnswers(initial);
       if (data.assignedUserId) setAssigneeKey(`user:${data.assignedUserId}`);
       else if (data.assignedCollaboratorId) setAssigneeKey(`contact:${data.assignedCollaboratorId}`);
+      else setAssigneeKey('');
 
       const [fields, memberships, saved, taskMoney] = await Promise.all([
         getFieldService().getFields().catch(() => [] as Field[]),
@@ -81,8 +87,8 @@ const TaskDetailPage: React.FC = () => {
         getFinancialSummaryService().getTaskSummary(id).catch(() => null),
       ]);
       setField(fields.find((f) => f.id === data.fieldId) || null);
-      setPeople(memberships);
-      setContacts(saved);
+      setPeople(Array.isArray(memberships) ? memberships : []);
+      setContacts(Array.isArray(saved) ? saved : []);
       setMoney(taskMoney);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('detail.failedLoad'));
@@ -99,7 +105,9 @@ const TaskDetailPage: React.FC = () => {
   }, [id]);
 
   const assigneeOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string; userId?: string; contactId?: string }> = [];
+    const opts: Array<{ key: string; label: string; userId?: string; contactId?: string }> = [
+      { key: '', label: t('fieldWork.form.unassigned') },
+    ];
     people.forEach((p) => {
       opts.push({
         key: `user:${p.userId}`,
@@ -117,7 +125,7 @@ const TaskDetailPage: React.FC = () => {
       });
     });
     return opts;
-  }, [people, contacts]);
+  }, [people, contacts, t]);
 
   const essential = useMemo(
     () =>
@@ -140,6 +148,43 @@ const TaskDetailPage: React.FC = () => {
   const canStart = status === 'planned' || status === 'ready' || status === 'blocked';
   const canComplete = status === 'in_progress' || status === 'ready' || status === 'planned';
   const isTerminal = status === 'completed' || status === 'cancelled';
+  const progress = task ? checklistProgress(task) : { done: 0, total: 0 };
+  const title = task ? taskDisplayTitle(task.title, task.templateCode, i18n.language) : '';
+  const fieldName = field ? friendlyFieldLabel(field.name) : task?.fieldId || '';
+  const period = task
+    ? formatTaskDateRange(task.plannedStart, task.plannedEnd, i18n.language)
+    : '';
+  const started = task?.startedAt
+    ? formatTaskDay(task.startedAt, i18n.language, task.resultYear)
+    : '';
+
+  const weatherKind = resolveWeatherKind(task?.weatherSuitability);
+  const showWeather =
+    Boolean(task) &&
+    (weatherKind === 'unknown' ||
+      (isWeatherSensitiveTemplate(task?.templateCode) && weatherKind !== 'not_sensitive'));
+  const weatherChip: ProposalChip | null = showWeather
+    ? {
+        id:
+          weatherKind === 'good'
+            ? 'good'
+            : weatherKind === 'caution'
+              ? 'caution'
+              : weatherKind === 'unsuitable'
+                ? 'unsuitable'
+                : 'unknown',
+        labelKey: `fieldWork.proposal.chips.${weatherKind === 'unknown' ? 'unknown' : weatherKind}`,
+      }
+    : null;
+  const weatherCopy = useMemo(
+    () =>
+      weatherExplanationCopy(
+        weatherKind === 'not_sensitive' ? 'not_sensitive' : weatherKind,
+        [],
+        i18n.language
+      ),
+    [weatherKind, i18n.language]
+  );
 
   const handleStart = async () => {
     if (!id) return;
@@ -154,11 +199,12 @@ const TaskDetailPage: React.FC = () => {
     }
   };
 
-  const handleAssign = async () => {
-    if (!id || !assigneeKey) return;
+  const handleAssign = async (nextKey: string) => {
+    if (!id || isTerminal) return;
+    setAssigneeKey(nextKey);
     setBusy(true);
     try {
-      const selected = assigneeOptions.find((o) => o.key === assigneeKey);
+      const selected = assigneeOptions.find((o) => o.key === nextKey);
       const updated = await getFieldWorkService().assignFieldTask(id, {
         assignedUserId: selected?.userId,
         assignedCollaboratorId: selected?.contactId,
@@ -166,6 +212,9 @@ const TaskDetailPage: React.FC = () => {
       setTask(updated);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('detail.failedAssign'));
+      if (task?.assignedUserId) setAssigneeKey(`user:${task.assignedUserId}`);
+      else if (task?.assignedCollaboratorId) setAssigneeKey(`contact:${task.assignedCollaboratorId}`);
+      else setAssigneeKey('');
     } finally {
       setBusy(false);
     }
@@ -177,71 +226,26 @@ const TaskDetailPage: React.FC = () => {
   };
 
   const renderCheckItem = (item: FieldTaskChecklistItem) => {
-    const type = item.itemType?.toLowerCase() || 'checkbox';
-    const answer = answers[item.key] || {};
+    const value = checklistValue(item, i18n.language);
     return (
-      <li key={item.key}>
-        {type === 'number' ? (
-          <>
-            <input
-              type="number"
-              aria-label={checklistLabel(item, i18n.language)}
-              value={answer.numberValue ?? ''}
-              disabled={isTerminal}
-              onChange={(e) =>
-                setAnswers((prev) => ({
-                  ...prev,
-                  [item.key]: {
-                    ...prev[item.key],
-                    numberValue: e.target.value === '' ? undefined : Number(e.target.value),
-                  },
-                }))
-              }
-            />
-            <span>
-              {checklistLabel(item, i18n.language)}
-              {item.unit ? ` (${item.unit})` : ''}
-            </span>
-          </>
-        ) : type === 'text' ? (
-          <>
-            <input
-              type="text"
-              aria-label={checklistLabel(item, i18n.language)}
-              value={answer.textValue ?? ''}
-              disabled={isTerminal}
-              onChange={(e) =>
-                setAnswers((prev) => ({
-                  ...prev,
-                  [item.key]: { ...prev[item.key], textValue: e.target.value },
-                }))
-              }
-            />
-            <span>{checklistLabel(item, i18n.language)}</span>
-          </>
-        ) : (
-          <>
-            <input
-              type="checkbox"
-              checked={Boolean(answer.boolValue)}
-              disabled={isTerminal}
-              onChange={(e) =>
-                setAnswers((prev) => ({
-                  ...prev,
-                  [item.key]: { ...prev[item.key], boolValue: e.target.checked },
-                }))
-              }
-            />
-            <span>{checklistLabel(item, i18n.language)}</span>
-          </>
-        )}
+      <li key={item.key} className={`task-detail-check${item.isAnswered ? ' is-done' : ''}`}>
+        <span className="task-detail-check-mark" aria-hidden>
+          {item.isAnswered ? '✓' : '○'}
+        </span>
+        <div>
+          <strong>{checklistLabel(item, i18n.language)}</strong>
+          {value ? <span>{value}</span> : null}
+          {!item.isAnswered && !isTerminal ? (
+            <span className="task-detail-check-pending">{t('fieldWork.detail.checkPending')}</span>
+          ) : null}
+        </div>
       </li>
     );
   };
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer className="tasks-page-container">
         <Breadcrumbs />
         <LoadingSpinner />
       </PageContainer>
@@ -250,64 +254,187 @@ const TaskDetailPage: React.FC = () => {
 
   if (!task) {
     return (
-      <PageContainer>
+      <PageContainer className="tasks-page-container">
         <Breadcrumbs />
-        <p className="fw-empty">{error || t('detail.notFound')}</p>
-        <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
-          {t('detail.backToTasks')}
-        </Button>
+        <div className="task-detail-page">
+          <p className="task-form-help">{error || t('detail.notFound')}</p>
+          <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
+            {t('detail.backToTasks')}
+          </Button>
+        </div>
       </PageContainer>
     );
   }
 
+  const statusClass =
+    status === 'in_progress'
+      ? 'is-active'
+      : status === 'completed'
+        ? 'is-done'
+        : status === 'blocked'
+          ? 'is-blocked'
+          : 'is-planned';
+
   return (
-    <PageContainer maxWidth="md">
+    <PageContainer className="tasks-page-container" maxWidth="md">
       <Breadcrumbs />
-      <div className="task-detail-page fw-detail-sections">
-        <header className="tasks-page-header">
-          <div className="tasks-page-header-text">
-            <h1>{task.title}</h1>
-            <p className="tasks-subtitle">
-              {field?.name || task.fieldId} · {task.statusLabel} · {task.resultYear}
+      <div className="task-detail-page">
+        <header className="task-detail-header">
+          <div className="task-detail-header-copy">
+            <div className="task-detail-chips">
+              <span className={`task-detail-status ${statusClass}`}>{task.statusLabel}</span>
+              <span className="task-detail-year">{task.resultYear}</span>
+            </div>
+            <h1>{title}</h1>
+            <p className="task-detail-meta">
+              <Link to={`/fields/${task.fieldId}`} className="task-detail-field-link">
+                {fieldName}
+              </Link>
+              {period ? <span> · {period}</span> : null}
+              {started ? (
+                <span>
+                  {' '}
+                  · {t('detail.actualStart')}: {started}
+                </span>
+              ) : null}
             </p>
+            {weatherChip ? (
+              <div className="task-detail-weather">
+                <WeatherSuitabilityBadge
+                  chip={weatherChip}
+                  label={
+                    weatherChip.id === 'unknown'
+                      ? t('fieldWork.weather.unknown')
+                      : t(weatherChip.labelKey)
+                  }
+                  headline={weatherCopy.headline}
+                  facts={weatherCopy.facts}
+                />
+              </div>
+            ) : null}
+            {task.description ? <p className="task-detail-description">{task.description}</p> : null}
           </div>
           <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
             {t('detail.backToTasks')}
           </Button>
         </header>
 
-        {error && <div className="tasks-error">{error}</div>}
+        {error ? (
+          <div className="task-form-error" role="alert">
+            {error}
+          </div>
+        ) : null}
 
-        <section className="fw-detail-section">
-          <h2>{t('fieldWork.detail.summary')}</h2>
-          <p>{task.weatherSuitabilityLabel}</p>
-          {task.description && <p>{task.description}</p>}
-          {(task.plannedStart || task.plannedEnd) && (
-            <p>
-              {task.plannedStart
-                ? new Date(task.plannedStart).toLocaleString(
-                    i18n.language.startsWith('el') ? 'el-GR' : 'en-GB'
-                  )
-                : '—'}
-              {' – '}
-              {task.plannedEnd
-                ? new Date(task.plannedEnd).toLocaleString(
-                    i18n.language.startsWith('el') ? 'el-GR' : 'en-GB',
-                    { day: 'numeric', month: 'short' }
-                  )
-                : '—'}
+        {!isTerminal ? (
+          <section className="task-detail-card task-detail-next">
+            <h2>{t('fieldWork.detail.nextStep')}</h2>
+            <p className="task-form-help">
+              {canStart && status !== 'in_progress'
+                ? t('fieldWork.detail.nextStepStart')
+                : t('fieldWork.detail.nextStepComplete')}
             </p>
+            <div className="task-detail-actions">
+              {canStart ? (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => void handleStart()}
+                  disabled={busy}
+                >
+                  {t('fieldWork.actions.start')}
+                </Button>
+              ) : null}
+              {canComplete ? (
+                <Button
+                  variant={canStart ? 'outline' : 'success'}
+                  size="lg"
+                  onClick={handleComplete}
+                  disabled={busy}
+                >
+                  {t('fieldWork.actions.complete')}
+                </Button>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="task-detail-card">
+          <div className="task-detail-card-head">
+            <h2>{t('fieldWork.detail.checklist')}</h2>
+            {progress.total > 0 ? (
+              <span className="task-detail-progress-label">
+                {t('fieldWork.task.checksShort', { done: progress.done, total: progress.total })}
+              </span>
+            ) : null}
+          </div>
+          {progress.total > 0 ? (
+            <div className="task-detail-progress" aria-hidden>
+              <span
+                style={{
+                  width: `${progress.done > 0 ? (progress.done / progress.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          ) : null}
+          {!isTerminal ? (
+            <p className="task-form-help">{t('fieldWork.detail.checklistHint')}</p>
+          ) : null}
+          {essential.length > 0 ? (
+            <ul className="task-detail-checklist">{essential.map(renderCheckItem)}</ul>
+          ) : (
+            <p className="task-form-help">{t('fieldWork.detail.noChecks')}</p>
           )}
+          {extra.length > 0 ? (
+            <>
+              <button
+                type="button"
+                className="task-advanced-toggle"
+                onClick={() => setShowMoreChecks((value) => !value)}
+              >
+                {showMoreChecks
+                  ? t('fieldWork.detail.hideMoreChecks')
+                  : t('fieldWork.detail.moreChecks')}
+              </button>
+              {showMoreChecks ? (
+                <ul className="task-detail-checklist">{extra.map(renderCheckItem)}</ul>
+              ) : null}
+            </>
+          ) : null}
+          {canComplete && !isTerminal ? (
+            <Button variant="outline" size="lg" onClick={handleComplete} disabled={busy}>
+              {t('fieldWork.detail.fillChecks')}
+            </Button>
+          ) : null}
         </section>
 
-        <section className="fw-detail-section">
+        <section className="task-detail-card">
+          <h2>{t('fieldWork.person')}</h2>
+          <label className="task-form-label" htmlFor="task-detail-assignee">
+            {t('detail.assignedTo')}
+          </label>
+          <select
+            id="task-detail-assignee"
+            className="task-form-input"
+            value={assigneeKey}
+            disabled={isTerminal || busy}
+            onChange={(e) => void handleAssign(e.target.value)}
+          >
+            {assigneeOptions.map((option) => (
+              <option key={option.key || 'unassigned'} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section className="task-detail-card">
           <h2>{t('fieldWork.detail.money')}</h2>
-          <dl className="fw-money-facts">
+          <dl className="task-detail-money">
             <div>
               <dt>{t('fieldWork.detail.estimated')}</dt>
               <dd>
                 {formatOfficialAmount(
-                  money?.estimatedCost,
+                  money?.estimatedCost ?? task.estimatedCost,
                   'EUR',
                   i18n.language,
                   t('money:unknownAmount')
@@ -339,8 +466,8 @@ const TaskDetailPage: React.FC = () => {
               </div>
             ) : null}
           </dl>
-          <p className="fw-empty">{t('fieldWork.detail.estimateHint')}</p>
-          <div className="fw-card-actions">
+          <p className="task-form-help">{t('fieldWork.detail.estimateHint')}</p>
+          <div className="task-detail-actions">
             <Button
               variant="primary"
               size="lg"
@@ -364,92 +491,32 @@ const TaskDetailPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="fw-detail-section">
-          <h2>{t('fieldWork.person')}</h2>
-          <div className="fw-form-row">
-            <select
-              value={assigneeKey}
-              onChange={(e) => setAssigneeKey(e.target.value)}
-              disabled={isTerminal}
-            >
-              <option value="">{t('fieldWork.form.unassigned')}</option>
-              {assigneeOptions.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {!isTerminal && (
-            <Button variant="outline" size="lg" onClick={() => void handleAssign()} disabled={busy}>
-              {t('detail.assignTask')}
-            </Button>
-          )}
-        </section>
-
-        <section className="fw-detail-section">
-          <h2>{t('fieldWork.detail.checklist')}</h2>
-          <ul className="fw-checklist">{essential.map(renderCheckItem)}</ul>
-          {extra.length > 0 && (
-            <>
-              <button
-                type="button"
-                className="fw-advanced-toggle"
-                onClick={() => setShowMoreChecks((v) => !v)}
-              >
-                {showMoreChecks
-                  ? t('fieldWork.detail.hideMoreChecks')
-                  : t('fieldWork.detail.moreChecks')}
-              </button>
-              {showMoreChecks && <ul className="fw-checklist">{extra.map(renderCheckItem)}</ul>}
-            </>
-          )}
-        </section>
-
-        <section className="fw-detail-section">
+        <section className="task-detail-card">
           <h2>{t('fieldWork.form.notes')}</h2>
-          <textarea
-            rows={3}
-            value={notes}
-            disabled={isTerminal}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          {task.notes?.trim() ? (
+            <p className="task-detail-notes">{task.notes}</p>
+          ) : (
+            <p className="task-form-help">
+              {isTerminal
+                ? t('fieldWork.detail.noNotes')
+                : t('fieldWork.detail.notesOnComplete')}
+            </p>
+          )}
         </section>
 
-        {!isTerminal && (
-          <div className="fw-card-actions">
-            {canStart && (
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => void handleStart()}
-                disabled={busy}
-                className="fw-primary-action"
-              >
-                {t('fieldWork.actions.start')}
-              </Button>
-            )}
-          </div>
-        )}
+        {status === 'completed' ? (
+          <p className="task-detail-footer-link">
+            <Link to="/chronologio">{t('fieldWork.seeCompletedInChronologio')}</Link>
+          </p>
+        ) : null}
 
-        {canComplete && !isTerminal && (
-          <div className="fw-sticky-complete">
-            <Button
-              variant="success"
-              size="lg"
-              onClick={() => void handleComplete()}
-              disabled={busy}
-            >
+        {canComplete && !isTerminal ? (
+          <div className="task-detail-sticky">
+            <Button variant="success" size="lg" onClick={handleComplete} disabled={busy}>
               {t('fieldWork.actions.complete')}
             </Button>
           </div>
-        )}
-
-        {status === 'completed' && (
-          <p className="fw-empty">
-            <Link to="/chronologio">{t('fieldWork.seeCompletedInChronologio')}</Link>
-          </p>
-        )}
+        ) : null}
       </div>
     </PageContainer>
   );

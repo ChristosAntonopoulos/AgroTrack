@@ -280,6 +280,9 @@ public class FieldWorkPlanPreviewItemDto
     public string Reason { get; set; } = string.Empty;
     /// <summary>Practice bucket for UI jump-back (e.g. pruning, irrigation).</summary>
     public string PracticeCategory { get; set; } = "other";
+    /// <summary>Usual season window for this template in the result year (UTC date).</summary>
+    public DateTime? WindowStart { get; set; }
+    public DateTime? WindowEnd { get; set; }
 }
 
 // --- Phase 6 ongoing learning (explicit user confirmation required) ---

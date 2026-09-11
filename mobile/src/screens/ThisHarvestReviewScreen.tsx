@@ -178,14 +178,14 @@ const ThisHarvestReviewScreen = () => {
                   styles.yearChip,
                   {
                     minHeight: Math.max(44, tapMin),
-                    backgroundColor: selectedYear === y ? colors.primaryDark : colors.surfaceMuted,
-                    borderColor: selectedYear === y ? colors.primaryDark : colors.border,
+                    backgroundColor: selectedYear === y ? colors.primaryLight : colors.surfaceMuted,
+                    borderColor: selectedYear === y ? colors.oliveBorder : colors.border,
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: selectedYear === y ? colors.textInverse : colors.textPrimary,
+                    color: selectedYear === y ? colors.primary : colors.textPrimary,
                     fontWeight: '700',
                     fontSize: 13 * fontScaleMultiplier,
                   }}

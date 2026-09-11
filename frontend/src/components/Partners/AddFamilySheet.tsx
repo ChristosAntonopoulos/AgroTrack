@@ -15,11 +15,12 @@ import {
 import { getApiErrorMessage } from '../../utils/translateApiError';
 
 type Props = {
+  open?: boolean;
   onClose: () => void;
   onCreated?: () => void;
 };
 
-const AddFamilySheet: React.FC<Props> = ({ onClose, onCreated }) => {
+const AddFamilySheet: React.FC<Props> = ({ open = true, onClose, onCreated }) => {
   const { t } = useTranslation(['partners', 'common']);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -63,6 +64,7 @@ const AddFamilySheet: React.FC<Props> = ({ onClose, onCreated }) => {
 
   return (
     <PartnersSheet
+      open={open}
       title={t('partners:family.addMember')}
       subtitle={invite ? t('partners:family.inviteReady') : t('partners:family.addHint')}
       onClose={onClose}

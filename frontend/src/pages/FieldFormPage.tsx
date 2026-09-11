@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
+import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
 import { useExperienceMode } from '../context/ExperienceModeContext';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
@@ -102,7 +103,7 @@ const FieldFormPage: React.FC = () => {
       setBoundary(field.boundary);
       setKaekInput(field.greekCadastre?.kaek || '');
       setDraftFieldId(field.id);
-      setStep('basics-edit' as WizardStep);
+      setStep(getFieldSetupResumeStep(field) as WizardStep);
     } catch {
       setError(t('fields:form.failedLoad'));
     } finally {
@@ -369,6 +370,14 @@ const FieldFormPage: React.FC = () => {
           ))}
         </nav>
 
+        <p className="field-form-progress" aria-live="polite">
+          {t('fields:form.stepProgress', {
+            current: Math.max(stepIndex + 1, 1),
+            total: activeSteps.length,
+            name: t(`fields:addField.steps.${step === 'basics-edit' ? 'basics' : step}`),
+          })}
+        </p>
+
         {error && <div className="field-form-error">{error}</div>}
 
         <Card className="field-form-card">
@@ -419,6 +428,9 @@ const FieldFormPage: React.FC = () => {
               cadastreAcknowledged={cadastreAcknowledged}
               onBoundaryConfirmedChange={setBoundaryConfirmed}
               onCadastreAcknowledgedChange={setCadastreAcknowledged}
+              onWorksMyselfChange={(v) =>
+                setFormData((prev) => ({ ...prev, worksThisFieldMyself: v }))
+              }
             />
           )}
 
@@ -430,30 +442,30 @@ const FieldFormPage: React.FC = () => {
             ) : (
               <span />
             )}
-            {!isLast ? (
-              <Button type="button" variant="primary" onClick={goNext} icon={<ArrowRight />}>
-                {t('fields:form.next')}
-              </Button>
-            ) : (
-              <Button type="button" variant="primary" onClick={handleActivate} loading={loading} icon={<Check />}>
-                {t('fields:addField.activate')}
-              </Button>
-            )}
+            <div className="field-form-nav-actions">
+              {!isLast && step !== 'method' ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleSaveDraft}
+                  loading={loading}
+                  className="field-form-draft-btn"
+                >
+                  {t('fields:form.saveDraft')}
+                </Button>
+              ) : null}
+              {!isLast ? (
+                <Button type="button" variant="primary" onClick={goNext} icon={<ArrowRight />}>
+                  {t('fields:form.next')}
+                </Button>
+              ) : (
+                <Button type="button" variant="primary" onClick={handleActivate} loading={loading} icon={<Check />}>
+                  {t('fields:addField.activate')}
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
-
-        {!isLast && step !== 'method' ? (
-          <Button
-            type="button"
-            variant="ghost"
-            fullWidth
-            onClick={handleSaveDraft}
-            loading={loading}
-            className="field-form-draft-btn"
-          >
-            {t('fields:form.saveDraft')}
-          </Button>
-        ) : null}
 
         {isEdit && id ? (
           <Button

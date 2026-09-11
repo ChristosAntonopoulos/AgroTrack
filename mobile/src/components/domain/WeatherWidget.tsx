@@ -75,14 +75,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       ]}
     >
       <View style={styles.header}>
-        <Ionicons name="partly-sunny-outline" size={16} color={colors.primaryDark} />
+        <Ionicons name="partly-sunny-outline" size={16} color={colors.primary} />
         <Text style={[styles.title, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}>
           {t(titleKey)}
         </Text>
       </View>
 
       {adviceKey ? (
-        <Text style={[styles.advice, { color: colors.primaryDark, fontSize: 15 * fontScaleMultiplier }]}>
+        <Text style={[styles.advice, { color: colors.primary, fontSize: 15 * fontScaleMultiplier }]}>
           {t(`weather.${adviceKey}`)}
         </Text>
       ) : null}

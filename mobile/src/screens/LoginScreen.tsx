@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   langBtnActive: {
     borderColor: loginTheme.inputBorderFocused,
-    backgroundColor: loginTheme.buttonBg,
+    backgroundColor: loginTheme.softSelected,
   },
   langText: {
     ...typography.styles.bodySmall,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
   },
   langTextActive: {
-    color: loginTheme.buttonText,
+    color: loginTheme.softSelectedText,
   },
   title: {
     ...typography.styles.h3,

@@ -5,7 +5,7 @@ import { typography, spacing, radii } from '../../theme';
 
 export interface BadgeProps {
   label: string;
-  variant?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'default';
+  variant?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'default' | 'neutral';
   size?: 'small' | 'medium' | 'large';
   icon?: React.ReactNode;
   showDot?: boolean;
@@ -24,33 +24,45 @@ const Badge: React.FC<BadgeProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: colors.primaryLight + '20',
+          backgroundColor: colors.primaryLight,
+          borderColor: colors.oliveBorder,
           textColor: colors.primary,
         };
       case 'success':
         return {
-          backgroundColor: colors.successLight + '20',
+          backgroundColor: colors.successLight,
+          borderColor: colors.success,
           textColor: colors.success,
         };
       case 'warning':
         return {
-          backgroundColor: colors.warningLight + '20',
-          textColor: colors.warning,
+          backgroundColor: colors.warningLight,
+          borderColor: colors.warning,
+          textColor: colors.warningDark,
         };
       case 'error':
         return {
-          backgroundColor: colors.errorLight + '20',
+          backgroundColor: colors.errorLight,
+          borderColor: colors.error,
           textColor: colors.error,
         };
       case 'info':
         return {
-          backgroundColor: colors.infoLight + '20',
+          backgroundColor: colors.infoLight,
+          borderColor: colors.info,
           textColor: colors.info,
+        };
+      case 'neutral':
+        return {
+          backgroundColor: colors.neutralLight,
+          borderColor: colors.neutral,
+          textColor: colors.textSecondary,
         };
       default:
         return {
-          backgroundColor: colors.gray200,
-          textColor: colors.gray700,
+          backgroundColor: colors.surfaceMuted,
+          borderColor: colors.border,
+          textColor: colors.textSecondary,
         };
     }
   };
@@ -59,7 +71,7 @@ const Badge: React.FC<BadgeProps> = ({
     switch (size) {
       case 'small':
         return {
-          paddingVertical: spacing.xs / 2,
+          paddingVertical: 2,
           paddingHorizontal: spacing.xs,
           fontSize: typography.fontSize.xs * fontScaleMultiplier,
         };
@@ -87,12 +99,13 @@ const Badge: React.FC<BadgeProps> = ({
         styles.badge,
         {
           backgroundColor: variantStyles.backgroundColor,
+          borderColor: variantStyles.borderColor,
           paddingVertical: sizeStyles.paddingVertical,
           paddingHorizontal: sizeStyles.paddingHorizontal,
         },
       ]}
     >
-      {showDot && (
+      {showDot ? (
         <View
           style={[
             styles.dot,
@@ -100,8 +113,8 @@ const Badge: React.FC<BadgeProps> = ({
             { marginRight: spacing.xs },
           ]}
         />
-      )}
-      {icon && <View style={styles.icon}>{icon}</View>}
+      ) : null}
+      {icon ? <View style={styles.icon}>{icon}</View> : null}
       <Text
         style={[
           styles.text,
@@ -123,6 +136,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     borderRadius: radii.md,
+    borderWidth: 1,
   },
   dot: {
     width: 6,
@@ -134,8 +148,7 @@ const styles = StyleSheet.create({
   },
   text: {
     ...typography.styles.caption,
-    fontWeight: typography.fontWeight.medium,
-    textTransform: 'capitalize',
+    fontWeight: '550' as unknown as '500',
   },
 });
 

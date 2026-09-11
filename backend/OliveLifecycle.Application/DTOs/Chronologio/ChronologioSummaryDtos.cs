@@ -3,18 +3,34 @@ using OliveLifecycle.Core.Time;
 namespace OliveLifecycle.Application.DTOs.Chronologio;
 
 /// <summary>
-/// Living Timeline year axis. Season = cultivation period 1 Sep YYYY → 31 Aug YYYY+1.
+/// Living Timeline year axis.
+/// Agricultural = ResultYear window 1 Feb YYYY → 31 Jan YYYY+1.
+/// Season = cultivation period 1 Sep YYYY → 31 Aug YYYY+1 (legacy).
 /// </summary>
 public static class ChronologioAxis
 {
     public const string Calendar = "calendar";
     public const string Season = "season";
+    public const string Agricultural = "agricultural";
 
     public static bool IsSeason(string? axis) =>
         string.Equals(axis?.Trim(), Season, StringComparison.OrdinalIgnoreCase);
 
-    public static string Normalize(string? axis) =>
-        IsSeason(axis) ? Season : Calendar;
+    public static bool IsAgricultural(string? axis) =>
+        string.Equals(axis?.Trim(), Agricultural, StringComparison.OrdinalIgnoreCase);
+
+    public static string Normalize(string? axis)
+    {
+        if (IsAgricultural(axis))
+        {
+            return Agricultural;
+        }
+
+        return IsSeason(axis) ? Season : Calendar;
+    }
+
+    public static int? ResolvePeriodYear(string? axis, int? year, int? season) =>
+        IsSeason(axis) || IsAgricultural(axis) ? season ?? year : year ?? season;
 }
 
 /// <summary>
@@ -56,19 +72,38 @@ public static class ChronologioSeasonCalendar
     public static string FormatSeasonKey(int seasonStartYear) =>
         $"{seasonStartYear:D4}/{seasonStartYear + 1:D4}";
 
-    public static int PeriodKeyFor(DateTime utc, string axis) =>
-        ChronologioAxis.IsSeason(axis) ? GetSeasonStartYear(utc) : GetCalendarYearKey(utc);
+    public static int PeriodKeyFor(DateTime utc, string axis)
+    {
+        if (ChronologioAxis.IsAgricultural(axis))
+        {
+            return AgriculturalYear.For(EnsureUtc(utc));
+        }
 
-    public static (DateTime From, DateTime To) BoundsForPeriod(int periodStartYear, string axis) =>
-        ChronologioAxis.IsSeason(axis)
+        return ChronologioAxis.IsSeason(axis) ? GetSeasonStartYear(utc) : GetCalendarYearKey(utc);
+    }
+
+    public static (DateTime From, DateTime To) BoundsForPeriod(int periodStartYear, string axis)
+    {
+        if (ChronologioAxis.IsAgricultural(axis))
+        {
+            return AgriculturalYear.InclusiveBoundsUtc(periodStartYear);
+        }
+
+        return ChronologioAxis.IsSeason(axis)
             ? GetSeasonBounds(periodStartYear)
             : GetCalendarYearBounds(periodStartYear);
+    }
 
     /// <summary>
     /// Ordered (year, month) pairs covering a calendar year or a season window.
     /// </summary>
     public static IReadOnlyList<(int Year, int Month)> MonthsInPeriod(int periodStartYear, string axis)
     {
+        if (ChronologioAxis.IsAgricultural(axis))
+        {
+            return AgriculturalYear.Months(periodStartYear);
+        }
+
         if (ChronologioAxis.IsSeason(axis))
         {
             var list = new List<(int, int)>(12);

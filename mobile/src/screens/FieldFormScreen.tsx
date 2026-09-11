@@ -655,7 +655,8 @@ const FieldFormScreen = () => {
                 <Switch
                   value={boundaryConfirmed}
                   onValueChange={setBoundaryConfirmed}
-                  trackColor={{ true: colors.primary }}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.onOlive}
                 />
               </View>
             ) : null}
@@ -669,7 +670,8 @@ const FieldFormScreen = () => {
                   <Switch
                     value={cadastreAcknowledged}
                     onValueChange={setCadastreAcknowledged}
-                    trackColor={{ true: colors.primary }}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor={colors.onOlive}
                   />
                 </View>
               </>

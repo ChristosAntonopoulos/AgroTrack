@@ -36,6 +36,7 @@ import FieldMapDataTab from '../components/fields/FieldMapDataTab';
 import FieldDetailsTab from '../components/fields/FieldDetailsTab';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import { readWorkProfileDraft } from '../utils/fieldWorkProfileDraft';
+import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
 import '../components/fields/FieldPageShell.css';
 import './FieldWorkSetupPage.css';
 
@@ -108,6 +109,10 @@ const FieldDetailPage: React.FC = () => {
             geospatialService.getAlerts(id).catch(() => [] as FieldEnvironmentalAlert[]),
           ]);
         if (cancelled) return;
+        if (isFieldSetupIncomplete(fieldData.status)) {
+          navigate(`/fields/${fieldData.id}/edit`, { replace: true });
+          return;
+        }
         setField(fieldData);
         setTasks(plan?.tasks ?? []);
         setProposals(plan?.proposals ?? []);

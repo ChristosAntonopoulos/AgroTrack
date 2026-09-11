@@ -12,6 +12,7 @@ import PartnersSheet from './PartnersSheet';
 type Step = 'choose' | 'save' | 'invite';
 
 type Props = {
+  open?: boolean;
   fieldId?: string;
   fields: Field[];
   categories?: ServiceCategory[];
@@ -22,6 +23,7 @@ type Props = {
 };
 
 const AddPersonSheet: React.FC<Props> = ({
+  open = true,
   fieldId,
   fields,
   categories,
@@ -44,6 +46,7 @@ const AddPersonSheet: React.FC<Props> = ({
   if (step === 'save') {
     return (
       <SavedContactSheet
+        open={open}
         fieldId={fieldId}
         fields={fields}
         categories={categories}
@@ -81,6 +84,7 @@ const AddPersonSheet: React.FC<Props> = ({
   if (step === 'choose') {
     return (
       <PartnersSheet
+        open={open}
         title={t('partners:addPerson')}
         subtitle={t('partners:addPersonChoicesHint')}
         onClose={onClose}
@@ -109,6 +113,7 @@ const AddPersonSheet: React.FC<Props> = ({
 
   return (
     <PartnersSheet
+      open={open}
       title={t('partners:inviteToOleachron')}
       subtitle={invite ? t('partners:inviteReady') : t('partners:addPersonHint')}
       onClose={onClose}

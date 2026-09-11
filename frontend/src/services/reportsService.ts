@@ -106,6 +106,7 @@ export const reportsService = {
     }>>('/api/v1/reports/harvest-records', seasonParams(season));
 
     return response.data.map((row) => ({
+      id: row.id,
       fieldId: row.fieldId,
       fieldName: row.fieldName,
       harvestDate: row.harvestDate,

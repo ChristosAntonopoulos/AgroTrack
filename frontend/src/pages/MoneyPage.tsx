@@ -61,8 +61,6 @@ const MoneyPage: React.FC = () => {
   const taskFilter = searchParams.get('task') || '';
   const harvestFilter = searchParams.get('harvest') || '';
   const txId = searchParams.get('tx') || '';
-  const showFilters = searchParams.get('filters') === '1';
-
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -259,7 +257,12 @@ const MoneyPage: React.FC = () => {
     <PageContainer maxWidth="full" padding="none">
       <div className="money-page">
         <Breadcrumbs />
-        <MoneyPageHeader onCapture={captureEnabled ? () => openCapture() : undefined} />
+        <MoneyPageHeader
+          fields={visibleFields}
+          fieldId={fieldId}
+          onFieldChange={(next) => patch({ fieldId: next || null })}
+          onCapture={captureEnabled ? () => openCapture() : undefined}
+        />
         {body}
       </div>
     </PageContainer>
@@ -288,13 +291,18 @@ const MoneyPage: React.FC = () => {
     <PageContainer maxWidth="full" padding="none">
       <div className="money-page">
         <Breadcrumbs />
-        <MoneyPageHeader onCapture={() => openCapture()} />
+        <MoneyPageHeader
+          fields={visibleFields}
+          fieldId={fieldId}
+          onFieldChange={(next) => patch({ fieldId: next || null })}
+          onCapture={() => openCapture()}
+        />
         <MoneyContextBar
           year={year}
-          fieldId={fieldId}
-          fields={visibleFields}
+          kind={kind}
+          hideIncome={summaryForbidden}
           onYearChange={(next) => patch({ year: String(next), month: null })}
-          onFieldChange={(next) => patch({ fieldId: next || null })}
+          onKindChange={(value) => patch({ kind: value === 'all' ? null : value })}
         />
 
         {summaryForbidden ? (
@@ -421,16 +429,8 @@ const MoneyPage: React.FC = () => {
             loadingMore={loadingMore}
             locale={i18n.language}
             fieldNames={fieldNames}
-            kind={kind}
             category={category}
             month={month}
-            year={year}
-            showFilters={showFilters}
-            hideIncome={summaryForbidden}
-            onKind={(value) => patch({ kind: value === 'all' ? null : value })}
-            onToggleFilters={() => patch({ filters: showFilters ? null : '1' })}
-            onCategory={(value) => patch({ category: value || null })}
-            onMonth={(value) => patch({ month: value || null })}
             onClearFilters={() => patch({ category: null, month: null, task: null, harvest: null })}
             onOpen={(id) => patch({ tx: id })}
             onLoadMore={() => void loadOlder()}

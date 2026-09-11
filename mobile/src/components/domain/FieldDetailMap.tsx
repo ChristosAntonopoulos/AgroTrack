@@ -274,13 +274,13 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
               styles.chip,
               {
                 borderColor: !activeLayerId ? colors.primary : colors.borderLight,
-                backgroundColor: !activeLayerId ? colors.primaryDark : colors.surface,
+                backgroundColor: !activeLayerId ? colors.primary : colors.surface,
               },
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected: !activeLayerId }}
           >
-            <Text style={{ color: !activeLayerId ? colors.textInverse : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+            <Text style={{ color: !activeLayerId ? colors.onOlive : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
               {t('fields:mapLayers.none')}
             </Text>
           </Pressable>
@@ -294,13 +294,13 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
                   styles.chip,
                   {
                     borderColor: active ? colors.primary : colors.borderLight,
-                    backgroundColor: active ? colors.primaryDark : colors.surface,
+                    backgroundColor: active ? colors.primary : colors.surface,
                   },
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={{ color: active ? colors.textInverse : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+                <Text style={{ color: active ? colors.onOlive : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
                   {t(`fields:mapLayers.names.${definition.id}`, { defaultValue: definition.name })}
                 </Text>
               </Pressable>

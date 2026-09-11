@@ -65,7 +65,7 @@ const Input: React.FC<InputProps> = ({
           styles.inputContainer,
           {
             backgroundColor: colors.surfaceElevated,
-            borderColor: hasError ? colors.error : isFocused ? colors.primaryDark : colors.border,
+            borderColor: hasError ? colors.error : isFocused ? colors.focusRing : colors.border,
             borderWidth: isFocused ? 2 : 1,
           },
         ]}
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
   },
   input: {
     flex: 1,
