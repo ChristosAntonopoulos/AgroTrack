@@ -8,16 +8,19 @@ export type AuthStackParamList = {
   FamilyInviteAccept: { token: string };
 };
 
+/** Visible bottom tabs: Chronologio · Fields · Capture · Tasks · More */
 export type MainTabParamList = {
-  Dashboard: undefined;
-  Today: undefined;
-  Calendar: { date?: string; fieldId?: string } | undefined;
+  ChronologioTab: undefined;
   Fields: undefined;
   Capture: undefined;
-  ChronologioTab: undefined;
-  Tasks: { fieldId?: string; filter?: string } | undefined;
+  Tasks: {
+    fieldId?: string;
+    filter?: string;
+    view?: 'proposals' | 'planned' | 'active';
+    year?: string;
+    created?: string;
+  } | undefined;
   More: undefined;
-  Settings: undefined;
 };
 
 export type RootStackParamList = {
@@ -33,7 +36,7 @@ export type RootStackParamList = {
   FamilyInviteAccept: { token: string };
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
-  Money: { fieldId?: string } | undefined;
+  Money: { fieldId?: string; year?: number } | undefined;
   Analytics: undefined;
   Reports: undefined;
   Partners: { fieldId?: string; category?: string; taskId?: string; addContact?: boolean } | undefined;
@@ -44,11 +47,16 @@ export type RootStackParamList = {
   FieldWeatherVegetation: { fieldId: string };
   Chronologio: { fieldId?: string } | undefined;
   TaskDetail: { taskId: string };
+  TaskCompletion: { taskId: string };
   FieldForm: { fieldId?: string };
   FieldMapBoundary: { fieldId: string };
-  CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string };
+  CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string; proposalId?: string };
   Notifications: undefined;
   NotesList: undefined;
+  /** Secondary destinations previously hidden tabs — now root stack. */
+  Calendar: { date?: string; fieldId?: string } | undefined;
+  Settings: undefined;
+  Dashboard: undefined;
 };
 
 declare global {

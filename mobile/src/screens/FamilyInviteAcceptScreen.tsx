@@ -4,7 +4,6 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
@@ -74,7 +73,6 @@ const FamilyInviteAcceptScreen = () => {
 
   return (
     <ScreenLayout padded>
-      <ScreenHeader title={t('partners:family.acceptTitle')} />
       {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
       {invite ? (
         <View style={styles.body}>

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { roleHomePath } from '../../navigation/navConfig';
 import { User, LogOut, Menu, MoreVertical, Plus } from 'lucide-react';
+import HarvestHeaderButton from './HarvestHeaderButton';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
 import ExperienceModeToggle from '../Experience/ExperienceModeToggle';
@@ -34,7 +35,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const hidePageTitle =
     location.pathname === '/tasks' ||
     location.pathname === '/tasks/new' ||
-    location.pathname === '/chronologio';
+    location.pathname === '/chronologio' ||
+    location.pathname === '/harvest';
   const hideHeaderCapture = location.pathname === '/chronologio';
   const hideAppModeToggle = /^\/fields\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -101,6 +103,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
         {hidePageTitle ? null : <h1 className="page-title">{pageTitle}</h1>}
 
         <div className="header-right">
+          <HarvestHeaderButton />
           {capture && !hideHeaderCapture ? (
             <button
               type="button"

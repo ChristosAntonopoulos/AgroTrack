@@ -23,7 +23,6 @@ import {
 import { ThemeMode } from '../theme/themes';
 import type { ExperienceMode, FontScale } from '../experience/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
@@ -155,8 +154,6 @@ const SettingsScreen = () => {
 
   return (
     <ScreenLayout scroll contentContainerStyle={styles.content}>
-      <ScreenHeader title={t('settings:title')} subtitle={t('settings:subtitle')} />
-
       {savedFlash ? (
         <Text style={[styles.saved, { color: colors.success }]}>
           ✓ {t('settings:saved')}

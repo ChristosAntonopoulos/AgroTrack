@@ -272,7 +272,7 @@ const DashboardPage: React.FC = () => {
             )}
             {isFieldOwner && (
               <>
-                <button type="button" className="quick-action-card" onClick={() => navigate('/this-harvest')}>
+                <button type="button" className="quick-action-card" onClick={() => navigate('/harvest')}>
                   <Wheat size={20} />
                   <span className="quick-action-title">{t('fields:thisHarvest.title')}</span>
                   <span className="quick-action-sub">{t('fields:thisHarvest.season', { year: new Date().getFullYear() })}</span>

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Text, TextInput, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
@@ -112,7 +111,6 @@ const ServiceProfileScreen = () => {
   if (!profile) {
     return (
       <ScreenLayout padded>
-        <ScreenHeader title={t('myServices')} />
         <Text style={{ color: colors.textSecondary, marginBottom: spacing.md }}>{t('offer')}</Text>
         <Button
           title={t('enable')}
@@ -130,7 +128,6 @@ const ServiceProfileScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('myServices')} />
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.md }}>
         {t('wizardStep', { step })}
       </Text>

@@ -9,7 +9,7 @@ trigger:
   - main
 
 # Manual run (Pipelines → Run pipeline): check the boxes you want.
-# CI on main uses these defaults — website + API, no APK.
+# CI on main: website + API + Android APK (so /downloads stays current with main).
 parameters:
   - name: deployBackend
     displayName: 'Deploy backend (API)'
@@ -24,7 +24,7 @@ parameters:
   - name: buildMobileApk
     displayName: 'Also build and publish Android APK to /downloads'
     type: boolean
-    default: false
+    default: true
 
 variables:
   # Library variable group (Pipelines → Library → Agrotrack-Secrets).

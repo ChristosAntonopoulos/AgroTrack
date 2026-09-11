@@ -5,7 +5,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/ui/Button';
@@ -149,8 +148,6 @@ const ThisHarvestReviewScreen = () => {
       refreshControl={{ refreshing, onRefresh }}
       contentContainerStyle={styles.content}
     >
-      <ScreenHeader title={t('fields:apologismos.title')} subtitle={t('fields:apologismos.subtitle')} />
-
       <Button
         title={t('fields:apologismos.backToProgress')}
         variant="ghost"

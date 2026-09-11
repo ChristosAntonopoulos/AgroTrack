@@ -23,6 +23,27 @@ export function formatOfficialNet(
   return formatted;
 }
 
+export function formatLitres(
+  litres: number | null | undefined,
+  locale: string,
+  unknownLabel: string
+): string {
+  if (litres == null) return unknownLabel;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(litres)} L`;
+}
+
+export function formatEuroPerLitre(
+  value: number | null | undefined,
+  locale: string,
+  unknownLabel: string
+): string {
+  if (value == null) return unknownLabel;
+  return `${new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value)} €/L`;
+}
+
 export function isForbiddenError(error: unknown): boolean {
   return Boolean(
     error &&

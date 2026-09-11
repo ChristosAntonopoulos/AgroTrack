@@ -1,32 +1,32 @@
 /**
- * Semantic light palette — mirrored from frontend/src/styles/theme.css
- * and brand/brand-tokens.json. Read the active set via `useTheme().colors`.
+ * Mediterranean field journal — warm ivory + olive + stone.
+ * Not Material-green SaaS; not rustic kitsch.
  */
 export const colors = {
   // Brand constants
   olive: '#536B3F',
   sage: '#9AAA85',
   leaf: '#71845B',
-  deepGrove: '#29382A',
-  warmStone: '#D9D5C8',
+  deepGrove: '#252921',
+  warmStone: '#E4E5DD',
   limestone: '#F4F3EC',
   accentGold: '#B09A63',
-  charcoal: '#252A23',
+  charcoal: '#252921',
 
-  // Primary — Oleachron olive
+  // Primary olive — aligned with web Oleachron tokens
   primary: '#536B3F',
-  primaryDark: '#455B34',
-  primaryActive: '#394C2B',
-  primaryLight: '#E7EDDE',
-  oliveBorder: '#A8B995',
-  onOlive: '#FFFFFF',
+  primaryDark: '#3F5430',
+  primaryActive: '#354828',
+  primaryLight: '#E6EDDD',
+  oliveBorder: '#CED6C6',
+  onOlive: '#FBFBF7',
 
-  // Secondary — warm neutral / status-neutral family
-  secondary: '#879086',
-  secondaryDark: '#6B7469',
-  secondaryLight: '#A2A99D',
+  // Secondary — warm neutral
+  secondary: '#6E7569',
+  secondaryDark: '#525850',
+  secondaryLight: '#93998E',
 
-  // Status — shared hard colors from theme.css
+  // Status
   success: '#62916D',
   successLight: 'rgba(98, 145, 109, 0.16)',
   successDark: '#4f7a58',
@@ -39,100 +39,100 @@ export const colors = {
   errorLight: 'rgba(201, 102, 86, 0.16)',
   errorDark: '#a85548',
 
-  info: '#5F95A8',
-  infoLight: 'rgba(95, 149, 168, 0.16)',
-  infoDark: '#4a7a8a',
+  info: '#607D88',
+  infoLight: 'rgba(96, 125, 136, 0.16)',
+  infoDark: '#4a6570',
 
-  neutral: '#879086',
-  neutralLight: 'rgba(135, 144, 134, 0.16)',
+  neutral: '#6E7569',
+  neutralLight: 'rgba(110, 117, 105, 0.16)',
 
   white: '#FFFFFF',
   black: '#000000',
 
-  // Gray scale — warm olive undertones (derived from surfaces)
-  gray50: '#F7F6EF',
-  gray100: '#EEEFE6',
-  gray200: '#E8EEDF',
-  gray300: '#D9D5C8',
-  gray400: '#A2A99D',
-  gray500: '#737D6E',
-  gray600: '#50594C',
-  gray700: '#394C2B',
-  gray800: '#29382A',
-  gray900: '#252A23',
+  gray50: '#F0F1E9',
+  gray100: '#E4E5DD',
+  gray200: '#D8D9D0',
+  gray300: '#C4C6BB',
+  gray400: '#93998E',
+  gray500: '#6E7569',
+  gray600: '#525850',
+  gray700: '#3A4038',
+  gray800: '#252921',
+  gray900: '#1A1D17',
 
-  // Surfaces — limestone paper + near-white cards
+  // Surfaces — warm limestone paper (web-aligned)
   background: '#F4F3EC',
   backgroundLight: '#F4F3EC',
-  backgroundDark: '#29382A',
-  backgroundSidebar: '#ECEBE2',
-  surface: '#FFFEFA',
-  surfaceElevated: '#FFFEFA',
-  surfaceMuted: '#F7F6EF',
-  surface3: '#EEEFE6',
-  surfaceHover: '#F0F2E8',
-  surfaceSelected: '#E8EEDF',
+  backgroundDark: '#11140F',
+  backgroundSidebar: '#EEEDE5',
+  surface: '#FFFFFF',
+  surfaceElevated: '#FBFBF7',
+  surfaceMuted: '#EEEDE5',
+  surface3: '#E8E7DF',
+  surfaceHover: '#EBEEE4',
+  surfaceSelected: '#E6EDDD',
 
   // Text
-  textPrimary: '#252A23',
-  textSecondary: '#50594C',
-  textTertiary: '#737D6E',
-  textDisabled: '#A2A99D',
-  textInverse: '#FFFFFF',
+  textPrimary: '#1C211D',
+  textSecondary: '#5B635C',
+  textTertiary: '#8A9186',
+  textDisabled: '#AEB3A7',
+  textInverse: '#FBFBF7',
 
-  // Chrome — light header & tab bar (Mediterranean paper, not deep olive)
-  headerBackground: '#FAF9F4',
-  headerForeground: '#252A23',
-  headerForegroundMuted: '#50594C',
+  // Chrome
+  headerBackground: '#F4F3EC',
+  headerForeground: '#1C211D',
+  headerForegroundMuted: '#5B635C',
   headerAccent: '#536B3F',
-  headerBorder: 'rgba(51, 62, 44, 0.14)',
-  tabBarBackground: '#FAF9F4',
-  tabBarForeground: '#486235',
-  tabBarForegroundInactive: '#737D6E',
-  tabBarBorder: 'rgba(51, 62, 44, 0.14)',
-  tabBarActivePill: '#E7EDDE',
+  headerBorder: '#E4E5DD',
+  tabBarBackground: '#FBFBF7',
+  tabBarForeground: '#536B3F',
+  tabBarForegroundInactive: '#6E7569',
+  tabBarBorder: '#E4E5DD',
+  tabBarActivePill: '#E6EDDD',
 
-  // Borders — olive-tinted
-  border: 'rgba(51, 62, 44, 0.14)',
-  borderLight: 'rgba(51, 62, 44, 0.08)',
-  borderDark: 'rgba(51, 62, 44, 0.24)',
+  // Borders
+  border: '#E4E5DD',
+  borderLight: '#EAEBE3',
+  borderDark: '#D0D2C8',
 
-  // Links / focus
-  link: '#486235',
-  linkHover: '#334A25',
-  focusRing: '#5E7848',
-  backdrop: 'rgba(24, 29, 21, 0.42)',
+  link: '#536B3F',
+  linkHover: '#3F5430',
+  focusRing: '#6B8554',
+  backdrop: 'rgba(17, 20, 15, 0.42)',
 
-  // Shadows
-  shadow: 'rgba(10, 15, 9, 0.10)',
-  shadowDark: 'rgba(10, 15, 9, 0.16)',
+  shadow: 'rgba(37, 41, 33, 0.08)',
+  shadowDark: 'rgba(17, 20, 15, 0.18)',
 
-  // Domain
-  lifecycleLow: '#9AAA85',
+  // Timeline rail
+  timeline: '#CED6C6',
+
+  lifecycleLow: '#617A4E',
   lifecycleHigh: '#B09A63',
-  taskPending: '#C8924E',
-  taskInProgress: '#5F95A8',
-  taskCompleted: '#62916D',
+  taskPending: '#B09A63',
+  taskInProgress: '#607D88',
+  taskCompleted: '#617A4E',
 
-  // Event / category accents (light)
-  eventWork: '#5E7848',
-  eventWorkSoft: 'rgba(94, 120, 72, 0.14)',
-  eventObservation: '#755D8C',
-  eventObservationSoft: 'rgba(117, 93, 140, 0.14)',
-  eventExpense: '#99662D',
-  eventExpenseSoft: 'rgba(153, 102, 45, 0.14)',
-  eventIncome: '#36734D',
-  eventIncomeSoft: 'rgba(54, 115, 77, 0.14)',
-  eventHarvest: '#8B4F49',
-  eventHarvestSoft: 'rgba(139, 79, 73, 0.14)',
+  // Category accents (seasoning, not paint)
+  eventWork: '#617A4E',
+  eventWorkSoft: '#E9EFE4',
+  eventObservation: '#79698A',
+  eventObservationSoft: '#EEEAF2',
+  eventExpense: '#B09A63',
+  eventExpenseSoft: '#F5ECDF',
+  eventIncome: '#60776D',
+  eventIncomeSoft: '#E6ECE9',
+  eventHarvest: '#985F52',
+  eventHarvestSoft: '#F3E7E3',
   eventWeather: '#39798D',
-  eventWeatherSoft: 'rgba(57, 121, 141, 0.14)',
+  eventWeatherSoft: '#E6EEF0',
   eventWarning: '#A74435',
-  eventWarningSoft: 'rgba(167, 68, 53, 0.14)',
-  eventFieldChange: '#59696B',
-  eventFieldChangeSoft: 'rgba(89, 105, 107, 0.14)',
+  eventWarningSoft: '#F5E6E3',
+  eventFieldChange: '#60776D',
+  eventFieldChangeSoft: '#E6ECE9',
+  eventLifecycle: '#85804A',
+  eventLifecycleSoft: '#EFEDDF',
 
-  // Weather
   weatherBlue: '#70A9BA',
   rain: '#588EA5',
   temperature: '#CB8B55',
@@ -140,21 +140,17 @@ export const colors = {
   wind: '#94A89A',
   frost: '#8CA9BF',
 
-  // Map
-  mapBoundary: '#4F7139',
+  mapBoundary: '#536B3F',
   mapSelectedFill: 'rgba(83, 107, 63, 0.18)',
   mapHoverFill: 'rgba(83, 107, 63, 0.10)',
   mapWarningOutline: '#C96656',
-  mapOtherOutline: '#879086',
+  mapOtherOutline: '#6E7569',
 
-  // Domain task accent
-  domainTask: '#3A6EA5',
+  domainTask: '#617A4E',
 
-  // Experience modes (Wong CB-safe)
   experienceEveryday: '#0072B2',
   experienceFull: '#E69F00',
 
-  // Alert banners
   bannerErrorBg: 'rgba(201, 102, 86, 0.16)',
   bannerErrorBorder: '#C96656',
   bannerWarningBg: 'rgba(200, 146, 78, 0.16)',

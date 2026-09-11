@@ -239,7 +239,7 @@ const CaptureSheet: React.FC<Props> = ({
 
   const sheetTitle =
     step === 'choose'
-      ? t('capture:title')
+      ? t('capture:newEntry', { defaultValue: t('capture:title') })
       : isMoneyStep
         ? t('capture:types.money.title')
         : t(`capture:types.${step}.title`);
@@ -281,35 +281,57 @@ const CaptureSheet: React.FC<Props> = ({
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {step === 'choose' ? (
             <>
-              <Text style={[styles.prompt, { color: colors.textSecondary }]}>{t('capture:whatToRecord')}</Text>
-              {typeCards
-                .filter(c => c.enabled)
-                .map(card => (
-                  <Pressable
-                    key={card.type}
-                    style={[
-                      styles.typeCard,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.surface,
-                        minHeight: Math.max(72, tapMin + 24),
-                      },
-                    ]}
-                    onPress={() => setStep(card.type)}
-                  >
-                    <View style={[styles.typeIcon, { backgroundColor: colors.primaryLight }]}>
-                      <Ionicons name={card.icon} size={22} color={colors.primary} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
-                        {t(`capture:types.${card.type}.title`)}
-                      </Text>
-                      <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-                        {t(`capture:types.${card.type}.description`)}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
+              <Text style={[styles.prompt, { color: colors.textSecondary }]}>
+                {t('capture:whatToRecord', { defaultValue: 'New entry' })}
+              </Text>
+              <View style={styles.typeGrid}>
+                {typeCards
+                  .filter(c => c.enabled)
+                  .map(card => {
+                    const soft =
+                      card.type === 'work'
+                        ? '#E9EFE4'
+                        : card.type === 'observation'
+                          ? '#EEEAF2'
+                          : card.type === 'money'
+                            ? '#F5ECDF'
+                            : card.type === 'harvest'
+                              ? '#F3E7E3'
+                              : colors.primaryLight;
+                    const accent =
+                      card.type === 'work'
+                        ? '#617A4E'
+                        : card.type === 'observation'
+                          ? '#79698A'
+                          : card.type === 'money'
+                            ? '#A46F32'
+                            : card.type === 'harvest'
+                              ? '#985F52'
+                              : colors.primary;
+                    return (
+                      <Pressable
+                        key={card.type}
+                        style={({ pressed }) => [
+                          styles.typeTile,
+                          {
+                            backgroundColor: soft,
+                            borderColor: colors.borderLight,
+                            minHeight: Math.max(96, tapMin + 40),
+                            opacity: pressed ? 0.88 : 1,
+                          },
+                        ]}
+                        onPress={() => setStep(card.type)}
+                      >
+                        <View style={[styles.typeIcon, { backgroundColor: colors.surface }]}>
+                          <Ionicons name={card.icon} size={22} color={accent} />
+                        </View>
+                        <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
+                          {t(`capture:types.${card.type}.title`)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+              </View>
             </>
           ) : (
             <>
@@ -500,7 +522,20 @@ const CaptureSheet: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   body: { paddingBottom: 24 },
-  prompt: { fontSize: 16, marginBottom: 12 },
+  prompt: { fontSize: 15, fontWeight: '500', marginBottom: 14 },
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  typeTile: {
+    width: '48%',
+    flexGrow: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.card,
+    padding: 14,
+    gap: 10,
+  },
   typeCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -510,8 +545,8 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  typeIcon: { width: 44, height: 44, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center' },
-  typeTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
+  typeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  typeTitle: { fontSize: 15, fontWeight: '650' as '600' },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
   lockedField: { borderWidth: 1, borderRadius: radii.lg, padding: 12, fontWeight: '700', marginBottom: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },

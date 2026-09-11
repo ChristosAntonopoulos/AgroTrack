@@ -226,7 +226,7 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
       navigate(
         `/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&tx=${encodeURIComponent(entry.sourceId)}` : ''}`
       );
-    } else if (entry.sourceType === 'Harvest') navigate('/this-harvest');
+    } else if (entry.sourceType === 'Harvest') navigate('/harvest');
     else if (entry.sourceType === 'WeatherReview' || kind === 'weatherPeriod') {
       navigate(`/fields/${entry.fieldId}?tab=map`);
     }

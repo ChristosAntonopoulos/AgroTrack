@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Alert, Switch, Pressable } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +32,7 @@ import {
   toSelectOptions,
 } from '../constants/fieldFormOptions';
 import { typography, spacing } from '../theme';
+import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
 import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'FieldForm'>;
@@ -41,8 +42,10 @@ type WizardStep = WizardStepKey | 'basics-edit';
 
 const NEW_DRAW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'crop', 'review'];
 const NEW_CADASTRE_STEPS: WizardStepKey[] = ['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'];
-const EVERYDAY_NEW_STEPS: WizardStepKey[] = ['basics', 'method', 'boundary'];
+const EVERYDAY_NEW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'review'];
+const EVERYDAY_CADASTRE_STEPS: WizardStepKey[] = ['method', 'cadastre', 'basics', 'boundary', 'review'];
 const EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
+const EVERYDAY_EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'review'];
 const KAEK_REGEX = /^(?:\d{12}|\d{2}\s*\d{3}\s*\d{2}\s*\d{2}\s*\d{3})\s*\/\s*\d+\s*\/\s*\d+$/;
 
 const emptyForm = (): CreateFieldDto => ({
@@ -65,7 +68,7 @@ const FieldFormScreen = () => {
   const { t } = useTranslation(['fields', 'common']);
   const isEdit = !!fieldId;
 
-  const [step, setStep] = useState<WizardStep>(isEdit ? 'basics' : isEveryday ? 'basics' : 'method');
+  const [step, setStep] = useState<WizardStep>(isEdit ? 'basics' : 'method');
   const [method, setMethod] = useState<AddFieldMethod | null>(isEdit ? 'draw' : null);
   const [formData, setFormData] = useState<CreateFieldDto>(emptyForm);
   const [boundaryPoints, setBoundaryPoints] = useState<BoundaryPoint[]>([]);
@@ -82,12 +85,9 @@ const FieldFormScreen = () => {
   const [cadastreAcknowledged, setCadastreAcknowledged] = useState(false);
 
   const activeSteps = useMemo(() => {
-    if (isEdit) return EDIT_STEPS;
-    if (isEveryday) {
-      return method === 'later' ? (['basics', 'method'] as WizardStepKey[]) : EVERYDAY_NEW_STEPS;
-    }
-    if (method === 'cadastre') return NEW_CADASTRE_STEPS;
-    return NEW_DRAW_STEPS;
+    if (isEdit) return isEveryday ? EVERYDAY_EDIT_STEPS : EDIT_STEPS;
+    if (method === 'cadastre') return isEveryday ? EVERYDAY_CADASTRE_STEPS : NEW_CADASTRE_STEPS;
+    return isEveryday ? EVERYDAY_NEW_STEPS : NEW_DRAW_STEPS;
   }, [isEdit, isEveryday, method]);
 
   const stepIndex = useMemo(() => {
@@ -174,7 +174,7 @@ const FieldFormScreen = () => {
           setCadastre(f.greekCadastre);
           setKaekInput(f.greekCadastre.normalizedKaek || f.greekCadastre.kaek || '');
         }
-        setStep('basics');
+        setStep(getFieldSetupResumeStep(f));
       })
       .catch(() => setError(t('fields:form.failedLoad')))
       .finally(() => setLoading(false));
@@ -212,11 +212,13 @@ const FieldFormScreen = () => {
         return t('fields:addField.errors.kaekInvalid');
       }
     }
-    if (step === 'boundary' && method !== 'later') {
-      if (boundaryPoints.length < 3) return t('fields:addFieldWizard.errors.boundaryRequired');
+    if (step === 'boundary' && boundaryPoints.length < 3 && !isEveryday) {
+      return t('fields:addFieldWizard.errors.boundaryRequired');
     }
     if (step === 'review') {
-      if (!isEdit && method !== 'later' && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (!isEdit && boundaryPoints.length >= 3 && !boundaryConfirmed) {
+        return t('fields:addField.errors.confirmBoundary');
+      }
       if (isEdit && boundaryChanged && !boundaryConfirmed) {
         return t('fields:addField.errors.confirmBoundary');
       }
@@ -280,6 +282,16 @@ const FieldFormScreen = () => {
     if (!isFirst) setStep(activeSteps[stepIndex - 1] as WizardStep);
     else navigation.goBack();
   };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ paddingHorizontal: 8 }}>
+          <Text style={{ color: colors.primary, fontSize: 17 }}>{t('common:cancel')}</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation, colors.primary, t]);
 
   const handleSaveEdit = async () => {
     const err = validateStep();
@@ -353,18 +365,8 @@ const FieldFormScreen = () => {
             ? { kaek: kaekInput, source: 'Manual' }
             : undefined,
       });
-      if (method !== 'later' && boundaryPoints.length >= 3) {
+      if (boundaryPoints.length >= 3) {
         await persistBoundary(id);
-      }
-      if (method === 'later') {
-        await getFieldService().updateField(id, {
-          name: formData.name.trim(),
-          cropType: formData.cropType || 'Olive',
-          color: formData.color,
-          status: 'Draft',
-        });
-        navigation.replace('FieldDetail', { fieldId: id });
-        return;
       }
       const result = await getFieldService().activateField(id, {
         boundaryConfirmed: boundaryConfirmed || boundaryPoints.length >= 3,
@@ -444,6 +446,10 @@ const FieldFormScreen = () => {
         steps={activeSteps}
         current={currentStepKey}
         currentIndex={stepIndex}
+        onStepPress={(next) => {
+          setError(null);
+          setStep(next);
+        }}
       />
 
       {showEditHero && previewField ? (
@@ -467,10 +473,10 @@ const FieldFormScreen = () => {
         {step === 'method' ? (
           <AddFieldMethodStep
             method={method}
-            everyday={isEveryday}
             onSelect={(m) => {
               setMethod(m);
               setError(null);
+              if (m === 'cadastre') setStep('cadastre');
             }}
           />
         ) : null}
@@ -699,9 +705,7 @@ const FieldFormScreen = () => {
               title={
                 isEdit
                   ? t('fields:saveChanges')
-                  : method === 'later'
-                    ? t('common:save')
-                    : t('fields:addField.activate')
+                  : t('fields:addField.activate')
               }
               onPress={isEdit ? handleSaveEdit : handleActivate}
               loading={saving}

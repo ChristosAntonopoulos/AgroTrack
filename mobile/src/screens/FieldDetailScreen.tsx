@@ -12,9 +12,11 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../services/fieldService';
-import { FieldTask, isActiveFieldTask } from '../services/fieldWorkService';
-import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { FieldTask, TaskProposal, isActiveFieldTask, type FieldPhenology } from '../services/fieldWorkService';
+import type { YearFinancialSummary, FieldYearSummary } from '../services/financialSummaryService';
 import type { ChronologioEntry } from '../services/chronologioService';
+import type { FieldEnvironmentalAlert, FieldWeather } from '../services/geospatialService';
+import { geospatialService } from '../services/geospatialService';
 import {
   getFieldService,
   getFieldWorkService,
@@ -32,22 +34,39 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import FieldIdentity from '../components/fields/FieldIdentity';
 import FieldMoreMenu from '../components/fields/FieldMoreMenu';
-import FieldTodaySummary from '../components/fields/FieldTodaySummary';
-import FieldFinanceSummary from '../components/fields/FieldFinanceSummary';
+import FieldStatusStrip from '../components/fields/FieldStatusStrip';
+import FieldYearGlance from '../components/fields/FieldYearGlance';
+import FieldWeatherSection from '../components/fields/FieldWeatherSection';
 import FieldRecentChronologio from '../components/fields/FieldRecentChronologio';
 import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
+import FieldLocalNavigation, { FieldTab } from '../components/fields/FieldLocalNavigation';
+import FieldResultYearControl from '../components/fields/FieldResultYearControl';
 import ChronologioScreen from './ChronologioScreen';
 import { spacing } from '../theme';
+import { getDockMetrics } from '../navigation/dockMetrics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  formatRelativeTime,
+  isFieldSetupIncomplete,
+  numberLocaleFor,
+} from '../utils/fieldDisplay';
+import {
+  chronologioAttentionFallback,
+  resolveFieldAttention,
+  type FieldAttentionModel,
+} from '../utils/fieldOverviewAttention';
 import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
-type FieldTab = 'overview' | 'map' | 'details' | 'chronologio';
 
-const FIELD_TABS: FieldTab[] = ['overview', 'map', 'details', 'chronologio'];
+const athensYear = (): number =>
+  Number(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Athens', year: 'numeric' }).format(new Date())
+  );
 
 const parseTab = (mode?: string): FieldTab => {
   if (mode === 'map' || mode === 'details' || mode === 'chronologio') return mode;
@@ -63,34 +82,81 @@ const FieldDetailScreen = () => {
   const { colors, tapMin } = useTheme();
   const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings']);
   const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
+  const insets = useSafeAreaInsets();
+  const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
+  const currentYear = athensYear();
 
   const [field, setField] = useState<Field | null>(null);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
+  const [proposals, setProposals] = useState<TaskProposal[]>([]);
+  const [alerts, setAlerts] = useState<FieldEnvironmentalAlert[]>([]);
+  const [phenology, setPhenology] = useState<FieldPhenology | null>(null);
+  const [weather, setWeather] = useState<FieldWeather | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState(false);
+  const [attention, setAttention] = useState<FieldAttentionModel | null>(null);
+  const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
   const [costSummary, setCostSummary] = useState<YearFinancialSummary | null>(null);
+  const [yearRollup, setYearRollup] = useState<FieldYearSummary | null>(null);
+  const [plannedRemaining, setPlannedRemaining] = useState(0);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
+  const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
 
   const tab = parseTab(modeParam);
 
+  const loadWeather = useCallback(async () => {
+    setWeatherLoading(true);
+    setWeatherError(false);
+    try {
+      const data = await geospatialService.getFieldWeather(fieldId);
+      setWeather(data);
+      setWeatherError(!data);
+    } catch {
+      setWeather(null);
+      setWeatherError(true);
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, [fieldId]);
+
   const load = useCallback(async () => {
     try {
-      const [fieldData, taskData, summary, chrono] = await Promise.all([
-        getFieldService().getField(fieldId),
-        getFieldWorkService()
-          .listFieldTasks({ fieldId })
-          .then((rows) => rows.filter(isActiveFieldTask)),
-        getFinancialSummaryService()
-          .getYear(new Date().getFullYear(), fieldId, i18n.language)
-          .catch(() => null),
-        getChronologioService()
-          .getFieldChronologio(fieldId, { limit: 8 })
-          .catch(() => [] as ChronologioEntry[]),
-      ]);
+      const finance = getFinancialSummaryService();
+      const work = getFieldWorkService();
+      const [fieldData, taskPlan, summary, rollup, chrono, fieldAlerts, fieldPhenology] =
+        await Promise.all([
+          getFieldService().getField(fieldId),
+          work.getTaskPlan(fieldId, year).catch(() => null),
+          finance.getYear(year, fieldId, i18n.language).catch(() => null),
+          finance.getFieldYear(fieldId, year, i18n.language).catch(() => null),
+          getChronologioService()
+            .getFieldChronologio(fieldId, {
+              limit: 8,
+              from: `${year}-01-01`,
+              to: `${year}-12-31`,
+            })
+            .catch(() => [] as ChronologioEntry[]),
+          geospatialService.getAlerts(fieldId).catch(() => [] as FieldEnvironmentalAlert[]),
+          work.getPhenology(fieldId).catch(() => null),
+        ]);
+      if (isFieldSetupIncomplete(fieldData.status)) {
+        navigation.replace('FieldForm', { fieldId: fieldData.id });
+        return;
+      }
+      const planTasks = Array.isArray(taskPlan?.tasks) ? taskPlan.tasks : [];
+      const planProposals = Array.isArray(taskPlan?.proposals) ? taskPlan.proposals : [];
+      const activeTasks = planTasks.filter(isActiveFieldTask);
       setField(fieldData);
-      setTasks(taskData);
+      setTasks(activeTasks);
+      setProposals(planProposals);
+      setAlerts(Array.isArray(fieldAlerts) ? fieldAlerts : []);
+      setPhenology(fieldPhenology);
+      setPlannedRemaining(activeTasks.length);
       setCostSummary(summary);
+      setYearRollup(rollup);
       setRecentEntries(chrono);
       setError(null);
     } catch {
@@ -98,12 +164,15 @@ const FieldDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [fieldId, t, i18n.language]);
+  }, [fieldId, year, t, i18n.language, navigation]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    void loadWeather();
+  }, [loadWeather]);
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener(CAPTURE_SAVED_EVENT, () => {
       void load();
@@ -114,49 +183,123 @@ const FieldDetailScreen = () => {
   useEffect(() => {
     if (focus === 'money') {
       navigation.setParams({ focus: undefined });
-      navigation.navigate('Money', { fieldId });
+      navigation.navigate('Money', { fieldId, year });
     }
-  }, [fieldId, focus, navigation]);
+  }, [fieldId, focus, navigation, year]);
 
   useEffect(() => {
-    if (field?.name) {
-      navigation.setOptions({ title: field.name });
+    if (!field) {
+      setAttention(null);
+      return;
     }
-  }, [field?.name, navigation]);
+    const locale = numberLocaleFor(i18n.language);
+    let model = resolveFieldAttention({
+      isDraft: field.status === 'Draft',
+      isHistoricalYear: year < currentYear,
+      alerts,
+      tasks,
+      proposals,
+      language: i18n.language,
+      dismissedIds: dismissedAttentionIds,
+    });
 
-  const canOwn = isFieldOwner() || field?.ownerId === user?.id;
+    if (model.kind === 'none' && model.id !== 'draft') {
+      const warningEntry = recentEntries.find(
+        (entry) =>
+          entry.importance === 'warning' ||
+          entry.importance === 'critical' ||
+          (entry.category === 'note' && entry.importance === 'important')
+      );
+      if (warningEntry && !dismissedAttentionIds.includes(warningEntry.id)) {
+        const message =
+          warningEntry.details.note?.bodyPreview || warningEntry.summary || '';
+        model = chronologioAttentionFallback({
+          title: warningEntry.title,
+          message,
+          entryId: warningEntry.id,
+          whenLabel: formatRelativeTime(warningEntry.occurredAt, locale),
+        });
+      }
+    }
+
+    setAttention(model);
+  }, [
+    alerts,
+    currentYear,
+    dismissedAttentionIds,
+    field,
+    i18n.language,
+    proposals,
+    recentEntries,
+    tasks,
+    year,
+  ]);
+
+  const canOwn = Boolean(isFieldOwner() || field?.ownerId === user?.id);
+
+  useEffect(() => {
+    if (!field) return;
+    navigation.setOptions({
+      title: field.name,
+      headerRight: () => (
+        <FieldMoreMenu
+          field={field}
+          canOwn={canOwn}
+          onDelete={
+            canOwn
+              ? () => {
+                  Alert.alert(t('fields:deleteField'), t('fields:deleteConfirm'), [
+                    { text: t('common:cancel'), style: 'cancel' },
+                    {
+                      text: t('common:delete'),
+                      style: 'destructive',
+                      onPress: () => {
+                        void getFieldService()
+                          .deleteField(fieldId)
+                          .then(() => navigation.navigate('Main', { screen: 'Fields' }))
+                          .catch(() => Alert.alert(t('fields:form.failedDelete')));
+                      },
+                    },
+                  ]);
+                }
+              : undefined
+          }
+          onOpenChronologio={() => navigation.setParams({ mode: 'chronologio' })}
+        />
+      ),
+    });
+  }, [field, fieldId, navigation, canOwn, t]);
+
   const setTab = (next: FieldTab) => {
     navigation.setParams({ mode: next === 'overview' ? undefined : next });
   };
 
-  const tabLabel = (id: FieldTab): string => {
-    switch (id) {
-      case 'overview':
-        return t('fields:detail.overview');
-      case 'map':
-        return t('fields:page.mapData');
-      case 'details':
-        return t('fields:page.details');
+  const handleAttentionPrimary = useCallback(() => {
+    if (!attention) return;
+    switch (attention.primaryAction) {
+      case 'task':
+        if (attention.taskId) navigation.navigate('TaskDetail', { taskId: attention.taskId });
+        break;
+      case 'proposal':
+        navigation.navigate('CreateTask', {
+          fieldId,
+          proposalId: attention.proposalId,
+        });
+        break;
+      case 'tasks':
+        navigation.navigate('Main', { screen: 'Tasks' });
+        break;
       case 'chronologio':
-        return t('fields:detail.timeline');
+        navigation.setParams({ mode: 'chronologio' });
+        break;
+      default:
+        break;
     }
-  };
+  }, [attention, fieldId, navigation]);
 
-  const handleDelete = () => {
-    Alert.alert(t('fields:deleteField'), t('fields:deleteConfirm'), [
-      { text: t('common:cancel'), style: 'cancel' },
-      {
-        text: t('common:delete'),
-        style: 'destructive',
-        onPress: () => {
-          void getFieldService()
-            .deleteField(fieldId)
-            .then(() => navigation.navigate('Main', { screen: 'Fields' }))
-            .catch(() => Alert.alert(t('fields:form.failedDelete')));
-        },
-      },
-    ]);
-  };
+  useEffect(() => {
+    setDismissedAttentionIds([]);
+  }, [fieldId, year]);
 
   if (loading && !field) {
     return (
@@ -176,6 +319,17 @@ const FieldDetailScreen = () => {
       </ScreenLayout>
     );
   }
+
+  const openCapture = () => capture?.openCapture({ fieldId: field.id });
+
+  const latestEntry = [...recentEntries].sort(
+    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  )[0];
+  const isHistoricalYear = year < currentYear;
+  const weatherNextTitle =
+    attention?.kind === 'nextTask' || attention?.kind === 'weatherReschedule'
+      ? attention.title
+      : undefined;
 
   const renderMapPanel = () => (
     <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
@@ -209,61 +363,20 @@ const FieldDetailScreen = () => {
 
   return (
     <ScreenLayout>
-      <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
-        <View style={styles.identityRow}>
-          <FieldIdentity field={field} size="page" />
-          <FieldMoreMenu
-            field={field}
-            canOwn={Boolean(canOwn)}
-            onDelete={canOwn ? handleDelete : undefined}
-            onOpenChronologio={() => setTab('chronologio')}
-          />
-        </View>
-        {capture ? (
-          <Button
-            title={t('capture:cta')}
-            size="small"
-            onPress={() => capture.openCapture({ fieldId: field.id })}
-            style={{ alignSelf: 'flex-start', marginTop: spacing.sm }}
-          />
+      <View style={styles.header}>
+        {field.status === 'Draft' ? (
+          <Text style={[styles.draft, { color: colors.warning }]}>{t('fields:page.draftField')}</Text>
         ) : null}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.localNav}
-          accessibilityRole="tablist"
-          accessibilityLabel={t('fields:page.tabsAria')}
-        >
-          {FIELD_TABS.map((id) => {
-            const selected = tab === id;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setTab(id)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected }}
-                style={[
-                  styles.localTab,
-                  {
-                    minHeight: tapMin,
-                    borderBottomColor: selected ? colors.primary : 'transparent',
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    fontWeight: '700',
-                    fontSize: 15,
-                    color: selected ? colors.textPrimary : colors.textSecondary,
-                  }}
-                >
-                  {tabLabel(id)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <FieldIdentity field={field} size="page" />
+        <Text style={[styles.yearLabel, { color: colors.textSecondary }]}>
+          {t('fields:page.yearLabel', { year })}
+        </Text>
+        <View style={styles.headerControls}>
+          <FieldResultYearControl year={year} onYearChange={setYear} />
+        </View>
       </View>
+
+      <FieldLocalNavigation tab={tab} onTabChange={setTab} />
 
       {tab === 'chronologio' ? (
         <View style={styles.flex}>
@@ -273,18 +386,52 @@ const FieldDetailScreen = () => {
 
       {tab === 'overview' ? (
         <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
-          <FieldTodaySummary
+          {attention ? (
+            <FieldStatusStrip
+              phenology={phenology}
+              tasks={tasks}
+              attention={attention}
+              latestEntry={latestEntry}
+              onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
+              onOpenAttention={handleAttentionPrimary}
+              onOpenChronologio={() => setTab('chronologio')}
+            />
+          ) : null}
+          <FieldDetailMap field={field} height={220} showDataLayers={false} />
+          {attention ? (
+            <FieldAttentionCard
+              attention={attention}
+              onPrimary={handleAttentionPrimary}
+              onKeepDate={(taskId) =>
+                setDismissedAttentionIds((ids) => (ids.includes(taskId) ? ids : [...ids, taskId]))
+              }
+            />
+          ) : null}
+          <FieldWeatherSection
             fieldId={field.id}
-            tasks={tasks}
-            onOpenWeather={() => navigation.navigate('FieldWeatherVegetation', { fieldId: field.id })}
+            fieldName={field.name}
+            fieldColor={field.color}
+            weather={weather}
+            loading={weatherLoading}
+            error={weatherError}
+            year={year}
+            isHistoricalYear={isHistoricalYear}
+            allowRecommendation={field.status !== 'Draft'}
+            attention={attention}
+            nextTaskTitle={weatherNextTitle}
+            onRetry={() => void loadWeather()}
+            onMoveTask={
+              attention?.kind === 'weatherReschedule' && attention.taskId
+                ? () => navigation.navigate('TaskDetail', { taskId: attention.taskId! })
+                : undefined
+            }
           />
-          <FieldAttentionCard
-            entries={recentEntries}
-            onSeeObservation={() => setTab('chronologio')}
-          />
-          <FieldFinanceSummary
-            summary={costSummary}
-            onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id })}
+          <FieldYearGlance
+            year={year}
+            costSummary={costSummary}
+            yearRollup={yearRollup}
+            plannedRemaining={plannedRemaining}
+            onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
           />
           <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
         </ScrollView>
@@ -294,8 +441,14 @@ const FieldDetailScreen = () => {
 
       {tab === 'details' ? (
         <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
-          <FieldFacts field={field} />
+          <FieldFacts field={field} year={year} canOwn={canOwn} />
         </ScrollView>
+      ) : null}
+
+      {capture ? (
+        <View style={[styles.stickyCapture, { bottom: dockHeight + bottomInset + spacing.sm }]}>
+          <Button title={t('fields:page.capture')} onPress={openCapture} fullWidth />
+        </View>
       ) : null}
     </ScreenLayout>
   );
@@ -306,30 +459,37 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.base,
     paddingTop: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
   },
-  identityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  localNav: {
-    gap: 4,
-    paddingTop: spacing.md,
-    paddingBottom: 0,
+  draft: {
+    fontSize: 16,
+    fontWeight: '700',
   },
-  localTab: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: 10,
-    borderBottomWidth: 3,
-    justifyContent: 'center',
+  yearLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: spacing.xs,
+  },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   panel: {
     padding: spacing.base,
     gap: spacing.md,
-    paddingBottom: spacing['3xl'],
+    paddingBottom: spacing['3xl'] + 56,
   },
   peekBtn: {
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
+  },
+  stickyCapture: {
+    position: 'absolute',
+    left: spacing.base,
+    right: spacing.base,
   },
 });
 

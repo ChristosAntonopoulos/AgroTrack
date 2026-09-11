@@ -329,7 +329,7 @@ const TaskDetailPage: React.FC = () => {
           <section className="task-detail-card task-detail-next">
             <h2>{t('fieldWork.detail.nextStep')}</h2>
             <p className="task-form-help">
-              {canStart && status !== 'in_progress'
+              {canStart
                 ? t('fieldWork.detail.nextStepStart')
                 : t('fieldWork.detail.nextStepComplete')}
             </p>

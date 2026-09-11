@@ -40,6 +40,14 @@ export interface GreekCadastreInfo {
   areaDifferencePercent?: number;
 }
 
+export interface FieldDocumentAttachment {
+  id: string;
+  type: string;
+  fileName: string;
+  storagePath: string;
+  uploadedAt: string;
+}
+
 export interface Field {
   id: string;
   ownerId: string;
@@ -70,6 +78,7 @@ export interface Field {
   accessNotes?: string;
   color?: string;
   greekCadastre?: GreekCadastreInfo;
+  documents?: FieldDocumentAttachment[];
   advisorComments?: import('./fieldPeopleService').AdvisorComment[];
 }
 

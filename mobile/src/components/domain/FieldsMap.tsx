@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Card from '../ui/Card';
 import { Field } from '../../services/fieldService';
@@ -9,16 +9,16 @@ import { toBoolean } from '../../utils/booleanConverter';
 import {
   resolveFieldCenter,
   resolveFieldPolygon,
-  formatFieldArea,
   regionForCenter,
   LatLng,
 } from '../../utils/fieldGeo';
 import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
 import { resolveFieldColor } from '../../utils/fieldColors';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import MapLayerToggle from './MapLayerToggle';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
-import MapPointLayer from '../maps/MapPointLayer';
+import MapFieldPins, { MapFieldPin } from '../maps/MapFieldPins';
 import EmptyState from '../EmptyState';
 import { typography, spacing, spacingPatterns } from '../../theme';
 
@@ -39,6 +39,8 @@ const collectFitPoints = (fields: Field[]): LatLng[] => {
 export interface FieldsMapProps {
   fields: Field[];
   onFieldPress?: (fieldId: string) => void;
+  onFieldSelect?: (fieldId: string) => void;
+  selectedFieldId?: string | null;
   compact?: boolean;
   height?: number;
   embedded?: boolean;
@@ -48,6 +50,8 @@ export interface FieldsMapProps {
 const FieldsMap: React.FC<FieldsMapProps> = ({
   fields,
   onFieldPress,
+  onFieldSelect,
+  selectedFieldId,
   compact = false,
   height = 250,
   embedded = false,
@@ -97,22 +101,50 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
     mapRef.current?.fitCoordinates(fitPoints);
   }, [fitPoints, fields.length]);
 
+  const selectedField = useMemo(
+    () => mappableFields.find((field) => field.id === selectedFieldId) ?? null,
+    [mappableFields, selectedFieldId]
+  );
+
+  useEffect(() => {
+    if (!selectedField) return;
+    const polygon = resolveFieldPolygon(selectedField);
+    const center = resolveFieldCenter(selectedField);
+    if (polygon && polygon.length >= 3) {
+      mapRef.current?.fitCoordinates(polygon, 56, 16, 17);
+      return;
+    }
+    if (center) {
+      mapRef.current?.fitCoordinates([center], 48, 15, 16);
+    }
+  }, [selectedField]);
+
   const safeCompact = toBoolean(compact, 'FieldsMap.compact');
 
-  const markerPoints = useMemo(
+  const pins: MapFieldPin[] = useMemo(
     () =>
-      mappableFields
-        .filter((field) => {
-          const polygon = resolveFieldPolygon(field);
-          return !polygon || polygon.length < 3;
-        })
-        .map((field) => ({
+      mappableFields.map((field) => {
+        const center = resolveFieldCenter(field)!;
+        const selected = field.id === selectedFieldId;
+        return {
           id: field.id,
-          coordinate: resolveFieldCenter(field)!,
+          coordinate: center,
           color: resolveFieldColor(field.color, field.id),
-        })),
-    [mappableFields]
+          label: friendlyFieldLabel(field.name),
+          selected,
+        };
+      }),
+    [mappableFields, selectedFieldId]
   );
+
+  const handlePinPress = (fieldId: string) => {
+    if (selectedFieldId === fieldId && onFieldPress) {
+      onFieldPress(fieldId);
+      return;
+    }
+    if (onFieldSelect) onFieldSelect(fieldId);
+    else onFieldPress?.(fieldId);
+  };
 
   const mapHeightStyle = fillScreen ? styles.mapFill : { height };
 
@@ -148,6 +180,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
               const polygon = resolveFieldPolygon(field);
               if (!polygon || polygon.length < 3) return null;
               const accent = resolveFieldColor(field.color, field.id);
+              const selected = field.id === selectedFieldId;
               return (
                 <MapPolygonLayer
                   key={field.id}
@@ -155,25 +188,20 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
                   ring={polygon}
                   fillColor={accent}
                   strokeColor={accent}
-                  fillOpacity={0.28}
-                  strokeWidth={2.5}
-                  onPress={onFieldPress}
+                  fillOpacity={selected ? 0.38 : 0.22}
+                  strokeWidth={selected ? 3.5 : 2.5}
+                  onPress={handlePinPress}
                 />
               );
             })}
-            <MapPointLayer
-              sourceId="field-markers"
-              points={markerPoints}
-              radius={12}
-              onPress={onFieldPress}
-            />
+            <MapFieldPins pins={pins} compact={safeCompact} onPress={handlePinPress} />
           </AppMapView>
           <View style={styles.toggleOverlay}>
             <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
           </View>
           <View style={[styles.countPill, { backgroundColor: colors.surfaceElevated + 'E8' }]}>
             <Text style={[styles.countText, { color: colors.textPrimary }]}>
-              {mappableFields.length} {t('summaryFields').toLowerCase()}
+              {mappableFields.length} {t('summary.fields')}
             </Text>
           </View>
         </>
@@ -193,18 +221,6 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         </Text>
       </View>
       {mapContent}
-      {!safeCompact ? (
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.lifecycleHigh }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('highYear')}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.lifecycleLow }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('lowYear')}</Text>
-          </View>
-        </View>
-      ) : null}
     </Card>
   );
 };
@@ -244,19 +260,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   countText: { ...typography.styles.caption, fontWeight: '600', fontSize: 11 },
-  legend: {
-    flexDirection: 'row',
-    marginTop: spacing.sm,
-    gap: spacing.md,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center' },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: spacing.xs,
-  },
-  legendText: { ...typography.styles.caption, fontSize: 11 },
 });
 
 export default FieldsMap;

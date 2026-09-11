@@ -3,21 +3,36 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing } from '../../theme';
+import { typography, spacing, radii } from '../../theme';
 import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
 import { getFieldStatusLabel, getLifecycleStageLabel } from '../../utils/fieldDisplay';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { hexToRgba } from '../../utils/hexToRgba';
 
 type Props = {
   field: Field;
   size?: 'card' | 'page';
   showMeta?: boolean;
+  /** Hide the large title block when the native stack header already shows the field name. */
+  hideTitle?: boolean;
 };
 
-const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true }) => {
+type MetaChip = {
+  key: string;
+  label: string;
+  kind: 'status' | 'variety' | 'area' | 'stage';
+};
+
+/**
+ * Shared field identity — quiet title + circular colour mark (matches web information).
+ */
+const FieldIdentity: React.FC<Props> = ({
+  field,
+  size = 'card',
+  showMeta = true,
+  hideTitle = false,
+}) => {
   const { colors } = useTheme();
   const { t } = useTranslation(['fields', 'common']);
   const displayName = friendlyFieldLabel(field.name);
@@ -26,106 +41,173 @@ const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true 
   const stage = getLifecycleStageLabel(field.currentLifecycleStage, t);
   const variety = field.variety || field.oliveVariety;
   const area = formatFieldArea(field);
-  const meta = [status, variety, area, size === 'page' ? stage : null].filter(Boolean) as string[];
   const accent = resolveFieldColor(field.color, field.id);
   const isPage = size === 'page';
+  const contentIndent = hideTitle ? 0 : isPage ? 24 : 22;
+
+  const chips: MetaChip[] = [];
+  if (status) chips.push({ key: 'status', label: status, kind: 'status' });
+  if (variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
+  if (area) chips.push({ key: 'area', label: area, kind: 'area' });
+  if (isPage && stage) chips.push({ key: 'stage', label: stage, kind: 'stage' });
 
   return (
-    <View style={styles.wrap}>
-      <View
-        style={[
-          styles.titleBlock,
-          isPage ? styles.titleBlockPage : styles.titleBlockCard,
-          {
-            backgroundColor: hexToRgba(accent, isPage ? 0.26 : 0.18),
-            borderColor: hexToRgba(accent, isPage ? 0.42 : 0.3),
-            shadowColor: accent,
-          },
-        ]}
-      >
-        <View style={[styles.accentBar, isPage && styles.accentBarPage, { backgroundColor: accent }]} />
-        <View
-          pointerEvents="none"
-          style={[
-            styles.shadeFade,
-            { backgroundColor: hexToRgba(accent, isPage ? 0.16 : 0.1) },
-          ]}
-        />
+    <View style={styles.wrap} accessibilityLabel={t('fields:card.metaAria')}>
+      {!hideTitle ? (
+        <View style={styles.titleRow}>
+          <View
+            style={[
+              styles.swatch,
+              isPage && styles.swatchPage,
+              { backgroundColor: accent, borderColor: colors.surface },
+            ]}
+            accessibilityElementsHidden
+          />
+          <Text
+            style={[
+              isPage ? styles.pageName : styles.cardName,
+              { color: colors.textPrimary },
+            ]}
+            numberOfLines={isPage ? 3 : 2}
+          >
+            {displayName}
+          </Text>
+        </View>
+      ) : (
+        <View style={[styles.swatchTiny, { backgroundColor: accent }]} />
+      )}
+      {shortLocation ? (
         <Text
           style={[
-            isPage ? styles.pageName : styles.cardName,
-            { color: colors.textPrimary, flex: 1 },
+            styles.place,
+            isPage && styles.placePage,
+            { color: colors.textSecondary, marginLeft: contentIndent },
           ]}
-          numberOfLines={isPage ? 3 : 2}
+          numberOfLines={1}
         >
-          {displayName}
-        </Text>
-      </View>
-      {shortLocation ? (
-        <Text style={[styles.place, { color: colors.textSecondary }]} numberOfLines={1}>
           {shortLocation}
         </Text>
       ) : null}
-      {showMeta && meta.length > 0 ? (
-        <Text style={[styles.meta, { color: colors.textTertiary }]} numberOfLines={2}>
-          {meta.join(' · ')}
-        </Text>
+      {showMeta && chips.length > 0 ? (
+        <View style={[styles.chips, { marginLeft: contentIndent }]} accessibilityRole="list">
+          {chips.map((chip) => {
+            const chipStyle =
+              chip.kind === 'status'
+                ? {
+                    backgroundColor: colors.primaryLight,
+                    borderColor: colors.oliveBorder,
+                    color: colors.link,
+                  }
+                : chip.kind === 'area'
+                  ? {
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.borderLight,
+                      color: colors.textPrimary,
+                    }
+                  : {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.borderLight,
+                      color: colors.textSecondary,
+                    };
+            return (
+              <View
+                key={chip.key}
+                style={[
+                  styles.chip,
+                  isPage && styles.chipPage,
+                  {
+                    backgroundColor: chipStyle.backgroundColor,
+                    borderColor: chipStyle.borderColor,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    isPage && styles.chipTextPage,
+                    { color: chipStyle.color },
+                  ]}
+                >
+                  {chip.label}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
       ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, minWidth: 0, gap: 2 },
-  titleBlock: {
-    position: 'relative',
+  wrap: { flex: 1, minWidth: 0 },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
     gap: 10,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    elevation: 3,
+    maxWidth: '100%',
   },
-  titleBlockCard: {
-    borderRadius: 10,
-    paddingVertical: 5,
-    paddingLeft: 10,
-    paddingRight: 12,
-  },
-  titleBlockPage: {
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingLeft: 14,
-    paddingRight: 16,
-  },
-  accentBar: {
-    width: 4,
-    alignSelf: 'stretch',
+  swatch: {
+    width: 12,
+    height: 12,
     borderRadius: 99,
-    minHeight: 18,
+    borderWidth: 2,
+    flexShrink: 0,
   },
-  accentBarPage: {
-    width: 6,
-    minHeight: 26,
+  swatchPage: {
+    width: 14,
+    height: 14,
   },
-  shadeFade: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: '68%',
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+  swatchTiny: {
+    width: 8,
+    height: 8,
+    borderRadius: 99,
+    marginBottom: 4,
   },
-  pageName: { ...typography.styles.h2, fontWeight: '800', fontSize: 26, lineHeight: 32, zIndex: 1 },
-  cardName: { ...typography.styles.body, fontWeight: '800', fontSize: 17, lineHeight: 22, zIndex: 1 },
-  place: { ...typography.styles.bodySmall, marginTop: 4 },
-  meta: { ...typography.styles.caption, marginTop: spacing.xs, fontWeight: '600' },
+  pageName: {
+    ...typography.styles.h2,
+    fontWeight: '800',
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.4,
+    flex: 1,
+  },
+  cardName: {
+    ...typography.styles.body,
+    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.25,
+    flex: 1,
+  },
+  place: { ...typography.styles.bodySmall, marginTop: 6 },
+  placePage: { fontSize: 16, marginTop: 8 },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  chip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minHeight: 28,
+    justifyContent: 'center',
+  },
+  chipPage: {
+    minHeight: 32,
+    paddingHorizontal: 12,
+  },
+  chipText: {
+    ...typography.styles.caption,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  chipTextPage: {
+    fontSize: 14,
+  },
 });
 
 export default FieldIdentity;

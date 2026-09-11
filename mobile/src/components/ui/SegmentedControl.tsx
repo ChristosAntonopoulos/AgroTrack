@@ -16,6 +16,10 @@ type SegmentedControlProps<T extends string = string> = {
   ariaLabel?: string;
   fullWidth?: boolean;
   style?: ViewStyle;
+  /** Quiet olive tonal selected (journal language). */
+  tone?: 'default' | 'olive';
+  /** Tighter height for dense chrome (e.g. Chronologio). */
+  compact?: boolean;
 };
 
 function SegmentedControl<T extends string = string>({
@@ -25,16 +29,26 @@ function SegmentedControl<T extends string = string>({
   ariaLabel,
   fullWidth = false,
   style,
+  tone = 'olive',
+  compact = false,
 }: SegmentedControlProps<T>) {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const trackBg = colors.surfaceMuted;
+  const selectedBg = tone === 'olive' ? colors.primaryLight : colors.surface;
+  const selectedText = colors.primary;
+  const safeOptions = Array.isArray(options) ? options : [];
+  const trackMin = compact ? 36 : Math.max(44, tapMin * 0.9);
+  const segmentMin = compact ? 30 : Math.max(36, tapMin * 0.75);
 
   return (
     <View
       style={[
         styles.track,
         {
-          backgroundColor: colors.surfaceMuted,
+          backgroundColor: trackBg,
           borderColor: colors.borderLight,
+          minHeight: trackMin,
+          padding: compact ? 2 : 3,
         },
         fullWidth && styles.fullWidth,
         style,
@@ -42,22 +56,23 @@ function SegmentedControl<T extends string = string>({
       accessibilityRole="tablist"
       accessibilityLabel={ariaLabel}
     >
-      {options.map(opt => {
+      {safeOptions.map(opt => {
         const selected = opt.value === value;
         return (
           <Pressable
-            key={opt.value}
+            key={String(opt.value)}
             disabled={opt.disabled}
             onPress={() => {
               if (!selected && !opt.disabled) onChange(opt.value);
             }}
             style={({ pressed }) => [
               styles.segment,
+              compact && styles.segmentCompact,
               {
-                minHeight: Math.max(36, tapMin * 0.85),
+                minHeight: segmentMin,
                 opacity: opt.disabled ? 0.45 : pressed ? motion.pressOpacity : 1,
-                backgroundColor: selected ? colors.primaryLight : 'transparent',
-                borderColor: selected ? colors.oliveBorder : 'transparent',
+                backgroundColor: selected ? selectedBg : 'transparent',
+                borderColor: 'transparent',
                 flex: fullWidth ? 1 : undefined,
               },
             ]}
@@ -68,8 +83,8 @@ function SegmentedControl<T extends string = string>({
               style={[
                 styles.label,
                 {
-                  color: selected ? colors.primary : colors.textSecondary,
-                  fontSize: 13 * fontScaleMultiplier,
+                  color: selected ? selectedText : colors.textSecondary,
+                  fontSize: (compact ? 12 : 13) * fontScaleMultiplier,
                   fontWeight: selected ? '600' : '500',
                 },
               ]}
@@ -88,8 +103,8 @@ const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: radii.control ?? 14,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 3,
     gap: 2,
     alignSelf: 'flex-start',
@@ -99,11 +114,16 @@ const styles = StyleSheet.create({
   },
   segment: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: 11,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  segmentCompact: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 9,
   },
   label: {
     ...typography.styles.caption,

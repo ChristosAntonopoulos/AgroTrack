@@ -53,6 +53,22 @@ export interface FieldTaskChecklistItem {
   unit?: string;
 }
 
+export interface FieldPhenology {
+  fieldId: string;
+  isKnown: boolean;
+  stageCode: string;
+  stageLabel: string;
+  message: string;
+  recordStageActionLabel?: string;
+  observedOn?: string;
+  source?: string;
+  confidence?: string;
+  confidenceLabel?: string;
+  observationId?: string;
+  photoIds?: string[];
+  notes?: string;
+}
+
 export interface FieldTask {
   id: string;
   fieldId: string;
@@ -81,10 +97,51 @@ export interface FieldTask {
   weatherSuitability: string;
   weatherSuitabilityLabel: string;
   latestExecutionId?: string;
+  startedAt?: string;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type DismissalLearningChoice = 'dont_propose' | 'ask_when_indicated' | 'keep_proposing';
+export type CompletionFrequencyChoice =
+  | 'every_2_years'
+  | 'every_year'
+  | 'when_needed'
+  | 'no_change';
+
+export interface DismissalLearningEvaluateResult {
+  shouldPrompt: boolean;
+  dismissCount: number;
+  threshold: number;
+  templateCode: string;
+  practiceCategory: string;
+  currentPreferenceMode: string;
+  promptMessage: string;
+}
+
+export interface CompletionLearningEvaluateResult {
+  shouldPrompt: boolean;
+  templateCode: string;
+  practiceCategory: string;
+  resultYear: number;
+  suggestNextYear: number;
+  promptMessage: string;
+}
+
+export type FieldWorkProfile = {
+  status?: string;
+  pruning?: { defaultAssigneeId?: string | null };
+  irrigation?: { defaultAssigneeId?: string | null };
+  fertilisation?: { defaultAssigneeId?: string | null };
+  groundCover?: { defaultAssigneeId?: string | null };
+  pestManagement?: { defaultAssigneeId?: string | null };
+  analysis?: { defaultAssigneeId?: string | null };
+  harvest?: { defaultAssigneeId?: string | null };
+  defaultAssignments?: {
+    entries?: Array<{ category: string; assigneeUserId?: string | null; isSelf: boolean }>;
+  };
+};
 
 export interface TaskExecution {
   id: string;
@@ -254,8 +311,66 @@ export const fieldWorkService = {
     return response.data;
   },
 
-  getTaskPlan: async (fieldId: string, year: number) => {
+  getTaskPlan: async (
+    fieldId: string,
+    year: number
+  ): Promise<{ fieldId: string; resultYear: number; tasks: FieldTask[]; proposals: TaskProposal[] }> => {
     const response = await api.get(`/api/v1/fields/${fieldId}/year/${year}/task-plan`);
+    return response.data;
+  },
+
+  getPhenology: async (fieldId: string): Promise<FieldPhenology> => {
+    const response = await api.get<FieldPhenology>(`/api/v1/fields/${fieldId}/phenology`);
+    return response.data;
+  },
+
+  getWorkProfile: async (fieldId: string): Promise<FieldWorkProfile | null> => {
+    const response = await api.get<FieldWorkProfile | null>(`/api/v1/fields/${fieldId}/work-profile`);
+    return response.data ?? null;
+  },
+
+  evaluateDismissalLearning: async (
+    fieldId: string,
+    templateCode: string
+  ): Promise<DismissalLearningEvaluateResult> => {
+    const response = await api.post<DismissalLearningEvaluateResult>(
+      `/api/v1/fields/${fieldId}/work-profile/learning/dismissal-evaluate`,
+      { templateCode }
+    );
+    return response.data;
+  },
+
+  applyDismissalLearning: async (
+    fieldId: string,
+    templateCode: string,
+    choice: DismissalLearningChoice
+  ): Promise<FieldWorkProfile> => {
+    const response = await api.post<FieldWorkProfile>(
+      `/api/v1/fields/${fieldId}/work-profile/learning/dismissal-apply`,
+      { templateCode, choice }
+    );
+    return response.data;
+  },
+
+  evaluateCompletionLearning: async (
+    fieldId: string,
+    body: { templateCode: string; outcome?: string; resultYear?: number }
+  ): Promise<CompletionLearningEvaluateResult> => {
+    const response = await api.post<CompletionLearningEvaluateResult>(
+      `/api/v1/fields/${fieldId}/work-profile/learning/completion-evaluate`,
+      body
+    );
+    return response.data;
+  },
+
+  applyCompletionLearning: async (
+    fieldId: string,
+    body: { templateCode: string; resultYear: number; choice: CompletionFrequencyChoice }
+  ): Promise<FieldWorkProfile> => {
+    const response = await api.post<FieldWorkProfile>(
+      `/api/v1/fields/${fieldId}/work-profile/learning/completion-apply`,
+      body
+    );
     return response.data;
   },
 };

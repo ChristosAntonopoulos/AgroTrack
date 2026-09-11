@@ -34,7 +34,7 @@ export const EVERYDAY_PRIMARY_PATHS: ReadonlySet<string> = new Set([
   '/fields',
   '/tasks',
   '/money',
-  '/this-harvest',
+  '/harvest',
   '/partners',
   '/settings',
 ]);
@@ -42,6 +42,7 @@ export const EVERYDAY_PRIMARY_PATHS: ReadonlySet<string> = new Set([
 /** Reachable in Everyday but not primary (More). */
 export const EVERYDAY_MORE_PATHS: ReadonlySet<string> = new Set([
   '/notes',
+  '/this-harvest',
 ]);
 
 export const isEverydayPrimaryPath = (path: string): boolean =>

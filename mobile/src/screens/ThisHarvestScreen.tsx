@@ -5,7 +5,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/ui/Button';
@@ -149,10 +148,6 @@ const ThisHarvestScreen = () => {
       refreshControl={{ refreshing, onRefresh }}
       contentContainerStyle={styles.content}
     >
-      <ScreenHeader
-        title={t('fields:thisHarvest.title')}
-        subtitle={t('fields:thisHarvest.subtitle')}
-      />
       <Text style={[styles.season, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
         {t('fields:thisHarvest.season', { year: formatSeasonLabel(seasonStartYear) })}
       </Text>

@@ -269,34 +269,58 @@ const MoneyCaptureForm: React.FC<Props> = ({
           <>
             {canRecordIncome ? (
               <Pressable
-                style={[styles.typeCard, { borderColor: colors.border, minHeight: Math.max(88, tapMin + 24) }]}
+                style={[
+                  styles.typeCard,
+                  {
+                    borderColor: colors.eventIncome,
+                    backgroundColor: colors.eventIncomeSoft,
+                    minHeight: Math.max(96, tapMin + 28),
+                  },
+                ]}
                 onPress={() => selectKind('income')}
                 accessibilityRole="button"
                 accessibilityLabel={`${financialTypeLabel('income', language)}. ${financialTypeHelp('income', language)}`}
               >
-                <Ionicons name="arrow-up-circle-outline" size={28} color={colors.primary} />
+                <View style={[styles.typeIcon, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="trending-up" size={26} color={colors.eventIncome} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
                     {financialTypeLabel('income', language)}
                   </Text>
-                  <Text style={{ color: colors.textSecondary }}>{financialTypeHelp('income', language)}</Text>
+                  <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
+                    {financialTypeHelp('income', language)}
+                  </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.eventIncome} />
               </Pressable>
             ) : null}
             {canRecordExpense ? (
               <Pressable
-                style={[styles.typeCard, { borderColor: colors.border, minHeight: Math.max(88, tapMin + 24) }]}
+                style={[
+                  styles.typeCard,
+                  {
+                    borderColor: colors.eventExpense,
+                    backgroundColor: colors.eventExpenseSoft,
+                    minHeight: Math.max(96, tapMin + 28),
+                  },
+                ]}
                 onPress={() => selectKind('expense')}
                 accessibilityRole="button"
                 accessibilityLabel={`${financialTypeLabel('expense', language)}. ${financialTypeHelp('expense', language)}`}
               >
-                <Ionicons name="arrow-down-circle-outline" size={28} color={colors.primary} />
+                <View style={[styles.typeIcon, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="trending-down" size={26} color={colors.eventExpense} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
                     {financialTypeLabel('expense', language)}
                   </Text>
-                  <Text style={{ color: colors.textSecondary }}>{financialTypeHelp('expense', language)}</Text>
+                  <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
+                    {financialTypeHelp('expense', language)}
+                  </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.eventExpense} />
               </Pressable>
             ) : null}
           </>
@@ -310,18 +334,51 @@ const MoneyCaptureForm: React.FC<Props> = ({
   return (
     <>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.kind, { color: colors.textPrimary }]}>
-          {financialTypeLabel(kind, language)} · {financialTypeHelp(kind, language)}
-        </Text>
-        {!preferredKind ? (
-          <Pressable onPress={() => setKind(null)} style={{ minHeight: tapMin, justifyContent: 'center' }}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('capture:money.changeType')}</Text>
-          </Pressable>
-        ) : null}
+        <View
+          style={[
+            styles.kindBanner,
+            {
+              backgroundColor: kind === 'income' ? colors.eventIncomeSoft : colors.eventExpenseSoft,
+              borderColor: kind === 'income' ? colors.eventIncome : colors.eventExpense,
+            },
+          ]}
+        >
+          <Ionicons
+            name={kind === 'income' ? 'trending-up' : 'trending-down'}
+            size={20}
+            color={kind === 'income' ? colors.eventIncome : colors.eventExpense}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.kind, { color: colors.textPrimary, marginBottom: 0 }]}>
+              {financialTypeLabel(kind, language)}
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{financialTypeHelp(kind, language)}</Text>
+          </View>
+          {!preferredKind ? (
+            <Pressable onPress={() => setKind(null)} hitSlop={8}>
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('capture:money.changeType')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.amount')}</Text>
-        <View style={[styles.amountWrap, { borderColor: colors.border }]}>
-          <Text style={[styles.euro, { color: colors.textSecondary }]}>€</Text>
+        <View
+          style={[
+            styles.amountWrap,
+            {
+              borderColor: colors.borderLight,
+              backgroundColor: colors.surface,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.euro,
+              { color: kind === 'income' ? colors.eventIncome : colors.eventExpense },
+            ]}
+          >
+            €
+          </Text>
           <TextInput
             style={[styles.amount, { color: colors.textPrimary }]}
             keyboardType="decimal-pad"
@@ -537,12 +594,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+  },
+  typeIcon: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   typeTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
+  kindBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+  },
   kind: { ...typography.styles.h3, fontWeight: '700', marginBottom: 8 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
@@ -552,10 +625,10 @@ const styles = StyleSheet.create({
   amountWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    minHeight: 64,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    minHeight: 68,
     marginBottom: 10,
   },
   euro: { fontSize: 24, fontWeight: '700', marginRight: 8 },

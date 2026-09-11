@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
-  ScrollView,
   StyleSheet,
   RefreshControl,
   View,
   Text,
-  Pressable,
   TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -23,14 +21,19 @@ import FieldsMap from '../components/domain/FieldsMap';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import PageHeader from '../components/layout/PageHeader';
+import ScreenHeader from '../components/layout/ScreenHeader';
+import HeaderIconButton from '../components/layout/HeaderIconButton';
 import SegmentedControl from '../components/ui/SegmentedControl';
+import FilterChips from '../components/ui/FilterChips';
 import { spacing, typography, radii } from '../theme';
+import { getDockMetrics } from '../navigation/dockMetrics';
 import { RootStackParamList } from '../navigation/types';
-import { fieldSearchHaystack } from '../utils/fieldDisplay';
+import { Field } from '../services/fieldService';
+import { fieldSearchHaystack, isFieldSetupIncomplete } from '../utils/fieldDisplay';
 import { getFieldShortLocation } from '../utils/shortLocation';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { locationService } from '../services/locationService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ViewMode = 'list' | 'map';
@@ -42,12 +45,18 @@ const FieldsListScreen = () => {
   const { colors, tapMin } = useTheme();
   const { isEveryday } = usePreferences();
   const { t } = useTranslation(['fields', 'common']);
+  const insets = useSafeAreaInsets();
+  const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
+  const listBottomPad = dockHeight + bottomInset + spacing.md;
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const { fields, loading, fieldTodayTaskCounts, refresh } = useFields();
   const { refreshing, onRefresh } = useRefresh(refresh);
+  const tasksReady = !loading || fields.length > 0;
+  const canCreate = isFieldOwner();
 
   useEffect(() => {
     let cancelled = false;
@@ -99,12 +108,36 @@ const FieldsListScreen = () => {
     });
   }, [fields, search, sortBy, userCoords]);
 
+  useEffect(() => {
+    if (selectedFieldId && !filteredFields.some((field) => field.id === selectedFieldId)) {
+      setSelectedFieldId(null);
+    }
+  }, [filteredFields, selectedFieldId]);
+
   const subtitle =
     user?.role === 'Producer'
       ? t('fields:subtitleProducer')
       : user?.role === 'FieldOwner'
         ? t('fields:subtitleOwner')
         : t('fields:subtitleDefault');
+
+  const tasksTodayTotal = useMemo(() => {
+    if (!tasksReady) return 0;
+    return fields.reduce((sum, field) => sum + (fieldTodayTaskCounts[field.id] ?? 0), 0);
+  }, [fields, fieldTodayTaskCounts, tasksReady]);
+
+  const openField = (field: Field) => {
+    if (isFieldSetupIncomplete(field.status)) {
+      navigation.navigate('FieldForm', { fieldId: field.id });
+      return;
+    }
+    navigation.navigate('FieldDetail', { fieldId: field.id });
+  };
+
+  const getStats = (fieldId: string) => ({
+    todayTaskCount: fieldTodayTaskCounts[fieldId] ?? 0,
+    tasksReady,
+  });
 
   if (loading && fields.length === 0) {
     return (
@@ -122,172 +155,250 @@ const FieldsListScreen = () => {
     ? ['name', 'area', 'activity', 'distance']
     : ['name', 'area', 'activity'];
 
-  const addAction = isFieldOwner() ? (
-    <Pressable
-      onPress={() => navigation.navigate('FieldForm', {})}
-      style={[styles.addBtn, { backgroundColor: colors.primary, minHeight: tapMin }]}
-      accessibilityRole="button"
-    >
-      <Ionicons name="add" size={18} color={colors.onOlive} />
-      <Text style={{ color: colors.onOlive, fontWeight: '700' }}>{t('fields:addFieldLabel')}</Text>
-    </Pressable>
-  ) : null;
-
-  const listHeader =
-    fields.length > 0 ? (
-      <View style={styles.header}>
-        <PageHeader title={t('fields:title')} subtitle={subtitle} action={addAction} />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('fields:searchPlaceholder')}
-          placeholderTextColor={colors.textTertiary}
-          style={[
-            styles.search,
-            {
-              borderColor: colors.border,
-              color: colors.textPrimary,
-              backgroundColor: colors.surface,
-              minHeight: tapMin,
-            },
-          ]}
-        />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
-          {sortKeys.map((key) => {
-            const active = sortBy === key;
-            return (
-              <Pressable
-                key={key}
-                onPress={() => setSortBy(key)}
+  const listHeader = (
+    <View style={styles.header}>
+      <ScreenHeader
+        title={t('fields:title')}
+        subtitle={subtitle}
+        action={
+          canCreate ? (
+            <HeaderIconButton
+              icon="add"
+              accessibilityLabel={t('fields:addFieldCta')}
+              onPress={() => navigation.navigate('FieldForm', {})}
+              active
+            />
+          ) : undefined
+        }
+        context={
+          fields.length > 0 ? (
+            <>
+              <View style={styles.summaryRow}>
+                <View
+                  style={[
+                    styles.summaryPill,
+                    { backgroundColor: colors.surface, borderColor: colors.borderLight },
+                  ]}
+                >
+                  <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
+                    <Text style={[styles.summaryStrong, { color: colors.textPrimary }]}>{fields.length}</Text>
+                    {'  '}
+                    {t('fields:summary.fields')}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.summaryPill,
+                    {
+                      backgroundColor: tasksTodayTotal > 0 ? colors.primaryLight : colors.surface,
+                      borderColor: tasksTodayTotal > 0 ? colors.oliveBorder : colors.borderLight,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.summaryText,
+                      { color: tasksTodayTotal > 0 ? colors.link : colors.textSecondary },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.summaryStrong,
+                        { color: tasksTodayTotal > 0 ? colors.link : colors.textPrimary },
+                      ]}
+                    >
+                      {tasksReady ? tasksTodayTotal : '…'}
+                    </Text>
+                    {'  '}
+                    {t('fields:summary.activeTasks')}
+                  </Text>
+                </View>
+              </View>
+              <View
                 style={[
-                  styles.sortChip,
+                  styles.searchWrap,
                   {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
                     minHeight: tapMin,
-                    borderColor: active ? colors.oliveBorder : colors.border,
-                    backgroundColor: active ? colors.primaryLight : colors.surface,
                   },
                 ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
               >
-                <Text
-                  style={{
-                    fontWeight: '600',
-                    color: active ? colors.primary : colors.textSecondary,
-                  }}
-                >
-                  {t(`fields:sort${key.charAt(0).toUpperCase()}${key.slice(1)}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <SegmentedControl
-          fullWidth
-          ariaLabel={t('fields:viewModeAria', { defaultValue: 'View mode' })}
-          value={viewMode}
-          onChange={setViewMode}
-          options={[
-            { value: 'list', label: t('fields:viewList') },
-            { value: 'map', label: t('fields:viewMap') },
-          ]}
-        />
-      </View>
-    ) : null;
+                <Ionicons name="search" size={18} color={colors.textTertiary} />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder={t('fields:searchPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  style={[styles.search, { color: colors.textPrimary }]}
+                  accessibilityLabel={t('fields:searchPlaceholder')}
+                />
+              </View>
+              <View style={styles.chipsBleed}>
+                <FilterChips
+                  options={sortKeys.map((key) => ({
+                    value: key,
+                    label: t(`fields:sort${key.charAt(0).toUpperCase()}${key.slice(1)}`),
+                  }))}
+                  selected={sortBy}
+                  onSelect={setSortBy}
+                />
+              </View>
+              <SegmentedControl
+                fullWidth
+                ariaLabel={t('fields:viewModeAria')}
+                value={viewMode}
+                onChange={setViewMode}
+                options={[
+                  { value: 'list', label: t('fields:viewList') },
+                  { value: 'map', label: t('fields:viewMap') },
+                ]}
+              />
+            </>
+          ) : undefined
+        }
+      />
+    </View>
+  );
 
-  return (
-    <ScreenLayout>
-      {viewMode === 'map' && fields.length > 0 ? (
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.mapScrollContent}
-          refreshControl={refreshControl}
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={false}
-        >
+  if (viewMode === 'map' && fields.length > 0) {
+    return (
+      <ScreenLayout>
+        <View style={styles.flex}>
           {listHeader}
           {filteredFields.length === 0 ? (
             <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
           ) : (
-            <View style={styles.mapFlex}>
-              <FieldsMap
-                fields={filteredFields}
-                fillScreen
-                compact={isEveryday}
-                onFieldPress={(id) => navigation.navigate('FieldDetail', { fieldId: id })}
+            <>
+              <View style={styles.mapPane}>
+                <FieldsMap
+                  fields={filteredFields}
+                  fillScreen
+                  compact={isEveryday}
+                  selectedFieldId={selectedFieldId}
+                  onFieldSelect={setSelectedFieldId}
+                  onFieldPress={(id) => {
+                    const field = filteredFields.find((item) => item.id === id);
+                    if (field) openField(field);
+                  }}
+                />
+              </View>
+              <FlatList
+                data={filteredFields}
+                keyExtractor={(item) => item.id}
+                style={styles.splitList}
+                contentContainerStyle={{ paddingBottom: listBottomPad, paddingHorizontal: spacing.base }}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <FieldCard
+                    field={item}
+                    stats={getStats(item.id)}
+                    compact
+                    selected={selectedFieldId === item.id}
+                    onSelect={() => setSelectedFieldId(item.id)}
+                    onPress={() => openField(item)}
+                  />
+                )}
               />
-            </View>
+            </>
           )}
-        </ScrollView>
-      ) : (
-        <FlatList
-          style={styles.flex}
-          data={filteredFields}
-          ListHeaderComponent={listHeader}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
-              <FieldCard
-                field={item}
-                stats={{ todayTaskCount: fieldTodayTaskCounts[item.id] ?? 0 }}
-                onPress={() => navigation.navigate('FieldDetail', { fieldId: item.id })}
-              />
-            </View>
-          )}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={fields.length === 0 ? styles.emptyContainer : styles.listContent}
-          refreshControl={refreshControl}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            search.trim() ? (
-              <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
-            ) : (
-              <EmptyState
-                icon={<Ionicons name="leaf-outline" size={36} color={colors.primary} />}
-                title={t('fields:emptyTitle')}
-                description={isFieldOwner() ? t('fields:emptyDescription') : t('fields:emptyWorker')}
-                action={
-                  isFieldOwner()
-                    ? { label: t('fields:addFieldLabel'), onPress: () => navigation.navigate('FieldForm', {}) }
-                    : undefined
-                }
-              />
-            )
-          }
-        />
-      )}
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  return (
+    <ScreenLayout>
+      <FlatList
+        style={styles.flex}
+        data={filteredFields}
+        ListHeaderComponent={listHeader}
+        renderItem={({ item }) => (
+          <View style={styles.cardWrap}>
+            <FieldCard field={item} stats={getStats(item.id)} onPress={() => openField(item)} />
+          </View>
+        )}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          fields.length === 0
+            ? styles.emptyContainer
+            : [styles.listContent, { paddingBottom: listBottomPad }]
+        }
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          search.trim() ? (
+            <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
+          ) : (
+            <EmptyState
+              icon={<Ionicons name="leaf-outline" size={36} color={colors.primary} />}
+              title={t('fields:emptyTitle')}
+              description={canCreate ? t('fields:emptyDescription') : t('fields:emptyWorker')}
+              action={
+                canCreate
+                  ? { label: t('fields:addFieldCta'), onPress: () => navigation.navigate('FieldForm', {}) }
+                  : undefined
+              }
+            />
+          )
+        }
+      />
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
-  addBtn: {
+  header: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  summaryPill: {
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  summaryText: {
+    ...typography.styles.bodySmall,
+  },
+  summaryStrong: {
+    fontWeight: '700',
+  },
+  searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    borderRadius: radii.full,
+    gap: spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
   },
   search: {
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    ...typography.styles.body,
-  },
-  sortRow: { gap: spacing.sm, paddingVertical: 2 },
-  sortChip: {
-    borderWidth: 1,
-    borderRadius: radii.full,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
-  },
-  mapScrollContent: { flexGrow: 1 },
-  mapFlex: {
     flex: 1,
-    minHeight: 320,
-    paddingHorizontal: spacing.base,
-    paddingBottom: spacing.base,
+    ...typography.styles.body,
+    paddingVertical: spacing.sm,
+  },
+  chipsBleed: {
+    marginHorizontal: -spacing.base,
+  },
+  mapPane: {
+    flex: 1,
+    minHeight: 240,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.sm,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+  },
+  splitList: {
+    maxHeight: 280,
   },
   cardWrap: { paddingHorizontal: spacing.base },
   listContent: { paddingBottom: spacing['3xl'] },

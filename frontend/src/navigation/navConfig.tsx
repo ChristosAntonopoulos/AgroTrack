@@ -71,7 +71,7 @@ export const navItems: NavItem[] = [
     mobilePrimary: true,
   },
   {
-    path: '/this-harvest',
+    path: '/harvest',
     labelKey: 'items.thisHarvest',
     icon: <Wheat />,
     roles: ['FieldOwner', 'Administrator'],
@@ -155,7 +155,7 @@ export const filterNavItemsForUser = (
       if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
         return false;
       }
-      if (item.path === '/money' || item.path === '/partners' || item.path === '/chronologio' || item.path === '/this-harvest') {
+      if (item.path === '/money' || item.path === '/partners' || item.path === '/chronologio' || item.path === '/harvest') {
         return true;
       }
       return isEverydayAllowedPath(item.path) || isEverydayPrimaryPath(item.path);
@@ -167,7 +167,7 @@ export const filterNavItemsForUser = (
         return false;
       }
       if (item.path === '/money' && !familyModules.has('money')) return false;
-      if (item.path === '/this-harvest' && !familyModules.has('harvest')) return false;
+      if (item.path === '/harvest' && !familyModules.has('harvest')) return false;
       if (item.path === '/tasks' && !familyModules.has('tasks')) return false;
       if (item.path === '/fields' && !familyModules.has('fields')) return false;
     }
@@ -186,7 +186,7 @@ export const roleHomePath = (_role: AppRole, _experienceMode?: 'everyday' | 'ful
 
 export const isNavActive = (pathname: string, itemPath: string) => {
   if (itemPath === '/chronologio') return pathname === '/chronologio' || pathname === '/';
-  if (itemPath === '/dashboard') return pathname === '/dashboard';
+  if (itemPath === '/harvest') return pathname === '/harvest' || pathname.startsWith('/harvest/');
   return pathname.startsWith(itemPath);
 };
 
@@ -211,6 +211,7 @@ export const resolveBreadcrumbLabel = (
   if (segment === 'edit') return t('breadcrumb.edit');
   if (segment === 'chronologio') return t('breadcrumb.chronologio');
   if (segment === 'notes') return t('breadcrumb.notes');
+  if (segment === 'harvest') return t('items.thisHarvest');
   if (segment === 'review') return t('breadcrumb.apologismos');
   if (segment === 'work-setup') return t('breadcrumb.workSetup');
   if (segment === 'work-profile') return t('breadcrumb.workProfile');

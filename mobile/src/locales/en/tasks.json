@@ -176,5 +176,246 @@
       "title": "Close this harvest",
       "helper": "Mark harvest done and write the sale if you were paid."
     }
+  },
+  "failedLoad": "Failed to load tasks",
+  "fieldFilterLabel": "Filter by field",
+  "detail": {
+    "assignedTo": "Assigned to",
+    "actualStart": "Actual start",
+    "backToTasks": "Back to tasks",
+    "notFound": "Task not found.",
+    "failedLoad": "Failed to load task.",
+    "failedAssign": "Failed to assign task."
+  },
+  "fieldWork": {
+    "pageTitle": "Tasks",
+    "pageSubtitle": "Organise what needs doing in the fields.",
+    "addTask": "New task",
+    "year": "Year",
+    "allFields": "All fields",
+    "person": "Who",
+    "unknownField": "Field",
+    "seeCompletedInChronologio": "See completed work in Chronologio →",
+    "plannedGroups": {
+      "today": "Today",
+      "thisWeek": "This week",
+      "later": "Later"
+    },
+    "task": {
+      "blocked": "Waiting",
+      "checksShort": "{{done}}/{{total}} checks",
+      "checksLong": "{{done}} of {{total}} checks completed",
+      "started": "Started {{date}}",
+      "updated": "Updated {{date}}"
+    },
+    "weather": {
+      "unknown": "Not enough weather data"
+    },
+    "views": {
+      "proposals": "Proposals",
+      "planned": "Planned",
+      "active": "In progress"
+    },
+    "proposalsIntro": {
+      "title": "Proposals for your fields",
+      "subtitle": "See why each task is suggested and decide whether to schedule it."
+    },
+    "empty": {
+      "proposalsTitle": "No new proposals",
+      "proposalsDescription": "We will show something here when the season, weather, or field records need a decision.",
+      "plannedTitle": "No planned tasks",
+      "plannedDescription": "You can create one or schedule a proposal.",
+      "activeTitle": "No tasks in progress",
+      "activeDescription": "Tasks you start will appear here."
+    },
+    "context": {
+      "clearYear": "Reset year",
+      "clearField": "Remove field filter"
+    },
+    "proposalGroups": {
+      "needsDecision": "Need a decision",
+      "canWait": "Can wait"
+    },
+    "proposal": {
+      "period": "Period:",
+      "more": "More actions",
+      "remindLater": "Remind me later",
+      "notForField": "Not for this field",
+      "notThisYear": "Not this year",
+      "why": "Why am I seeing this?",
+      "source": "Source:",
+      "confidence": "Confidence:",
+      "close": "Close",
+      "chips": {
+        "official": "Official warning",
+        "expiring": "Ending soon",
+        "good": "Good day",
+        "caution": "Needs caution",
+        "unsuitable": "Unsuitable day",
+        "unknown": "No weather data",
+        "seasonal": "Seasonal reminder"
+      }
+    },
+    "actions": {
+      "scheduleIt": "Schedule it",
+      "start": "Start",
+      "continueIt": "Continue",
+      "complete": "Complete",
+      "open": "Open"
+    },
+    "errors": {
+      "dismiss": "Could not dismiss the proposal.",
+      "snooze": "Could not snooze.",
+      "start": "Could not start the task.",
+      "complete": "Could not complete the task."
+    },
+    "form": {
+      "newTitle": "New task",
+      "scheduleTitle": "Schedule task",
+      "manualSubtitle": "What needs to happen, and when?",
+      "whatQuestion": "What needs to be done?",
+      "fieldQuestion": "Which field?",
+      "whenQuestion": "When should it happen?",
+      "whoQuestion": "Who will do it?",
+      "typeLabel": "What kind of work is it?",
+      "titlePlaceholder": "e.g. Prune the dry branches",
+      "unassigned": "I’ll decide later",
+      "assigneeMe": "Me",
+      "assigneeMeHint": "You’ll do it — you can assign someone else if needed.",
+      "assigneeSomeoneElse": "Someone else",
+      "assigneeHintPartner": "Partner",
+      "assigneeHintFamily": "Family",
+      "assigneeHintAdvisor": "Advisor",
+      "assigneeHintContact": "Contact",
+      "decideLater": "I’ll decide later",
+      "collaborator": "Collaborator",
+      "moreDetails": "+ More details",
+      "hideMore": "Less",
+      "preferredTime": "Preferred time",
+      "estimatedCost": "Estimated cost",
+      "costHint": "An estimate only — it is not recorded in finances.",
+      "notes": "Notes",
+      "notesForPerson": "Something the person doing the work should know",
+      "createSubmit": "Create task",
+      "scheduleSubmit": "Schedule",
+      "cancel": "Cancel",
+      "needTitle": "Write what needs to be done.",
+      "needField": "Choose a field.",
+      "needDate": "Choose a date or “I haven’t decided”.",
+      "failedSave": "Could not save.",
+      "failedLoad": "Could not load.",
+      "recommendedWindow": "Suggested period",
+      "proposalSummary": "Proposal summary",
+      "when": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "thisWeek": "This week",
+        "pick": "Pick a date",
+        "undecided": "I haven’t decided"
+      },
+      "moreDays": "It needs more than one day",
+      "singleDay": "One day is enough",
+      "checklistIntro": "Basic checks — {{count}} things to confirm.",
+      "showChecklist": "Show list",
+      "hideChecklist": "Hide list",
+      "resultYear": "Result year",
+      "resultYearHint": "Change this only if the work belongs to the previous harvest.",
+      "createdTitle": "The task was scheduled",
+      "viewTask": "View task",
+      "createAnother": "Create another",
+      "undo": "Undo",
+      "types": {
+        "pruning": "Pruning",
+        "fertilisation": "Fertilisation",
+        "weeds": "Ground cover",
+        "irrigation": "Irrigation",
+        "inspection": "Check",
+        "protection": "Plant protection",
+        "harvest": "Harvest",
+        "transport": "Transport",
+        "maintenance": "Maintenance",
+        "other": "Other work"
+      },
+      "suggestions": {
+        "pruning": ["Prune the dry branches", "Fruiting prune"],
+        "fertilisation": ["Base fertilisation", "Top dressing"],
+        "weeds": ["Clear the grass", "Cut the cover crop"],
+        "irrigation": ["Watering", "Check irrigation"],
+        "inspection": ["Field check", "Tree observation"],
+        "protection": ["Trap check", "Olive-fly monitoring"],
+        "harvest": ["Harvest", "Take olives to the mill"],
+        "transport": ["Move olives", "Move oil"],
+        "maintenance": ["Irrigation maintenance", "Repair"],
+        "other": ["Field work"]
+      },
+      "time": {
+        "morning": "Morning",
+        "midday": "Midday",
+        "afternoon": "Afternoon",
+        "anytime": "Any time",
+        "specific": "A specific time"
+      }
+    },
+    "detail": {
+      "checklist": "Checks",
+      "moreChecks": "More checks",
+      "hideMoreChecks": "Fewer checks",
+      "money": "Money",
+      "estimated": "Estimated (planning)",
+      "actual": "Actual cost",
+      "difference": "Difference",
+      "noActual": "No cost has been recorded yet",
+      "addExpense": "Record expense",
+      "seeMoney": "See in Money",
+      "estimateHint": "The estimate never enters the year’s official totals.",
+      "nextStep": "Next step",
+      "nextStepStart": "Start the task when you are in the field.",
+      "nextStepComplete": "When you finish, record the outcome and checks.",
+      "checklistHint": "Answers are filled in at completion — here you see progress.",
+      "checkPending": "Pending",
+      "noChecks": "There are no checks for this task.",
+      "fillChecks": "Fill in checks",
+      "notesOnComplete": "You can add notes when you complete the task.",
+      "noNotes": "No notes."
+    },
+    "profile": {
+      "learning": {
+        "dismissalTitle": "Task proposals",
+        "dismissalMessage": "Should we stop proposing this task for the field?",
+        "dontPropose": "Don’t propose",
+        "askWhenIndicated": "Only when there’s a signal",
+        "keepProposing": "Keep proposing",
+        "completionTitle": "Pruning frequency",
+        "completionMessage": "Pruning was recorded for {{year}}. Propose again in {{nextYear}}?",
+        "everyTwoYears": "Yes, every 2 years",
+        "everyYear": "Every year",
+        "whenNeeded": "Only when needed",
+        "noChange": "No change",
+        "applyFailed": "Could not save that choice. Try again."
+      }
+    },
+    "completion": {
+      "title": "Complete task",
+      "step": "Step {{current}} of {{total}}",
+      "whatHappened": "What happened?",
+      "confirm": "Confirm",
+      "save": "Save",
+      "createFollowUp": "Create a follow-up for the remainder",
+      "savedTitle": "Saved",
+      "savedBody": "Completion was saved to Chronologio.",
+      "undo": "Undo",
+      "undoFailed": "Could not undo.",
+      "openFollowUp": "Open follow-up",
+      "hadCost": "Was there a cost?",
+      "hadCostHint": "If yes, you can record it in Money. No zero-amount row is created.",
+      "hadCostYes": "Yes, there was a cost",
+      "hadCostNo": "No cost",
+      "recordCost": "Record cost",
+      "outcomes": {
+        "completed": "Completed",
+        "partial": "Partially completed",
+        "notDone": "Not done"
+      }
+    }
   }
 }

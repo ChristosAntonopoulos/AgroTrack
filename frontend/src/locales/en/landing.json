@@ -2,83 +2,166 @@
   "brand": "Oleachron",
   "alphaBadge": "Alpha",
   "header": {
-    "product": "Product",
     "howItWorks": "How it works",
-    "download": "Download",
-    "faq": "FAQ",
+    "chronologio": "Chronologio",
+    "features": "Features",
+    "partners": "For partners",
+    "pricing": "Pricing",
     "signIn": "Sign in",
-    "downloadAlpha": "Get Android"
+    "startFree": "Start free"
   },
   "hero": {
-    "title": "Your notebook. On your phone.",
-    "subtitle": "Fields, today’s work, harvest, and costs — in one place, in Greek or English.",
-    "ctaPrimary": "Create free account",
-    "ctaSecondary": "Get Android",
-    "ctaDemo": "Request a demo",
-    "trust": "For olive growers in Greece. Greek and English.",
-    "shotAlt": "Daybrief on the phone"
+    "eyebrow": "The digital timeline of your olive grove",
+    "title": "Nobody knows your olive grove better than you.",
+    "leadYou": "You bring the knowledge.",
+    "leadProduct": "Oleachron keeps it, completes it, and carries it through time.",
+    "body": "Tasks, observations, photos, weather, and harvests come together into one clear story for every grove.",
+    "ctaPrimary": "Start free",
+    "ctaSecondary": "See Chronologio",
+    "shotAlt": "The grove Chronologio on a phone"
   },
-  "shift": {
-    "title": "From paper to phone",
-    "text": "What you wrote in a notebook, in WhatsApp, or in your head — now stays in one place and is not forgotten.",
-    "paperTitle": "Notebook",
-    "paperText": "Fields and notes on paper that get lost.",
-    "chatTitle": "Messages",
-    "chatText": "Work disappears in calls and WhatsApp.",
-    "phoneTitle": "Phone",
-    "phoneText": "The same notes, shared with the owner."
+  "promises": {
+    "recordTitle": "Record your knowledge",
+    "recordText": "Tasks, observations, photos, and the things only you know about your grove.",
+    "dataTitle": "Complete it with data",
+    "dataText": "Weather, conditions, and field information give context to what actually happened.",
+    "passTitle": "Pass the knowledge on",
+    "passText": "Family, partners, and agronomists can understand the grove’s story — today or years from now."
   },
-  "notes": {
-    "title": "Five notes you keep",
-    "text": "Simple, like a notebook — no complicated menus.",
-    "fieldsTitle": "Fields",
-    "fieldsText": "Every grove with a name, size, and season.",
-    "fieldsAlt": "Fields list on the phone",
-    "todayTitle": "Daybrief",
-    "todayText": "What matters this morning, in plain language.",
-    "todayAlt": "Daybrief on the phone",
-    "harvestTitle": "Harvest",
-    "harvestText": "Olive and oil kilos — without digging through paper.",
-    "harvestAlt": "Harvest summary",
-    "costsTitle": "Costs",
-    "costsText": "What you spent and received, per field.",
-    "costsAlt": "Costs on the web",
-    "historyTitle": "Chronologio",
-    "historyText": "The story of your grove — what happened, when, and where.",
-    "historyAlt": "Grove Chronologio"
+  "problem": {
+    "title": "Years of knowledge don’t fit in a notebook.",
+    "questions": [
+      "When did you prune?",
+      "When did this problem first appear?",
+      "What did you change before the good harvest?",
+      "How much had it rained before the spray?",
+      "Who did the work?"
+    ],
+    "someRemember": "Some of it you remember.",
+    "someScattered": "Some of it lives in papers, photos, and messages.",
+    "someLost": "And some of it, with time, is lost.",
+    "close": "Oleachron was made so it isn’t."
   },
-  "audience": {
-    "title": "For owner and producer — together",
-    "ownerTitle": "Owner",
-    "ownerText": "See every grove without being there. Same picture as the producer.",
-    "ownerAlt": "Field on the web for the owner",
-    "producerTitle": "Producer",
-    "producerText": "Know what to do today. Write it down in thirty seconds from the field.",
-    "producerAlt": "Task on the phone"
+  "brandMoment": {
+    "title1": "Keep the knowledge.",
+    "title2": "Build the story.",
+    "intro": "Every record becomes part of your grove’s story.",
+    "lines": [
+      "Every task.",
+      "Every observation.",
+      "Every photo.",
+      "Every spell of bad weather.",
+      "Every harvest."
+    ],
+    "notScattered": "Not in separate files.",
+    "together": "In one continuum through time."
+  },
+  "chronologio": {
+    "eyebrow": "A living story",
+    "title": "The Chronologio of your olive grove.",
+    "text": "Everything that happened in the field, organized at the moment it happened.",
+    "range": "Look at a month, a whole growing year, or go back to earlier seasons.",
+    "tasksTitle": "Tasks",
+    "tasksText": "What was done, when, and by whom.",
+    "notesTitle": "Observations",
+    "notesText": "Notes and photos that keep their value because they are not lost.",
+    "weatherTitle": "Weather",
+    "weatherText": "The conditions around every important event.",
+    "harvestTitle": "Harvests & finances",
+    "harvestText": "See how the grove evolves beyond the day’s work.",
+    "cta": "Explore Chronologio",
+    "shotAlt": "Chronologio on the phone"
+  },
+  "knowledge": {
+    "title": "Your experience is the most important data.",
+    "p1": "Oleachron does not try to replace what you know.",
+    "p2": "It organizes it.",
+    "p3": "And around your own knowledge it adds available data and information, so you see every event in its real context.",
+    "youKnow": "You know what you saw.",
+    "weRemember": "Oleachron remembers when it happened, and what was happening around it.",
+    "together": "Together they make something far more useful than a simple archive.",
+    "close": "The story of the field."
+  },
+  "beforeAfter": {
+    "title": "From scattered information to a shared memory.",
+    "beforeTitle": "Before",
+    "beforeItems": [
+      "Papers",
+      "Notebooks",
+      "Photos on the phone",
+      "Messages",
+      "Phone calls",
+      "“I think we did it last May…”"
+    ],
+    "afterTitle": "With Oleachron",
+    "afterItems": [
+      "One grove",
+      "One Chronologio",
+      "One shared picture",
+      "A story that continues"
+    ]
+  },
+  "sharing": {
+    "title": "Knowledge is worth more when it can be passed on.",
+    "text": "An olive grove is rarely one person’s work.",
+    "share": "Share the real picture with the people who need it — without explaining everything from scratch every time.",
+    "familyTitle": "Family",
+    "familyText": "The knowledge of the grove is not lost from one generation to the next.",
+    "partnersTitle": "Partners",
+    "partnersText": "Everyone can know what happened and what still needs to be done.",
+    "agronomistTitle": "Agronomist",
+    "agronomistText": "Advice can rest on a real history, not only on how the grove looks today."
+  },
+  "timeValue": {
+    "title": "Every year makes Oleachron more valuable.",
+    "year1": "The first year, you start recording.",
+    "year2": "The second, you can compare.",
+    "year3": "The third, you begin to see patterns.",
+    "bridge": "And over time you create something that cannot be bought ready-made:",
+    "close": "The knowledge of your own olive grove."
+  },
+  "simpleUse": {
+    "title": "In the field, you need simplicity.",
+    "p1": "You don’t need to become a software expert.",
+    "actions": [
+      "Record a task.",
+      "Take a photo.",
+      "Write an observation."
+    ],
+    "keepGoing": "Then get back to work.",
+    "close": "Oleachron makes sure everything finds the right place, at the right time.",
+    "shotAlt": "Recording a task from the phone"
   },
   "steps": {
-    "title": "Start in three steps",
-    "step1Title": "Add your fields",
-    "step1Text": "Name, size, crop. Enough to begin.",
-    "step2Title": "Write this season’s work",
-    "step2Text": "Pruning, fertilizer, spray, harvest — what you used to put in the notebook.",
-    "step3Title": "Use it from the phone",
-    "step3Text": "See today’s list, mark work done, keep a note."
+    "title": "Start writing its story.",
+    "step1Title": "Add the grove",
+    "step1Text": "The field becomes the foundation of its story.",
+    "step2Title": "Record what happens",
+    "step2Text": "Tasks, observations, photos, and results.",
+    "step3Title": "Let the story grow",
+    "step3Text": "Oleachron organizes the information through time and adds the context it needs."
+  },
+  "future": {
+    "title": "You are not only recording the past.",
+    "p1": "You use the past to understand today.",
+    "p2": "And today to prepare better for next season.",
+    "lockup": "Past. Present. Next season.",
+    "close": "Everything is connected."
   },
   "alpha": {
-    "title": "Try it free",
-    "text": "During alpha, access is free for real field use. Web and Android.",
+    "title": "Start free",
+    "text": "During alpha, access is free for real use in the grove. Web and Android.",
     "cardTitle": "Oleachron Alpha",
     "price": "Free during alpha",
     "includes": [
       "Web dashboard",
       "Android app",
-      "Fields, tasks, harvest",
-      "Simple costs",
+      "Grove Chronologio",
+      "Tasks, observations, harvest",
       "Greek and English"
     ],
     "download": "Download APK",
-    "webCta": "Create free account",
+    "webCta": "Start free",
     "version": "Version",
     "versionValue": "0.1.0-alpha",
     "platform": "Platform",
@@ -96,21 +179,6 @@
     ],
     "safety": "Install only from the official Oleachron page. This is an alpha — some features may change."
   },
-  "faq": {
-    "title": "Frequently asked questions",
-    "q1": "Is it free?",
-    "a1": "Yes. During alpha it is free for people testing it in the field.",
-    "q2": "Is it only for olives?",
-    "a2": "Yes for now. We start with olives so the tool stays simple and useful.",
-    "q3": "Do I need a computer?",
-    "a3": "No. Field work happens on the phone. The web helps the owner see everything.",
-    "q4": "Is it available in Greek?",
-    "a4": "Yes. Greek and English — switch languages at the top.",
-    "q5": "Is the APK safe?",
-    "a5": "Download it only from this page. Do not install from unknown sources.",
-    "q6": "Can I get a demo?",
-    "a6": "Yes. Send a demo request or email us."
-  },
   "demo": {
     "title": "Request a demo",
     "subtitle": "Tell us about your olive groves and we will get in touch.",
@@ -122,13 +190,14 @@
     "mailtoSubject": "Oleachron demo request"
   },
   "cta": {
-    "title": "Keep your notes in one place",
-    "text": "Start free on the web or download the Android alpha.",
-    "primary": "Create free account",
-    "secondary": "Get Android"
+    "kicker": "Keep the knowledge. Build the story.",
+    "title": "Your grove’s story has already begun.",
+    "text": "The question is whether you will remember it.",
+    "primary": "Start with your grove",
+    "secondary": "See the demo"
   },
   "footer": {
-    "description": "Oleachron is the olive grove notebook on your phone — for owners and producers together.",
+    "description": "The knowledge of your olive grove, through time.",
     "product": "Product",
     "contact": "Contact",
     "contactEmail": "hello@oleachron.app",

@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import OfflineBanner from '../Offline/OfflineBanner';
 import { CaptureProvider } from '../../context/CaptureContext';
+import { HarvestCampaignProvider } from '../../context/HarvestCampaignContext';
 import { useExperienceMode } from '../../context/ExperienceModeContext';
 import { useIsMobile } from '../../hooks/useBreakpoint';
 import './MainLayout.css';
@@ -32,6 +33,7 @@ const MainLayout: React.FC = () => {
   const toggleSidebar = () => setSidebarOpen((v) => !v);
 
   return (
+    <HarvestCampaignProvider>
     <CaptureProvider>
       <div className="main-layout">
         <Header onMenuClick={toggleSidebar} hideMenuButton={isMobile} />
@@ -48,6 +50,7 @@ const MainLayout: React.FC = () => {
         {isMobile && <MobileBottomNav onMoreClick={openSidebar} />}
       </div>
     </CaptureProvider>
+    </HarvestCampaignProvider>
   );
 };
 

@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { usePreferences } from '../../context/PreferencesContext';
+import { useCaptureOptional } from '../../context/CaptureContext';
 import { spacing, radii } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
 import type {
@@ -20,7 +21,6 @@ import type {
   ChronologioMonthSummary,
   ChronologioPeriodSummary,
 } from '../../services/chronologioService';
-import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import {
   majorMonthsForYear,
   monthChapterFacts,
@@ -29,10 +29,14 @@ import {
   yearFixedMetrics,
 } from '../../utils/summaryFacts';
 import { resolveFieldColor } from '../../utils/fieldColors';
-import { resolveChronologioCategoryAccent } from '../../utils/chronologioCategoryAccents';
-import CardAccentFades from '../common/CardAccentFades';
+import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
+import { detailAccentToken, chronologioDetailKind } from '../../chronologio/detailKind';
 import WeatherReviewSummary from './WeatherReviewSummary';
-import { presentActorName, presentChronologioEvent } from '../../chronologio/eventPresentation';
+import ChronologioRecentList from './ChronologioRecentList';
+import ChronologioEventPeekBody, {
+  eventPeekFooterActions,
+} from './ChronologioEventPeekBody';
+import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import Sheet from '../ui/Sheet';
 
 export type ChronologioPeekTarget =
@@ -65,13 +69,6 @@ type Props = {
   onSelectRecent?: (entry: ChronologioEntry) => void;
 };
 
-const isRealMedia = (url?: string | null) => {
-  if (!url) return false;
-  const u = url.toLowerCase();
-  if (u.includes('unsplash') || u.includes('picsum') || u.includes('placeholder')) return false;
-  return u.includes('/uploads/') || u.startsWith('file:') || u.startsWith('content:');
-};
-
 const ChronologioPeekSheet: React.FC<Props> = ({
   peek,
   numberLocale,
@@ -81,19 +78,33 @@ const ChronologioPeekSheet: React.FC<Props> = ({
   onSelectRecent,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'common']);
-  const { colors } = useTheme();
-  const { tapMin } = usePreferences();
+  const { colors, tapMin } = useTheme();
+  const capture = useCaptureOptional();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const tt = (key: string, opts?: Record<string, string | number>) =>
     t(key, opts as Record<string, unknown>);
 
   const entry = peek?.mode === 'event' ? peek.entry : null;
-  const weather = entry?.details.weather;
-  const isPeriodReview =
-    entry?.eventType === 'weather.monthReview' || entry?.eventType === 'weather.yearReview';
-  const fieldAccent = entry
-    ? resolveFieldColor(entry.field?.color, entry.fieldId)
+  const kind = entry ? chronologioDetailKind(entry) : null;
+  const isPeriodReview = kind === 'weatherPeriod';
+  const eventAccent = entry
+    ? accentColorsForToken(colors, detailAccentToken(entry)).accent
     : colors.primary;
+
+  const [weatherFieldId, setWeatherFieldId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (peek?.mode === 'monthWeather' && peek.reviews[0]?.fieldId) {
+      setWeatherFieldId(peek.reviews[0].fieldId);
+    }
+  }, [peek]);
+
+  const selectedWeatherReview = useMemo(() => {
+    if (peek?.mode !== 'monthWeather') return null;
+    return (
+      peek.reviews.find(r => r.fieldId === weatherFieldId) || peek.reviews[0] || null
+    );
+  }, [peek, weatherFieldId]);
 
   const monthTitle = (m: ChronologioMonthSummary) =>
     new Date(Date.UTC(m.year, m.month - 1, 1)).toLocaleDateString(i18n.language, {
@@ -127,42 +138,89 @@ const ChronologioPeekSheet: React.FC<Props> = ({
 
   const headerMeta =
     peek?.mode === 'event'
-      ? eventPresentation?.shortLabel || presentChronologioEvent(peek.entry, i18n.language).shortLabel
+      ? isPeriodReview
+        ? t('weatherPeek.kicker')
+        : eventPresentation?.shortLabel || ''
       : peek?.mode === 'month'
         ? t('living.peekMonth')
         : peek?.mode === 'year'
           ? t('living.peekYear')
           : peek?.mode === 'monthWeather'
-            ? t('living.peekMonthWeather')
+            ? t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })
             : '';
 
-  const openFull = () => {
-    if (!entry) return;
+  const sheetAccent =
+    peek?.mode === 'monthWeather' || isPeriodReview
+      ? colors.weatherBlue
+      : peek?.mode === 'event'
+        ? eventAccent
+        : colors.primary;
+
+  const navigateFromEntry = (target: ChronologioEntry) => {
     onClose();
-    if (entry.sourceType === 'Task') {
-      navigation.navigate('TaskDetail', { taskId: entry.sourceId });
-    } else if (entry.sourceType === 'Expense') {
-      navigation.navigate('Money', { fieldId: entry.fieldId });
-    } else if (entry.sourceType === 'Harvest') {
-      navigation.navigate('FieldDetail', { fieldId: entry.fieldId, focus: 'harvest' });
-    } else if (entry.sourceType === 'WeatherReview') {
-      navigation.navigate('FieldWeatherVegetation', { fieldId: entry.fieldId });
+    if (target.sourceType === 'Task' || target.sourceType === 'TaskExecution') {
+      navigation.navigate('TaskDetail', {
+        taskId: target.details.task?.taskId || target.sourceId,
+      });
+    } else if (target.sourceType === 'Expense' || target.sourceType === 'Income') {
+      navigation.navigate('Money', { fieldId: target.fieldId });
+    } else if (target.sourceType === 'Harvest') {
+      navigation.navigate('FieldDetail', { fieldId: target.fieldId, focus: 'harvest' });
+    } else if (target.sourceType === 'WeatherReview') {
+      navigation.navigate('FieldWeatherVegetation', { fieldId: target.fieldId });
+    } else if (target.fieldId) {
+      navigation.navigate('FieldDetail', { fieldId: target.fieldId });
     }
   };
 
+  const eventActions =
+    entry && peek?.mode === 'event'
+      ? eventPeekFooterActions(entry, t as (key: string, opts?: Record<string, unknown>) => string, {
+          openTask: () => navigateFromEntry(entry),
+          openMoney: () => navigateFromEntry(entry),
+          openHarvest: () => navigateFromEntry(entry),
+          openWeather: () => navigateFromEntry(entry),
+          openField: () => navigateFromEntry(entry),
+          createTask: capture
+            ? () => {
+                onClose();
+                capture.openCapture({
+                  preferredType: 'work',
+                  fieldId: entry.fieldId,
+                });
+              }
+            : undefined,
+        })
+      : [];
+
   const footer =
-    peek?.mode === 'event' ? (
-      <TouchableOpacity
-        style={[
-          styles.primaryBtn,
-          { backgroundColor: colors.primary, minHeight: Math.max(tapMin, 44) },
-        ]}
-        onPress={openFull}
-      >
-        <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-          {isPeriodReview ? t('weatherReview.openCharts') : t('living.openFull')}
-        </Text>
-      </TouchableOpacity>
+    peek?.mode === 'event' && eventActions.length > 0 ? (
+      <View style={{ gap: spacing.sm }}>
+        {eventActions.map(action => (
+          <TouchableOpacity
+            key={action.label}
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: action.primary ? sheetAccent : colors.surface,
+                borderWidth: action.primary ? 0 : StyleSheet.hairlineWidth,
+                borderColor: colors.borderLight,
+                minHeight: Math.max(tapMin, 44),
+              },
+            ]}
+            onPress={action.onPress}
+          >
+            <Text
+              style={[
+                styles.primaryBtnText,
+                { color: action.primary ? colors.onOlive : colors.textPrimary },
+              ]}
+            >
+              {action.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     ) : peek?.mode === 'month' ? (
       <TouchableOpacity
         style={[
@@ -187,6 +245,23 @@ const ChronologioPeekSheet: React.FC<Props> = ({
           {t('living.drillToMonths', { year: peek.summary.periodYear })}
         </Text>
       </TouchableOpacity>
+    ) : peek?.mode === 'monthWeather' && selectedWeatherReview ? (
+      <TouchableOpacity
+        style={[
+          styles.primaryBtn,
+          { backgroundColor: colors.weatherBlue, minHeight: Math.max(tapMin, 44) },
+        ]}
+        onPress={() => {
+          onClose();
+          navigation.navigate('FieldWeatherVegetation', {
+            fieldId: selectedWeatherReview.fieldId,
+          });
+        }}
+      >
+        <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
+          {t('weatherReview.openCharts')}
+        </Text>
+      </TouchableOpacity>
     ) : null;
 
   return (
@@ -194,160 +269,26 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       open={Boolean(peek)}
       onClose={onClose}
       edge="end"
+      size={peek?.mode === 'monthWeather' || isPeriodReview ? 'lg' : 'md'}
       accent
-      accentColor={peek?.mode === 'event' ? fieldAccent : colors.primary}
+      accentColor={sheetAccent}
       kicker={headerMeta}
       title={headerTitle || undefined}
+      icon={
+        peek?.mode === 'monthWeather' || isPeriodReview ? (
+          <Ionicons name="rainy-outline" size={22} color={colors.weatherBlue} />
+        ) : undefined
+      }
       footer={footer}
     >
       {peek?.mode === 'event' ? (
-        <>
-          <Text style={{ color: colors.textSecondary, marginBottom: 12 }}>
-            {`${new Date(peek.entry.occurredAt).toLocaleDateString(i18n.language, {
-              dateStyle: 'long',
-            })} · ${new Date(peek.entry.occurredAt).toLocaleTimeString(i18n.language, {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            })}`}
-          </Text>
-          {peek.entry.field?.name ? (
-            <View style={styles.fieldChip}>
-              <View
-                style={[
-                  styles.fieldDot,
-                  {
-                    backgroundColor: resolveFieldColor(
-                      peek.entry.field.color,
-                      peek.entry.fieldId
-                    ),
-                  },
-                ]}
-              />
-              <Text style={{ color: colors.textSecondary, flexShrink: 1 }} numberOfLines={1}>
-                {peek.entry.field.name}
-              </Text>
-            </View>
-          ) : null}
-
-          {peek.entry.details.harvest ? (
-            <View style={styles.harvestRow}>
-              <View style={styles.harvestStat}>
-                <Text style={[styles.harvestValue, { color: colors.textPrimary }]}>
-                  {peek.entry.details.harvest.oliveKg.toLocaleString(numberLocale, {
-                    maximumFractionDigits: 0,
-                  })}
-                </Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                  {t('olivesUnit')}
-                </Text>
-              </View>
-              {peek.entry.details.harvest.oilKg != null ? (
-                <View style={styles.harvestStat}>
-                  <Text style={[styles.harvestValue, { color: colors.textPrimary }]}>
-                    {peek.entry.details.harvest.oilKg.toLocaleString(numberLocale, {
-                      maximumFractionDigits: 1,
-                    })}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {t('oilUnit')}
-                  </Text>
-                </View>
-              ) : null}
-              {peek.entry.details.harvest.oilYieldPercent != null ? (
-                <View style={styles.harvestStat}>
-                  <Text style={[styles.harvestValue, { color: colors.textPrimary }]}>
-                    {peek.entry.details.harvest.oilYieldPercent}%
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {t('yieldUnit')}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
-          {isPeriodReview && weather ? (
-            <View style={{ marginBottom: 12 }}>
-              <WeatherReviewSummary
-                weather={weather}
-                eventType={peek.entry.eventType}
-                numberLocale={numberLocale}
-                locale={i18n.language}
-                showSource
-                primaryColor={colors.primary}
-                textPrimary={colors.textPrimary}
-                textSecondary={colors.textSecondary}
-                textTertiary={colors.textTertiary}
-              />
-            </View>
-          ) : null}
-
-          {peek.entry.amount ? (
-            <Text style={[styles.amount, { color: colors.textPrimary }]}>
-              {formatChronologioMoney(
-                peek.entry.amount.value,
-                peek.entry.amount.currency,
-                numberLocale
-              )}
-            </Text>
-          ) : null}
-
-          {!isPeriodReview &&
-          (peek.entry.summary || peek.entry.details.note?.bodyPreview) ? (
-            <Text style={{ color: colors.textPrimary, marginBottom: 12 }}>
-              {peek.entry.summary || peek.entry.details.note?.bodyPreview}
-            </Text>
-          ) : null}
-
-          <View style={styles.facts}>
-            <Text style={{ color: colors.textSecondary }}>
-              {t('living.field')}: {peek.entry.field?.name || '—'}
-            </Text>
-            {presentActorName(peek.entry.actor?.displayName, i18n.language) ? (
-              <Text style={{ color: colors.textSecondary }}>
-                {t('living.actor')}: {presentActorName(peek.entry.actor?.displayName, i18n.language)}
-              </Text>
-            ) : null}
-            {peek.entry.details.harvest?.mill ? (
-              <Text style={{ color: colors.textSecondary }}>
-                {t('mill')}: {peek.entry.details.harvest.mill}
-              </Text>
-            ) : null}
-            {peek.entry.details.harvest?.workers ? (
-              <Text style={{ color: colors.textSecondary }}>
-                {t('workers')}: {peek.entry.details.harvest.workers}
-              </Text>
-            ) : null}
-          </View>
-
-          {(peek.entry.media || []).filter((m) =>
-            isRealMedia(m.url || m.thumbnailUrl)
-          ).length > 0 ? (
-            <View style={{ marginTop: 12, gap: 8 }}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-                {t('living.photos')}
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {(peek.entry.media || [])
-                  .filter((m) => isRealMedia(m.url || m.thumbnailUrl))
-                  .map((m) => (
-                    <Image
-                      key={m.id}
-                      source={{ uri: m.url || m.thumbnailUrl }}
-                      style={styles.photo}
-                    />
-                  ))}
-              </ScrollView>
-            </View>
-          ) : null}
-        </>
+        <ChronologioEventPeekBody entry={peek.entry} numberLocale={numberLocale} />
       ) : null}
 
       {peek?.mode === 'month' ? (
         <>
           <View style={styles.metricsRow}>
-            {yearFixedMetrics(peek.summary, numberLocale, tt).map((m) => (
+            {yearFixedMetrics(peek.summary, numberLocale, tt).map(m => (
               <View key={m.label} style={styles.metricCell}>
                 <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{m.value}</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{m.label}</Text>
@@ -371,22 +312,9 @@ const ChronologioPeekSheet: React.FC<Props> = ({
               <Text style={{ color: colors.textSecondary }}>
                 {weatherFactBits(peek.summary, tt).join(' · ')}
               </Text>
-              {peek.summary.temperatureMax != null ||
-              peek.summary.temperatureMin != null ? (
-                <Text style={{ color: colors.textTertiary, marginTop: 4 }}>
-                  {peek.summary.temperatureMin != null
-                    ? `${Math.round(peek.summary.temperatureMin)}°`
-                    : '—'}
-                  {' – '}
-                  {peek.summary.temperatureMax != null
-                    ? `${Math.round(peek.summary.temperatureMax)}°`
-                    : '—'}
-                </Text>
-              ) : null}
             </View>
           ) : null}
-          {(peek.summary.highlightTitles?.length ||
-            peek.summary.observationHighlight) && (
+          {(peek.summary.highlightTitles?.length || peek.summary.observationHighlight) && (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
                 {t('living.peekHighlights')}
@@ -395,12 +323,6 @@ const ChronologioPeekSheet: React.FC<Props> = ({
                 {(peek.summary.highlightTitles || []).filter(Boolean).slice(0, 2).join(' · ') ||
                   peek.summary.observationHighlight}
               </Text>
-              {peek.summary.observationHighlight &&
-              peek.summary.highlightTitles?.length ? (
-                <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
-                  {peek.summary.observationHighlight}
-                </Text>
-              ) : null}
             </View>
           )}
           <View style={styles.section}>
@@ -409,24 +331,12 @@ const ChronologioPeekSheet: React.FC<Props> = ({
             </Text>
             {peek.loadingRecent ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: 8 }} />
-            ) : peek.recent.length === 0 ? (
-              <Text style={{ color: colors.textSecondary }}>{t('living.emptyPeriod')}</Text>
             ) : (
-              peek.recent.slice(0, 5).map((e) => (
-                <TouchableOpacity
-                  key={e.id}
-                  onPress={() => onSelectRecent?.(e)}
-                  style={{ marginTop: 10 }}
-                >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{e.title}</Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {new Date(e.occurredAt).toLocaleDateString(i18n.language, {
-                      day: 'numeric',
-                      month: 'short',
-                    })}
-                  </Text>
-                </TouchableOpacity>
-              ))
+              <ChronologioRecentList
+                entries={peek.recent}
+                emptyLabel={t('living.emptyPeriod')}
+                onPressEntry={e => onSelectRecent?.(e)}
+              />
             )}
           </View>
         </>
@@ -435,7 +345,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       {peek?.mode === 'year' ? (
         <>
           <View style={styles.metricsRow}>
-            {yearFixedMetrics(peek.summary, numberLocale, tt).map((m) => (
+            {yearFixedMetrics(peek.summary, numberLocale, tt).map(m => (
               <View key={m.label} style={styles.metricCell}>
                 <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{m.value}</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{m.label}</Text>
@@ -452,16 +362,6 @@ const ChronologioPeekSheet: React.FC<Props> = ({
               </Text>
             </View>
           ) : null}
-          {(peek.summary.highlightTitles || []).filter(Boolean).length > 0 ? (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-                {t('living.peekHighlights')}
-              </Text>
-              <Text style={{ color: colors.textPrimary }}>
-                {(peek.summary.highlightTitles || []).filter(Boolean).slice(0, 3).join(' · ')}
-              </Text>
-            </View>
-          ) : null}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               {t('living.peekMajorMonths')}
@@ -469,7 +369,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
             {majorMonthsForYear(peek.months).length === 0 ? (
               <Text style={{ color: colors.textSecondary }}>{t('living.emptyPeriod')}</Text>
             ) : (
-              majorMonthsForYear(peek.months).map((m) => (
+              majorMonthsForYear(peek.months).map(m => (
                 <View key={m.key} style={{ marginTop: 8 }}>
                   <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
                     {monthTitle(m)}
@@ -485,65 +385,69 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       ) : null}
 
       {peek?.mode === 'monthWeather' ? (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: 14 }}>
           {peek.loading ? (
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={colors.weatherBlue} />
           ) : peek.reviews.length === 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('living.emptyMonthWeather')}
-            </Text>
+            <Text style={{ color: colors.textSecondary }}>{t('living.emptyMonthWeather')}</Text>
           ) : (
-            peek.reviews.map((review) => {
-              const w = review.details.weather;
-              if (!w) return null;
-              const reviewFieldAccent = resolveFieldColor(review.field?.color, review.fieldId);
-              const categoryAccent = resolveChronologioCategoryAccent(
-                review.category,
-                String(review.importance)
-              );
-              return (
-                <TouchableOpacity
-                  key={review.id}
-                  style={[
-                    styles.weatherBlock,
-                    {
-                      borderColor: colors.borderLight,
-                      backgroundColor: colors.surface,
-                      borderLeftColor: reviewFieldAccent,
-                    },
-                  ]}
-                  onPress={() => onSelectRecent?.(review)}
-                >
-                  <CardAccentFades fieldColor={reviewFieldAccent} endColor={categoryAccent} />
-                  {review.field?.name ? (
-                    <Text
-                      style={{
-                        color: colors.textSecondary,
-                        fontWeight: '700',
-                        fontSize: 12,
-                        marginBottom: 8,
-                        zIndex: 1,
-                      }}
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.fieldTabs}
+              >
+                {peek.reviews.map(review => {
+                  const selected = review.fieldId === selectedWeatherReview?.fieldId;
+                  const fieldColor = resolveFieldColor(review.field?.color, review.fieldId);
+                  return (
+                    <Pressable
+                      key={review.id}
+                      onPress={() => setWeatherFieldId(review.fieldId)}
+                      style={[
+                        styles.fieldTab,
+                        {
+                          minHeight: Math.max(40, tapMin * 0.85),
+                          backgroundColor: selected ? colors.eventWeatherSoft : colors.surface,
+                          borderColor: selected ? colors.weatherBlue : colors.borderLight,
+                        },
+                      ]}
                     >
-                      {review.field.name}
-                    </Text>
-                  ) : null}
-                  <View style={{ zIndex: 1 }}>
-                    <WeatherReviewSummary
-                      weather={w}
-                      eventType={review.eventType}
-                      numberLocale={numberLocale}
-                      locale={i18n.language}
-                      showSource
-                      primaryColor={colors.primary}
-                      textPrimary={colors.textPrimary}
-                      textSecondary={colors.textSecondary}
-                      textTertiary={colors.textTertiary}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            })
+                      <View style={[styles.fieldDot, { backgroundColor: fieldColor }]} />
+                      <Text
+                        style={{
+                          color: selected ? colors.eventWeather : colors.textSecondary,
+                          fontWeight: selected ? '700' : '600',
+                          fontSize: 13,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {review.field?.name || '—'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              {selectedWeatherReview?.details.weather ? (
+                <WeatherReviewSummary
+                  weather={selectedWeatherReview.details.weather}
+                  eventType={selectedWeatherReview.eventType}
+                  numberLocale={numberLocale}
+                  locale={i18n.language}
+                  showSource
+                />
+              ) : null}
+
+              <Pressable
+                onPress={() => selectedWeatherReview && onSelectRecent?.(selectedWeatherReview)}
+                hitSlop={8}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  {t('weatherReview.tapForDetails')}
+                </Text>
+              </Pressable>
+            </>
           )}
         </View>
       ) : null}
@@ -552,26 +456,10 @@ const ChronologioPeekSheet: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  fieldChip: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  fieldDot: { width: 8, height: 8, borderRadius: 99 },
-  harvestRow: { flexDirection: 'row', gap: 16, marginBottom: 12 },
-  harvestStat: { gap: 2 },
-  harvestValue: { fontSize: 20, fontWeight: '800' },
-  amount: { fontSize: 18, fontWeight: '800', marginBottom: 10 },
-  facts: { gap: 4, marginBottom: 8 },
   section: { marginTop: 14, gap: 4 },
   sectionTitle: { fontWeight: '700', fontSize: 14, marginBottom: 2 },
   metricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
   metricCell: { minWidth: '28%', flexGrow: 1 },
-  photo: { width: 140, height: 100, borderRadius: radii.lg, marginRight: 8 },
-  weatherBlock: {
-    borderWidth: 1,
-    borderLeftWidth: 4,
-    borderRadius: radii.xl,
-    padding: spacing.md,
-    overflow: 'hidden',
-    position: 'relative',
-  },
   primaryBtn: {
     borderRadius: radii.lg,
     paddingHorizontal: 14,
@@ -579,6 +467,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { fontWeight: '700' },
+  fieldTabs: { gap: 8, paddingVertical: 2 },
+  fieldTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    maxWidth: 180,
+  },
+  fieldDot: { width: 8, height: 8, borderRadius: 99 },
 });
 
 export default ChronologioPeekSheet;

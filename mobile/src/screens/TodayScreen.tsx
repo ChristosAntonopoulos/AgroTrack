@@ -498,7 +498,7 @@ const TodayScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 40 },
+  content: { paddingHorizontal: spacing.base, paddingTop: spacing.sm, paddingBottom: 40 },
   dateLine: {
     marginTop: -6,
     marginBottom: 12,

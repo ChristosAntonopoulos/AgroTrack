@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
@@ -317,7 +316,6 @@ const PartnersHomeScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('partners:homeTitle', { defaultValue: t('partners:title') })} />
       <Text style={[styles.lead, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
         {t('partners:homeLead', { defaultValue: t('partners:needWhat') })}
       </Text>

@@ -5,9 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
-import { useCaptureOptional } from '../context/CaptureContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import NoteSheet from '../components/dashboard/NoteSheet';
@@ -22,7 +20,6 @@ const NotesListScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
   const { tapMin } = usePreferences();
-  const capture = useCaptureOptional();
   const [notes, setNotes] = useState<Note[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,17 +56,6 @@ const NotesListScreen = () => {
 
   return (
     <ScreenLayout scroll refreshControl={{ refreshing, onRefresh }} contentContainerStyle={styles.content}>
-      <ScreenHeader
-        title={t('capture:types.observation.title', { defaultValue: t('dashboard:notes.title') })}
-        subtitle={t('dashboard:notes.pageSubtitle')}
-        actionLabel={t('capture:cta', { defaultValue: t('dashboard:notes.newTitle') })}
-        onActionPress={() =>
-          capture
-            ? capture.openCapture({ preferredType: 'observation' })
-            : setEditing(null)
-        }
-      />
-
       {notes.length === 0 ? (
         <EmptyState
           icon={<Ionicons name="document-text-outline" size={36} color={colors.textSecondary} />}
@@ -128,7 +114,7 @@ const NotesListScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: spacing['3xl'] },
+  content: { paddingHorizontal: spacing.base, paddingTop: spacing.sm, paddingBottom: spacing['3xl'] },
   card: {
     marginHorizontal: spacing.base,
     marginBottom: spacing.sm,

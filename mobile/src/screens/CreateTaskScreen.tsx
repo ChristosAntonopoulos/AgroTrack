@@ -1,296 +1,239 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Pressable,
-  TextInput,
-} from 'react-native';
+import React, { useEffect, useMemo, useLayoutEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { addDays, format, parseISO, isValid } from 'date-fns';
-import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
-import { Field } from '../services/fieldService';
+import { getFieldService, getFieldWorkService, getPartnerService } from '../services/serviceFactory';
+import { fieldPeopleService, type FieldMembership } from '../services/fieldPeopleService';
+import { weatherService } from '../services/weatherService';
+import type { SavedContact } from '../services/partnerService';
+import type { Field } from '../services/fieldService';
+import type { TaskProposal } from '../services/fieldWorkService';
+import { templateTitle } from '../data/fieldWorkCatalogueLabels';
+import { readStashedProposal, toDateInputValue } from '../utils/proposalPresentation';
+import { typeFromTemplate } from '../utils/taskFormTypes';
+import { assigneeOptionKey, suggestAssigneeFromProfile } from '../utils/fieldWorkLearning';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
-import { CREATE_HARVEST_JOBS, getHarvestJob } from '../utils/harvestJobs';
-import FormField from '../components/forms/FormField';
-import FormDateField from '../components/forms/FormDateField';
-import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
-import InfoRow from '../components/ui/InfoRow';
 import LoadingSpinner from '../components/LoadingSpinner';
-import TaskWizardStepIndicator, { TaskWizardStep } from '../components/tasks/TaskWizardStepIndicator';
-import { formatFieldArea } from '../utils/fieldGeo';
-import { getFieldShortLocation } from '../utils/shortLocation';
-import { getTaskCategoryColor } from '../utils/calendarCategoryColors';
+import TaskForm, { type AssigneeOption, type TaskFormSubmitPayload } from '../components/tasks/TaskForm';
+import type { FieldWeather } from '../services/geospatialService';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'CreateTask'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CreateTask'>;
 
-type LocalTemplate = {
-  id: string;
-  type: string;
-  title: string;
-  description?: string;
-};
-
-const ALL_STEPS: TaskWizardStep[] = ['field', 'template', 'details', 'review'];
-const SKIP_FIELD_STEPS: TaskWizardStep[] = ['template', 'details', 'review'];
-const EVERYDAY_STEPS: TaskWizardStep[] = ['field', 'template', 'details'];
-const EVERYDAY_SKIP_FIELD: TaskWizardStep[] = ['template', 'details'];
-
-const CUSTOM_TEMPLATE_ID = '__custom__';
-
-const BASE_WORK_TYPES: LocalTemplate[] = [
-  { id: 'local-pruning', type: 'pruning', title: 'Pruning' },
-  { id: 'local-spraying', type: 'spraying', title: 'Spraying' },
-  { id: 'local-fertilization', type: 'fertilization', title: 'Fertilization' },
-  { id: 'local-irrigation', type: 'irrigation', title: 'Irrigation' },
-  { id: 'local-cleaning', type: 'cleaning', title: 'Cleaning' },
-];
-
-const toDateInput = (date: Date) => format(date, 'yyyy-MM-dd');
-
-const parseDateInput = (value: string): Date | null => {
-  const parsed = parseISO(value);
-  return isValid(parsed) ? parsed : null;
-};
-
 const CreateTaskScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const preselectedFieldId = route.params?.fieldId;
-  const preselectedStart = route.params?.scheduledStart;
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { isEveryday, tapMin, fontScaleMultiplier } = usePreferences();
-  const { t } = useTranslation(['tasks', 'common', 'fields']);
+  const { t, i18n } = useTranslation(['tasks', 'common']);
+  const fieldIdParam = route.params?.fieldId || '';
+  const proposalIdParam = route.params?.proposalId || '';
+  const scheduledStart = route.params?.scheduledStart
+    ? toDateInputValue(route.params.scheduledStart)
+    : '';
 
-  const steps = useMemo(() => {
-    if (isEveryday) return preselectedFieldId ? EVERYDAY_SKIP_FIELD : EVERYDAY_STEPS;
-    return preselectedFieldId ? SKIP_FIELD_STEPS : ALL_STEPS;
-  }, [preselectedFieldId, isEveryday]);
+  const stashed = proposalIdParam ? readStashedProposal() : null;
+  const proposal: TaskProposal | null =
+    stashed && stashed.id === proposalIdParam ? stashed : null;
+  const mode = proposal ? 'proposal' : 'manual';
 
-  const [step, setStep] = useState<TaskWizardStep>(steps[0]);
   const [fields, setFields] = useState<Field[]>([]);
-  const [fieldId, setFieldId] = useState(preselectedFieldId || '');
-  const [templateId, setTemplateId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState('');
-  const [description, setDescription] = useState('');
-  const [scheduledStart, setScheduledStart] = useState(
-    preselectedStart ? preselectedStart.slice(0, 10) : toDateInput(new Date())
-  );
-  const [scheduledEnd, setScheduledEnd] = useState(
-    preselectedStart ? preselectedStart.slice(0, 10) : toDateInput(addDays(new Date(), 2))
-  );
-  const [fieldSearch, setFieldSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [people, setPeople] = useState<FieldMembership[]>([]);
+  const [contacts, setContacts] = useState<SavedContact[]>([]);
+  const [weather, setWeather] = useState<FieldWeather | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldId, setFieldId] = useState(fieldIdParam || proposal?.fieldId || '');
+  const [suggestedAssigneeKey, setSuggestedAssigneeKey] = useState(
+    () => (user?.id ? `user:${user.id}` : 'later')
+  );
 
-  const stepIndex = steps.indexOf(step);
-  const isFirst = stepIndex <= 0;
-  const isLast = stepIndex === steps.length - 1;
-
-  const selectedField = fields.find((f) => f.id === fieldId) ?? null;
-  const isCustom = templateId === CUSTOM_TEMPLATE_ID;
-
-  const filteredFields = useMemo(() => {
-    const q = fieldSearch.trim().toLowerCase();
-    if (!q) return fields;
-    return fields.filter(
-      (f) =>
-        f.name.toLowerCase().includes(q) ||
-        (f.locationText?.toLowerCase().includes(q) ?? false)
-    );
-  }, [fields, fieldSearch]);
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle'),
+      headerLeft: () => (
+        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ paddingHorizontal: 8 }}>
+          <Text style={{ color: colors.primary, fontSize: 17 }}>{t('common:cancel')}</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation, colors.primary, t, mode]);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        const fieldsData = await getFieldService().getFields(
-          user?.id ?? '',
-          user?.role ?? 'FieldOwner'
-        );
+        const fieldsData = await getFieldService()
+          .getFields(user?.id ?? '', user?.role ?? 'FieldOwner')
+          .catch(() => [] as Field[]);
+        if (cancelled) return;
         setFields(fieldsData);
-        if (!fieldId && fieldsData.length > 0) setFieldId(fieldsData[0].id);
+        setFieldId((current) => current || fieldIdParam || proposal?.fieldId || fieldsData[0]?.id || '');
       } catch {
-        setError(t('tasks:loadError'));
+        if (!cancelled) setError(t('fieldWork.form.failedLoad'));
       } finally {
-        setLoading(false);
+        if (!cancelled) setPageLoading(false);
       }
     })();
-  }, [user, t]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldIdParam, proposal?.fieldId, t, user?.id, user?.role]);
 
-  const jobChoices = useMemo(() => {
-    const byType = new Map<string, LocalTemplate>();
-    BASE_WORK_TYPES.forEach((tpl) => {
-      byType.set(tpl.type, {
-        ...tpl,
-        title: t(`tasks:workTypes.${tpl.type}`, { defaultValue: tpl.title }),
+  useEffect(() => {
+    const meKey = user?.id ? `user:${user.id}` : 'later';
+    if (!fieldId) {
+      setPeople([]);
+      setContacts([]);
+      setWeather(null);
+      setSuggestedAssigneeKey(meKey);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [memberships, saved, fieldWeather, workProfile] = await Promise.all([
+        fieldPeopleService.getPeople(fieldId).catch(() => [] as FieldMembership[]),
+        getPartnerService()
+          .getContacts({ fieldId, includeUnassigned: true })
+          .catch(() => [] as SavedContact[]),
+        weatherService.getFieldWeather(fieldId).catch(() => null),
+        getFieldWorkService().getWorkProfile(fieldId).catch(() => null),
+      ]);
+      if (cancelled) return;
+      setPeople(Array.isArray(memberships) ? memberships : []);
+      setContacts(Array.isArray(saved) ? saved : []);
+      setWeather(fieldWeather);
+      if (mode === 'proposal' && proposal?.templateCode) {
+        const suggestion = suggestAssigneeFromProfile(workProfile, proposal.templateCode, user?.id);
+        setSuggestedAssigneeKey(assigneeOptionKey(suggestion, user?.id));
+      } else {
+        setSuggestedAssigneeKey(meKey);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldId, mode, proposal?.templateCode, user?.id]);
+
+  const capacityHint = (
+    capacities: FieldMembership['capacities']
+  ): { group: AssigneeOption['group']; hint: string } => {
+    if (capacities.includes('work')) {
+      return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
+    }
+    if (capacities.includes('help')) {
+      return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
+    }
+    if (capacities.includes('advise')) {
+      return { group: 'partner', hint: t('fieldWork.form.assigneeHintAdvisor') };
+    }
+    return { group: 'partner', hint: t('fieldWork.form.collaborator') };
+  };
+
+  const assigneeOptions = useMemo<AssigneeOption[]>(() => {
+    const options: AssigneeOption[] = [
+      {
+        key: user?.id ? `user:${user.id}` : 'later',
+        label: t('fieldWork.form.assigneeMe'),
+        group: 'self',
+      },
+    ];
+    people.forEach((person) => {
+      if (person.userId && person.userId === user?.id) return;
+      const meta = capacityHint(person.capacities || []);
+      options.push({
+        key: `user:${person.userId}`,
+        label: person.displayName || person.email || t('fieldWork.form.collaborator'),
+        hint: meta.hint,
+        group: meta.group,
       });
     });
-    CREATE_HARVEST_JOBS.forEach((jobType) => {
-      if (byType.has(jobType)) return;
-      byType.set(jobType, {
-        id: `local-${jobType}`,
-        type: jobType,
-        title: t(`tasks:harvestJobs.${jobType}.title`),
-        description: t(`tasks:harvestJobs.${jobType}.helper`),
+    contacts.forEach((contact) => {
+      if (contact.linkedUserId && people.some((person) => person.userId === contact.linkedUserId)) {
+        return;
+      }
+      options.push({
+        key: `contact:${contact.id}`,
+        label: contact.displayName,
+        hint: contact.phone || t('fieldWork.form.assigneeHintContact'),
+        group: 'contact',
       });
     });
-    const list = [...byType.values()];
-    const month = new Date().getMonth() + 1;
-    const harvestFirst = month >= 9 || month <= 1;
-    list.sort((a, b) => {
-      const ap = getHarvestJob(a.type) ? 0 : 1;
-      const bp = getHarvestJob(b.type) ? 0 : 1;
-      if (harvestFirst && ap !== bp) return ap - bp;
-      return a.title.localeCompare(b.title);
+    options.push({
+      key: 'later',
+      label: t('fieldWork.form.decideLater'),
+      group: 'later',
     });
-    return list;
-  }, [t]);
+    return options;
+  }, [people, contacts, user?.id, t]);
 
-  const applyTemplate = useCallback((tpl: LocalTemplate) => {
-    setTemplateId(tpl.id);
-    setTitle(tpl.title);
-    setType(tpl.type);
-    setDescription(tpl.description || '');
-  }, []);
+  const selectedField = fields.find((field) => field.id === fieldId);
+  const initialTitle = proposal ? templateTitle(proposal.templateCode, i18n.language) : '';
 
-  const applyCustomTemplate = useCallback(() => {
-    setTemplateId(CUSTOM_TEMPLATE_ID);
-    if (!title) setTitle('');
-    if (!type) setType('');
-  }, [title, type]);
-
-  const applySchedulePreset = (preset: 'today' | 'threeDays' | 'week') => {
-    const today = new Date();
-    if (preset === 'today') {
-      setScheduledStart(toDateInput(today));
-      setScheduledEnd(toDateInput(today));
-      return;
-    }
-    if (preset === 'threeDays') {
-      setScheduledStart(toDateInput(today));
-      setScheduledEnd(toDateInput(addDays(today, 2)));
-      return;
-    }
-    setScheduledStart(toDateInput(today));
-    setScheduledEnd(toDateInput(addDays(today, 6)));
+  const goToPlanned = (createdId: string, year: number, nextFieldId: string) => {
+    navigation.navigate('Main', {
+      screen: 'Tasks',
+      params: {
+        view: 'planned',
+        year: String(year),
+        fieldId: nextFieldId,
+        created: createdId,
+      },
+    });
   };
 
-  const handleStartDateChange = (value: string) => {
-    setScheduledStart(value);
-    if (scheduledEnd && value > scheduledEnd) {
-      setScheduledEnd(value);
-    }
-  };
-
-  const endDateMinimum = parseDateInput(scheduledStart) ?? undefined;
-
-  const validateStep = (): boolean => {
+  const handleSubmit = async (payload: TaskFormSubmitPayload) => {
+    setSaving(true);
     setError(null);
-    if (step === 'field') {
-      if (!fieldId) {
-        setError(t('tasks:createWizard.errors.fieldRequired'));
-        return false;
-      }
-    }
-    if (step === 'template') {
-      if (!templateId) {
-        setError(t('tasks:createWizard.errors.templateRequired'));
-        return false;
-      }
-    }
-    if (step === 'details') {
-      if (!title.trim()) {
-        setError(t('tasks:createWizard.errors.titleRequired'));
-        return false;
-      }
-      if (!type.trim()) {
-        setError(t('tasks:createWizard.errors.typeRequired'));
-        return false;
-      }
-      const start = parseDateInput(scheduledStart);
-      const end = parseDateInput(scheduledEnd);
-      if (scheduledStart && !start) {
-        setError(t('tasks:createWizard.errors.invalidStart'));
-        return false;
-      }
-      if (scheduledEnd && !end) {
-        setError(t('tasks:createWizard.errors.invalidEnd'));
-        return false;
-      }
-      if (start && end && end < start) {
-        setError(t('tasks:createWizard.errors.endBeforeStart'));
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const goNext = () => {
-    if (!validateStep()) return;
-    if (isLast) {
-      void handleCreate();
-      return;
-    }
-    setStep(steps[stepIndex + 1]);
-  };
-
-  const goBack = () => {
-    setError(null);
-    if (isFirst) {
-      navigation.goBack();
-      return;
-    }
-    setStep(steps[stepIndex - 1]);
-  };
-
-  const handleCreate = async () => {
-    if (!fieldId || !title.trim() || !type.trim()) {
-      setError(t('tasks:createWizard.errors.required'));
-      return;
-    }
     try {
-      setSaving(true);
-      setError(null);
-      await getFieldWorkService().createFieldTask({
-        fieldId,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        templateCode: type.trim() || undefined,
-        plannedStart: scheduledStart
-          ? new Date(`${scheduledStart}T09:00:00`).toISOString()
-          : undefined,
-        plannedEnd: scheduledEnd
-          ? new Date(`${scheduledEnd}T17:00:00`).toISOString()
-          : undefined,
+      const fw = getFieldWorkService();
+      if (mode === 'proposal' && proposal) {
+        const accepted = await fw.acceptProposal(proposal.id, {
+          plannedStart: payload.plannedStart,
+          plannedEnd: payload.plannedEnd,
+          assignedUserId: payload.assignedUserId,
+          assignedCollaboratorId: payload.assignedCollaboratorId,
+          notes: payload.notes,
+          resultYear: payload.resultYear,
+        });
+        const createdId = accepted.acceptedTaskId;
+        if (!createdId) throw new Error(t('fieldWork.form.failedSave'));
+        goToPlanned(createdId, payload.resultYear, payload.fieldId);
+        return;
+      }
+
+      const created = await fw.createFieldTask({
+        fieldId: payload.fieldId,
+        title: payload.title,
+        templateCode: payload.templateCode,
+        plannedStart: payload.plannedStart,
+        plannedEnd: payload.plannedEnd,
+        preferredTimeWindow: payload.preferredTimeWindow,
+        assignedUserId: payload.assignedUserId,
+        assignedCollaboratorId: payload.assignedCollaboratorId,
+        notes: payload.notes,
+        estimatedCost: payload.estimatedCost,
+        resultYear: payload.resultYear,
       });
-      navigation.goBack();
+      goToPlanned(created.id, created.resultYear || payload.resultYear, payload.fieldId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('tasks:loadError'));
+      setError(err instanceof Error ? err.message : t('fieldWork.form.failedSave'));
     } finally {
       setSaving(false);
     }
   };
 
-  const formatScheduleLabel = (dateStr: string) => {
-    const d = parseDateInput(dateStr);
-    if (!d) return dateStr;
-    return format(d, 'd MMM yyyy', { locale: undefined });
-  };
+  if (pageLoading) return <LoadingSpinner fullScreen />;
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  const subtitle =
+    mode === 'proposal'
+      ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ')
+      : t('fieldWork.form.manualSubtitle');
 
   return (
     <ScrollView
@@ -298,286 +241,32 @@ const CreateTaskScreen = () => {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('tasks:createTask')}</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        {t('tasks:createWizard.subtitle')}
+      <Text style={[styles.title, { color: colors.textPrimary }]}>
+        {mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle')}
       </Text>
-
-      <TaskWizardStepIndicator steps={steps} current={step} currentIndex={stepIndex} />
-
-      {error ? (
-        <View style={[styles.errorBox, { backgroundColor: colors.error + '18' }]}>
-          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-        </View>
-      ) : null}
-
-      <Card variant="elevated" style={styles.panel}>
-        {step === 'field' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('tasks:createWizard.fieldTitle')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('tasks:createWizard.fieldDesc')}
-            </Text>
-            {fields.length > 4 ? (
-              <View
-                style={[
-                  styles.searchWrap,
-                  { backgroundColor: colors.surface, borderColor: colors.borderLight },
-                ]}
-              >
-                <Ionicons name="search-outline" size={18} color={colors.textTertiary} />
-                <TextInput
-                  value={fieldSearch}
-                  onChangeText={setFieldSearch}
-                  placeholder={t('tasks:createWizard.searchFields')}
-                  placeholderTextColor={colors.textTertiary}
-                  style={[styles.searchInput, { color: colors.textPrimary }]}
-                />
-              </View>
-            ) : null}
-            {filteredFields.map((f) => {
-              const active = f.id === fieldId;
-              return (
-                <Pressable
-                  key={f.id}
-                  onPress={() => setFieldId(f.id)}
-                  style={[
-                    styles.fieldCard,
-                    {
-                      borderColor: active ? colors.oliveBorder : colors.borderLight,
-                      backgroundColor: active ? colors.primaryLight : colors.surface,
-                      minHeight: isEveryday ? tapMin + 8 : undefined,
-                    },
-                  ]}
-                >
-                  <View style={styles.fieldCardMain}>
-                    <Text style={[styles.fieldName, { color: colors.textPrimary }]} numberOfLines={1}>
-                      {f.name}
-                    </Text>
-                    {getFieldShortLocation(f) ? (
-                      <Text style={[styles.fieldMeta, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {getFieldShortLocation(f)}
-                      </Text>
-                    ) : null}
-                    <Text style={[styles.fieldMeta, { color: colors.textTertiary }]}>
-                      {formatFieldArea(f)}
-                    </Text>
-                  </View>
-                  {active ? (
-                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        {step === 'template' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('tasks:createWizard.templateTitle')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('tasks:createWizard.templateDesc')}
-            </Text>
-            {selectedField ? (
-              <View style={[styles.contextChip, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
-                <Ionicons name="leaf-outline" size={14} color={colors.primary} />
-                <Text style={[styles.contextChipText, { color: colors.primary }]} numberOfLines={1}>
-                  {selectedField.name}
-                </Text>
-              </View>
-            ) : null}
-            {jobChoices.map((tpl) => {
-              const active = templateId === tpl.id || (templateId == null && type === tpl.type);
-              const harvest = getHarvestJob(tpl.type);
-              const tint = harvest ? colors.primary : getTaskCategoryColor(tpl.type);
-              return (
-                <Pressable
-                  key={tpl.id}
-                  onPress={() => applyTemplate(tpl)}
-                  style={[
-                    styles.templateCard,
-                    {
-                      borderColor: active ? colors.oliveBorder : colors.borderLight,
-                      backgroundColor: active ? colors.primaryLight : colors.surface,
-                      minHeight: isEveryday ? tapMin + 8 : undefined,
-                    },
-                  ]}
-                >
-                  {harvest ? (
-                    <View style={[styles.typePill, { backgroundColor: tint + '22' }]}>
-                      <Text style={[styles.typePillText, { color: tint }]}>
-                        {t('tasks:harvest.word')} · {t(`tasks:harvest.phases.${harvest.phase}`)}
-                      </Text>
-                    </View>
-                  ) : !isEveryday ? (
-                    <View style={[styles.typePill, { backgroundColor: tint + '22' }]}>
-                      <Text style={[styles.typePillText, { color: tint }]}>{tpl.type}</Text>
-                    </View>
-                  ) : null}
-                  <Text
-                    style={[
-                      styles.templateTitle,
-                      { color: colors.textPrimary, fontSize: isEveryday ? 17 * fontScaleMultiplier : undefined },
-                    ]}
-                  >
-                    {harvest ? t(`tasks:harvestJobs.${harvest.aliasOf ?? harvest.type}.title`, { defaultValue: tpl.title }) : tpl.title}
-                  </Text>
-                  {tpl.description && !isEveryday ? (
-                    <Text style={[styles.templateDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                      {tpl.description}
-                    </Text>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-            <Pressable
-              onPress={applyCustomTemplate}
-              style={[
-                styles.templateCard,
-                styles.customCard,
-                {
-                  borderColor: isCustom ? colors.oliveBorder : colors.borderLight,
-                  backgroundColor: isCustom ? colors.primaryLight : colors.surface,
-                },
-              ]}
-            >
-              <Ionicons name="create-outline" size={20} color={colors.primary} />
-              <View style={styles.customCardText}>
-                <Text style={[styles.templateTitle, { color: colors.textPrimary }]}>
-                  {t('tasks:createWizard.customTask')}
-                </Text>
-                <Text style={[styles.templateDesc, { color: colors.textSecondary }]}>
-                  {t('tasks:createWizard.customTaskDesc')}
-                </Text>
-              </View>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {step === 'details' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {isEveryday ? t('tasks:createWizard.whenTitle') : t('tasks:createWizard.detailsTitle')}
-            </Text>
-            {!isEveryday || isCustom ? (
-              <>
-                <FormField
-                  label={t('tasks:createWizard.taskTitle')}
-                  value={title}
-                  onChangeText={setTitle}
-                  editable={!saving}
-                  placeholder={t('tasks:createWizard.taskTitlePlaceholder')}
-                />
-                <FormField
-                  label={t('tasks:type')}
-                  value={type}
-                  onChangeText={setType}
-                  editable={!saving}
-                  placeholder={t('tasks:createWizard.typePlaceholder')}
-                />
-              </>
-            ) : null}
-            {!isEveryday ? (
-              <FormField
-                label={t('tasks:notes')}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                editable={!saving}
-                placeholder={t('tasks:createWizard.notesPlaceholder')}
-              />
-            ) : null}
-            <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>
-              {t('tasks:createWizard.scheduleTitle')}
-            </Text>
-            <View style={styles.presetRow}>
-              {(['today', 'threeDays', 'week'] as const).map((preset) => (
-                <Pressable
-                  key={preset}
-                  onPress={() => applySchedulePreset(preset)}
-                  style={[
-                    styles.presetChip,
-                    {
-                      borderColor: colors.borderLight,
-                      backgroundColor: colors.surface,
-                      minHeight: isEveryday ? tapMin : undefined,
-                      justifyContent: 'center',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.presetText, { color: colors.textSecondary }]}>
-                    {t(`tasks:createWizard.presets.${preset}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <FormDateField
-              label={t('tasks:createWizard.startDate')}
-              value={scheduledStart}
-              onValueChange={handleStartDateChange}
-              disabled={saving}
-            />
-            <FormDateField
-              label={t('tasks:createWizard.endDate')}
-              value={scheduledEnd}
-              onValueChange={setScheduledEnd}
-              minimumDate={endDateMinimum}
-              disabled={saving}
-            />
-          </View>
-        ) : null}
-
-        {step === 'review' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('tasks:createWizard.reviewTitle')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('tasks:createWizard.reviewDesc')}
-            </Text>
-            <InfoRow icon="leaf-outline" label={t('tasks:field')} value={selectedField?.name ?? '—'} />
-            <InfoRow icon="clipboard-outline" label={t('tasks:type')} value={type || '—'} />
-            <InfoRow icon="text-outline" label={t('tasks:createWizard.taskTitle')} value={title || '—'} />
-            {description ? (
-              <InfoRow icon="document-text-outline" label={t('tasks:notes')} value={description} />
-            ) : null}
-            <InfoRow
-              icon="calendar-outline"
-              label={t('tasks:scheduled')}
-              value={
-                scheduledStart
-                  ? `${formatScheduleLabel(scheduledStart)}${
-                      scheduledEnd && scheduledEnd !== scheduledStart
-                        ? ` → ${formatScheduleLabel(scheduledEnd)}`
-                        : ''
-                    }`
-                  : t('tasks:notScheduled')
-              }
-            />
-          </View>
-        ) : null}
-
-        <View style={styles.navRow}>
-          <Button
-            title={isFirst ? t('common:cancel') : t('common:back')}
-            variant="outline"
-            onPress={goBack}
-            disabled={saving}
-            style={styles.navBtn}
-          />
-          <Button
-            title={isLast ? t('tasks:createTask') : t('common:next')}
-            onPress={goNext}
-            loading={saving && isLast}
-            style={styles.navBtn}
-          />
-        </View>
-      </Card>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+      <TaskForm
+        key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}`}
+        mode={mode}
+        fields={fields}
+        proposal={proposal}
+        weather={weather}
+        assigneeOptions={assigneeOptions}
+        initialTitle={initialTitle}
+        initialFieldId={fieldId}
+        initialType={proposal ? typeFromTemplate(proposal.templateCode) : ''}
+        initialStart={proposal ? toDateInputValue(proposal.recommendedWindowStart) : scheduledStart}
+        initialEnd=""
+        initialAssigneeKey={suggestedAssigneeKey}
+        saving={saving}
+        error={error}
+        onFieldChange={setFieldId}
+        onCancel={() => navigation.goBack()}
+        onSubmit={(payload) => {
+          setFieldId(payload.fieldId);
+          void handleSubmit(payload);
+        }}
+      />
     </ScrollView>
   );
 };
@@ -586,82 +275,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
   title: { ...typography.styles.h3, fontWeight: '700' },
-  subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.sm },
-  panel: { padding: spacing.base },
-  stepBody: { gap: spacing.xs, marginBottom: spacing.md },
-  stepTitle: { ...typography.styles.h4, fontWeight: '700', marginBottom: 2 },
-  stepDesc: { ...typography.styles.bodySmall, marginBottom: spacing.sm },
-  sectionLabel: {
-    ...typography.styles.bodySmall,
-    fontWeight: '600',
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  errorBox: { borderRadius: 10, padding: spacing.sm, marginBottom: spacing.sm },
-  errorText: { ...typography.styles.bodySmall },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  searchInput: { flex: 1, ...typography.styles.body, padding: 0 },
-  fieldCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  fieldCardMain: { flex: 1, minWidth: 0 },
-  fieldName: { ...typography.styles.body, fontWeight: '600' },
-  fieldMeta: { ...typography.styles.caption, marginTop: 2 },
-  contextChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    marginBottom: spacing.sm,
-  },
-  contextChipText: { ...typography.styles.caption, fontWeight: '500', maxWidth: 240 },
-  templateCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  customCard: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  customCardText: { flex: 1 },
-  typePill: {
-    alignSelf: 'flex-start',
-    borderRadius: 20,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    marginBottom: spacing.xs,
-  },
-  typePillText: { ...typography.styles.caption, fontWeight: '700', fontSize: 10 },
-  templateTitle: { ...typography.styles.body, fontWeight: '600' },
-  templateDesc: { ...typography.styles.bodySmall, marginTop: 4 },
-  presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
-  presetChip: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  presetText: { ...typography.styles.caption, fontWeight: '600' },
-  navRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  navBtn: { flex: 1 },
+  subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.lg },
 });
 
 export default CreateTaskScreen;

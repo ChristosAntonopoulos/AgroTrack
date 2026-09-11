@@ -1,0 +1,59 @@
+/* Harvest campaign — gold oil, ripe fruit, not a second olive theme */
+
+:root {
+  --harvest-gold: #9A6B32;
+  --harvest-gold-deep: #734F24;
+  --harvest-gold-soft: #F3E6C8;
+  --harvest-ink: #4A3418;
+  --harvest-live: #8A4A32;
+}
+
+[data-theme='dark'] {
+  --harvest-gold: #D4A85A;
+  --harvest-gold-deep: #E8C37A;
+  --harvest-gold-soft: color-mix(in srgb, #D4A85A 22%, #1A1E1A);
+  --harvest-ink: #F3E6C8;
+  --harvest-live: #E08A6C;
+}
+
+html[data-harvest-mode='active'],
+html[data-harvest-mode='paused'] {
+  --olive-primary: var(--harvest-gold);
+  --olive-hover: var(--harvest-gold-deep);
+  --olive-active: var(--harvest-gold-deep);
+  --olive-soft: var(--harvest-gold-soft);
+  --olive-border: color-mix(in srgb, var(--harvest-gold) 45%, var(--border-default));
+  --on-olive: #fffaf0;
+  --color-primary: var(--harvest-gold);
+  --color-primary-light: var(--harvest-gold-deep);
+  --bg-button: var(--harvest-gold);
+  --bg-button-hover: var(--harvest-gold-deep);
+  --link: var(--harvest-gold-deep);
+  --focus-ring: var(--harvest-gold);
+  --event-harvest: var(--harvest-live);
+}
+
+html[data-harvest-mode='active'][data-theme='light'],
+html[data-harvest-mode='paused'][data-theme='light'],
+html[data-harvest-mode='active']:not([data-theme='dark']),
+html[data-harvest-mode='paused']:not([data-theme='dark']) {
+  --bg-page: #F6F0E2;
+  --bg-header: #FBF6EA;
+  --bg-sidebar: #F1E9D6;
+}
+
+html[data-harvest-mode='active'] .app-header,
+html[data-harvest-mode='paused'] .app-header {
+  border-bottom-color: color-mix(in srgb, var(--harvest-gold) 42%, var(--color-border));
+}
+
+html[data-harvest-mode='active'] .nav-link.active,
+html[data-harvest-mode='paused'] .nav-link.active {
+  background: var(--harvest-gold-soft);
+  color: var(--harvest-ink);
+  border-left-color: var(--harvest-gold);
+}
+
+html[data-harvest-mode='paused'] {
+  --olive-primary: color-mix(in srgb, var(--harvest-gold) 70%, var(--status-neutral));
+}

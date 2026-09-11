@@ -1,24 +1,21 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DashboardScreen from '../screens/DashboardScreen';
-import CalendarScreen from '../screens/CalendarScreen';
 import FieldsListScreen from '../screens/FieldsListScreen';
 import TaskListScreen from '../screens/TaskListScreen';
 import MoreScreen from '../screens/MoreScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 import ChronologioScreen from '../screens/ChronologioScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useCaptureOptional } from '../context/CaptureContext';
-import { useMoreMenuOptional } from '../context/MoreMenuContext';
 import { useTasks } from '../hooks/useTasks';
 import { isTaskOverdue } from '../utils/taskListUtils';
-import { typography, spacing, createElevation } from '../theme';
+import { typography, createElevation, radii, motion } from '../theme';
+import { getDockMetrics } from './dockMetrics';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -29,54 +26,52 @@ const TabIcon = ({
   focused,
   color,
   pillColor,
-  tapMin,
 }: {
   name: IconName;
   focused: boolean;
   color: string;
   pillColor: string;
-  tapMin: number;
 }) => (
   <View
     style={[
       styles.iconWrap,
-      { minHeight: Math.max(32, tapMin * 0.7), minWidth: Math.max(32, tapMin * 0.7) },
-      focused && {
-        backgroundColor: pillColor,
-        borderRadius: 20,
-        paddingHorizontal: 14,
-        paddingVertical: 5,
-      },
+      focused
+        ? {
+            backgroundColor: pillColor,
+            borderRadius: radii.full,
+            paddingHorizontal: 12,
+            paddingVertical: 4,
+          }
+        : null,
     ]}
   >
-    <Ionicons name={name} size={22} color={color} />
+    <Ionicons name={name} size={focused ? 22 : 21} color={color} />
   </View>
 );
 
-const hiddenTabOptions = {
-  tabBarButton: () => null as unknown as React.ReactElement,
-  tabBarItemStyle: { display: 'none' as const },
-};
-
 const CapturePlaceholder = () => <View />;
 
+/**
+ * Bottom dock — hooks stay unconditional and in a fixed order
+ * so Fast Refresh / remounts never trip Rules of Hooks.
+ */
 const MainTabs = () => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const { defaultView } = usePreferences();
   const capture = useCaptureOptional();
-  const moreMenu = useMoreMenuOptional();
   const { t } = useTranslation('nav');
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
 
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   const taskBadgeCount = useMemo(
-    () => tasks.filter(tk => isTaskOverdue(tk)).length,
-    [tasks]
+    () => safeTasks.filter(tk => isTaskOverdue(tk)).length,
+    [safeTasks]
   );
 
-  const labelSize = Math.max(11, Math.round(11 * fontScaleMultiplier));
-  const tabBarHeight =
-    Math.max(60, tapMin + 16) + Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 4);
+  const labelSize = Math.max(9, Math.round(10 * fontScaleMultiplier));
+  const metrics = getDockMetrics(tapMin, insets.bottom);
+  const { bottomInset, dockMargin, dockPadBottom, contentHeight, dockHeight, fabSize } = metrics;
 
   const startMap = {
     today: 'ChronologioTab',
@@ -88,37 +83,43 @@ const MainTabs = () => {
 
   return (
     <Tab.Navigator
+      key="main-tabs-v2"
       initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.tabBarForeground,
         tabBarInactiveTintColor: colors.tabBarForegroundInactive,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
+          position: 'absolute',
+          left: dockMargin,
+          right: dockMargin,
+          bottom: bottomInset,
           backgroundColor: colors.tabBarBackground,
-          borderTopWidth: 1,
-          borderTopColor: colors.tabBarBorder,
-          paddingTop: spacing.xs,
-          paddingBottom: Math.max(insets.bottom, spacing.xs),
-          height: tabBarHeight,
-          ...createElevation(colors, 'sm'),
+          borderTopWidth: 0,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.borderLight,
+          borderRadius: radii.dock ?? 22,
+          paddingTop: 8,
+          paddingBottom: dockPadBottom,
+          height: dockHeight,
+          ...createElevation(colors, 'floating'),
         },
         tabBarLabelStyle: {
           ...typography.styles.caption,
           fontSize: labelSize,
           fontWeight: '600',
-          marginTop: 0,
+          letterSpacing: 0.1,
+          marginTop: 2,
+          marginBottom: 0,
         },
         tabBarItemStyle: {
-          minHeight: tapMin,
-          paddingVertical: 2,
+          minHeight: contentHeight,
+          paddingVertical: 0,
+          flex: 1,
         },
       }}
     >
-      <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreen}
-        options={{ tabBarLabel: t('dashboard'), ...hiddenTabOptions }}
-      />
       <Tab.Screen
         name="ChronologioTab"
         component={ChronologioScreen}
@@ -130,7 +131,6 @@ const MainTabs = () => {
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
-              tapMin={tapMin}
             />
           ),
         }}
@@ -146,7 +146,6 @@ const MainTabs = () => {
               focused={focused}
               color={color}
               pillColor={colors.tabBarActivePill}
-              tapMin={tapMin}
             />
           ),
         }}
@@ -162,40 +161,27 @@ const MainTabs = () => {
         }}
         options={{
           tabBarLabel: () => null,
-          tabBarIcon: () => (
-            <View
-              style={{
-                width: Math.max(52, tapMin),
-                height: Math.max(52, tapMin),
-                borderRadius: 999,
-                backgroundColor: colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 8,
-                ...createElevation(colors, 'md'),
-              }}
-            >
-              <Ionicons name="add" size={28} color={colors.onOlive} />
-            </View>
-          ),
           tabBarButton: () => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Capture"
               onPress={() => capture?.openCapture()}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              style={({ pressed }) => [
+                styles.fabHit,
+                { transform: [{ scale: pressed ? motion.fabPressScale : 1 }] },
+              ]}
             >
               <View
-                style={{
-                  width: Math.max(52, tapMin),
-                  height: Math.max(52, tapMin),
-                  borderRadius: 999,
-                  backgroundColor: colors.primary,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 8,
-                  ...createElevation(colors, 'md'),
-                }}
+                style={[
+                  styles.fab,
+                  {
+                    width: fabSize,
+                    height: fabSize,
+                    backgroundColor: colors.primary,
+                    borderColor: colors.tabBarBackground,
+                    ...createElevation(colors, 'md'),
+                  },
+                ]}
               >
                 <Ionicons name="add" size={28} color={colors.onOlive} />
               </View>
@@ -214,51 +200,35 @@ const MainTabs = () => {
                 ? '99+'
                 : String(taskBadgeCount)
               : undefined,
-          ...hiddenTabOptions,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.error,
+            fontSize: 10,
+            fontWeight: '700',
+          },
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              name={focused ? 'checkbox' : 'checkbox-outline'}
+              focused={focused}
+              color={color}
+              pillColor={colors.tabBarActivePill}
+            />
+          ),
         }}
-      />
-      <Tab.Screen
-        name="Calendar"
-        component={CalendarScreen}
-        options={{ tabBarLabel: t('calendar'), ...hiddenTabOptions }}
       />
       <Tab.Screen
         name="More"
         component={MoreScreen}
-        listeners={{
-          tabPress: e => {
-            e.preventDefault();
-            moreMenu?.openMore();
-          },
-        }}
         options={{
           tabBarLabel: t('more'),
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
-              name={focused || moreMenu?.isOpen ? 'menu' : 'menu-outline'}
-              focused={focused || !!moreMenu?.isOpen}
-              color={moreMenu?.isOpen ? colors.tabBarForeground : color}
+              name={focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline'}
+              focused={focused}
+              color={color}
               pillColor={colors.tabBarActivePill}
-              tapMin={tapMin}
             />
           ),
-          tabBarButton: props => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('more')}
-              onPress={() => moreMenu?.openMore()}
-              style={props.style}
-            >
-              {props.children}
-            </Pressable>
-          ),
         }}
-      />
-      {/* Keep registered for deep links / programmatic navigate */}
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ tabBarLabel: t('settings'), ...hiddenTabOptions }}
       />
     </Tab.Navigator>
   );
@@ -266,6 +236,18 @@ const MainTabs = () => {
 
 const styles = StyleSheet.create({
   iconWrap: { alignItems: 'center', justifyContent: 'center' },
+  fabHit: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fab: {
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -20,
+    borderWidth: 3,
+  },
 });
 
 export default MainTabs;

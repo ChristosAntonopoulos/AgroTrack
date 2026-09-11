@@ -225,19 +225,30 @@ const Sheet: React.FC<SheetProps> = ({
             panelStyle,
             {
               backgroundColor: colors.surface,
-              borderColor: colors.border,
-              ...createElevation(colors, isDark ? 'xl' : 'lg'),
+              borderColor: colors.borderLight,
+              borderWidth: StyleSheet.hairlineWidth,
+              ...createElevation(colors, placement === 'left' ? 'md' : isDark ? 'xl' : 'lg'),
             },
             translate,
           ]}
         >
-          <View style={accentBarStyle} pointerEvents="none" />
+          {/* Accent strip only when explicitly requested — keeps nav drawers quiet */}
+          {accent ? <View style={accentBarStyle} pointerEvents="none" /> : null}
           {placement === 'bottom' ? (
             <View style={[styles.handle, { backgroundColor: colors.textTertiary + '6A' }]} />
           ) : null}
 
           {(title || !hideClose) && (
-            <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
+            <View
+              style={[
+                styles.header,
+                {
+                  borderBottomColor: colors.borderLight,
+                  borderBottomWidth: placement === 'left' ? 0 : StyleSheet.hairlineWidth,
+                  paddingBottom: placement === 'left' ? spacing.sm : undefined,
+                },
+              ]}
+            >
               <View style={styles.headerMain}>
                 {icon ? (
                   <View
@@ -270,7 +281,12 @@ const Sheet: React.FC<SheetProps> = ({
                     <Text
                       style={[
                         styles.title,
-                        { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier },
+                        {
+                          color: colors.textPrimary,
+                          fontSize: (placement === 'left' ? 22 : 20) * fontScaleMultiplier,
+                          fontWeight: placement === 'left' ? '700' : '700',
+                          letterSpacing: placement === 'left' ? -0.4 : 0,
+                        },
                       ]}
                       numberOfLines={2}
                     >
@@ -304,13 +320,18 @@ const Sheet: React.FC<SheetProps> = ({
                       minWidth: tapMin,
                       minHeight: tapMin,
                       borderColor: colors.borderLight,
-                      backgroundColor: colors.surfaceMuted,
+                      backgroundColor: placement === 'left' ? 'transparent' : colors.surfaceMuted,
+                      borderWidth: placement === 'left' ? 0 : 1,
                     },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="Close"
                 >
-                  <Ionicons name="close" size={22} color={colors.textPrimary} />
+                  <Ionicons
+                    name="close"
+                    size={22}
+                    color={placement === 'left' ? colors.textSecondary : colors.textPrimary}
+                  />
                 </Pressable>
               ) : null}
             </View>
@@ -355,14 +376,13 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   panel: {
-    borderWidth: 1,
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
   },
   handle: {
-    width: 48,
-    height: 5,
+    width: 36,
+    height: 4,
     borderRadius: radii.full,
     alignSelf: 'center',
     marginTop: spacing.sm,
@@ -375,7 +395,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerMain: {
     flex: 1,
@@ -394,19 +414,16 @@ const styles = StyleSheet.create({
   },
   copy: { flex: 1, minWidth: 0, paddingTop: 2 },
   kicker: {
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    ...typography.styles.overline,
     marginBottom: 4,
   },
   title: {
-    fontWeight: '750' as unknown as '700',
-    letterSpacing: -0.4,
-    lineHeight: 26,
+    ...typography.styles.h3,
+    fontWeight: '700',
   },
   subtitle: {
+    ...typography.styles.bodySmall,
     marginTop: 4,
-    lineHeight: 20,
   },
   closeBtn: {
     borderRadius: radii.lg,

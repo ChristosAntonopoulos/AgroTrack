@@ -41,6 +41,7 @@ export interface RainIntelligence {
   forecast12hMm: number;
   forecast24hMm: number;
   forecast48hMm: number;
+  forecast72hMm?: number;
 }
 
 export interface WindIntelligence {

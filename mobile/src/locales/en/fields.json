@@ -16,6 +16,7 @@
   "openMapsDirections": "Open maps / Directions",
   "fieldLabel": "Olive grove",
   "addFieldLabel": "Add field",
+  "addFieldCta": "Add field",
   "editField": "Edit field",
   "editMapBoundary": "Edit boundary on map",
   "editReviewDesc": "Review your changes before saving.",
@@ -122,8 +123,47 @@
   },
   "page": {
     "tabsAria": "Field sections",
-    "mapData": "Map",
-    "details": "Details"
+    "mapData": "Map & data",
+    "details": "Details",
+    "yearAria": "Result year",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "yearLabel": "Year {{year}}",
+    "capture": "+ Record",
+    "editField": "Edit field",
+    "manageAccess": "Manage access",
+    "draftField": "Draft field",
+    "documents": "Documents"
+  },
+  "summary": {
+    "fields": "fields",
+    "activeTasks": "active tasks"
+  },
+  "details": {
+    "identity": "Identity",
+    "grove": "Grove",
+    "water": "Water",
+    "terrain": "Soil and terrain",
+    "people": "People and access",
+    "unknown": "Not recorded",
+    "more": "More details",
+    "trees": "Number of trees",
+    "boundary": "Boundary",
+    "hasBoundary": "A boundary exists",
+    "noBoundary": "No boundary has been drawn",
+    "rainfed": "Rain-fed",
+    "irrigationType": "Irrigation type",
+    "slope": "Slope",
+    "elevation": "Elevation",
+    "noPeople": "No people have been named yet.",
+    "noDocuments": "There are no documents.",
+    "draftHelp": "Finish the basic field details before relying on recommendations.",
+    "checklist": {
+      "name": "Field name",
+      "boundary": "Boundary or location",
+      "area": "Area",
+      "active": "Active status"
+    }
   },
   "viewModeAria": "View mode",
   "fieldStatus": {
@@ -145,9 +185,48 @@
     "expenses": "Expenses",
     "result": "Result",
     "seeFinance": "See finances →",
+    "completedWork": "Completed work",
+    "yearGlance": {
+      "title": "The year at a glance",
+      "plannedRemaining": "Planned work remaining",
+      "harvest": "Harvest",
+      "oil": "Oil litres",
+      "perHectare": "€ / hectare",
+      "perLitre": "€ / litre",
+      "noHarvest": "There is no harvest for {{year}}.",
+      "noMoney": "There are no financial entries for {{year}}."
+    },
     "recentChronologio": "Recent Chronologio",
     "seeAllChronologio": "See full Chronologio →",
     "needsAttention": "Needs attention",
+    "needsNow": "What is needed now",
+    "statusStrip": {
+      "aria": "Field status",
+      "now": "Now",
+      "attention": "Attention",
+      "lastRecording": "Last recording",
+      "noWarning": "There is no active warning",
+      "noRecording": "There is no recording yet",
+      "unknownStage": "We do not yet know the grove stage."
+    },
+    "attention": {
+      "noneTitle": "The field is quiet",
+      "noneBody": "Nothing needs action right now.",
+      "noneAction": "View tasks",
+      "draftTitle": "This field is still a draft",
+      "draftBody": "Finish the field details before relying on recommendations or money totals.",
+      "alertBody": "{{message}}",
+      "overdueBody": "This task has passed its planned date.",
+      "weatherBody": "The weather does not favour this task on the current date. The date will not change by itself.",
+      "nextBody": "This is the next planned task.",
+      "proposalBody": "{{message}}",
+      "recordingBody": "{{message}}\nRecorded {{when}}.",
+      "seeChange": "See the change",
+      "seeProposal": "See the proposal",
+      "openTask": "Open task",
+      "moveTask": "Move the task",
+      "keepDate": "Keep the date"
+    },
     "recorded": "Recorded {{when}}.",
     "seeObservation": "See observation",
     "area": "Area",
@@ -159,7 +238,12 @@
   },
   "card": {
     "todayTasks": "{{count}} tasks today",
-    "open": "Open →"
+    "todayTasks_zero": "No tasks today",
+    "todayTasksLoading": "Loading tasks…",
+    "open": "Open →",
+    "continueSetup": "Continue setup →",
+    "irrigationYes": "Yes",
+    "metaAria": "Field details"
   },
   "mapTitle": "Fields Map",
   "mapSubtitle": "Satellite view of your fields",
@@ -285,18 +369,36 @@
   },
   "weather": {
     "today": "Weather at the grove",
+    "fieldTitle": "Weather at the field",
     "live": "Now",
     "unavailable": "Weather is not available for this location yet.",
+    "retry": "Try again",
+    "notThatYear": "This is the current weather, not the weather of {{year}}.",
     "highLow": "High {{high}}° · Low {{low}}°",
     "humidity": "Air moisture {{percent}}%",
     "wind": "Wind {{speed}} km/h",
+    "windGust": "Wind {{speed}} km/h · gusts {{gust}}",
+    "rainAmount": "{{mm}} mm of rain",
     "rainNext24h": "{{mm}} mm of rain expected in the next 24 hours",
     "rainNone": "No rain expected in the next 24 hours",
     "frostRisk": "Frost risk: {{level}}",
     "adviceFrost": "Frost risk tonight — protect young trees.",
     "adviceRain": "Do not spray — rain expected today.",
     "adviceOk": "Conditions look workable for field tasks today.",
-    "showDetails": "Show temperature and wind"
+    "showDetails": "Show temperature and wind",
+    "outlook": {
+      "h24": "Next 24 hours",
+      "h48": "Next 48 hours",
+      "h72": "Next 72 hours"
+    },
+    "implication": {
+      "ok": "Conditions are suitable for field work",
+      "okNamed": "Conditions are suitable for {{task}}",
+      "rain": "Rain is likely — consider moving the task",
+      "wind": "Strong wind — avoid spraying",
+      "frost": "Frost risk tonight",
+      "unknown": "There is not enough data for a recommendation"
+    }
   },
   "cropType": "Crop type",
   "locationText": "Location",
@@ -402,6 +504,7 @@
     "colorHint": "Used on Chronologio cards so you can spot this grove quickly.",
     "back": "Back",
     "next": "Next",
+    "stepProgress": "Step {{current}} of {{total}} · {{name}}",
     "errors": {
       "nameRequired": "Field name is required (at least 2 characters)."
     }

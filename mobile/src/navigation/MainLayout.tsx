@@ -1,16 +1,16 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import AppHeader from '../components/layout/AppHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import OfflineBanner from '../components/OfflineBanner';
 import MainTabs from './MainTabs';
 import ExperienceChooserScreen from '../screens/ExperienceChooserScreen';
-import { MoreMenuProvider } from '../context/MoreMenuContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 
 const MainLayout = () => {
   const { colors } = useTheme();
   const { experienceModeChosen, isReady } = usePreferences();
+  const insets = useSafeAreaInsets();
 
   if (!isReady) {
     return <View style={[styles.container, { backgroundColor: colors.background }]} />;
@@ -21,13 +21,10 @@ const MainLayout = () => {
   }
 
   return (
-    <MoreMenuProvider>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <AppHeader />
-        <OfflineBanner />
-        <MainTabs />
-      </View>
-    </MoreMenuProvider>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <OfflineBanner />
+      <MainTabs />
+    </View>
   );
 };
 

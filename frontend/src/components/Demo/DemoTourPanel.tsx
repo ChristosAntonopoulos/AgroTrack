@@ -75,7 +75,7 @@ const DemoTourPanel: React.FC<Props> = ({ userId, role, onClose }) => {
         labelKey: 'onboarding.owner.step1.label',
         hintKey: 'onboarding.owner.step1.hint',
         actionLabelKey: 'onboarding.owner.step1.action',
-        action: () => navigate('/this-harvest'),
+        action: () => navigate('/harvest'),
       },
       {
         key: 'owner_schedule_template',

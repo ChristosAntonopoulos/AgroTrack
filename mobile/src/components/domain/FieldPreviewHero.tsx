@@ -80,6 +80,9 @@ const FieldPreviewHero: React.FC<FieldPreviewHeroProps> = ({
               high={weather?.high}
               low={weather?.low}
               namespace="fields"
+              primaryFieldId={field.id}
+              fieldName={field.name}
+              fields={[{ id: field.id, name: field.name, color: field.color }]}
             />
           ) : null}
           {showAreaCard ? (

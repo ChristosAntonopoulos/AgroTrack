@@ -20,8 +20,9 @@ import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
-import MapPointLayer from '../maps/MapPointLayer';
+import MapFieldPins from '../maps/MapFieldPins';
 import MapRasterOverlay from '../maps/MapRasterOverlay';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import MapLayerToggle from './MapLayerToggle';
 import MapLayerSheet from './MapLayerSheet';
 import MapZoomControls from '../maps/MapZoomControls';
@@ -196,13 +197,18 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             fillOpacity={activeLayerId ? 0 : 0.28}
             strokeWidth={activeLayerId ? 3 : 2.5}
           />
-        ) : (
-          <MapPointLayer
-            sourceId="field-center"
-            points={[{ id: field.id, coordinate: center, color: accent }]}
-            radius={10}
-          />
-        )}
+        ) : null}
+        <MapFieldPins
+          pins={[
+            {
+              id: field.id,
+              coordinate: center,
+              color: accent,
+              label: friendlyFieldLabel(field.name),
+              selected: true,
+            },
+          ]}
+        />
       </AppMapView>
       <View style={styles.toggle} pointerEvents="box-none">
         {allowDataLayers ? (

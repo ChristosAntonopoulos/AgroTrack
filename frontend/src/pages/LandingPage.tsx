@@ -2,9 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  BookOpen,
-  MessageCircle,
-  Smartphone,
+  PenLine,
+  CloudRain,
+  Share2,
+  ClipboardList,
+  Camera,
+  CloudSun,
+  CircleDollarSign,
+  Heart,
+  Users,
+  Leaf,
   Download,
   Mail,
   Check,
@@ -25,63 +32,59 @@ import {
 } from '../config/landingConfig';
 import './LandingPage.css';
 
-import elPhoneToday from '../assets/landing/el-phone-today.png';
-import elPhoneFields from '../assets/landing/el-phone-fields.png';
 import elPhoneField from '../assets/landing/el-phone-field.png';
 import elPhoneTask from '../assets/landing/el-phone-task.png';
-import elPhoneHarvest from '../assets/landing/el-phone-harvest.png';
-import elWebMoney from '../assets/landing/el-web-money.png';
-import elWebField from '../assets/landing/el-web-field.png';
-import enPhoneToday from '../assets/landing/en-phone-today.png';
-import enPhoneFields from '../assets/landing/en-phone-fields.png';
 import enPhoneField from '../assets/landing/en-phone-field.png';
 import enPhoneTask from '../assets/landing/en-phone-task.png';
-import enPhoneHarvest from '../assets/landing/en-phone-harvest.png';
-import enWebMoney from '../assets/landing/en-web-money.png';
-import enWebField from '../assets/landing/en-web-field.png';
 
-type ShotKey =
-  | 'phoneToday'
-  | 'phoneFields'
-  | 'phoneField'
-  | 'phoneTask'
-  | 'phoneHarvest'
-  | 'webMoney'
-  | 'webField';
+type ShotKey = 'phoneField' | 'phoneTask';
 
 const SHOTS_EL: Record<ShotKey, string> = {
-  phoneToday: elPhoneToday,
-  phoneFields: elPhoneFields,
   phoneField: elPhoneField,
   phoneTask: elPhoneTask,
-  phoneHarvest: elPhoneHarvest,
-  webMoney: elWebMoney,
-  webField: elWebField,
 };
 
 const SHOTS_EN: Record<ShotKey, string> = {
-  phoneToday: enPhoneToday,
-  phoneFields: enPhoneFields,
   phoneField: enPhoneField,
   phoneTask: enPhoneTask,
-  phoneHarvest: enPhoneHarvest,
-  webMoney: enWebMoney,
-  webField: enWebField,
 };
 
 const shotsFor = (locale: SupportedLocale): Record<ShotKey, string> =>
   locale === 'el' ? SHOTS_EL : SHOTS_EN;
+
+const PROMISES = [
+  { key: 'record', icon: PenLine },
+  { key: 'data', icon: CloudRain },
+  { key: 'pass', icon: Share2 },
+] as const;
+
+const CHRONO_PILLARS = [
+  { key: 'tasks', icon: ClipboardList },
+  { key: 'notes', icon: Camera },
+  { key: 'weather', icon: CloudSun },
+  { key: 'harvest', icon: CircleDollarSign },
+] as const;
+
+const SHARE_ROLES = [
+  { key: 'family', icon: Heart },
+  { key: 'partners', icon: Users },
+  { key: 'agronomist', icon: Leaf },
+] as const;
 
 const LandingPage: React.FC = () => {
   const { t } = useTranslation('landing');
   const { locale, setLocale } = useLocale();
   const shots = shotsFor(locale);
   const [scrolled, setScrolled] = useState(false);
-  const [faqOpen, setFaqOpen] = useState<number | null>(1);
   const [installOpen, setInstallOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoForm, setDemoForm] = useState({ name: '', email: '', org: '', message: '' });
+
+  const lines = useCallback(
+    (key: string) => t(key, { returnObjects: true }) as string[],
+    [t]
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -101,8 +104,6 @@ const LandingPage: React.FC = () => {
     };
   }, [mobileMenuOpen]);
 
-  const faqKeys = [1, 2, 3, 4, 5, 6] as const;
-
   const submitDemo = (e: React.FormEvent) => {
     e.preventDefault();
     const subject = encodeURIComponent(t('demo.mailtoSubject'));
@@ -113,13 +114,17 @@ const LandingPage: React.FC = () => {
     setDemoOpen(false);
   };
 
-  const noteRows: { key: string; shot: ShotKey; frame: 'phone' | 'laptop' }[] = [
-    { key: 'fields', shot: 'phoneFields', frame: 'phone' },
-    { key: 'today', shot: 'phoneToday', frame: 'phone' },
-    { key: 'harvest', shot: 'phoneHarvest', frame: 'phone' },
-    { key: 'costs', shot: 'webMoney', frame: 'laptop' },
-    { key: 'history', shot: 'phoneField', frame: 'phone' },
-  ];
+  const headerCtas = (
+    <>
+      <Link to="/login" className="landing-btn landing-btn--outline landing-btn--sm landing-btn--on-hero landing-header-signin">
+        <LogIn size={16} aria-hidden />
+        <span>{t('header.signIn')}</span>
+      </Link>
+      <Link to="/register" className="landing-btn landing-btn--primary landing-btn--sm landing-header-start">
+        {t('header.startFree')}
+      </Link>
+    </>
+  );
 
   return (
     <div className="landing">
@@ -142,7 +147,6 @@ const LandingPage: React.FC = () => {
               size="sm"
               alt={t('brand')}
             />
-            <span className="landing-alpha-pill">{t('alphaBadge')}</span>
           </a>
 
           <nav className="landing-nav" aria-label="Main">
@@ -167,18 +171,7 @@ const LandingPage: React.FC = () => {
                 </button>
               ))}
             </div>
-            <Link to="/login" className="landing-btn landing-btn--primary landing-btn--sm landing-header-signin">
-              <LogIn size={16} aria-hidden />
-              <span>{t('header.signIn')}</span>
-            </Link>
-            <a
-              href={ALPHA_APK_URL}
-              download={ALPHA_APK_FILENAME}
-              className="landing-btn landing-btn--outline landing-btn--sm landing-btn--on-hero landing-header-download"
-            >
-              <Download size={16} aria-hidden />
-              <span>{t('header.downloadAlpha')}</span>
-            </a>
+            {headerCtas}
             <button
               type="button"
               className="landing-menu-btn"
@@ -217,21 +210,19 @@ const LandingPage: React.FC = () => {
               </div>
               <Link
                 to="/login"
-                className="landing-btn landing-btn--primary landing-btn--block"
+                className="landing-btn landing-btn--outline landing-btn--block"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <LogIn size={18} aria-hidden />
                 {t('header.signIn')}
               </Link>
-              <a
-                href={ALPHA_APK_URL}
-                download={ALPHA_APK_FILENAME}
-                className="landing-btn landing-btn--outline landing-btn--block"
+              <Link
+                to="/register"
+                className="landing-btn landing-btn--primary landing-btn--block"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <Download size={18} aria-hidden />
-                {t('header.downloadAlpha')}
-              </a>
+                {t('header.startFree')}
+              </Link>
             </div>
           </div>
         ) : null}
@@ -241,103 +232,211 @@ const LandingPage: React.FC = () => {
         <section className="landing-hero">
           <div className="landing-container landing-hero-grid">
             <div className="landing-hero-copy">
+              <p className="landing-eyebrow">{t('hero.eyebrow')}</p>
               <h1>{t('hero.title')}</h1>
-              <p className="landing-lead">{t('hero.subtitle')}</p>
+              <p className="landing-lead">
+                <strong>{t('hero.leadYou')}</strong> {t('hero.leadProduct')}
+              </p>
+              <p className="landing-hero-body">{t('hero.body')}</p>
               <div className="landing-hero-ctas">
                 <Link to="/register" className="landing-btn landing-btn--hero-primary">
                   {t('hero.ctaPrimary')}
                 </Link>
-                <a
-                  href={ALPHA_APK_URL}
-                  download={ALPHA_APK_FILENAME}
+                <button
+                  type="button"
                   className="landing-btn landing-btn--hero-secondary"
+                  onClick={() => scrollTo('chronologio')}
                 >
-                  <Download size={18} aria-hidden />
                   {t('hero.ctaSecondary')}
-                </a>
+                </button>
               </div>
-              <button type="button" className="landing-text-link" onClick={() => setDemoOpen(true)}>
-                {t('hero.ctaDemo')}
-              </button>
-              <p className="landing-trust">{t('hero.trust')}</p>
             </div>
 
             <div className="landing-hero-visual">
               <figure className="landing-device landing-device--phone landing-device--hero">
-                <img src={shots.phoneToday} alt={t('hero.shotAlt')} />
+                <img src={shots.phoneField} alt={t('hero.shotAlt')} />
               </figure>
             </div>
           </div>
         </section>
 
-        <section id="product" className="landing-section landing-section--cream">
-          <div className="landing-container landing-section-head">
-            <h2>{t('shift.title')}</h2>
-            <p>{t('shift.text')}</p>
-          </div>
+        <section id="features" className="landing-section landing-section--cream">
           <div className="landing-container landing-shift-grid">
-            {[
-              { icon: BookOpen, title: t('shift.paperTitle'), text: t('shift.paperText') },
-              { icon: MessageCircle, title: t('shift.chatTitle'), text: t('shift.chatText') },
-              { icon: Smartphone, title: t('shift.phoneTitle'), text: t('shift.phoneText') },
-            ].map(({ icon: Icon, title, text }) => (
-              <article key={title} className="landing-shift-card">
+            {PROMISES.map(({ key, icon: Icon }) => (
+              <article key={key} className="landing-shift-card">
                 <div className="landing-card-icon">
                   <Icon size={22} strokeWidth={1.75} />
                 </div>
-                <h3>{title}</h3>
-                <p>{text}</p>
+                <h3>{t(`promises.${key}Title`)}</h3>
+                <p>{t(`promises.${key}Text`)}</p>
               </article>
             ))}
           </div>
         </section>
 
         <section className="landing-section">
-          <div className="landing-container landing-section-head">
-            <h2>{t('notes.title')}</h2>
-            <p>{t('notes.text')}</p>
+          <div className="landing-container landing-prose">
+            <h2>{t('problem.title')}</h2>
+            <ul className="landing-questions">
+              {lines('problem.questions').map((q) => (
+                <li key={q}>{q}</li>
+              ))}
+            </ul>
+            <p>{t('problem.someRemember')}</p>
+            <p>{t('problem.someScattered')}</p>
+            <p>{t('problem.someLost')}</p>
+            <p className="landing-close">{t('problem.close')}</p>
           </div>
-          <div className="landing-container landing-notes">
-            {noteRows.map(({ key, shot, frame }, index) => (
-              <article
-                key={key}
-                className={`landing-note-row${index % 2 === 1 ? ' landing-note-row--flip' : ''}`}
-              >
-                <div className="landing-note-copy">
-                  <h3>{t(`notes.${key}Title`)}</h3>
-                  <p>{t(`notes.${key}Text`)}</p>
+        </section>
+
+        <section className="landing-section landing-section--olive">
+          <div className="landing-container landing-moment">
+            <h2>
+              {t('brandMoment.title1')}
+              <br />
+              {t('brandMoment.title2')}
+            </h2>
+            <p className="landing-moment-intro">{t('brandMoment.intro')}</p>
+            <ul className="landing-moment-lines">
+              {lines('brandMoment.lines').map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <p>{t('brandMoment.notScattered')}</p>
+            <p className="landing-close">{t('brandMoment.together')}</p>
+          </div>
+        </section>
+
+        <section id="chronologio" className="landing-section landing-section--muted">
+          <div className="landing-container landing-chrono">
+            <div className="landing-section-head landing-section-head--left">
+              <p className="landing-eyebrow landing-eyebrow--on-light">{t('chronologio.eyebrow')}</p>
+              <h2>{t('chronologio.title')}</h2>
+              <p>{t('chronologio.text')}</p>
+              <p>{t('chronologio.range')}</p>
+            </div>
+            <div className="landing-chrono-body">
+              <div className="landing-pillar-grid">
+                {CHRONO_PILLARS.map(({ key, icon: Icon }) => (
+                  <article key={key} className="landing-pillar">
+                    <div className="landing-card-icon">
+                      <Icon size={20} strokeWidth={1.75} />
+                    </div>
+                    <h3>{t(`chronologio.${key}Title`)}</h3>
+                    <p>{t(`chronologio.${key}Text`)}</p>
+                  </article>
+                ))}
+              </div>
+              <figure className="landing-device landing-device--phone">
+                <img src={shots.phoneField} alt={t('chronologio.shotAlt')} />
+              </figure>
+            </div>
+            <Link to="/register" className="landing-btn landing-btn--primary">
+              {t('chronologio.cta')}
+            </Link>
+          </div>
+        </section>
+
+        <section className="landing-section">
+          <div className="landing-container landing-prose">
+            <h2>{t('knowledge.title')}</h2>
+            <p>{t('knowledge.p1')}</p>
+            <p>{t('knowledge.p2')}</p>
+            <p>{t('knowledge.p3')}</p>
+            <p className="landing-close">{t('knowledge.youKnow')}</p>
+            <p className="landing-close">{t('knowledge.weRemember')}</p>
+            <p>{t('knowledge.together')}</p>
+            <p className="landing-knowledge-close">{t('knowledge.close')}</p>
+          </div>
+        </section>
+
+        <section className="landing-section landing-section--cream">
+          <div className="landing-container">
+            <div className="landing-section-head">
+              <h2>{t('beforeAfter.title')}</h2>
+            </div>
+            <div className="landing-compare">
+              <article className="landing-compare-card">
+                <h3>{t('beforeAfter.beforeTitle')}</h3>
+                <ul>
+                  {lines('beforeAfter.beforeItems').map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+              <article className="landing-compare-card landing-compare-card--after">
+                <h3>{t('beforeAfter.afterTitle')}</h3>
+                <ul>
+                  {lines('beforeAfter.afterItems').map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="partners" className="landing-section">
+          <div className="landing-container landing-section-head">
+            <h2>{t('sharing.title')}</h2>
+            <p>{t('sharing.text')}</p>
+            <p>{t('sharing.share')}</p>
+          </div>
+          <div className="landing-container landing-shift-grid">
+            {SHARE_ROLES.map(({ key, icon: Icon }) => (
+              <article key={key} className="landing-shift-card">
+                <div className="landing-card-icon">
+                  <Icon size={22} strokeWidth={1.75} />
                 </div>
-                <figure className={`landing-device landing-device--${frame}`}>
-                  <img src={shots[shot]} alt={t(`notes.${key}Alt`)} />
-                </figure>
+                <h3>{t(`sharing.${key}Title`)}</h3>
+                <p>{t(`sharing.${key}Text`)}</p>
               </article>
             ))}
           </div>
         </section>
 
         <section className="landing-section landing-section--muted">
-          <div className="landing-container landing-section-head">
-            <h2>{t('audience.title')}</h2>
-          </div>
-          <div className="landing-container landing-audience-grid">
-            <article className="landing-audience-card">
-              <h3>{t('audience.ownerTitle')}</h3>
-              <p>{t('audience.ownerText')}</p>
-              <figure className="landing-device landing-device--laptop landing-device--embedded">
-                <img src={shots.webField} alt={t('audience.ownerAlt')} />
-              </figure>
-            </article>
-            <article className="landing-audience-card landing-audience-card--accent">
-              <h3>{t('audience.producerTitle')}</h3>
-              <p>{t('audience.producerText')}</p>
-              <figure className="landing-device landing-device--phone landing-device--embedded">
-                <img src={shots.phoneTask} alt={t('audience.producerAlt')} />
-              </figure>
-            </article>
+          <div className="landing-container landing-years-wrap">
+            <h2>{t('timeValue.title')}</h2>
+            <ol className="landing-years">
+              <li>
+                <span>1</span>
+                <p>{t('timeValue.year1')}</p>
+              </li>
+              <li>
+                <span>2</span>
+                <p>{t('timeValue.year2')}</p>
+              </li>
+              <li>
+                <span>3</span>
+                <p>{t('timeValue.year3')}</p>
+              </li>
+            </ol>
+            <p className="landing-years-bridge">{t('timeValue.bridge')}</p>
+            <p className="landing-knowledge-close">{t('timeValue.close')}</p>
           </div>
         </section>
 
-        <section id="how-it-works" className="landing-section">
+        <section className="landing-section">
+          <div className="landing-container landing-simple">
+            <div className="landing-prose landing-prose--flush">
+              <h2>{t('simpleUse.title')}</h2>
+              <p>{t('simpleUse.p1')}</p>
+              <ul className="landing-actions">
+                {lines('simpleUse.actions').map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <p>{t('simpleUse.keepGoing')}</p>
+              <p className="landing-close">{t('simpleUse.close')}</p>
+            </div>
+            <figure className="landing-device landing-device--phone">
+              <img src={shots.phoneTask} alt={t('simpleUse.shotAlt')} />
+            </figure>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="landing-section landing-section--cream">
           <div className="landing-container landing-section-head">
             <h2>{t('steps.title')}</h2>
           </div>
@@ -352,7 +451,17 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="download" className="landing-section landing-section--muted">
+        <section className="landing-section landing-section--olive">
+          <div className="landing-container landing-moment">
+            <h2>{t('future.title')}</h2>
+            <p>{t('future.p1')}</p>
+            <p>{t('future.p2')}</p>
+            <p className="landing-future-lockup">{t('future.lockup')}</p>
+            <p className="landing-close">{t('future.close')}</p>
+          </div>
+        </section>
+
+        <section id="pricing" className="landing-section landing-section--muted">
           <div className="landing-container landing-alpha-grid">
             <div className="landing-section-head">
               <h2>{t('alpha.title')}</h2>
@@ -369,7 +478,7 @@ const LandingPage: React.FC = () => {
                 </div>
               </div>
               <ul className="landing-apk-includes">
-                {(t('alpha.includes', { returnObjects: true }) as string[]).map((item) => (
+                {lines('alpha.includes').map((item) => (
                   <li key={item}>
                     <Check size={14} aria-hidden />
                     {item}
@@ -390,17 +499,17 @@ const LandingPage: React.FC = () => {
                   <dd>{t('alpha.statusValue')}</dd>
                 </div>
               </dl>
+              <Link to="/register" className="landing-btn landing-btn--primary landing-btn--block">
+                {t('alpha.webCta')}
+              </Link>
               <a
                 href={ALPHA_APK_URL}
                 download={ALPHA_APK_FILENAME}
-                className="landing-btn landing-btn--primary landing-btn--block"
+                className="landing-btn landing-btn--outline landing-btn--block"
               >
                 <Download size={18} aria-hidden />
                 {t('alpha.download')}
               </a>
-              <Link to="/register" className="landing-btn landing-btn--outline landing-btn--block">
-                {t('alpha.webCta')}
-              </Link>
               <button
                 type="button"
                 className="landing-apk-guide-toggle"
@@ -414,7 +523,7 @@ const LandingPage: React.FC = () => {
                 <div className="landing-apk-guide">
                   <h4>{t('alpha.installTitle')}</h4>
                   <ol>
-                    {(t('alpha.installSteps', { returnObjects: true }) as string[]).map((step) => (
+                    {lines('alpha.installSteps').map((step) => (
                       <li key={step}>{step}</li>
                     ))}
                   </ol>
@@ -428,40 +537,18 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="faq" className="landing-section">
-          <div className="landing-container landing-faq-wrap">
-            <h2>{t('faq.title')}</h2>
-            <div className="landing-faq-list">
-              {faqKeys.map((n) => (
-                <article key={n} className={`landing-faq-item${faqOpen === n ? ' open' : ''}`}>
-                  <button
-                    type="button"
-                    className="landing-faq-q"
-                    onClick={() => setFaqOpen(faqOpen === n ? null : n)}
-                    aria-expanded={faqOpen === n}
-                  >
-                    {t(`faq.q${n}`)}
-                    <ChevronDown size={18} aria-hidden />
-                  </button>
-                  {faqOpen === n && <p className="landing-faq-a">{t(`faq.a${n}`)}</p>}
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="landing-cta">
           <div className="landing-container landing-cta-inner">
+            <p className="landing-eyebrow">{t('cta.kicker')}</p>
             <h2>{t('cta.title')}</h2>
             <p>{t('cta.text')}</p>
             <div className="landing-hero-ctas landing-hero-ctas--centered">
               <Link to="/register" className="landing-btn landing-btn--light">
                 {t('cta.primary')}
               </Link>
-              <a href={ALPHA_APK_URL} download={ALPHA_APK_FILENAME} className="landing-btn landing-btn--ghost">
-                <Download size={18} aria-hidden />
+              <button type="button" className="landing-btn landing-btn--ghost" onClick={() => setDemoOpen(true)}>
                 {t('cta.secondary')}
-              </a>
+              </button>
             </div>
           </div>
         </section>

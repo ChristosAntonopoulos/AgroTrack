@@ -127,14 +127,14 @@ const DashboardScreen = () => {
 
   const goTab = (
     screen: 'Fields' | 'Tasks' | 'Calendar',
-    params?: MainTabParamList['Tasks'] | MainTabParamList['Calendar']
+    params?: MainTabParamList['Tasks'] | RootStackParamList['Calendar']
   ) => {
     if (screen === 'Fields') {
       navigation.navigate('Main', { screen: 'Fields' });
     } else if (screen === 'Tasks') {
       navigation.navigate('Main', { screen: 'Tasks', params: params as MainTabParamList['Tasks'] });
     } else {
-      navigation.navigate('Main', { screen: 'Calendar', params: params as MainTabParamList['Calendar'] });
+      navigation.navigate('Calendar', params as RootStackParamList['Calendar']);
     }
   };
 
@@ -453,7 +453,13 @@ const DashboardScreen = () => {
 
         {owner ? (
           <View style={styles.widgetRow}>
-            <WeatherWidget weather={weather} loading={weatherLoading} />
+            <WeatherWidget
+              weather={weather}
+              loading={weatherLoading}
+              fields={fields.slice(0, 8).map(f => ({ id: f.id, name: f.name, color: f.color }))}
+              primaryFieldId={fields[0]?.id}
+              fieldName={fields[0]?.name}
+            />
             <ActivityTimeline
               activities={showWidget('myActions') ? (meDashboard.recent as any) : activities}
               fieldNames={fieldNamesMap}

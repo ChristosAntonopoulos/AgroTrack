@@ -87,7 +87,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
       return;
     }
     if (entry.sourceType === 'Harvest') {
-      navigate('/this-harvest');
+      navigate('/harvest');
       return;
     }
     if (entry.sourceType === 'Note') {

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/EmptyState';
@@ -41,7 +40,6 @@ const ServiceRequestsScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('requests')} />
       <View style={styles.tabs}>
         <Button title={t('inbox')} variant={tab === 'incoming' ? 'primary' : 'outline'} onPress={() => setTab('incoming')} />
         <Button title={t('outbox')} variant={tab === 'outgoing' ? 'primary' : 'outline'} onPress={() => setTab('outgoing')} />

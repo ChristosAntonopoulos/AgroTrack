@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -22,7 +23,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/EmptyState';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
+import HeaderIconButton from '../components/layout/HeaderIconButton';
 import Section from '../components/layout/Section';
 import CalendarEventRow from '../components/calendar/CalendarEventRow';
 import CalendarWeekStrip from '../components/calendar/CalendarWeekStrip';
@@ -40,10 +41,10 @@ import {
 import { CalendarFilters } from '../services/calendarService';
 import { typography, spacing } from '../theme';
 import { createElevation } from '../theme/elevation';
-import { MainTabParamList, RootStackParamList } from '../navigation/types';
+import { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type CalRoute = RouteProp<MainTabParamList, 'Calendar'>;
+type CalRoute = RouteProp<RootStackParamList, 'Calendar'>;
 type ViewMode = 'agenda' | 'week' | 'month' | 'field';
 
 const CalendarScreen = () => {
@@ -140,16 +141,35 @@ const CalendarScreen = () => {
     });
   };
 
-  const jumpToToday = () => {
+  const jumpToToday = useCallback(() => {
     const today = new Date();
     setAnchorDate(today);
     setDaySheetDate(today);
-  };
+  }, []);
 
   const clearFieldFilter = () => {
     navigation.setParams({ fieldId: undefined });
     setFilters(prev => ({ ...prev, fieldIds: undefined }));
   };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginRight: 4 }}>
+          <Pressable onPress={jumpToToday} hitSlop={8} accessibilityRole="button">
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 }}>{t('today')}</Text>
+          </Pressable>
+          <HeaderIconButton
+            icon="options-outline"
+            accessibilityLabel={t('filters', { defaultValue: 'Filters' })}
+            onPress={() => setFiltersOpen(true)}
+            active={activeFilterCount > 0}
+            badge={activeFilterCount > 0 ? activeFilterCount : undefined}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, jumpToToday, colors.primary, t, activeFilterCount]);
 
   if (loading && events.length === 0) {
     return <LoadingSpinner fullScreen />;
@@ -165,33 +185,7 @@ const CalendarScreen = () => {
           : fieldGroups.length > 0;
 
   return (
-    <ScreenLayout style={styles.safe}>
-      <ScreenHeader
-        title={t('title')}
-        subtitle={t('subtitleShort', { count: events.length })}
-        action={
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={jumpToToday}
-              style={[styles.headerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <Text style={{ color: colors.link, fontWeight: '700', fontSize: 12 }}>
-                {t('today')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setFiltersOpen(true)}
-              style={[styles.headerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <Ionicons name="options-outline" size={16} color={colors.primary} />
-              {activeFilterCount > 0 ? (
-                <View style={[styles.filterDot, { backgroundColor: colors.error }]} />
-              ) : null}
-            </TouchableOpacity>
-          </View>
-        }
-      />
-
+    <ScreenLayout style={styles.safe} padded>
       {fieldFilterName ? (
         <View style={[styles.fieldBanner, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
           <Ionicons name="leaf" size={16} color={colors.primary} />
@@ -436,7 +430,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     minHeight: 36,
     justifyContent: 'center',
   },
@@ -452,28 +446,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginHorizontal: spacing.base,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   fieldBannerText: { flex: 1, fontWeight: '600', fontSize: 13 },
   summaryRow: {
     flexDirection: 'row',
-    marginHorizontal: spacing.base,
     marginBottom: spacing.sm,
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.md,
   },
   summaryPill: { flex: 1, alignItems: 'center', gap: 2 },
   summaryValue: { ...typography.styles.h3, fontWeight: '700', fontSize: 18 },
   summaryLabel: { ...typography.styles.caption, fontSize: 10, textAlign: 'center' },
-  summaryDivider: { width: 1, alignSelf: 'stretch', marginVertical: spacing.xs },
+  summaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: spacing.xs },
   viewToggle: {
-    paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
   },
   content: { paddingBottom: 100 },
