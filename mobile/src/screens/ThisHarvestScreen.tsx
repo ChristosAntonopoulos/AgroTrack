@@ -40,7 +40,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const ThisHarvestScreen = () => {
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const navigation = useNavigation<Nav>();
   const { fields } = useFields();
@@ -53,7 +53,6 @@ const ThisHarvestScreen = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [oliveKg, setOliveKg] = useState(0);
   const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
-  const [showAll, setShowAll] = useState(false);
 
   const anyIrrigated = useMemo(() => fields.some((f) => Boolean(f.irrigationStatus)), [fields]);
 
@@ -83,12 +82,12 @@ const ThisHarvestScreen = () => {
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
           .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-          .slice(0, isEveryday ? 4 : 12)
+          .slice(0, 12)
       );
     } finally {
       setLoading(false);
     }
-  }, [bounds, isEveryday, seasonStartYear, i18n.language]);
+  }, [bounds, seasonStartYear, i18n.language]);
 
   useEffect(() => {
     void load();
@@ -104,11 +103,7 @@ const ThisHarvestScreen = () => {
     return computeRodProgress(milestones);
   }, [tasks, anyIrrigated, seasonStartYear]);
 
-  const visible = useMemo(() => {
-    if (showAll || !isEveryday) return progress.milestones;
-    return progress.milestones.filter((m) => !m.done).slice(0, 5);
-  }, [progress.milestones, showAll, isEveryday]);
-
+  const visible = progress.milestones;
   const toggle = async (taskId: string | undefined, done: boolean) => {
     if (!taskId || togglingId) return;
     const task = tasks.find((t) => t.id === taskId);
@@ -171,23 +166,21 @@ const ThisHarvestScreen = () => {
           {t('fields:thisHarvest.inProgress')} ·{' '}
           {t('fields:thisHarvest.phaseFocus', { phase: phaseLabel(progress.activePhaseId) })}
         </Text>
-        {!isEveryday ? (
-          <View style={styles.phases}>
-            {ROD_PHASE_ORDER.map((id) => {
-              const phase = progress.phases.find((p) => p.id === id);
-              return (
-                <View key={id} style={[styles.phase, { borderColor: colors.border }]}>
-                  <Text style={{ color: colors.textPrimary, fontSize: 11 * fontScaleMultiplier, fontWeight: '700' }}>
-                    {phaseLabel(id)}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12 * fontScaleMultiplier }}>
-                    {phase?.percent ?? 0}%
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ) : null}
+        <View style={styles.phases}>
+          {ROD_PHASE_ORDER.map((id) => {
+            const phase = progress.phases.find((p) => p.id === id);
+            return (
+              <View key={id} style={[styles.phase, { borderColor: colors.border }]}>
+                <Text style={{ color: colors.textPrimary, fontSize: 11 * fontScaleMultiplier, fontWeight: '700' }}>
+                  {phaseLabel(id)}
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 * fontScaleMultiplier }}>
+                  {phase?.percent ?? 0}%
+                </Text>
+              </View>
+            );
+          })}
+        </View>
       </View>
 
       <View style={[styles.section, { borderBottomColor: colors.border }]}>
@@ -229,19 +222,6 @@ const ThisHarvestScreen = () => {
             </View>
           ))
         )}
-        {isEveryday && progress.milestones.filter((m) => !m.done).length > 5 ? (
-          <Button
-            title={
-              showAll
-                ? t('fields:thisHarvest.milestonesLess')
-                : t('fields:thisHarvest.milestonesMore', {
-                    count: progress.milestones.filter((m) => !m.done).length,
-                  })
-            }
-            variant="ghost"
-            onPress={() => setShowAll((v) => !v)}
-          />
-        ) : null}
       </View>
 
       <View style={[styles.section, { borderBottomColor: colors.border }]}>

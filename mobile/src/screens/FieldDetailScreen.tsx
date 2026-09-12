@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Pressable,
   Alert,
   DeviceEventEmitter,
 } from 'react-native';
@@ -22,11 +21,11 @@ import {
   getFieldWorkService,
   getFinancialSummaryService,
   getChronologioService,
+  getHarvestService,
 } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
@@ -42,9 +41,11 @@ import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
+import FieldHarvestCard from '../components/domain/FieldHarvestCard';
 import FieldLocalNavigation, { FieldTab } from '../components/fields/FieldLocalNavigation';
 import FieldResultYearControl from '../components/fields/FieldResultYearControl';
 import ChronologioScreen from './ChronologioScreen';
+import type { HarvestRecord } from '../services/harvestService';
 import { spacing } from '../theme';
 import { getDockMetrics } from '../navigation/dockMetrics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,8 +81,7 @@ const FieldDetailScreen = () => {
   const { isFieldOwner, user } = useAuth();
   const capture = useCaptureOptional();
   const { colors, tapMin } = useTheme();
-  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings']);
-  const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
+  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
   const insets = useSafeAreaInsets();
   const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
   const currentYear = athensYear();
@@ -100,11 +100,10 @@ const FieldDetailScreen = () => {
   const [yearRollup, setYearRollup] = useState<FieldYearSummary | null>(null);
   const [plannedRemaining, setPlannedRemaining] = useState(0);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
+  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
   const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [everydayFieldPeek, setEverydayFieldPeek] = useState(false);
-
   const tab = parseTab(modeParam);
 
   const loadWeather = useCallback(async () => {
@@ -126,7 +125,7 @@ const FieldDetailScreen = () => {
     try {
       const finance = getFinancialSummaryService();
       const work = getFieldWorkService();
-      const [fieldData, taskPlan, summary, rollup, chrono, fieldAlerts, fieldPhenology] =
+      const [fieldData, taskPlan, summary, rollup, chrono, fieldAlerts, fieldPhenology, harvests] =
         await Promise.all([
           getFieldService().getField(fieldId),
           work.getTaskPlan(fieldId, year).catch(() => null),
@@ -141,6 +140,7 @@ const FieldDetailScreen = () => {
             .catch(() => [] as ChronologioEntry[]),
           geospatialService.getAlerts(fieldId).catch(() => [] as FieldEnvironmentalAlert[]),
           work.getPhenology(fieldId).catch(() => null),
+          getHarvestService().listByField(fieldId).catch(() => [] as HarvestRecord[]),
         ]);
       if (isFieldSetupIncomplete(fieldData.status)) {
         navigation.replace('FieldForm', { fieldId: fieldData.id });
@@ -158,6 +158,7 @@ const FieldDetailScreen = () => {
       setCostSummary(summary);
       setYearRollup(rollup);
       setRecentEntries(chrono);
+      setHarvestRecords(Array.isArray(harvests) ? harvests : []);
       setError(null);
     } catch {
       setError(t('fields:form.failedLoad'));
@@ -186,6 +187,15 @@ const FieldDetailScreen = () => {
       navigation.navigate('Money', { fieldId, year });
     }
   }, [fieldId, focus, navigation, year]);
+
+  useEffect(() => {
+    if (focus !== 'harvest' && focus !== 'harvest-final') return;
+    navigation.setParams({ focus: undefined });
+    capture?.openCapture({
+      preferredType: 'harvest',
+      fieldId,
+    });
+  }, [capture, fieldId, focus, navigation]);
 
   useEffect(() => {
     if (!field) {
@@ -333,31 +343,8 @@ const FieldDetailScreen = () => {
 
   const renderMapPanel = () => (
     <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
-      <FieldDetailMap field={field} height={isEveryday ? 280 : 360} />
-      {field.boundary && showWidget('fieldIntelligence') ? (
-        <FieldIntelligenceCard fieldId={field.id} />
-      ) : null}
-      {field.boundary && isEveryday && !showWidget('fieldIntelligence') ? (
-        everydayFieldPeek ? (
-          <FieldIntelligenceCard fieldId={field.id} />
-        ) : (
-          <Pressable
-            onPress={() => {
-              setEverydayFieldPeek(true);
-              void recordIntelligenceOpen();
-            }}
-            style={[
-              styles.peekBtn,
-              { borderColor: colors.borderLight, backgroundColor: colors.surface, minHeight: tapMin },
-            ]}
-            accessibilityRole="button"
-          >
-            <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-              {t('settings:experience.peekMoreAboutField')}
-            </Text>
-          </Pressable>
-        )
-      ) : null}
+      <FieldDetailMap field={field} height={360} />
+      {field.boundary ? <FieldIntelligenceCard fieldId={field.id} /> : null}
     </ScrollView>
   );
 
@@ -367,13 +354,8 @@ const FieldDetailScreen = () => {
         {field.status === 'Draft' ? (
           <Text style={[styles.draft, { color: colors.warning }]}>{t('fields:page.draftField')}</Text>
         ) : null}
-        <FieldIdentity field={field} size="page" />
-        <Text style={[styles.yearLabel, { color: colors.textSecondary }]}>
-          {t('fields:page.yearLabel', { year })}
-        </Text>
-        <View style={styles.headerControls}>
-          <FieldResultYearControl year={year} onYearChange={setYear} />
-        </View>
+        <FieldIdentity field={field} size="page" hideTitle />
+        <FieldResultYearControl year={year} onYearChange={setYear} />
       </View>
 
       <FieldLocalNavigation tab={tab} onTabChange={setTab} />
@@ -433,6 +415,20 @@ const FieldDetailScreen = () => {
             plannedRemaining={plannedRemaining}
             onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
           />
+          <FieldHarvestCard
+            fieldId={field.id}
+            records={harvestRecords}
+            canAdd={field.status !== 'Draft'}
+            canVoid={canOwn}
+            onLogHarvest={() =>
+              capture?.openCapture({ preferredType: 'harvest', fieldId: field.id })
+            }
+            onOpenCampaign={() => navigation.navigate('HarvestCampaign')}
+            onVoid={async (id) => {
+              await getHarvestService().void(id);
+              await load();
+            }}
+          />
           <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
         </ScrollView>
       ) : null}
@@ -445,7 +441,7 @@ const FieldDetailScreen = () => {
         </ScrollView>
       ) : null}
 
-      {capture ? (
+      {capture && tab !== 'details' && tab !== 'map' ? (
         <View style={[styles.stickyCapture, { bottom: dockHeight + bottomInset + spacing.sm }]}>
           <Button title={t('fields:page.capture')} onPress={openCapture} fullWidth />
         </View>
@@ -458,33 +454,18 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: {
     paddingHorizontal: spacing.base,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
   draft: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-  },
-  yearLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: spacing.xs,
-  },
-  headerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   panel: {
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: spacing['3xl'] + 56,
-  },
-  peekBtn: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
   },
   stickyCapture: {
     position: 'absolute',

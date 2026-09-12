@@ -37,6 +37,8 @@ public static class DependencyInjection
         services.AddScoped<ISavedContactService, SavedContactService>();
         services.AddScoped<INoteService, NoteService>();
         services.AddScoped<IMediaAttachmentService, MediaAttachmentService>();
+        services.AddScoped<IFieldGeoMatchService, FieldGeoMatchService>();
+        services.AddScoped<IPhotoHubService, PhotoHubService>();
         services.AddScoped<IUserNotificationService, UserNotificationService>();
         services.AddScoped<IMeDashboardService, MeDashboardService>();
         services.AddScoped<IFamilyService, FamilyService>();

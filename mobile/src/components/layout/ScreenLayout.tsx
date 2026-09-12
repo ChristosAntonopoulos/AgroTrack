@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing } from '../../theme';
 import { getDockMetrics } from '../../navigation/dockMetrics';
+import AppCanvas from './AppCanvas';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
@@ -25,9 +26,16 @@ interface ScreenLayoutProps {
   padded?: boolean;
   /** Extra bottom padding for floating dock (tab roots). Default false — enable on tab screens. */
   tabBarInset?: boolean;
+  /**
+   * Skip parchment (map / camera / full-bleed photo surfaces).
+   * Default false — post-login screens should show the journal canvas.
+   */
+  plain?: boolean;
+  /** Soften illustrated parchment (0–1). Default 1. */
+  canvasOpacity?: number;
 }
 
-/** Quiet limestone screen shell — padding owned here, not by competing headers. */
+/** Journal shell — parchment canvas behind paper islands (matches web PageContainer + app-canvas). */
 const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   children,
   scroll = false,
@@ -37,38 +45,36 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   style,
   padded = false,
   tabBarInset = false,
+  plain = false,
+  canvasOpacity = 1,
 }) => {
   const { colors, tapMin } = useTheme();
   const insets = useSafeAreaInsets();
   const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
   const bottomPad = tabBarInset ? dockHeight + bottomInset + spacing.md : spacing['3xl'];
 
-  if (scroll) {
-    return (
-      <ScrollView
-        style={[styles.flex, { backgroundColor: colors.background }, style]}
-        contentContainerStyle={[
-          padded && styles.padded,
-          { paddingBottom: bottomPad },
-          contentContainerStyle,
-        ]}
-        scrollEnabled={scrollEnabled}
-        nestedScrollEnabled={Platform.OS === 'android'}
-        refreshControl={
-          refreshControl ? <RefreshControl {...refreshControl} tintColor={colors.primary} /> : undefined
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ScrollView>
-    );
-  }
-
-  return (
+  const body = scroll ? (
+    <ScrollView
+      style={[styles.flex, styles.transparent, style]}
+      contentContainerStyle={[
+        padded && styles.padded,
+        { paddingBottom: bottomPad },
+        contentContainerStyle,
+      ]}
+      scrollEnabled={scrollEnabled}
+      nestedScrollEnabled={Platform.OS === 'android'}
+      refreshControl={
+        refreshControl ? <RefreshControl {...refreshControl} tintColor={colors.primary} /> : undefined
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScrollView>
+  ) : (
     <View
       style={[
         styles.flex,
-        { backgroundColor: colors.background },
+        styles.transparent,
         padded && styles.paddedBody,
         tabBarInset && { paddingBottom: bottomPad },
         style,
@@ -77,17 +83,33 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
       {children}
     </View>
   );
+
+  if (plain) {
+    return (
+      <View style={[styles.flex, { backgroundColor: colors.background }]}>
+        {body}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.flex}>
+      <AppCanvas opacity={canvasOpacity} />
+      {body}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  transparent: { backgroundColor: 'transparent' },
   padded: {
     paddingHorizontal: spacing.base,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
   paddedBody: {
     paddingHorizontal: spacing.base,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
 });
 

@@ -16,18 +16,18 @@ interface Props {
   language: string;
 }
 
-const chipColors = {
-  scheduled: { bg: '#e8f5e9', text: '#2e7d32' },
-  overdue: { bg: '#ffebee', text: '#c62828' },
-  completed: { bg: '#f5f5f5', text: '#757575' },
-  deadline: { bg: '#fff3e0', text: '#e65100' },
-};
-
 const CalendarEventRow: React.FC<Props> = ({ event, onPress, language }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('calendar');
   const variant = getEventChipVariant(event);
-  const chip = chipColors[variant];
+  const chip =
+    variant === 'scheduled'
+      ? { bg: colors.successLight, text: colors.success }
+      : variant === 'overdue'
+        ? { bg: colors.errorLight, text: colors.error }
+        : variant === 'completed'
+          ? { bg: colors.neutralLight, text: colors.neutral }
+          : { bg: colors.warningLight, text: colors.warning };
   const accent = getEventCategoryColor(event);
 
   return (

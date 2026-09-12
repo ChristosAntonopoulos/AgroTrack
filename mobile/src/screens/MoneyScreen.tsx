@@ -22,7 +22,6 @@ import MoneySummaryCards from '../components/money/MoneySummaryCards';
 import MoneyTransactionRow from '../components/money/MoneyTransactionRow';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import {
   getFieldService,
@@ -81,7 +80,6 @@ const labelOr = (raw: string | undefined, fallback: string) =>
 const MoneyScreen = () => {
   const { t, i18n } = useTranslation(['money', 'capture', 'common']);
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
-  const { isFullPicture } = usePreferences();
   const { user, isFieldOwner } = useAuth();
   const capture = useCaptureOptional();
   const navigation = useNavigation();
@@ -456,7 +454,7 @@ const MoneyScreen = () => {
                       <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
                         {t('money:income')} {money(row.income)} · {t('money:expenses')} {money(row.expenses)}
                       </Text>
-                      {isFullPicture && row.costPerHectare != null ? (
+                      {row.costPerHectare != null ? (
                         <Text style={{ color: colors.textTertiary, marginTop: 2 }}>
                           {money(row.costPerHectare)} {t('money:perHectare')}
                         </Text>

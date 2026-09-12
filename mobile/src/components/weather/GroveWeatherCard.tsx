@@ -18,25 +18,25 @@ type Props = {
 };
 
 const moodSkyLight: Record<GroveWeatherMood, [string, string]> = {
-  clear: ['#FFF6DF', '#F4F6F2'],
-  cloud: ['#EEF1EF', '#F4F6F2'],
-  rain: ['#E7F1F6', '#F4F6F2'],
-  frost: ['#E8F3F8', '#F4F6F2'],
-  heat: ['#F8ECE6', '#F4F6F2'],
-  storm: ['#ECEAF4', '#F4F6F2'],
-  wind: ['#E8F2F4', '#F4F6F2'],
-  missing: ['#F4F6F2', '#F4F6F2'],
+  clear: ['#F3EBD4', '#F2F3EC'],
+  cloud: ['#EBECE4', '#F2F3EC'],
+  rain: ['#E6EEF0', '#F2F3EC'],
+  frost: ['#E8F0F4', '#F2F3EC'],
+  heat: ['#F3E7E3', '#F2F3EC'],
+  storm: ['#EEEAF2', '#F2F3EC'],
+  wind: ['#E6EEF0', '#F2F3EC'],
+  missing: ['#F2F3EC', '#F2F3EC'],
 };
 
 const moodSkyDark: Record<GroveWeatherMood, [string, string]> = {
-  clear: ['#32361F', '#202421'],
-  cloud: ['#252A2B', '#202421'],
-  rain: ['#1B2730', '#202421'],
-  frost: ['#182430', '#202421'],
-  heat: ['#32241C', '#202421'],
-  storm: ['#151820', '#202421'],
-  wind: ['#1C2628', '#202421'],
-  missing: ['#202421', '#202421'],
+  clear: ['#2d3a2a', '#202520'],
+  cloud: ['#272D27', '#202520'],
+  rain: ['#1B2730', '#202520'],
+  frost: ['#182430', '#202520'],
+  heat: ['#32241C', '#202520'],
+  storm: ['#1a1820', '#202520'],
+  wind: ['#1C2628', '#202520'],
+  missing: ['#202520', '#202520'],
 };
 
 const moodGlow: Record<GroveWeatherMood, string> = {
@@ -73,8 +73,8 @@ const GroveWeatherCard: React.FC<Props> = ({
   const { colors, isDark, fontScaleMultiplier } = useTheme();
   const view = presentGroveWeather({ field: fieldWeather, snapshot });
   const [skyTop, skyBottom] = (isDark ? moodSkyDark : moodSkyLight)[view.mood];
-  const ink = isDark ? '#F4F6F2' : '#1C211D';
-  const muted = isDark ? 'rgba(244,246,242,0.68)' : '#5B635C';
+  const ink = colors.textPrimary;
+  const muted = colors.textSecondary;
   const range =
     view.low != null && view.high != null ? `${view.low}–${view.high}°` : null;
   const updated =
@@ -144,7 +144,7 @@ const GroveWeatherCard: React.FC<Props> = ({
             <Ionicons
               name={iconFor(view.mood, view.conditionKey)}
               size={compact ? 22 : 28}
-              color={isDark ? 'rgba(244,246,242,0.92)' : '#3D4A3E'}
+              color={isDark ? colors.textPrimary : colors.charcoal}
             />
           </View>
         ) : null}
@@ -180,10 +180,8 @@ const GroveWeatherCard: React.FC<Props> = ({
                   {
                     color: fact.harsh
                       ? view.mood === 'frost'
-                        ? '#D7EEF8'
-                        : isDark
-                          ? '#F3CFC7'
-                          : '#9A3412'
+                        ? colors.frost
+                        : colors.error
                       : ink,
                     fontSize: 12 * fontScaleMultiplier,
                   },
@@ -201,7 +199,7 @@ const GroveWeatherCard: React.FC<Props> = ({
           style={[
             styles.reading,
             {
-              color: isDark ? 'rgba(244,246,242,0.88)' : '#2A322C',
+              color: colors.textPrimary,
               fontSize: 15 * fontScaleMultiplier,
             },
           ]}

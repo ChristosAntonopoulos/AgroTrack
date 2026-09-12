@@ -82,10 +82,10 @@ export function fieldHealthStatus(
 export function fieldGradientColors(fieldId: string): [string, string] {
   const hash = fieldId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const hues: [string, string][] = [
-    ['#5C7A1F', '#3D5214'],
-    ['#6B8E6B', '#4A5A42'],
-    ['#7A6B4F', '#5C5040'],
-    ['#5A8A6A', '#3D6650'],
+    ['#536D42', '#3E5430'],
+    ['#71845B', '#486038'],
+    ['#5E7848', '#3E5430'],
+    ['#9AAA85', '#536D42'],
   ];
   return hues[hash % hues.length];
 }

@@ -331,7 +331,13 @@ const TaskDetailPage: React.FC = () => {
             <p className="task-form-help">
               {canStart
                 ? t('fieldWork.detail.nextStepStart')
-                : t('fieldWork.detail.nextStepComplete')}
+                : progress.total > 0 && progress.done >= progress.total
+                  ? t('fieldWork.detail.nextStepRecordResult')
+                  : progress.total > 0
+                    ? t('fieldWork.detail.nextStepContinueChecks', {
+                        count: Math.max(0, progress.total - progress.done),
+                      })
+                    : t('fieldWork.detail.nextStepComplete')}
             </p>
             <div className="task-detail-actions">
               {canStart ? (
@@ -343,15 +349,11 @@ const TaskDetailPage: React.FC = () => {
                 >
                   {t('fieldWork.actions.start')}
                 </Button>
-              ) : null}
-              {canComplete ? (
-                <Button
-                  variant={canStart ? 'outline' : 'success'}
-                  size="lg"
-                  onClick={handleComplete}
-                  disabled={busy}
-                >
-                  {t('fieldWork.actions.complete')}
+              ) : canComplete ? (
+                <Button variant="primary" size="lg" onClick={handleComplete} disabled={busy}>
+                  {progress.total > 0 && progress.done >= progress.total
+                    ? t('fieldWork.actions.recordResult')
+                    : t('fieldWork.actions.continueChecks')}
                 </Button>
               ) : null}
             </div>
@@ -399,11 +401,6 @@ const TaskDetailPage: React.FC = () => {
                 <ul className="task-detail-checklist">{extra.map(renderCheckItem)}</ul>
               ) : null}
             </>
-          ) : null}
-          {canComplete && !isTerminal ? (
-            <Button variant="outline" size="lg" onClick={handleComplete} disabled={busy}>
-              {t('fieldWork.detail.fillChecks')}
-            </Button>
           ) : null}
         </section>
 
@@ -508,14 +505,6 @@ const TaskDetailPage: React.FC = () => {
           <p className="task-detail-footer-link">
             <Link to="/chronologio">{t('fieldWork.seeCompletedInChronologio')}</Link>
           </p>
-        ) : null}
-
-        {canComplete && !isTerminal ? (
-          <div className="task-detail-sticky">
-            <Button variant="success" size="lg" onClick={handleComplete} disabled={busy}>
-              {t('fieldWork.actions.complete')}
-            </Button>
-          </div>
         ) : null}
       </div>
     </PageContainer>

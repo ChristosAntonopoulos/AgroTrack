@@ -13,7 +13,6 @@ import {
 
 export interface MyActionsStripProps {
   data: MeDashboard;
-  density?: 'everyday' | 'full';
   period?: MeDashboardPeriod;
   onPressTile: (target: 'Tasks' | 'Today' | 'Fields' | 'Partners') => void;
   tapMin?: number;
@@ -21,60 +20,30 @@ export interface MyActionsStripProps {
 
 const MyActionsStrip: React.FC<MyActionsStripProps> = ({
   data,
-  density = 'everyday',
   onPressTile,
   tapMin = 44,
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('dashboard');
 
-  const tiles = useMemo(() => {
-    const openEstimate =
-      data.pending.overdue + data.pending.dueToday + Math.max(0, data.counts.tasksStarted);
-
-    if (density === 'everyday') {
-      return [
-        {
-          key: 'tasksCompleted',
-          value: data.counts.tasksCompleted,
-          prev: data.previousCounts.tasksCompleted,
-          icon: 'checkmark-circle-outline' as const,
-          target: 'Tasks' as const,
-        },
-        {
-          key: 'open',
-          value: openEstimate,
-          icon: 'time-outline' as const,
-          target: 'Tasks' as const,
-        },
-        {
-          key: 'dueToday',
-          value: data.pending.dueToday,
-          icon: 'sunny-outline' as const,
-          target: 'Today' as const,
-        },
-      ];
-    }
-
-    return [
+  const tiles = useMemo(
+    () => [
       { key: 'tasksCompleted', value: data.counts.tasksCompleted, prev: data.previousCounts.tasksCompleted, icon: 'checkmark-circle-outline' as const, target: 'Tasks' as const },
       { key: 'tasksStarted', value: data.counts.tasksStarted, prev: data.previousCounts.tasksStarted, icon: 'play-circle-outline' as const, target: 'Tasks' as const },
       { key: 'evidenceAdded', value: data.counts.evidenceAdded, prev: data.previousCounts.evidenceAdded, icon: 'camera-outline' as const, target: 'Tasks' as const },
       { key: 'harvestsRecorded', value: data.counts.harvestsRecorded, prev: data.previousCounts.harvestsRecorded, icon: 'leaf-outline' as const, target: 'Fields' as const },
       { key: 'expensesLogged', value: data.counts.expensesLogged, prev: data.previousCounts.expensesLogged, icon: 'cash-outline' as const, target: 'Fields' as const },
       { key: 'contactsSent', value: data.counts.contactsSent, prev: data.previousCounts.contactsSent, icon: 'people-outline' as const, target: 'Partners' as const },
-    ];
-  }, [data, density]);
+    ],
+    [data]
+  );
 
   return (
     <View style={styles.wrap}>
       <Text style={[styles.section, { color: colors.textSecondary }]}>{t('myActions.stripTitle')}</Text>
       <View style={styles.grid}>
         {tiles.map((tile) => {
-          const trend =
-            'prev' in tile && tile.prev !== undefined
-              ? trendPercent(tile.value, tile.prev as number)
-              : null;
+          const trend = trendPercent(tile.value, tile.prev);
           return (
             <TouchableOpacity
               key={tile.key}
@@ -86,7 +55,6 @@ const MyActionsStrip: React.FC<MyActionsStripProps> = ({
                   minHeight: Math.max(88, tapMin + 40),
                   ...createElevation(colors, 'sm'),
                 },
-                density === 'everyday' ? styles.tileThird : styles.tileHalf,
               ]}
               onPress={() => onPressTile(tile.target)}
               accessibilityRole="button"
@@ -126,13 +94,13 @@ const styles = StyleSheet.create({
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tile: {
+    width: '48%',
+    flexGrow: 1,
     borderWidth: 1,
     borderRadius: 14,
     padding: spacing.md,
     gap: 4,
   },
-  tileThird: { width: '31%', flexGrow: 1 },
-  tileHalf: { width: '48%', flexGrow: 1 },
   value: { ...typography.styles.h3, fontWeight: '800' },
   label: { ...typography.styles.caption, fontWeight: '600' },
 });

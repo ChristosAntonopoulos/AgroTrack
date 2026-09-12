@@ -55,8 +55,10 @@ const REASON_EXPLANATION_EN: Record<string, string> = {
   olive_moth_monitoring: 'Olive-moth monitoring period — not an automatic spray recommendation.',
 };
 
-const SEASONAL_FALLBACK_EL = 'Εποχική υπενθύμιση — δεν υπάρχουν ακόμη δεδομένα από το χωράφι.';
-const SEASONAL_FALLBACK_EN = 'Seasonal reminder — there is not yet field evidence.';
+const SEASONAL_FALLBACK_EL =
+  'Προτείνεται για αυτή την εποχή της καλλιεργητικής χρονιάς, με βάση το πρότυπο εργασίας του χωραφιού.';
+const SEASONAL_FALLBACK_EN =
+  'Suggested for this point in the agricultural year, based on the field work profile.';
 
 export const isOfficialProposal = (proposal: TaskProposal): boolean => {
   const source = String(proposal.sourceType || '').toLowerCase();
@@ -121,6 +123,84 @@ export const groupProposals = (
     canWait: sorted.filter((proposal) => proposalUrgencyRank(proposal, now) >= 4),
   };
 };
+
+export type ProposalPrioritySection = 'doNow' | 'canWait' | 'laterYear';
+
+export type ProposalTemplateGroup = {
+  key: string;
+  templateCode: string;
+  proposals: TaskProposal[];
+  fieldIds: string[];
+  recommendedWindowStart?: string;
+  recommendedWindowEnd?: string;
+  priority: ProposalPrioritySection;
+  bestRank: ProposalUrgencyRank;
+};
+
+const windowKey = (proposal: TaskProposal): string => {
+  const start = (proposal.recommendedWindowStart || '').slice(0, 10);
+  const end = (proposal.recommendedWindowEnd || '').slice(0, 10);
+  return `${start}|${end}`;
+};
+
+const isFutureWindow = (proposal: TaskProposal, now: Date): boolean => {
+  const start = proposal.recommendedWindowStart || proposal.validFrom;
+  if (!start) return false;
+  const date = parseBusinessDate(start);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.getTime() > now.getTime() + 14 * 24 * 60 * 60 * 1000;
+};
+
+export const proposalPrioritySection = (
+  proposal: TaskProposal,
+  now = new Date()
+): ProposalPrioritySection => {
+  if (isFutureWindow(proposal, now) && proposalUrgencyRank(proposal, now) >= 4) return 'laterYear';
+  if (proposalUrgencyRank(proposal, now) <= 3 || isExpiringProposal(proposal, now)) return 'doNow';
+  return 'canWait';
+};
+
+/** Group identical recommendations across fields (template + recommended window). */
+export const groupProposalsByTemplate = (
+  proposals: TaskProposal[],
+  now = new Date()
+): ProposalTemplateGroup[] => {
+  const map = new Map<string, TaskProposal[]>();
+  for (const proposal of proposals) {
+    const key = `${(proposal.templateCode || 'unknown').toUpperCase()}::${windowKey(proposal)}`;
+    const list = map.get(key) || [];
+    list.push(proposal);
+    map.set(key, list);
+  }
+
+  const groups: ProposalTemplateGroup[] = [];
+  for (const [key, list] of map) {
+    const sorted = sortProposals(list, now);
+    const primary = sorted[0];
+    const ranks = sorted.map((p) => proposalUrgencyRank(p, now));
+    const bestRank = Math.min(...ranks) as ProposalUrgencyRank;
+    groups.push({
+      key,
+      templateCode: primary.templateCode,
+      proposals: sorted,
+      fieldIds: [...new Set(sorted.map((p) => p.fieldId))],
+      recommendedWindowStart: primary.recommendedWindowStart,
+      recommendedWindowEnd: primary.recommendedWindowEnd,
+      priority: proposalPrioritySection(primary, now),
+      bestRank,
+    });
+  }
+
+  return groups.sort((a, b) => a.bestRank - b.bestRank || a.templateCode.localeCompare(b.templateCode));
+};
+
+export const sectionProposalGroups = (
+  groups: ProposalTemplateGroup[]
+): Record<ProposalPrioritySection, ProposalTemplateGroup[]> => ({
+  doNow: groups.filter((g) => g.priority === 'doNow'),
+  canWait: groups.filter((g) => g.priority === 'canWait'),
+  laterYear: groups.filter((g) => g.priority === 'laterYear'),
+});
 
 const looksGeneric = (text: string): boolean => {
   const lower = text.toLowerCase();

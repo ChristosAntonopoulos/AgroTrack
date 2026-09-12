@@ -6,6 +6,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import SessionExpiredScreen from '../screens/SessionExpiredScreen';
 import InviteAcceptScreen from '../screens/InviteAcceptScreen';
 import FamilyInviteAcceptScreen from '../screens/FamilyInviteAcceptScreen';
+import PartnerInviteAcceptScreen from '../screens/PartnerInviteAcceptScreen';
 import { AuthStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -24,6 +25,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="InviteAccept" component={InviteAcceptScreen} />
       <Stack.Screen name="FamilyInviteAccept" component={FamilyInviteAcceptScreen} />
+      <Stack.Screen name="PartnerInviteAccept" component={PartnerInviteAcceptScreen} />
       <Stack.Screen
         name="SessionExpired"
         component={SessionExpiredScreen}

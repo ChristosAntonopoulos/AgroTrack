@@ -1,0 +1,329 @@
+.photo-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.photo-hub-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.photo-hub-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #5c6b5a);
+}
+
+.photo-hub-toolbar select {
+  min-width: 10rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border, #d5ddd2);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+  color: inherit;
+}
+
+.photo-dropzone {
+  border: 1.5px dashed var(--color-border, #b9c6b5);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(245, 248, 243, 0.9)),
+    radial-gradient(circle at top left, rgba(90, 122, 78, 0.08), transparent 50%);
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.photo-dropzone:hover,
+.photo-dropzone.is-dragging {
+  border-color: var(--color-accent, #5a7a4e);
+  transform: translateY(-1px);
+}
+
+.photo-dropzone input {
+  display: none;
+}
+
+.photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+@media (min-width: 900px) {
+  .photo-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .photo-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 0.5rem;
+  }
+}
+
+.photo-card {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #1f2a1c;
+  border: 2px solid transparent;
+  isolation: isolate;
+}
+
+.photo-card.is-linked {
+  border-color: var(--color-accent, #5a7a4e);
+}
+
+.photo-card.needs-review {
+  border-color: rgba(166, 112, 42, 0.85);
+}
+
+.photo-card-main {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.photo-card:hover img,
+.photo-card:focus-within img {
+  transform: scale(1.04);
+}
+
+.photo-card-badges {
+  position: absolute;
+  left: 0.4rem;
+  top: 0.4rem;
+  right: 2.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.photo-badge {
+  font-size: 0.65rem;
+  font-weight: 650;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(20, 28, 18, 0.78);
+  color: #f4f7f2;
+  backdrop-filter: blur(5px);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.photo-badge.linked {
+  background: rgba(90, 122, 78, 0.94);
+}
+
+.photo-badge.review {
+  background: rgba(166, 112, 42, 0.94);
+}
+
+.photo-card-actions {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.photo-card:hover .photo-card-actions,
+.photo-card:focus-within .photo-card-actions {
+  opacity: 1;
+  transform: none;
+}
+
+.photo-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(20, 28, 18, 0.78);
+  color: #f4f7f2;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+}
+
+.photo-card-action:hover,
+.photo-card-action:focus-visible {
+  background: rgba(90, 122, 78, 0.95);
+  outline: none;
+}
+
+@media (hover: none) {
+  .photo-card-actions {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.photo-review {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--color-surface-muted, #f3f6f1);
+}
+
+.photo-review-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.photo-review-item img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.photo-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.photo-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.photo-detail-body img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #111;
+}
+
+.photo-detail-hero {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.photo-detail-hero img {
+  pointer-events: none;
+}
+
+.photo-detail-hero-hint {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(20, 28, 18, 0.78);
+  color: #f4f7f2;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.photo-detail-meta {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.photo-detail-meta dt {
+  color: var(--color-text-muted, #5c6b5a);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.photo-detail-meta dd {
+  margin: 0 0 0.5rem;
+}
+
+.photo-location-map {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #d5ddd2);
+}
+
+.photo-map-pin-icon {
+  background: transparent;
+  border: none;
+}
+
+.photo-map-pin-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent, #5a7a4e);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.photo-link-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #5c6b5a);
+}
+
+.photo-link-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.photo-link-form select,
+.photo-link-form input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border, #d5ddd2);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+}
+
+@media (max-width: 640px) {
+  .photo-review-item {
+    grid-template-columns: 1fr;
+  }
+}

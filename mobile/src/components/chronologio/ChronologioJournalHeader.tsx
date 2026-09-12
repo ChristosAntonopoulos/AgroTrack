@@ -190,10 +190,10 @@ const ChronologioJournalHeader: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   wrapCompact: {
-    paddingBottom: spacing.xs,
+    paddingBottom: 2,
   },
   topRow: {
     flexDirection: 'row',

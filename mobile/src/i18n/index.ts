@@ -17,6 +17,8 @@ import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
+import enPhotos from '../locales/en/photos.json';
+import enFeedback from '../locales/en/feedback.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -33,6 +35,8 @@ import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
+import elPhotos from '../locales/el/photos.json';
+import elFeedback from '../locales/el/feedback.json';
 
 const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
 const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
@@ -56,6 +60,8 @@ i18n.use(initReactI18next).init({
       chronologio: enChronologio,
       capture: enCapture,
       money: enMoney,
+      photos: enPhotos,
+      feedback: enFeedback,
     },
     el: {
       auth: elAuth,
@@ -73,6 +79,8 @@ i18n.use(initReactI18next).init({
       chronologio: elChronologio,
       capture: elCapture,
       money: elMoney,
+      photos: elPhotos,
+      feedback: elFeedback,
     },
   },
   lng: defaultLng,

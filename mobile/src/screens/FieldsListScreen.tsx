@@ -15,7 +15,6 @@ import { useFields } from '../hooks/useFields';
 import { useRefresh } from '../hooks/useRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import FieldCard from '../components/domain/FieldCard';
 import FieldsMap from '../components/domain/FieldsMap';
 import EmptyState from '../components/EmptyState';
@@ -43,7 +42,6 @@ const FieldsListScreen = () => {
   const navigation = useNavigation<Nav>();
   const { isFieldOwner, user } = useAuth();
   const { colors, tapMin } = useTheme();
-  const { isEveryday } = usePreferences();
   const { t } = useTranslation(['fields', 'common']);
   const insets = useSafeAreaInsets();
   const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
@@ -274,7 +272,7 @@ const FieldsListScreen = () => {
                 <FieldsMap
                   fields={filteredFields}
                   fillScreen
-                  compact={isEveryday}
+                  compact={false}
                   selectedFieldId={selectedFieldId}
                   onFieldSelect={setSelectedFieldId}
                   onFieldPress={(id) => {

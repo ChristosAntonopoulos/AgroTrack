@@ -293,6 +293,21 @@ public class FieldTaskDocument
     [BsonElement("latestExecutionId")]
     public string? LatestExecutionId { get; set; }
 
+    [BsonElement("startedAt")]
+    public DateTime? StartedAt { get; set; }
+
+    [BsonElement("isPaused")]
+    public bool IsPaused { get; set; }
+
+    [BsonElement("pauseReason")]
+    public string? PauseReason { get; set; }
+
+    [BsonElement("pausedAt")]
+    public DateTime? PausedAt { get; set; }
+
+    [BsonElement("workGroupId")]
+    public string? WorkGroupId { get; set; }
+
     [BsonElement("createdByUserId")]
     public string CreatedByUserId { get; set; } = string.Empty;
 

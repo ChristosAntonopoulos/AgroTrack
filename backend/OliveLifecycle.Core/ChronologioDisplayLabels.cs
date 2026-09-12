@@ -142,6 +142,9 @@ public static class ChronologioDisplayLabels
 
     public static string NoteTitle(string language = "el") => Category(ChronologioCategory.Note, language);
 
+    public static string PhotoTitle(string language = "el") =>
+        IsEnglish(language) ? "Photo" : "Φωτογραφία";
+
     public static string HarvestTitle(string language = "el") => Category(ChronologioCategory.Harvest, language);
 
     public static string TaskFallbackTitle(string language = "el") => Category(ChronologioCategory.Task, language);

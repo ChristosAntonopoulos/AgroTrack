@@ -87,6 +87,7 @@ const MainTabs = () => {
       initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: 'transparent' },
         tabBarActiveTintColor: colors.tabBarForeground,
         tabBarInactiveTintColor: colors.tabBarForegroundInactive,
         tabBarHideOnKeyboard: true,

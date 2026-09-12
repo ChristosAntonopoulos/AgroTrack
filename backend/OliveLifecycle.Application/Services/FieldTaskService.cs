@@ -49,6 +49,28 @@ public interface IFieldTaskService
         string language = "el",
         CancellationToken cancellationToken = default);
 
+    Task<FieldTaskDto> UndoStartAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> PauseAsync(
+        string id,
+        PauseFieldTaskDto dto,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> ResumeAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
     Task<TaskExecutionDto> CompleteAsync(
         string id,
         CompleteFieldTaskDto dto,
@@ -292,10 +314,100 @@ public class FieldTaskService : IFieldTaskService
         if (task.Status is FieldTaskStatus.Planned or FieldTaskStatus.Ready or FieldTaskStatus.Blocked)
         {
             task.Status = FieldTaskStatus.InProgress;
+            task.StartedAt ??= _clock.UtcNow;
+            task.IsPaused = false;
+            task.PauseReason = null;
+            task.PausedAt = null;
             task.UpdatedAt = _clock.UtcNow;
             task = await _tasks.UpdateAsync(task, cancellationToken);
         }
 
+        return FieldWorkMapper.ToDto(task, language);
+    }
+
+    public async Task<FieldTaskDto> UndoStartAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+
+        if (task.Status != FieldTaskStatus.InProgress)
+        {
+            throw new ValidationException("Only in-progress tasks can undo start.");
+        }
+
+        if (task.ChecklistSnapshot.Any(c => c.IsAnswered))
+        {
+            throw new ValidationException("Cannot undo start after checklist answers exist.");
+        }
+
+        task.Status = FieldTaskStatus.Planned;
+        task.StartedAt = null;
+        task.IsPaused = false;
+        task.PauseReason = null;
+        task.PausedAt = null;
+        task.UpdatedAt = _clock.UtcNow;
+        task = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(task, language);
+    }
+
+    public async Task<FieldTaskDto> PauseAsync(
+        string id,
+        PauseFieldTaskDto dto,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        EnsureNotTerminal(task);
+
+        if (task.Status != FieldTaskStatus.InProgress)
+        {
+            throw new ValidationException("Only in-progress tasks can be paused.");
+        }
+
+        task.IsPaused = true;
+        task.PauseReason = string.IsNullOrWhiteSpace(dto.Reason) ? "other" : dto.Reason.Trim();
+        task.PausedAt = _clock.UtcNow;
+        if (dto.PlannedStart.HasValue)
+        {
+            task.PlannedStart = dto.PlannedStart;
+        }
+        if (dto.PlannedEnd.HasValue || dto.PlannedStart.HasValue)
+        {
+            task.PlannedEnd = dto.PlannedEnd ?? dto.PlannedStart;
+        }
+        task.UpdatedAt = _clock.UtcNow;
+        task = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(task, language);
+    }
+
+    public async Task<FieldTaskDto> ResumeAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+
+        if (task.Status != FieldTaskStatus.InProgress)
+        {
+            throw new ValidationException("Only in-progress tasks can be resumed.");
+        }
+
+        task.IsPaused = false;
+        task.PauseReason = null;
+        task.PausedAt = null;
+        task.UpdatedAt = _clock.UtcNow;
+        task = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToDto(task, language);
     }
 

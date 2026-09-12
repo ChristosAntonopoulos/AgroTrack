@@ -2,17 +2,17 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { radii, spacing, typography } from '../../theme';
+import { radii, spacing } from '../../theme';
 
 type Props = {
   year: number;
   onYearChange: (year: number) => void;
 };
 
+/** Compact year stepper for the field page chrome. */
 const FieldResultYearControl: React.FC<Props> = ({ year, onYearChange }) => {
   const { t } = useTranslation('fields');
-  const { colors, tapMin } = useTheme();
-  const size = Math.max(tapMin, 48);
+  const { colors } = useTheme();
 
   return (
     <View
@@ -20,8 +20,7 @@ const FieldResultYearControl: React.FC<Props> = ({ year, onYearChange }) => {
         styles.wrap,
         {
           borderColor: colors.borderLight,
-          backgroundColor: colors.surface,
-          minHeight: size,
+          backgroundColor: colors.surfaceElevated,
         },
       ]}
       accessibilityRole="adjustable"
@@ -31,7 +30,8 @@ const FieldResultYearControl: React.FC<Props> = ({ year, onYearChange }) => {
         onPress={() => onYearChange(year - 1)}
         accessibilityRole="button"
         accessibilityLabel={t('page.prevYear')}
-        style={[styles.btn, { minWidth: size, minHeight: size }]}
+        hitSlop={8}
+        style={styles.btn}
       >
         <Text style={[styles.chevron, { color: colors.textPrimary }]}>‹</Text>
       </Pressable>
@@ -42,7 +42,8 @@ const FieldResultYearControl: React.FC<Props> = ({ year, onYearChange }) => {
         onPress={() => onYearChange(year + 1)}
         accessibilityRole="button"
         accessibilityLabel={t('page.nextYear')}
-        style={[styles.btn, { minWidth: size, minHeight: size }]}
+        hitSlop={8}
+        style={styles.btn}
       >
         <Text style={[styles.chevron, { color: colors.textPrimary }]}>›</Text>
       </Pressable>
@@ -54,12 +55,15 @@ const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
     overflow: 'hidden',
-    flex: 1,
+    alignSelf: 'stretch',
+    minHeight: 40,
   },
   btn: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -68,10 +72,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   year: {
-    ...typography.styles.h4,
     flex: 1,
     textAlign: 'center',
     fontWeight: '700',
+    fontSize: 16,
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.sm,
   },

@@ -46,7 +46,6 @@ type Props = {
   fields: Field[];
   canRecordIncome: boolean;
   canRecordExpense: boolean;
-  isFullPicture: boolean;
   onSaved: (detail: CaptureSavedDetail, message: string, options?: CaptureSavedOptions) => void;
 };
 
@@ -77,7 +76,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
   fields,
   canRecordIncome,
   canRecordExpense,
-  isFullPicture,
   onSaved,
 }) => {
   const { t, i18n } = useTranslation(['capture']);
@@ -512,33 +510,29 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   </Pressable>
                 ))
               : null}
-            {isFullPicture ? (
-              <>
-                {PAYMENT_METHODS.map((method) => (
-                  <Pressable
-                    key={method}
-                    style={[
-                      styles.chip,
-                      {
-                        borderColor: paymentMethod === method ? colors.primary : colors.border,
-                        minHeight: tapMin,
-                      },
-                    ]}
-                    onPress={() => setPaymentMethod(method)}
-                  >
-                    <Text style={{ color: colors.textPrimary }}>{paymentMethodLabel(method, language)}</Text>
-                  </Pressable>
-                ))}
-                <TextInput
-                  style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-                  value={counterpartyName}
-                  onChangeText={setCounterpartyName}
-                  placeholder={t('capture:money.counterparty')}
-                  placeholderTextColor={colors.textSecondary}
-                />
-                <Button title={t('capture:money.addReceipt')} onPress={() => void addPhotos(true)} variant="outline" size="large" />
-              </>
-            ) : null}
+            {PAYMENT_METHODS.map((method) => (
+              <Pressable
+                key={method}
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: paymentMethod === method ? colors.primary : colors.border,
+                    minHeight: tapMin,
+                  },
+                ]}
+                onPress={() => setPaymentMethod(method)}
+              >
+                <Text style={{ color: colors.textPrimary }}>{paymentMethodLabel(method, language)}</Text>
+              </Pressable>
+            ))}
+            <TextInput
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
+              value={counterpartyName}
+              onChangeText={setCounterpartyName}
+              placeholder={t('capture:money.counterparty')}
+              placeholderTextColor={colors.textSecondary}
+            />
+            <Button title={t('capture:money.addReceipt')} onPress={() => void addPhotos(true)} variant="outline" size="large" />
             <TextInput
               style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]}
               value={notes}

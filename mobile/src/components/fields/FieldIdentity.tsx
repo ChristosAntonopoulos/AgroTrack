@@ -43,16 +43,15 @@ const FieldIdentity: React.FC<Props> = ({
   const area = formatFieldArea(field);
   const accent = resolveFieldColor(field.color, field.id);
   const isPage = size === 'page';
-  const contentIndent = hideTitle ? 0 : isPage ? 24 : 22;
 
   const chips: MetaChip[] = [];
   if (status) chips.push({ key: 'status', label: status, kind: 'status' });
-  if (variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
   if (area) chips.push({ key: 'area', label: area, kind: 'area' });
   if (isPage && stage) chips.push({ key: 'stage', label: stage, kind: 'stage' });
+  if (variety && !isPage) chips.push({ key: 'variety', label: variety, kind: 'variety' });
 
   return (
-    <View style={styles.wrap} accessibilityLabel={t('fields:card.metaAria')}>
+    <View style={[styles.wrap, !isPage && styles.wrapFlex]} accessibilityLabel={t('fields:card.metaAria')}>
       {!hideTitle ? (
         <View style={styles.titleRow}>
           <View
@@ -74,14 +73,21 @@ const FieldIdentity: React.FC<Props> = ({
           </Text>
         </View>
       ) : (
-        <View style={[styles.swatchTiny, { backgroundColor: accent }]} />
+        <View style={styles.metaLead}>
+          <View style={[styles.swatchTiny, { backgroundColor: accent }]} />
+          {shortLocation ? (
+            <Text style={[styles.placeInline, { color: colors.textSecondary }]} numberOfLines={1}>
+              {shortLocation}
+            </Text>
+          ) : null}
+        </View>
       )}
-      {shortLocation ? (
+      {!hideTitle && shortLocation ? (
         <Text
           style={[
             styles.place,
             isPage && styles.placePage,
-            { color: colors.textSecondary, marginLeft: contentIndent },
+            { color: colors.textSecondary, marginLeft: isPage ? 24 : 22 },
           ]}
           numberOfLines={1}
         >
@@ -89,47 +95,32 @@ const FieldIdentity: React.FC<Props> = ({
         </Text>
       ) : null}
       {showMeta && chips.length > 0 ? (
-        <View style={[styles.chips, { marginLeft: contentIndent }]} accessibilityRole="list">
+        <View style={styles.chips} accessibilityRole="list">
           {chips.map((chip) => {
             const chipStyle =
               chip.kind === 'status'
                 ? {
                     backgroundColor: colors.primaryLight,
                     borderColor: colors.oliveBorder,
-                    color: colors.link,
+                    color: colors.primary,
                   }
-                : chip.kind === 'area'
-                  ? {
-                      backgroundColor: colors.surfaceMuted,
-                      borderColor: colors.borderLight,
-                      color: colors.textPrimary,
-                    }
-                  : {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.borderLight,
-                      color: colors.textSecondary,
-                    };
+                : {
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: 'transparent',
+                    color: colors.textSecondary,
+                  };
             return (
               <View
                 key={chip.key}
                 style={[
                   styles.chip,
-                  isPage && styles.chipPage,
                   {
                     backgroundColor: chipStyle.backgroundColor,
                     borderColor: chipStyle.borderColor,
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.chipText,
-                    isPage && styles.chipTextPage,
-                    { color: chipStyle.color },
-                  ]}
-                >
-                  {chip.label}
-                </Text>
+                <Text style={[styles.chipText, { color: chipStyle.color }]}>{chip.label}</Text>
               </View>
             );
           })}
@@ -140,12 +131,19 @@ const FieldIdentity: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, minWidth: 0 },
+  wrap: { minWidth: 0 },
+  wrapFlex: { flex: 1 },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     maxWidth: '100%',
+  },
+  metaLead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
   },
   swatch: {
     width: 12,
@@ -162,7 +160,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 99,
-    marginBottom: 4,
+    flexShrink: 0,
   },
   pageName: {
     ...typography.styles.h2,
@@ -182,31 +180,25 @@ const styles = StyleSheet.create({
   },
   place: { ...typography.styles.bodySmall, marginTop: 6 },
   placePage: { fontSize: 16, marginTop: 8 },
+  placeInline: { ...typography.styles.bodySmall, flex: 1, fontSize: 13 },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 8,
+    marginTop: 6,
   },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.full,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    minHeight: 28,
+    paddingVertical: 3,
+    minHeight: 26,
     justifyContent: 'center',
-  },
-  chipPage: {
-    minHeight: 32,
-    paddingHorizontal: 12,
   },
   chipText: {
     ...typography.styles.caption,
     fontWeight: '600',
-    fontSize: 13,
-  },
-  chipTextPage: {
-    fontSize: 14,
+    fontSize: 12,
   },
 });
 

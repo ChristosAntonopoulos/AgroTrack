@@ -13,15 +13,17 @@ import ScreenHeader from '../components/layout/ScreenHeader';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Sheet from '../components/ui/Sheet';
+import Button from '../components/ui/Button';
 import TaskViewTabs from '../components/tasks/TaskViewTabs';
 import TaskContextBar from '../components/tasks/TaskContextBar';
-import TaskProposalCard from '../components/tasks/TaskProposalCard';
-import PlannedTaskRow from '../components/tasks/PlannedTaskRow';
-import InProgressTaskRow from '../components/tasks/InProgressTaskRow';
+import TaskSeasonStrip from '../components/tasks/TaskSeasonStrip';
+import TaskWorkCard from '../components/tasks/TaskWorkCard';
+import GroupedProposalCard from '../components/tasks/GroupedProposalCard';
 import CreatedTaskBanner from '../components/tasks/CreatedTaskBanner';
 import LearningPromptSheet from '../components/tasks/LearningPromptSheet';
 import { TaskHelpText } from '../components/tasks/TaskChoiceChips';
-import { typography, spacing } from '../theme';
+import { typography, spacing, radii } from '../theme';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
 import {
   getFieldService,
@@ -29,17 +31,20 @@ import {
   getPartnerService,
 } from '../services/serviceFactory';
 import { fieldPeopleService } from '../services/fieldPeopleService';
-import { weatherService } from '../services/weatherService';
 import type {
   DismissalLearningChoice,
   FieldTask,
   TaskProposal,
 } from '../services/fieldWorkService';
 import type { Field } from '../services/fieldService';
-import type { FieldWeather } from '../services/geospatialService';
 import { athensCalendarYear } from '../utils/athensDate';
 import { dedupeTaskProposals } from '../utils/taskProposalDedup';
-import { groupProposals, stashProposalForSchedule } from '../utils/proposalPresentation';
+import {
+  groupProposalsByTemplate,
+  proposalExplanation,
+  sectionProposalGroups,
+  stashProposalForSchedule,
+} from '../utils/proposalPresentation';
 import {
   parseTaskFieldId,
   parseTaskView,
@@ -47,16 +52,21 @@ import {
   viewFromLegacyFilter,
   type TaskPageView,
 } from '../utils/taskViewState';
-import { groupPlannedTasks, resolveTaskPerson } from '../utils/plannedTaskGroups';
+import { resolveTaskPerson } from '../utils/plannedTaskGroups';
 import { formatLongTaskDate } from '../utils/taskFormDates';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
+import { farmerSeasonFor } from '../utils/farmerSeason';
+import { buildNowBuckets, countNowAttention } from '../utils/nowAttention';
+import { groupUpcomingTasks } from '../utils/upcomingTaskGroups';
+import { isTaskDueToday } from '../utils/taskListUtils';
+import { resolveWeatherKind } from '../utils/taskWeather';
 
 type Route = RouteProp<MainTabParamList, 'Tasks'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const PLANNED_STATUSES = new Set(['planned', 'ready', 'blocked']);
-const IN_PROGRESS_STATUSES = new Set(['in_progress']);
-const FUTURE_WORK_STATUSES = new Set([...PLANNED_STATUSES, ...IN_PROGRESS_STATUSES]);
+const OPEN_STATUSES = new Set(['planned', 'ready', 'blocked', 'in_progress']);
+const HISTORY_STATUSES = new Set(['completed', 'cancelled']);
+const PAUSE_REASONS = ['weather', 'waitingPerson', 'waitingEquipment', 'anotherDay', 'other'] as const;
 
 const TaskListScreen = () => {
   const navigation = useNavigation<Nav>();
@@ -80,7 +90,6 @@ const TaskListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [weatherByField, setWeatherByField] = useState<Record<string, FieldWeather | null>>({});
   const [personNames, setPersonNames] = useState<Record<string, string>>({});
   const [dismissalPrompt, setDismissalPrompt] = useState<{
     fieldId: string;
@@ -88,6 +97,13 @@ const TaskListScreen = () => {
     message: string;
   } | null>(null);
   const [learningBusy, setLearningBusy] = useState(false);
+  const [pauseTask, setPauseTask] = useState<FieldTask | null>(null);
+  const [dismissGroup, setDismissGroup] = useState<{
+    proposals: TaskProposal[];
+  } | null>(null);
+  const [whyText, setWhyText] = useState<string | null>(null);
+  const [undoStartId, setUndoStartId] = useState<string | null>(null);
+  const [laterYearOpen, setLaterYearOpen] = useState(false);
 
   useEffect(() => {
     if (route.params?.view || route.params?.filter) {
@@ -119,7 +135,11 @@ const TaskListScreen = () => {
       setTasks(tasksData);
       setShowingCachedData(false);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('tasks:failedLoad', { defaultValue: 'Failed to load tasks' }));
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('tasks:failedLoad', { defaultValue: 'Failed to load tasks' })
+      );
     } finally {
       setLoading(false);
     }
@@ -132,6 +152,11 @@ const TaskListScreen = () => {
 
   const { refreshing, onRefresh } = useRefresh(loadData);
 
+  const filteredTasks = useMemo(
+    () => tasks.filter((task) => !fieldFilter || task.fieldId === fieldFilter),
+    [tasks, fieldFilter]
+  );
+
   const visibleProposals = useMemo(
     () =>
       proposals.filter((proposal) => {
@@ -141,61 +166,48 @@ const TaskListScreen = () => {
     [proposals, fieldFilter]
   );
 
-  const weatherFieldKey = useMemo(
+  const openTasks = useMemo(
+    () => filteredTasks.filter((task) => OPEN_STATUSES.has(String(task.status).toLowerCase())),
+    [filteredTasks]
+  );
+
+  const historyTasks = useMemo(
     () =>
-      [...new Set(visibleProposals.map((proposal) => proposal.fieldId).filter(Boolean))]
-        .sort()
-        .join(','),
+      filteredTasks
+        .filter((task) => HISTORY_STATUSES.has(String(task.status).toLowerCase()))
+        .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))),
+    [filteredTasks]
+  );
+
+  const nowBuckets = useMemo(() => buildNowBuckets(openTasks), [openTasks]);
+  const upcomingGroups = useMemo(() => groupUpcomingTasks(openTasks), [openTasks]);
+  const attentionCount = useMemo(() => countNowAttention(openTasks), [openTasks]);
+  const suitableToday = useMemo(
+    () =>
+      openTasks.filter((task) => {
+        if (!isTaskDueToday(task)) return false;
+        const kind = resolveWeatherKind(task.weatherSuitability);
+        return kind === 'good' || kind === 'not_sensitive' || kind === 'unknown';
+      }).length,
+    [openTasks]
+  );
+  const season = useMemo(() => farmerSeasonFor(new Date()), []);
+  const proposalGroups = useMemo(
+    () => sectionProposalGroups(groupProposalsByTemplate(visibleProposals)),
     [visibleProposals]
   );
-
-  useEffect(() => {
-    if (view !== 'proposals' || !weatherFieldKey) return;
-    let cancelled = false;
-    const ids = weatherFieldKey.split(',').filter(Boolean);
-    void Promise.all(
-      ids.map(async (fieldId) => {
-        try {
-          const weather = await weatherService.getFieldWeather(fieldId);
-          return [fieldId, weather] as const;
-        } catch {
-          return [fieldId, null] as const;
-        }
-      })
-    ).then((entries) => {
-      if (!cancelled) setWeatherByField(Object.fromEntries(entries));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [view, weatherFieldKey]);
-
-  const futureTasks = useMemo(
-    () =>
-      tasks.filter((task) => {
-        if (fieldFilter && task.fieldId !== fieldFilter) return false;
-        return FUTURE_WORK_STATUSES.has(String(task.status).toLowerCase());
-      }),
-    [tasks, fieldFilter]
-  );
-
-  const planned = useMemo(
-    () => futureTasks.filter((task) => PLANNED_STATUSES.has(String(task.status).toLowerCase())),
-    [futureTasks]
-  );
-
-  const inProgress = useMemo(
-    () => futureTasks.filter((task) => IN_PROGRESS_STATUSES.has(String(task.status).toLowerCase())),
-    [futureTasks]
+  const upcomingCount = useMemo(
+    () => upcomingGroups.reduce((sum, group) => sum + group.tasks.length, 0),
+    [upcomingGroups]
   );
 
   const peopleFieldKey = useMemo(
-    () => [...new Set(futureTasks.map((task) => task.fieldId).filter(Boolean))].sort().join(','),
-    [futureTasks]
+    () => [...new Set(openTasks.map((task) => task.fieldId).filter(Boolean))].sort().join(','),
+    [openTasks]
   );
 
   useEffect(() => {
-    if ((view !== 'planned' && view !== 'active') || !peopleFieldKey) return;
+    if ((view !== 'now' && view !== 'upcoming' && view !== 'history') || !peopleFieldKey) return;
     let cancelled = false;
     const ids = peopleFieldKey.split(',').filter(Boolean);
     void Promise.all(
@@ -224,45 +236,40 @@ const TaskListScreen = () => {
     };
   }, [view, peopleFieldKey]);
 
-  const handleSchedule = (proposal: TaskProposal) => {
-    stashProposalForSchedule(proposal);
-    navigation.navigate('CreateTask', { fieldId: proposal.fieldId, proposalId: proposal.id });
+  const handleScheduleGroup = (proposalsInGroup: TaskProposal[]) => {
+    const first = proposalsInGroup[0];
+    if (!first) return;
+    stashProposalForSchedule(first);
+    navigation.navigate('CreateTask', { fieldId: first.fieldId, proposalId: first.id });
   };
 
-  const handleLater = async (proposal: TaskProposal) => {
-    try {
-      setBusyId(proposal.id);
-      await getFieldWorkService().snoozeProposal(proposal.id);
-      await loadData();
-    } catch {
-      setError(t('fieldWork.errors.snooze'));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handleDismiss = async (
-    proposal: TaskProposal,
-    decision: 'not_for_this_field' | 'dismiss_for_year'
+  const handleDismissDecision = async (
+    proposalsInGroup: TaskProposal[],
+    decision: 'not_for_this_field' | 'dismiss_for_year' | 'snooze'
   ) => {
+    setDismissGroup(null);
     try {
-      setBusyId(proposal.id);
-      await getFieldWorkService().dismissProposal(proposal.id, decision);
+      setBusyId(proposalsInGroup[0]?.id || 'group');
+      const fw = getFieldWorkService();
+      for (const proposal of proposalsInGroup) {
+        if (decision === 'snooze') await fw.snoozeProposal(proposal.id);
+        else await fw.dismissProposal(proposal.id, decision);
+      }
       await loadData();
-      try {
-        const evalResult = await getFieldWorkService().evaluateDismissalLearning(
-          proposal.fieldId,
-          proposal.templateCode
-        );
-        if (evalResult.shouldPrompt) {
-          setDismissalPrompt({
-            fieldId: proposal.fieldId,
-            templateCode: proposal.templateCode,
-            message: evalResult.promptMessage || t('fieldWork.profile.learning.dismissalMessage'),
-          });
+      const first = proposalsInGroup[0];
+      if (first && decision !== 'snooze') {
+        try {
+          const evalResult = await fw.evaluateDismissalLearning(first.fieldId, first.templateCode);
+          if (evalResult.shouldPrompt) {
+            setDismissalPrompt({
+              fieldId: first.fieldId,
+              templateCode: first.templateCode,
+              message: evalResult.promptMessage || t('fieldWork.profile.learning.dismissalMessage'),
+            });
+          }
+        } catch {
+          /* optional */
         }
-      } catch {
-        /* optional */
       }
     } catch {
       setError(t('fieldWork.errors.dismiss'));
@@ -289,8 +296,8 @@ const TaskListScreen = () => {
   };
 
   const createdTask = useMemo(
-    () => planned.find((task) => task.id === createdId),
-    [planned, createdId]
+    () => openTasks.find((task) => task.id === createdId),
+    [openTasks, createdId]
   );
 
   const handleUndoCreated = async () => {
@@ -312,7 +319,9 @@ const TaskListScreen = () => {
       setBusyId(task.id);
       await getFieldWorkService().startFieldTask(task.id);
       await loadData();
-      setView('active');
+      setView('now');
+      setUndoStartId(task.id);
+      setTimeout(() => setUndoStartId((current) => (current === task.id ? null : current)), 8000);
     } catch {
       setError(t('fieldWork.errors.start'));
     } finally {
@@ -320,30 +329,116 @@ const TaskListScreen = () => {
     }
   };
 
-  const years = useMemo(() => [defaultYear - 1, defaultYear, defaultYear + 1], [defaultYear]);
-  const groupedProposals = useMemo(() => groupProposals(visibleProposals), [visibleProposals]);
-  const plannedGroups = useMemo(() => groupPlannedTasks(planned), [planned]);
+  const handleUndoStart = async () => {
+    if (!undoStartId) return;
+    try {
+      setBusyId(undoStartId);
+      await getFieldWorkService().undoStartFieldTask(undoStartId);
+      setUndoStartId(null);
+      await loadData();
+    } catch {
+      setError(t('fieldWork.errors.start'));
+    } finally {
+      setBusyId(null);
+    }
+  };
 
+  const handlePause = async (reasonKey: (typeof PAUSE_REASONS)[number]) => {
+    if (!pauseTask) return;
+    try {
+      setBusyId(pauseTask.id);
+      await getFieldWorkService().pauseFieldTask(pauseTask.id, {
+        reason: t(`fieldWork.pause.reasons.${reasonKey}`, { defaultValue: reasonKey }),
+      });
+      setPauseTask(null);
+      await loadData();
+    } catch {
+      setError(t('fieldWork.errors.pause', { defaultValue: t('fieldWork.errors.start') }));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleResume = async (task: FieldTask) => {
+    try {
+      setBusyId(task.id);
+      await getFieldWorkService().resumeFieldTask(task.id);
+      await loadData();
+    } catch {
+      setError(t('fieldWork.errors.start'));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRestore = async (task: FieldTask) => {
+    try {
+      setBusyId(task.id);
+      // Cancelled → open detail to re-plan; completed → create similar via form
+      if (String(task.status).toLowerCase() === 'cancelled') {
+        navigation.navigate('TaskDetail', { taskId: task.id });
+      } else {
+        navigation.navigate('CreateTask', { fieldId: task.fieldId });
+      }
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const years = useMemo(() => [defaultYear - 1, defaultYear, defaultYear + 1], [defaultYear]);
   const openChronologio = () => navigation.navigate('Chronologio', {});
   const handleCreate = () => navigation.navigate('CreateTask', { fieldId: fieldFilter || undefined });
+
+  const renderTaskCard = (
+    task: FieldTask,
+    opts: {
+      primary: 'start' | 'continue' | 'open' | 'viewResult' | 'restore' | 'repeat';
+      secondary?: 'reschedule' | 'pause' | null;
+      attentionReasonId?: Parameters<typeof TaskWorkCard>[0]['attentionReasonId'];
+      attentionParams?: Record<string, string | number>;
+    }
+  ) => (
+    <TaskWorkCard
+      key={task.id}
+      task={task}
+      fieldName={fieldNames[task.fieldId] || t('fieldWork.unknownField')}
+      personName={resolveTaskPerson(task, personNames)}
+      year={yearFilter}
+      busy={busyId === task.id}
+      highlighted={task.id === createdId}
+      attentionReasonId={opts.attentionReasonId}
+      attentionParams={opts.attentionParams}
+      primaryAction={opts.primary}
+      secondaryAction={opts.secondary}
+      onPrimary={() => {
+        if (opts.primary === 'start') void handleStart(task);
+        else if (opts.primary === 'continue') {
+          if (task.isPaused) void handleResume(task);
+          else navigation.navigate('TaskDetail', { taskId: task.id });
+        } else if (opts.primary === 'viewResult' || opts.primary === 'open') {
+          navigation.navigate('TaskDetail', { taskId: task.id });
+        } else void handleRestore(task);
+      }}
+      onSecondary={
+        opts.secondary === 'pause'
+          ? () => setPauseTask(task)
+          : opts.secondary === 'reschedule'
+            ? () => navigation.navigate('TaskDetail', { taskId: task.id })
+            : undefined
+      }
+      onOpen={() => navigation.navigate('TaskDetail', { taskId: task.id })}
+    />
+  );
 
   if (loading && tasks.length === 0 && proposals.length === 0) {
     return <LoadingSpinner fullScreen />;
   }
 
-  const renderProposalList = (items: TaskProposal[]) =>
-    items.map((proposal) => (
-      <TaskProposalCard
-        key={proposal.id}
-        proposal={proposal}
-        fieldName={fieldNames[proposal.fieldId] || t('fieldWork.unknownField')}
-        weather={weatherByField[proposal.fieldId]}
-        busy={busyId === proposal.id}
-        onSchedule={() => handleSchedule(proposal)}
-        onSnooze={() => void handleLater(proposal)}
-        onDismiss={(decision) => void handleDismiss(proposal, decision)}
-      />
-    ));
+  const nowEmpty =
+    nowBuckets.attention.length === 0 &&
+    nowBuckets.inProgress.length === 0 &&
+    nowBuckets.today.length === 0 &&
+    nowBuckets.thisWeekPreview.length === 0;
 
   return (
     <ScreenLayout style={styles.screen} tabBarInset>
@@ -367,13 +462,21 @@ const TaskListScreen = () => {
           }
         />
 
+        <TaskSeasonStrip
+          season={season}
+          attentionCount={attentionCount}
+          suitableTodayCount={suitableToday}
+          onPress={openChronologio}
+        />
+
         <TaskViewTabs
           activeView={view}
           onChange={setView}
           views={[
+            { id: 'now', label: t('fieldWork.views.now'), count: attentionCount + nowBuckets.inProgress.length + nowBuckets.today.length },
+            { id: 'upcoming', label: t('fieldWork.views.upcoming'), count: upcomingCount },
             { id: 'proposals', label: t('fieldWork.views.proposals'), count: visibleProposals.length },
-            { id: 'planned', label: t('fieldWork.views.planned'), count: planned.length },
-            { id: 'active', label: t('fieldWork.views.active'), count: inProgress.length },
+            { id: 'history', label: t('fieldWork.views.history'), count: historyTasks.length },
           ]}
         />
 
@@ -388,6 +491,7 @@ const TaskListScreen = () => {
           allFieldsLabel={t('fieldWork.allFields')}
           fieldId={fieldFilter}
           fields={fields}
+          moreFiltersLabel={t('fieldWork.moreFilters', { defaultValue: 'More filters' })}
           onYearChange={setYearFilter}
           onFieldChange={setFieldFilter}
           clearYearLabel={t('fieldWork.context.clearYear')}
@@ -400,36 +504,18 @@ const TaskListScreen = () => {
           </View>
         ) : null}
 
-        {view === 'proposals' ? (
-          <View style={styles.panel}>
-            <Text style={[styles.introTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
-              {t('fieldWork.proposalsIntro.title')}
+        {undoStartId ? (
+          <View style={[styles.undoBanner, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
+            <Text style={{ color: colors.textPrimary, flex: 1, fontWeight: '600' }}>
+              {t('fieldWork.task.startedToast', { defaultValue: 'Task started' })}
             </Text>
-            <TaskHelpText>{t('fieldWork.proposalsIntro.subtitle')}</TaskHelpText>
-            {visibleProposals.length === 0 ? (
-              <EmptyState
-                icon={<Ionicons name="sparkles-outline" size={36} color={colors.primary} />}
-                title={t('fieldWork.empty.proposalsTitle')}
-                description={t('fieldWork.empty.proposalsDescription')}
-              />
-            ) : groupedProposals.canWait.length > 0 ? (
-              <>
-                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
-                  {t('fieldWork.proposalGroups.needsDecision')}
-                </Text>
-                {renderProposalList(groupedProposals.needsDecision)}
-                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
-                  {t('fieldWork.proposalGroups.canWait')}
-                </Text>
-                {renderProposalList(groupedProposals.canWait)}
-              </>
-            ) : (
-              renderProposalList(groupedProposals.needsDecision)
-            )}
+            <Pressable onPress={() => void handleUndoStart()}>
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('common:undo', { defaultValue: 'Undo' })}</Text>
+            </Pressable>
           </View>
         ) : null}
 
-        {view === 'planned' ? (
+        {view === 'now' ? (
           <View style={styles.panel}>
             {createdTask ? (
               <CreatedTaskBanner
@@ -441,74 +527,292 @@ const TaskListScreen = () => {
                 onUndo={() => void handleUndoCreated()}
               />
             ) : null}
-            {planned.length === 0 ? (
+
+            {nowEmpty ? (
               <EmptyState
-                icon={<Ionicons name="calendar-outline" size={36} color={colors.primary} />}
-                title={t('fieldWork.empty.plannedTitle')}
-                description={t('fieldWork.empty.plannedDescription')}
-                action={{ label: t('fieldWork.addTask'), onPress: handleCreate }}
+                icon={<Ionicons name="sunny-outline" size={36} color={colors.primary} />}
+                title={t('fieldWork.empty.nowTitle')}
+                description={
+                  nowBuckets.nextUpcoming
+                    ? t('fieldWork.empty.nowNext', {
+                        title: taskDisplayTitle(
+                          nowBuckets.nextUpcoming.title,
+                          nowBuckets.nextUpcoming.templateCode,
+                          i18n.language
+                        ),
+                        date: formatLongTaskDate(nowBuckets.nextUpcoming.plannedStart, i18n.language),
+                      })
+                    : t('fieldWork.empty.nowDescription')
+                }
+                action={{
+                  label: t('fieldWork.empty.seeUpcoming'),
+                  onPress: () => setView('upcoming'),
+                }}
               />
             ) : (
-              plannedGroups.map((group) => (
-                <View key={group.id}>
-                  <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
-                    {t(`fieldWork.plannedGroups.${group.id}`)}
-                  </Text>
-                  {group.tasks.map((task) => (
-                    <PlannedTaskRow
-                      key={task.id}
-                      task={task}
-                      fieldName={fieldNames[task.fieldId] || t('fieldWork.unknownField')}
-                      personName={resolveTaskPerson(task, personNames)}
-                      year={yearFilter}
-                      busy={busyId === task.id}
-                      highlighted={task.id === createdId}
-                      onStart={() => void handleStart(task)}
-                      onOpen={() => navigation.navigate('TaskDetail', { taskId: task.id })}
-                    />
-                  ))}
-                </View>
-              ))
+              <>
+                {nowBuckets.attention.length > 0 ? (
+                  <>
+                    <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                      {t('fieldWork.nowSections.attention')}
+                    </Text>
+                    {nowBuckets.attention.map((item) =>
+                      renderTaskCard(item.task, {
+                        primary: item.task.isPaused
+                          ? 'continue'
+                          : String(item.task.status).toLowerCase() === 'in_progress'
+                            ? 'continue'
+                            : 'start',
+                        secondary: item.task.isPaused
+                          ? 'reschedule'
+                          : String(item.task.status).toLowerCase() === 'in_progress'
+                            ? 'pause'
+                            : 'reschedule',
+                        attentionReasonId: item.reasonId,
+                        attentionParams: item.params,
+                      })
+                    )}
+                  </>
+                ) : null}
+
+                {nowBuckets.inProgress.length > 0 ? (
+                  <>
+                    <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                      {t('fieldWork.nowSections.inProgress')}
+                    </Text>
+                    {nowBuckets.inProgress.map((task) =>
+                      renderTaskCard(task, { primary: 'continue', secondary: 'pause' })
+                    )}
+                  </>
+                ) : null}
+
+                {nowBuckets.today.length > 0 ? (
+                  <>
+                    <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                      {t('fieldWork.nowSections.today')}
+                    </Text>
+                    {nowBuckets.today.map((task) =>
+                      renderTaskCard(task, { primary: 'start', secondary: 'reschedule' })
+                    )}
+                  </>
+                ) : null}
+
+                {nowBuckets.thisWeekPreview.length > 0 ? (
+                  <>
+                    <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                      {t('fieldWork.nowSections.thisWeek')}
+                    </Text>
+                    {nowBuckets.thisWeekPreview.map((task) =>
+                      renderTaskCard(task, { primary: 'start', secondary: 'reschedule' })
+                    )}
+                    <Pressable onPress={() => setView('upcoming')} style={styles.chronoLink}>
+                      <Text style={{ color: colors.link, fontWeight: '700' }}>
+                        {t('fieldWork.nowSections.seeAllUpcoming')}
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : null}
+              </>
             )}
-            <Pressable onPress={openChronologio} style={styles.chronoLink}>
-              <Text style={{ color: colors.link, fontWeight: '700' }}>
-                {t('fieldWork.seeCompletedInChronologio')}
-              </Text>
-            </Pressable>
           </View>
         ) : null}
 
-        {view === 'active' ? (
+        {view === 'upcoming' ? (
           <View style={styles.panel}>
-            {inProgress.length === 0 ? (
+            {upcomingCount === 0 ? (
               <EmptyState
-                icon={<Ionicons name="play-circle-outline" size={36} color={colors.primary} />}
-                title={t('fieldWork.empty.activeTitle')}
-                description={t('fieldWork.empty.activeDescription')}
+                icon={<Ionicons name="calendar-outline" size={36} color={colors.primary} />}
+                title={t('fieldWork.empty.upcomingTitle')}
+                description={t('fieldWork.empty.upcomingDescription')}
+                action={{ label: t('fieldWork.addTask'), onPress: handleCreate }}
               />
             ) : (
-              [...inProgress]
-                .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
-                .map((task) => (
-                  <InProgressTaskRow
-                    key={task.id}
-                    task={task}
-                    fieldName={fieldNames[task.fieldId] || t('fieldWork.unknownField')}
-                    personName={resolveTaskPerson(task, personNames)}
-                    year={yearFilter}
-                    busy={busyId === task.id}
-                    onContinue={() => navigation.navigate('TaskDetail', { taskId: task.id })}
-                  />
-                ))
+              upcomingGroups.map((group) => (
+                <View key={group.id}>
+                  <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                    {t('fieldWork.upcomingGroups.withCount', {
+                      label: t(`fieldWork.upcomingGroups.${group.id}`),
+                      count: group.tasks.length,
+                    })}
+                  </Text>
+                  {group.tasks.map((task) =>
+                    renderTaskCard(task, { primary: 'start', secondary: 'reschedule' })
+                  )}
+                </View>
+              ))
             )}
-            <Pressable onPress={openChronologio} style={styles.chronoLink}>
-              <Text style={{ color: colors.link, fontWeight: '700' }}>
-                {t('fieldWork.seeCompletedInChronologio')}
+          </View>
+        ) : null}
+
+        {view === 'proposals' ? (
+          <View style={styles.panel}>
+            <Text
+              style={[styles.introTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
+            >
+              {t('fieldWork.proposalsIntro.title')}
+            </Text>
+            <TaskHelpText>{t('fieldWork.proposalsIntro.subtitle')}</TaskHelpText>
+            {visibleProposals.length === 0 ? (
+              <EmptyState
+                icon={<Ionicons name="sparkles-outline" size={36} color={colors.primary} />}
+                title={t('fieldWork.empty.proposalsTitle')}
+                description={t('fieldWork.empty.proposalsDescription')}
+              />
+            ) : (
+              <>
+                {(
+                  [
+                    ['doNow', proposalGroups.doNow],
+                    ['canWait', proposalGroups.canWait],
+                  ] as const
+                ).map(([section, groups]) =>
+                  groups.length > 0 ? (
+                    <View key={section}>
+                      <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                        {t(`fieldWork.proposalGroups.${section === 'doNow' ? 'doNow' : 'canWait'}`)}
+                        {` · ${groups.length}`}
+                      </Text>
+                      {groups.map((group) => (
+                        <GroupedProposalCard
+                          key={group.key}
+                          group={group}
+                          fieldNames={fieldNames}
+                          unknownField={t('fieldWork.unknownField')}
+                          busy={busyId === group.proposals[0]?.id}
+                          onSchedule={() => handleScheduleGroup(group.proposals)}
+                          onDismiss={() => setDismissGroup({ proposals: group.proposals })}
+                          onWhy={() =>
+                            setWhyText(
+                              group.proposals[0]
+                                ? proposalExplanation(group.proposals[0], i18n.language)
+                                : null
+                            )
+                          }
+                        />
+                      ))}
+                    </View>
+                  ) : null
+                )}
+                {proposalGroups.laterYear.length > 0 ? (
+                  <View>
+                    <Pressable
+                      onPress={() => setLaterYearOpen((v) => !v)}
+                      style={styles.laterToggle}
+                    >
+                      <Text style={[styles.groupLabel, { color: colors.textSecondary, marginTop: 0 }]}>
+                        {t('fieldWork.proposalGroups.laterYear')} · {proposalGroups.laterYear.length}
+                      </Text>
+                      <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                        {laterYearOpen
+                          ? t('fieldWork.proposal.hideLater')
+                          : t('fieldWork.proposal.showLater')}
+                      </Text>
+                    </Pressable>
+                    {laterYearOpen
+                      ? proposalGroups.laterYear.map((group) => (
+                          <GroupedProposalCard
+                            key={group.key}
+                            group={group}
+                            fieldNames={fieldNames}
+                            unknownField={t('fieldWork.unknownField')}
+                            busy={busyId === group.proposals[0]?.id}
+                            onSchedule={() => handleScheduleGroup(group.proposals)}
+                            onDismiss={() => setDismissGroup({ proposals: group.proposals })}
+                          />
+                        ))
+                      : null}
+                  </View>
+                ) : null}
+              </>
+            )}
+          </View>
+        ) : null}
+
+        {view === 'history' ? (
+          <View style={styles.panel}>
+            <View style={[styles.historyBanner, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
+              <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
+                {t('fieldWork.history.banner')}
               </Text>
-            </Pressable>
+              <Pressable onPress={openChronologio} style={{ marginTop: spacing.sm }}>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  {t('fieldWork.history.openChronologio')}
+                </Text>
+              </Pressable>
+            </View>
+            {historyTasks.length === 0 ? (
+              <EmptyState
+                icon={<Ionicons name="time-outline" size={36} color={colors.primary} />}
+                title={t('fieldWork.empty.historyTitle')}
+                description={t('fieldWork.empty.historyDescription')}
+              />
+            ) : (
+              historyTasks.map((task) =>
+                renderTaskCard(task, {
+                  primary:
+                    String(task.status).toLowerCase() === 'cancelled' ? 'restore' : 'viewResult',
+                  secondary: null,
+                })
+              )
+            )}
           </View>
         ) : null}
       </ScrollView>
+
+      <Sheet
+        open={Boolean(pauseTask)}
+        onClose={() => setPauseTask(null)}
+        title={t('fieldWork.pause.title', { defaultValue: 'Why pause?' })}
+        edge="bottom"
+        size="md"
+      >
+        <TaskHelpText>
+          {t('fieldWork.pause.copy', { defaultValue: 'Choose why work is pausing temporarily.' })}
+        </TaskHelpText>
+        {PAUSE_REASONS.map((reason) => (
+          <Button
+            key={reason}
+            title={t(`fieldWork.pause.reasons.${reason}`, { defaultValue: reason })}
+            variant="outline"
+            onPress={() => void handlePause(reason)}
+            disabled={Boolean(busyId)}
+          />
+        ))}
+      </Sheet>
+
+      <Sheet
+        open={Boolean(dismissGroup)}
+        onClose={() => setDismissGroup(null)}
+        title={t('fieldWork.dismiss.title', { defaultValue: 'Not relevant' })}
+        edge="bottom"
+        size="md"
+      >
+        <TaskHelpText>
+          {t('fieldWork.dismiss.copy', { defaultValue: 'Choose what applies to this proposal.' })}
+        </TaskHelpText>
+        <Button
+          title={t('fieldWork.dismiss.dontDo')}
+          onPress={() =>
+            dismissGroup && void handleDismissDecision(dismissGroup.proposals, 'not_for_this_field')
+          }
+        />
+        <Button
+          title={t('fieldWork.dismiss.alreadyDone')}
+          variant="outline"
+          onPress={() =>
+            dismissGroup && void handleDismissDecision(dismissGroup.proposals, 'dismiss_for_year')
+          }
+        />
+        <Button
+          title={t('fieldWork.dismiss.remindLater')}
+          variant="outline"
+          onPress={() => dismissGroup && void handleDismissDecision(dismissGroup.proposals, 'snooze')}
+        />
+      </Sheet>
+
+      <Sheet open={Boolean(whyText)} onClose={() => setWhyText(null)} title={t('fieldWork.proposal.why')} edge="bottom" size="sm">
+        <Text style={{ color: colors.textSecondary, lineHeight: 22 }}>{whyText}</Text>
+      </Sheet>
 
       <LearningPromptSheet
         open={Boolean(dismissalPrompt)}
@@ -546,6 +850,28 @@ const styles = StyleSheet.create({
   },
   errorBox: { borderRadius: 12, padding: spacing.md, marginTop: spacing.md },
   chronoLink: { paddingVertical: spacing.md, alignItems: 'center' },
+  undoBanner: {
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  historyBanner: {
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  laterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
 });
 
 export default TaskListScreen;

@@ -18,6 +18,7 @@ import ChronologioEntryCard from './ChronologioEntryCard';
 import ChronologioThumbnail from './ChronologioThumbnail';
 import { pickRealMediaUrl } from '../../chronologio/mediaGuard';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
+import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import type { SupportedLocale } from '../../i18n/config';
 
 export type EventDensity = 'summary' | 'compact' | 'card';
@@ -87,9 +88,10 @@ const ChronologioEvent: React.FC<Props> = ({
   const category = entry.category as ChronologioCategory;
   const harvest = entry.details.harvest;
   const time = formatEventTime(entry.occurredAt, i18n.language);
-  const thumb = pickRealMediaUrl(
+  const thumbRaw = pickRealMediaUrl(
     (entry.media || []).flatMap((m) => [m.thumbnailUrl, m.url])
   );
+  const thumb = resolvePublicAssetUrl(thumbRaw) || thumbRaw;
   const extraPhotos = Math.max(0, (entry.media?.length || 0) - 1);
 
   if (density === 'summary') {

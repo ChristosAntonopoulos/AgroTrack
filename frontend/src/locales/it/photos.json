@@ -1,0 +1,77 @@
+{
+  "title": "Hub foto",
+  "subtitle": "Carica foto — le posizioniamo con luogo e ora di scatto.",
+  "upload": "Carica foto",
+  "dropHint": "Trascina immagini o sfoglia",
+  "uploading": "Caricamento…",
+  "empty": "Nessuna foto",
+  "emptyHint": "Carica foto del campo. GPS e ora di scatto le collocano automaticamente.",
+  "filters": {
+    "field": "Campo",
+    "allFields": "Tutti i campi",
+    "linkStatus": "Collegamento",
+    "all": "Tutte",
+    "standalone": "Autonome",
+    "linked": "Collegate",
+    "assignment": "Assegnazione",
+    "needsReview": "Da revisionare",
+    "unassigned": "Senza campo"
+  },
+  "badges": {
+    "standalone": "Autonoma",
+    "task": "Attività",
+    "note": "Osservazione",
+    "harvest": "Raccolta",
+    "phenology": "Fenologia",
+    "needsReview": "Revisione",
+    "unassigned": "Senza campo"
+  },
+  "review": {
+    "title": "Rivedi posizionamento",
+    "confirmField": "Conferma campo",
+    "pickField": "Scegli campo",
+    "capturedAt": "Scattata il",
+    "candidates": "Campi suggeriti",
+    "duplicate": "Possibile duplicato",
+    "done": "Fine revisione"
+  },
+  "detail": {
+    "title": "Foto",
+    "field": "Campo",
+    "captured": "Scatto",
+    "uploaded": "Caricata",
+    "location": "Posizione",
+    "link": "Collega a record",
+    "unlink": "Scollega",
+    "delete": "Elimina",
+    "deleteConfirm": "Eliminare questa foto?",
+    "ownerType": "Tipo record",
+    "pickRecord": "Scegli record",
+    "loadingRecords": "Caricamento…",
+    "noRecords": "Nessun record di questo tipo su questo campo.",
+    "linkedAs": "Collegata come",
+    "ownerId": "Id record",
+    "saveLink": "Collega",
+    "noGps": "Nessun GPS nell'immagine"
+  },
+  "openHub": "Apri hub foto",
+  "viewer": {
+    "close": "Chiudi foto",
+    "prev": "Foto precedente",
+    "next": "Foto successiva",
+    "counter": "{{current}} / {{total}}",
+    "expand": "Schermo intero",
+    "openDetails": "Dettagli foto"
+  },
+  "dayStack": {
+    "title": "Foto",
+    "count": "{{count}} foto",
+    "openSheet": "Vedi le foto del giorno",
+    "sheetTitle": "Foto del giorno"
+  },
+  "errors": {
+    "load": "Impossibile caricare le foto",
+    "upload": "Caricamento fallito",
+    "save": "Salvataggio fallito"
+  }
+}

@@ -73,6 +73,48 @@ public class LocalFileStorageService : IFileStorageService
         return relativePath;
     }
 
+    public async Task<StoredPhotoResult> SavePhotoAsync(
+        Stream originalContent,
+        Stream thumbnailContent,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        var extension = Path.GetExtension(fileName);
+        if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension))
+        {
+            throw new InvalidOperationException("File type is not allowed.");
+        }
+
+        var now = DateTime.UtcNow;
+        var folderRelative = Path.Combine("photos", now.ToString("yyyy"), now.ToString("MM"));
+        var folder = Path.Combine(_rootPath, folderRelative);
+        Directory.CreateDirectory(folder);
+
+        var id = Guid.NewGuid().ToString("N");
+        var originalName = $"{id}{extension}";
+        var thumbName = $"{id}_thumb.jpg";
+        var originalPath = Path.Combine(folder, originalName);
+        var thumbPath = Path.Combine(folder, thumbName);
+
+        await using (var fileStream = File.Create(originalPath))
+        {
+            await originalContent.CopyToAsync(fileStream, cancellationToken);
+        }
+
+        await using (var thumbStream = File.Create(thumbPath))
+        {
+            await thumbnailContent.CopyToAsync(thumbStream, cancellationToken);
+        }
+
+        var byteSize = new FileInfo(originalPath).Length;
+        var publicFolder = $"{_publicBasePath.TrimEnd('/')}/photos/{now:yyyy}/{now:MM}";
+        var url = $"{publicFolder}/{originalName}";
+        var thumbUrl = $"{publicFolder}/{thumbName}";
+        _logger.LogInformation("Stored photo at {Path} as {Url}", originalPath, url);
+        return new StoredPhotoResult(url, thumbUrl, byteSize);
+    }
+
     public Task DeleteAsync(string relativeUrl, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativeUrl))
@@ -80,13 +122,45 @@ public class LocalFileStorageService : IFileStorageService
             return Task.CompletedTask;
         }
 
-        var fileName = Path.GetFileName(relativeUrl);
-        var fullPath = Path.Combine(_rootPath, fileName);
+        var relativePath = NormalizeRelativePath(relativeUrl);
+        if (relativePath == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(_rootPath, relativePath));
+        var rootFull = Path.GetFullPath(_rootPath);
+        if (!fullPath.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Refused to delete path outside storage root: {Url}", relativeUrl);
+            return Task.CompletedTask;
+        }
+
         if (File.Exists(fullPath))
         {
             File.Delete(fullPath);
+            _logger.LogInformation("Deleted stored file {Path}", fullPath);
         }
 
         return Task.CompletedTask;
+    }
+
+    private string? NormalizeRelativePath(string relativeUrl)
+    {
+        var path = relativeUrl.Trim();
+        if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
+        {
+            path = absolute.AbsolutePath;
+        }
+
+        var marker = _publicBasePath.TrimEnd('/');
+        var idx = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (idx >= 0)
+        {
+            path = path[(idx + marker.Length)..];
+        }
+
+        path = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        return string.IsNullOrWhiteSpace(path) ? null : path;
     }
 }

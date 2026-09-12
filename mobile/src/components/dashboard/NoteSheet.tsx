@@ -103,7 +103,7 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
                 {
                   color: colors.textPrimary,
                   borderColor: colors.border,
-                  backgroundColor: colors.background,
+                  backgroundColor: colors.surfaceMuted,
                 },
               ]}
             />

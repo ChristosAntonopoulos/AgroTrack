@@ -173,6 +173,18 @@ public class MongoIndexInitializer : IHostedService
                 Builders<MediaAttachmentDocument>.IndexKeys
                     .Ascending(m => m.FieldId)
                     .Descending(m => m.CreatedAt)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.FieldId)
+                    .Descending(m => m.CapturedAt)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.ContentHash)
+                    .Ascending(m => m.FieldId)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.UploadedByUserId)
+                    .Ascending(m => m.FieldAssignment)));
 
             var familyCircles = _context.GetCollection<FamilyCircleDocument>("family_circles");
             familyCircles.Indexes.CreateOne(new CreateIndexModel<FamilyCircleDocument>(

@@ -6,6 +6,7 @@ import { PreferencesProvider } from './src/context/PreferencesContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { OfflineProvider } from './src/context/OfflineContext';
+import { HarvestCampaignProvider } from './src/context/HarvestCampaignContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import i18n, { changeAppLanguage } from './src/i18n';
@@ -45,7 +46,9 @@ export default function App() {
               <ThemeProvider>
                 <I18nSync>
                   <OfflineProvider>
-                    <AppInner />
+                    <HarvestCampaignProvider>
+                      <AppInner />
+                    </HarvestCampaignProvider>
                   </OfflineProvider>
                 </I18nSync>
               </ThemeProvider>

@@ -4,8 +4,8 @@ import { useTheme } from '../../context/ThemeContext';
 import type { ChronologioTimelineRow } from '../../utils/chronologioTimeline';
 import { spacing } from '../../theme';
 
-const RAIL_WIDTH = 30;
-const LINE_LEFT = 14;
+const RAIL_WIDTH = 34;
+const LINE_LEFT = 16;
 
 type Props = {
   row: ChronologioTimelineRow;
@@ -62,7 +62,7 @@ const ChronologioTimelineRowView: React.FC<Props> = ({
               <View
                 style={[
                   styles.dayNode,
-                  { backgroundColor: colors.background, borderColor: lineColor },
+                  { backgroundColor: colors.surfaceMuted, borderColor: lineColor },
                 ]}
               />
             )}
@@ -80,7 +80,10 @@ const ChronologioTimelineRowView: React.FC<Props> = ({
         ) : null}
 
         {row.kind === 'month' ? (
-          <Text style={[styles.monthLabel, { color: colors.textSecondary }]}>{row.label}</Text>
+          <View style={styles.monthBlock}>
+            <Text style={[styles.monthLabel, { color: colors.textSecondary }]}>{row.label}</Text>
+            <View style={[styles.chapterRule, { backgroundColor: colors.borderLight }]} />
+          </View>
         ) : null}
 
         {row.kind === 'day' ? (
@@ -185,27 +188,37 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   yearLabel: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
     marginTop: spacing.lg,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  monthLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+  monthBlock: {
     marginTop: spacing.md,
     marginBottom: spacing.sm,
+    gap: 8,
+  },
+  monthLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+    textTransform: 'capitalize',
+  },
+  chapterRule: {
+    height: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    opacity: 0.9,
   },
   dayBlock: {
     marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: 10,
   },
   dayLabel: {
-    fontSize: 16,
-    letterSpacing: -0.2,
+    fontSize: 18,
+    letterSpacing: -0.3,
+    lineHeight: 24,
   },
   daySub: {
     fontSize: 13,

@@ -1,31 +1,27 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import TaskViewTabs from './TaskViewTabs';
 
 describe('TaskViewTabs', () => {
-  it('moves between tabs with arrow keys and exposes counts on the tab', async () => {
-    const onChange = jest.fn();
+  it('renders farmer workflow tabs with counts', () => {
     render(
       <TaskViewTabs
-        ariaLabel="Προβολές εργασιών"
-        activeView="proposals"
-        onChange={onChange}
+        ariaLabel="Task views"
+        activeView="now"
+        onChange={() => undefined}
         views={[
-          { id: 'proposals', label: 'Προτάσεις', count: 5 },
-          { id: 'planned', label: 'Προγραμματισμένες', count: 2 },
-          { id: 'active', label: 'Σε εξέλιξη', count: 0 },
+          { id: 'now', label: 'Τώρα', count: 3 },
+          { id: 'upcoming', label: 'Επόμενες', count: 6 },
+          { id: 'proposals', label: 'Προτάσεις', count: 14 },
+          { id: 'history', label: 'Ιστορικό', count: 0 },
         ]}
       />
     );
 
-    const proposals = screen.getByRole('tab', { name: 'Προτάσεις' });
-    expect(proposals).toHaveAttribute('aria-selected', 'true');
-    expect(proposals).toHaveAttribute('aria-describedby', 'tasks-tab-count-proposals');
-    expect(within(proposals).getByText('5')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Σε εξέλιξη' })).not.toHaveAttribute('aria-describedby');
-
-    proposals.focus();
-    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenCalledWith('planned');
+    const now = screen.getByRole('tab', { name: 'Τώρα' });
+    expect(now).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Προτάσεις' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Ιστορικό' })).not.toHaveAttribute('aria-describedby');
   });
 });

@@ -69,6 +69,20 @@ export interface FieldPhenology {
   notes?: string;
 }
 
+export interface FieldPhenologyObservation {
+  id: string;
+  fieldId: string;
+  stageCode: string;
+  stageLabel: string;
+  observedOn: string;
+  source: string;
+  confidence: string;
+  confidenceLabel?: string;
+  photoIds: string[];
+  notes?: string;
+  observedByUserId: string;
+}
+
 export interface FieldYearTaskPlan {
   fieldId: string;
   resultYear: number;
@@ -108,6 +122,11 @@ export interface FieldTask {
   weatherSuitabilityLabel: string;
   latestExecutionId?: string;
   startedAt?: string;
+  /** Soft pause while status remains in_progress — not a fifth status. */
+  isPaused?: boolean;
+  pauseReason?: string;
+  pausedAt?: string;
+  workGroupId?: string;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -496,6 +515,33 @@ export const fieldWorkService = {
     return response.data;
   },
 
+  /** Revert a just-started task with no checklist answers yet. */
+  undoStartFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/undo-start`);
+    return response.data;
+  },
+
+  pauseFieldTask: async (
+    id: string,
+    body: { reason: string; plannedStart?: string; plannedEnd?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/pause`, body);
+    return response.data;
+  },
+
+  resumeFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/resume`);
+    return response.data;
+  },
+
+  rescheduleFieldTask: async (
+    id: string,
+    body: { plannedStart?: string; plannedEnd?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/reschedule`, body);
+    return response.data;
+  },
+
   completeFieldTask: async (
     id: string,
     body: {
@@ -544,6 +590,13 @@ export const fieldWorkService = {
   getPhenology: async (fieldId: string): Promise<FieldPhenology> => {
     const response = await api.get<FieldPhenology>(`/api/v1/fields/${fieldId}/phenology`);
     return response.data;
+  },
+
+  listPhenologyObservations: async (fieldId: string): Promise<FieldPhenologyObservation[]> => {
+    const response = await api.get<FieldPhenologyObservation[]>(
+      `/api/v1/fields/${fieldId}/phenology/observations`
+    );
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getWorkProfile: async (fieldId: string): Promise<FieldWorkProfile | null> => {

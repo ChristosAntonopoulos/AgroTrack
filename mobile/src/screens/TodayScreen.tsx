@@ -20,7 +20,6 @@ import { useCaptureOptional } from '../context/CaptureContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
-import TutorialOverlay, { TutorialStep } from '../components/TutorialOverlay';
 import Button from '../components/ui/Button';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
@@ -56,8 +55,7 @@ const iconName = (p: BriefProposal): keyof typeof Ionicons.glyphMap => {
 const TodayScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier, everydayTutorialSeen, markEverydayTutorialSeen, isEveryday } =
-    usePreferences();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t, i18n } = useTranslation(['today', 'common']);
   const navigation = useNavigation<Nav>();
   const capture = useCaptureOptional();
@@ -71,7 +69,6 @@ const TodayScreen = () => {
     await refresh();
     await reloadExtras();
   });
-  const [showTutorial, setShowTutorial] = useState(false);
 
   const reloadExtras = useCallback(async () => {
     if (!user) return;
@@ -92,16 +89,6 @@ const TodayScreen = () => {
   useEffect(() => {
     void reloadExtras();
   }, [reloadExtras]);
-
-  useEffect(() => {
-    if (isEveryday && !everydayTutorialSeen && !loading) setShowTutorial(true);
-  }, [isEveryday, everydayTutorialSeen, loading]);
-
-  const everydaySteps: TutorialStep[] = [
-    { id: 'today-welcome', titleKey: 'everyday.step1.title', bodyKey: 'everyday.step1.body' },
-    { id: 'next-action', titleKey: 'everyday.step2.title', bodyKey: 'everyday.step2.body' },
-    { id: 'more-menu', titleKey: 'everyday.step3.title', bodyKey: 'everyday.step3.body' },
-  ];
 
   const fieldList = allFields.length ? allFields : Object.values(fields);
   const fieldsById = useMemo(() => {
@@ -215,14 +202,14 @@ const TodayScreen = () => {
     >
       <ScreenHeader title={t('title')} subtitle={t('subtitle')} />
       <Text style={[styles.dateLine, { color: colors.textSecondary }]}>{dateLabel}</Text>
-      <View style={styles.conditions}>
+      <View style={[styles.conditions, { borderBottomColor: colors.border }]}>
         {conditionsLine ? (
           <Text style={[styles.conditionsLine, { color: colors.textPrimary }]}>{conditionsLine}</Text>
         ) : null}
         <Text
           style={[
             styles.conditionsStatus,
-            { color: conditionsStatus.alert ? '#8a5a12' : colors.textSecondary },
+            { color: conditionsStatus.alert ? colors.warningDark : colors.textSecondary },
           ]}
         >
           {t(conditionsStatus.lineKey, conditionsStatus.lineParams)}
@@ -276,7 +263,7 @@ const TodayScreen = () => {
             return (
               <TouchableOpacity
                 key={task.id}
-                style={[styles.row, { minHeight: Math.max(tapMin, 44) }]}
+                style={[styles.row, { minHeight: Math.max(tapMin, 44), borderBottomColor: colors.border }]}
                 onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
               >
                 <Text style={[styles.time, { color: colors.textSecondary }]}>
@@ -388,7 +375,7 @@ const TodayScreen = () => {
                 return (
                   <View key={p.id}>
                     <TouchableOpacity
-                      style={[styles.secondaryHit, { minHeight: Math.max(tapMin, 44) }]}
+                      style={[styles.secondaryHit, { minHeight: Math.max(tapMin, 44), borderBottomColor: colors.border }]}
                       onPress={() => setExpandedId((id) => (id === p.id ? null : p.id))}
                     >
                       <Ionicons name={iconName(p)} size={18} color={colors.primary} />
@@ -458,7 +445,7 @@ const TodayScreen = () => {
             return (
               <TouchableOpacity
                 key={task.id}
-                style={[styles.row, { minHeight: Math.max(tapMin, 44) }]}
+                style={[styles.row, { minHeight: Math.max(tapMin, 44), borderBottomColor: colors.border }]}
                 onPress={() => navigation.navigate('TaskDetail', { taskId: task.id })}
               >
                 <Text style={[styles.time, { color: colors.textSecondary }]}>
@@ -480,19 +467,6 @@ const TodayScreen = () => {
           })}
         </View>
       ) : null}
-
-      <TutorialOverlay
-        visible={showTutorial}
-        steps={everydaySteps}
-        onComplete={async () => {
-          await markEverydayTutorialSeen();
-          setShowTutorial(false);
-        }}
-        onSkip={async () => {
-          await markEverydayTutorialSeen();
-          setShowTutorial(false);
-        }}
-      />
     </ScreenLayout>
   );
 };
@@ -509,7 +483,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
   },
   conditionsLine: { fontWeight: '700', fontSize: 15 },
   conditionsStatus: { marginTop: 6, fontSize: 14 },
@@ -533,7 +506,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e0',
   },
   time: { width: 56, fontWeight: '700', fontSize: 12, paddingTop: 2 },
   routeStop: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
@@ -567,7 +539,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e0',
   },
   expand: { paddingBottom: 10 },
 });

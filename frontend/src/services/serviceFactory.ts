@@ -44,6 +44,7 @@ import { fieldWorkService } from './fieldWorkService';
 import { mockFieldWorkService } from './mock/mockFieldWorkService';
 import { feedbackService } from './feedbackService';
 import { mockFeedbackService } from './mock/mockFeedbackService';
+import { photoService } from './photoService';
 import { isMockDataEnabled } from '../config/apiConfig';
 
 const useMockData = isMockDataEnabled();
@@ -71,6 +72,8 @@ export const getFieldWorkService = () =>
   useMockData ? mockFieldWorkService : fieldWorkService;
 export const getFeedbackService = () =>
   useMockData ? mockFeedbackService : feedbackService;
+/** Photo Hub uses the live API even in mock mode (local uploads need the backend). */
+export const getPhotoService = () => photoService;
 
 /** Whether the UI is running against in-browser demo data. */
 export const isMockMode = () => useMockData;

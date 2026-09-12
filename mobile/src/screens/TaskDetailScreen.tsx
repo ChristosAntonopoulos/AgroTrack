@@ -27,9 +27,9 @@ import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import OfflineBanner from '../components/OfflineBanner';
 import Sheet from '../components/ui/Sheet';
+import ScreenLayout from '../components/layout/ScreenLayout';
 import { TaskHelpText, TaskWeatherChip } from '../components/tasks/TaskChoiceChips';
 import { typography, spacing, radii } from '../theme';
-import { createElevation } from '../theme/elevation';
 import { formatOfficialAmount, formatOfficialNet } from '../finance/format';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
 import { formatTaskDateRange, formatTaskDay } from '../utils/taskDateRange';
@@ -185,6 +185,34 @@ const TaskDetailScreen = () => {
     }
   };
 
+  const handleResume = async () => {
+    setBusy(true);
+    try {
+      const updated = await getFieldWorkService().resumeFieldTask(taskId);
+      setTask(updated);
+    } catch {
+      setError(t('fieldWork.errors.start'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePause = async () => {
+    setBusy(true);
+    try {
+      const updated = await getFieldWorkService().pauseFieldTask(taskId, {
+        reason: t('fieldWork.pause.reasons.anotherDay', {
+          defaultValue: 'Continue another day',
+        }),
+      });
+      setTask(updated);
+    } catch {
+      setError(t('fieldWork.errors.pause', { defaultValue: t('fieldWork.errors.start') }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleAssign = async (nextKey: string) => {
     if (isTerminal) return;
     setAssigneeKey(nextKey);
@@ -208,6 +236,27 @@ const TaskDetailScreen = () => {
   };
 
   const handleComplete = () => navigation.navigate('TaskCompletion', { taskId });
+  const isPaused = Boolean(task?.isPaused);
+  const checksDone = progress.total > 0 && progress.done >= progress.total;
+  const nextStepHelp = isPaused
+    ? t('fieldWork.detail.nextStepPaused', {
+        defaultValue: 'This task is paused. Continue when ready.',
+      })
+    : canStart
+      ? t('fieldWork.detail.nextStepStart')
+      : checksDone
+        ? t('fieldWork.detail.nextStepRecordResult', {
+            defaultValue: 'All checks are complete.',
+          })
+        : progress.total > 0
+          ? t('fieldWork.detail.nextStepContinueChecks', {
+              count: Math.max(0, progress.total - progress.done),
+              defaultValue: `Complete ${Math.max(0, progress.total - progress.done)} more checks.`,
+            })
+          : t('fieldWork.detail.nextStepComplete');
+  const primaryCompleteLabel = checksDone
+    ? t('fieldWork.actions.recordResult', { defaultValue: 'Record result' })
+    : t('fieldWork.actions.continueChecks', { defaultValue: 'Continue checks' });
 
   const selectedAssignee = assigneeOptions.find((option) => option.key === assigneeKey);
   const statusClass =
@@ -223,10 +272,12 @@ const TaskDetailScreen = () => {
 
   if (!task) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.error }}>{error || t('detail.notFound')}</Text>
-        <Button title={t('detail.backToTasks')} variant="outline" onPress={() => navigation.goBack()} />
-      </View>
+      <ScreenLayout padded>
+        <View style={styles.centered}>
+          <Text style={{ color: colors.error }}>{error || t('detail.notFound')}</Text>
+          <Button title={t('detail.backToTasks')} variant="outline" onPress={() => navigation.goBack()} />
+        </View>
+      </ScreenLayout>
     );
   }
 
@@ -251,7 +302,8 @@ const TaskDetailScreen = () => {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <ScreenLayout>
+    <View style={styles.screen}>
       <OfflineBanner />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
@@ -312,23 +364,36 @@ const TaskDetailScreen = () => {
         {!isTerminal ? (
           <View style={[styles.card, styles.nextCard, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{t('fieldWork.detail.nextStep')}</Text>
-            <TaskHelpText>
-              {canStart ? t('fieldWork.detail.nextStepStart') : t('fieldWork.detail.nextStepComplete')}
-            </TaskHelpText>
+            <TaskHelpText>{nextStepHelp}</TaskHelpText>
             <View style={styles.actions}>
-              {canStart ? (
+              {isPaused ? (
+                <Button
+                  title={t('fieldWork.actions.continueIt', { defaultValue: 'Continue' })}
+                  onPress={() => void handleResume()}
+                  disabled={busy}
+                  style={{ flex: 1 }}
+                />
+              ) : canStart ? (
                 <Button
                   title={t('fieldWork.actions.start')}
                   onPress={() => void handleStart()}
                   disabled={busy}
                   style={{ flex: 1 }}
                 />
-              ) : null}
-              {canComplete ? (
+              ) : canComplete ? (
                 <Button
-                  title={t('fieldWork.actions.complete')}
-                  variant={canStart ? 'outline' : 'success'}
+                  title={primaryCompleteLabel}
+                  variant="success"
                   onPress={handleComplete}
+                  disabled={busy}
+                  style={{ flex: 1 }}
+                />
+              ) : null}
+              {!isPaused && status === 'in_progress' ? (
+                <Button
+                  title={t('fieldWork.actions.pause', { defaultValue: 'Pause' })}
+                  variant="outline"
+                  onPress={() => void handlePause()}
                   disabled={busy}
                   style={{ flex: 1 }}
                 />
@@ -369,9 +434,6 @@ const TaskDetailScreen = () => {
               </Pressable>
               {showMoreChecks ? extra.map(renderCheck) : null}
             </>
-          ) : null}
-          {canComplete && !isTerminal ? (
-            <Button title={t('fieldWork.detail.fillChecks')} variant="outline" onPress={handleComplete} disabled={busy} />
           ) : null}
         </View>
 
@@ -459,29 +521,8 @@ const TaskDetailScreen = () => {
           </Pressable>
         ) : null}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: spacing['3xl'] }} />
       </ScrollView>
-
-      {canComplete && !isTerminal ? (
-        <View
-          style={[
-            styles.footer,
-            {
-              backgroundColor: colors.surfaceElevated,
-              borderTopColor: colors.border,
-              ...createElevation(colors, 'lg'),
-            },
-          ]}
-        >
-          <Button
-            title={t('fieldWork.actions.complete')}
-            variant="success"
-            onPress={handleComplete}
-            disabled={busy}
-            style={{ flex: 1, minHeight: tapMin }}
-          />
-        </View>
-      ) : null}
 
       <Sheet open={assignOpen} onClose={() => setAssignOpen(false)} title={t('detail.assignedTo')} edge="bottom" size="md">
         {assigneeOptions.map((option) => (
@@ -503,6 +544,7 @@ const TaskDetailScreen = () => {
         ))}
       </Sheet>
     </View>
+    </ScreenLayout>
   );
 };
 
@@ -532,7 +574,6 @@ const styles = StyleSheet.create({
   },
   moneyRow: { flexDirection: 'row', gap: spacing.md },
   errorBox: { borderRadius: radii.md, padding: spacing.md },
-  footer: { flexDirection: 'row', padding: spacing.base, paddingBottom: spacing.lg, borderTopWidth: 1 },
   assignRow: { paddingHorizontal: spacing.sm, justifyContent: 'center', borderRadius: radii.md },
 });
 

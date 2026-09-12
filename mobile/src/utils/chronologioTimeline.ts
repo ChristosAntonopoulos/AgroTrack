@@ -1,7 +1,8 @@
 import type { ChronologioEntry } from '../services/chronologioService';
 import { groupChronologioEntries } from './chronologioGrouping';
+import { groupSameDayPhotoEntries } from './chronologioPhotoGroups';
 
-export type TimelineRowKind = 'year' | 'month' | 'day' | 'entry' | 'weatherCluster';
+export type TimelineRowKind = 'year' | 'month' | 'day' | 'entry' | 'weatherCluster' | 'photoGroup';
 
 export type ChronologioTimelineRow = {
   key: string;
@@ -16,6 +17,8 @@ export type ChronologioTimelineRow = {
   entry?: ChronologioEntry;
   /** Month weather reviews for the field-pick cluster (same card family). */
   weatherReviews?: ChronologioEntry[];
+  /** Same-day Photo Hub entries collapsed into one collage card. */
+  photoEntries?: ChronologioEntry[];
 };
 
 type BuildOptions = {
@@ -142,16 +145,28 @@ export const buildChronologioTimelineRows = (
         });
       }
 
-      for (const e of otherEntries) {
-        rows.push({
-          key: e.id,
-          kind: 'entry',
-          stickyLabel: dayLabel,
-          year,
-          month,
-          dayKind: d.kind,
-          entry: e,
-        });
+      for (const item of groupSameDayPhotoEntries(otherEntries)) {
+        if (item.type === 'photoGroup') {
+          rows.push({
+            key: item.id,
+            kind: 'photoGroup',
+            stickyLabel: dayLabel,
+            year,
+            month,
+            dayKind: d.kind,
+            photoEntries: item.entries,
+          });
+        } else {
+          rows.push({
+            key: item.entry.id,
+            kind: 'entry',
+            stickyLabel: dayLabel,
+            year,
+            month,
+            dayKind: d.kind,
+            entry: item.entry,
+          });
+        }
       }
     }
   }

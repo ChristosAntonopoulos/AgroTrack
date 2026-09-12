@@ -230,8 +230,8 @@ const FieldWeatherVegetationScreen = () => {
                 title={t('chronologio:weatherVegetation.temperatureTitle')}
                 data={weatherPoints}
                 series={[
-                  { key: 'max', label: t('chronologio:weatherVegetation.maxTemp'), color: '#C45C26' },
-                  { key: 'min', label: t('chronologio:weatherVegetation.minTemp'), color: '#2D6A9F' },
+                  { key: 'max', label: t('chronologio:weatherVegetation.maxTemp'), color: colors.temperature },
+                  { key: 'min', label: t('chronologio:weatherVegetation.minTemp'), color: colors.weatherBlue },
                 ]}
                 emptyLabel={t('chronologio:weatherVegetation.emptyTitle')}
               />
@@ -239,13 +239,13 @@ const FieldWeatherVegetationScreen = () => {
                 title={t('chronologio:weatherVegetation.rainTitle')}
                 data={weatherPoints}
                 mode="bar"
-                series={[{ key: 'rain', label: t('chronologio:weatherVegetation.rainMm'), color: '#2D6A9F' }]}
+                series={[{ key: 'rain', label: t('chronologio:weatherVegetation.rainMm'), color: colors.rain }]}
                 emptyLabel={t('chronologio:weatherVegetation.emptyTitle')}
               />
               <HistoryChart
                 title={t('chronologio:weatherVegetation.etTitle')}
                 data={weatherPoints}
-                series={[{ key: 'et0', label: t('chronologio:weatherVegetation.et0Mm'), color: '#4A7C2A' }]}
+                series={[{ key: 'et0', label: t('chronologio:weatherVegetation.et0Mm'), color: colors.primary }]}
                 emptyLabel={t('chronologio:weatherVegetation.emptyTitle')}
               />
             </>
@@ -255,8 +255,8 @@ const FieldWeatherVegetationScreen = () => {
               title={t('chronologio:weatherVegetation.vegetationTitle')}
               data={vegetationPoints}
               series={[
-                { key: 'ndvi', label: t('chronologio:weatherVegetation.ndvi'), color: '#2D5016' },
-                { key: 'ndmi', label: t('chronologio:weatherVegetation.ndmi'), color: '#17A2B8' },
+                { key: 'ndvi', label: t('chronologio:weatherVegetation.ndvi'), color: colors.olive },
+                { key: 'ndmi', label: t('chronologio:weatherVegetation.ndmi'), color: colors.humidity },
               ]}
               emptyLabel={t('chronologio:weatherVegetation.vegetationEmptyDescription')}
             />

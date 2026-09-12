@@ -1,15 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { usePreferences } from '../../context/PreferencesContext';
 import Button from '../ui/Button';
-import FormDateField from '../forms/FormDateField';
-import {
-  CreateHarvestRecordInput,
-  HarvestRecord,
-} from '../../services/harvestService';
-import { spacing, typography } from '../../theme';
+import type { HarvestRecord } from '../../services/harvestService';
+import { spacing, typography, radii } from '../../theme';
 import { formatKg } from '../../utils/harvestUtils';
 
 type Props = {
@@ -20,109 +15,49 @@ type Props = {
   compact?: boolean;
   autoFocus?: boolean;
   mode?: 'daily' | 'final' | 'default';
-  onCreate: (input: CreateHarvestRecordInput) => Promise<HarvestRecord>;
-  onVoid: (id: string) => Promise<void>;
-  onWriteMoneyIn?: () => void;
+  onLogHarvest: () => void;
+  onOpenCampaign?: () => void;
+  onVoid?: (id: string) => Promise<void>;
 };
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
-
+/**
+ * Thin harvest summary on field detail. Create goes through Capture / campaign — not a third form.
+ */
 const FieldHarvestCard: React.FC<Props> = ({
-  fieldId,
   records,
   canAdd,
   canVoid,
-  compact = true,
   autoFocus = false,
   mode = 'default',
-  onCreate,
+  onLogHarvest,
+  onOpenCampaign,
   onVoid,
-  onWriteMoneyIn,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const { colors } = useTheme();
-  const { tapMin } = usePreferences();
+  const { colors, tapMin } = useTheme();
   const isFinal = mode === 'final';
-  const [date, setDate] = useState(todayIso());
-  const [oliveKg, setOliveKg] = useState('');
-  const [showMore, setShowMore] = useState(!compact || autoFocus || isFinal);
-  const [oilKg, setOilKg] = useState('');
-  const [millName, setMillName] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<HarvestRecord | null>(null);
 
-  const latest = useMemo(
-    () => records.find((r) => r.status === 'posted') ?? null,
+  const posted = useMemo(
+    () => records.filter((r) => r.status === 'posted').slice(0, 3),
     [records]
   );
+  const latest = posted[0] ?? null;
+  const seasonKg = useMemo(
+    () => posted.reduce((sum, row) => sum + (row.oliveKg || 0), 0),
+    [posted]
+  );
 
-  const handleSave = async () => {
-    const parsed = Number(oliveKg.replace(',', '.'));
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      setError(t('fields:harvest.oliveKgRequired'));
-      return;
-    }
-
-    const oilParsed = oilKg.trim() ? Number(oilKg.replace(',', '.')) : undefined;
-    if (oilParsed != null && (!Number.isFinite(oilParsed) || oilParsed <= 0)) {
-      setError(t('fields:harvest.oilKgRequired'));
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-    try {
-      const created = await onCreate({
-        fieldId,
-        harvestDate: new Date(`${date}T12:00:00`).toISOString(),
-        oliveKg: parsed,
-        oilKg: oilParsed,
-        millName: millName.trim() || undefined,
-      });
-      setSaved(created);
-      setOliveKg('');
-      setOilKg('');
-      setMillName('');
-      setDate(todayIso());
-      if (compact) setShowMore(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('fields:harvest.saveFailed'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const confirmVoid = (id: string) => {
-    Alert.alert(t('fields:harvest.undoTitle'), t('fields:harvest.undoConfirm'), [
+  const handleVoid = (id: string) => {
+    if (!onVoid) return;
+    Alert.alert(t('fields:harvest.voidTitle', { defaultValue: 'Void harvest?' }), undefined, [
       { text: t('common:cancel'), style: 'cancel' },
       {
-        text: t('fields:harvest.undo'),
+        text: t('common:delete', { defaultValue: 'Void' }),
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await onVoid(id);
-            if (saved?.id === id) setSaved(null);
-          } catch (err) {
-            Alert.alert(
-              t('fields:harvest.undoTitle'),
-              err instanceof Error ? err.message : t('fields:harvest.undoFailed')
-            );
-          }
-        },
+        onPress: () => void onVoid(id),
       },
     ]);
   };
-
-  const inputStyle = [
-    styles.input,
-    {
-      color: colors.textPrimary,
-      borderColor: colors.border,
-      backgroundColor: colors.background,
-      minHeight: tapMin,
-    },
-  ];
 
   return (
     <View
@@ -130,93 +65,63 @@ const FieldHarvestCard: React.FC<Props> = ({
         styles.card,
         {
           backgroundColor: colors.surface,
-          borderColor: autoFocus ? colors.primary : colors.border,
+          borderColor: autoFocus ? colors.primary : colors.borderLight,
         },
       ]}
     >
       <Text style={[styles.title, { color: colors.textPrimary }]}>
-        {isFinal ? t('fields:harvest.finalTitle') : t('fields:harvest.title')}
-      </Text>
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
         {isFinal
-          ? t('fields:harvest.finalHint')
-          : latest
-            ? t('fields:harvest.lastSaved', { kg: formatKg(latest.oliveKg) })
-            : t('fields:harvest.emptyHint')}
+          ? t('fields:harvest.finalTitle', { defaultValue: t('fields:harvest.title') })
+          : t('fields:harvest.title', { defaultValue: 'Harvest' })}
       </Text>
+      {seasonKg > 0 ? (
+        <Text style={[styles.meta, { color: colors.textSecondary }]}>
+          {t('fields:harvest.seasonKg', {
+            defaultValue: '{{kg}} kg this season',
+            kg: formatKg(seasonKg),
+          })}
+        </Text>
+      ) : (
+        <Text style={[styles.meta, { color: colors.textTertiary }]}>
+          {t('fields:harvest.emptyHint', { defaultValue: 'No harvest logged yet for this field.' })}
+        </Text>
+      )}
 
-      {saved ? (
-        <View style={[styles.success, { backgroundColor: colors.success + '18' }]}>
-          <Text style={[styles.successText, { color: colors.textPrimary }]}>
-            {t('fields:harvest.savedKg', { kg: formatKg(saved.oliveKg) })}
+      {latest ? (
+        <View style={styles.latest}>
+          <Text style={[styles.latestLabel, { color: colors.textSecondary }]}>
+            {latest.harvestDate?.slice(0, 10)} · {formatKg(latest.oliveKg)} kg
+            {latest.millName ? ` · ${latest.millName}` : ''}
           </Text>
-          {canVoid ? (
-            <Pressable onPress={() => confirmVoid(saved.id)} style={{ minHeight: tapMin, justifyContent: 'center' }}>
-              <Text style={[styles.undo, { color: colors.primary }]}>{t('fields:harvest.undo')}</Text>
+          {canVoid && onVoid ? (
+            <Pressable onPress={() => handleVoid(latest.id)} hitSlop={8}>
+              <Text style={{ color: colors.error, fontWeight: '600' }}>
+                {t('fields:harvest.void', { defaultValue: 'Void' })}
+              </Text>
             </Pressable>
           ) : null}
         </View>
       ) : null}
 
-      {canAdd ? (
-        <View style={styles.form}>
-          <FormDateField
-            label={t('fields:harvest.date')}
-            value={date}
-            onValueChange={setDate}
-            maximumDate={new Date()}
-          />
-          <TextInput
-            value={oliveKg}
-            onChangeText={setOliveKg}
-            keyboardType="decimal-pad"
-            placeholder={t('fields:harvest.oliveKg')}
-            placeholderTextColor={colors.textTertiary}
-            style={inputStyle}
-          />
-          {showMore ? (
-            <>
-              <TextInput
-                value={oilKg}
-                onChangeText={setOilKg}
-                keyboardType="decimal-pad"
-                placeholder={t('fields:harvest.oilKg')}
-                placeholderTextColor={colors.textTertiary}
-                style={inputStyle}
-              />
-              <TextInput
-                value={millName}
-                onChangeText={setMillName}
-                placeholder={t('fields:harvest.millName')}
-                placeholderTextColor={colors.textTertiary}
-                style={inputStyle}
-              />
-            </>
-          ) : (
-            <Pressable
-              onPress={() => setShowMore(true)}
-              style={{ minHeight: tapMin, justifyContent: 'center' }}
-            >
-              <Text style={[styles.more, { color: colors.primary }]}>{t('fields:harvest.addMore')}</Text>
-            </Pressable>
-          )}
-          {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
+      <View style={styles.actions}>
+        {canAdd ? (
           <Button
-            title={isFinal ? t('fields:harvest.saveFinal') : t('fields:harvest.save')}
-            onPress={handleSave}
-            loading={submitting}
+            title={t('fields:harvest.log', { defaultValue: 'Log harvest' })}
+            onPress={onLogHarvest}
             fullWidth
           />
-          {isFinal && onWriteMoneyIn ? (
-            <Button
-              title={t('fields:harvest.writeMoneyIn')}
-              variant="outline"
-              onPress={onWriteMoneyIn}
-              fullWidth
-            />
-          ) : null}
-        </View>
-      ) : null}
+        ) : null}
+        {onOpenCampaign ? (
+          <Pressable
+            onPress={onOpenCampaign}
+            style={{ minHeight: tapMin, justifyContent: 'center', alignItems: 'center' }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>
+              {t('fields:harvestCampaign.title', { defaultValue: 'Harvest' })}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -224,46 +129,20 @@ const FieldHarvestCard: React.FC<Props> = ({
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     padding: spacing.md,
     gap: spacing.sm,
   },
-  title: {
-    ...typography.styles.h6,
-    fontWeight: '700',
-  },
-  hint: {
-    ...typography.styles.body,
-  },
-  success: {
-    borderRadius: 10,
-    padding: spacing.sm,
-    gap: 4,
-  },
-  successText: {
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  undo: {
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
-  form: {
+  title: { ...typography.styles.body, fontWeight: '700' },
+  meta: { ...typography.styles.bodySmall },
+  latest: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: spacing.sm,
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
-  },
-  more: {
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  error: {
-    fontSize: 13,
-  },
+  latestLabel: { ...typography.styles.caption, flex: 1, fontWeight: '600' },
+  actions: { gap: spacing.xs, marginTop: spacing.xs },
 });
 
 export default FieldHarvestCard;

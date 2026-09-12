@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
-import { spacing } from '../../theme';
+import { spacing, radii, createElevation } from '../../theme';
 import type {
   ChronologioMonthSummary,
   ChronologioPeriodSummary,
@@ -132,8 +132,8 @@ const ChronologioComparePanel: React.FC<Props> = ({
               style={[
                 styles.yearChip,
                 {
-                  borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: active ? colors.primary + '22' : 'transparent',
+                  borderColor: active ? colors.oliveBorder : colors.borderLight,
+                  backgroundColor: active ? colors.primaryLight : colors.surface,
                   minHeight: Math.max(tapMin, 40),
                 },
               ]}
@@ -161,6 +161,7 @@ const ChronologioComparePanel: React.FC<Props> = ({
               styles.spineBar,
               {
                 backgroundColor: count > 0 ? colors.primary : colors.borderLight,
+                opacity: count > 0 ? 0.75 : 1,
                 width: Math.min(120, 8 + count * 10),
               },
             ]}
@@ -171,18 +172,22 @@ const ChronologioComparePanel: React.FC<Props> = ({
     });
 
   return (
-    <View
+                <View
       style={[
         styles.panel,
-        { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.borderLight,
+          ...createElevation(colors, 'flat'),
+        },
       ]}
     >
       <View style={styles.header}>
-        <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 16 }}>
+        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 }}>
           {t('living.compare')}
         </Text>
         <Pressable onPress={onClose} hitSlop={8}>
-          <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('living.closeCompare')}</Text>
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('living.closeCompare')}</Text>
         </Pressable>
       </View>
 
@@ -221,17 +226,18 @@ const ChronologioComparePanel: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   panel: {
-    borderWidth: 1,
-    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.card,
     padding: spacing.md,
     marginBottom: spacing.md,
-    gap: 10,
+    gap: 12,
+    overflow: 'hidden',
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pickers: { flexDirection: 'row', gap: 12 },
   yearChip: {
-    borderWidth: 1,
-    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginRight: 6,
@@ -244,9 +250,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  spines: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  spines: { flexDirection: 'row', gap: 16, marginTop: 4 },
   spineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  spineBar: { height: 8, borderRadius: 4 },
+  spineBar: { height: 6, borderRadius: 3 },
 });
 
 export default ChronologioComparePanel;

@@ -159,9 +159,21 @@ public class FieldTaskDto
     public string WeatherSuitability { get; set; } = string.Empty;
     public string WeatherSuitabilityLabel { get; set; } = string.Empty;
     public string? LatestExecutionId { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public bool IsPaused { get; set; }
+    public string? PauseReason { get; set; }
+    public DateTime? PausedAt { get; set; }
+    public string? WorkGroupId { get; set; }
     public string CreatedByUserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class PauseFieldTaskDto
+{
+    public string Reason { get; set; } = string.Empty;
+    public DateTime? PlannedStart { get; set; }
+    public DateTime? PlannedEnd { get; set; }
 }
 
 public class FieldTaskChecklistItemDto

@@ -27,6 +27,8 @@ import { noteService } from './noteService';
 import { mockNoteService } from './mockNoteService';
 import { chronologioService } from './chronologioService';
 import { mockChronologioService } from './mockChronologioService';
+import { feedbackService } from './feedbackService';
+import { photoService } from './photoService';
 import { isMockDataEnabled } from '../config/env';
 
 const useMock = () => isMockDataEnabled();
@@ -51,5 +53,13 @@ export const getMeDashboardService = () =>
 export const getNoteService = () => (useMock() ? mockNoteService : noteService);
 export const getChronologioService = () =>
   useMock() ? mockChronologioService : chronologioService;
+export const getFeedbackService = () =>
+  useMock()
+    ? {
+        submit: async () => undefined,
+      }
+    : feedbackService;
+/** Photo Hub — live API only (uploads need the server for EXIF). */
+export const getPhotoService = () => photoService;
 
 export const isMockMode = () => isMockDataEnabled();

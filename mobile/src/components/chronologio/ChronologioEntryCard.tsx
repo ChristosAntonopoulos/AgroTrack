@@ -236,36 +236,41 @@ const ChronologioEntryCard: React.FC<Props> = ({
             styles.iconTile,
             {
               backgroundColor: softBg,
-              width: compact ? 32 : featured ? 44 : 40,
-              height: compact ? 32 : featured ? 44 : 40,
-              borderRadius: compact ? 10 : 12,
+              width: compact ? 28 : featured ? 36 : 32,
+              height: compact ? 28 : featured ? 36 : 32,
+              borderRadius: compact ? 8 : 10,
             },
           ]}
         >
           <Ionicons
             name={iconFor(entry.category, token)}
-            size={compact ? 16 : featured ? 22 : 20}
+            size={compact ? 14 : featured ? 18 : 16}
             color={categoryAccent}
           />
         </View>
 
         <View style={styles.body}>
-          <Text
-            style={[styles.meta, compact && styles.metaCompact, { color: colors.textTertiary }]}
-            numberOfLines={1}
-          >
-            {isPeriodReview
-              ? t(
-                  entry.eventType === 'weather.yearReview'
-                    ? 'chronologio:weatherReview.yearReport'
-                    : 'chronologio:weatherReview.monthReport',
-                  {
-                    defaultValue:
-                      entry.eventType === 'weather.yearReview' ? 'Year report' : 'Month report',
-                  }
-                )
-              : `${when} · ${presented.shortLabel}`}
-            {note?.pinned ? ` · ${t('chronologio:pinned', { defaultValue: 'Pinned' })}` : ''}
+          <Text style={[styles.meta, compact && styles.metaCompact]} numberOfLines={1}>
+            <Text style={{ color: colors.textTertiary, fontWeight: '500' }}>{when}</Text>
+            <Text style={{ color: colors.textTertiary }}> · </Text>
+            <Text style={{ color: categoryAccent, fontWeight: '700' }}>
+              {isPeriodReview
+                ? t(
+                    entry.eventType === 'weather.yearReview'
+                      ? 'chronologio:weatherReview.yearReport'
+                      : 'chronologio:weatherReview.monthReport',
+                    {
+                      defaultValue:
+                        entry.eventType === 'weather.yearReview' ? 'Year report' : 'Month report',
+                    }
+                  )
+                : presented.shortLabel}
+            </Text>
+            {note?.pinned ? (
+              <Text style={{ color: colors.textTertiary }}>
+                {` · ${t('chronologio:pinned', { defaultValue: 'Pinned' })}`}
+              </Text>
+            ) : null}
           </Text>
 
           <Text
@@ -356,11 +361,12 @@ const ChronologioEntryCard: React.FC<Props> = ({
                 </Text>
               ) : null}
               {statusKey ? (
-                <View style={[styles.chip, { backgroundColor: softBg, alignSelf: 'flex-start' }]}>
-                  <Text style={[styles.chipText, { color: categoryAccent }]}>
-                    {t(statusKey, { defaultValue: String(taskStatus) })}
-                  </Text>
-                </View>
+                <Text
+                  style={[styles.statusInline, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {t(statusKey, { defaultValue: String(taskStatus) })}
+                </Text>
               ) : null}
             </>
           ) : null}
@@ -477,67 +483,67 @@ export const ChronologioWeatherCluster: React.FC<{
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 18,
+    borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    paddingLeft: 16,
-    marginBottom: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingLeft: 14,
+    marginBottom: 12,
     overflow: 'hidden',
     position: 'relative',
   },
   cardCompact: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    paddingLeft: 14,
-    marginBottom: 8,
-    borderRadius: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 11,
+    paddingLeft: 12,
+    marginBottom: 10,
+    borderRadius: radii.card,
   },
   cardFeatured: {
-    paddingVertical: 16,
-    borderRadius: 20,
+    paddingVertical: 14,
+    borderRadius: radii.card,
   },
   accentMark: {
     position: 'absolute',
     left: 0,
-    top: 14,
-    bottom: 14,
-    width: 3,
+    top: 12,
+    bottom: 12,
+    width: 2,
     borderTopRightRadius: 2,
     borderBottomRightRadius: 2,
-    opacity: 0.9,
+    opacity: 0.75,
   },
-  accentMarkCompact: { top: 10, bottom: 10 },
-  accentMarkFeatured: { width: 4, top: 16, bottom: 16 },
-  row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  rowCompact: { gap: 10, alignItems: 'center' },
+  accentMarkCompact: { top: 9, bottom: 9 },
+  accentMarkFeatured: { width: 2, top: 14, bottom: 14 },
+  row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  rowCompact: { gap: 8, alignItems: 'center' },
   iconTile: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  body: { flex: 1, minWidth: 0, gap: 4 },
+  body: { flex: 1, minWidth: 0, gap: 3 },
   meta: {
     fontSize: 11,
-    fontWeight: '650' as '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   metaCompact: { fontSize: 10, letterSpacing: 0.3 },
-  title: { fontWeight: '650' as '600', fontSize: 16, lineHeight: 22 },
+  title: { fontWeight: '600', fontSize: 16, lineHeight: 21 },
   titleCompact: { fontSize: 15, lineHeight: 20 },
-  titleFeatured: { fontSize: 18, lineHeight: 24, letterSpacing: -0.2 },
-  summary: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
+  titleFeatured: { fontSize: 17, lineHeight: 23, letterSpacing: -0.2 },
+  summary: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
+  statusInline: { fontSize: 12, fontWeight: '500', marginTop: 1 },
   harvestStats: { flexDirection: 'row', gap: 14, marginTop: 4 },
   harvestStat: { gap: 1 },
-  statValue: { fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  statValue: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase' },
   moneyRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 2 },
-  amount: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  amount: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
   chip: { borderRadius: radii.full, paddingHorizontal: 8, paddingVertical: 3 },
-  chipText: { fontSize: 11, fontWeight: '700' },
+  chipText: { fontSize: 11, fontWeight: '600' },
   related: { fontSize: 12, flexShrink: 1 },
   fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   fieldRowCompact: { marginTop: 2 },
   fieldDot: { width: 7, height: 7, borderRadius: 99 },
   fieldDotLg: { width: 10, height: 10, borderRadius: 99 },
-  fieldName: { fontSize: 12, fontWeight: '450' as '400', flexShrink: 1 },
+  fieldName: { fontSize: 12, fontWeight: '400', flexShrink: 1 },
   thumbWrap: { overflow: 'hidden', position: 'relative', flexShrink: 0 },
   thumb: { width: '100%', height: '100%' },
   thumbBadge: {
@@ -550,7 +556,7 @@ const styles = StyleSheet.create({
   },
   thumbBadgeText: { fontSize: 10, fontWeight: '700' },
   weatherTile: {
-    borderRadius: 16,
+    borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 12,
     minWidth: 148,

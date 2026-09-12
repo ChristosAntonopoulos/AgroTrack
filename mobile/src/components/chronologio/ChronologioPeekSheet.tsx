@@ -28,6 +28,13 @@ import {
   weatherFactBits,
   yearFixedMetrics,
 } from '../../utils/summaryFacts';
+import { harvestHasResult } from '../../chronologio/monthPresentation';
+import {
+  harvestYearCopyKey,
+  yearComparison,
+  yearHeadline,
+} from '../../chronologio/yearPresentation';
+import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { detailAccentToken, chronologioDetailKind } from '../../chronologio/detailKind';
@@ -51,6 +58,7 @@ export type ChronologioPeekTarget =
       mode: 'year';
       summary: ChronologioPeriodSummary;
       months: ChronologioMonthSummary[];
+      previous?: ChronologioPeriodSummary | null;
     }
   | {
       mode: 'monthWeather';
@@ -67,6 +75,7 @@ type Props = {
   onDrillToMonths?: (periodYear: number) => void;
   onDrillToDays?: (year: number, month: number) => void;
   onSelectRecent?: (entry: ChronologioEntry) => void;
+  onOpenMonthWeather?: (year: number, month: number) => void;
 };
 
 const ChronologioPeekSheet: React.FC<Props> = ({
@@ -76,6 +85,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
   onDrillToMonths,
   onDrillToDays,
   onSelectRecent,
+  onOpenMonthWeather,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'common']);
   const { colors, tapMin } = useTheme();
@@ -131,10 +141,18 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       : peek?.mode === 'month'
         ? monthTitle(peek.summary)
         : peek?.mode === 'year'
-          ? String(peek.summary.periodYear)
+          ? t('drawer.agriYear', {
+              year: peek.summary.periodYear,
+              defaultValue: `Agricultural year ${peek.summary.periodYear}`,
+            })
           : peek?.mode === 'monthWeather'
             ? weatherMonthTitle
             : '';
+
+  const yearSubtitle =
+    peek?.mode === 'year'
+      ? agriculturalYearRangeLabel(peek.summary.periodYear, i18n.language)
+      : undefined;
 
   const headerMeta =
     peek?.mode === 'event'
@@ -148,6 +166,18 @@ const ChronologioPeekSheet: React.FC<Props> = ({
           : peek?.mode === 'monthWeather'
             ? t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })
             : '';
+
+  const monthSubtitle =
+    peek?.mode === 'month' && peek.summary.from && peek.summary.to
+      ? `${new Date(peek.summary.from).toLocaleDateString(i18n.language, {
+          day: 'numeric',
+          month: 'short',
+        })} – ${new Date(peek.summary.to).toLocaleDateString(i18n.language, {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })}`
+      : undefined;
 
   const sheetAccent =
     peek?.mode === 'monthWeather' || isPeriodReview
@@ -164,6 +194,8 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       });
     } else if (target.sourceType === 'Expense' || target.sourceType === 'Income') {
       navigation.navigate('Money', { fieldId: target.fieldId });
+    } else if (target.sourceType === 'Photo') {
+      navigation.navigate('Photos', { photoId: target.sourceId, fieldId: target.fieldId });
     } else if (target.sourceType === 'Harvest') {
       navigation.navigate('FieldDetail', { fieldId: target.fieldId, focus: 'harvest' });
     } else if (target.sourceType === 'WeatherReview') {
@@ -181,6 +213,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
           openHarvest: () => navigateFromEntry(entry),
           openWeather: () => navigateFromEntry(entry),
           openField: () => navigateFromEntry(entry),
+          openPhoto: () => navigateFromEntry(entry),
           createTask: capture
             ? () => {
                 onClose();
@@ -222,17 +255,40 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         ))}
       </View>
     ) : peek?.mode === 'month' ? (
-      <TouchableOpacity
-        style={[
-          styles.primaryBtn,
-          { backgroundColor: colors.primary, minHeight: Math.max(tapMin, 44) },
-        ]}
-        onPress={() => onDrillToDays?.(peek.summary.year, peek.summary.month)}
-      >
-        <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-          {t('living.drillToDays', { month: monthTitle(peek.summary) })}
-        </Text>
-      </TouchableOpacity>
+      <View style={{ gap: spacing.sm }}>
+        <TouchableOpacity
+          style={[
+            styles.primaryBtn,
+            { backgroundColor: colors.primary, minHeight: Math.max(tapMin, 44) },
+          ]}
+          onPress={() => onDrillToDays?.(peek.summary.year, peek.summary.month)}
+        >
+          <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
+            {t('living.drillToDays', { month: monthTitle(peek.summary) })}
+          </Text>
+        </TouchableOpacity>
+        {onOpenMonthWeather &&
+        (peek.summary.rainfallMm != null ||
+          peek.summary.temperatureMin != null ||
+          peek.summary.temperatureMax != null) ? (
+          <TouchableOpacity
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.borderLight,
+                minHeight: Math.max(tapMin, 44),
+              },
+            ]}
+            onPress={() => onOpenMonthWeather(peek.summary.year, peek.summary.month)}
+          >
+            <Text style={[styles.primaryBtnText, { color: colors.textPrimary }]}>
+              {t('living.weatherButton')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     ) : peek?.mode === 'year' ? (
       <TouchableOpacity
         style={[
@@ -269,14 +325,26 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       open={Boolean(peek)}
       onClose={onClose}
       edge="end"
-      size={peek?.mode === 'monthWeather' || isPeriodReview ? 'lg' : 'md'}
+      size={
+        peek?.mode === 'monthWeather' ||
+        isPeriodReview ||
+        peek?.mode === 'month' ||
+        peek?.mode === 'year'
+          ? 'lg'
+          : 'md'
+      }
       accent
       accentColor={sheetAccent}
       kicker={headerMeta}
       title={headerTitle || undefined}
+      subtitle={monthSubtitle || yearSubtitle}
       icon={
         peek?.mode === 'monthWeather' || isPeriodReview ? (
           <Ionicons name="rainy-outline" size={22} color={colors.weatherBlue} />
+        ) : peek?.mode === 'month' ? (
+          <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+        ) : peek?.mode === 'year' ? (
+          <Ionicons name="book-outline" size={22} color={colors.primary} />
         ) : undefined
       }
       footer={footer}
@@ -290,41 +358,97 @@ const ChronologioPeekSheet: React.FC<Props> = ({
           <View style={styles.metricsRow}>
             {yearFixedMetrics(peek.summary, numberLocale, tt).map(m => (
               <View key={m.label} style={styles.metricCell}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{m.value}</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{m.label}</Text>
+                <Text style={[styles.metricValue, { color: colors.textPrimary }]}>{m.value}</Text>
+                <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>{m.label}</Text>
               </View>
             ))}
           </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {t('monthView.harvest')}
+            </Text>
+            {harvestHasResult(peek.summary) ? (
+              <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>
+                {`${Math.round(peek.summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+                {peek.summary.oilKg > 0
+                  ? ` · ${peek.summary.oilKg.toLocaleString(numberLocale, {
+                      maximumFractionDigits: 1,
+                    })} ${t('oilUnit')}`
+                  : ''}
+                {peek.summary.oilYieldPercent != null
+                  ? ` · ${peek.summary.oilYieldPercent.toLocaleString(numberLocale, {
+                      maximumFractionDigits: 1,
+                    })}%`
+                  : ''}
+              </Text>
+            ) : (
+              <Text style={{ color: colors.textSecondary }}>
+                {peek.summary.harvestCount > 0
+                  ? t('monthView.harvestNoResult')
+                  : t('monthView.harvestNotStarted')}
+              </Text>
+            )}
+          </View>
+
           {monthChapterFacts(peek.summary, numberLocale, tt).length > 0 ? (
-            <Text style={{ color: colors.textSecondary, marginTop: 10 }}>
+            <Text style={[styles.factsLine, { color: colors.textSecondary }]}>
               {monthChapterFacts(peek.summary, numberLocale, tt).join(' · ')}
             </Text>
           ) : (
-            <Text style={{ color: colors.textSecondary, marginTop: 10 }}>
+            <Text style={[styles.factsLine, { color: colors.textTertiary }]}>
               {t('living.emptyPeriod')}
             </Text>
           )}
-          {weatherFactBits(peek.summary, tt).length > 0 ? (
+
+          {weatherFactBits(peek.summary, tt).length > 0 ||
+          peek.summary.temperatureMin != null ||
+          peek.summary.temperatureMax != null ? (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
                 {t('living.peekWeather')}
               </Text>
-              <Text style={{ color: colors.textSecondary }}>
-                {weatherFactBits(peek.summary, tt).join(' · ')}
-              </Text>
+              {weatherFactBits(peek.summary, tt).length > 0 ? (
+                <Text style={{ color: colors.textSecondary }}>
+                  {weatherFactBits(peek.summary, tt).join(' · ')}
+                </Text>
+              ) : null}
+              {peek.summary.temperatureMin != null || peek.summary.temperatureMax != null ? (
+                <Text style={{ color: colors.textTertiary, marginTop: 4, fontVariant: ['tabular-nums'] }}>
+                  {peek.summary.temperatureMin != null
+                    ? `${Math.round(peek.summary.temperatureMin)}°`
+                    : '—'}
+                  {' – '}
+                  {peek.summary.temperatureMax != null
+                    ? `${Math.round(peek.summary.temperatureMax)}°`
+                    : '—'}
+                </Text>
+              ) : null}
             </View>
           ) : null}
+
           {(peek.summary.highlightTitles?.length || peek.summary.observationHighlight) && (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
                 {t('living.peekHighlights')}
               </Text>
-              <Text style={{ color: colors.textPrimary }}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
                 {(peek.summary.highlightTitles || []).filter(Boolean).slice(0, 2).join(' · ') ||
                   peek.summary.observationHighlight}
               </Text>
+              {peek.summary.observationHighlight && peek.summary.highlightTitles?.length ? (
+                <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
+                  {peek.summary.observationHighlight}
+                </Text>
+              ) : null}
+              {peek.summary.dominantWorkLabel ? (
+                <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
+                  {t('monthView.dominantWork')}: {peek.summary.dominantWorkLabel}
+                </Text>
+              ) : null}
             </View>
           )}
+
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               {t('living.peekRecent')}
@@ -344,14 +468,72 @@ const ChronologioPeekSheet: React.FC<Props> = ({
 
       {peek?.mode === 'year' ? (
         <>
+          {(() => {
+            const comparison = yearComparison(peek.summary, peek.previous);
+            const harvestKey = harvestYearCopyKey(peek.summary);
+            const headline = yearHeadline(peek.summary);
+            return (
+              <View style={[styles.section, { marginTop: 0 }]}>
+                <Text style={[styles.heroLine, { color: colors.textPrimary }]}>
+                  {comparison
+                    ? t(
+                        `yearView.compare.${comparison.kind}${
+                          comparison.percent >= 0 ? 'Up' : 'Down'
+                        }`,
+                        {
+                          pct: Math.abs(comparison.percent),
+                          year: comparison.previousYear,
+                        }
+                      )
+                    : harvestKey === 'result'
+                      ? t('yearView.mainResult')
+                      : harvestKey === 'noResult'
+                        ? t('monthView.harvestNoResult')
+                        : t('yearView.harvestNotStarted')}
+                </Text>
+                {headline ? (
+                  <Text style={{ color: colors.textSecondary, marginTop: 4 }}>{headline}</Text>
+                ) : null}
+              </View>
+            );
+          })()}
+
           <View style={styles.metricsRow}>
             {yearFixedMetrics(peek.summary, numberLocale, tt).map(m => (
               <View key={m.label} style={styles.metricCell}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{m.value}</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{m.label}</Text>
+                <Text style={[styles.metricValue, { color: colors.textPrimary }]}>{m.value}</Text>
+                <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>{m.label}</Text>
               </View>
             ))}
           </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {t('monthView.harvest')}
+            </Text>
+            {harvestHasResult(peek.summary) ? (
+              <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>
+                {`${Math.round(peek.summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+                {peek.summary.oilKg > 0
+                  ? ` · ${peek.summary.oilKg.toLocaleString(numberLocale, {
+                      maximumFractionDigits: 1,
+                    })} ${t('oilUnit')}`
+                  : ''}
+                {peek.summary.oilYieldPercent != null
+                  ? ` · ${peek.summary.oilYieldPercent.toLocaleString(numberLocale, {
+                      maximumFractionDigits: 1,
+                    })}%`
+                  : ''}
+              </Text>
+            ) : (
+              <Text style={{ color: colors.textSecondary }}>
+                {harvestYearCopyKey(peek.summary) === 'noResult'
+                  ? t('monthView.harvestNoResult')
+                  : t('yearView.harvestNotStarted')}
+              </Text>
+            )}
+          </View>
+
           {weatherFactBits(peek.summary, tt).length > 0 ? (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -362,6 +544,19 @@ const ChronologioPeekSheet: React.FC<Props> = ({
               </Text>
             </View>
           ) : null}
+
+          {(peek.summary.highlightTitles?.length || peek.summary.observationHighlight) && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                {t('living.peekHighlights')}
+              </Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+                {(peek.summary.highlightTitles || []).filter(Boolean).slice(0, 3).join(' · ') ||
+                  peek.summary.observationHighlight}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               {t('living.peekMajorMonths')}
@@ -370,14 +565,24 @@ const ChronologioPeekSheet: React.FC<Props> = ({
               <Text style={{ color: colors.textSecondary }}>{t('living.emptyPeriod')}</Text>
             ) : (
               majorMonthsForYear(peek.months).map(m => (
-                <View key={m.key} style={{ marginTop: 8 }}>
-                  <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+                <Pressable
+                  key={m.key}
+                  onPress={() => onDrillToDays?.(m.year, m.month)}
+                  style={({ pressed }) => [
+                    styles.majorMonthRow,
+                    {
+                      backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                      borderColor: colors.borderLight,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: colors.textPrimary, fontWeight: '600', flex: 1 }}>
                     {monthTitle(m)}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                     {t('living.monthWorks', { count: periodEventCount(m) })}
                   </Text>
-                </View>
+                </Pressable>
               ))
             )}
           </View>
@@ -456,12 +661,26 @@ const ChronologioPeekSheet: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  section: { marginTop: 14, gap: 4 },
+  section: { marginTop: 16, gap: 6 },
   sectionTitle: { fontWeight: '700', fontSize: 14, marginBottom: 2 },
-  metricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
-  metricCell: { minWidth: '28%', flexGrow: 1 },
+  metricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
+  metricCell: { minWidth: '28%', flexGrow: 1, gap: 2 },
+  metricValue: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  metricLabel: { fontSize: 11, fontWeight: '500' },
+  factsLine: { marginTop: 12, fontSize: 13, lineHeight: 18 },
+  heroLine: { fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  majorMonthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   primaryBtn: {
-    borderRadius: radii.lg,
+    borderRadius: radii.card,
     paddingHorizontal: 14,
     paddingVertical: 12,
     alignItems: 'center',

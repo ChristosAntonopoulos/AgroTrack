@@ -1,31 +1,33 @@
-import { colors } from './colors';
-
 /**
- * Auth screens use the same olive tokens on the grove photo —
- * limestone form card, olive primary (matches web LoginPage).
+ * Auth screens — matches frontend LoginPage.css light auth tokens.
+ * Isolated from app dark mode; grove photo + ivory glass card + sage submit.
  */
 export const loginTheme = {
-  overlay: 'rgba(24, 29, 21, 0.52)',
-  heroText: '#F3F4EF',
-  heroMuted: 'rgba(243, 244, 239, 0.78)',
-  cardBg: colors.surface,
-  cardBorder: colors.border,
-  inputBg: colors.surface,
-  inputBorder: colors.border,
-  inputBorderFocused: colors.primary,
-  inputPlaceholder: colors.textTertiary,
-  textPrimary: colors.textPrimary,
-  textSecondary: colors.textSecondary,
-  textMuted: colors.textTertiary,
-  link: colors.link,
-  buttonBg: colors.primary,
-  buttonBgPressed: colors.primaryDark,
-  buttonText: colors.onOlive,
-  divider: colors.border,
-  googleBorder: colors.border,
-  googleBg: colors.surfaceMuted,
+  /** Grove wash over full-bleed photo (web --login-overlay-left average) */
+  overlay: 'rgba(10, 16, 8, 0.58)',
+  overlayRegister: 'rgba(10, 16, 8, 0.64)',
+  heroText: '#f5f0e6',
+  heroMuted: 'rgba(245, 240, 230, 0.72)',
+  cardBg: 'rgba(255, 254, 250, 0.92)',
+  cardBorder: 'rgba(255, 255, 255, 0.16)',
+  cardRadius: 24,
+  inputBg: 'rgba(255, 255, 255, 0.62)',
+  inputBorder: 'rgba(80, 90, 60, 0.18)',
+  inputBorderFocused: 'rgba(133, 154, 109, 0.65)',
+  inputPlaceholder: '#697065',
+  textPrimary: '#22281F',
+  textSecondary: '#697065',
+  textMuted: '#92978E',
+  link: '#486038',
+  /** Sage submit — web --login-submit-* (not brand olive) */
+  buttonBg: '#859A6D',
+  buttonBgPressed: '#94A97A',
+  buttonText: '#11170F',
+  divider: 'rgba(80, 90, 60, 0.18)',
+  googleBorder: 'rgba(80, 90, 60, 0.18)',
+  googleBg: 'rgba(255, 255, 255, 0.42)',
   demoBg: 'rgba(255, 254, 250, 0.92)',
-  shadow: colors.shadowDark,
-  softSelected: colors.primaryLight,
-  softSelectedText: colors.primary,
+  shadow: 'rgba(10, 16, 8, 0.35)',
+  softSelected: 'rgba(133, 154, 109, 0.22)',
+  softSelectedText: '#486038',
 } as const;

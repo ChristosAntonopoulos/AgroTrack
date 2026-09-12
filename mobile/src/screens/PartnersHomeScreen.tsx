@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, TextInput, Linking, Alert, Image } from 'react-native';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -17,27 +17,39 @@ import { Field } from '../services/fieldService';
 import { fieldPeopleService, FieldInvite } from '../services/fieldPeopleService';
 import {
   DEFAULT_FAMILY_MODULES,
-  FAMILY_MODULES,
   FamilyAccessLevel,
   FamilyCircle,
   FamilyInviteShare,
-  FamilyMember,
   FamilyModule,
   familyService,
 } from '../services/familyService';
 import {
+  DEFAULT_PARTNER_MODULES,
+  OwnerPartnerInviteShare,
+  OwnerPartnerSeat,
+  ownerPartnerService,
+} from '../services/ownerPartnerService';
+import {
   SavedContact,
   ServiceCategory,
   ServiceContactRequest,
-  categoryName,
-  childCategories,
-  parentCategories,
 } from '../services/partnerService';
 import { mergeGrovePeople, GrovePerson } from '../utils/grovePeople';
-import { pickDeviceContact } from '../utils/pickDeviceContact';
-import PhoneActions from '../components/domain/PhoneActions';
+import { canPickDeviceContact, pickDeviceContact } from '../utils/pickDeviceContact';
+import {
+  groupPeople,
+  personContextLine,
+  personSubtitle,
+} from '../utils/personPresentation';
+import InviteSharePanel from '../components/partners/InviteSharePanel';
+import PartnersSheet from '../components/partners/PartnersSheet';
+import ImportPhoneContactsSheet from '../components/partners/ImportPhoneContactsSheet';
+import AccessFields from '../components/partners/AccessFields';
+import TeamMemberCard from '../components/partners/TeamMemberCard';
+import PersonCard from '../components/partners/PersonCard';
+import PersonDetailSheet from '../components/partners/PersonDetailSheet';
 import { RootStackParamList } from '../navigation/types';
-import { spacing, typography } from '../theme';
+import { spacing } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Partners'>;
 type Route = RouteProp<RootStackParamList, 'Partners'>;
@@ -45,21 +57,29 @@ type Route = RouteProp<RootStackParamList, 'Partners'>;
 const FIELD_KEY = '@Oleachron/lastPartnerFieldId';
 
 const PartnersHomeScreen = () => {
-  const { t, i18n } = useTranslation(['partners', 'common']);
+  const { t, i18n } = useTranslation(['partners', 'common', 'nav']);
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const { user, isFieldOwner } = useAuth();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+
   const [fields, setFields] = useState<Field[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [fieldId, setFieldId] = useState(route.params?.fieldId || '');
   const [people, setPeople] = useState<GrovePerson[]>([]);
-  const [unassigned, setUnassigned] = useState<GrovePerson[]>([]);
-  const [showAll, setShowAll] = useState(false);
-  const [pickedParent, setPickedParent] = useState<ServiceCategory | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [peopleTick, setPeopleTick] = useState(0);
+  const [family, setFamily] = useState<FamilyCircle | null>(null);
+  const [familyTick, setFamilyTick] = useState(0);
+  const [partnerSeat, setPartnerSeat] = useState<OwnerPartnerSeat | null>(null);
+  const [partnerTick, setPartnerTick] = useState(0);
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<GrovePerson | null>(null);
+
   const [adding, setAdding] = useState(false);
   const [addStep, setAddStep] = useState<'choose' | 'save' | 'invite'>('choose');
+  const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
   const [inviteName, setInviteName] = useState('');
   const [invitePhone, setInvitePhone] = useState('');
@@ -72,13 +92,9 @@ const PartnersHomeScreen = () => {
   const [contactNotes, setContactNotes] = useState('');
   const [contactFields, setContactFields] = useState<string[]>([]);
   const [contactSource, setContactSource] = useState<'Manual' | 'PhoneBook'>('Manual');
-  const [linkField, setLinkField] = useState(true);
   const [savingContact, setSavingContact] = useState(false);
   const [invite, setInvite] = useState<FieldInvite | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [peopleTick, setPeopleTick] = useState(0);
-  const [family, setFamily] = useState<FamilyCircle | null>(null);
-  const [familyTick, setFamilyTick] = useState(0);
+
   const [addingFamily, setAddingFamily] = useState(false);
   const [familyName, setFamilyName] = useState('');
   const [familyPhone, setFamilyPhone] = useState('');
@@ -87,7 +103,41 @@ const PartnersHomeScreen = () => {
   const [familyLevel, setFamilyLevel] = useState<FamilyAccessLevel>('view');
   const [familyInvite, setFamilyInvite] = useState<FamilyInviteShare | null>(null);
   const [savingFamily, setSavingFamily] = useState(false);
+
+  const [addingPartner, setAddingPartner] = useState(false);
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerPhone, setPartnerPhone] = useState('');
+  const [partnerEmail, setPartnerEmail] = useState('');
+  const [partnerModules, setPartnerModules] = useState<FamilyModule[]>([...DEFAULT_PARTNER_MODULES]);
+  const [partnerLevel, setPartnerLevel] = useState<FamilyAccessLevel>('work');
+  const [partnerInvite, setPartnerInvite] = useState<OwnerPartnerInviteShare | null>(null);
+  const [savingPartner, setSavingPartner] = useState(false);
+
   const openedAddContact = useRef(false);
+
+  const openAddChooser = () => {
+    setAddStep('choose');
+    setInvite(null);
+    setEditing(null);
+    setAdding(true);
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('nav:partners', { defaultValue: t('partners:title') }),
+      headerRight: () => (
+        <Pressable
+          onPress={openAddChooser}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('partners:addCollaborator')}
+          style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+        >
+          <Ionicons name="add" size={28} color={colors.primary} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, t, colors.primary]);
 
   useEffect(() => {
     void (async () => {
@@ -113,22 +163,21 @@ const PartnersHomeScreen = () => {
 
   useEffect(() => {
     void (async () => {
-      const field = fields.find((f) => f.id === fieldId);
-      const [members, outgoing, saved] = await Promise.all([
-        fieldId
-          ? fieldPeopleService.getPeople(fieldId, field)
-          : Promise.resolve([] as Awaited<ReturnType<typeof fieldPeopleService.getPeople>>),
+      const memberLists = await Promise.all(
+        fields.map(async (field) => {
+          const rows = await fieldPeopleService.getPeople(field.id, field).catch(() => []);
+          return rows.map((member) => ({ ...member, fieldId: field.id }));
+        })
+      );
+      const [outgoing, saved] = await Promise.all([
         getPartnerService().getRequests('outgoing').catch(() => [] as ServiceContactRequest[]),
         getPartnerService()
-          .getContacts(fieldId ? { fieldId, includeUnassigned: true } : undefined)
+          .getContacts()
           .catch(() => [] as SavedContact[]),
       ]);
-      const linked = saved.filter((c) => (fieldId ? c.fieldIds.includes(fieldId) : true));
-      const loose = saved.filter((c) => c.fieldIds.length === 0);
-      setPeople(mergeGrovePeople(members, outgoing, linked, fieldId, i18n.language, categories));
-      setUnassigned(fieldId ? mergeGrovePeople([], [], loose, fieldId, i18n.language, categories) : []);
+      setPeople(mergeGrovePeople(memberLists.flat(), outgoing, saved, '', i18n.language, categories));
     })();
-  }, [fieldId, peopleTick, fields, i18n.language, categories]);
+  }, [peopleTick, fields, i18n.language, categories]);
 
   useEffect(() => {
     if (!user) {
@@ -144,36 +193,19 @@ const PartnersHomeScreen = () => {
     })();
   }, [user, familyTick]);
 
-  const parents = useMemo(() => parentCategories(categories), [categories]);
-  const visible = showAll ? parents : parents.filter((c) => c.isProminent);
-
-  const goSearch = (category: ServiceCategory) => {
-    if (!fieldId) return;
-    void AsyncStorage.setItem(FIELD_KEY, fieldId);
-    navigation.navigate('PartnerSearch', {
-      fieldId,
-      categoryId: category.id,
-      category: category.slug,
-      taskId: route.params?.taskId,
-    });
-  };
-
   useEffect(() => {
-    if (loading || !fieldId || categories.length === 0) return;
-    const taskType = route.params?.category;
-    if (!taskType || !route.params?.taskId) return;
-    const match =
-      categories.find((c) => c.slug === taskType) ||
-      categories.find((c) => c.suggestedTaskTypes.includes(taskType));
-    if (match) goSearch(match);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, fieldId, categories]);
-
-  const onParent = (category: ServiceCategory) => {
-    const children = childCategories(categories, category.id);
-    if (children.length === 0) goSearch(category);
-    else setPickedParent(category);
-  };
+    if (!user) {
+      setPartnerSeat(null);
+      return;
+    }
+    void (async () => {
+      try {
+        setPartnerSeat(await ownerPartnerService.getMine());
+      } catch {
+        setPartnerSeat(null);
+      }
+    })();
+  }, [user, partnerTick]);
 
   const openSave = (existing?: SavedContact) => {
     setEditing(existing || null);
@@ -181,29 +213,72 @@ const PartnersHomeScreen = () => {
     setContactPhone(existing?.phone || '');
     setContactEmail(existing?.email || '');
     setContactNotes(existing?.notes || '');
-    setContactFields(existing?.fieldIds?.length ? existing.fieldIds : fieldId ? [fieldId] : []);
+    setContactFields(existing?.fieldIds?.length ? existing.fieldIds : fields.map((field) => field.id));
     setContactSource(existing?.source || 'Manual');
-    setLinkField(Boolean(fieldId) && (!existing || (existing.fieldIds || []).includes(fieldId)));
+    setInvite(null);
     setAddStep('save');
     setAdding(true);
+    setSelected(null);
+  };
+
+  const openFamilyInvite = () => {
+    setFamilyInvite(null);
+    setFamilyName('');
+    setFamilyPhone('');
+    setFamilyEmail('');
+    setFamilyModules([...DEFAULT_FAMILY_MODULES]);
+    setFamilyLevel('view');
+    setAddingFamily(true);
+    setAdding(false);
+    setAddingPartner(false);
+  };
+
+  const openPartnerInvite = () => {
+    setPartnerInvite(null);
+    setPartnerName('');
+    setPartnerPhone('');
+    setPartnerEmail('');
+    setPartnerModules([...DEFAULT_PARTNER_MODULES]);
+    setPartnerLevel('work');
+    setAddingPartner(true);
+    setAdding(false);
+    setAddingFamily(false);
   };
 
   useEffect(() => {
     if (loading || !route.params?.addContact || openedAddContact.current) return;
     openedAddContact.current = true;
-    openSave();
+    openAddChooser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, route.params?.addContact, fieldId]);
+  }, [loading, route.params?.addContact]);
 
-  const fromPhone = async () => {
+  const fromPhone = async (target: 'contact' | 'family' | 'partner' | 'invite') => {
     try {
       const picked = await pickDeviceContact();
-      if (!picked) return;
-      if (picked.displayName) setContactName(picked.displayName);
-      if (picked.phone) setContactPhone(picked.phone);
-      setContactSource('PhoneBook');
+      if (!picked) {
+        Alert.alert(t('partners:contactPickerUnavailable'));
+        return;
+      }
+      if (target === 'contact') {
+        if (picked.displayName) setContactName(picked.displayName);
+        if (picked.phone) setContactPhone(picked.phone);
+        if (picked.email) setContactEmail(picked.email);
+        setContactSource('PhoneBook');
+      } else if (target === 'family') {
+        if (picked.displayName) setFamilyName(picked.displayName);
+        if (picked.phone) setFamilyPhone(picked.phone);
+        if (picked.email) setFamilyEmail(picked.email);
+      } else if (target === 'partner') {
+        if (picked.displayName) setPartnerName(picked.displayName);
+        if (picked.phone) setPartnerPhone(picked.phone);
+        if (picked.email) setPartnerEmail(picked.email);
+      } else {
+        if (picked.displayName) setInviteName(picked.displayName);
+        if (picked.phone) setInvitePhone(picked.phone);
+        if (picked.email) setInviteEmail(picked.email);
+      }
     } catch {
-      /* keep manual fields */
+      Alert.alert(t('partners:contactPickerUnavailable'));
     }
   };
 
@@ -212,10 +287,7 @@ const PartnersHomeScreen = () => {
     if (!name) return;
     setSavingContact(true);
     try {
-      const fieldIds = [
-        ...contactFields.filter((id) => id !== fieldId),
-        ...(linkField && fieldId ? [fieldId] : []),
-      ];
+      const fieldIds = contactFields.length ? contactFields : fields.map((field) => field.id);
       const payload = {
         displayName: name,
         phone: contactPhone.trim() || undefined,
@@ -281,418 +353,463 @@ const PartnersHomeScreen = () => {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        t('common:error', { defaultValue: 'Something went wrong' });
+        t('partners:family.acceptFailed');
       Alert.alert(t('partners:family.addMember'), message);
     } finally {
       setSavingFamily(false);
     }
   };
 
-  const revokeFamilyMember = async (member: FamilyMember) => {
-    Alert.alert(
-      t('partners:family.revoke'),
-      t('partners:family.revokeConfirm', { name: member.displayName }),
-      [
-        { text: t('common:cancel'), style: 'cancel' },
-        {
-          text: t('partners:family.revoke'),
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              await familyService.revokeMember(member.id);
-              setFamilyTick((n) => n + 1);
-            })();
-          },
-        },
-      ]
+  const createPartnerInvite = async () => {
+    if (!partnerName.trim() || (!partnerPhone.trim() && !partnerEmail.trim()) || partnerModules.length === 0) {
+      return;
+    }
+    setSavingPartner(true);
+    try {
+      const created = await ownerPartnerService.createInvite({
+        displayName: partnerName.trim(),
+        phone: partnerPhone.trim() || undefined,
+        email: partnerEmail.trim() || undefined,
+        modules: partnerModules,
+        accessLevel: partnerLevel,
+      });
+      setPartnerInvite(created);
+      setPartnerTick((n) => n + 1);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t('partners:ownerPartner.acceptFailed');
+      Alert.alert(t('partners:ownerPartner.addPartner'), message);
+    } finally {
+      setSavingPartner(false);
+    }
+  };
+
+  const canManageTeam = Boolean(isFieldOwner() || fields.some((f) => f.ownerId === user?.id));
+  const seatsUsed = family?.seatsUsed ?? 0;
+  const seatsMax = family?.seatsMax ?? 2;
+  const partner = partnerSeat?.partner ?? null;
+  const partnerUsed = partnerSeat?.seatsUsed ?? (partner ? 1 : 0);
+  const partnerMax = partnerSeat?.seatsMax ?? 1;
+  const canAddFamily = Boolean(canManageTeam && seatsUsed < seatsMax);
+  const canAddPartner = Boolean(canManageTeam && partnerUsed < partnerMax && !partner);
+  const hasTeamAnyone = (family?.members || []).length > 0 || Boolean(partner);
+  const canPickPhone = canPickDeviceContact();
+
+  const filteredPeople = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return people;
+    return people.filter(
+      (p) =>
+        p.displayName.toLowerCase().includes(q) ||
+        (p.phone || '').toLowerCase().includes(q) ||
+        personSubtitle(p, fields, t).toLowerCase().includes(q)
+    );
+  }, [people, query, t, fields]);
+
+  const { onField, services, showGroups } = useMemo(() => groupPeople(filteredPeople), [filteredPeople]);
+  const showSearch = people.length >= 12;
+
+  const renderPerson = (person: GrovePerson) => {
+    const subtitle = personSubtitle(person, fields, t);
+    const hint = person.phone
+      ? undefined
+      : personContextLine(person, fields, t, i18n.language);
+    return (
+      <PersonCard
+        key={person.id}
+        name={person.displayName}
+        subtitle={subtitle}
+        hint={hint}
+        phone={person.phone}
+        onPress={() => setSelected(person)}
+      />
     );
   };
 
-  const canManageFamily = Boolean(isFieldOwner() || fields.some((f) => f.ownerId === user?.id));
-  const seatsUsed = family?.seatsUsed ?? 0;
-  const seatsMax = family?.seatsMax ?? 2;
+  const choiceCard = (
+    icon: keyof typeof Ionicons.glyphMap,
+    title: string,
+    desc: string,
+    onPress: () => void
+  ) => (
+    <Pressable
+      onPress={onPress}
+      style={[styles.choiceCard, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
+    >
+      <View style={[styles.choiceIcon, { backgroundColor: colors.primaryLight }]}>
+        <Ionicons name={icon} size={22} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 }}>{title}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 2 }}>{desc}</Text>
+      </View>
+    </Pressable>
+  );
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
-    <ScreenLayout scroll padded>
-      <Text style={[styles.lead, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
-        {t('partners:homeLead', { defaultValue: t('partners:needWhat') })}
+    <ScreenLayout scroll padded canvasOpacity={0.45}>
+      <Text style={[styles.countLine, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier, marginBottom: spacing.sm }]}>
+        {t('partners:peopleCount', { count: people.length })}
       </Text>
 
-      <View style={styles.sectionHead}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
-          {t('partners:family.title')}
-        </Text>
-        {canManageFamily && seatsUsed < seatsMax ? (
-          <Button
-            title={t('partners:family.addMember')}
-            onPress={() => {
-              setFamilyInvite(null);
-              setFamilyName('');
-              setFamilyPhone('');
-              setFamilyEmail('');
-              setFamilyModules([...DEFAULT_FAMILY_MODULES]);
-              setFamilyLevel('view');
-              setAddingFamily(true);
-            }}
-          />
-        ) : null}
-      </View>
-      <Text style={[styles.lead, { color: colors.textSecondary }]}>
-        {t('partners:family.lead', { used: seatsUsed, max: seatsMax })}
-      </Text>
-      {(family?.members || []).map((member) => (
-        <View
-          key={member.id}
-          style={[styles.personCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
-        >
-          <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 16 * fontScaleMultiplier }}>
-            {member.displayName}
-          </Text>
-          <Text style={{ color: colors.textSecondary }}>
-            {t('partners:connection.family')} · {t(`partners:family.levels.${member.accessLevel}`)}
-          </Text>
-          <Text style={{ color: colors.textSecondary }}>
-            {member.modules.map((m) => t(`partners:family.modules.${m}`)).join(' · ')}
-          </Text>
-          <PhoneActions phone={member.phone} />
-          {canManageFamily ? (
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-              {member.status === 'pending' && member.pendingInvite?.whatsAppUrl ? (
-                <Button
-                  title={t('partners:family.reshare')}
-                  variant="outline"
-                  onPress={() => void Linking.openURL(member.pendingInvite!.whatsAppUrl)}
-                />
-              ) : null}
-              <Button
-                title={t('partners:family.revoke')}
-                variant="outline"
-                onPress={() => revokeFamilyMember(member)}
-              />
-            </View>
+      {user && (hasTeamAnyone || canAddFamily || canAddPartner) ? (
+        <View style={styles.teamBlock}>
+          <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>{t('partners:team.title')}</Text>
+
+          <View style={styles.seatActions}>
+            {canAddFamily ? (
+              <Pressable onPress={openFamilyInvite} style={{ paddingVertical: 8 }}>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  + {t('partners:family.title')} · {t('partners:team.seats', { used: seatsUsed, max: seatsMax })}
+                </Text>
+              </Pressable>
+            ) : null}
+            {canAddPartner ? (
+              <Pressable onPress={openPartnerInvite} style={{ paddingVertical: 8 }}>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  + {t('partners:ownerPartner.title')} ·{' '}
+                  {t('partners:team.seats', { used: partnerUsed, max: partnerMax })}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {(family?.members || []).map((member) => (
+            <TeamMemberCard
+              key={member.id}
+              kind="family"
+              displayName={member.displayName}
+              phone={member.phone}
+              email={member.email}
+              modules={member.modules}
+              accessLevel={member.accessLevel}
+              status={member.status}
+              pendingInvite={member.pendingInvite}
+              canManage={canManageTeam}
+              onChanged={() => setFamilyTick((n) => n + 1)}
+              onUpdate={async (payload) => {
+                await familyService.updateMember(member.id, payload);
+              }}
+              onRevoke={async () => {
+                await familyService.revokeMember(member.id);
+              }}
+            />
+          ))}
+
+          {partner ? (
+            <TeamMemberCard
+              kind="partner"
+              displayName={partner.displayName}
+              phone={partner.phone}
+              email={partner.email}
+              modules={partner.modules}
+              accessLevel={partner.accessLevel}
+              status={partner.status}
+              pendingInvite={partner.pendingInvite}
+              canManage={canManageTeam}
+              onChanged={() => setPartnerTick((n) => n + 1)}
+              onUpdate={async (payload) => {
+                await ownerPartnerService.updateLink(partner.id, payload);
+              }}
+              onRevoke={async () => {
+                await ownerPartnerService.revokeLink(partner.id);
+              }}
+            />
           ) : null}
         </View>
-      ))}
-      {canManageFamily && (family?.members || []).length === 0 ? (
-        <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:family.empty')}</Text>
       ) : null}
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{t('partners:forField')}</Text>
-      {fields.map((field) => (
-        <Pressable
-          key={field.id}
-          onPress={() => {
-            setFieldId(field.id);
-            void AsyncStorage.setItem(FIELD_KEY, field.id);
-          }}
+      {showSearch ? (
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('partners:searchPlaceholder')}
+          placeholderTextColor={colors.textTertiary}
           style={[
-            styles.fieldRow,
+            styles.search,
             {
-              minHeight: tapMin,
-              borderColor: fieldId === field.id ? colors.oliveBorder : colors.border,
-              backgroundColor: fieldId === field.id ? colors.primaryLight : colors.surfaceElevated,
+              color: colors.textPrimary,
+              borderColor: colors.gray200,
+              backgroundColor: colors.surfaceElevated,
+              minHeight: 44,
             },
           ]}
-        >
-          <Text style={{ color: fieldId === field.id ? colors.primary : colors.textPrimary, fontWeight: '700', fontSize: 16 * fontScaleMultiplier }}>
-            {field.name}
-          </Text>
-        </Pressable>
-      ))}
+        />
+      ) : null}
 
-      <View style={styles.sectionHead}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier }]}>
-          {t('partners:myPeople')}
-        </Text>
-        <Button title={t('partners:addPerson')} onPress={() => { setAddStep('choose'); setInvite(null); setAdding(true); }} />
-      </View>
-      <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:myPeopleHint')}</Text>
-
-      {people.length === 0 && unassigned.length === 0 ? (
+      {people.length === 0 ? (
         <EmptyState
           title={t('partners:emptyPeople')}
           description={t('partners:emptyPeopleHint')}
+          action={{ label: t('partners:addCollaborator'), onPress: openAddChooser }}
         />
+      ) : showGroups ? (
+        <>
+          {onField.length > 0 ? (
+            <>
+              <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>
+                {t('partners:groups.onField')}
+              </Text>
+              {onField.map(renderPerson)}
+            </>
+          ) : null}
+          {services.length > 0 ? (
+            <>
+              <Text style={[styles.groupLabel, { color: colors.textTertiary, marginTop: spacing.sm }]}>
+                {t('partners:groups.services')}
+              </Text>
+              {services.map(renderPerson)}
+            </>
+          ) : null}
+        </>
       ) : (
-        people.map((person) => (
-          <View
-            key={person.id}
-            style={[styles.personCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
-          >
-            <Text style={[styles.personName, { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier }]}>
-              {person.displayName}
-            </Text>
-            {person.phone ? (
-              <Text style={{ color: colors.textSecondary }}>{person.phone}</Text>
-            ) : null}
-            <View style={styles.chips}>
-              {person.serviceLabels.map((label) => (
-                <Text key={label} style={[styles.chip, { color: colors.textPrimary, backgroundColor: colors.background }]}>
-                  {label}
-                </Text>
-              ))}
-              {person.connections.map((connection) => (
-                <Text
-                  key={connection}
-                  style={[styles.chip, { color: colors.textSecondary, backgroundColor: colors.background }]}
-                >
-                  {t(`partners:connection.${connection}`)}
-                </Text>
-              ))}
-            </View>
-            <PhoneActions phone={person.phone} />
-            {person.savedContact ? (
-              <Button
-                title={t('partners:editContact')}
-                variant="outline"
-                onPress={() => openSave(person.savedContact)}
-              />
-            ) : null}
-            {person.listed && person.userId ? (
-              <Button
-                title={t('partners:contact')}
-                onPress={() =>
-                  navigation.navigate('PartnerProfile', { userId: person.userId!, fieldId })
-                }
-              />
-            ) : null}
-            {isFieldOwner() && person.membership && !person.connections.includes('owner') ? (
-              <Button
-                title={t('partners:removeMember', { defaultValue: 'Remove from field' })}
-                variant="outline"
-                onPress={() => {
-                  Alert.alert(
-                    t('partners:removeMember', { defaultValue: 'Remove from field' }),
-                    person.displayName,
-                    [
-                      { text: t('common:cancel'), style: 'cancel' },
-                      {
-                        text: t('common:delete'),
-                        style: 'destructive',
-                        onPress: async () => {
-                          await fieldPeopleService.removeMembership(fieldId, person.userId!);
-                          setPeopleTick((n) => n + 1);
-                        },
-                      },
-                    ]
-                  );
-                }}
-              />
-            ) : null}
-          </View>
-        ))
+        filteredPeople.map(renderPerson)
       )}
 
-      {unassigned.length > 0 ? (
-        <>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier, marginTop: spacing.lg }]}>
-            {t('partners:unassignedContacts')}
-          </Text>
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:unassignedContactsHint')}</Text>
-          {unassigned.map((person) => (
-            <View
-              key={person.id}
-              style={[styles.personCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
-            >
-              <Text style={[styles.personName, { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier }]}>
-                {person.displayName}
-              </Text>
-              {person.phone ? (
-                <Text style={{ color: colors.textSecondary }}>{person.phone}</Text>
-              ) : null}
-              <View style={styles.chips}>
-                {person.connections.map((connection) => (
-                  <Text
-                    key={connection}
-                    style={[styles.chip, { color: colors.textSecondary, backgroundColor: colors.background }]}
-                  >
-                    {t(`partners:connection.${connection}`)}
-                  </Text>
-                ))}
-              </View>
-              <PhoneActions phone={person.phone} />
-              {person.savedContact ? (
-                <Button
-                  title={t('partners:editContact')}
-                  variant="outline"
-                  onPress={() => openSave(person.savedContact)}
-                />
-              ) : null}
-            </View>
-          ))}
-        </>
-      ) : null}
+      <PersonDetailSheet
+        person={selected}
+        fields={fields}
+        canRemoveFromField={Boolean(
+          isFieldOwner() && selected?.membership && !selected.connections.includes('owner')
+        )}
+        onClose={() => setSelected(null)}
+        onEdit={
+          selected?.savedContact
+            ? () => {
+                const contact = selected.savedContact!;
+                setSelected(null);
+                openSave(contact);
+              }
+            : undefined
+        }
+        onRemoveFromField={
+          selected?.userId
+            ? () => {
+                const person = selected;
+                void (async () => {
+                  const ids = person.fieldIds?.length ? person.fieldIds : fieldId ? [fieldId] : [];
+                  await Promise.all(
+                    ids.map((id) => fieldPeopleService.removeMembership(id, person.userId!))
+                  );
+                  setPeopleTick((n) => n + 1);
+                })();
+              }
+            : undefined
+        }
+        onOpenProfile={
+          selected?.listed && selected.userId
+            ? () => {
+                const userId = selected.userId!;
+                setSelected(null);
+                navigation.navigate('PartnerProfile', { userId, fieldId });
+              }
+            : undefined
+        }
+      />
 
-      <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier, marginTop: spacing.lg }]}>
-        {t('partners:needHelpSection')}
-      </Text>
-      <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:needWhat')}</Text>
+      <ImportPhoneContactsSheet
+        visible={importing}
+        fields={fields}
+        categories={categories}
+        onClose={() => setImporting(false)}
+        onImported={() => setPeopleTick((n) => n + 1)}
+      />
 
-      <View style={styles.grid}>
-        {visible.map((cat) => (
-          <Pressable
-            key={cat.id}
-            disabled={!fieldId}
-            onPress={() => onParent(cat)}
-            style={[styles.card, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, minHeight: 110 }]}
-          >
-            <Ionicons name="leaf-outline" size={22} color={colors.primary} />
-            <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
-              {categoryName(cat, i18n.language)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <Button title={t('partners:allServices')} variant="text" onPress={() => setShowAll((v) => !v)} />
-
-      <Button title={t('partners:offer')} variant="text" onPress={() => navigation.navigate('MyServices')} />
-      <Button title={t('partners:requests')} variant="text" onPress={() => navigation.navigate('ServiceRequests')} />
-
-      {pickedParent ? (
-        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-          <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
-            {categoryName(pickedParent, i18n.language)}
-          </Text>
-          <Button title={t('partners:allInCategory')} onPress={() => goSearch(pickedParent)} />
-          {childCategories(categories, pickedParent.id).map((child) => (
+      <PartnersSheet
+        visible={adding}
+        title={
+          addStep === 'choose'
+            ? t('partners:addCollaborator')
+            : addStep === 'save'
+              ? editing
+                ? t('partners:editContact')
+                : t('partners:saveContact')
+              : invite
+                ? t('partners:inviteReady')
+                : t('partners:inviteToOleachron')
+        }
+        subtitle={addStep === 'choose' ? t('partners:addPersonChoicesHint') : undefined}
+        onClose={() => {
+          setAdding(false);
+          setInvite(null);
+          setEditing(null);
+          setAddStep('choose');
+        }}
+      >
+        {addStep === 'choose' ? (
+          <View style={styles.choiceGrid}>
+            {canPickPhone
+              ? choiceCard(
+                  'phone-portrait-outline',
+                  t('partners:addChoices.fromPhone'),
+                  t('partners:addChoices.fromPhoneHint'),
+                  () => {
+                    setAdding(false);
+                    setImporting(true);
+                  }
+                )
+              : null}
+            {choiceCard(
+              'person-outline',
+              t('partners:addChoices.newPerson'),
+              t('partners:addChoices.newPersonHint'),
+              () => openSave()
+            )}
+            {choiceCard(
+              'link-outline',
+              t('partners:addChoices.invite'),
+              t('partners:addChoices.inviteHint'),
+              () => {
+                if (canAddFamily) {
+                  openFamilyInvite();
+                  return;
+                }
+                if (canAddPartner) {
+                  openPartnerInvite();
+                  return;
+                }
+                setInvite(null);
+                setInviteName('');
+                setInvitePhone('');
+                setInviteEmail('');
+                setAddStep('invite');
+              }
+            )}
+            {choiceCard(
+              'business-outline',
+              t('partners:addChoices.crew'),
+              t('partners:addChoices.crewHint'),
+              () => openSave()
+            )}
+          </View>
+        ) : addStep === 'save' ? (
+          <>
+            {canPickPhone && !editing ? (
+              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('contact')} />
+            ) : null}
+            <TextInput
+              value={contactName}
+              onChangeText={setContactName}
+              placeholder={t('partners:inviteName')}
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={contactPhone}
+              onChangeText={setContactPhone}
+              placeholder={t('partners:invitePhone')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="phone-pad"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={contactEmail}
+              onChangeText={setContactEmail}
+              placeholder={t('partners:contactEmail')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={contactNotes}
+              onChangeText={setContactNotes}
+              placeholder={t('partners:contactNotes')}
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <Button
+              title={t('common:save')}
+              loading={savingContact}
+              onPress={() => void saveContact()}
+              disabled={!contactName.trim()}
+            />
+            {editing ? (
+              <Button title={t('partners:deleteContact')} variant="outline" onPress={() => void deleteContact()} />
+            ) : null}
+          </>
+        ) : invite ? (
+          <InviteSharePanel
+            invite={{
+              shareUrl: invite.shareUrl,
+              whatsAppUrl: invite.whatsAppUrl,
+              displayName: inviteName,
+              phone: invitePhone || undefined,
+            }}
+            copyNs="family"
+            onDone={() => {
+              setAdding(false);
+              setInvite(null);
+            }}
+          />
+        ) : (
+          <>
+            {canPickPhone ? (
+              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('invite')} />
+            ) : null}
+            <TextInput
+              value={inviteName}
+              onChangeText={setInviteName}
+              placeholder={t('partners:inviteName')}
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={invitePhone}
+              onChangeText={setInvitePhone}
+              placeholder={t('partners:invitePhone')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="phone-pad"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              placeholder={t('partners:inviteEmail')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
             <Pressable
-              key={child.id}
-              onPress={() => goSearch(child)}
-              style={[styles.fieldRow, { borderColor: colors.border, minHeight: tapMin }]}
+              onPress={() => setInviteWorksHere((v) => !v)}
+              style={[styles.fieldRow, { borderColor: colors.gray200, minHeight: tapMin }]}
             >
-              <Text style={{ color: colors.textPrimary }}>{categoryName(child, i18n.language)}</Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+                {inviteWorksHere ? '☑ ' : '☐ '}
+                {t('partners:connection.works')}
+              </Text>
             </Pressable>
-          ))}
-          <Button title={t('common:cancel')} variant="outline" onPress={() => setPickedParent(null)} />
-        </View>
-      ) : null}
+            <Pressable
+              onPress={() => setInviteCanSee((v) => !v)}
+              style={[styles.fieldRow, { borderColor: colors.gray200, minHeight: tapMin }]}
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+                {inviteCanSee ? '☑ ' : '☐ '}
+                {t('partners:connection.sees')}
+              </Text>
+            </Pressable>
+            <Button
+              title={t('partners:createInvite')}
+              onPress={() => void createInvite()}
+              disabled={!inviteName.trim() && !invitePhone.trim() && !inviteEmail.trim()}
+            />
+            <Button title={t('common:back')} variant="outline" onPress={() => setAddStep('choose')} />
+          </>
+        )}
+      </PartnersSheet>
 
-      {addingFamily ? (
-        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-          <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>{t('partners:family.addMember')}</Text>
-          {familyInvite ? (
+      <PartnersSheet
+        visible={addingFamily}
+        title={t('partners:family.addMember')}
+        subtitle={familyInvite ? t('partners:family.inviteReady') : t('partners:family.addHint')}
+        onClose={() => setAddingFamily(false)}
+        footer={
+          familyInvite ? undefined : (
             <>
-              <Text style={{ color: colors.textSecondary }}>{t('partners:family.inviteReady')}</Text>
-              <Image
-                source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(familyInvite.shareUrl)}`,
-                }}
-                style={{ width: 220, height: 220, alignSelf: 'center', borderRadius: 12 }}
-                accessibilityLabel={t('partners:family.qrAlt')}
-              />
-              <Button
-                title={t('partners:shareWhatsApp')}
-                onPress={() => void Linking.openURL(familyInvite.whatsAppUrl)}
-              />
-              {familyInvite.mailtoUrl ? (
-                <Button
-                  title={t('partners:family.shareEmail')}
-                  variant="outline"
-                  onPress={() => void Linking.openURL(familyInvite.mailtoUrl)}
-                />
-              ) : null}
-              <Button title={t('common:close')} variant="outline" onPress={() => setAddingFamily(false)} />
-            </>
-          ) : (
-            <>
-              <Text style={{ color: colors.textSecondary }}>{t('partners:family.addHint')}</Text>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                {t('partners:inviteName')}
-              </Text>
-              <TextInput
-                value={familyName}
-                onChangeText={setFamilyName}
-                placeholder={t('partners:inviteName')}
-                placeholderTextColor={colors.textSecondary}
-                autoComplete="name"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                {t('partners:invitePhone')}
-              </Text>
-              <TextInput
-                value={familyPhone}
-                onChangeText={setFamilyPhone}
-                placeholder={t('partners:invitePhone')}
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="phone-pad"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                {t('partners:inviteEmail')}
-              </Text>
-              <TextInput
-                value={familyEmail}
-                onChangeText={setFamilyEmail}
-                placeholder={t('partners:inviteEmail')}
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                {t('partners:family.contactHint')}
-              </Text>
-              <Text style={[styles.fieldLabel, { color: colors.textPrimary, marginTop: 8 }]}>
-                {t('partners:family.partsTitle')}
-              </Text>
-              <View style={styles.chips}>
-                {FAMILY_MODULES.map((module) => {
-                  const on = familyModules.includes(module);
-                  return (
-                    <Pressable
-                      key={module}
-                      onPress={() =>
-                        setFamilyModules((prev) =>
-                          prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
-                        )
-                      }
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: on ? colors.primaryLight : colors.surface,
-                          borderColor: on ? colors.oliveBorder : colors.border,
-                        },
-                      ]}
-                    >
-                      <Text style={{ color: on ? colors.primary : colors.textPrimary, fontWeight: '600' }}>
-                        {t(`partners:family.modules.${module}`)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Text style={[styles.fieldLabel, { color: colors.textPrimary, marginTop: 8 }]}>
-                {t('partners:family.levelTitle')}
-              </Text>
-              <View style={{ gap: 8 }}>
-                {(['view', 'help', 'work'] as FamilyAccessLevel[]).map((level) => {
-                  const on = familyLevel === level;
-                  return (
-                    <Pressable
-                      key={level}
-                      onPress={() => setFamilyLevel(level)}
-                      style={[
-                        styles.levelCard,
-                        {
-                          borderColor: on ? colors.oliveBorder : colors.border,
-                          backgroundColor: on ? colors.primaryLight : colors.surface,
-                          minHeight: tapMin,
-                        },
-                      ]}
-                    >
-                      <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                        {t(`partners:family.levels.${level}`)}
-                      </Text>
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
-                        {t(`partners:family.levelHints.${level}`)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
               <Button
                 title={t('partners:family.sendInvite')}
                 loading={savingFamily}
@@ -700,223 +817,165 @@ const PartnersHomeScreen = () => {
               />
               <Button title={t('common:cancel')} variant="outline" onPress={() => setAddingFamily(false)} />
             </>
-          )}
-        </View>
-      ) : null}
+          )
+        }
+      >
+        {familyInvite ? (
+          <InviteSharePanel invite={familyInvite} copyNs="family" onDone={() => setAddingFamily(false)} />
+        ) : (
+          <>
+            {canPickPhone ? (
+              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('family')} />
+            ) : null}
+            <TextInput
+              value={familyName}
+              onChangeText={setFamilyName}
+              placeholder={t('partners:inviteName')}
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={familyPhone}
+              onChangeText={setFamilyPhone}
+              placeholder={t('partners:invitePhone')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="phone-pad"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={familyEmail}
+              onChangeText={setFamilyEmail}
+              placeholder={t('partners:inviteEmail')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <AccessFields
+              modules={familyModules}
+              accessLevel={familyLevel}
+              onToggleModule={(module) =>
+                setFamilyModules((prev) =>
+                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
+                )
+              }
+              onSetLevel={setFamilyLevel}
+            />
+          </>
+        )}
+      </PartnersSheet>
 
-      {adding ? (
-        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-          {addStep === 'choose' ? (
+      <PartnersSheet
+        visible={addingPartner}
+        title={t('partners:ownerPartner.addPartner')}
+        subtitle={partnerInvite ? t('partners:ownerPartner.inviteReady') : t('partners:ownerPartner.addHint')}
+        onClose={() => setAddingPartner(false)}
+        footer={
+          partnerInvite ? undefined : (
             <>
-              <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>{t('partners:addPerson')}</Text>
-              <Text style={{ color: colors.textSecondary }}>{t('partners:addPersonChoicesHint')}</Text>
-              <Button title={t('partners:saveContact')} onPress={() => openSave()} />
-              {fieldId ? (
-                <Button title={t('partners:inviteToOleachron')} variant="outline" onPress={() => setAddStep('invite')} />
-              ) : null}
-              <Button title={t('common:cancel')} variant="outline" onPress={() => setAdding(false)} />
-            </>
-          ) : addStep === 'save' ? (
-            <>
-              <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
-                {editing ? t('partners:editContact') : t('partners:saveContact')}
-              </Text>
-              <Text style={{ color: colors.textSecondary }}>{t('partners:saveContactHint')}</Text>
-              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone()} />
-              <Text style={{ color: colors.textSecondary }}>{t('partners:fromPhoneManual')}</Text>
-              <TextInput
-                value={contactName}
-                onChangeText={setContactName}
-                placeholder={t('partners:inviteName')}
-                placeholderTextColor={colors.textSecondary}
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <TextInput
-                value={contactPhone}
-                onChangeText={setContactPhone}
-                placeholder={t('partners:invitePhone')}
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="phone-pad"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <TextInput
-                value={contactEmail}
-                onChangeText={setContactEmail}
-                placeholder={t('partners:contactEmail')}
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <PhoneActions phone={contactPhone} />
-              <TextInput
-                value={contactNotes}
-                onChangeText={setContactNotes}
-                placeholder={t('partners:contactNotes')}
-                placeholderTextColor={colors.textSecondary}
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              {fieldId ? (
-                <Pressable
-                  onPress={() => setLinkField((v) => !v)}
-                  style={[styles.fieldRow, { borderColor: colors.border, minHeight: tapMin }]}
-                >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                    {linkField ? '☑ ' : '☐ '}
-                    {t('partners:linkToField')}
-                  </Text>
-                </Pressable>
-              ) : null}
-              <Text style={{ color: colors.textSecondary }}>{t('partners:saveLaterHint')}</Text>
               <Button
-                title={t('partners:saveContact')}
-                loading={savingContact}
-                onPress={() => void saveContact()}
-                disabled={!contactName.trim()}
+                title={t('partners:ownerPartner.sendInvite')}
+                loading={savingPartner}
+                onPress={() => void createPartnerInvite()}
               />
-              {!editing ? (
-                <Button
-                  title={t('partners:saveLater')}
-                  variant="outline"
-                  onPress={() => void saveContact()}
-                  disabled={!contactName.trim() || savingContact}
-                />
-              ) : (
-                <Button title={t('partners:deleteContact')} variant="outline" onPress={() => void deleteContact()} />
-              )}
-              <Button
-                title={t('common:cancel')}
-                variant="outline"
-                onPress={() => {
-                  setAdding(false);
-                  setEditing(null);
-                  setAddStep('choose');
-                }}
-              />
+              <Button title={t('common:cancel')} variant="outline" onPress={() => setAddingPartner(false)} />
             </>
-          ) : invite ? (
-            <>
-              <Text style={{ color: colors.textPrimary }}>{t('partners:inviteReady')}</Text>
-              <Button title={t('partners:shareWhatsApp')} onPress={() => void Linking.openURL(invite.whatsAppUrl)} />
-              <Button title={t('common:cancel')} variant="outline" onPress={() => { setAdding(false); setInvite(null); }} />
-            </>
-          ) : (
-            <>
-              <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>{t('partners:inviteToOleachron')}</Text>
-              <Text style={{ color: colors.textSecondary }}>{t('partners:addPersonHint')}</Text>
-              <TextInput
-                value={inviteName}
-                onChangeText={setInviteName}
-                placeholder={t('partners:inviteName')}
-                placeholderTextColor={colors.textSecondary}
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <TextInput
-                value={invitePhone}
-                onChangeText={setInvitePhone}
-                placeholder={t('partners:invitePhone')}
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="phone-pad"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <TextInput
-                value={inviteEmail}
-                onChangeText={setInviteEmail}
-                placeholder={t('partners:inviteEmail')}
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, minHeight: tapMin }]}
-              />
-              <Pressable
-                onPress={() => setInviteWorksHere((v) => !v)}
-                style={[styles.fieldRow, { borderColor: colors.border, minHeight: tapMin }]}
-              >
-                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                  {inviteWorksHere ? '☑ ' : '☐ '}
-                  {t('partners:connection.works')}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setInviteCanSee((v) => !v)}
-                style={[styles.fieldRow, { borderColor: colors.border, minHeight: tapMin }]}
-              >
-                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                  {inviteCanSee ? '☑ ' : '☐ '}
-                  {t('partners:connection.sees')}
-                </Text>
-              </Pressable>
-              <Button
-                title={t('partners:createInvite')}
-                onPress={() => void createInvite()}
-                disabled={!inviteName.trim() && !invitePhone.trim() && !inviteEmail.trim()}
-              />
-              <Button title={t('common:back')} variant="outline" onPress={() => setAddStep('choose')} />
-            </>
-          )}
-        </View>
-      ) : null}
+          )
+        }
+      >
+        {partnerInvite ? (
+          <InviteSharePanel invite={partnerInvite} copyNs="ownerPartner" onDone={() => setAddingPartner(false)} />
+        ) : (
+          <>
+            {canPickPhone ? (
+              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('partner')} />
+            ) : null}
+            <TextInput
+              value={partnerName}
+              onChangeText={setPartnerName}
+              placeholder={t('partners:inviteName')}
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={partnerPhone}
+              onChangeText={setPartnerPhone}
+              placeholder={t('partners:invitePhone')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="phone-pad"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <TextInput
+              value={partnerEmail}
+              onChangeText={setPartnerEmail}
+              placeholder={t('partners:inviteEmail')}
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
+            />
+            <AccessFields
+              modules={partnerModules}
+              accessLevel={partnerLevel}
+              onToggleModule={(module) =>
+                setPartnerModules((prev) =>
+                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
+                )
+              }
+              onSetLevel={setPartnerLevel}
+            />
+          </>
+        )}
+      </PartnersSheet>
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  lead: { ...typography.styles.body, marginBottom: spacing.sm },
-  label: { ...typography.styles.body, marginTop: spacing.md, marginBottom: spacing.xs, fontWeight: '700' },
-  sectionHead: { marginTop: spacing.lg, gap: spacing.sm },
-  sectionTitle: { fontWeight: '800' },
-  fieldRow: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    justifyContent: 'center',
+  countLine: { fontWeight: '600' },
+  groupLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    marginTop: 2,
   },
-  personCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  personName: { fontWeight: '800' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  fieldLabel: { fontSize: 13, fontWeight: '700', marginTop: 4 },
-  levelCard: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  card: {
-    width: '47%',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  cardLabel: { fontWeight: '700', fontSize: 16 },
-  sheet: {
-    marginTop: spacing.lg,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
+  search: {
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  teamBlock: { marginBottom: spacing.md },
+  seatActions: { marginBottom: spacing.xs },
+  choiceGrid: { gap: spacing.sm },
+  choiceCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14,
+    padding: spacing.md,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  choiceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fieldRow: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: spacing.md,
+    justifyContent: 'center',
+  },
+  input: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    marginBottom: 8,
   },
 });
 

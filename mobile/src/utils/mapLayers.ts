@@ -19,5 +19,5 @@ export type MapLayerType = 'satellite' | 'standard' | 'hybrid';
 export const DEFAULT_MAP_LAYER: MapLayerType = 'satellite';
 
 /** Fallback only — prefer resolveFieldColor for real fields. */
-export const FIELD_POLYGON_STROKE = '#2F6B4F';
-export const FIELD_POLYGON_FILL = '#2F6B4F';
+export const FIELD_POLYGON_STROKE = '#E8C547';
+export const FIELD_POLYGON_FILL = '#E8C547';

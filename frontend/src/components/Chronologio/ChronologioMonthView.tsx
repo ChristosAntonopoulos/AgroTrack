@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { groupChronologioEntries } from '../../utils/chronologioGrouping';
+import { groupSameDayPhotoEntries } from '../../utils/chronologioPhotoGroups';
 import { agriculturalYearFor, agriculturalYearTitle } from '../../chronologio/agriculturalYear';
 import {
   buildDayWeatherView,
@@ -11,6 +12,8 @@ import {
 } from '../../chronologio/dayWeather';
 import { eventCardSpan } from '../../chronologio/eventCardLayout';
 import ChronologioEvent from './ChronologioEvent';
+import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
+import ChronologioPhotoDaySheet from './ChronologioPhotoDaySheet';
 import DailyWeatherStrip from './DailyWeatherStrip';
 import type { SupportedLocale } from '../../i18n/config';
 
@@ -69,6 +72,7 @@ const ChronologioMonthView: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'today']);
   const parentRef = useRef<HTMLDivElement>(null);
+  const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
   const todayKey = dayWeatherDateKey(new Date());
   const numberLocale = i18n.language?.startsWith('el')
     ? 'el-GR'
@@ -166,15 +170,28 @@ const ChronologioMonthView: React.FC<Props> = ({
       if (row?.kind === 'gap' || row?.kind === 'monthBreak') return 56;
       if (row?.kind === 'yearBreak') return 72;
       if (row?.kind === 'day') {
+        const display = groupSameDayPhotoEntries(row.entries);
+        const photoGroups = display.filter((item) => item.type === 'photoGroup').length;
+        const plain = display
+          .filter(
+            (item): item is Extract<ReturnType<typeof groupSameDayPhotoEntries>[number], { type: 'entry' }> =>
+              item.type === 'entry'
+          )
+          .map((item) => item.entry);
         const featured =
-          row.entries.length === 1
-            ? row.entries
-            : row.entries.filter((e) => eventCardSpan(e) === 2);
-        const compact = row.entries.length <= 1 ? 0 : row.entries.length - featured.length;
+          plain.length === 1 ? plain : plain.filter((e) => eventCardSpan(e) === 2);
+        const compact = plain.length <= 1 ? 0 : plain.length - featured.length;
         const richMonth = featured.filter(isMonthWeatherReview).length;
         const otherFeatured = featured.length - richMonth;
         const pickH = row.monthReviews.length > 0 ? 196 : 0;
-        return 88 + pickH + richMonth * 360 + otherFeatured * 168 + Math.ceil(compact / 2) * 168;
+        return (
+          88 +
+          pickH +
+          photoGroups * 168 +
+          richMonth * 360 +
+          otherFeatured * 168 +
+          Math.ceil(compact / 2) * 168
+        );
       }
       return 168;
     },
@@ -266,7 +283,21 @@ const ChronologioMonthView: React.FC<Props> = ({
                     ) : null}
                     {row.entries.length > 0 ? (
                     <div className="chrono-day-event-grid">
-                      {row.entries.map((entry) => {
+                      {groupSameDayPhotoEntries(row.entries).map((item) => {
+                        if (item.type === 'photoGroup') {
+                          const selected = item.entries.some((e) => e.id === selectedEntryId);
+                          return (
+                            <div key={item.id} className="chrono-day-event-cell is-featured">
+                              <ChronologioPhotoStackCard
+                                entries={item.entries}
+                                selected={selected}
+                                showField={showField}
+                                onOpen={() => setPhotoDayEntries(item.entries)}
+                              />
+                            </div>
+                          );
+                        }
+                        const entry = item.entry;
                         const featured = row.entries.length === 1 || eventCardSpan(entry) === 2;
                         return (
                           <div
@@ -293,6 +324,11 @@ const ChronologioMonthView: React.FC<Props> = ({
           })}
         </div>
       </div>
+      <ChronologioPhotoDaySheet
+        open={!!photoDayEntries?.length}
+        entries={photoDayEntries || []}
+        onClose={() => setPhotoDayEntries(null)}
+      />
     </div>
   );
 };

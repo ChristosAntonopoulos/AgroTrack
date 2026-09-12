@@ -50,6 +50,7 @@ export interface WindIntelligence {
   maxNext6hKmh: number;
   maxNext12hKmh: number;
   maxNext24hKmh: number;
+  maxNext72hKmh?: number;
   dominantDirection?: string;
 }
 

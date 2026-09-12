@@ -1,0 +1,75 @@
+{
+  "title": "Photo Hub",
+  "subtitle": "Upload photos — we place them by location and capture time.",
+  "upload": "Upload photos",
+  "uploadCamera": "Take photo",
+  "uploadLibrary": "Choose from library",
+  "uploading": "Uploading…",
+  "empty": "No photos yet",
+  "emptyHint": "Upload field photos. GPS and capture time from the image place them for you.",
+  "offline": "Photos need a connection.",
+  "filters": {
+    "field": "Field",
+    "allFields": "All fields",
+    "linkStatus": "Link",
+    "all": "All",
+    "standalone": "Standalone",
+    "linked": "Linked",
+    "assignment": "Assignment",
+    "needsReview": "Needs review",
+    "unassigned": "Unassigned"
+  },
+  "badges": {
+    "standalone": "Standalone",
+    "task": "Task",
+    "note": "Observation",
+    "harvest": "Harvest",
+    "phenology": "Phenology",
+    "needsReview": "Review",
+    "unassigned": "No field"
+  },
+  "review": {
+    "title": "Review placements",
+    "confirmField": "Confirm field",
+    "pickField": "Choose field",
+    "candidates": "Suggested fields",
+    "duplicate": "Possible duplicate",
+    "done": "Done reviewing"
+  },
+  "detail": {
+    "title": "Photo",
+    "field": "Field",
+    "captured": "Captured",
+    "uploaded": "Uploaded",
+    "location": "Location",
+    "link": "Link to record",
+    "unlink": "Unlink",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this photo?",
+    "ownerType": "Record type",
+    "pickRecord": "Choose record",
+    "loadingRecords": "Loading…",
+    "noRecords": "No records of this type on this field.",
+    "linkedAs": "Linked as",
+    "saveLink": "Link photo",
+    "noGps": "No GPS in this image"
+  },
+  "viewer": {
+    "close": "Close photo",
+    "prev": "Previous photo",
+    "next": "Next photo",
+    "counter": "{{current}} / {{total}}",
+    "expand": "View fullscreen"
+  },
+  "dayStack": {
+    "title": "Photos",
+    "count": "{{count}} photos",
+    "openSheet": "View day's photos",
+    "sheetTitle": "Photos this day"
+  },
+  "errors": {
+    "load": "Could not load photos",
+    "upload": "Upload failed",
+    "save": "Could not save changes"
+  }
+}

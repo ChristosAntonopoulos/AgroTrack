@@ -16,7 +16,6 @@ import { format, isSameDay } from 'date-fns';
 import { el, enUS } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useRefresh } from '../hooks/useRefresh';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -51,7 +50,6 @@ const CalendarScreen = () => {
   const route = useRoute<CalRoute>();
   const { isFieldOwner } = useAuth();
   const { colors } = useTheme();
-  const { isEveryday } = usePreferences();
   const { t, i18n } = useTranslation(['calendar', 'common', 'tasks']);
   const navigation = useNavigation<Nav>();
   const readOnly = !isFieldOwner();
@@ -75,12 +73,6 @@ const CalendarScreen = () => {
       setFilters(prev => ({ ...prev, fieldIds: [route.params!.fieldId!] }));
     }
   }, [route.params?.date, route.params?.fieldId]);
-
-  useEffect(() => {
-    if (isEveryday && viewMode !== 'agenda' && viewMode !== 'month') {
-      setViewMode('agenda');
-    }
-  }, [isEveryday, viewMode]);
 
   const { events, fields, fieldMap, loading, refresh } = useCalendarEvents(anchorDate, filters);
   const { refreshing, onRefresh } = useRefresh(refresh);
@@ -208,33 +200,18 @@ const CalendarScreen = () => {
         <SummaryPill icon="calendar-outline" label={t('summaryTotal')} value={events.length} colors={colors} />
       </View>
 
-      {!isEveryday ? (
-        <View style={styles.viewToggle}>
-          <SegmentedControl
-            fullWidth
-            ariaLabel={t('title')}
-            value={viewMode}
-            onChange={setViewMode}
-            options={(['agenda', 'week', 'month', 'field'] as ViewMode[]).map(mode => ({
-              value: mode,
-              label: viewModeLabels[mode],
-            }))}
-          />
-        </View>
-      ) : (
-        <View style={styles.viewToggle}>
-          <SegmentedControl
-            fullWidth
-            ariaLabel={t('title')}
-            value={viewMode === 'week' || viewMode === 'field' ? 'agenda' : viewMode}
-            onChange={setViewMode}
-            options={(['agenda', 'month'] as ViewMode[]).map(mode => ({
-              value: mode,
-              label: viewModeLabels[mode],
-            }))}
-          />
-        </View>
-      )}
+      <View style={styles.viewToggle}>
+        <SegmentedControl
+          fullWidth
+          ariaLabel={t('title')}
+          value={viewMode}
+          onChange={setViewMode}
+          options={(['agenda', 'week', 'month', 'field'] as ViewMode[]).map(mode => ({
+            value: mode,
+            label: viewModeLabels[mode],
+          }))}
+        />
+      </View>
 
       {viewMode === 'month' ? (
         <CalendarMonthGrid

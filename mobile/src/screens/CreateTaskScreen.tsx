@@ -16,6 +16,7 @@ import { assigneeOptionKey, suggestAssigneeFromProfile } from '../utils/fieldWor
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ScreenLayout from '../components/layout/ScreenLayout';
 import TaskForm, { type AssigneeOption, type TaskFormSubmitPayload } from '../components/tasks/TaskForm';
 import type { FieldWeather } from '../services/geospatialService';
 import { typography, spacing } from '../theme';
@@ -179,7 +180,7 @@ const CreateTaskScreen = () => {
     navigation.navigate('Main', {
       screen: 'Tasks',
       params: {
-        view: 'planned',
+        view: 'upcoming',
         year: String(year),
         fieldId: nextFieldId,
         created: createdId,
@@ -236,11 +237,7 @@ const CreateTaskScreen = () => {
       : t('fieldWork.form.manualSubtitle');
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
+    <ScreenLayout scroll contentContainerStyle={styles.content}>
       <Text style={[styles.title, { color: colors.textPrimary }]}>
         {mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle')}
       </Text>
@@ -267,7 +264,7 @@ const CreateTaskScreen = () => {
           void handleSubmit(payload);
         }}
       />
-    </ScrollView>
+    </ScreenLayout>
   );
 };
 

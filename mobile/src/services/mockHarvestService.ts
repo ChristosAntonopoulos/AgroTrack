@@ -35,6 +35,7 @@ export const mockHarvestService: typeof harvestService = {
       oliveKg: input.oliveKg,
       millName: input.millName,
       oilKg: input.oilKg,
+      oilLitres: input.oilLitres,
       oilYieldPercent:
         input.oilYieldPercent ??
         (input.oilKg && input.oliveKg > 0

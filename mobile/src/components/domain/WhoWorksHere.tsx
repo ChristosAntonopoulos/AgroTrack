@@ -44,7 +44,7 @@ const WhoWorksHere: React.FC<Props> = ({ people, compact = false, onPress, onAdd
                 styles.chip,
                 {
                   minHeight: Math.max(tapMin - 8, 40),
-                  backgroundColor: colors.background,
+                  backgroundColor: colors.surfaceMuted,
                   borderColor: colors.border,
                 },
               ]}
@@ -61,7 +61,7 @@ const WhoWorksHere: React.FC<Props> = ({ people, compact = false, onPress, onAdd
           {people.map((person) => (
             <View
               key={person.id}
-              style={[styles.person, { borderColor: colors.border, backgroundColor: colors.background }]}
+              style={[styles.person, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}
             >
               <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 16 * fontScaleMultiplier }}>
                 {person.displayName}

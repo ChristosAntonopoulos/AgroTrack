@@ -28,7 +28,7 @@ import { typography, spacing, spacingPatterns } from '../theme';
 import { loginTheme } from '../theme/loginTheme';
 import { AuthStackParamList } from '../navigation/types';
 
-const loginBg = require('../../assets/images/login-bg.jpg');
+const loginBg = require('../../assets/images/auth-left-bg.jpg');
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: loginTheme.cardBg,
-    borderRadius: spacingPatterns.borderRadius.xl,
+    borderRadius: loginTheme.cardRadius,
     borderWidth: 1,
     borderColor: loginTheme.cardBorder,
     padding: spacing.lg,

@@ -20,6 +20,7 @@ import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
 import enFeedback from '../locales/en/feedback.json';
+import enPhotos from '../locales/en/photos.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -41,6 +42,7 @@ import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
 import elFeedback from '../locales/el/feedback.json';
+import elPhotos from '../locales/el/photos.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -60,6 +62,7 @@ import itChronologio from '../locales/it/chronologio.json';
 import itCapture from '../locales/it/capture.json';
 import itMoney from '../locales/it/money.json';
 import itFeedback from '../locales/it/feedback.json';
+import itPhotos from '../locales/it/photos.json';
 
 const bundle = (
   common: object,
@@ -128,6 +131,7 @@ export const resources: Record<
     ),
     money: enMoney,
     feedback: enFeedback,
+    photos: enPhotos,
   },
   el: {
     ...bundle(
@@ -152,6 +156,7 @@ export const resources: Record<
     ),
     money: elMoney,
     feedback: elFeedback,
+    photos: elPhotos,
   },
   it: {
     ...bundle(
@@ -176,5 +181,6 @@ export const resources: Record<
     ),
     money: itMoney,
     feedback: itFeedback,
+    photos: itPhotos,
   },
 };

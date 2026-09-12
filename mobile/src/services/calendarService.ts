@@ -1,4 +1,5 @@
 import { getTaskCategoryColor } from '../utils/calendarCategoryColors';
+import { colors } from '../theme/colors';
 import { getFieldWorkService } from './serviceFactory';
 import { FieldTask, fieldTaskTypeKey, isActiveFieldTask } from './fieldWorkService';
 
@@ -29,15 +30,15 @@ function getTaskStatusColor(status: string): string {
   switch (status) {
     case 'planned':
     case 'ready':
-      return '#ffc107';
+      return colors.warning;
     case 'in_progress':
-      return '#17a2b8';
+      return colors.info;
     case 'blocked':
-      return '#6c757d';
+      return colors.neutral;
     case 'completed':
-      return '#28a745';
+      return colors.success;
     default:
-      return '#6c757d';
+      return colors.neutral;
   }
 }
 
@@ -110,7 +111,7 @@ export const calendarService = {
               fieldId: task.fieldId,
               fieldName: fieldNames[task.fieldId],
               taskId: task.id,
-              color: daysUntil <= 3 ? '#dc3545' : '#ffc107',
+              color: daysUntil <= 3 ? colors.error : colors.warning,
             });
           }
         });

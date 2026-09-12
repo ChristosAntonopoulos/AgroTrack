@@ -165,7 +165,7 @@ const TaskFormPage: React.FC = () => {
 
   const goToPlanned = (createdId: string, year: number, nextFieldId: string) => {
     const params = buildTaskSearchParams({
-      view: 'planned',
+      view: 'upcoming',
       year,
       defaultYear: year,
       fieldId: nextFieldId,

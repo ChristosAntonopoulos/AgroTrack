@@ -95,6 +95,46 @@ public class FieldTasksController : BaseApiController
         return OkResult(task);
     }
 
+    [HttpPost("{id}/undo-start")]
+    public async Task<ActionResult<FieldTaskDto>> UndoStart(string id, CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.UndoStartAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/pause")]
+    public async Task<ActionResult<FieldTaskDto>> Pause(
+        string id,
+        [FromBody] PauseFieldTaskDto dto,
+        CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.PauseAsync(
+            id,
+            dto,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/resume")]
+    public async Task<ActionResult<FieldTaskDto>> Resume(string id, CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.ResumeAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
     [HttpPost("{id}/complete")]
     public async Task<ActionResult<TaskExecutionDto>> Complete(
         string id,

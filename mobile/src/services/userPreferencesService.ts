@@ -1,27 +1,21 @@
 import api from './api';
-import type { ExperienceMode, FontScale } from '../experience/types';
+import type { FontScale } from '../experience/types';
 
 export type PreferenceLanguage = 'en' | 'el';
 
 export interface UserExperiencePreferences {
-  experienceMode: ExperienceMode;
-  experienceModeChosen: boolean;
   fontScale: FontScale;
   largeControls: boolean;
   language: PreferenceLanguage;
 }
 
 export interface UpdateUserPreferencesInput {
-  experienceMode?: ExperienceMode;
-  experienceModeChosen?: boolean;
   fontScale?: FontScale;
   largeControls?: boolean;
   language?: PreferenceLanguage;
 }
 
 const normalize = (raw: Partial<UserExperiencePreferences> | null | undefined): UserExperiencePreferences => ({
-  experienceMode: raw?.experienceMode === 'full' ? 'full' : 'everyday',
-  experienceModeChosen: Boolean(raw?.experienceModeChosen),
   fontScale: raw?.fontScale === 'large' || raw?.fontScale === 'xl' ? raw.fontScale : 'default',
   largeControls: Boolean(raw?.largeControls),
   language: raw?.language === 'el' ? 'el' : 'en',

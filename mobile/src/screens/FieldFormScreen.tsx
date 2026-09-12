@@ -5,13 +5,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { getFieldService } from '../services/serviceFactory';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import FormField from '../components/forms/FormField';
 import FormSelect from '../components/forms/FormSelect';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import InfoRow from '../components/ui/InfoRow';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ScreenLayout from '../components/layout/ScreenLayout';
 import FieldPreviewHero from '../components/domain/FieldPreviewHero';
 import AddFieldMethodStep, { AddFieldMethod } from '../components/fields/AddFieldMethodStep';
 import WizardStepIndicator, { WizardStepKey } from '../components/fields/WizardStepIndicator';
@@ -42,10 +42,7 @@ type WizardStep = WizardStepKey | 'basics-edit';
 
 const NEW_DRAW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'crop', 'review'];
 const NEW_CADASTRE_STEPS: WizardStepKey[] = ['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'];
-const EVERYDAY_NEW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'review'];
-const EVERYDAY_CADASTRE_STEPS: WizardStepKey[] = ['method', 'cadastre', 'basics', 'boundary', 'review'];
 const EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
-const EVERYDAY_EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'review'];
 const KAEK_REGEX = /^(?:\d{12}|\d{2}\s*\d{3}\s*\d{2}\s*\d{2}\s*\d{3})\s*\/\s*\d+\s*\/\s*\d+$/;
 
 const emptyForm = (): CreateFieldDto => ({
@@ -64,7 +61,6 @@ const FieldFormScreen = () => {
   const navigation = useNavigation<Nav>();
   const { fieldId } = route.params || {};
   const { colors } = useTheme();
-  const { isEveryday } = usePreferences();
   const { t } = useTranslation(['fields', 'common']);
   const isEdit = !!fieldId;
 
@@ -85,10 +81,10 @@ const FieldFormScreen = () => {
   const [cadastreAcknowledged, setCadastreAcknowledged] = useState(false);
 
   const activeSteps = useMemo(() => {
-    if (isEdit) return isEveryday ? EVERYDAY_EDIT_STEPS : EDIT_STEPS;
-    if (method === 'cadastre') return isEveryday ? EVERYDAY_CADASTRE_STEPS : NEW_CADASTRE_STEPS;
-    return isEveryday ? EVERYDAY_NEW_STEPS : NEW_DRAW_STEPS;
-  }, [isEdit, isEveryday, method]);
+    if (isEdit) return EDIT_STEPS;
+    if (method === 'cadastre') return NEW_CADASTRE_STEPS;
+    return NEW_DRAW_STEPS;
+  }, [isEdit, method]);
 
   const stepIndex = useMemo(() => {
     const key = step === 'basics-edit' ? 'basics' : step;
@@ -212,7 +208,7 @@ const FieldFormScreen = () => {
         return t('fields:addField.errors.kaekInvalid');
       }
     }
-    if (step === 'boundary' && boundaryPoints.length < 3 && !isEveryday) {
+    if (step === 'boundary' && boundaryPoints.length < 3) {
       return t('fields:addFieldWizard.errors.boundaryRequired');
     }
     if (step === 'review') {
@@ -427,11 +423,10 @@ const FieldFormScreen = () => {
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+    <ScreenLayout
+      scroll
       scrollEnabled={parentScrollEnabled}
-      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.content}
     >
       <Text style={[styles.title, { color: colors.textPrimary }]}>
         {isEdit ? t('fields:editField') : t('fields:addField.title')}
@@ -505,24 +500,20 @@ const FieldFormScreen = () => {
               onChange={(color) => patchForm({ color })}
               disabled={saving}
             />
-            {!isEveryday ? (
-              <>
-                <FormSelect
-                  label={t('fields:addField.cropType')}
-                  value={formData.cropType || 'Olive'}
-                  options={toSelectOptions(CROP_TYPE_OPTIONS)}
-                  onValueChange={(cropType) => patchForm({ cropType })}
-                  disabled={saving}
-                />
-                <FormField
-                  label={t('fields:addField.locationText')}
-                  value={formData.locationText || ''}
-                  onChangeText={(locationText) => patchForm({ locationText })}
-                  placeholder={t('fields:addField.locationPlaceholder')}
-                  editable={!saving}
-                />
-              </>
-            ) : null}
+            <FormSelect
+              label={t('fields:addField.cropType')}
+              value={formData.cropType || 'Olive'}
+              options={toSelectOptions(CROP_TYPE_OPTIONS)}
+              onValueChange={(cropType) => patchForm({ cropType })}
+              disabled={saving}
+            />
+            <FormField
+              label={t('fields:addField.locationText')}
+              value={formData.locationText || ''}
+              onChangeText={(locationText) => patchForm({ locationText })}
+              placeholder={t('fields:addField.locationPlaceholder')}
+              editable={!saving}
+            />
             {method === 'kaek' || kaekInput ? (
               <FormField
                 label="KAEK"
@@ -740,7 +731,7 @@ const FieldFormScreen = () => {
           </Text>
         </Pressable>
       ) : null}
-    </ScrollView>
+    </ScreenLayout>
   );
 };
 

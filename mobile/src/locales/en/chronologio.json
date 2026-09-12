@@ -36,6 +36,14 @@
     "activity": "Activity",
     "photo": "Photo"
   },
+  "primaryCategories": {
+    "all": "All",
+    "work": "Work",
+    "observation": "Notes",
+    "money": "Money",
+    "harvest": "Harvest",
+    "weather": "Weather"
+  },
   "today": "Today",
   "yesterday": "Yesterday",
   "loadOlder": "Older entries",
@@ -85,6 +93,7 @@
     "compareRight": "Second year",
     "closeCompare": "Close comparison",
     "currentYear": "Current year",
+    "closedYear": "Closed year",
     "thisMonth": "This month",
     "historyStartsHere": "This is where the recorded history of this grove begins.",
     "emptyPeriod": "No recorded events yet",
@@ -259,8 +268,60 @@
       "deficit": "Water deficit {{mm}} mm"
     }
   },
+  "monthView": {
+    "work": "Work",
+    "money": "Money",
+    "harvest": "Harvest",
+    "currentMonth": "Current month",
+    "addRecord": "Add a record",
+    "noRecords": "There are no records",
+    "workShort": "{{count}} tasks",
+    "notesShort": "{{count}} observations",
+    "expensesShort": "{{amount}} expenses",
+    "observationShortLabel": "Observations",
+    "harvestNotStarted": "Harvest has not started",
+    "harvestNoResult": "No harvest result has been recorded",
+    "records": "{{count}} records",
+    "recordOne": "1 record",
+    "openDays": "See days",
+    "dominantWork": "Main work"
+  },
+  "yearView": {
+    "liveYear": "This year",
+    "closedYear": "Past year",
+    "inProgress": "In progress",
+    "harvesting": "Harvest underway",
+    "closed": "Closed",
+    "awaitingClosure": "Awaiting closure",
+    "upcoming": "Upcoming",
+    "nowReading": "{{stage}} now · {{next}} next",
+    "nowStage": "Now: {{stage}}",
+    "here": "Here",
+    "openHint": "See months of this year",
+    "progressLabel": "Season progress",
+    "trackComplete": "The agricultural year is complete",
+    "stageOf": "{{stage}} · {{current}} of {{total}}",
+    "mainResult": "Main harvest result",
+    "harvestNotStarted": "Harvest has not started",
+    "recordsFact": "{{count}} records",
+    "compare": {
+      "oilUp": "+{{pct}}% oil vs {{year}}",
+      "oilDown": "{{pct}}% less oil than {{year}}",
+      "olivesUp": "+{{pct}}% olives vs {{year}}",
+      "olivesDown": "{{pct}}% fewer olives than {{year}}",
+      "expensesUp": "+{{pct}}% expenses vs {{year}}",
+      "expensesDown": "{{pct}}% lower expenses than {{year}}"
+    },
+    "stages": {
+      "afterHarvest": "After harvest",
+      "spring": "Spring",
+      "summer": "Summer",
+      "harvest": "Harvest"
+    }
+  },
   "drawer": {
     "warning": "Warning",
+    "agriYear": "Agricultural year {{year}}",
     "createTask": "Create work from this observation",
     "openMoney": "Open in Money",
     "openTask": "Open task",

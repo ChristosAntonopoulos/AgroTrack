@@ -1,7 +1,7 @@
 {
   "title": "Settings",
   "subtitle": "Make OLEACHRON work the way you like.",
-  "autosaveHint": "Changes save automatically",
+  "autosaveHint": "Saved automatically",
   "saved": "Saved",
   "profile": "Account",
   "preferences": "Preferences",
@@ -12,13 +12,14 @@
     "dark": "Dark"
   },
   "themeHints": {
-    "system": "Follows your device setting.",
-    "light": "Uses a light look.",
-    "dark": "Uses a dark look."
+    "system": "Uses your phone’s appearance setting",
+    "light": "Always light",
+    "dark": "Always dark"
   },
   "language": "Language",
   "dateFormat": "Date format",
-  "startup": "When I open OLEACHRON",
+  "startup": "Open app on",
+  "startupHint": "This screen opens first",
   "startupOptions": {
     "today": "Today",
     "dashboard": "Dashboard",
@@ -30,7 +31,15 @@
     "appearance": "Appearance",
     "locale": "Language & region",
     "startup": "Startup",
+    "advanced": "Advanced",
     "technical": "Technical details"
+  },
+  "roles": {
+    "account": "Account",
+    "FieldOwner": "Owner account",
+    "Producer": "Producer account",
+    "Agronomist": "Advisor account",
+    "Administrator": "Admin account"
   },
   "myServices": "My services",
   "userId": "User ID",
@@ -38,13 +47,6 @@
   "logout": "Sign out",
   "logoutConfirm": "Are you sure you want to sign out?",
   "experience": {
-    "label": "Level of detail",
-    "everyday": "Simple",
-    "full": "Full",
-    "currentMode": "Level of detail",
-    "changeInSettings": "Change in Settings",
-    "everydayDesc": "Shows only the basics you need day to day.",
-    "fullDesc": "Shows more data, tools, and options.",
     "fontScale": "Text size",
     "fontScales": {
       "default": "Normal",
@@ -52,17 +54,8 @@
       "xl": "Extra large"
     },
     "largeControls": "Larger buttons",
-    "largeControlsDesc": "Bigger tap targets for easier use.",
-    "setupPhone": "Set up this phone for Simple",
-    "peekMoreAboutField": "More about this field",
-    "switchForDetails": "Switch to Full for details",
-    "onrampTitle": "Want more detail?",
-    "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
-    "onrampSwitch": "Switch to Full",
-    "onrampDismiss": "Not now",
-    "chooserTitle": "How do you want to use Oleachron?",
-    "chooserSubtitle": "You can change this anytime in Settings.",
-    "chooserFooter": "This choice is saved on this device.",
+    "largeControlsDesc": "Makes buttons and controls easier to tap",
+    "setupPhone": "Set up this phone",
     "comfortTitle": "Make it comfortable",
     "comfortSubtitle": "Choose how the app looks and feels. You can change this later in Settings.",
     "comfortSkip": "Skip for now"

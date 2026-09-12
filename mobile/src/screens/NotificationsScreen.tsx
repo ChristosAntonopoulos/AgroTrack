@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ScreenLayout from '../components/layout/ScreenLayout';
 import { typography, spacing } from '../theme';
 
 const NotificationsScreen = () => {
@@ -43,8 +44,9 @@ const NotificationsScreen = () => {
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
+    <ScreenLayout>
     <FlatList
-      style={[styles.list, { backgroundColor: colors.background }]}
+      style={styles.list}
       contentContainerStyle={styles.content}
       data={inbox}
       keyExtractor={(item) => item.id}
@@ -83,6 +85,7 @@ const NotificationsScreen = () => {
         </TouchableOpacity>
       )}
     />
+    </ScreenLayout>
   );
 };
 

@@ -6,11 +6,13 @@
   "fields": "Fields",
   "tasks": "Tasks",
   "more": "More",
+  "feedback": "Feedback",
   "settings": "Settings",
   "notifications": "Notifications",
   "inbox": "Inbox",
   "ministry": "Ministry",
   "money": "Money",
+  "photos": "Photos",
   "analytics": "Analytics",
   "reports": "Reports",
   "weatherMonth": "Month weather",
@@ -19,6 +21,7 @@
   "thisWeek": "This week",
   "thisHarvest": "This Rod",
   "chronologio": "Chronologio",
+  "partners": "Partners",
   "sections": {
     "work": "Work",
     "account": "Account"

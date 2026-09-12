@@ -1,17 +1,22 @@
 import {
   buildTaskSearchParams,
+  DEFAULT_TASK_VIEW,
   parseTaskFieldId,
   parseTaskView,
   parseTaskYear,
 } from './taskViewState';
 
 describe('task view URL state', () => {
-  it('defaults to proposals and rejects unknown views', () => {
-    expect(parseTaskView(null)).toBe('proposals');
-    expect(parseTaskView('planned')).toBe('planned');
-    expect(parseTaskView('active')).toBe('active');
-    expect(parseTaskView('completed')).toBe('proposals');
-    expect(parseTaskView('status=in_progress')).toBe('proposals');
+  it('defaults to now and remaps legacy views', () => {
+    expect(parseTaskView(null)).toBe('now');
+    expect(DEFAULT_TASK_VIEW).toBe('now');
+    expect(parseTaskView('now')).toBe('now');
+    expect(parseTaskView('upcoming')).toBe('upcoming');
+    expect(parseTaskView('proposals')).toBe('proposals');
+    expect(parseTaskView('history')).toBe('history');
+    expect(parseTaskView('planned')).toBe('upcoming');
+    expect(parseTaskView('active')).toBe('now');
+    expect(parseTaskView('completed')).toBe('now');
   });
 
   it('parses a result year only when it is a plausible calendar year', () => {
@@ -25,15 +30,15 @@ describe('task view URL state', () => {
     expect(parseTaskFieldId(' field-1 ')).toBe('field-1');
   });
 
-  it('writes view and year, and field only when a field is selected', () => {
+  it('writes view; year only when non-default; field when selected', () => {
     const params = buildTaskSearchParams({
-      view: 'planned',
+      view: 'upcoming',
       year: 2026,
       defaultYear: 2026,
       fieldId: '',
     });
-    expect(params.get('view')).toBe('planned');
-    expect(params.get('year')).toBe('2026');
+    expect(params.get('view')).toBe('upcoming');
+    expect(params.get('year')).toBeNull();
     expect(params.get('field')).toBeNull();
 
     const filtered = buildTaskSearchParams({

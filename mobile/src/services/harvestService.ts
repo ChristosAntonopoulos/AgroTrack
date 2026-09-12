@@ -9,6 +9,7 @@ export interface HarvestRecord {
   oliveKg: number;
   millName?: string;
   oilKg?: number;
+  oilLitres?: number | null;
   oilYieldPercent?: number;
   qualityGrade: string;
   notes?: string;
@@ -25,6 +26,7 @@ export interface CreateHarvestRecordInput {
   workersUsed?: number;
   millName?: string;
   oilKg?: number;
+  oilLitres?: number;
   oilYieldPercent?: number;
   qualityGrade?: string;
   notes?: string;

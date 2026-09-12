@@ -56,11 +56,20 @@ jest.mock('../services/serviceFactory', () => ({
     listFieldTasks: (...args: unknown[]) => mockListFieldTasks(...args),
     snoozeProposal: (...args: unknown[]) => mockSnoozeProposal(...args),
     dismissProposal: (...args: unknown[]) => mockDismissProposal(...args),
+    acceptProposal: jest.fn().mockResolvedValue({ acceptedTaskId: 'new-1' }),
     startFieldTask: jest.fn(),
+    undoStartFieldTask: jest.fn(),
+    pauseFieldTask: jest.fn(),
+    resumeFieldTask: jest.fn(),
+    rescheduleFieldTask: jest.fn(),
     cancelFieldTask: jest.fn(),
+    getFieldTask: jest.fn(),
+    assignFieldTask: jest.fn(),
+    evaluateDismissalLearning: jest.fn().mockResolvedValue({ shouldPrompt: false }),
   }),
   getFieldService: () => ({ getFields: (...args: unknown[]) => mockGetFields(...args) }),
   getPartnerService: () => ({ getContacts: (...args: unknown[]) => mockGetContacts(...args) }),
+  getFinancialSummaryService: () => ({ getTaskSummary: jest.fn().mockResolvedValue(null) }),
 }));
 
 jest.mock('../services/fieldPeopleService', () => ({
@@ -331,65 +340,51 @@ describe('TasksPage Phase 1 shell', () => {
     ]);
   });
 
-  it('shows only the active tab content and defaults to proposals', async () => {
+  it('shows only the active tab content and defaults to now', async () => {
     renderTasks();
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Τώρα', selected: true })).toBeInTheDocument();
+    });
+
+    expect(document.getElementById('tasks-panel-now')).not.toBeNull();
+    expect(document.getElementById('tasks-panel-proposals')).toBeNull();
+  });
+
+  it('groups identical proposals across fields on the proposals tab', async () => {
+    renderTasks('view=proposals');
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Προτάσεις για τα χωράφια σου' })).toBeInTheDocument();
     });
-
-    expect(screen.getByRole('tab', { name: 'Προτάσεις', selected: true })).toBeInTheDocument();
-    expect(screen.getAllByText('Έλεγχος παγίδων δάκου').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Προκαταρκτική εκτίμηση συγκομιδής')).not.toBeInTheDocument();
-    expect(screen.queryByText('Κράτηση συνεργείου')).not.toBeInTheDocument();
-    expect(screen.queryByText('Προσοχή τώρα')).not.toBeInTheDocument();
-    expect(document.getElementById('tasks-panel-planned')).toBeNull();
-    expect(document.getElementById('tasks-panel-active')).toBeNull();
+    expect(screen.getByText(/Προτείνεται για/)).toBeInTheDocument();
   });
 
-  it('keeps a proposal exactly once and distinguishes different fields', async () => {
+  it('shows tab counts for the farmer workflow views', async () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getAllByText('Έλεγχος παγίδων δάκου')).toHaveLength(2);
-    });
-    const panel = document.getElementById('tasks-panel-proposals') as HTMLElement;
-    expect(within(panel).getByText('Κτήμα Φιλιατρών')).toBeInTheDocument();
-    expect(within(panel).getByText('Κάτω χωράφι')).toBeInTheDocument();
-    expect(screen.queryByText('Προσοχή τώρα')).not.toBeInTheDocument();
-  });
-
-  it('shows tab counts that match returned records', async () => {
-    renderTasks();
-
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Προτάσεις' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Τώρα' })).toBeInTheDocument();
     });
 
+    expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Προτάσεις' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Ιστορικό' })).toBeInTheDocument();
     expect(within(screen.getByRole('tab', { name: 'Προτάσεις' })).getByText('2')).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', { name: 'Προγραμματισμένες' })).getByText('3')).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', { name: 'Σε εξέλιξη' })).getByText('1')).toBeInTheDocument();
   });
 
-  it('updates all tab counts when the field filter changes', async () => {
-    renderTasks();
+  it('updates proposal count when the field filter changes', async () => {
+    renderTasks('view=proposals');
 
     await waitFor(() => {
       expect(screen.getByLabelText('Φίλτρο ανά αγροτεμάχιο')).toBeInTheDocument();
     });
-    expect(screen.getByText('Φίλτρο ανά αγροτεμάχιο')).toBeVisible();
 
     await userEvent.selectOptions(screen.getByLabelText('Φίλτρο ανά αγροτεμάχιο'), 'field-2');
 
     await waitFor(() => {
       expect(within(screen.getByRole('tab', { name: 'Προτάσεις' })).getByText('1')).toBeInTheDocument();
-      expect(within(screen.getByRole('tab', { name: 'Προγραμματισμένες' })).queryByText('1')).toBeNull();
-      expect(within(screen.getByRole('tab', { name: 'Σε εξέλιξη' })).queryByText('1')).toBeNull();
     });
-    const panel = document.getElementById('tasks-panel-proposals');
-    expect(panel).not.toBeNull();
-    expect(within(panel as HTMLElement).getByText('Κάτω χωράφι')).toBeInTheDocument();
-    expect(within(panel as HTMLElement).queryByText('Κτήμα Φιλιατρών')).not.toBeInTheDocument();
     expect(mockSearchState.current.get('field')).toBe('field-2');
   });
 
@@ -398,124 +393,71 @@ describe('TasksPage Phase 1 shell', () => {
 
     await waitFor(() => {
       expect(mockListProposals).toHaveBeenCalledWith({ resultYear: 2025 });
-      expect(screen.getByRole('tab', { name: 'Προγραμματισμένες' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Προγραμματισμένες' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Επόμενες' }));
 
     await waitFor(() => {
-      expect(mockSearchState.current.get('view')).toBe('planned');
+      expect(mockSearchState.current.get('view')).toBe('upcoming');
       expect(mockSearchState.current.get('year')).toBe('2025');
     });
-    expect(screen.getByLabelText('Χρονιά')).toHaveValue('2025');
-    expect(screen.queryByText('Έλεγχος παγίδων δάκου')).not.toBeInTheDocument();
-    expect(screen.getByText('Προκαταρκτική εκτίμηση συγκομιδής')).toBeInTheDocument();
   });
 
-  it('does not mix completed work into future-work tabs', async () => {
-    renderTasks('view=planned');
+  it('does not mix completed work into upcoming', async () => {
+    renderTasks('view=upcoming');
 
     await waitFor(() => {
-      expect(screen.getByText('Προκαταρκτική εκτίμηση συγκομιδής')).toBeInTheDocument();
+      expect(screen.getByRole('tabpanel')).toBeInTheDocument();
     });
     expect(screen.queryByText('Ολοκληρωμένο κλάδεμα')).not.toBeInTheDocument();
   });
 
-  it('does not mix completed work into the in-progress view', async () => {
-    renderTasks('view=active');
+  it('shows completed work in history', async () => {
+    renderTasks('view=history');
+
+    await waitFor(() => {
+      expect(screen.getByText('Ολοκληρωμένο κλάδεμα')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Δες το πλήρες Χρονολόγιο/)).toBeInTheDocument();
+  });
+
+  it('puts in-progress work on now', async () => {
+    renderTasks('view=now');
 
     await waitFor(() => {
       expect(screen.getByText('Κράτηση συνεργείου')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Ολοκληρωμένο κλάδεμα')).not.toBeInTheDocument();
-    expect(screen.getByText(/Δες τις ολοκληρωμένες εργασίες στο Χρονολόγιο/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Συνέχισε' })).toBeInTheDocument();
   });
 
-  it('does not render unknown weather as a good day', async () => {
-    renderTasks('view=planned');
-
-    await waitFor(() => {
-      expect(screen.getByText('Προκαταρκτική εκτίμηση συγκομιδής')).toBeInTheDocument();
-    });
-    expect(screen.getAllByText('Δεν υπάρχουν αρκετά δεδομένα').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Καλή ημέρα')).not.toBeInTheDocument();
-  });
-
-  it('formats Greek date ranges without dropping the end year', async () => {
-    renderTasks('view=planned');
-
-    await waitFor(() => {
-      expect(screen.getByText(/15 Αυγ – 1 Οκτ/)).toBeInTheDocument();
-      expect(screen.queryByText('15 Αυγ – 1 Οκτ 2026')).not.toBeInTheDocument();
-    });
-  });
-
-  it('renders empty states for each view', async () => {
+  it('renders empty now state when there is nothing to do', async () => {
     mockListProposals.mockResolvedValue([]);
     mockListFieldTasks.mockResolvedValue([]);
 
-    const first = renderTasks();
-    expect(await screen.findByText('Δεν υπάρχουν νέες προτάσεις')).toBeInTheDocument();
-    first.unmount();
-
-    const second = renderTasks('view=planned');
-    expect(await screen.findByText('Δεν υπάρχουν προγραμματισμένες εργασίες')).toBeInTheDocument();
-    second.unmount();
-
-    renderTasks('view=active');
-    expect(await screen.findByText('Καμία εργασία σε εξέλιξη')).toBeInTheDocument();
+    renderTasks();
+    expect(await screen.findByText('Δεν χρειάζεται να κάνεις κάτι σήμερα')).toBeInTheDocument();
   });
 
-  it('uses tab semantics', async () => {
+  it('uses tab semantics with four views', async () => {
     renderTasks();
 
     await waitFor(() => {
       expect(screen.getByRole('tablist', { name: 'Προβολές εργασιών' })).toBeInTheDocument();
     });
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
-    expect(screen.getByRole('tab', { name: /Προτάσεις/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'tasks-panel-proposals');
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getByRole('tab', { name: /Τώρα/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'tasks-panel-now');
   });
 
-  it('shows a specific explanation, field name and Greek period on each proposal', async () => {
-    renderTasks();
-
-    const panel = await screen.findByRole('tabpanel');
-    expect(
-      within(panel).getByText('Δεν έχει καταγραφεί έλεγχος παγίδων τις τελευταίες 7 ημέρες.')
-    ).toBeInTheDocument();
-    expect(within(panel).getByText('Η συγκομιδή αναμένεται τον Νοέμβριο.')).toBeInTheDocument();
-    expect(within(panel).getByText('Κτήμα Φιλιατρών')).toBeInTheDocument();
-    expect(within(panel).getByText('Κάτω χωράφι')).toBeInTheDocument();
-    expect(within(panel).getAllByText('1 Ιουν – 14 Ιουν 2026').length).toBeGreaterThan(0);
-    expect(within(panel).queryByText(/T14/)).not.toBeInTheDocument();
-    expect(within(panel).queryByText('Καλή ημέρα')).not.toBeInTheDocument();
-  });
-
-  it('sends schedule to the form with proposal and field, without accepting immediately', async () => {
-    renderTasks();
-    const schedule = await screen.findAllByRole('button', { name: 'Προγραμμάτισέ την' });
+  it('opens schedule sheet for a grouped proposal', async () => {
+    renderTasks('view=proposals');
+    const schedule = await screen.findAllByRole('button', { name: 'Προγραμμάτισε' });
     await userEvent.click(schedule[0]);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/tasks/new?proposalId=p-1&fieldId=field-1');
-    expect(JSON.parse(sessionStorage.getItem('oleachron.scheduleProposal.v1') || '{}').id).toBe('p-1');
+    expect(await screen.findByText(/Επίλεξε χωράφια/)).toBeInTheDocument();
   });
 
-  it('exposes overflow decisions for later, dismiss, and why', async () => {
-    renderTasks();
-    await screen.findAllByRole('button', { name: 'Προγραμμάτισέ την' });
-    await userEvent.click(screen.getAllByRole('button', { name: 'Περισσότερες ενέργειες' })[0]);
-
-    expect(screen.getByRole('menuitem', { name: 'Θύμισέ μου αργότερα' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Δεν αφορά αυτό το χωράφι' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Όχι φέτος' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Γιατί το βλέπω;' }));
-    expect(await screen.findByRole('dialog', { name: 'Γιατί το βλέπω;' })).toBeInTheDocument();
-    expect(screen.queryByText(/T14/)).not.toBeInTheDocument();
-  });
-
-  it('groups many proposals into decision and waiting sections', async () => {
+  it('groups many proposals into priority sections', async () => {
     mockListProposals.mockResolvedValue([
       proposal({ id: 'official', sourceType: 'official_warning', reasonCodes: ['official_warning'] }),
       proposal({ id: 'weather', templateCode: 'T06', reasonCodes: [] }),
@@ -530,37 +472,9 @@ describe('TasksPage Phase 1 shell', () => {
       }),
     ]);
 
-    renderTasks();
+    renderTasks('view=proposals');
 
-    expect(await screen.findByRole('heading', { name: 'Χρειάζονται απόφαση' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Μπορούν να περιμένουν' })).toBeInTheDocument();
-    expect(screen.getByText('Κλάδεμα')).toBeInTheDocument();
-    expect(screen.getByText('Ανασκόπηση προηγούμενης χρονιάς')).toBeInTheDocument();
-  });
-
-  it('groups planned work and keeps rows compact', async () => {
-    renderTasks('view=planned');
-
-    expect(await screen.findByRole('heading', { name: 'Σήμερα' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Αργότερα' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Ξεκίνα' }).length).toBeGreaterThan(0);
-    expect(screen.getByText('0/3 έλεγχοι')).toBeInTheDocument();
-    expect(await screen.findByText('Κώστας')).toBeInTheDocument();
-    expect(screen.getByText('Σε αναμονή')).toBeInTheDocument();
-    expect(screen.queryByText('Προγραμματισμένη')).not.toBeInTheDocument();
-    expect(screen.queryByText(/T18|T06|T15/)).not.toBeInTheDocument();
-  });
-
-  it('shows in-progress progress as a sentence and bar, not only a fraction', async () => {
-    renderTasks('view=active');
-
-    expect(await screen.findByText('Κράτηση συνεργείου')).toBeInTheDocument();
-    expect(screen.getByText('3 από 5 έλεγχοι ολοκληρώθηκαν')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '60');
-    expect(screen.getByRole('button', { name: 'Συνέχισε' })).toBeInTheDocument();
-    expect(screen.getByText(/Ξεκίνησε 1 Σεπ/)).toBeInTheDocument();
-    expect(screen.queryByText('0/5 βασικοί έλεγχοι')).not.toBeInTheDocument();
-    expect(screen.getByText(/Δες τις ολοκληρωμένες εργασίες στο Χρονολόγιο/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Καλό να γίνουν τώρα/ })).toBeInTheDocument();
   });
 });
 

@@ -11,7 +11,7 @@ export type FieldPinMarkProps = {
   compact?: boolean;
 };
 
-/** Teardrop grove pin — matches the web fields map mark. */
+/** Circular grove mark — matches the web fields map. */
 const FieldPinMark: React.FC<FieldPinMarkProps> = ({
   color,
   label,
@@ -19,9 +19,7 @@ const FieldPinMark: React.FC<FieldPinMarkProps> = ({
   compact = false,
 }) => {
   const { colors } = useTheme();
-  const size = selected ? 32 : compact ? 22 : 28;
-  const inner = selected ? 12 : compact ? 8 : 10;
-  const tail = Math.round(size * 0.42);
+  const size = selected ? 22 : compact ? 14 : 16;
 
   return (
     <View style={styles.wrap} collapsable={false} pointerEvents="box-none">
@@ -43,54 +41,18 @@ const FieldPinMark: React.FC<FieldPinMarkProps> = ({
           </Text>
         </View>
       ) : null}
-      <View style={[styles.pin, { width: size }]} collapsable={false}>
-        <View
-          style={[
-            styles.head,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              backgroundColor: color,
-              borderColor: '#fff',
-              shadowColor: color,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.inner,
-              {
-                width: inner,
-                height: inner,
-                borderRadius: inner / 2,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.dot,
-              {
-                width: inner * 0.42,
-                height: inner * 0.42,
-                borderRadius: inner,
-                backgroundColor: color,
-              },
-            ]}
-          />
-        </View>
-        <View
-          style={[
-            styles.tail,
-            {
-              width: tail,
-              height: tail,
-              backgroundColor: color,
-              marginTop: -tail * 0.62,
-            },
-          ]}
-        />
-      </View>
+      <View
+        style={[
+          styles.dot,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: color,
+            shadowColor: color,
+          },
+        ]}
+      />
     </View>
   );
 };
@@ -114,28 +76,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
   },
-  pin: {
-    alignItems: 'center',
-  },
-  head: {
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
-    elevation: 4,
-  },
-  inner: {
-    backgroundColor: '#fff',
-  },
   dot: {
-    position: 'absolute',
-  },
-  tail: {
-    zIndex: 1,
-    transform: [{ rotate: '45deg' }],
+    borderWidth: 2.5,
+    borderColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
 

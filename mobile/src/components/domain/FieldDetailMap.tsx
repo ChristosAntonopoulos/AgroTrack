@@ -27,7 +27,6 @@ import MapLayerToggle from './MapLayerToggle';
 import MapLayerSheet from './MapLayerSheet';
 import MapZoomControls from '../maps/MapZoomControls';
 import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
-import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
 
@@ -46,13 +45,8 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   showDataLayers,
 }) => {
   const { colors } = useTheme();
-  const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
-  const { t } = useTranslation(['fields', 'common', 'settings']);
-  const [layersPeeked, setLayersPeeked] = useState(false);
-  const allowDataLayers =
-    showDataLayers === false
-      ? false
-      : Boolean(showDataLayers) || showWidget('mapLayerPanel') || layersPeeked;
+  const { t } = useTranslation(['fields', 'common']);
+  const allowDataLayers = showDataLayers !== false;
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [opacity, setOpacity] = useState(0.5);
@@ -231,7 +225,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             </Text>
           </Pressable>
         ) : (
-          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact={isEveryday} />
+          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact={false} />
         )}
       </View>
       <View style={styles.zoom} pointerEvents="box-none">
@@ -257,20 +251,6 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         />
       ) : null}
     </View>
-    {showDataLayers !== false && isEveryday && !allowDataLayers ? (
-      <Pressable
-        onPress={() => {
-          setLayersPeeked(true);
-          void recordIntelligenceOpen();
-        }}
-        style={[styles.peekBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
-        accessibilityRole="button"
-      >
-        <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-          {t('settings:experience.peekMoreAboutField')}
-        </Text>
-      </Pressable>
-    ) : null}
     {overlayChips ? (
       <View style={styles.chipBlock}>
         <View style={styles.chipRow}>
@@ -369,14 +349,6 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.styles.bodySmall,
     textAlign: 'center',
-  },
-  peekBtn: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minHeight: 44,
-    justifyContent: 'center',
   },
 });
 

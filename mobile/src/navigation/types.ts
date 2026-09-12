@@ -6,6 +6,7 @@ export type AuthStackParamList = {
   SessionExpired: undefined;
   InviteAccept: { token: string };
   FamilyInviteAccept: { token: string };
+  PartnerInviteAccept: { token: string };
 };
 
 /** Visible bottom tabs: Chronologio · Fields · Capture · Tasks · More */
@@ -16,7 +17,7 @@ export type MainTabParamList = {
   Tasks: {
     fieldId?: string;
     filter?: string;
-    view?: 'proposals' | 'planned' | 'active';
+    view?: 'now' | 'upcoming' | 'proposals' | 'history' | 'planned' | 'active';
     year?: string;
     created?: string;
   } | undefined;
@@ -34,9 +35,12 @@ export type RootStackParamList = {
   };
   InviteAccept: { token: string };
   FamilyInviteAccept: { token: string };
+  PartnerInviteAccept: { token: string };
+  HarvestCampaign: undefined;
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
   Money: { fieldId?: string; year?: number } | undefined;
+  Photos: { fieldId?: string; photoId?: string } | undefined;
   Analytics: undefined;
   Reports: undefined;
   Partners: { fieldId?: string; category?: string; taskId?: string; addContact?: boolean } | undefined;
@@ -56,6 +60,7 @@ export type RootStackParamList = {
   /** Secondary destinations previously hidden tabs — now root stack. */
   Calendar: { date?: string; fieldId?: string } | undefined;
   Settings: undefined;
+  Feedback: undefined;
   Dashboard: undefined;
 };
 

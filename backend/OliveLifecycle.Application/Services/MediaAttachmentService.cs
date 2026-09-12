@@ -78,6 +78,9 @@ public class MediaAttachmentService : IMediaAttachmentService
                 Url = url,
                 ThumbnailUrl = url,
                 UploadedByUserId = userId,
+                CapturedAt = now,
+                FieldAssignment = FieldAssignmentStatus.Manual,
+                Kind = PhotoKind.General,
                 CreatedAt = now,
                 UpdatedAt = now
             };

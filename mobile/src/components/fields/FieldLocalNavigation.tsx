@@ -44,8 +44,9 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange }) => {
               style={[
                 styles.tab,
                 {
-                  minHeight: Math.max(tapMin, 48),
+                  minHeight: Math.max(44, Math.min(tapMin, 48)),
                   borderBottomColor: selected ? colors.primary : 'transparent',
+                  borderBottomWidth: 2,
                 },
               ]}
             >
@@ -54,6 +55,7 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange }) => {
                   styles.label,
                   {
                     fontWeight: selected ? '700' : '600',
+                    fontSize: 15,
                     color: selected ? colors.textPrimary : colors.textSecondary,
                   },
                 ]}
@@ -78,13 +80,13 @@ const styles = StyleSheet.create({
   },
   tab: {
     paddingHorizontal: spacing.md,
-    paddingBottom: 10,
-    borderBottomWidth: 3,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
     justifyContent: 'center',
   },
   label: {
     ...typography.styles.body,
-    fontSize: 16,
+    fontSize: 15,
   },
 });
 

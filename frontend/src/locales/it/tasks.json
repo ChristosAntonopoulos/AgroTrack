@@ -53,8 +53,11 @@
     "views": {
       "aria": "Viste dei lavori",
       "proposals": "Proposte",
-      "planned": "Programmati",
-      "active": "In corso"
+      "planned": "Prossime",
+      "active": "Ora",
+      "now": "Ora",
+      "upcoming": "Prossime",
+      "history": "Cronologia"
     },
     "a11y": {
       "advancedOpened": "Altri dettagli sono aperti."
@@ -207,16 +210,45 @@
         "other": "Altro lavoro"
       },
       "suggestions": {
-        "pruning": ["Potatura dei rami secchi", "Potatura di produzione"],
-        "fertilisation": ["Concimazione di base", "Concimazione di copertura"],
-        "weeds": ["Pulizia dell’erba", "Taglio della copertura"],
-        "irrigation": ["Irrigazione", "Controllo irrigazione"],
-        "inspection": ["Controllo del campo", "Osservazione degli alberi"],
-        "protection": ["Controllo trappole", "Monitoraggio mosca"],
-        "harvest": ["Raccolta", "Trasporto al frantoio"],
-        "transport": ["Trasporto olive", "Trasporto olio"],
-        "maintenance": ["Manutenzione irrigazione", "Riparazione"],
-        "other": ["Lavoro in campo"]
+        "pruning": [
+          "Potatura dei rami secchi",
+          "Potatura di produzione"
+        ],
+        "fertilisation": [
+          "Concimazione di base",
+          "Concimazione di copertura"
+        ],
+        "weeds": [
+          "Pulizia dell’erba",
+          "Taglio della copertura"
+        ],
+        "irrigation": [
+          "Irrigazione",
+          "Controllo irrigazione"
+        ],
+        "inspection": [
+          "Controllo del campo",
+          "Osservazione degli alberi"
+        ],
+        "protection": [
+          "Controllo trappole",
+          "Monitoraggio mosca"
+        ],
+        "harvest": [
+          "Raccolta",
+          "Trasporto al frantoio"
+        ],
+        "transport": [
+          "Trasporto olive",
+          "Trasporto olio"
+        ],
+        "maintenance": [
+          "Manutenzione irrigazione",
+          "Riparazione"
+        ],
+        "other": [
+          "Lavoro in campo"
+        ]
       },
       "time": {
         "morning": "Mattina",
@@ -566,12 +598,25 @@
     "completion": {
       "title": "Completamento lavoro",
       "step": "Passo {{current}} di {{total}}",
+      "steps": {
+        "checks": "Controlli",
+        "result": "Risultato",
+        "cost": "Costo",
+        "confirm": "Conferma"
+      },
+      "checksTitle": "Cosa sei riuscito a fare?",
+      "incompleteOnly": "Solo ciò che manca — segna ciascuno.",
+      "resultTitle": "Registra il risultato",
+      "resultLead": "Compila i campi di questo lavoro.",
       "whatHappened": "Cosa è successo?",
       "confirm": "Conferma",
+      "chronologioConfirm": "Verrà salvato nel Chronologio per {{field}}, il {{date}}.",
       "save": "Salva",
+      "saveYes": "Sì, completato",
+      "return": "Indietro",
       "createFollowUp": "Crea lavoro per il resto",
-      "savedTitle": "Registrato",
-      "savedBody": "Il completamento è salvato nel Chronologio.",
+      "savedTitle": "Lavoro completato",
+      "savedBody": "Salvato nel Chronologio.",
       "undo": "Annulla",
       "undoFailed": "Annullamento non riuscito.",
       "openFollowUp": "Apri il seguito",
@@ -580,10 +625,24 @@
       "hadCostYes": "Sì, c’è stato un costo",
       "hadCostNo": "No, senza costo",
       "recordCost": "Registra costo",
+      "required": "obbligatorio",
+      "blockEssential": "Completa {{count}} controlli obbligatori per continuare.",
+      "blockResults": "Compila {{count}} campi obbligatori per finire.",
+      "showOptional": "Opzionali · altri {{count}}",
+      "hideOptional": "Nascondi opzionali",
+      "notesPlaceholder": "Nota opzionale…",
+      "check": {
+        "done": "Fatto",
+        "notNeeded": "Non serviva",
+        "couldNot": "Non riuscito"
+      },
       "outcomes": {
         "completed": "Completato",
         "partial": "Parzialmente fatto",
-        "notDone": "Non fatto"
+        "notDone": "Non fatto",
+        "completedHint": "Tutto il necessario",
+        "partialHint": "Resta qualcosa per dopo",
+        "notDoneHint": "Registra senza risultato"
       }
     }
   }

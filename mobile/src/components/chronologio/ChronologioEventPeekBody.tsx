@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,6 +15,8 @@ import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { detailAccentToken } from '../../chronologio/detailKind';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import WeatherReviewSummary from './WeatherReviewSummary';
+import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
+import { resolvePublicAssetUrl } from '../../config/env';
 import { radii, spacing, typography } from '../../theme';
 
 type Props = {
@@ -45,7 +47,7 @@ const Fact: React.FC<{ label: string; value?: string | null; colors: { textTerti
 
 /** Kind-aware Chronologio event peek body — mirrors web ChronologioEventDetail richness. */
 const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'common', 'money']);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'money', 'photos']);
   const { colors } = useTheme();
   const kind = chronologioDetailKind(entry);
   const token = detailAccentToken(entry);
@@ -62,6 +64,16 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
   })}`;
 
   const photos = (entry.media || []).filter(m => isRealMedia(m.url || m.thumbnailUrl));
+  const viewerItems = useMemo(
+    (): PhotoViewerItem[] =>
+      photos.map((m) => {
+        const uri =
+          resolvePublicAssetUrl(m.url || m.thumbnailUrl) || m.url || m.thumbnailUrl || '';
+        return { id: m.id || uri, uri };
+      }),
+    [photos]
+  );
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const harvest = entry.details.harvest;
   const note = entry.details.note;
   const expense = entry.details.expense;
@@ -263,16 +275,25 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
             {t('chronologio:living.photos')}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {photos.map(m => (
-              <Image
-                key={m.id}
-                source={{ uri: m.url || m.thumbnailUrl }}
-                style={styles.photo}
-              />
+            {viewerItems.map((item, index) => (
+              <Pressable
+                key={item.id}
+                onPress={() => setViewerIndex(index)}
+                accessibilityRole="button"
+                accessibilityLabel={t('photos:viewer.expand')}
+              >
+                <Image source={{ uri: item.uri }} style={styles.photo} />
+              </Pressable>
             ))}
           </ScrollView>
         </View>
       ) : null}
+      <PhotoViewer
+        open={viewerIndex != null}
+        items={viewerItems}
+        index={viewerIndex ?? 0}
+        onClose={() => setViewerIndex(null)}
+      />
     </View>
   );
 };
@@ -292,11 +313,20 @@ export const eventPeekFooterActions = (
     openHarvest: () => void;
     openWeather: () => void;
     openField: () => void;
+    openPhoto?: () => void;
     createTask?: () => void;
   }
 ): EventPeekFooterAction[] => {
   const kind = chronologioDetailKind(entry);
   const actions: EventPeekFooterAction[] = [];
+  if (entry.sourceType === 'Photo' && navigate.openPhoto) {
+    actions.push({
+      label: t('chronologio:drawer.openPhoto', { defaultValue: 'Open photo' }),
+      onPress: navigate.openPhoto,
+      primary: true,
+    });
+    return actions;
+  }
   if (kind === 'task') {
     actions.push({
       label: t('chronologio:drawer.openTask', { defaultValue: 'Open task' }),
@@ -367,21 +397,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroPanel: {
-    borderRadius: 18,
+    borderRadius: radii.card,
     padding: spacing.base,
     marginBottom: 12,
   },
   harvestRow: { flexDirection: 'row', gap: 16 },
   harvestStat: { gap: 2 },
-  heroValue: { fontSize: 28, fontWeight: '800', letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  heroValue: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   heroLabel: {
     ...typography.styles.caption,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
-  moneyHero: { fontSize: 32, fontWeight: '800', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  section: { gap: 8, marginBottom: 12 },
+  moneyHero: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  section: { gap: 8, marginBottom: 14 },
   sectionTitle: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
   bodyText: { fontSize: 16, lineHeight: 24 },
   chip: {
@@ -392,16 +422,16 @@ const styles = StyleSheet.create({
   },
   pinRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   warningPanel: {
-    borderRadius: 14,
+    borderRadius: radii.card,
     padding: 14,
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     marginBottom: 12,
   },
-  facts: { gap: 10, marginBottom: 8 },
+  facts: { gap: 12, marginBottom: 8 },
   fact: { gap: 2 },
   factLabel: { ...typography.styles.overline },
   factValue: { fontSize: 15, fontWeight: '600' },
-  photo: { width: 140, height: 100, borderRadius: radii.lg, marginRight: 8 },
+  photo: { width: 140, height: 100, borderRadius: radii.card, marginRight: 8 },
 });
 
 export default ChronologioEventPeekBody;

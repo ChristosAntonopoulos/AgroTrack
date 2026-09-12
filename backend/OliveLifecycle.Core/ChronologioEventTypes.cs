@@ -53,6 +53,7 @@ public static class ChronologioSourceTypes
     public const string Income = "Income";
     public const string Harvest = "Harvest";
     public const string Note = "Note";
+    public const string Photo = "Photo";
     public const string Activity = "Activity";
     public const string WeatherReview = "WeatherReview";
 }

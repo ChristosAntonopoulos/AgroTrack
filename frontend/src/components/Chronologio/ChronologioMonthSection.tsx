@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   ChronologioEntry,
@@ -6,6 +6,7 @@ import type {
   ChronologioWeatherDetails,
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { groupSameDayPhotoEntries } from '../../utils/chronologioPhotoGroups';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import {
   buildMonthWeatherView,
@@ -17,6 +18,8 @@ import { eventCardSpan } from '../../chronologio/eventCardLayout';
 import type { SupportedLocale } from '../../i18n/config';
 import ChronologioEvent from './ChronologioEvent';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
+import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
+import ChronologioPhotoDaySheet from './ChronologioPhotoDaySheet';
 
 type Props = {
   month: ChronologioMonthSummary;
@@ -60,6 +63,7 @@ const ChronologioMonthSection: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation('chronologio');
   const capture = useCaptureOptional();
+  const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
   const title = new Date(Date.UTC(month.year, month.month - 1, 1)).toLocaleDateString(i18n.language, {
     month: 'long',
     year: 'numeric',
@@ -115,6 +119,7 @@ const ChronologioMonthSection: React.FC<Props> = ({
   };
 
   return (
+    <>
     <section
       className={`chrono-day-group chrono-month-group${active ? ' is-active' : ''}${isCurrent ? ' is-current' : ''}`}
     >
@@ -169,7 +174,21 @@ const ChronologioMonthSection: React.FC<Props> = ({
 
       {journal.length > 0 ? (
         <div className="chrono-day-event-grid">
-          {journal.map((entry) => {
+          {groupSameDayPhotoEntries(journal).map((item) => {
+            if (item.type === 'photoGroup') {
+              const selected = item.entries.some((e) => e.id === selectedEntryId);
+              return (
+                <div key={item.id} className="chrono-day-event-cell is-featured">
+                  <ChronologioPhotoStackCard
+                    entries={item.entries}
+                    selected={selected}
+                    showField={showField}
+                    onOpen={() => setPhotoDayEntries(item.entries)}
+                  />
+                </div>
+              );
+            }
+            const entry = item.entry;
             const featured = journal.length === 1 || eventCardSpan(entry) === 2;
             return (
               <div
@@ -231,6 +250,12 @@ const ChronologioMonthSection: React.FC<Props> = ({
         </div>
       )}
     </section>
+    <ChronologioPhotoDaySheet
+      open={!!photoDayEntries?.length}
+      entries={photoDayEntries || []}
+      onClose={() => setPhotoDayEntries(null)}
+    />
+    </>
   );
 };
 

@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing, radii } from '../../theme';
 import { WeatherData } from '../../services/weatherService';
 import LoadingSpinner from '../LoadingSpinner';
@@ -30,9 +29,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   fieldName,
 }) => {
   const { colors } = useTheme();
-  const { isEveryday, fontScaleMultiplier, tapMin } = usePreferences();
   const { t } = useTranslation(namespace);
-  const [showDetails, setShowDetails] = useState(false);
   const [peekOpen, setPeekOpen] = useState(false);
 
   const peekFields = useMemo(() => {
@@ -59,29 +56,13 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     );
   }
 
-  const everydayCollapsed = isEveryday && namespace === 'fields' && !showDetails;
-
   return (
     <>
-      {everydayCollapsed ? (
-        <Pressable
-          onPress={() => setShowDetails(true)}
-          style={[
-            styles.peekBtn,
-            { backgroundColor: colors.primaryLight, minHeight: tapMin, borderColor: colors.oliveBorder },
-          ]}
-        >
-          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 * fontScaleMultiplier }}>
-            {t('weather.showDetails')}
-          </Text>
-        </Pressable>
-      ) : (
-        <GroveWeatherCard
-          snapshot={weather}
-          fieldName={fieldName}
-          onPress={peekFields.length ? () => setPeekOpen(true) : undefined}
-        />
-      )}
+      <GroveWeatherCard
+        snapshot={weather}
+        fieldName={fieldName}
+        onPress={peekFields.length ? () => setPeekOpen(true) : undefined}
+      />
 
       {peekFields.length > 0 ? (
         <WeatherPeekSheet
@@ -109,13 +90,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   missingText: { ...typography.styles.bodySmall, fontWeight: '600' },
-  peekBtn: {
-    borderRadius: radii.full,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
 });
 
 export default WeatherWidget;

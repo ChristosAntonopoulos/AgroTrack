@@ -205,6 +205,11 @@ public static class FieldWorkPersistenceMapper
                 IsApprovedForCropAndTarget = d.ProductLabel.IsApprovedForCropAndTarget
             },
         LatestExecutionId = d.LatestExecutionId,
+        StartedAt = d.StartedAt,
+        IsPaused = d.IsPaused,
+        PauseReason = d.PauseReason,
+        PausedAt = d.PausedAt,
+        WorkGroupId = d.WorkGroupId,
         CreatedByUserId = d.CreatedByUserId,
         CreatedAt = d.CreatedAt,
         UpdatedAt = d.UpdatedAt
@@ -253,6 +258,11 @@ public static class FieldWorkPersistenceMapper
                 IsApprovedForCropAndTarget = e.ProductLabel.IsApprovedForCropAndTarget
             },
         LatestExecutionId = e.LatestExecutionId,
+        StartedAt = e.StartedAt,
+        IsPaused = e.IsPaused,
+        PauseReason = e.PauseReason,
+        PausedAt = e.PausedAt,
+        WorkGroupId = e.WorkGroupId,
         CreatedByUserId = e.CreatedByUserId,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt

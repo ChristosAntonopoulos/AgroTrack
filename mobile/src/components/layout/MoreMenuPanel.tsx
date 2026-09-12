@@ -7,11 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { typography, spacing, radii, motion } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
 import { getPartnerService } from '../../services/serviceFactory';
-import type { ExperienceMode } from '../../experience/types';
-import SegmentedControl from '../ui/SegmentedControl';
 import BrandLogo from '../ui/BrandLogo';
 import ScreenHeader from './ScreenHeader';
 import HeaderIconButton from './HeaderIconButton';
@@ -38,15 +37,14 @@ interface MenuSection {
 const MoreMenuPanel: React.FC = () => {
   const { user, isFieldOwner } = useAuth();
   const { colors, isDark } = useTheme();
-  const { tapMin, fontScaleMultiplier, experienceMode, setExperienceMode, isFullPicture } =
-    usePreferences();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
   const navigation = useNavigation<Nav>();
+  const harvest = useHarvestCampaignOptional();
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const rowHeight = Math.max(tapMin, 52);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
-  const canInsights = isFullPicture && (role === 'FieldOwner' || role === 'Administrator');
 
   const loadAlerts = useCallback(() => {
     if (!user) return;
@@ -76,13 +74,6 @@ const MoreMenuPanel: React.FC = () => {
       title: t('nav:sections.work'),
       items: [
         {
-          id: 'calendar',
-          icon: 'calendar-outline',
-          label: t('nav:calendar'),
-          onPress: () => navigation.navigate('Calendar'),
-          showArrow: true,
-        },
-        {
           id: 'partners',
           icon: 'people-circle-outline',
           label: t('nav:partners'),
@@ -98,6 +89,13 @@ const MoreMenuPanel: React.FC = () => {
                 onPress: () => navigation.navigate('Money'),
                 showArrow: true,
               },
+              {
+                id: 'photos',
+                icon: 'images-outline' as const,
+                label: t('nav:photos', { defaultValue: 'Photos' }),
+                onPress: () => navigation.navigate('Photos'),
+                showArrow: true,
+              },
             ]
           : []),
         ...(isFieldOwner()
@@ -105,33 +103,14 @@ const MoreMenuPanel: React.FC = () => {
               {
                 id: 'harvest',
                 icon: 'basket-outline' as const,
-                label: t('fields:thisHarvest.title'),
-                onPress: () => navigation.navigate('ThisHarvest'),
-                showArrow: true,
-              },
-              {
-                id: 'apologismos',
-                icon: 'book-outline' as const,
-                label: t('fields:apologismos.title'),
-                onPress: () => navigation.navigate('ThisHarvestReview'),
-                showArrow: true,
-              },
-            ]
-          : []),
-        ...(canInsights
-          ? [
-              {
-                id: 'reports',
-                icon: 'document-outline' as const,
-                label: t('nav:reports', { defaultValue: 'Reports' }),
-                onPress: () => navigation.navigate('Reports'),
-                showArrow: true,
-              },
-              {
-                id: 'dashboard',
-                icon: 'home-outline' as const,
-                label: t('nav:dashboard'),
-                onPress: () => navigation.navigate('Dashboard'),
+                label: harvest?.isLive
+                  ? `${t('fields:harvestCampaign.title', {
+                      defaultValue: t('fields:thisHarvest.title'),
+                    })} · ${t('fields:harvestCampaign.headerOpen', { defaultValue: 'Live' })}`
+                  : t('fields:harvestCampaign.title', {
+                      defaultValue: t('fields:thisHarvest.title'),
+                    }),
+                onPress: () => navigation.navigate('HarvestCampaign'),
                 showArrow: true,
               },
             ]
@@ -142,17 +121,13 @@ const MoreMenuPanel: React.FC = () => {
       id: 'account',
       title: t('nav:sections.account'),
       items: [
-        ...(isFieldOwner()
-          ? [
-              {
-                id: 'myservices',
-                icon: 'briefcase-outline' as const,
-                label: t('partners:myServices'),
-                onPress: () => navigation.navigate('MyServices'),
-                showArrow: true,
-              },
-            ]
-          : []),
+        {
+          id: 'feedback',
+          icon: 'heart-outline',
+          label: t('nav:feedback', { defaultValue: 'Feedback' }),
+          onPress: () => navigation.navigate('Feedback'),
+          showArrow: true,
+        },
         {
           id: 'settings',
           icon: 'settings-outline',
@@ -185,26 +160,6 @@ const MoreMenuPanel: React.FC = () => {
           </View>
         }
       />
-
-      <View style={styles.section}>
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier },
-          ]}
-        >
-          {t('settings:experience.currentMode')}
-        </Text>
-        <SegmentedControl
-          fullWidth
-          value={experienceMode}
-          onChange={setExperienceMode}
-          options={[
-            { value: 'everyday' as ExperienceMode, label: t('settings:experience.everyday') },
-            { value: 'full' as ExperienceMode, label: t('settings:experience.full') },
-          ]}
-        />
-      </View>
 
       {sections.map(section => (
         <View key={section.id} style={styles.section}>

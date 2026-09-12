@@ -12,6 +12,7 @@ import FieldWeatherCard from './FieldWeatherCard';
 import FieldYearGlance from './FieldYearGlance';
 import FieldRecentChronologio from './FieldRecentChronologio';
 import FieldDetailMap from './FieldDetailMap';
+import FieldPhotosStrip from './FieldPhotosStrip';
 
 type Props = {
   field: Field;
@@ -121,6 +122,8 @@ const FieldOverview: React.FC<Props> = ({
         yearRollup={yearRollup}
         plannedRemaining={countPlannedRemaining(tasks)}
       />
+
+      <FieldPhotosStrip fieldId={field.id} />
 
       <FieldRecentChronologio
         fieldId={field.id}

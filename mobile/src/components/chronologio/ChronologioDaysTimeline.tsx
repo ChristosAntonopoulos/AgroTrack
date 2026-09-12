@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Text,
   StyleSheet,
@@ -7,6 +7,9 @@ import {
   ViewToken,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Pressable,
+  Image,
+  View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,8 +18,14 @@ import {
   buildChronologioTimelineRows,
   type ChronologioTimelineRow,
 } from '../../utils/chronologioTimeline';
+import { collectChronologioImages } from '../../utils/chronologioPhotoGroups';
+import { resolvePublicAssetUrl } from '../../config/env';
 import ChronologioEntryCard, { ChronologioWeatherCluster } from './ChronologioEntryCard';
+import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
 import ChronologioTimelineRowView from './ChronologioTimelineRow';
+import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
+import Sheet from '../ui/Sheet';
+import { radii, spacing } from '../../theme';
 
 type Props = {
   entries: ChronologioEntry[];
@@ -49,9 +58,11 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
   onVisibleMonth,
   listHeader,
 }) => {
-  const { t, i18n } = useTranslation('chronologio');
+  const { t, i18n } = useTranslation(['chronologio', 'photos']);
   const { colors } = useTheme();
   const stickyMeta = useRef<{ label: string; year: number; month: number }[]>([]);
+  const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
+  const [viewer, setViewer] = useState<{ items: PhotoViewerItem[]; index: number } | null>(null);
 
   const rows = useMemo(
     () =>
@@ -63,6 +74,14 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
       }),
     [entries, i18n.language, t]
   );
+
+  const daySheetItems = useMemo(() => {
+    if (!photoDayEntries?.length) return [] as PhotoViewerItem[];
+    return collectChronologioImages(photoDayEntries).map((m) => {
+      const uri = resolvePublicAssetUrl(m.url || m.thumbnailUrl) || m.url || m.thumbnailUrl || '';
+      return { id: m.id || uri, uri };
+    });
+  }, [photoDayEntries]);
 
   useEffect(() => {
     stickyMeta.current = rows.map((r) => ({
@@ -107,6 +126,14 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
             onPressEntry={onPressEntry}
           />
         ) : null}
+        {item.kind === 'photoGroup' && item.photoEntries?.length ? (
+          <ChronologioPhotoStackCard
+            entries={item.photoEntries}
+            showField={showField}
+            minHeight={Math.max(tapMin, 112)}
+            onPress={() => setPhotoDayEntries(item.photoEntries!)}
+          />
+        ) : null}
         {item.kind === 'entry' && item.entry ? (
           <ChronologioEntryCard
             entry={item.entry}
@@ -130,38 +157,86 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
   }
 
   return (
-    <FlatList
-      data={rows}
-      keyExtractor={(item) => item.key}
-      renderItem={renderItem}
-      ListHeaderComponent={listHeader ? <>{listHeader}</> : null}
-      contentContainerStyle={styles.list}
-      onEndReached={onLoadMore}
-      onEndReachedThreshold={0.4}
-      onViewableItemsChanged={onViewableItemsChanged}
-      viewabilityConfig={viewabilityConfig}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      showsVerticalScrollIndicator={false}
-      ListFooterComponent={
-        loadingMore ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
-        ) : !hasMore ? (
-          <Text style={[styles.end, { color: colors.textSecondary }]}>
-            {t('living.endOfJournal')}
-          </Text>
-        ) : null
-      }
-    />
+    <>
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => item.key}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader ? <>{listHeader}</> : null}
+        contentContainerStyle={styles.list}
+        onEndReached={onLoadMore}
+        onEndReachedThreshold={0.4}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        directionalLockEnabled
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
+          ) : !hasMore ? (
+            <Text style={[styles.end, { color: colors.textSecondary }]}>
+              {t('living.endOfJournal')}
+            </Text>
+          ) : null
+        }
+      />
+
+      <Sheet
+        open={Boolean(photoDayEntries?.length)}
+        onClose={() => setPhotoDayEntries(null)}
+        title={t('photos:dayStack.sheetTitle')}
+        edge="bottom"
+        size="lg"
+      >
+        <View style={styles.dayGrid}>
+          {daySheetItems.map((item, index) => (
+            <Pressable
+              key={item.id}
+              onPress={() => setViewer({ items: daySheetItems, index })}
+              style={[styles.dayTile, { backgroundColor: colors.surfaceElevated }]}
+            >
+              <Image source={{ uri: item.uri }} style={styles.dayThumb} />
+            </Pressable>
+          ))}
+        </View>
+      </Sheet>
+
+      <PhotoViewer
+        open={Boolean(viewer)}
+        items={viewer?.items || []}
+        index={viewer?.index || 0}
+        onClose={() => setViewer(null)}
+      />
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 100, paddingTop: 4 },
+  list: { paddingBottom: 100, paddingTop: 2 },
   end: {
     textAlign: 'center',
-    marginVertical: 16,
+    marginVertical: 20,
     fontSize: 13,
+    fontStyle: 'italic',
+  },
+  dayGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  dayTile: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: radii.sm,
+    overflow: 'hidden',
+  },
+  dayThumb: {
+    width: '100%',
+    height: '100%',
   },
 });
 

@@ -24,7 +24,7 @@ import { typography, spacing, spacingPatterns } from '../theme';
 import { loginTheme } from '../theme/loginTheme';
 import { AuthStackParamList } from '../navigation/types';
 
-const loginBg = require('../../assets/images/login-bg.jpg');
+const registerBg = require('../../assets/images/auth-register-bg.jpg');
 const MIN_PASSWORD_LENGTH = 8;
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -79,7 +79,7 @@ const RegisterScreen = () => {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <ImageBackground source={loginBg} style={styles.background} resizeMode="cover">
+      <ImageBackground source={registerBg} style={styles.background} resizeMode="cover">
         <View style={styles.overlay} />
         <SafeAreaView style={styles.safe}>
           <KeyboardAvoidingView
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(18, 10, 4, 0.74)',
+    backgroundColor: loginTheme.overlayRegister,
   },
   safe: { flex: 1 },
   flex: { flex: 1 },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: loginTheme.cardBg,
-    borderRadius: spacingPatterns.borderRadius.xl,
+    borderRadius: loginTheme.cardRadius,
     borderWidth: 1,
     borderColor: loginTheme.cardBorder,
     padding: spacing.lg,

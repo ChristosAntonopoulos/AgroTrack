@@ -39,6 +39,7 @@ import PartnerProfilePage from './pages/PartnerProfilePage';
 import MyServiceProfilePage from './pages/MyServiceProfilePage';
 import ServiceRequestsPage from './pages/ServiceRequestsPage';
 import MoneyPage from './pages/MoneyPage';
+import PhotoHubPage from './pages/PhotoHubPage';
 import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
 import HarvestCampaignPage from './pages/HarvestCampaignPage';
 import FamilyInviteAcceptPage from './pages/FamilyInviteAcceptPage';
@@ -120,6 +121,7 @@ function App() {
                     <Route path="partners/requests" element={<ServiceRequestsPage />} />
                     <Route path="partners/:userId" element={<PartnerProfilePage />} />
                     <Route path="money" element={<MoneyPage />} />
+                    <Route path="photos" element={<PhotoHubPage />} />
                     <Route path="harvest" element={<HarvestCampaignPage />} />
                     <Route path="this-harvest" element={<Navigate to="/harvest" replace />} />
                     <Route path="this-harvest/review" element={<ThisHarvestReviewPage />} />

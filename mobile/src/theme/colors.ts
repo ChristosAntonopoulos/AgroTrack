@@ -1,158 +1,160 @@
-/**
- * Mediterranean field journal — warm ivory + olive + stone.
- * Not Material-green SaaS; not rustic kitsch.
- */
-export const colors = {
-  // Brand constants
-  olive: '#536B3F',
-  sage: '#9AAA85',
-  leaf: '#71845B',
-  deepGrove: '#252921',
-  warmStone: '#E4E5DD',
-  limestone: '#F4F3EC',
-  accentGold: '#B09A63',
-  charcoal: '#252921',
-
-  // Primary olive — aligned with web Oleachron tokens
-  primary: '#536B3F',
-  primaryDark: '#3F5430',
-  primaryActive: '#354828',
-  primaryLight: '#E6EDDD',
-  oliveBorder: '#CED6C6',
-  onOlive: '#FBFBF7',
-
-  // Secondary — warm neutral
-  secondary: '#6E7569',
-  secondaryDark: '#525850',
-  secondaryLight: '#93998E',
-
-  // Status
-  success: '#62916D',
-  successLight: 'rgba(98, 145, 109, 0.16)',
-  successDark: '#4f7a58',
-
-  warning: '#C8924E',
-  warningLight: 'rgba(200, 146, 78, 0.16)',
-  warningDark: '#a8783a',
-
-  error: '#C96656',
-  errorLight: 'rgba(201, 102, 86, 0.16)',
-  errorDark: '#a85548',
-
-  info: '#607D88',
-  infoLight: 'rgba(96, 125, 136, 0.16)',
-  infoDark: '#4a6570',
-
-  neutral: '#6E7569',
-  neutralLight: 'rgba(110, 117, 105, 0.16)',
-
-  white: '#FFFFFF',
-  black: '#000000',
-
-  gray50: '#F0F1E9',
-  gray100: '#E4E5DD',
-  gray200: '#D8D9D0',
-  gray300: '#C4C6BB',
-  gray400: '#93998E',
-  gray500: '#6E7569',
-  gray600: '#525850',
-  gray700: '#3A4038',
-  gray800: '#252921',
-  gray900: '#1A1D17',
-
-  // Surfaces — warm limestone paper (web-aligned)
-  background: '#F4F3EC',
-  backgroundLight: '#F4F3EC',
-  backgroundDark: '#11140F',
-  backgroundSidebar: '#EEEDE5',
-  surface: '#FFFFFF',
-  surfaceElevated: '#FBFBF7',
-  surfaceMuted: '#EEEDE5',
-  surface3: '#E8E7DF',
-  surfaceHover: '#EBEEE4',
-  surfaceSelected: '#E6EDDD',
-
-  // Text
-  textPrimary: '#1C211D',
-  textSecondary: '#5B635C',
-  textTertiary: '#8A9186',
-  textDisabled: '#AEB3A7',
-  textInverse: '#FBFBF7',
-
-  // Chrome
-  headerBackground: '#F4F3EC',
-  headerForeground: '#1C211D',
-  headerForegroundMuted: '#5B635C',
-  headerAccent: '#536B3F',
-  headerBorder: '#E4E5DD',
-  tabBarBackground: '#FBFBF7',
-  tabBarForeground: '#536B3F',
-  tabBarForegroundInactive: '#6E7569',
-  tabBarBorder: '#E4E5DD',
-  tabBarActivePill: '#E6EDDD',
-
-  // Borders
-  border: '#E4E5DD',
-  borderLight: '#EAEBE3',
-  borderDark: '#D0D2C8',
-
-  link: '#536B3F',
-  linkHover: '#3F5430',
-  focusRing: '#6B8554',
-  backdrop: 'rgba(17, 20, 15, 0.42)',
-
-  shadow: 'rgba(37, 41, 33, 0.08)',
-  shadowDark: 'rgba(17, 20, 15, 0.18)',
-
-  // Timeline rail
-  timeline: '#CED6C6',
-
-  lifecycleLow: '#617A4E',
-  lifecycleHigh: '#B09A63',
-  taskPending: '#B09A63',
-  taskInProgress: '#607D88',
-  taskCompleted: '#617A4E',
-
-  // Category accents (seasoning, not paint)
-  eventWork: '#617A4E',
-  eventWorkSoft: '#E9EFE4',
-  eventObservation: '#79698A',
-  eventObservationSoft: '#EEEAF2',
-  eventExpense: '#B09A63',
-  eventExpenseSoft: '#F5ECDF',
-  eventIncome: '#60776D',
-  eventIncomeSoft: '#E6ECE9',
-  eventHarvest: '#985F52',
-  eventHarvestSoft: '#F3E7E3',
-  eventWeather: '#39798D',
-  eventWeatherSoft: '#E6EEF0',
-  eventWarning: '#A74435',
-  eventWarningSoft: '#F5E6E3',
-  eventFieldChange: '#60776D',
-  eventFieldChangeSoft: '#E6ECE9',
-  eventLifecycle: '#85804A',
-  eventLifecycleSoft: '#EFEDDF',
-
-  weatherBlue: '#70A9BA',
-  rain: '#588EA5',
-  temperature: '#CB8B55',
-  humidity: '#719CAC',
-  wind: '#94A89A',
-  frost: '#8CA9BF',
-
-  mapBoundary: '#536B3F',
-  mapSelectedFill: 'rgba(83, 107, 63, 0.18)',
-  mapHoverFill: 'rgba(83, 107, 63, 0.10)',
-  mapWarningOutline: '#C96656',
-  mapOtherOutline: '#6E7569',
-
-  domainTask: '#617A4E',
-
-  experienceEveryday: '#0072B2',
-  experienceFull: '#E69F00',
-
-  bannerErrorBg: 'rgba(201, 102, 86, 0.16)',
-  bannerErrorBorder: '#C96656',
-  bannerWarningBg: 'rgba(200, 146, 78, 0.16)',
-  bannerWarningBorder: '#C8924E',
-};
+/**
+ * Mediterranean field journal — warm ivory + olive + stone.
+ * Source of truth: frontend/src/styles/theme.css (light).
+ * Not Material-green SaaS; not rustic kitsch.
+ */
+export const colors = {
+  // Brand constants
+  olive: '#536D42',
+  sage: '#9AAA85',
+  leaf: '#71845B',
+  deepGrove: '#29382A',
+  warmStone: '#D9D5C8',
+  limestone: '#F7F6F0',
+  accentGold: '#B09A63',
+  charcoal: '#22281F',
+
+  // Primary olive — aligned with web Oleachron tokens
+  primary: '#536D42',
+  primaryDark: '#486038',
+  primaryActive: '#3E5430',
+  primaryLight: '#E7EDDE',
+  oliveBorder: '#C5CDB8',
+  onOlive: '#FFFFFF',
+
+  // Secondary — warm neutral (status-neutral)
+  secondary: '#879086',
+  secondaryDark: '#6B7469',
+  secondaryLight: '#A2A99D',
+
+  // Status
+  success: '#62916D',
+  successLight: 'rgba(98, 145, 109, 0.16)',
+  successDark: '#4f7a58',
+
+  warning: '#C8924E',
+  warningLight: 'rgba(200, 146, 78, 0.16)',
+  warningDark: '#a8783a',
+
+  error: '#C96656',
+  errorLight: 'rgba(201, 102, 86, 0.16)',
+  errorDark: '#a85548',
+
+  info: '#5F95A8',
+  infoLight: 'rgba(95, 149, 168, 0.16)',
+  infoDark: '#4a7a8a',
+
+  neutral: '#879086',
+  neutralLight: 'rgba(135, 144, 134, 0.16)',
+
+  white: '#FFFFFF',
+  black: '#000000',
+
+  gray50: '#F0F1E7',
+  gray100: '#EBECE4',
+  gray200: '#E3E3D9',
+  gray300: '#D4D4C8',
+  gray400: '#92978E',
+  gray500: '#697065',
+  gray600: '#525850',
+  gray700: '#3A4038',
+  gray800: '#29382A',
+  gray900: '#22281F',
+
+  // Surfaces — warm limestone paper (web-aligned)
+  background: '#F7F6F0',
+  backgroundLight: '#F7F6F0',
+  backgroundDark: '#141714',
+  backgroundSidebar: '#F0F1E7',
+  surface: '#FFFDF9',
+  surfaceElevated: '#FFFFFF',
+  surfaceMuted: '#F2F3EC',
+  surface3: '#EBECE4',
+  surfaceHover: '#F1F4EC',
+  surfaceSelected: '#E5EADB',
+
+  // Text
+  textPrimary: '#22281F',
+  textSecondary: '#697065',
+  textTertiary: '#92978E',
+  textDisabled: '#B0B5AA',
+  textInverse: '#FFFFFF',
+
+  // Chrome
+  headerBackground: '#FBFAF6',
+  headerForeground: '#22281F',
+  headerForegroundMuted: '#697065',
+  headerAccent: '#536D42',
+  headerBorder: '#E3E3D9',
+  tabBarBackground: '#FBFAF6',
+  tabBarForeground: '#536D42',
+  tabBarForegroundInactive: '#697065',
+  tabBarBorder: '#E3E3D9',
+  tabBarActivePill: '#E7EDDE',
+
+  // Borders
+  border: '#E3E3D9',
+  borderLight: '#EBECE4',
+  borderDark: '#D4D4C8',
+
+  link: '#486038',
+  linkHover: '#3E5430',
+  focusRing: '#536D42',
+  backdrop: 'rgba(24, 29, 21, 0.42)',
+
+  shadow: 'rgba(34, 40, 31, 0.08)',
+  shadowDark: 'rgba(34, 40, 31, 0.18)',
+
+  // Timeline rail
+  timeline: '#CED6C6',
+
+  lifecycleLow: '#9AAA85',
+  lifecycleHigh: '#B09A63',
+  taskPending: '#B09A63',
+  taskInProgress: '#5F95A8',
+  taskCompleted: '#5E7848',
+
+  // Category accents — web --event-* (light)
+  eventWork: '#5E7848',
+  eventWorkSoft: 'rgba(94, 120, 72, 0.14)',
+  eventObservation: '#755D8C',
+  eventObservationSoft: 'rgba(117, 93, 140, 0.14)',
+  eventExpense: '#99662D',
+  eventExpenseSoft: 'rgba(153, 102, 45, 0.14)',
+  eventIncome: '#36734D',
+  eventIncomeSoft: 'rgba(54, 115, 77, 0.14)',
+  eventHarvest: '#8B4F49',
+  eventHarvestSoft: 'rgba(139, 79, 73, 0.14)',
+  eventWeather: '#39798D',
+  eventWeatherSoft: 'rgba(57, 121, 141, 0.14)',
+  eventWarning: '#A74435',
+  eventWarningSoft: 'rgba(167, 68, 53, 0.14)',
+  eventFieldChange: '#59696B',
+  eventFieldChangeSoft: 'rgba(89, 105, 107, 0.14)',
+  eventLifecycle: '#85804A',
+  eventLifecycleSoft: 'rgba(133, 128, 74, 0.14)',
+
+  weatherBlue: '#70A9BA',
+  rain: '#588EA5',
+  temperature: '#CB8B55',
+  humidity: '#719CAC',
+  wind: '#94A89A',
+  frost: '#8CA9BF',
+
+  mapBoundary: '#536D42',
+  mapSelectedFill: 'rgba(83, 109, 66, 0.18)',
+  mapHoverFill: 'rgba(83, 109, 66, 0.10)',
+  mapWarningOutline: '#C96656',
+  mapOtherOutline: '#879086',
+
+  domainTask: '#3A6EA5',
+
+  experienceEveryday: '#0072B2',
+  experienceFull: '#E69F00',
+
+  bannerErrorBg: 'rgba(201, 102, 86, 0.16)',
+  bannerErrorBorder: '#C96656',
+  bannerWarningBg: 'rgba(200, 146, 78, 0.16)',
+  bannerWarningBorder: '#C8924E',
+};
+

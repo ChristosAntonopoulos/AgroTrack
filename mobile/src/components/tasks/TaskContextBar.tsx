@@ -15,6 +15,7 @@ const TaskContextBar = ({
   allFieldsLabel,
   fieldId,
   fields,
+  moreFiltersLabel,
   onYearChange,
   onFieldChange,
   clearYearLabel,
@@ -28,6 +29,7 @@ const TaskContextBar = ({
   allFieldsLabel: string;
   fieldId: string;
   fields: Field[];
+  moreFiltersLabel: string;
   onYearChange: (year: number) => void;
   onFieldChange: (fieldId: string) => void;
   clearYearLabel: string;
@@ -36,6 +38,7 @@ const TaskContextBar = ({
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const [yearOpen, setYearOpen] = useState(false);
   const [fieldOpen, setFieldOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const yearChanged = year !== defaultYear;
   const fieldChanged = Boolean(fieldId);
   const selectedField = fields.find((field) => field.id === fieldId);
@@ -44,23 +47,6 @@ const TaskContextBar = ({
     <View style={styles.wrap}>
       <View style={styles.row}>
         <Pressable
-          onPress={() => setYearOpen(true)}
-          style={[
-            styles.control,
-            {
-              borderColor: colors.borderLight,
-              backgroundColor: colors.surface,
-              minHeight: Math.max(44, tapMin * 0.9),
-            },
-          ]}
-        >
-          <Text style={[styles.controlLabel, { color: colors.textTertiary }]}>{yearLabel}</Text>
-          <Text style={[styles.controlValue, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}>
-            {year}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
-        </Pressable>
-        <Pressable
           onPress={() => setFieldOpen(true)}
           style={[
             styles.control,
@@ -68,6 +54,7 @@ const TaskContextBar = ({
               borderColor: colors.borderLight,
               backgroundColor: colors.surface,
               minHeight: Math.max(44, tapMin * 0.9),
+              flex: 1.4,
             },
           ]}
         >
@@ -80,22 +67,31 @@ const TaskContextBar = ({
           </Text>
           <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
         </Pressable>
+        <Pressable
+          onPress={() => setMoreOpen(true)}
+          style={[
+            styles.control,
+            {
+              borderColor: colors.borderLight,
+              backgroundColor: colors.surface,
+              minHeight: Math.max(44, tapMin * 0.9),
+              flex: 1,
+            },
+          ]}
+        >
+          <Text style={[styles.controlLabel, { color: colors.textTertiary }]}>{moreFiltersLabel}</Text>
+          <Text
+            style={[styles.controlValue, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}
+            numberOfLines={1}
+          >
+            {yearChanged ? String(year) : yearLabel}
+          </Text>
+          <Ionicons name="options-outline" size={16} color={colors.textTertiary} />
+        </Pressable>
       </View>
 
       {yearChanged || fieldChanged ? (
         <View style={styles.chips}>
-          {yearChanged ? (
-            <Pressable
-              onPress={() => onYearChange(defaultYear)}
-              style={[styles.filterChip, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}
-              accessibilityLabel={clearYearLabel}
-            >
-              <Text style={[styles.filterChipText, { color: colors.primary }]}>
-                {yearLabel}: {year}
-              </Text>
-              <Ionicons name="close" size={14} color={colors.primary} />
-            </Pressable>
-          ) : null}
           {fieldChanged ? (
             <Pressable
               onPress={() => onFieldChange('')}
@@ -108,32 +104,20 @@ const TaskContextBar = ({
               <Ionicons name="close" size={14} color={colors.primary} />
             </Pressable>
           ) : null}
+          {yearChanged ? (
+            <Pressable
+              onPress={() => onYearChange(defaultYear)}
+              style={[styles.filterChip, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}
+              accessibilityLabel={clearYearLabel}
+            >
+              <Text style={[styles.filterChipText, { color: colors.primary }]}>
+                {yearLabel}: {year}
+              </Text>
+              <Ionicons name="close" size={14} color={colors.primary} />
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
-
-      <Sheet open={yearOpen} onClose={() => setYearOpen(false)} title={yearLabel} edge="bottom" size="sm">
-        {years.map((option) => (
-          <Pressable
-            key={option}
-            onPress={() => {
-              onYearChange(option);
-              setYearOpen(false);
-            }}
-            style={[
-              styles.sheetRow,
-              {
-                minHeight: tapMin,
-                backgroundColor: option === year ? colors.primaryLight : 'transparent',
-              },
-            ]}
-          >
-            <Text style={{ color: colors.textPrimary, fontWeight: option === year ? '700' : '500' }}>
-              {option}
-            </Text>
-            {option === year ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
-          </Pressable>
-        ))}
-      </Sheet>
 
       <Sheet open={fieldOpen} onClose={() => setFieldOpen(false)} title={fieldLabel} edge="bottom" size="md">
         <Pressable
@@ -175,6 +159,45 @@ const TaskContextBar = ({
           </Pressable>
         ))}
       </Sheet>
+
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={moreFiltersLabel} edge="bottom" size="sm">
+        <Pressable
+          onPress={() => {
+            setMoreOpen(false);
+            setYearOpen(true);
+          }}
+          style={[styles.sheetRow, { minHeight: tapMin }]}
+        >
+          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+            {yearLabel}: {year}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+        </Pressable>
+      </Sheet>
+
+      <Sheet open={yearOpen} onClose={() => setYearOpen(false)} title={yearLabel} edge="bottom" size="sm">
+        {years.map((option) => (
+          <Pressable
+            key={option}
+            onPress={() => {
+              onYearChange(option);
+              setYearOpen(false);
+            }}
+            style={[
+              styles.sheetRow,
+              {
+                minHeight: tapMin,
+                backgroundColor: option === year ? colors.primaryLight : 'transparent',
+              },
+            ]}
+          >
+            <Text style={{ color: colors.textPrimary, fontWeight: option === year ? '700' : '500' }}>
+              {option}
+            </Text>
+            {option === year ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
+          </Pressable>
+        ))}
+      </Sheet>
     </View>
   );
 };
@@ -183,7 +206,6 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.sm },
   control: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,

@@ -19,7 +19,6 @@ import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/phot
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOfflineMode } from '../../context/OfflineContext';
-import { usePreferences } from '../../context/PreferencesContext';
 import Button from '../ui/Button';
 import Sheet from '../ui/Sheet';
 import MoneyCaptureForm from './MoneyCaptureForm';
@@ -63,7 +62,6 @@ const CaptureSheet: React.FC<Props> = ({
   const { colors, tapMin } = useTheme();
   const { user, isFieldOwner } = useAuth();
   const { isOnline } = useOfflineMode();
-  const { isFullPicture } = usePreferences();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [step, setStep] = useState<'choose' | CaptureType>('choose');
@@ -274,7 +272,6 @@ const CaptureSheet: React.FC<Props> = ({
           fields={fields}
           canRecordIncome={permissions.canRecordIncome}
           canRecordExpense={permissions.canRecordExpense}
-          isFullPicture={isFullPicture}
           onSaved={onSaved}
         />
       ) : (
@@ -290,23 +287,23 @@ const CaptureSheet: React.FC<Props> = ({
                   .map(card => {
                     const soft =
                       card.type === 'work'
-                        ? '#E9EFE4'
+                        ? colors.eventWorkSoft
                         : card.type === 'observation'
-                          ? '#EEEAF2'
+                          ? colors.eventObservationSoft
                           : card.type === 'money'
-                            ? '#F5ECDF'
+                            ? colors.eventExpenseSoft
                             : card.type === 'harvest'
-                              ? '#F3E7E3'
+                              ? colors.eventHarvestSoft
                               : colors.primaryLight;
                     const accent =
                       card.type === 'work'
-                        ? '#617A4E'
+                        ? colors.eventWork
                         : card.type === 'observation'
-                          ? '#79698A'
+                          ? colors.eventObservation
                           : card.type === 'money'
-                            ? '#A46F32'
+                            ? colors.eventExpense
                             : card.type === 'harvest'
-                              ? '#985F52'
+                              ? colors.eventHarvest
                               : colors.primary;
                     return (
                       <Pressable

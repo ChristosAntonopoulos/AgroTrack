@@ -13,7 +13,6 @@ import { useRefresh } from '../hooks/useRefresh';
 import { useTasks } from '../hooks/useTasks';
 import { useFields } from '../hooks/useFields';
 import { useDashboardWeather } from '../hooks/useDashboardWeather';
-import { useRecentActivities } from '../hooks/useRecentActivities';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Section from '../components/layout/Section';
 import DashboardQuickNav, { DashboardNavItem } from '../components/dashboard/DashboardQuickNav';
@@ -54,14 +53,13 @@ const DashboardScreen = () => {
   const { user, isFieldOwner } = useAuth();
   const capture = useCaptureOptional();
   const { colors } = useTheme();
-  const { isFullPicture, fullTutorialSeen, markFullTutorialSeen, showWidget, tapMin } = usePreferences();
+  const { fullTutorialSeen, markFullTutorialSeen, tapMin } = usePreferences();
   const { t, i18n } = useTranslation(['dashboard', 'common', 'nav', 'tutorial', 'partners', 'fields', 'money']);
   const navigation = useNavigation<Nav>();
   const { stats, loading, refresh } = useDashboardStats();
   const { tasks } = useTasks();
   const { fields } = useFields();
   const { weather, loading: weatherLoading } = useDashboardWeather(fields);
-  const { activities } = useRecentActivities(fields, tasks);
   const [period, setPeriod] = useState<MeDashboardPeriod>('week');
   const [meDashboard, setMeDashboard] = useState<MeDashboard>(emptyMeDashboard('week'));
   const [yearMoney, setYearMoney] = useState<YearFinancialSummary | null>(null);
@@ -73,7 +71,7 @@ const DashboardScreen = () => {
     } catch {
       // keep cached/empty
     }
-    if (isFullPicture && isFieldOwner()) {
+    if (isFieldOwner()) {
       try {
         setYearMoney(
           await getFinancialSummaryService().getYear(new Date().getFullYear(), undefined, i18n.language)
@@ -97,10 +95,10 @@ const DashboardScreen = () => {
   }, [period, user?.id]);
 
   useEffect(() => {
-    if (isFullPicture && !fullTutorialSeen && !loading) {
+    if (!fullTutorialSeen && !loading) {
       setShowTutorial(true);
     }
-  }, [isFullPicture, fullTutorialSeen, loading]);
+  }, [fullTutorialSeen, loading]);
 
   const fullPictureSteps: TutorialStep[] = [
     {
@@ -210,9 +208,11 @@ const DashboardScreen = () => {
         {
           id: 'harvest',
           icon: 'basket',
-          label: t('fields:thisHarvest.title'),
+          label: t('fields:harvestCampaign.title', {
+            defaultValue: t('fields:thisHarvest.title'),
+          }),
           hint: t('fields:thisHarvest.season', { year: new Date().getFullYear() }),
-          onPress: () => navigation.navigate('ThisHarvest'),
+          onPress: () => navigation.navigate('HarvestCampaign'),
         },
         {
           id: 'tasks',
@@ -295,74 +295,69 @@ const DashboardScreen = () => {
         refreshControl={{ refreshing, onRefresh }}
         contentContainerStyle={styles.scrollContent}
       >
-        {showWidget('myActionsDetail') ? (
-          <View style={styles.actionsWrap}>
-            <PeriodChips period={period} onChange={setPeriod} tapMin={tapMin} />
-          </View>
-        ) : null}
+        <View style={styles.actionsWrap}>
+          <PeriodChips period={period} onChange={setPeriod} tapMin={tapMin} />
+        </View>
 
-        {showWidget('myActions') ? (
-          <View style={styles.actionsWrap}>
-            <HeroActionCard
-              topAction={meDashboard.topAction}
-              pending={meDashboard.pending}
-              role={user.role}
-              tapMin={tapMin}
-              onPress={(target) => {
-                if (target === 'CreateTask') {
-                  if (capture) capture.openCapture();
-                  else navigation.navigate('CreateTask', {});
-                  return;
-                }
-                if (target === 'Partners') {
-                  navigation.navigate('Partners');
-                  return;
-                }
-                if (target === 'Today') {
-                  navigation.navigate('Main', { screen: 'ChronologioTab' });
-                  return;
-                }
-                goTab(target === 'Fields' ? 'Fields' : 'Tasks');
-              }}
-            />
-            <MyActionsStrip
-              data={meDashboard}
-              density="full"
-              period={period}
-              tapMin={tapMin}
-              onPressTile={(target) => {
-                if (target === 'Partners') {
-                  navigation.navigate('Partners');
-                  return;
-                }
-                if (target === 'Today') {
-                  navigation.navigate('Main', { screen: 'ChronologioTab' });
-                  return;
-                }
-                goTab(target === 'Fields' ? 'Fields' : 'Tasks');
-              }}
-            />
-          </View>
-        ) : null}
+        <View style={styles.actionsWrap}>
+          <HeroActionCard
+            topAction={meDashboard.topAction}
+            pending={meDashboard.pending}
+            role={user.role}
+            tapMin={tapMin}
+            onPress={(target) => {
+              if (target === 'CreateTask') {
+                if (capture) capture.openCapture();
+                else navigation.navigate('CreateTask', {});
+                return;
+              }
+              if (target === 'HarvestCampaign') {
+                navigation.navigate('HarvestCampaign');
+                return;
+              }
+              if (target === 'Partners') {
+                navigation.navigate('Partners');
+                return;
+              }
+              if (target === 'Today') {
+                navigation.navigate('Main', { screen: 'ChronologioTab' });
+                return;
+              }
+              goTab(target === 'Fields' ? 'Fields' : 'Tasks');
+            }}
+          />
+          <MyActionsStrip
+            data={meDashboard}
+            period={period}
+            tapMin={tapMin}
+            onPressTile={(target) => {
+              if (target === 'Partners') {
+                navigation.navigate('Partners');
+                return;
+              }
+              if (target === 'Today') {
+                navigation.navigate('Main', { screen: 'ChronologioTab' });
+                return;
+              }
+              goTab(target === 'Fields' ? 'Fields' : 'Tasks');
+            }}
+          />
+        </View>
 
-        {showWidget('recentNotes') ? (
-          <View style={styles.actionsWrap}>
-            <NotesWidget
-              limit={5}
-              tapMin={tapMin}
-              fieldNames={fieldNamesMap}
-              fields={fields.map((f) => ({ id: f.id, name: f.name }))}
-            />
-          </View>
-        ) : null}
+        <View style={styles.actionsWrap}>
+          <NotesWidget
+            limit={5}
+            tapMin={tapMin}
+            fieldNames={fieldNamesMap}
+            fields={fields.map((f) => ({ id: f.id, name: f.name }))}
+          />
+        </View>
 
-        {showWidget('myActionsDetail') ? (
-          <View style={styles.actionsWrap}>
-            <ActionSparkline series={meDashboard.series} />
-          </View>
-        ) : null}
+        <View style={styles.actionsWrap}>
+          <ActionSparkline series={meDashboard.series} />
+        </View>
 
-        {isFullPicture && owner ? (
+        {owner ? (
           <Pressable
             onPress={() => navigation.navigate('Money')}
             style={[
@@ -461,9 +456,9 @@ const DashboardScreen = () => {
               fieldName={fields[0]?.name}
             />
             <ActivityTimeline
-              activities={showWidget('myActions') ? (meDashboard.recent as any) : activities}
+              activities={meDashboard.recent as any}
               fieldNames={fieldNamesMap}
-              limit={showWidget('myActionsDetail') ? 8 : 4}
+              limit={8}
               onPressActivity={(act) => {
                 if (act.taskId) {
                   navigation.navigate('TaskDetail', { taskId: act.taskId });

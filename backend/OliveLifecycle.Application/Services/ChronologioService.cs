@@ -525,7 +525,8 @@ public class ChronologioService : IChronologioService
                     }
                 }
             }
-            else if (string.Equals(category, ChronologioCategory.Note.ToApiString(), StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(category, ChronologioCategory.Note.ToApiString(), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(category, ChronologioCategory.Photo.ToApiString(), StringComparison.OrdinalIgnoreCase))
             {
                 stats.NoteCount++;
                 if (observation == null)
@@ -680,8 +681,26 @@ public class ChronologioService : IChronologioService
 
         var harvestsById = harvests.ToDictionary(h => h.Id, StringComparer.Ordinal);
 
+        var harvestMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
+                MediaOwnerType.Harvest, harvests.Select(h => h.Id), cancellationToken))
+            .GroupBy(m => m.OwnerId)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+
+        var standalonePhotos = await _mediaAttachmentRepository.GetStandaloneByFieldIdsAsync(
+            fieldIds,
+            query.From,
+            query.To,
+            cancellationToken);
+
         var nameIds = CollectUserIds(executions, fieldTasksById.Values, money, activities, notes);
         nameIds.Add(userId);
+        foreach (var photo in standalonePhotos)
+        {
+            if (!string.IsNullOrWhiteSpace(photo.UploadedByUserId))
+            {
+                nameIds.Add(photo.UploadedByUserId);
+            }
+        }
         var displayNames = await ResolveDisplayNamesAsync(nameIds, cancellationToken);
 
         var noteMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
@@ -690,10 +709,6 @@ public class ChronologioService : IChronologioService
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
         var taskMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
                 MediaOwnerType.Task, executions.Select(e => e.TaskId), cancellationToken))
-            .GroupBy(m => m.OwnerId)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
-        var harvestMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
-                MediaOwnerType.Harvest, harvests.Select(h => h.Id), cancellationToken))
             .GroupBy(m => m.OwnerId)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
@@ -730,6 +745,11 @@ public class ChronologioService : IChronologioService
         foreach (var note in notes)
         {
             entries.Add(MapNote(note, fieldLabels, displayNames, noteMedia.GetValueOrDefault(note.Id)));
+        }
+
+        foreach (var photo in standalonePhotos)
+        {
+            entries.Add(MapPhoto(photo, fieldLabels, displayNames));
         }
 
         foreach (var activity in activities)
@@ -1066,6 +1086,46 @@ public class ChronologioService : IChronologioService
                     Pinned = note.Pinned
                 }
             }
+        };
+    }
+
+    private static ChronologioEntryDto MapPhoto(
+        MediaAttachment photo,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        IReadOnlyDictionary<string, string> displayNames)
+    {
+        var occurredAt = photo.EffectiveCapturedAt;
+        var media = new List<ChronologioMediaDto>
+        {
+            new()
+            {
+                Id = photo.Id,
+                Type = "image",
+                ThumbnailUrl = photo.ThumbnailUrl ?? photo.Url,
+                Url = photo.Url
+            }
+        };
+
+        return new ChronologioEntryDto
+        {
+            Id = $"{ChronologioSourceTypes.Photo}:{photo.Id}",
+            FieldId = photo.FieldId,
+            Field = FieldRef(photo.FieldId, fieldLabels),
+            CropCycleId = null,
+            LifecycleYear = YearLabel(null, occurredAt),
+            ResultYear = ResolveResultYear(null, occurredAt),
+            OccurredAt = EnsureUtc(occurredAt),
+            CreatedAt = EnsureUtc(photo.CreatedAt),
+            Category = ChronologioCategory.Photo.ToApiString(),
+            EventType = ChronologioEventTypes.PhotoAdded,
+            Title = ChronologioDisplayLabels.PhotoTitle(),
+            Summary = null,
+            SourceType = ChronologioSourceTypes.Photo,
+            SourceId = photo.Id,
+            IsSystemGenerated = false,
+            Actor = BuildActor(photo.UploadedByUserId, displayNames),
+            Importance = ChronologioImportance.Normal.ToApiString(),
+            Media = media
         };
     }
 

@@ -12,6 +12,7 @@ import {
 } from 'date-fns';
 import { el, enUS } from 'date-fns/locale';
 import { CalendarEvent } from '../services/calendarService';
+import { colors } from '../theme/colors';
 import { getTaskCategoryColor } from './calendarCategoryColors';
 
 export type AgendaGroup = 'overdue' | 'today' | 'tomorrow' | 'thisWeek' | 'later';
@@ -47,7 +48,7 @@ export function getEventChipVariant(
 export function getEventCategoryColor(event: CalendarEvent): string {
   if (event.color) return event.color;
   if (event.taskType) return getTaskCategoryColor(event.taskType);
-  return '#6c757d';
+  return colors.neutral;
 }
 
 export function getAgendaGroup(date: Date, ref = new Date()): AgendaGroup {

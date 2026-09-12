@@ -39,7 +39,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const ThisHarvestReviewScreen = () => {
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const navigation = useNavigation<Nav>();
   const { fields } = useFields();
@@ -124,10 +124,10 @@ const ThisHarvestReviewScreen = () => {
       setNotes(
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
-          .slice(0, isEveryday ? 4 : 12)
+          .slice(0, 12)
       );
     },
-    [allTasks, anyIrrigated, isEveryday, i18n.language]
+    [allTasks, anyIrrigated, i18n.language]
   );
 
   useEffect(() => {
@@ -151,7 +151,7 @@ const ThisHarvestReviewScreen = () => {
       <Button
         title={t('fields:apologismos.backToProgress')}
         variant="ghost"
-        onPress={() => navigation.navigate('ThisHarvest')}
+        onPress={() => navigation.navigate('HarvestCampaign')}
         style={{ marginHorizontal: spacing.base }}
       />
 
@@ -246,7 +246,7 @@ const ThisHarvestReviewScreen = () => {
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               {t('fields:apologismos.whatHappened')}
             </Text>
-            {(isEveryday ? doneTitles.slice(0, 6) : doneTitles).map((title) => (
+            {doneTitles.map((title) => (
               <Text key={title} style={{ color: colors.textPrimary, paddingVertical: 4 }}>
                 {title}
               </Text>
@@ -268,27 +268,25 @@ const ThisHarvestReviewScreen = () => {
             )}
           </View>
 
-          {!isEveryday
-            ? cards.map((card) => (
-                <TouchableOpacity
-                  key={card.fieldId}
-                  style={[
-                    styles.fieldCard,
-                    {
-                      backgroundColor: colors.surfaceElevated,
-                      borderColor: colors.borderLight,
-                      minHeight: tapMin,
-                    },
-                  ]}
-                  onPress={() => navigation.navigate('FieldDetail', { fieldId: card.fieldId })}
-                >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{card.fieldName}</Text>
-                  <Text style={{ color: colors.textSecondary }}>
-                    {formatKg(card.oliveKg)} kg
-                  </Text>
-                </TouchableOpacity>
-              ))
-            : null}
+          {cards.map((card) => (
+            <TouchableOpacity
+              key={card.fieldId}
+              style={[
+                styles.fieldCard,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.borderLight,
+                  minHeight: tapMin,
+                },
+              ]}
+              onPress={() => navigation.navigate('FieldDetail', { fieldId: card.fieldId })}
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{card.fieldName}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                {formatKg(card.oliveKg)} kg
+              </Text>
+            </TouchableOpacity>
+          ))}
         </>
       )}
     </ScreenLayout>

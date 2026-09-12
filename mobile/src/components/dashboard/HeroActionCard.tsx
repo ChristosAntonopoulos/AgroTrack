@@ -11,7 +11,7 @@ export interface HeroActionCardProps {
   topAction: MeDashboardTopAction;
   pending: MeDashboardPending;
   role?: string;
-  onPress: (path: 'Tasks' | 'Today' | 'Fields' | 'Partners' | 'CreateTask') => void;
+  onPress: (path: 'Tasks' | 'Today' | 'Fields' | 'Partners' | 'CreateTask' | 'HarvestCampaign') => void;
   tapMin?: number;
 }
 
@@ -32,7 +32,7 @@ const HeroActionCard: React.FC<HeroActionCardProps> = ({
   let title = t('myActions.hero.defaultTitle');
   let subtitle = t('myActions.hero.defaultSubtitle');
   let cta = t('myActions.hero.defaultCta');
-  let target: 'Tasks' | 'Today' | 'Fields' | 'Partners' | 'CreateTask' = isProducer
+  let target: 'Tasks' | 'Today' | 'Fields' | 'Partners' | 'CreateTask' | 'HarvestCampaign' = isProducer
     ? 'Today'
     : isPartner
       ? 'Partners'
@@ -72,7 +72,7 @@ const HeroActionCard: React.FC<HeroActionCardProps> = ({
     title = t('myActions.hero.logHarvestTitle');
     subtitle = t('myActions.hero.logHarvestSubtitle');
     cta = t('myActions.hero.logHarvestCta');
-    target = 'Fields';
+    target = 'HarvestCampaign';
     icon = 'leaf-outline';
   } else if (topAction === 'log_expense') {
     kind = 'action';

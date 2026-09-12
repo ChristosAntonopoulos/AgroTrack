@@ -14,6 +14,7 @@ import {
   Wheat,
   BookOpen,
   HeartHandshake,
+  Images,
 } from 'lucide-react';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
 import { CHRONOLOGIO_HOME } from './homePath';
@@ -83,6 +84,13 @@ export const navItems: NavItem[] = [
     path: '/money',
     labelKey: 'items.money',
     icon: <Wallet />,
+    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
+    section: 'primary',
+  },
+  {
+    path: '/photos',
+    labelKey: 'items.photos',
+    icon: <Images />,
     roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
     section: 'primary',
   },
@@ -177,6 +185,7 @@ export const filterNavItemsForUser = (
       if (item.path === '/harvest' && !familyModules.has('harvest')) return false;
       if (item.path === '/tasks' && !familyModules.has('tasks')) return false;
       if (item.path === '/fields' && !familyModules.has('fields')) return false;
+      if (item.path === '/photos' && !familyModules.has('fields')) return false;
     }
 
     return true;

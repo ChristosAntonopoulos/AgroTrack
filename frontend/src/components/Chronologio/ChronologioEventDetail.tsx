@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Pin } from 'lucide-react';
 import Button from '../Common/Button';
 import HarvestMoneyPanel from '../money/HarvestMoneyPanel';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import PhotoLightbox from '../photos/PhotoLightbox';
+import { usePhotoLightbox } from '../photos/usePhotoLightbox';
 import {
   getFieldWorkService,
   getFinancialTransactionService,
@@ -28,6 +30,7 @@ import {
 import { chronologioDetailKind } from '../../chronologio/detailKind';
 import { buildDayWeatherView, type DayWeatherInput } from '../../chronologio/dayWeather';
 import { EntityCache } from '../../utils/entityCache';
+import { resolvePublicAssetUrl } from '../../config/apiConfig';
 
 type Props = {
   entry: ChronologioEntry;
@@ -57,25 +60,55 @@ const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, 
 };
 
 const MediaGallery: React.FC<{ entry: ChronologioEntry; title: string }> = ({ entry, title }) => {
-  const photos = (entry.media || []).filter((m) => m.url || m.thumbnailUrl);
-  const audio = photos.filter((m) => /audio|voice/i.test(m.type || ''));
-  const images = photos.filter((m) => !/audio|voice/i.test(m.type || ''));
-  if (!photos.length) return null;
+  const { t } = useTranslation('photos');
+  const lightbox = usePhotoLightbox();
+  const photos = entry.media || [];
+  const audio = photos.filter((m) => (m.url || m.thumbnailUrl) && /audio|voice/i.test(m.type || ''));
+  const items = useMemo(
+    () =>
+      (entry.media || [])
+        .filter((m) => (m.url || m.thumbnailUrl) && !/audio|voice/i.test(m.type || ''))
+        .map((m) => {
+          const src = resolvePublicAssetUrl(m.url || m.thumbnailUrl) || m.url || m.thumbnailUrl || '';
+          return {
+            id: m.id || src,
+            src,
+            alt: t('detail.title'),
+          };
+        }),
+    [entry.media, t]
+  );
+  if (!items.length && !audio.length) return null;
   return (
     <div className="chrono-drawer-media">
       <h3>{title}</h3>
-      {images.length ? (
+      {items.length ? (
         <div className="chrono-drawer-media-grid">
-          {images.map((m) => (
-            <img key={m.id} src={m.url || m.thumbnailUrl} alt="" loading="lazy" />
+          {items.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => lightbox.openAt(items, index)}
+              aria-label={t('viewer.expand')}
+            >
+              <img src={item.src} alt="" loading="lazy" />
+            </button>
           ))}
         </div>
       ) : null}
-      {audio.map((m) =>
-        m.url ? (
-          <audio key={m.id} className="chrono-drawer-audio" controls src={m.url} />
-        ) : null
-      )}
+      {audio.map((m) => {
+        const src = resolvePublicAssetUrl(m.url) || m.url;
+        return src ? (
+          <audio key={m.id} className="chrono-drawer-audio" controls src={src} />
+        ) : null;
+      })}
+      <PhotoLightbox
+        open={lightbox.open}
+        items={lightbox.items}
+        index={lightbox.index}
+        onClose={lightbox.close}
+        onIndexChange={lightbox.setIndex}
+      />
     </div>
   );
 };
@@ -210,6 +243,21 @@ const TaskDetail: React.FC<{
             }),
           });
 
+  const mediaEntry = useMemo(() => {
+    if ((entry.media || []).length > 0) return entry;
+    const ids = full?.attachmentIds || [];
+    if (!ids.length) return entry;
+    return {
+      ...entry,
+      media: ids.map((url, i) => ({
+        id: `task-media-${i}`,
+        type: 'image',
+        url,
+        thumbnailUrl: url,
+      })),
+    };
+  }, [entry, full?.attachmentIds]);
+
   return (
     <>
       <dl className="chrono-drawer-facts">
@@ -256,7 +304,7 @@ const TaskDetail: React.FC<{
           </ul>
         </section>
       ) : null}
-      <MediaGallery entry={entry} title={t('living.photos')} />
+      <MediaGallery entry={mediaEntry} title={t('living.photos')} />
       {task?.followUpTaskId ? (
         <Button variant="ghost" onClick={() => navigate(`/tasks/${task.followUpTaskId}`)}>
           {t('drawer.relatedTask')}
@@ -291,6 +339,20 @@ const ObservationDetail: React.FC<{ entry: ChronologioEntry; actor: string }> = 
   }, [entry.fieldId, entry.sourceId, entry.sourceType, noteMeta?.noteId]);
 
   const body = note?.body || noteMeta?.bodyPreview || entry.summary || '';
+  const mediaEntry = useMemo(() => {
+    if ((entry.media || []).length > 0) return entry;
+    const urls = note?.mediaUrls || [];
+    if (!urls.length) return entry;
+    return {
+      ...entry,
+      media: urls.map((url, i) => ({
+        id: `note-media-${i}`,
+        type: 'image',
+        url,
+        thumbnailUrl: url,
+      })),
+    };
+  }, [entry, note?.mediaUrls]);
 
   return (
     <>
@@ -305,7 +367,7 @@ const ObservationDetail: React.FC<{ entry: ChronologioEntry; actor: string }> = 
           </p>
         ) : null}
       </dl>
-      <MediaGallery entry={entry} title={t('living.photos')} />
+      <MediaGallery entry={mediaEntry} title={t('living.photos')} />
     </>
   );
 };

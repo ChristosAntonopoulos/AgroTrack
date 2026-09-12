@@ -17,6 +17,7 @@ import type { SupportedLocale } from '../../i18n/config';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import './Chronologio.css';
 
 type Props = {
@@ -36,7 +37,7 @@ const categoryTone = (category: string, importance: string): string => {
   if (category === 'harvest') return 'is-harvest';
   if (category === 'expense' || category === 'income') return 'is-expense';
   if (category === 'task') return 'is-task';
-  if (category === 'note') return 'is-note';
+  if (category === 'note' || category === 'photo') return 'is-note';
   if (category === 'weather') return 'is-weather';
   if (category === 'intelligence') return 'is-intelligence';
   return '';
@@ -69,6 +70,11 @@ const ChronologioEntryCard: React.FC<Props> = ({
   const intelligence = entry.details.intelligence;
   const lifecycle = entry.details.lifecycle;
   const media = entry.media?.filter((m) => m.thumbnailUrl || m.url).slice(0, 3) ?? [];
+  const resolvedMedia = media.map((m) => ({
+    ...m,
+    thumbnailUrl: resolvePublicAssetUrl(m.thumbnailUrl || m.url) || m.thumbnailUrl || m.url,
+    url: resolvePublicAssetUrl(m.url) || m.url,
+  }));
 
   const onActivate = () => {
     if (onSelect) {
@@ -92,6 +98,12 @@ const ChronologioEntryCard: React.FC<Props> = ({
     }
     if (entry.sourceType === 'Note') {
       navigate('/chronologio');
+      return;
+    }
+    if (entry.sourceType === 'Photo') {
+      navigate(
+        `/photos?fieldId=${encodeURIComponent(entry.fieldId)}&photoId=${encodeURIComponent(entry.sourceId)}`
+      );
       return;
     }
     if (entry.sourceType === 'WeatherReview') {
@@ -127,7 +139,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
   return (
     <button
       type="button"
-      className={`chronologio-event-card chronologio-event-card--${accent} is-${size}${tone ? ` ${tone}` : ''}${selected ? ' is-selected' : ''}${weatherTile ? ' is-weather-tile' : ''}${isPeriodReview && !weatherTile ? ' is-month-report' : ''}`}
+      className={`chronologio-event-card chronologio-event-card--${accent} is-${size}${tone ? ` ${tone}` : ''}${selected ? ' is-selected' : ''}${weatherTile ? ' is-weather-tile' : ''}${isPeriodReview && !weatherTile ? ' is-month-report' : ''}${category === 'photo' ? ' chrono-cat-photo' : ''}`}
       style={weatherTile ? ({ '--field-accent': fieldAccent } as React.CSSProperties) : undefined}
       aria-pressed={weatherTile ? selected : undefined}
       onClick={onActivate}
@@ -302,6 +314,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
           category !== 'expense' &&
           category !== 'task' &&
           category !== 'note' &&
+          category !== 'photo' &&
           category !== 'weather' &&
           entry.summary ? (
             <p className="chronologio-card-summary">{entry.summary}</p>
@@ -334,9 +347,9 @@ const ChronologioEntryCard: React.FC<Props> = ({
             </div>
           ) : null}
 
-          {media.length > 0 ? (
+          {resolvedMedia.length > 0 ? (
             <div className="chronologio-media-row">
-              {media.map((m) => (
+              {resolvedMedia.map((m) => (
                 <img
                   key={m.id}
                   className="chronologio-media-thumb"

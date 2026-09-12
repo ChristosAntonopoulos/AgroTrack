@@ -1068,6 +1068,17 @@
   margin-top: 0.65rem;
 }
 
+.chronologio-event-card.chrono-cat-photo .chronologio-media-row {
+  margin-top: 0.4rem;
+}
+
+.chronologio-event-card.chrono-cat-photo .chronologio-media-thumb {
+  flex: 1;
+  width: auto;
+  height: 148px;
+  border-radius: 10px;
+}
+
 .chronologio-media-thumb {
   width: 52px;
   height: 52px;
@@ -3205,4 +3216,222 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   .chrono-year-chapter.is-closed.has-photo { grid-template-columns: 1fr; }
   .chrono-year-chapter .chrono-closed-year-photo { width: 100%; height: 160px; }
   .chrono-month-story { min-width: 0; }
+}
+
+/* Same-day photo stack (journal collage) */
+.chrono-photo-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 148px;
+  padding: 0.65rem;
+  border: 1px solid var(--color-border, #d5ddd2);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(245, 248, 243, 0.92)),
+    var(--color-surface, #fff);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.chrono-photo-stack:hover,
+.chrono-photo-stack.is-selected {
+  border-color: var(--color-accent, #5a7a4e);
+  box-shadow: 0 2px 10px rgba(31, 42, 28, 0.08);
+}
+.chrono-photo-stack-collage {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  min-height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1f2a1c;
+}
+.chrono-photo-stack-collage.is-single { grid-template-columns: 1fr; }
+.chrono-photo-stack-collage.is-duo { grid-template-columns: 1fr 1fr; }
+.chrono-photo-stack-collage.is-tri {
+  grid-template-columns: 1.2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.chrono-photo-stack-collage.is-tri > :first-child { grid-row: 1 / span 2; }
+.chrono-photo-stack-collage.is-quad {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.chrono-photo-stack-cell,
+.chrono-photo-stack-collage .chrono-thumb {
+  width: 100%;
+  height: 100%;
+  min-height: 56px;
+  display: block;
+  border-radius: 0 !important;
+  border: 0 !important;
+}
+.chrono-photo-stack-collage .chrono-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.chrono-photo-stack-fallback {
+  display: grid;
+  place-items: center;
+  color: rgba(244, 247, 242, 0.7);
+  min-height: 120px;
+}
+.chrono-photo-stack-more {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(20, 28, 18, 0.78);
+  color: #f4f7f2;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.chrono-photo-stack-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.chrono-photo-stack-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #5c6b5a);
+}
+.chrono-photo-stack-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.chrono-photo-stack-sub {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary, #5c6b5a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chrono-photo-day-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(12, 18, 12, 0.45);
+  cursor: pointer;
+}
+.chrono-photo-day-sheet {
+  position: fixed;
+  z-index: 1251;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 1.5rem));
+  max-height: min(80vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #d5ddd2);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+.chrono-photo-day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.75rem;
+  border-bottom: 1px solid var(--color-border, #d5ddd2);
+}
+.chrono-photo-day-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.chrono-photo-day-sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #5c6b5a);
+}
+.chrono-photo-day-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary, #5c6b5a);
+  cursor: pointer;
+}
+.chrono-photo-day-close:hover {
+  background: var(--color-surface-muted, #f3f6f1);
+}
+.chrono-photo-day-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.85rem 1.1rem 1.1rem;
+  overflow: auto;
+}
+.chrono-photo-day-tile {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1f2a1c;
+  cursor: pointer;
+}
+.chrono-photo-day-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.chrono-drawer-media-grid button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.chrono-drawer-media-grid button:focus-visible {
+  outline: 2px solid var(--color-accent, #5a7a4e);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .chrono-photo-stack {
+    grid-template-columns: 1fr;
+  }
+  .chrono-photo-day-sheet {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    max-height: min(88vh, 860px);
+    transform: none;
+    border-radius: 16px 16px 0 0;
+  }
+  .chrono-photo-day-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
