@@ -21,7 +21,17 @@
     "newTitle": "New Task",
     "editTitle": "Edit Task",
     "title": "Title",
-    "save": "Save Task"
+    "save": "Save Task",
+    "stepsAria": "Passaggi creazione lavoro",
+    "steps": {
+      "what": "Lavoro",
+      "where": "Campo",
+      "when": "Data",
+      "who": "Responsabile",
+      "review": "Conferma",
+      "field": "Campo",
+      "schedule": "Programma"
+    }
   },
   "fieldWork": {
     "pageTitle": "Lavori",

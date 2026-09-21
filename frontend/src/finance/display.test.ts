@@ -7,10 +7,12 @@ import {
   financialStatusLabel,
   financialTypeHelp,
   financialTypeLabel,
+  isProvisionalActiveYearResult,
   isRawFinancialValue,
   paymentMethodLabel,
   resultLabel,
   resultYearHelp,
+  shortMonthLabel,
   unassignedFieldLabel,
 } from './display';
 
@@ -63,5 +65,34 @@ describe('financial display labels', () => {
     expect(resultLabel(-4, true)).toBe('Ζημιά');
     expect(resultLabel(0, true)).toBe('Ισοσκελισμένο');
     expect(isRawFinancialValue(resultLabel(12, true))).toBe(false);
+  });
+
+  it('uses provisional language for the active year before harvest income', () => {
+    expect(
+      resultLabel(-1200, true, 'el', {
+        isActiveYear: true,
+        totalIncome: 0,
+        hasHarvestIncome: false,
+      })
+    ).toBe('Προσωρινό υπόλοιπο');
+    expect(
+      isProvisionalActiveYearResult(-1200, true, {
+        isActiveYear: true,
+        totalIncome: 0,
+        hasHarvestIncome: false,
+      })
+    ).toBe(true);
+    expect(
+      resultLabel(-1200, true, 'el', {
+        isActiveYear: true,
+        totalIncome: 500,
+        hasHarvestIncome: true,
+      })
+    ).toBe('Ζημιά');
+  });
+
+  it('keeps Greek June and July month abbreviations distinct', () => {
+    expect(shortMonthLabel(2026, 5, 'el')).toBe('Ιούν');
+    expect(shortMonthLabel(2026, 6, 'el')).toBe('Ιούλ');
   });
 });

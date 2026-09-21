@@ -12,4 +12,5 @@ public class UserFeedback : BaseEntity
     public string? UserAgent { get; set; }
     public string? ScreenshotUrl { get; set; }
     public string? PhotoUrl { get; set; }
+    public DateTime? SeenAt { get; set; }
 }

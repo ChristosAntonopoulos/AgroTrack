@@ -13,6 +13,7 @@ export type GrovePerson = {
   userId?: string;
   displayName: string;
   phone?: string;
+  email?: string;
   connections: GroveConnection[];
   serviceLabels: string[];
   listed: boolean;
@@ -116,6 +117,7 @@ export function mergeGrovePeople(
       if (!linked.connections.includes('app')) linked.connections.push('app');
       linked.savedContact = contact;
       linked.phone = contact.phone || linked.phone;
+      linked.email = contact.email || linked.email;
       labels.forEach((label) => {
         if (!linked.serviceLabels.includes(label)) linked.serviceLabels.push(label);
       });
@@ -130,6 +132,7 @@ export function mergeGrovePeople(
       userId: contact.linkedUserId,
       displayName: contact.displayName,
       phone: contact.phone,
+      email: contact.email,
       connections,
       serviceLabels: labels,
       listed: false,
@@ -143,4 +146,22 @@ export function mergeGrovePeople(
     const bi = Math.min(...b.connections.map((c) => ORDER.indexOf(c)));
     return ai - bi || a.displayName.localeCompare(b.displayName, language);
   });
+}
+
+export function fromSavedContacts(
+  savedContacts: SavedContact[],
+  language: string,
+  categories: ServiceCategory[] = []
+): GrovePerson[] {
+  return mergeGrovePeople([], [], savedContacts, '', language, categories);
+}
+
+export function occupiesAccessSeat(
+  person: GrovePerson,
+  accessUserIds: Set<string>,
+  accessEmails: Set<string>
+): boolean {
+  if (person.userId && accessUserIds.has(person.userId)) return true;
+  const email = (person.email || person.savedContact?.email || '').trim().toLowerCase();
+  return Boolean(email && accessEmails.has(email));
 }

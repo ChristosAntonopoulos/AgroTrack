@@ -1,18 +1,12 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Handshake, Sprout } from 'lucide-react';
-import { demoAccounts, DemoAccount } from '../../services/demoAccounts';
+import { demoAccounts, demoAccountIcons, DemoAccount } from '../../services/demoAccounts';
 import './LoginDemoPicker.css';
 
 type Props = {
   loading?: boolean;
   onSelect: (account: DemoAccount) => void;
 };
-
-const ICONS = {
-  grove: Sprout,
-  services: Handshake,
-} as const;
 
 const LoginDemoPicker: React.FC<Props> = ({ loading = false, onSelect }) => {
   const { t } = useTranslation(['auth', 'common']);
@@ -76,7 +70,7 @@ const LoginDemoPicker: React.FC<Props> = ({ loading = false, onSelect }) => {
             </p>
             <div className="login-demo-options">
               {demoAccounts.map((user) => {
-                const Icon = ICONS[user.id];
+                const Icon = demoAccountIcons[user.id];
                 return (
                   <button
                     key={user.email}

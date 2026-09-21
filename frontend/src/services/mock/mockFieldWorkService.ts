@@ -544,13 +544,26 @@ export const mockFieldWorkService = {
     inWindowTemplateCodes: [],
   }),
 
-  getPhenology: async (fieldId: string): Promise<FieldPhenology> => ({
-    fieldId,
-    isKnown: false,
-    stageCode: 'unknown',
-    stageLabel: '',
-    message: 'Δεν γνωρίζουμε ακόμη το στάδιο του ελαιώνα.',
-  }),
+  getPhenology: async (fieldId: string): Promise<FieldPhenology> => {
+    const field = demoStore.getFields().find((f) => f.id === fieldId);
+    const stage = field?.currentLifecycleStage?.trim();
+    if (stage) {
+      return {
+        fieldId,
+        isKnown: true,
+        stageCode: stage,
+        stageLabel: '',
+        message: '',
+      };
+    }
+    return {
+      fieldId,
+      isKnown: false,
+      stageCode: 'unknown',
+      stageLabel: '',
+      message: 'Δεν γνωρίζουμε ακόμη το στάδιο του ελαιώνα.',
+    };
+  },
 
   listPhenologyObservations: async (_fieldId: string): Promise<FieldPhenologyObservation[]> => [],
 

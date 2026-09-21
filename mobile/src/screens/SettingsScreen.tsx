@@ -42,7 +42,9 @@ const formatSample = (format: DateFormatPref, language: AppLanguage) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   if (format === 'dd/MM/yyyy') return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   if (format === 'yyyy-MM-dd') return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  return d.toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', {
+  return d.toLocaleDateString(
+    language === 'el' ? 'el-GR' : language === 'it' ? 'it-IT' : 'en-US',
+    {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -224,7 +226,12 @@ const SettingsScreen = () => {
     </View>
   );
 
-  const languageLabel = language === 'el' ? t('common:greek') : t('common:english');
+  const languageLabel =
+    language === 'el'
+      ? t('common:greek')
+      : language === 'it'
+        ? t('common:italian')
+        : t('common:english');
   const dateLabel = formatSample(dateFormat, language);
 
   const sheetOptions: SheetOption[] =
@@ -232,6 +239,7 @@ const SettingsScreen = () => {
       ? [
           { value: 'el', label: t('common:greek') },
           { value: 'en', label: t('common:english') },
+          { value: 'it', label: t('common:italian') },
         ]
       : DATE_FORMATS.map((fmt) => ({ value: fmt, label: formatSample(fmt, language) }));
 
@@ -291,6 +299,26 @@ const SettingsScreen = () => {
             onChange={(v) => void setFontScale(v as FontScale).then(flashSaved)}
           />
         </FieldBlock>
+
+        <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
+
+        <View style={{ gap: spacing.sm, marginBottom: spacing.sm }}>
+          <Text style={[styles.rowTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
+            {t('settings:experience.easyUsePreset')}
+          </Text>
+          <Text style={[styles.hint, { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier }]}>
+            {t('settings:experience.easyUsePresetDesc')}
+          </Text>
+          <Button
+            title={t('settings:experience.easyUseApply')}
+            variant="secondary"
+            onPress={() => {
+              void setFontScale('large')
+                .then(() => setLargeControls(true))
+                .then(flashSaved);
+            }}
+          />
+        </View>
 
         <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
 

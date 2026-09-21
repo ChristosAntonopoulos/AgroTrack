@@ -8,11 +8,14 @@ import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import {
   presentChronologioEvent,
   presentExpenseChip,
+  presentActorName,
 } from '../../chronologio/eventPresentation';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import WeatherReviewSummary from './WeatherReviewSummary';
+import { resolvePublicAssetUrl } from '../../config/env';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { createElevation, motion, radii, spacing } from '../../theme';
 
 export type ChronologioEntryCardDensity = 'default' | 'compact';
@@ -65,15 +68,27 @@ const isRealMedia = (url?: string | null) => {
   if (!url) return false;
   const u = url.toLowerCase();
   if (u.includes('unsplash') || u.includes('picsum') || u.includes('placeholder')) return false;
-  return u.includes('/uploads/') || u.startsWith('file:') || u.startsWith('content:') || u.startsWith('http');
+  return (
+    u.includes('/uploads/') ||
+    u.startsWith('file:') ||
+    u.startsWith('content:') ||
+    u.startsWith('http') ||
+    u.startsWith('/')
+  );
 };
 
-const pickThumb = (entry: ChronologioEntry): string | undefined => {
+const pickGallery = (entry: ChronologioEntry, limit = 3): string[] => {
+  const out: string[] = [];
   for (const m of entry.media || []) {
+    if (/audio|voice|document/i.test(m.type || '')) continue;
     const candidate = m.thumbnailUrl || m.url;
-    if (isRealMedia(candidate)) return candidate!;
+    if (!isRealMedia(candidate)) continue;
+    const uri = resolvePublicAssetUrl(candidate) || candidate;
+    if (!uri || out.includes(uri)) continue;
+    out.push(uri);
+    if (out.length >= limit) break;
   }
-  return undefined;
+  return out;
 };
 
 /**
@@ -92,6 +107,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'common']);
   const presented = presentChronologioEvent(entry, i18n.language);
+  const actorName = presentActorName(entry.actor?.displayName, i18n.language);
   const { colors } = useTheme();
   const token = eventAccentToken(entry.category, String(entry.importance));
   const { accent: categoryAccent, soft: softBg } = accentColorsForToken(colors, token);
@@ -99,14 +115,17 @@ const ChronologioEntryCard: React.FC<Props> = ({
   const compact = size === 'compact' && !weatherTile;
   const featured = size === 'featured';
   const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
-  const thumb = pickThumb(entry);
-  const extraPhotos = Math.max(0, (entry.media?.length || 0) - 1);
   const isPeriodReview =
     entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
   const harvest = entry.details.harvest;
   const note = entry.details.note;
   const weather = entry.details.weather;
   const category = (entry.category || '').toLowerCase();
+  const fieldLabel = entry.field?.name ? friendlyFieldLabel(entry.field.name) : '';
+  const gallery = !compact && !isPeriodReview ? pickGallery(entry, 3) : pickGallery(entry, 1);
+  const showInlineGallery = !compact && !isPeriodReview && gallery.length > 0;
+  const thumb = gallery[0];
+  const extraPhotos = Math.max(0, (entry.media?.length || 0) - gallery.length);
 
   const when =
     dateStyle === 'dayMonth'
@@ -148,7 +167,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
         <View style={styles.weatherPickField}>
           <View style={[styles.fieldDotLg, { backgroundColor: fieldAccent }]} />
           <Text style={[styles.weatherPickTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-            {entry.field?.name || presented.label}
+            {fieldLabel || presented.label}
           </Text>
         </View>
         {weather ? (
@@ -412,23 +431,44 @@ const ChronologioEntryCard: React.FC<Props> = ({
             </Text>
           ) : null}
 
-          {showField && entry.field?.name ? (
+          {showField && fieldLabel ? (
             <View style={[styles.fieldRow, compact && styles.fieldRowCompact]}>
               <View style={[styles.fieldDot, { backgroundColor: fieldAccent }]} />
               <Text style={[styles.fieldName, { color: colors.textSecondary }]} numberOfLines={1}>
-                {entry.field.name}
+                {fieldLabel}
               </Text>
+            </View>
+          ) : null}
+
+          {actorName && !compact ? (
+            <Text style={[styles.actorName, { color: colors.textTertiary }]} numberOfLines={1}>
+              {t('chronologio:fromActor', { name: actorName })}
+            </Text>
+          ) : null}
+
+          {showInlineGallery && gallery.length > 0 ? (
+            <View style={styles.mediaRow}>
+              {gallery.map((uri) => (
+                <Image key={uri} source={{ uri }} style={styles.mediaThumb} />
+              ))}
+              {extraPhotos > 0 ? (
+                <View style={[styles.mediaMore, { backgroundColor: colors.surfaceMuted }]}>
+                  <Text style={[styles.mediaMoreText, { color: colors.textSecondary }]}>
+                    +{extraPhotos}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>
 
-        {thumb && !isPeriodReview ? (
+        {thumb && !isPeriodReview && !showInlineGallery ? (
           <View
             style={[
               styles.thumbWrap,
               {
-                width: compact ? 44 : featured ? 64 : 56,
-                height: compact ? 44 : featured ? 64 : 56,
+                width: compact ? 44 : 56,
+                height: compact ? 44 : 56,
                 borderRadius: compact ? 10 : 12,
               },
             ]}
@@ -544,6 +584,27 @@ const styles = StyleSheet.create({
   fieldDot: { width: 7, height: 7, borderRadius: 99 },
   fieldDotLg: { width: 10, height: 10, borderRadius: 99 },
   fieldName: { fontSize: 12, fontWeight: '400', flexShrink: 1 },
+  actorName: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  mediaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  mediaThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: '#1f2a1c',
+  },
+  mediaMore: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mediaMoreText: { fontSize: 13, fontWeight: '700' },
   thumbWrap: { overflow: 'hidden', position: 'relative', flexShrink: 0 },
   thumb: { width: '100%', height: '100%' },
   thumbBadge: {

@@ -49,12 +49,10 @@ public static class DependencyInjection
         services.AddScoped<ISavedContactRepository, SavedContactRepository>();
         services.AddScoped<INoteRepository, NoteRepository>();
         services.AddScoped<IMediaAttachmentRepository, MediaAttachmentRepository>();
-        services.AddScoped<IFamilyCircleRepository, FamilyCircleRepository>();
-        services.AddScoped<IFamilyMemberRepository, FamilyMemberRepository>();
-        services.AddScoped<IFamilyInviteRepository, FamilyInviteRepository>();
-        services.AddScoped<IOwnerPartnerLinkRepository, OwnerPartnerLinkRepository>();
-        services.AddScoped<IOwnerPartnerInviteRepository, OwnerPartnerInviteRepository>();
         services.AddScoped<IUserFeedbackRepository, UserFeedbackRepository>();
+        services.AddScoped<IInAppCampaignRepository, InAppCampaignRepository>();
+        services.AddScoped<ICampaignEngagementRepository, CampaignEngagementRepository>();
+        services.AddScoped<ICampaignAnswerRepository, CampaignAnswerRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IImageMetadataService, ImageMetadataService>();

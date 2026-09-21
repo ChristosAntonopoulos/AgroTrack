@@ -1,50 +1,37 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Droplets, Leaf, MapPin, Pentagon, Trees } from 'lucide-react';
+import { Check, Leaf, MapPin, Pentagon, Trees } from 'lucide-react';
 import {
   CreateFieldDto,
   Field,
   FieldAreaValidationResponse,
   GeoJsonPolygon,
-  GreekCadastreInfo,
 } from '../../services/fieldService';
 import { normalizeLocale } from '../../i18n/config';
-import GreekCadastreInfoCard from './GreekCadastreInfoCard';
 import AreaComparisonCard from './AreaComparisonCard';
 import FieldPolygonThumbnail from './FieldPolygonThumbnail';
 
 interface Props {
   formData: CreateFieldDto;
   boundary?: GeoJsonPolygon;
-  cadastre?: GreekCadastreInfo;
   areaValidation?: FieldAreaValidationResponse | null;
   boundaryConfirmed: boolean;
-  cadastreAcknowledged: boolean;
   onBoundaryConfirmedChange: (v: boolean) => void;
-  onCadastreAcknowledgedChange: (v: boolean) => void;
   onWorksMyselfChange: (v: boolean) => void;
 }
 
 const ReviewFieldStep: React.FC<Props> = ({
   formData,
   boundary,
-  cadastre,
   areaValidation,
   boundaryConfirmed,
-  cadastreAcknowledged,
   onBoundaryConfirmedChange,
-  onCadastreAcknowledgedChange,
   onWorksMyselfChange,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = normalizeLocale(i18n.language);
   const varietyLabel = formData.variety
     ? t(`addField.varietyOptions.${formData.variety}`, { defaultValue: formData.variety })
-    : null;
-  const irrigationLabel = formData.irrigationType
-    ? t(`addField.irrigationOptions.${formData.irrigationType}`, {
-        defaultValue: formData.irrigationType,
-      })
     : null;
   const treeCountLabel =
     formData.treeCount != null
@@ -73,14 +60,6 @@ const ReviewFieldStep: React.FC<Props> = ({
           label: t('addField.oliveVariety'),
           value: varietyLabel,
           icon: Leaf,
-        }
-      : null,
-    irrigationLabel
-      ? {
-          key: 'irrigation',
-          label: t('addField.irrigationType'),
-          value: irrigationLabel,
-          icon: Droplets,
         }
       : null,
     {
@@ -134,20 +113,10 @@ const ReviewFieldStep: React.FC<Props> = ({
         })}
       </dl>
 
-      {formData.accessNotes ? (
-        <div className="field-review-notes">
-          <p className="field-review-kicker">{t('addField.accessNotes')}</p>
-          <p>{formData.accessNotes}</p>
-        </div>
-      ) : null}
-
       <AreaComparisonCard
         validation={areaValidation}
-        officialAreaSqm={cadastre?.officialAreaSqm}
         measuredAreaSqm={formData.area}
       />
-
-      {cadastre && <GreekCadastreInfoCard cadastre={cadastre} />}
 
       <div className="review-checkboxes">
         <label className={`review-checkbox${formData.worksThisFieldMyself !== false ? ' is-checked' : ''}`}>
@@ -172,18 +141,6 @@ const ReviewFieldStep: React.FC<Props> = ({
           </span>
           {boundaryConfirmed ? <Check className="review-checkbox-mark" size={18} strokeWidth={2.4} aria-hidden /> : null}
         </label>
-        {cadastre && (
-          <label className={`review-checkbox${cadastreAcknowledged ? ' is-checked' : ''}`}>
-            <input
-              type="checkbox"
-              checked={cadastreAcknowledged}
-              onChange={(e) => onCadastreAcknowledgedChange(e.target.checked)}
-            />
-            <span>
-              <strong>{t('addField.confirmCadastre')}</strong>
-            </span>
-          </label>
-        )}
       </div>
     </div>
   );

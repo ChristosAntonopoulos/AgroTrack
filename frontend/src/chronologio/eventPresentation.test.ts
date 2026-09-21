@@ -47,6 +47,34 @@ describe('eventPresentation', () => {
     expect(presentActorName('Giorgos Papadakis', 'el')).toBe('Γιώργος Παπαδάκης');
   });
 
+  it('labels merged harvest days with date, not generic Harvest', () => {
+    const presented = presentChronologioEvent(
+      entry({
+        id: 'Harvest:day:2025-11-12',
+        category: 'harvest',
+        sourceType: 'Harvest',
+        sourceId: 'day',
+        occurredAt: '2025-11-12T14:00:00.000Z',
+        title: 'Harvest',
+        summary: '120 kg official weight · 4 people',
+        details: {
+          harvest: {
+            harvestId: 'day',
+            oliveKg: 120,
+            workers: 4,
+            sackCount: 8,
+            hasOfficialWeight: true,
+          },
+        },
+      }),
+      'en'
+    );
+    expect(presented.shortLabel).toBe('Harvest day');
+    expect(presented.label).toMatch(/Harvest day/);
+    expect(presented.label).not.toBe('Harvest');
+    expect(presented.description).toContain('120 kg');
+  });
+
   it('uses API expense labels when they are already human', () => {
     const presented = presentChronologioEvent(
       entry({

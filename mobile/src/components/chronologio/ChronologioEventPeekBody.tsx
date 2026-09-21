@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,6 +17,7 @@ import { resolveFieldColor } from '../../utils/fieldColors';
 import WeatherReviewSummary from './WeatherReviewSummary';
 import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
 import { resolvePublicAssetUrl } from '../../config/env';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { radii, spacing, typography } from '../../theme';
 
 type Props = {
@@ -63,7 +64,10 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
     hour12: false,
   })}`;
 
-  const photos = (entry.media || []).filter(m => isRealMedia(m.url || m.thumbnailUrl));
+  const media = (entry.media || []).filter(m => isRealMedia(m.url || m.thumbnailUrl));
+  const audio = media.filter(m => /audio|voice/i.test(m.type || ''));
+  const documents = media.filter(m => /document/i.test(m.type || ''));
+  const photos = media.filter(m => !/audio|voice|document/i.test(m.type || ''));
   const viewerItems = useMemo(
     (): PhotoViewerItem[] =>
       photos.map((m) => {
@@ -91,7 +95,7 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
         <View style={[styles.fieldChip, { backgroundColor: colors.surfaceMuted }]}>
           <View style={[styles.fieldDot, { backgroundColor: fieldAccent }]} />
           <Text style={{ color: colors.textPrimary, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
-            {entry.field.name}
+            {friendlyFieldLabel(entry.field.name)}
           </Text>
         </View>
       ) : null}
@@ -288,6 +292,38 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
           </ScrollView>
         </View>
       ) : null}
+      {audio.map((m) => {
+        const src = resolvePublicAssetUrl(m.url) || m.url;
+        if (!src) return null;
+        return (
+          <Pressable
+            key={m.id}
+            style={[styles.docLink, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}
+            onPress={() => void Linking.openURL(src)}
+          >
+            <Ionicons name="mic-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontWeight: '700', marginLeft: 8 }}>
+              {t('chronologio:drawer.voice', { defaultValue: 'Voice message' })}
+            </Text>
+          </Pressable>
+        );
+      })}
+      {documents.map((m) => {
+        const src = resolvePublicAssetUrl(m.url) || m.url;
+        if (!src) return null;
+        return (
+          <Pressable
+            key={m.id}
+            style={[styles.docLink, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}
+            onPress={() => void Linking.openURL(src)}
+          >
+            <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontWeight: '700', marginLeft: 8, flex: 1 }} numberOfLines={2}>
+              {entry.summary || t('chronologio:drawer.document', { defaultValue: 'Document' })}
+            </Text>
+          </Pressable>
+        );
+      })}
       <PhotoViewer
         open={viewerIndex != null}
         items={viewerItems}
@@ -315,16 +351,32 @@ export const eventPeekFooterActions = (
     openField: () => void;
     openPhoto?: () => void;
     createTask?: () => void;
-  }
+    edit?: () => void;
+    remove?: () => void;
+  },
+  caps?: { canEdit: boolean; removeAction: 'edit' | 'delete' | 'void' | 'cancel' | null }
 ): EventPeekFooterAction[] => {
   const kind = chronologioDetailKind(entry);
   const actions: EventPeekFooterAction[] = [];
+  const removeLabel =
+    caps?.removeAction === 'cancel'
+      ? t('chronologio:drawer.cancelTask', { defaultValue: t('common:cancel') })
+      : caps?.removeAction === 'void'
+        ? t('chronologio:drawer.void', { defaultValue: 'Void' })
+        : t('common:delete');
+
   if (entry.sourceType === 'Photo' && navigate.openPhoto) {
     actions.push({
       label: t('chronologio:drawer.openPhoto', { defaultValue: 'Open photo' }),
       onPress: navigate.openPhoto,
       primary: true,
     });
+    if (caps?.canEdit && navigate.edit) {
+      actions.push({ label: t('common:edit'), onPress: navigate.edit });
+    }
+    if (caps?.removeAction && navigate.remove) {
+      actions.push({ label: removeLabel, onPress: navigate.remove });
+    }
     return actions;
   }
   if (kind === 'task') {
@@ -333,18 +385,36 @@ export const eventPeekFooterActions = (
       onPress: navigate.openTask,
       primary: true,
     });
+    if (caps?.canEdit && navigate.edit) {
+      actions.push({ label: t('common:edit'), onPress: navigate.edit });
+    }
+    if (caps?.removeAction && navigate.remove) {
+      actions.push({ label: removeLabel, onPress: navigate.remove });
+    }
   } else if (kind === 'money') {
     actions.push({
       label: t('chronologio:drawer.openMoney', { defaultValue: 'Open in Money' }),
       onPress: navigate.openMoney,
       primary: true,
     });
+    if (caps?.canEdit && navigate.edit) {
+      actions.push({ label: t('common:edit'), onPress: navigate.edit });
+    }
+    if (caps?.removeAction && navigate.remove) {
+      actions.push({ label: removeLabel, onPress: navigate.remove });
+    }
   } else if (kind === 'harvest') {
     actions.push({
       label: t('chronologio:living.openFull'),
       onPress: navigate.openHarvest,
       primary: true,
     });
+    if (caps?.canEdit && navigate.edit) {
+      actions.push({ label: t('common:edit'), onPress: navigate.edit });
+    }
+    if (caps?.removeAction && navigate.remove) {
+      actions.push({ label: removeLabel, onPress: navigate.remove });
+    }
   } else if (kind === 'weatherPeriod') {
     actions.push({
       label: t('chronologio:weatherReview.openCharts'),
@@ -352,20 +422,41 @@ export const eventPeekFooterActions = (
       primary: true,
     });
   } else if (kind === 'observation') {
-    if (navigate.createTask) {
+    if (entry.sourceType === 'Note' || entry.category === 'note') {
+      if (caps?.canEdit && navigate.edit) {
+        actions.push({
+          label: t('common:edit'),
+          onPress: navigate.edit,
+          primary: true,
+        });
+      } else if (navigate.createTask) {
+        actions.push({
+          label: t('chronologio:drawer.createTask', {
+            defaultValue: 'Create work from this observation',
+          }),
+          onPress: navigate.createTask,
+          primary: true,
+        });
+      }
+      if (caps?.removeAction && navigate.remove) {
+        actions.push({ label: removeLabel, onPress: navigate.remove });
+      }
+    } else {
+      if (navigate.createTask) {
+        actions.push({
+          label: t('chronologio:drawer.createTask', {
+            defaultValue: 'Create work from this observation',
+          }),
+          onPress: navigate.createTask,
+          primary: true,
+        });
+      }
       actions.push({
-        label: t('chronologio:drawer.createTask', {
-          defaultValue: 'Create work from this observation',
-        }),
-        onPress: navigate.createTask,
-        primary: true,
+        label: t('chronologio:living.openFull'),
+        onPress: navigate.openField,
+        primary: !navigate.createTask,
       });
     }
-    actions.push({
-      label: t('chronologio:living.openFull'),
-      onPress: navigate.openField,
-      primary: !navigate.createTask,
-    });
   } else {
     actions.push({
       label: t('chronologio:living.openFull'),
@@ -432,6 +523,15 @@ const styles = StyleSheet.create({
   factLabel: { ...typography.styles.overline },
   factValue: { fontSize: 15, fontWeight: '600' },
   photo: { width: 140, height: 100, borderRadius: radii.card, marginRight: 8 },
+  docLink: {
+    marginTop: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.card,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });
 
 export default ChronologioEventPeekBody;

@@ -27,6 +27,14 @@
     "money": {
       "title": "Money",
       "description": "Income or expense"
+    },
+    "voice": {
+      "title": "Voice message",
+      "description": "A recording saved on the timeline"
+    },
+    "document": {
+      "title": "Document",
+      "description": "Upload a file with a name"
     }
   },
   "fieldLabel": "Grove",
@@ -47,6 +55,21 @@
     "placeholder": "What did you notice?",
     "addPhoto": "Add photo",
     "saved": "Observation recorded."
+  },
+  "voice": {
+    "hint": "Tap record and speak. The message appears on the timeline.",
+    "record": "Record",
+    "stop": "Stop {{time}}",
+    "rerecord": "Record again",
+    "clear": "Clear",
+    "noteBody": "Voice message",
+    "saved": "Voice message recorded."
+  },
+  "document": {
+    "nameLabel": "Document name",
+    "namePlaceholder": "e.g. Soil analysis",
+    "chooseFile": "Choose file",
+    "saved": "Document recorded."
   },
   "work": {
     "whatWork": "What work was done?",
@@ -87,6 +110,10 @@
   "errors": {
     "fieldRequired": "Choose a grove.",
     "observationEmpty": "Add a note or a photo.",
+    "voiceEmpty": "Record a voice message first.",
+    "documentNameRequired": "Enter a document name.",
+    "documentFileRequired": "Choose a file.",
+    "micDenied": "Microphone permission is required.",
     "workTypeRequired": "Choose the work that was done.",
     "amountRequired": "Enter an amount.",
     "oliveRequired": "Enter olive kilograms.",

@@ -1,7 +1,7 @@
 import api from './api';
 import type { FontScale } from '../experience/types';
 
-export type PreferenceLanguage = 'en' | 'el';
+export type PreferenceLanguage = 'en' | 'el' | 'it';
 
 export interface UserExperiencePreferences {
   fontScale: FontScale;
@@ -18,7 +18,7 @@ export interface UpdateUserPreferencesInput {
 const normalize = (raw: Partial<UserExperiencePreferences> | null | undefined): UserExperiencePreferences => ({
   fontScale: raw?.fontScale === 'large' || raw?.fontScale === 'xl' ? raw.fontScale : 'default',
   largeControls: Boolean(raw?.largeControls),
-  language: raw?.language === 'el' ? 'el' : 'en',
+  language: raw?.language === 'el' ? 'el' : raw?.language === 'it' ? 'it' : 'en',
 });
 
 export const userPreferencesService = {

@@ -27,6 +27,7 @@ type HarvestCampaignApi = {
   setFieldOrder: (fieldOrder: string[]) => void;
   markGroveDone: (fieldId: string) => void;
   logDay: (log: HarvestDayLog) => void;
+  patch: (fn: (campaign: HarvestCampaign) => HarvestCampaign) => void;
 };
 
 const HarvestCampaignContext = createContext<HarvestCampaignApi | null>(null);
@@ -76,6 +77,7 @@ export const HarvestCampaignProvider: React.FC<{ children: React.ReactNode }> = 
       setFieldOrder: (fieldOrder) => commit({ ...campaign, fieldOrder }),
       markGroveDone: (fieldId) => commit(toggleGroveDone(campaign, fieldId)),
       logDay: (log) => commit(upsertDayLog(campaign, log)),
+      patch: (fn) => commit(fn(campaign)),
     }),
     [campaign, commit, seasonStartYear]
   );

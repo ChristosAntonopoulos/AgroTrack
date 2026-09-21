@@ -18,7 +18,7 @@ import { typography, spacing, radii, motion, createElevation } from '../../theme
 
 const TABLET_BREAKPOINT = 768;
 
-export type SheetEdge = 'left' | 'end' | 'bottom';
+export type SheetEdge = 'left' | 'end' | 'bottom' | 'center';
 
 export type SheetProps = {
   open: boolean;
@@ -75,6 +75,7 @@ const Sheet: React.FC<SheetProps> = ({
   const placement = useMemo(() => {
     if (edge === 'left') return 'left' as const;
     if (edge === 'bottom') return 'bottom' as const;
+    if (edge === 'center') return 'center' as const;
     return isTablet ? ('right' as const) : ('bottom' as const);
   }, [edge, isTablet]);
 
@@ -122,6 +123,19 @@ const Sheet: React.FC<SheetProps> = ({
         ],
       };
     }
+    if (placement === 'center') {
+      return {
+        opacity: anim,
+        transform: [
+          {
+            scale: anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.96, 1],
+            }),
+          },
+        ],
+      };
+    }
     return {
       transform: [
         {
@@ -162,6 +176,18 @@ const Sheet: React.FC<SheetProps> = ({
         borderBottomLeftRadius: radii.xl,
       };
     }
+    if (placement === 'center') {
+      const centerWidth = Math.min(520, width - 32);
+      return {
+        position: 'absolute' as const,
+        left: (width - centerWidth) / 2,
+        top: Math.max(insets.top + 24, height * 0.1),
+        width: centerWidth,
+        maxHeight: height * 0.8,
+        borderRadius: radii.xl,
+        paddingBottom: spacing.base,
+      };
+    }
     return {
       position: 'absolute' as const,
       left: 0,
@@ -172,10 +198,10 @@ const Sheet: React.FC<SheetProps> = ({
       borderTopLeftRadius: radii.sheet,
       borderTopRightRadius: radii.sheet,
     };
-  }, [placement, panelWidth, insets, maxHeightPercent]);
+  }, [placement, panelWidth, insets, maxHeightPercent, width, height]);
 
   const accentBarStyle =
-    placement === 'bottom'
+    placement === 'bottom' || placement === 'center'
       ? {
           position: 'absolute' as const,
           top: 0,

@@ -27,6 +27,9 @@ public class HarvestRecordDocument
     [BsonElement("workersUsed")]
     public int WorkersUsed { get; set; }
 
+    [BsonElement("sackCount")]
+    public int SackCount { get; set; }
+
     [BsonElement("oliveKg")]
     public double OliveKg { get; set; }
 
@@ -60,6 +63,14 @@ public class HarvestRecordDocument
 
     [BsonElement("notes")]
     public string? Notes { get; set; }
+
+    [BsonElement("batchId")]
+    [BsonIgnoreIfNull]
+    public string? BatchId { get; set; }
+
+    [BsonElement("allocationWeight")]
+    [BsonIgnoreIfNull]
+    public double? AllocationWeight { get; set; }
 
     [BsonElement("status")]
     public string Status { get; set; } = "posted";

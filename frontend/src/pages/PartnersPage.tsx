@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Plus, Smartphone } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
@@ -15,23 +15,28 @@ import TeamAccessSection from '../components/Partners/TeamAccessSection';
 import SavedContactSheet from '../components/Partners/SavedContactSheet';
 import ImportPhoneContactsSheet from '../components/Partners/ImportPhoneContactsSheet';
 import NeedHelpSection from '../components/Partners/NeedHelpSection';
-import { mergeGrovePeople, GrovePerson } from '../components/Partners/grovePeople';
+import { fromSavedContacts, GrovePerson, occupiesAccessSeat } from '../components/Partners/grovePeople';
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { fieldPeopleService } from '../services/fieldPeopleService';
-import { FamilyCircle, familyService } from '../services/familyService';
-import { OwnerPartnerSeat, ownerPartnerService } from '../services/ownerPartnerService';
+import {
+  FieldMembership,
+  MAX_FAMILY_SEATS,
+  MAX_PARTNER_SEATS,
+  countSeats,
+  fieldPeopleService,
+} from '../services/fieldPeopleService';
 import {
   SavedContact,
   ServiceCategory,
-  ServiceContactRequest,
   categorySlugForTaskType,
   rememberPartnerFieldId,
   rememberedPartnerFieldId,
 } from '../services/partnerService';
 import { useAuth } from '../context/AuthContext';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
+import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { canPickDeviceContact } from '../utils/pickDeviceContact';
+import { invalidateAccessContext } from '../hooks/useAccessContext';
 import './PartnersPage.css';
 
 /** Marketplace browse / offer / requests — hidden until we ship it. */
@@ -41,7 +46,8 @@ const PartnersPage: React.FC = () => {
   const { t, i18n } = useTranslation(['partners', 'common']);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
+  const pageGuard = useModulePageGuard({ adminOnly: true });
   const fieldIdParam = params.get('fieldId') || '';
   const addParam = params.get('add') === '1';
   const fromParam = params.get('from') || '';
@@ -50,12 +56,10 @@ const PartnersPage: React.FC = () => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [fieldId, setFieldId] = useState(fieldIdParam || rememberedPartnerFieldId());
   const [people, setPeople] = useState<GrovePerson[]>([]);
-  const [family, setFamily] = useState<FamilyCircle | null>(null);
-  const [partnerSeat, setPartnerSeat] = useState<OwnerPartnerSeat | null>(null);
+  const [fieldPeople, setFieldPeople] = useState<FieldMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [peopleLoading, setPeopleLoading] = useState(false);
-  const [familyLoading, setFamilyLoading] = useState(false);
-  const [partnerLoading, setPartnerLoading] = useState(false);
+  const [seatsLoading, setSeatsLoading] = useState(false);
   const [adding, setAdding] = useState(addParam);
   const [addingFamily, setAddingFamily] = useState(false);
   const [addingPartner, setAddingPartner] = useState(false);
@@ -67,15 +71,15 @@ const PartnersPage: React.FC = () => {
   const importPhoneDrawer = useDrawerPresence(importingPhone);
   const editContactDrawer = useDrawerPresence(editing);
   const [peopleTick, setPeopleTick] = useState(0);
-  const [familyTick, setFamilyTick] = useState(0);
-  const [partnerTick, setPartnerTick] = useState(0);
+  const [seatsTick, setSeatsTick] = useState(0);
   const canPickPhone = useMemo(() => canPickDeviceContact(), []);
 
+  const selectedField = fields.find((f) => f.id === fieldId);
   const canManage =
     user?.role === 'FieldOwner' ||
     user?.role === 'Administrator' ||
-    fields.some((f) => f.ownerId === user?.userId);
-  const canManageFamily = canManage;
+    selectedField?.ownerId === user?.userId ||
+    fieldPeople.some((p) => p.userId === user?.userId && p.role === 'Admin');
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +97,11 @@ const PartnersPage: React.FC = () => {
         if (nextField) {
           setFieldId(nextField);
           rememberPartnerFieldId(nextField);
+          if (fieldIdParam !== nextField) {
+            const next = new URLSearchParams(params);
+            next.set('fieldId', nextField);
+            setSearchParams(next, { replace: true });
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -101,6 +110,7 @@ const PartnersPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldIdParam]);
 
   useEffect(() => {
@@ -108,24 +118,11 @@ const PartnersPage: React.FC = () => {
     void (async () => {
       setPeopleLoading(true);
       try {
-        const memberLists = await Promise.all(
-          fields.map(async (field) => {
-            const rows = await fieldPeopleService.getPeople(field.id).catch(() => []);
-            return rows.map((member) => ({ ...member, fieldId: field.id }));
-          })
-        );
-        const [outgoing, saved] = await Promise.all([
-          getPartnerService()
-            .getRequests('outgoing')
-            .catch(() => [] as ServiceContactRequest[]),
-          getPartnerService()
-            .getContacts()
-            .catch(() => [] as SavedContact[]),
-        ]);
+        const saved = await getPartnerService()
+          .getContacts()
+          .catch(() => [] as SavedContact[]);
         if (cancelled) return;
-        setPeople(
-          mergeGrovePeople(memberLists.flat(), outgoing, saved, '', i18n.language, categories)
-        );
+        setPeople(fromSavedContacts(saved, i18n.language, categories));
       } catch {
         if (!cancelled) {
           setPeople([]);
@@ -137,43 +134,38 @@ const PartnersPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fields, peopleTick, i18n.language, categories]);
+  }, [peopleTick, i18n.language, categories]);
 
   useEffect(() => {
-    if (!user) {
-      setFamily(null);
-      setPartnerSeat(null);
+    if (!user || !fieldId) {
+      setFieldPeople([]);
       return;
     }
     let cancelled = false;
     void (async () => {
-      setFamilyLoading(true);
-      setPartnerLoading(true);
+      setSeatsLoading(true);
       try {
-        const [circle, seat] = await Promise.all([
-          familyService.getMine(),
-          ownerPartnerService.getMine(),
-        ]);
-        if (!cancelled) {
-          setFamily(circle);
-          setPartnerSeat(seat);
-        }
+        const rows = await fieldPeopleService.getPeople(fieldId);
+        if (!cancelled) setFieldPeople(rows);
       } catch {
-        if (!cancelled) {
-          setFamily(null);
-          setPartnerSeat(null);
-        }
+        if (!cancelled) setFieldPeople([]);
       } finally {
-        if (!cancelled) {
-          setFamilyLoading(false);
-          setPartnerLoading(false);
-        }
+        if (!cancelled) setSeatsLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, familyTick, partnerTick]);
+  }, [user, fieldId, seatsTick]);
+
+  const onFieldChange = (nextId: string) => {
+    setFieldId(nextId);
+    rememberPartnerFieldId(nextId);
+    const next = new URLSearchParams(params);
+    if (nextId) next.set('fieldId', nextId);
+    else next.delete('fieldId');
+    setSearchParams(next, { replace: true });
+  };
 
   const goSearch = (category: ServiceCategory) => {
     if (!fieldId) return;
@@ -203,18 +195,53 @@ const PartnersPage: React.FC = () => {
     document.getElementById('need-help')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const accessUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    fieldPeople.forEach((person) => {
+      if (person.userId && person.role !== 'Admin') ids.add(person.userId);
+    });
+    return ids;
+  }, [fieldPeople]);
+
+  const accessEmails = useMemo(() => {
+    const emails = new Set<string>();
+    fieldPeople.forEach((person) => {
+      if (person.email) emails.add(person.email.trim().toLowerCase());
+    });
+    return emails;
+  }, [fieldPeople]);
+
   const visiblePeople = useMemo(
     () =>
       people.filter((person) => {
-        // Don't list yourself as “looks after the field” — this list is your contacts & helpers.
-        if (user?.userId && person.userId === user.userId && !person.savedContact) {
-          return false;
-        }
-        return true;
+        if (!person.savedContact) return false;
+        if (user?.userId && person.userId === user.userId) return false;
+        return !occupiesAccessSeat(person, accessUserIds, accessEmails);
       }),
-    [people, user?.userId]
+    [people, user?.userId, accessUserIds, accessEmails]
   );
   const peopleCount = visiblePeople.length;
+  const familyUsed = countSeats(fieldPeople, 'Family');
+  const partnerUsed = countSeats(fieldPeople, 'Partner');
+
+  const onSeatsChanged = () => {
+    setSeatsTick((n) => n + 1);
+    invalidateAccessContext();
+  };
+
+  if (pageGuard.loading) {
+    return (
+      <PageContainer>
+        <div className="partners-page">
+          <Breadcrumbs />
+          <LoadingSpinner className="page-inline-loading" />
+        </div>
+      </PageContainer>
+    );
+  }
+  if (!pageGuard.allowed) {
+    return <Navigate to="/chronologio" replace />;
+  }
 
   if (loading) {
     return (
@@ -232,15 +259,31 @@ const PartnersPage: React.FC = () => {
       <div className="partners-page">
         <Breadcrumbs />
 
+        {fields.length > 0 ? (
+          <div className="partners-field-picker">
+            <label className="partners-field-picker-label">
+              <span>{t('partners:forWhichField')}</span>
+              <select value={fieldId} onChange={(e) => onFieldChange(e.target.value)}>
+                {fields.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : null}
+
         <section className="partners-section partners-contacts-hero" aria-labelledby="my-people-title">
           <div className="partners-section-head">
             <div>
               <h1 id="my-people-title" className="partners-page-title">
-                {t('partners:myPeople')}
+                {t('partners:contactsSection')}
                 {!peopleLoading && peopleCount > 0 ? (
                   <span className="partners-count">{peopleCount}</span>
                 ) : null}
               </h1>
+              <p className="partners-lead">{t('partners:contactsSectionHint')}</p>
             </div>
             {user ? (
               <div className="partners-hero-actions">
@@ -304,6 +347,7 @@ const PartnersPage: React.FC = () => {
                 key={person.id}
                 person={person}
                 fieldId={fieldId}
+                fields={fields}
                 canManage={canManage}
                 onEditContact={(row) => setEditing(row.savedContact || null)}
                 onRemoved={() => setPeopleTick((n) => n + 1)}
@@ -312,16 +356,15 @@ const PartnersPage: React.FC = () => {
           </div>
         </section>
 
-        {user ? (
+        {user && fieldId ? (
           <TeamAccessSection
-            family={family}
-            partnerSeat={partnerSeat}
-            loading={familyLoading || partnerLoading}
-            canManage={canManageFamily}
+            fieldId={fieldId}
+            people={fieldPeople}
+            loading={seatsLoading}
+            canManage={canManage}
             onAddFamily={() => setAddingFamily(true)}
             onAddPartner={() => setAddingPartner(true)}
-            onFamilyChanged={() => setFamilyTick((n) => n + 1)}
-            onPartnerChanged={() => setPartnerTick((n) => n + 1)}
+            onChanged={onSeatsChanged}
           />
         ) : null}
 
@@ -341,12 +384,8 @@ const PartnersPage: React.FC = () => {
             fieldId={fieldId || undefined}
             fields={fields}
             categories={categories}
-            canInviteFamily={Boolean(
-              canManageFamily && (family?.seatsUsed ?? 0) < (family?.seatsMax ?? 2)
-            )}
-            canInvitePartner={Boolean(
-              canManageFamily && (partnerSeat?.seatsUsed ?? 0) < (partnerSeat?.seatsMax ?? 1)
-            )}
+            canInviteFamily={Boolean(canManage && fieldId && familyUsed < MAX_FAMILY_SEATS)}
+            canInvitePartner={Boolean(canManage && fieldId && partnerUsed < MAX_PARTNER_SEATS)}
             onClose={() => setAdding(false)}
             onSaved={() => setPeopleTick((n) => n + 1)}
             onInviteFamily={() => setAddingFamily(true)}
@@ -366,19 +405,21 @@ const PartnersPage: React.FC = () => {
           />
         ) : null}
 
-        {addFamilyDrawer.mounted ? (
+        {addFamilyDrawer.mounted && fieldId ? (
           <AddFamilySheet
             open={addFamilyDrawer.open}
+            fieldId={fieldId}
             onClose={() => setAddingFamily(false)}
-            onCreated={() => setFamilyTick((n) => n + 1)}
+            onCreated={onSeatsChanged}
           />
         ) : null}
 
-        {addPartnerDrawer.mounted ? (
+        {addPartnerDrawer.mounted && fieldId ? (
           <AddPartnerSheet
             open={addPartnerDrawer.open}
+            fieldId={fieldId}
             onClose={() => setAddingPartner(false)}
-            onCreated={() => setPartnerTick((n) => n + 1)}
+            onCreated={onSeatsChanged}
           />
         ) : null}
 

@@ -27,7 +27,7 @@ export type AppMapViewProps = {
   mapLayer?: MapLayerType;
   initialRegion?: MapRegion | null;
   region?: MapRegion;
-  /** Cap initial / programmatic zoom so raster tiles load reliably (e.g. field detail hero). */
+  /** Hard stop for pinch / zoom controls so raster tiles stay visible. */
   maxZoom?: number;
   showUserLocation?: boolean;
   scrollEnabled?: boolean;

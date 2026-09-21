@@ -1,12 +1,16 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 
 const canvasLight = require('../../../assets/images/app-canvas-light.jpg');
 const canvasDark = require('../../../assets/images/app-canvas-dark.jpg');
+const harvestCanvasLight = require('../../../assets/images/harvest-canvas-light.jpg');
+const harvestCanvasDark = require('../../../assets/images/harvest-canvas-dark.jpg');
 
 /**
  * Illustrated parchment — mirrors web `.app-canvas`.
+ * Live harvest swaps to the wheat-gold harvest canvases (web harvest-mode).
  * Painted inside ScreenLayout so native-stack opaque scenes cannot hide it.
  */
 type Props = {
@@ -16,6 +20,15 @@ type Props = {
 
 const AppCanvas: React.FC<Props> = ({ opacity = 1 }) => {
   const { colors, isDark } = useTheme();
+  const harvest = useHarvestCampaignOptional();
+  const harvestLive = Boolean(harvest?.isLive);
+  const source = harvestLive
+    ? isDark
+      ? harvestCanvasDark
+      : harvestCanvasLight
+    : isDark
+      ? canvasDark
+      : canvasLight;
 
   return (
     <View
@@ -25,7 +38,7 @@ const AppCanvas: React.FC<Props> = ({ opacity = 1 }) => {
       importantForAccessibility="no-hide-descendants"
     >
       <Image
-        source={isDark ? canvasDark : canvasLight}
+        source={source}
         style={[styles.image, { opacity }]}
         resizeMode="cover"
       />

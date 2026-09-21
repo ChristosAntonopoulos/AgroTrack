@@ -252,6 +252,7 @@ const LandingPage: React.FC = () => {
             <div className="landing-hero-copy">
               <p className="landing-eyebrow">{t('hero.eyebrow')}</p>
               <h1>{t('hero.title')}</h1>
+              <p className="landing-definition">{t('hero.definition')}</p>
               <p className="landing-lead">{t('hero.sub')}</p>
               <ul className="landing-hero-benefits">
                 {lines('hero.benefits').map((item) => (
@@ -571,6 +572,7 @@ const LandingPage: React.FC = () => {
                 <Download size={18} aria-hidden />
                 {t('alpha.download')}
               </a>
+              <p className="landing-apk-hint">{t('alpha.downloadHint')}</p>
               <button
                 type="button"
                 className="landing-apk-guide-toggle"

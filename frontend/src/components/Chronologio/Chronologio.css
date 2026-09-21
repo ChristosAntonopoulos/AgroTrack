@@ -79,12 +79,14 @@
 }
 
 .chronologio-sticky {
-  position: relative;
+  position: sticky;
+  top: calc(var(--header-height, 64px) + var(--safe-top, 0px));
   z-index: var(--z-period-navigation, 10);
   margin: 1rem 0 1.5rem;
-  padding: 0.65rem 0 0;
-  background: transparent;
-  border-bottom: 0;
+  padding: 0.65rem 0 0.75rem;
+  background: color-mix(in srgb, var(--bg-page, var(--color-bg, #f7f6f2)) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft, var(--color-border)) 70%, transparent);
 }
 
 .chronologio-toolbar {
@@ -404,6 +406,21 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
   margin-top: 0.7rem;
+}
+
+.chronologio-harvest-stats.is-day-snapshot {
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+}
+
+.chronologio-event-card.is-harvest-day {
+  border-color: color-mix(in srgb, var(--olive-primary) 28%, transparent);
+}
+
+.chronologio-harvest-day-summary {
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
 }
 
 .chronologio-harvest-stat {
@@ -1412,9 +1429,11 @@
   max-width: 100%;
   gap: 0;
   padding: 4px;
+  margin: 0.75rem;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   background: var(--surface-2);
+  box-sizing: border-box;
 }
 .chrono-view-tab {
   flex: 0 1 auto;
@@ -1440,6 +1459,7 @@
   justify-content: flex-start;
   gap: 0.45rem;
   overflow-x: auto;
+  margin-left: 0.75rem;
   padding-bottom: 0.15rem;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -1558,8 +1578,7 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .chrono-view-tabs { width: 100%; }
-  .chrono-view-tab { flex: 1 1 0; min-width: 0; }
+  .chrono-view-tabs { margin: 0.75rem; }
   .chrono-category-rail { justify-content: flex-start; }
 }
 .chrono-locked-toolbar .chrono-toolbar-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
@@ -2268,6 +2287,19 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chrono-drawer-notes { white-space: pre-wrap; font-size: 1rem; line-height: 1.5; }
 .chrono-drawer-checklist { margin: 0; padding-left: 1.1rem; }
 .chrono-drawer-audio { width: 100%; margin-top: 0.5rem; }
+.chrono-drawer-document {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.chrono-drawer-document:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
 .chrono-drawer-pin-flag { display: inline-flex; align-items: center; gap: 0.3rem; }
 .chrono-compare { border: 1px solid var(--color-border); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; }
 .chrono-compare-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
@@ -2740,45 +2772,128 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chrono-month-heading-btn:hover .chrono-day-heading {
   color: var(--olive-primary, #536b3f);
 }
-.chrono-month-group-phase {
-  margin: 0.15rem 0 0;
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--chrono-muted, var(--color-text-secondary));
+.chrono-month-group {
+  margin: 0 0 0.7rem;
+  padding: 0.85rem 0.95rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-soft, var(--color-border)) 70%, transparent);
+  background: color-mix(in srgb, var(--surface-1, var(--color-surface)) 82%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, #000 10%, transparent);
 }
-.chrono-month-wx {
+.chrono-month-group.is-current {
+  border-color: color-mix(in srgb, var(--olive-primary, #a8c59e) 48%, var(--color-border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--olive-primary, #a8c59e) 22%, transparent),
+    0 1px 0 color-mix(in srgb, #000 10%, transparent);
+}
+.chrono-month-group.is-active {
+  border-color: color-mix(in srgb, var(--olive-primary, #a8c59e) 55%, var(--color-border));
+}
+.chrono-month-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 0.75rem;
+  row-gap: 0.55rem;
+  margin: 0 0 0.75rem;
+}
+.chrono-month-head-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  min-width: 0;
+}
+.chrono-month-group .chrono-day-heading {
+  font-size: 1.2rem;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  text-transform: capitalize;
+}
+.chrono-month-now {
   display: inline-flex;
   align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--olive-primary, #536b3f);
+  background: color-mix(in srgb, var(--olive-primary, #a8c59e) 16%, transparent);
+}
+.chrono-month-count {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--chrono-muted, var(--color-text-secondary));
+  white-space: nowrap;
+}
+.chrono-month-group.is-empty.is-compact {
+  padding-block: 0.65rem;
+  opacity: 0.78;
+}
+.chrono-month-group.is-empty.is-compact .chrono-day-heading {
+  font-size: 1.05rem;
+}
+.chrono-month-group.is-empty.is-compact .chrono-month-head {
+  margin-bottom: 0;
+}
+.chrono-month-wx {
+  display: flex;
   flex-wrap: wrap;
-  gap: 0.15rem 0.7rem;
+  align-items: center;
+  gap: 0.4rem;
+  grid-column: 1 / -1;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-variant-numeric: tabular-nums;
-  font-weight: 650;
   cursor: pointer;
 }
-.chrono-month-wx .is-deficit {
-  color: color-mix(in srgb, #a65d4e 75%, var(--color-text-primary));
+.chrono-month-wx-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.58rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--olive-primary, #a8c59e) 12%, transparent);
+  color: var(--chrono-text, var(--color-text-primary));
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
-.chrono-month-wx .is-surplus {
-  color: color-mix(in srgb, var(--olive-primary, #536b3f) 75%, var(--color-text-primary));
+.chrono-month-wx-chip.is-deficit {
+  background: color-mix(in srgb, #a65d4e 18%, transparent);
+  color: color-mix(in srgb, #a65d4e 82%, var(--color-text-primary));
+}
+.chrono-month-wx-chip.is-surplus {
+  background: color-mix(in srgb, var(--olive-primary, #536b3f) 16%, transparent);
+  color: color-mix(in srgb, var(--olive-primary, #536b3f) 80%, var(--color-text-primary));
 }
 .chrono-month-group.is-empty .chrono-quiet-btn {
   margin: 0 0 0.35rem;
 }
 .chrono-year-feed .chrono-year-season-mark {
-  margin: 0.15rem 0 0.35rem;
-  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.85rem 0.15rem 0.5rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--olive-primary, #536b3f);
+}
+.chrono-year-feed .chrono-year-season-mark::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: color-mix(in srgb, var(--olive-primary, #536b3f) 28%, transparent);
 }
 .chrono-daily-weather,
 .chrono-daily-weather.is-button {
@@ -3322,71 +3437,15 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   text-overflow: ellipsis;
 }
 
-.chrono-photo-day-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1250;
-  border: 0;
-  margin: 0;
-  padding: 0;
-  background: rgba(12, 18, 12, 0.45);
-  cursor: pointer;
-}
-.chrono-photo-day-sheet {
-  position: fixed;
-  z-index: 1251;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 1.5rem));
-  max-height: min(80vh, 720px);
-  display: flex;
-  flex-direction: column;
-  border-radius: 16px;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #d5ddd2);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
-  overflow: hidden;
-}
-.chrono-photo-day-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem 0.75rem;
-  border-bottom: 1px solid var(--color-border, #d5ddd2);
-}
-.chrono-photo-day-title {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-.chrono-photo-day-sub {
-  margin: 0.25rem 0 0;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary, #5c6b5a);
-}
-.chrono-photo-day-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-secondary, #5c6b5a);
-  cursor: pointer;
-}
-.chrono-photo-day-close:hover {
-  background: var(--color-surface-muted, #f3f6f1);
+.chrono-photo-day-count {
+  margin: 0 0 0.85rem !important;
 }
 .chrono-photo-day-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
-  padding: 0.85rem 1.1rem 1.1rem;
-  overflow: auto;
+  padding: 0;
+  overflow: visible;
 }
 .chrono-photo-day-tile {
   position: relative;
@@ -3420,16 +3479,6 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 @media (max-width: 640px) {
   .chrono-photo-stack {
     grid-template-columns: 1fr;
-  }
-  .chrono-photo-day-sheet {
-    left: 0;
-    right: 0;
-    top: auto;
-    bottom: 0;
-    width: 100%;
-    max-height: min(88vh, 860px);
-    transform: none;
-    border-radius: 16px 16px 0 0;
   }
   .chrono-photo-day-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

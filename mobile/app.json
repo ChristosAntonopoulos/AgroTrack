@@ -18,7 +18,9 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
         "NSLocationAlwaysUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
-        "NSContactsUsageDescription": "Oleachron uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book."
+        "NSContactsUsageDescription": "Oleachron uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book.",
+        "NSPhotoLibraryUsageDescription": "Oleachron looks through your photos for shots taken on your fields so they can appear in Photo Hub and Chronologio. Nothing is uploaded until you confirm.",
+        "NSPhotoLibraryAddUsageDescription": "Oleachron may save photos you take for field records."
       }
     },
     "android": {
@@ -34,7 +36,10 @@
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.READ_CONTACTS"
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_CONTACTS",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -66,8 +71,16 @@
         [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Oleachron to access your photos for task evidence.",
+          "photosPermission": "Allow Oleachron to access your photos for task evidence and field Photo Hub.",
           "cameraPermission": "Allow Oleachron to use your camera for task evidence."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Oleachron looks for photos taken on or near your fields so they can appear in Photo Hub and Chronologio by capture date.",
+          "savePhotosPermission": "Allow Oleachron to save photos you take for field records.",
+          "isAccessMediaLocationEnabled": true
         }
       ],
       "expo-document-picker",

@@ -1,11 +1,9 @@
 import React from 'react';
 import { TFunction } from 'i18next';
 import {
-  Home,
   Layers,
   CheckSquare,
   FileText,
-  Calendar,
   Bell,
   Wallet,
   Settings,
@@ -15,6 +13,8 @@ import {
   BookOpen,
   HeartHandshake,
   Images,
+  Megaphone,
+  MessageSquareHeart,
 } from 'lucide-react';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
 import { CHRONOLOGIO_HOME } from './homePath';
@@ -109,20 +109,6 @@ export const navItems: NavItem[] = [
     section: 'secondary',
   },
   {
-    path: '/dashboard',
-    labelKey: 'items.dashboard',
-    icon: <Home />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'],
-    section: 'primary',
-  },
-  {
-    path: '/calendar',
-    labelKey: 'items.calendar',
-    icon: <Calendar />,
-    roles: ['FieldOwner', 'Producer', 'Agronomist', 'Administrator', 'ServiceProvider'],
-    section: 'secondary',
-  },
-  {
     path: '/ministry',
     labelKey: 'items.ministry',
     icon: <Bell />,
@@ -133,6 +119,20 @@ export const navItems: NavItem[] = [
     path: '/data-sources',
     labelKey: 'items.dataSources',
     icon: <Database />,
+    roles: ['Administrator'],
+    section: 'account',
+  },
+  {
+    path: '/admin/campaigns',
+    labelKey: 'items.campaigns',
+    icon: <Megaphone />,
+    roles: ['Administrator'],
+    section: 'account',
+  },
+  {
+    path: '/admin/feedback',
+    labelKey: 'items.userFeedback',
+    icon: <MessageSquareHeart />,
     roles: ['Administrator'],
     section: 'account',
   },
@@ -156,36 +156,47 @@ export const navItems: NavItem[] = [
 export const resolveNavItemLabel = (item: NavItem, _role: AppRole, t: TFunction<'nav'>, opts?: { mobile?: boolean }): string =>
   t(opts?.mobile && item.mobileLabelKey ? item.mobileLabelKey : item.labelKey);
 
+export type ActiveFieldNavGate = {
+  /** Partner/Family modules for the active field only — null/empty when Admin / unrestricted. */
+  modules?: ReadonlySet<string> | null;
+  /** True when the user is Admin on the active field (or unrestricted owner). */
+  isAdminOnActive?: boolean;
+};
+
 /** Shared visibility filter for sidebar and mobile bottom nav. */
 export const filterNavItemsForUser = (
   items: NavItem[],
   userRole: AppRole,
   mockMode: boolean,
-  familyModules?: ReadonlySet<string> | null
+  gate?: ActiveFieldNavGate | null
 ): NavItem[] => {
+  const modules = gate?.modules;
+  const restrictCollaborator = Boolean(
+    modules && modules.size > 0 && gate?.isAdminOnActive === false
+  );
+
   return items.filter((item) => {
     if (!item.roles.includes(userRole)) return false;
     if (item.mockOnly && !mockMode) return false;
-    // Calendar, Ministry, Dashboard, and Reports are hidden from navigation (routes remain reachable by URL).
-    if (
-      item.path === '/calendar' ||
-      item.path === '/ministry' ||
-      item.path === '/dashboard' ||
-      item.path === '/reports'
-    ) {
+    // Ministry and Reports stay reachable by URL but out of the sidebar.
+    if (item.path === '/ministry' || item.path === '/reports') {
       return false;
     }
 
-    // Family members acting on a shared grove never see analytics/reports.
-    if (familyModules && familyModules.size > 0) {
-      if (item.path === '/analytics' || item.path === '/reports' || item.path === '/data-sources') {
+    // Partner/Family on the active field: gate by that seat’s modules only (no union).
+    if (restrictCollaborator) {
+      if (
+        item.path === '/reports' ||
+        item.path === '/data-sources' ||
+        item.path === '/partners'
+      ) {
         return false;
       }
-      if (item.path === '/money' && !familyModules.has('money')) return false;
-      if (item.path === '/harvest' && !familyModules.has('harvest')) return false;
-      if (item.path === '/tasks' && !familyModules.has('tasks')) return false;
-      if (item.path === '/fields' && !familyModules.has('fields')) return false;
-      if (item.path === '/photos' && !familyModules.has('fields')) return false;
+      if (item.path === '/money' && !modules!.has('money')) return false;
+      if (item.path === '/harvest' && !modules!.has('harvest')) return false;
+      if (item.path === '/tasks' && !modules!.has('tasks')) return false;
+      if (item.path === '/fields' && !modules!.has('fields')) return false;
+      if (item.path === '/photos' && !modules!.has('fields')) return false;
     }
 
     return true;

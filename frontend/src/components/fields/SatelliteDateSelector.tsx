@@ -9,6 +9,7 @@ interface Props {
   onSelect: (observationId: string) => void;
   compareId?: string;
   onCompareSelect: (observationId: string | undefined) => void;
+  idleHint?: boolean;
 }
 
 /**
@@ -21,6 +22,7 @@ const SatelliteDateSelector: React.FC<Props> = ({
   onSelect,
   compareId,
   onCompareSelect,
+  idleHint = false,
 }) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
   const compareMode = Boolean(compareId);
@@ -132,6 +134,10 @@ const SatelliteDateSelector: React.FC<Props> = ({
           );
         })}
       </div>
+
+      {idleHint && !compareMode ? (
+        <p className="satellite-dates-hint">{t('fields:mapLayers.looks.pickDate')}</p>
+      ) : null}
 
       {compareMode ? (
         <p className="satellite-dates-hint">{t('fields:mapLayers.comparePick')}</p>

@@ -1,56 +1,70 @@
 .fields-page {
-  width: 100%;
+  width: min(100%, 1200px);
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-  padding-bottom: var(--spacing-2xl);
+  gap: 12px;
+  padding-bottom: 48px;
+}
+
+.fields-page .breadcrumbs {
+  margin-bottom: 0;
 }
 
 .fields-page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-md);
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
+.fields-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .fields-page-header-text h1 {
-  margin: 0 0 var(--spacing-xs);
-  font-size: 1.75rem;
+  margin: 0;
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--color-text-primary);
+  line-height: 1.25;
 }
 
 .fields-subtitle {
-  margin: 0;
+  margin: 0.2rem 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.9375rem;
+  font-size: 0.85rem;
   max-width: 520px;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .fields-add-btn {
   flex-shrink: 0;
+  min-height: 40px;
 }
 
 .fields-summary-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  align-items: center;
+  gap: 6px;
 }
 
 .fields-summary-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  min-height: 40px;
-  padding: 0.4rem 0.9rem;
+  gap: 0.3rem;
+  min-height: 32px;
+  padding: 0.2rem 0.7rem;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  box-shadow: var(--shadow-card);
 }
 
 .fields-summary-item strong {
@@ -94,8 +108,8 @@
 .fields-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-md);
-  align-items: flex-end;
+  gap: 8px 12px;
+  align-items: center;
   justify-content: space-between;
 }
 
@@ -117,11 +131,11 @@
 
 .fields-search-input {
   width: 100%;
-  min-height: 48px;
-  padding: 0.65rem 1rem 0.65rem 2.6rem;
+  min-height: 40px;
+  padding: 0.45rem 0.9rem 0.45rem 2.4rem;
   border: 1px solid var(--border-default);
-  border-radius: 12px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
   background: var(--surface-1);
   color: var(--text-primary);
 }
@@ -134,33 +148,50 @@
 
 .fields-toolbar-right {
   display: flex;
-  align-items: flex-end;
-  gap: var(--spacing-sm);
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .fields-sort {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0;
 }
 
 .fields-sort-label {
-  font-size: 0.8rem;
-  font-weight: 650;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .fields-sort select {
-  min-height: 48px;
-  padding: 0 0.9rem;
+  min-height: 40px;
+  padding: 0 0.75rem;
   border: 1px solid var(--border-default);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--surface-1);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 550;
+}
+
+.fields-page .view-tabs {
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.fields-page .view-tab {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  border-radius: 8px;
 }
 
 /* View toggle: shared .view-tabs / .view-tab (SegmentedControl.css) */
@@ -168,7 +199,7 @@
 .fields-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 .fields-split {
@@ -183,7 +214,7 @@
 }
 
 .fields-split-map .fields-map {
-  height: 560px;
+  height: 360px;
 }
 
 .fields-split-list {
@@ -201,14 +232,14 @@
 
   .fields-split-map .fields-map {
     height: 100%;
-    min-height: 560px;
+    min-height: 360px;
   }
 
   .fields-split-list {
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
-    max-height: 560px;
+    gap: 0.45rem;
+    max-height: 360px;
     overflow-y: auto;
     padding-right: 0.15rem;
     scrollbar-gutter: stable;
@@ -251,7 +282,7 @@
   }
 
   .fields-split-map .fields-map {
-    height: 420px;
+    height: 240px;
   }
 }
 

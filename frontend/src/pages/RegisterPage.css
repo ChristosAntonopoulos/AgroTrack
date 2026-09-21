@@ -10,6 +10,30 @@
   color: var(--login-text-muted);
 }
 
+.register-email-continue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 0.55rem;
+  padding: 0 1rem;
+  border-radius: 13px;
+  border: 1px solid var(--login-input-border);
+  background: var(--login-input-bg);
+  color: var(--login-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.register-email-continue:hover {
+  border-color: color-mix(in srgb, var(--login-link) 45%, var(--login-input-border));
+  background: color-mix(in srgb, var(--login-link) 8%, var(--login-input-bg));
+}
+
 .register-invite-toggle {
   align-self: flex-start;
   margin-top: -0.15rem;

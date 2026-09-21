@@ -1,0 +1,79 @@
+/**
+ * Typical olive-oil density used for rough litre → kg conversion in the field.
+ * This is an estimate for farmer UX, not lab precision.
+ */
+export const OLIVE_OIL_KG_PER_LITRE = 0.916;
+
+export type HarvestOilUnit = 'kg' | 'litres';
+
+const localeTagFor = (locale: string): string => {
+  if (locale.startsWith('el')) return 'el-GR';
+  if (locale.startsWith('it')) return 'it-IT';
+  if (locale.startsWith('en')) return 'en-US';
+  return locale || 'en-US';
+};
+
+export const convertOliveOilLitresToKg = (litres: number): number => {
+  if (!Number.isFinite(litres) || litres < 0) return 0;
+  return litres * OLIVE_OIL_KG_PER_LITRE;
+};
+
+export const oilKgFromAmount = (amount: number, unit: HarvestOilUnit): number => {
+  if (!Number.isFinite(amount) || amount < 0) return 0;
+  return unit === 'litres' ? convertOliveOilLitresToKg(amount) : amount;
+};
+
+export const extractionYieldPercent = (oliveKg: number, oilKg: number): number | null => {
+  if (!(oliveKg > 0) || !(oilKg >= 0) || !Number.isFinite(oliveKg) || !Number.isFinite(oilKg)) {
+    return null;
+  }
+  return (oilKg / oliveKg) * 100;
+};
+
+export const estimateSacksKg = (sacks: number, kgPerSack: number): number => {
+  if (!(sacks > 0) || !(kgPerSack > 0)) return 0;
+  return sacks * kgPerSack;
+};
+
+export const formatHarvestMassKg = (
+  kg: number | null | undefined,
+  locale: string,
+  unknownLabel = '—'
+): string => {
+  if (kg == null || !Number.isFinite(kg)) return unknownLabel;
+  const rounded = Math.round(kg * 10) / 10;
+  return new Intl.NumberFormat(localeTagFor(locale), {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+  }).format(rounded);
+};
+
+export const formatHarvestYieldPercent = (
+  pct: number | null | undefined,
+  locale: string,
+  unknownLabel = '—'
+): string => {
+  if (pct == null || !Number.isFinite(pct)) return unknownLabel;
+  const rounded = Math.round(pct * 10) / 10;
+  return new Intl.NumberFormat(localeTagFor(locale), {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+  }).format(rounded);
+};
+
+export const formatHarvestOilAmount = (
+  amount: number | null | undefined,
+  unit: HarvestOilUnit,
+  locale: string,
+  unknownLabel = '—'
+): string => {
+  if (amount == null || !Number.isFinite(amount)) return unknownLabel;
+  if (unit === 'litres') {
+    const rounded = Math.round(amount * 1000) / 1000;
+    return `${new Intl.NumberFormat(localeTagFor(locale), {
+      maximumFractionDigits: 3,
+      minimumFractionDigits: Number.isInteger(rounded) ? 0 : undefined,
+    }).format(rounded)} L`;
+  }
+  return formatHarvestMassKg(amount, locale, unknownLabel);
+};

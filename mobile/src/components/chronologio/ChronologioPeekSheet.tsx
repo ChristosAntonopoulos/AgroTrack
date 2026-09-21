@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Pressable,
+  Alert,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
@@ -14,8 +16,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useAuth } from '../../context/AuthContext';
 import { spacing, radii } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
+import { openHarvestCampaign } from '../../navigation/intents';
 import type {
   ChronologioEntry,
   ChronologioMonthSummary,
@@ -38,6 +42,15 @@ import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { detailAccentToken, chronologioDetailKind } from '../../chronologio/detailKind';
+import {
+  chronologioEntryCapabilities,
+  chronologioHarvestId,
+  chronologioMobileDestination,
+  chronologioMoneyTxId,
+  chronologioNoteId,
+  chronologioPhotoId,
+  chronologioTaskId,
+} from '../../chronologio/entryDestination';
 import WeatherReviewSummary from './WeatherReviewSummary';
 import ChronologioRecentList from './ChronologioRecentList';
 import ChronologioEventPeekBody, {
@@ -45,6 +58,16 @@ import ChronologioEventPeekBody, {
 } from './ChronologioEventPeekBody';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import Sheet from '../ui/Sheet';
+import NoteSheet from '../dashboard/NoteSheet';
+import type { Note } from '../../services/noteService';
+import {
+  getFieldWorkService,
+  getFinancialTransactionService,
+  getHarvestService,
+  getNoteService,
+  getPhotoService,
+} from '../../services/serviceFactory';
+import { CAPTURE_SAVED_EVENT } from '../../capture/types';
 
 export type ChronologioPeekTarget =
   | { mode: 'event'; entry: ChronologioEntry }
@@ -68,10 +91,14 @@ export type ChronologioPeekTarget =
       loading?: boolean;
     };
 
+type FieldOption = { id: string; name: string };
+
 type Props = {
   peek: ChronologioPeekTarget | null;
   numberLocale: string;
+  fieldOptions?: FieldOption[];
   onClose: () => void;
+  onMutated?: () => void;
   onDrillToMonths?: (periodYear: number) => void;
   onDrillToDays?: (year: number, month: number) => void;
   onSelectRecent?: (entry: ChronologioEntry) => void;
@@ -81,27 +108,34 @@ type Props = {
 const ChronologioPeekSheet: React.FC<Props> = ({
   peek,
   numberLocale,
+  fieldOptions = [],
   onClose,
+  onMutated,
   onDrillToMonths,
   onDrillToDays,
   onSelectRecent,
   onOpenMonthWeather,
 }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'common']);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'money']);
   const { colors, tapMin } = useTheme();
   const capture = useCaptureOptional();
+  const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const tt = (key: string, opts?: Record<string, string | number>) =>
     t(key, opts as Record<string, unknown>);
 
   const entry = peek?.mode === 'event' ? peek.entry : null;
   const kind = entry ? chronologioDetailKind(entry) : null;
+  const caps = entry
+    ? chronologioEntryCapabilities(entry, { userId: user?.id, role: user?.role })
+    : { canEdit: false, removeAction: null };
   const isPeriodReview = kind === 'weatherPeriod';
   const eventAccent = entry
     ? accentColorsForToken(colors, detailAccentToken(entry)).accent
     : colors.primary;
 
   const [weatherFieldId, setWeatherFieldId] = useState<string | undefined>();
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   useEffect(() => {
     if (peek?.mode === 'monthWeather' && peek.reviews[0]?.fieldId) {
@@ -187,43 +221,136 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         : colors.primary;
 
   const navigateFromEntry = (target: ChronologioEntry) => {
-    onClose();
-    if (target.sourceType === 'Task' || target.sourceType === 'TaskExecution') {
-      navigation.navigate('TaskDetail', {
-        taskId: target.details.task?.taskId || target.sourceId,
-      });
-    } else if (target.sourceType === 'Expense' || target.sourceType === 'Income') {
-      navigation.navigate('Money', { fieldId: target.fieldId });
-    } else if (target.sourceType === 'Photo') {
-      navigation.navigate('Photos', { photoId: target.sourceId, fieldId: target.fieldId });
-    } else if (target.sourceType === 'Harvest') {
-      navigation.navigate('FieldDetail', { fieldId: target.fieldId, focus: 'harvest' });
-    } else if (target.sourceType === 'WeatherReview') {
-      navigation.navigate('FieldWeatherVegetation', { fieldId: target.fieldId });
-    } else if (target.fieldId) {
-      navigation.navigate('FieldDetail', { fieldId: target.fieldId });
+    const dest = chronologioMobileDestination(target);
+    if (dest.kind === 'noteEdit') {
+      void openNoteEditor(dest.noteId, dest.fieldId);
+      return;
     }
+    onClose();
+    if (dest.kind === 'TaskDetail') {
+      navigation.navigate('TaskDetail', { taskId: dest.taskId });
+    } else if (dest.kind === 'Money') {
+      navigation.navigate('Money', { fieldId: dest.fieldId, tx: dest.tx });
+    } else if (dest.kind === 'Photos') {
+      navigation.navigate('Photos', { photoId: dest.photoId, fieldId: dest.fieldId });
+    } else if (dest.kind === 'HarvestCampaign') {
+      openHarvestCampaign(navigation, {
+        fieldId: dest.fieldId,
+        harvestId: dest.harvestId,
+        day: dest.day,
+      });
+    } else if (dest.kind === 'FieldWeatherVegetation') {
+      navigation.navigate('FieldWeatherVegetation', { fieldId: dest.fieldId });
+    } else if (dest.kind === 'FieldDetail') {
+      navigation.navigate('FieldDetail', { fieldId: dest.fieldId });
+    }
+  };
+
+  const notifyMutated = () => {
+    DeviceEventEmitter.emit(CAPTURE_SAVED_EVENT);
+    onMutated?.();
+  };
+
+  const openNoteEditor = async (noteId: string, fieldId: string) => {
+    try {
+      const notes = await getNoteService().getNotes({ fieldId: fieldId || undefined });
+      const note = notes.find((n) => n.id === noteId);
+      if (note) setEditingNote(note);
+    } catch {
+      // keep peek
+    }
+  };
+
+  const removeEntry = () => {
+    if (!entry || !caps.removeAction) return;
+    const action = caps.removeAction;
+    const title =
+      action === 'cancel'
+        ? t('chronologio:drawer.cancelConfirm', { defaultValue: 'Cancel this work?' })
+        : action === 'void'
+          ? t('chronologio:drawer.voidConfirm', { defaultValue: 'Void this record?' })
+          : t('chronologio:drawer.deleteConfirm', { defaultValue: 'Delete this record?' });
+
+    Alert.alert(title, undefined, [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text:
+          action === 'cancel'
+            ? t('chronologio:drawer.cancelTask', { defaultValue: t('common:cancel') })
+            : action === 'void'
+              ? t('chronologio:drawer.void', { defaultValue: 'Void' })
+              : t('common:delete'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              if (action === 'delete' && (entry.sourceType === 'Note' || entry.category === 'note')) {
+                const id = chronologioNoteId(entry);
+                if (id) await getNoteService().deleteNote(id);
+              } else if (
+                action === 'delete' &&
+                (entry.sourceType === 'Photo' || entry.category === 'photo')
+              ) {
+                const id = chronologioPhotoId(entry);
+                if (id) await getPhotoService().delete(id);
+              } else if (action === 'void' && kind === 'money') {
+                const id = chronologioMoneyTxId(entry);
+                if (id) {
+                  const tx = await getFinancialTransactionService().getById(id);
+                  if (tx.status === 'draft') await getFinancialTransactionService().deleteDraft(id);
+                  else if (tx.status === 'posted') {
+                    await getFinancialTransactionService().void(
+                      id,
+                      t('money:voidReasonPrompt', { defaultValue: 'Voided from Chronologio' })
+                    );
+                  }
+                }
+              } else if (action === 'void' && kind === 'harvest') {
+                const id = chronologioHarvestId(entry);
+                if (id) await getHarvestService().void(id);
+              } else if (action === 'cancel' && kind === 'task') {
+                const id = chronologioTaskId(entry);
+                if (id) await getFieldWorkService().cancelFieldTask(id);
+              }
+              notifyMutated();
+              onClose();
+            } catch {
+              Alert.alert(
+                t('chronologio:drawer.mutateFailed', { defaultValue: 'Could not update that record.' })
+              );
+            }
+          })();
+        },
+      },
+    ]);
   };
 
   const eventActions =
     entry && peek?.mode === 'event'
-      ? eventPeekFooterActions(entry, t as (key: string, opts?: Record<string, unknown>) => string, {
-          openTask: () => navigateFromEntry(entry),
-          openMoney: () => navigateFromEntry(entry),
-          openHarvest: () => navigateFromEntry(entry),
-          openWeather: () => navigateFromEntry(entry),
-          openField: () => navigateFromEntry(entry),
-          openPhoto: () => navigateFromEntry(entry),
-          createTask: capture
-            ? () => {
-                onClose();
-                capture.openCapture({
-                  preferredType: 'work',
-                  fieldId: entry.fieldId,
-                });
-              }
-            : undefined,
-        })
+      ? eventPeekFooterActions(
+          entry,
+          t as (key: string, opts?: Record<string, unknown>) => string,
+          {
+            openTask: () => navigateFromEntry(entry),
+            openMoney: () => navigateFromEntry(entry),
+            openHarvest: () => navigateFromEntry(entry),
+            openWeather: () => navigateFromEntry(entry),
+            openField: () => navigateFromEntry(entry),
+            openPhoto: () => navigateFromEntry(entry),
+            edit: () => navigateFromEntry(entry),
+            remove: removeEntry,
+            createTask: capture
+              ? () => {
+                  onClose();
+                  capture.openCapture({
+                    preferredType: 'work',
+                    fieldId: entry.fieldId,
+                  });
+                }
+              : undefined,
+          },
+          caps
+        )
       : [];
 
   const footer =
@@ -321,6 +448,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
     ) : null;
 
   return (
+    <>
     <Sheet
       open={Boolean(peek)}
       onClose={onClose}
@@ -657,6 +785,18 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         </View>
       ) : null}
     </Sheet>
+    <NoteSheet
+      visible={Boolean(editingNote)}
+      note={editingNote || undefined}
+      fields={fieldOptions}
+      onClose={() => setEditingNote(null)}
+      onChanged={async () => {
+        setEditingNote(null);
+        notifyMutated();
+        onClose();
+      }}
+    />
+    </>
   );
 };
 

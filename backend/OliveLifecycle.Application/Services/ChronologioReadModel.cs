@@ -32,7 +32,8 @@ public static class ChronologioReadModel
         var keepLinkedMoneySeparate = IsMoneyFilter(categoryFilter);
         var collapsed = CollapseTaskExecutions(entries);
         var folded = keepLinkedMoneySeparate ? collapsed : FoldTaskLinkedMoney(collapsed);
-        return Deduplicate(folded);
+        var harvestDays = FoldHarvestDays(folded);
+        return Deduplicate(harvestDays);
     }
 
     public static bool IsMoneyFilter(ChronologioCategory? categoryFilter) =>
@@ -201,6 +202,102 @@ public static class ChronologioReadModel
         return task;
     }
 
+    private static List<ChronologioEntryDto> FoldHarvestDays(IReadOnlyList<ChronologioEntryDto> entries)
+    {
+        var harvests = entries.Where(IsHarvest).ToList();
+        if (harvests.Count <= 1)
+        {
+            return entries.ToList();
+        }
+
+        var groups = harvests
+            .GroupBy(e => AthensTime.CalendarDate(e.OccurredAt))
+            .ToList();
+        if (groups.All(g => g.Count() == 1))
+        {
+            return entries.ToList();
+        }
+
+        var mergedById = new Dictionary<string, ChronologioEntryDto>(StringComparer.Ordinal);
+        foreach (var group in groups)
+        {
+            var day = MergeHarvestDay(group.ToList());
+            foreach (var item in group)
+            {
+                mergedById[item.Id] = day;
+            }
+        }
+
+        var result = new List<ChronologioEntryDto>(entries.Count);
+        var seenDays = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in entries)
+        {
+            if (!IsHarvest(entry))
+            {
+                result.Add(entry);
+                continue;
+            }
+
+            if (!mergedById.TryGetValue(entry.Id, out var merged))
+            {
+                result.Add(entry);
+                continue;
+            }
+
+            if (!seenDays.Add(merged.Id))
+            {
+                continue;
+            }
+
+            result.Add(merged);
+        }
+
+        return result;
+    }
+
+    private static ChronologioEntryDto MergeHarvestDay(IReadOnlyList<ChronologioEntryDto> day)
+    {
+        if (day.Count == 1)
+        {
+            return day[0];
+        }
+
+        var ordered = day
+            .OrderByDescending(e => e.Details.Harvest?.HasOfficialWeight == true)
+            .ThenByDescending(e => e.OccurredAt)
+            .ToList();
+        var primary = ordered[0];
+        var officialKg = day.Sum(e => e.Details.Harvest?.HasOfficialWeight == true ? e.Details.Harvest.OliveKg : 0);
+        var sackCount = day.Sum(e => e.Details.Harvest?.SackCount ?? 0);
+        var people = day.Sum(e => e.Details.Harvest?.Workers ?? 0);
+        var oilKg = day.Sum(e => e.Details.Harvest?.OilKg ?? 0);
+        var oilLitres = day.Sum(e => e.Details.Harvest?.OilLitres ?? 0);
+        var yieldPercent = officialKg > 0 && oilKg > 0 ? Math.Round(oilKg / officialKg * 100.0, 1) : (double?)null;
+        var media = day.SelectMany(e => e.Media ?? []).ToList();
+
+        primary.Id = $"{ChronologioSourceTypes.Harvest}:day:{AthensTime.CalendarDate(primary.OccurredAt):yyyy-MM-dd}";
+        primary.Title = ChronologioDisplayLabels.HarvestDayTitle();
+        primary.Summary = ChronologioDisplayLabels.HarvestDaySummary(
+            officialKg,
+            sackCount,
+            people,
+            oilKg > 0 ? oilKg : null,
+            yieldPercent);
+        primary.Media = media;
+        if (primary.Details.Harvest != null)
+        {
+            primary.Details.Harvest.OliveKg = officialKg;
+            primary.Details.Harvest.SackCount = sackCount;
+            primary.Details.Harvest.Workers = people;
+            primary.Details.Harvest.OilKg = oilKg > 0 ? oilKg : null;
+            primary.Details.Harvest.OilLitres = oilLitres > 0 ? oilLitres : null;
+            primary.Details.Harvest.OilYieldPercent = yieldPercent;
+            primary.Details.Harvest.HasOfficialWeight = officialKg > 0;
+        }
+
+        return primary;
+    }
+
     private static List<ChronologioEntryDto> Deduplicate(IReadOnlyList<ChronologioEntryDto> entries)
     {
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -238,6 +335,9 @@ public static class ChronologioReadModel
         string.Equals(entry.SourceType, ChronologioSourceTypes.Expense, StringComparison.Ordinal)
         || string.Equals(entry.SourceType, ChronologioSourceTypes.Income, StringComparison.Ordinal);
 
+    private static bool IsHarvest(ChronologioEntryDto entry) =>
+        string.Equals(entry.SourceType, ChronologioSourceTypes.Harvest, StringComparison.Ordinal);
+
     private static bool IsNote(ChronologioEntryDto entry) =>
         string.Equals(entry.SourceType, ChronologioSourceTypes.Note, StringComparison.Ordinal);
 
@@ -262,12 +362,35 @@ public static class ChronologioReadModel
     private static string NoteFingerprint(ChronologioEntryDto entry)
     {
         var occurred = entry.OccurredAt.ToUniversalTime().ToString("yyyyMMddHHmm");
-        var body = (entry.Details.Note?.BodyPreview ?? entry.Summary ?? string.Empty).Trim();
+        var body = CanonicalizeNoteBody(entry.Details.Note?.BodyPreview ?? entry.Summary ?? string.Empty);
         if (string.IsNullOrWhiteSpace(body))
         {
             return string.Empty;
         }
 
         return $"{entry.FieldId}:{occurred}:{body}";
+    }
+
+    /// <summary>
+    /// Collapse whitespace/case and trim so near-identical observation cards
+    /// (same field + minute + similar body) dedupe without merging intentional distinct notes.
+    /// </summary>
+    private static string CanonicalizeNoteBody(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return string.Empty;
+        }
+
+        var parts = body.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var normalized = string.Join(' ', parts).ToLowerInvariant();
+        // Strip trailing punctuation noise that often differs between copies.
+        normalized = normalized.TrimEnd('.', '!', '?', '·', '-', '—', '…', ' ');
+        return normalized;
     }
 }

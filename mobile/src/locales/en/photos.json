@@ -4,10 +4,42 @@
   "upload": "Upload photos",
   "uploadCamera": "Take photo",
   "uploadLibrary": "Choose from library",
+  "uploadLibraryHint": "You pick the photos — we still place them by GPS when we can.",
+  "importNearby": "Find photos from your fields",
+  "importNearbyHint": "We search your camera roll for shots taken on your land, then put them on the right day.",
+  "uploadOr": "Or let us find them",
   "uploading": "Uploading…",
+  "uploadingProgress": "Uploading {{done}} of {{total}}…",
   "empty": "No photos yet",
-  "emptyHint": "Upload field photos. GPS and capture time from the image place them for you.",
+  "emptyHint": "Photos attach to a field, task, observation, or harvest.",
   "offline": "Photos need a connection.",
+  "scan": {
+    "title": "Find photos from your fields",
+    "lead": "Your camera often saves where a photo was taken. We look for those near your fields and place them on the right day in Chronologio.",
+    "howTitle": "How it works",
+    "step1": "You allow access to your photo library.",
+    "step2": "We keep only photos with GPS on or near your fields — the rest are ignored.",
+    "step3": "You review the matches, then we upload. Capture time sets the timeline date.",
+    "rationale": "Photo access is only used to find field shots. Nothing is uploaded until you confirm.",
+    "denied": "Photo library access was denied. You can enable it in system settings.",
+    "rangeTitle": "How far back should we look?",
+    "range3m": "Last 3 months",
+    "range12m": "Last 12 months",
+    "rangeAll": "All with location",
+    "start": "Search my photos",
+    "scanning": "Searching…",
+    "scanningProgress": "Checked {{scanned}} · {{matches}} near fields",
+    "confirmTitle": "These look like field photos",
+    "confirmCount": "{{count}} photos were taken on or near your fields",
+    "confirmTruncated": "Showing the first {{count}} matches. You can search again later for more.",
+    "confirmHint": "We’ll upload them to Photo Hub. Chronologio uses each photo’s capture date. Possible duplicates are flagged after upload.",
+    "confirmUpload": "Upload {{count}}",
+    "changeRange": "Change period",
+    "noMatches": "No GPS photos near your fields in this range. Try a longer period, or choose photos yourself.",
+    "noFields": "Add a field with a location or boundary first — we need somewhere to match against.",
+    "nativeUnavailable": "This search needs an updated app build. Until then, use Take photo or Choose from library.",
+    "sampleLabel": "Preview"
+  },
   "filters": {
     "field": "Field",
     "allFields": "All fields",
@@ -70,6 +102,7 @@
   "errors": {
     "load": "Could not load photos",
     "upload": "Upload failed",
-    "save": "Could not save changes"
+    "save": "Could not save changes",
+    "scan": "Could not scan the photo library"
   }
 }

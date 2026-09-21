@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import type { YearFinancialSummary } from '../../services/financialSummaryService';
+import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
+import {
+  isProvisionalActiveYearResult,
+  resultLabel as computeResultLabel,
+} from '../../finance/display';
 import { formatOfficialAmount, formatOfficialNet } from '../../finance/format';
 import { radii, spacing, typography, createElevation } from '../../theme';
 
@@ -13,6 +18,8 @@ type Props = {
   onAddIncome?: () => void;
 };
 
+const HARVEST_INCOME = new Set(['olive_oil_sale', 'olive_sale']);
+
 /** Result / Income / Expenses triad — mirrors web MoneySummaryGrid. */
 const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) => {
   const { t } = useTranslation('money');
@@ -21,8 +28,32 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
   const currency = summary.currency || 'EUR';
   const hasPosted = summary.dataAvailability.hasPostedRecords;
   const net = summary.netResult;
-  const isLoss = hasPosted && net != null && net < 0;
-  const isProfit = hasPosted && net != null && net > 0;
+  const isActiveYear = summary.year === agriculturalYearFor(new Date());
+  const hasHarvestIncome = useMemo(
+    () =>
+      (summary.incomeByCategory || []).some(
+        (row) => HARVEST_INCOME.has(row.category) && row.amount > 0
+      ),
+    [summary.incomeByCategory]
+  );
+  const provisional = isProvisionalActiveYearResult(net, hasPosted, {
+    isActiveYear,
+    totalIncome: summary.totalIncome,
+    hasHarvestIncome,
+  });
+  const displayLabel = provisional
+    ? t('provisionalBalance')
+    : isActiveYear && hasPosted && net != null
+      ? computeResultLabel(net, hasPosted, locale, {
+          isActiveYear,
+          totalIncome: summary.totalIncome,
+          hasHarvestIncome,
+        })
+      : summary.resultLabel || unknown;
+  const incomeKicker = isActiveYear ? t('incomeToDate') : t('income');
+  const expenseKicker = isActiveYear ? t('expensesToDate') : t('expenses');
+  const isLoss = !provisional && hasPosted && net != null && net < 0;
+  const isProfit = !provisional && hasPosted && net != null && net > 0;
   const resultColor = isLoss ? colors.eventExpense : isProfit ? colors.eventIncome : colors.textPrimary;
 
   return (
@@ -43,7 +74,7 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
         ]}
       >
         <Text style={[styles.kicker, { color: colors.textTertiary }]}>
-          {t('resultYear', { year: summary.year })}
+          {provisional ? t('provisionalBalance') : t('resultYear', { year: summary.year })}
         </Text>
         <Text
           style={[
@@ -56,15 +87,13 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
         <View style={styles.stateRow}>
           {isLoss ? <Ionicons name="trending-down" size={16} color={colors.eventExpense} /> : null}
           {isProfit ? <Ionicons name="trending-up" size={16} color={colors.eventIncome} /> : null}
-          <Text style={[styles.stateLabel, { color: colors.textSecondary }]}>
-            {summary.resultLabel || unknown}
-          </Text>
+          <Text style={[styles.stateLabel, { color: colors.textSecondary }]}>{displayLabel}</Text>
         </View>
         {hasPosted ? (
           <Text style={[styles.note, { color: colors.textTertiary }]}>
-            {t('income')} {formatOfficialAmount(summary.totalIncome, currency, locale, unknown)}
+            {incomeKicker} {formatOfficialAmount(summary.totalIncome, currency, locale, unknown)}
             {' − '}
-            {t('expenses')} {formatOfficialAmount(summary.totalExpenses, currency, locale, unknown)}
+            {expenseKicker} {formatOfficialAmount(summary.totalExpenses, currency, locale, unknown)}
           </Text>
         ) : null}
       </View>
@@ -81,13 +110,15 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
             },
           ]}
         >
-          <Text style={[styles.kicker, { color: colors.textTertiary }]}>{t('income')}</Text>
+          <Text style={[styles.kicker, { color: colors.textTertiary }]}>{incomeKicker}</Text>
           <Text style={[styles.value, { color: colors.eventIncome, fontSize: 22 * fontScaleMultiplier }]}>
             {formatOfficialAmount(summary.totalIncome, currency, locale, unknown)}
           </Text>
           {!hasPosted || !summary.totalIncome ? (
             <>
-              <Text style={[styles.note, { color: colors.textTertiary }]}>{t('noIncomeYet')}</Text>
+              <Text style={[styles.note, { color: colors.textTertiary }]}>
+                {isActiveYear ? t('noIncomeYetActive') : t('noIncomeYet')}
+              </Text>
               {onAddIncome ? (
                 <Pressable onPress={onAddIncome} hitSlop={8}>
                   <Text style={[styles.link, { color: colors.primary }]}>{t('addIncome')}</Text>
@@ -108,7 +139,7 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
             },
           ]}
         >
-          <Text style={[styles.kicker, { color: colors.textTertiary }]}>{t('expenses')}</Text>
+          <Text style={[styles.kicker, { color: colors.textTertiary }]}>{expenseKicker}</Text>
           <Text style={[styles.value, { color: colors.eventExpense, fontSize: 22 * fontScaleMultiplier }]}>
             {formatOfficialAmount(summary.totalExpenses, currency, locale, unknown)}
           </Text>

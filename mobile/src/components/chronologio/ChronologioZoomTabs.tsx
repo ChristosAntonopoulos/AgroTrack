@@ -63,7 +63,7 @@ function ChronologioZoomTabs<T extends string = string>({
                 {
                   color: selected ? colors.textPrimary : colors.textSecondary,
                   fontSize: 14 * fontScaleMultiplier,
-                  fontWeight: selected ? '650' as '600' : '500',
+                  fontWeight: selected ? '600' : '500',
                 },
               ]}
               numberOfLines={1}
@@ -81,19 +81,21 @@ const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'stretch',
+    alignSelf: 'flex-start',
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 4,
     gap: 2,
-    marginBottom: spacing.sm,
+    margin: spacing.sm,
     flexGrow: 0,
     flexShrink: 0,
   },
   tab: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 1,
+    minWidth: 88,
     minHeight: 40,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,

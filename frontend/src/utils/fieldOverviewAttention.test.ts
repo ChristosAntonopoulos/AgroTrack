@@ -115,7 +115,7 @@ describe('resolveFieldAttention', () => {
       now,
     });
     expect(result.kind).toBe('weatherReschedule');
-    expect(result.primaryTo).toBe('/tasks/spray');
+    expect(result.primaryTo).toBe('/tasks?task=spray');
     expect(result.secondaryKey).toBe('overview.attention.keepDate');
   });
 

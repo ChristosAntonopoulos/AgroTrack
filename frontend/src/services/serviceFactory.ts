@@ -12,14 +12,6 @@ import { mockUserService } from './mock/mockUserService';
 import { lifecycleService } from './lifecycleService';
 import { mockLifecycleService } from './mock/mockLifecycleService';
 
-// Calendar Service
-import { calendarService } from './calendarService';
-import { mockCalendarService } from './mock/mockCalendarService';
-
-// Analytics Service
-import { analyticsService } from './analyticsService';
-import { mockAnalyticsService } from './mock/mockAnalyticsService';
-
 // Ministry Notifications
 import { ministryNotificationService } from './ministryNotificationService';
 import { ministryApiService } from './ministryApiService';
@@ -52,8 +44,6 @@ const useMockData = isMockDataEnabled();
 export const getFieldService = () => useMockData ? mockFieldService : fieldService;
 export const getUserService = () => useMockData ? mockUserService : userService;
 export const getLifecycleService = () => useMockData ? mockLifecycleService : lifecycleService;
-export const getCalendarService = () => useMockData ? mockCalendarService : calendarService;
-export const getAnalyticsService = () => useMockData ? mockAnalyticsService : analyticsService;
 export const getMinistryNotificationService = () =>
   useMockData ? ministryNotificationService : ministryApiService;
 export const getReportsService = () => reportsService;

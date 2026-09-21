@@ -86,6 +86,7 @@ export interface AccessContext {
     memberId: string;
     modules: FamilyModule[];
     accessLevel: FamilyAccessLevel;
+    ownerDisplayName?: string;
   }>;
   partnerMemberships: OwnerPartnerAccessSnapshot[];
 }

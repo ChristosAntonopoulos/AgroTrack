@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
+import type { FieldPhenology } from '../../services/fieldWorkService';
 import Button from '../Common/Button';
 import FieldIdentity from './FieldIdentity';
 import FieldMoreMenu from './FieldMoreMenu';
@@ -16,6 +17,7 @@ type Props = {
   onCapture: () => void;
   onDocuments: () => void;
   onDelete?: () => void;
+  phenology?: FieldPhenology | null;
 };
 
 const FieldHeader: React.FC<Props> = ({
@@ -26,6 +28,7 @@ const FieldHeader: React.FC<Props> = ({
   onCapture,
   onDocuments,
   onDelete,
+  phenology,
 }) => {
   const { t } = useTranslation('fields');
   const isDraft = field.status === 'Draft';
@@ -34,13 +37,10 @@ const FieldHeader: React.FC<Props> = ({
     <header className="field-header">
       <div className="field-header-identity">
         {isDraft ? <p className="field-header-draft">{t('page.draftField')}</p> : null}
-        <FieldIdentity field={field} size="page" />
-        <p className="field-header-year-label">{t('page.yearLabel', { year })}</p>
-        <div className="field-header-controls">
-          <FieldResultYearControl year={year} onYearChange={onYearChange} />
-        </div>
+        <FieldIdentity field={field} size="page" phenology={phenology} />
       </div>
       <div className="field-header-actions">
+        <FieldResultYearControl year={year} onYearChange={onYearChange} />
         <Button
           icon={<Plus />}
           variant="primary"

@@ -3,8 +3,6 @@ using Moq;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
-using OliveLifecycle.Application.DTOs.Family;
-using OliveLifecycle.Application.DTOs.OwnerPartner;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
@@ -19,21 +17,13 @@ public class FieldAccessServiceTests
 {
     private readonly Mock<IFieldRepository> _fieldRepository = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
-    private readonly Mock<IFamilyMemberRepository> _familyMembers = new();
-    private readonly Mock<IOwnerPartnerLinkRepository> _partnerLinks = new();
     private readonly FieldAccessService _service;
 
     public FieldAccessServiceTests()
     {
-        _familyMembers.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<FamilyMember>());
-        _partnerLinks.Setup(r => r.GetActiveByLinkedUserIdAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<OwnerPartnerLink>());
         _service = new FieldAccessService(
             _fieldRepository.Object,
-            _fieldTasks.Object,
-            _familyMembers.Object,
-            _partnerLinks.Object);
+            _fieldTasks.Object);
     }
 
     [Fact]
@@ -61,8 +51,15 @@ public class FieldAccessServiceTests
     [Fact]
     public async Task CanUserAccessFieldAsync_ReturnsTrue_ForAssignedProducer()
     {
+        var field = new Field { Id = "field-1", OwnerId = "owner-1" };
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Admin, "owner-1", FamilyModules.All, FamilyAccessLevels.Work, "owner-1",
+            status: FamilyMemberStatuses.Active);
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Partner, "producer-1", FamilyModules.DefaultOnInvite, FamilyAccessLevels.Work, "owner-1",
+            status: FamilyMemberStatuses.Active);
         _fieldRepository.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Field { Id = "field-1", OwnerId = "owner-1", AssignedProducerIds = ["producer-1"] });
+            .ReturnsAsync(field);
 
         var result = await _service.CanUserAccessFieldAsync("field-1", "producer-1", Roles.Producer);
 
@@ -280,7 +277,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_AcceptsPendingFamilyInvite()
+    public async Task RegisterAsync_AcceptsPendingFieldInvite()
     {
         const string persistedId = "507f1f77bcf86cd799439014";
         var userRepository = new Mock<IUserRepository>();
@@ -295,20 +292,22 @@ public class AuthServiceTests
                 return u;
             });
 
-        var family = new Mock<IFamilyService>();
-        family
-            .Setup(f => f.GetInviteAsync("AB12-CD34", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FamilyInviteShareDto
+        var fieldPeople = new Mock<IFieldPeopleService>();
+        fieldPeople
+            .Setup(f => f.GetInviteAsync("AB12-CD34", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DTOs.Field.FieldInviteDto
             {
                 Status = FamilyInviteStatuses.Pending,
-                Code = "AB12-CD34"
+                Code = "AB12-CD34",
+                Role = FieldPersonRole.Family.ToString()
             });
-        family
+        fieldPeople
             .Setup(f => f.AcceptInviteAsync("AB12-CD34", persistedId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FamilyMemberDto
+            .ReturnsAsync(new DTOs.Field.FieldMembershipDto
             {
                 Status = FamilyMemberStatuses.Active,
-                LinkedUserId = persistedId
+                UserId = persistedId,
+                Role = FieldPersonRole.Family.ToString()
             });
 
         var configuration = new ConfigurationBuilder()
@@ -324,7 +323,7 @@ public class AuthServiceTests
             userRepository.Object,
             configuration,
             new SystemDateTimeProvider(),
-            family.Object);
+            fieldPeople.Object);
 
         var response = await service.RegisterAsync(new RegisterDto
         {
@@ -336,95 +335,19 @@ public class AuthServiceTests
         });
 
         Assert.Equal(persistedId, response.UserId);
-        family.Verify(
+        fieldPeople.Verify(
             f => f.AcceptInviteAsync("AB12-CD34", persistedId, It.IsAny<CancellationToken>()),
             Times.Once);
-    }
-
-    [Fact]
-    public async Task RegisterAsync_AcceptsPendingPartnerInvite()
-    {
-        const string persistedId = "507f1f77bcf86cd799439015";
-        var userRepository = new Mock<IUserRepository>();
-        userRepository
-            .Setup(r => r.ExistsByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        userRepository
-            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User u, CancellationToken _) =>
-            {
-                u.Id = persistedId;
-                return u;
-            });
-
-        var family = new Mock<IFamilyService>();
-        family
-            .Setup(f => f.GetInviteAsync("PP12-QQ34", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((FamilyInviteShareDto?)null);
-
-        var partner = new Mock<IOwnerPartnerService>();
-        partner
-            .Setup(f => f.GetInviteAsync("PP12-QQ34", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OwnerPartnerInviteShareDto
-            {
-                Status = FamilyInviteStatuses.Pending,
-                Code = "PP12-QQ34"
-            });
-        partner
-            .Setup(f => f.AcceptInviteAsync("PP12-QQ34", persistedId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OwnerPartnerLinkDto
-            {
-                Status = FamilyMemberStatuses.Active,
-                LinkedUserId = persistedId
-            });
-
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
-                ["JWT:Issuer"] = "test",
-                ["JWT:Audience"] = "test"
-            })
-            .Build();
-
-        var service = new AuthService(
-            userRepository.Object,
-            configuration,
-            new SystemDateTimeProvider(),
-            family.Object,
-            null,
-            partner.Object);
-
-        var response = await service.RegisterAsync(new RegisterDto
-        {
-            Email = "partner@test.com",
-            Password = "password123",
-            FirstName = "Nikos",
-            LastName = "Partner",
-            InviteCode = "PP12-QQ34"
-        });
-
-        Assert.Equal(persistedId, response.UserId);
-        partner.Verify(
-            f => f.AcceptInviteAsync("PP12-QQ34", persistedId, It.IsAny<CancellationToken>()),
-            Times.Once);
-        family.Verify(
-            f => f.AcceptInviteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]
     public async Task RegisterAsync_RejectsUnknownInviteCode()
     {
         var userRepository = new Mock<IUserRepository>();
-        var family = new Mock<IFamilyService>();
-        family
-            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((FamilyInviteShareDto?)null);
-        var partner = new Mock<IOwnerPartnerService>();
-        partner
-            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((OwnerPartnerInviteShareDto?)null);
+        var fieldPeople = new Mock<IFieldPeopleService>();
+        fieldPeople
+            .Setup(f => f.GetInviteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DTOs.Field.FieldInviteDto?)null);
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -439,9 +362,7 @@ public class AuthServiceTests
             userRepository.Object,
             configuration,
             new SystemDateTimeProvider(),
-            family.Object,
-            null,
-            partner.Object);
+            fieldPeople.Object);
 
         await Assert.ThrowsAsync<ValidationException>(() => service.RegisterAsync(new RegisterDto
         {

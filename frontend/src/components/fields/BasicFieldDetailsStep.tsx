@@ -2,24 +2,21 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateFieldDto } from '../../services/fieldService';
 import FieldColorPicker from './FieldColorPicker';
+import LocationSearchField from './LocationSearchField';
 
 interface Props {
   formData: CreateFieldDto;
-  kaekInput: string;
-  showKaek?: boolean;
   fieldId?: string | null;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
-  onKaekChange: (value: string) => void;
+  onLocationChange: (next: { locationText: string; latitude?: number; longitude?: number }) => void;
   onColorChange: (color: string) => void;
 }
 
 const BasicFieldDetailsStep: React.FC<Props> = ({
   formData,
-  kaekInput,
-  showKaek,
   fieldId,
   onChange,
-  onKaekChange,
+  onLocationChange,
   onColorChange,
 }) => {
   const { t } = useTranslation('fields');
@@ -43,34 +40,15 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="locationText">{t('locationLabel')}</label>
-        <input
-          type="text"
-          id="locationText"
-          name="locationText"
+        <LocationSearchField
           value={formData.locationText || ''}
-          onChange={onChange}
-          placeholder={t('addField.locationPlaceholder')}
+          onChange={onLocationChange}
         />
       </div>
 
       <div className="form-group">
         <FieldColorPicker value={formData.color} fieldId={fieldId} onChange={onColorChange} />
       </div>
-
-      {showKaek ? (
-        <div className="form-group">
-          <label htmlFor="kaek">{t('addField.kaek')}</label>
-          <input
-            type="text"
-            id="kaek"
-            value={kaekInput}
-            onChange={(e) => onKaekChange(e.target.value)}
-            placeholder="362621142088/0/0"
-          />
-          <p className="field-form-hint">{t('addField.kaekHint')}</p>
-        </div>
-      ) : null}
     </div>
   );
 };

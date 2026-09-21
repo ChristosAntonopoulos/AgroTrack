@@ -16,7 +16,7 @@ namespace OliveLifecycle.Application.Tests.Photos;
 public class PhotoHubServiceLinkTests
 {
     private readonly Mock<IMediaAttachmentRepository> _media = new();
-    private readonly Mock<IFieldRepository> _fields = new();
+    private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IFieldAccessService> _fieldAccess = new();
     private readonly Mock<IFileStorageService> _storage = new();
     private readonly Mock<IImageMetadataService> _images = new();
@@ -28,7 +28,7 @@ public class PhotoHubServiceLinkTests
 
     private PhotoHubService CreateSut() => new(
         _media.Object,
-        _fields.Object,
+        _fieldAccessScope.Object,
         _fieldAccess.Object,
         _storage.Object,
         _images.Object,

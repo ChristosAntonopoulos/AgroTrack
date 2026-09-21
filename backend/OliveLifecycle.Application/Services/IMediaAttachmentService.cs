@@ -16,5 +16,7 @@ public interface IMediaAttachmentService
     Task<IReadOnlyList<MediaAttachmentDto>> GetByOwnerAsync(
         string ownerType,
         string ownerId,
+        string userId,
+        string userRole,
         CancellationToken cancellationToken = default);
 }

@@ -32,6 +32,7 @@ export const mockHarvestService: typeof harvestService = {
       harvestDate: input.harvestDate || now,
       harvestMethod: input.harvestMethod?.trim() || '',
       workersUsed: input.workersUsed ?? 0,
+      sackCount: input.sackCount,
       oliveKg: input.oliveKg,
       millName: input.millName,
       oilKg: input.oilKg,
@@ -44,6 +45,8 @@ export const mockHarvestService: typeof harvestService = {
       qualityGrade: input.qualityGrade?.trim() || '',
       notes: input.notes,
       status: 'posted',
+      batchId: input.batchId,
+      allocationWeight: input.allocationWeight,
     };
     const existing = await readRecords();
     await writeRecords([record, ...existing]);

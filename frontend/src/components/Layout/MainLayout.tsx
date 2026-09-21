@@ -19,6 +19,12 @@ const MainLayout: React.FC = () => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // Scroll to top on route change; Tasks page restores its own scroll position.
+  useEffect(() => {
+    if (location.pathname === '/tasks') return;
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   useEffect(() => {
     if (!isMobile) setSidebarOpen(false);
   }, [isMobile]);

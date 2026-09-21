@@ -30,6 +30,7 @@ import {
   noteInSeasonBounds,
 } from '../ravdos/progressModel';
 import { RootStackParamList } from '../navigation/types';
+import { openHarvestCampaign } from '../navigation/intents';
 import { spacing } from '../theme';
 
 import { formatOfficialAmount } from '../finance/format';
@@ -151,7 +152,7 @@ const ThisHarvestReviewScreen = () => {
       <Button
         title={t('fields:apologismos.backToProgress')}
         variant="ghost"
-        onPress={() => navigation.navigate('HarvestCampaign')}
+        onPress={() => openHarvestCampaign(navigation)}
         style={{ marginHorizontal: spacing.base }}
       />
 

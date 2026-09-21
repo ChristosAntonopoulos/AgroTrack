@@ -6,13 +6,13 @@ export type Theme = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 export type { FontScale };
 
-export type DefaultView = 'dashboard' | 'fields' | 'today' | 'chronologio';
+export type DefaultView = 'fields' | 'chronologio';
 
 export interface UserPreferences {
   theme: Theme;
   dateFormat: string;
   language: string;
-  defaultView: DefaultView | 'tasks' | 'calendar';
+  defaultView: DefaultView | 'tasks';
   emailNotifications: boolean;
   taskAssignmentNotifications: boolean;
   deadlineReminders: boolean;
@@ -71,9 +71,6 @@ export const pathForDefaultView = (view: UserPreferences['defaultView']): string
     case 'tasks':
       return '/tasks';
     case 'chronologio':
-    case 'dashboard':
-    case 'calendar':
-    case 'today':
     default:
       return '/chronologio';
   }

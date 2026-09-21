@@ -1,8 +1,11 @@
 using MongoDB.Driver;
 using OliveLifecycle.Application.Abstractions.Persistence;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
+using OliveLifecycle.Infrastructure.Persistence.Mappers;
 
 namespace OliveLifecycle.Infrastructure.Persistence.Repositories;
 
@@ -28,6 +31,18 @@ public class FieldInviteRepository : IFieldInviteRepository
         return document == null ? null : ToEntity(document);
     }
 
+    public async Task<FieldInvite?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return null;
+        }
+
+        var normalized = code.Trim().ToUpperInvariant();
+        var document = await _collection.Find(x => x.Code == normalized).FirstOrDefaultAsync(cancellationToken);
+        return document == null ? null : ToEntity(document);
+    }
+
     public async Task<FieldInvite> UpdateAsync(FieldInvite invite, CancellationToken cancellationToken = default)
     {
         invite.UpdatedAt = DateTime.UtcNow;
@@ -48,32 +63,48 @@ public class FieldInviteRepository : IFieldInviteRepository
         return documents.Select(ToEntity);
     }
 
-    private static FieldInvite ToEntity(FieldInviteDocument doc) => new()
+    private static FieldInvite ToEntity(FieldInviteDocument doc)
     {
-        Id = doc.Id,
-        Token = doc.Token,
-        FieldId = doc.FieldId,
-        FieldName = doc.FieldName,
-        InvitedBy = doc.InvitedBy,
-        Capacities = doc.Capacities,
-        Phone = doc.Phone,
-        Email = doc.Email,
-        DisplayName = doc.DisplayName,
-        Status = doc.Status,
-        ExpiresAt = doc.ExpiresAt,
-        AcceptedBy = doc.AcceptedBy,
-        CreatedAt = doc.CreatedAt,
-        UpdatedAt = doc.UpdatedAt
-    };
+        var invite = new FieldInvite
+        {
+            Id = doc.Id,
+            Token = doc.Token,
+            Code = doc.Code,
+            FieldId = doc.FieldId,
+            FieldName = doc.FieldName,
+            InvitedBy = doc.InvitedBy,
+            Role = FieldMapper.InferRole(doc.Role, doc.Capacities),
+            Modules = doc.Modules?.ToList() ?? new List<string>(),
+            AccessLevel = doc.AccessLevel ?? FamilyAccessLevels.Work,
+            Phone = doc.Phone,
+            Email = doc.Email,
+            DisplayName = doc.DisplayName,
+            Status = doc.Status,
+            ExpiresAt = doc.ExpiresAt,
+            AcceptedBy = doc.AcceptedBy,
+            CreatedAt = doc.CreatedAt,
+            UpdatedAt = doc.UpdatedAt
+        };
+
+        if (invite.Modules.Count == 0)
+        {
+            invite.Modules = FamilyModules.DefaultOnInvite.ToList();
+        }
+
+        return invite;
+    }
 
     private static FieldInviteDocument ToDocument(FieldInvite entity) => new()
     {
         Id = entity.Id,
         Token = entity.Token,
+        Code = entity.Code,
         FieldId = entity.FieldId,
         FieldName = entity.FieldName,
         InvitedBy = entity.InvitedBy,
-        Capacities = entity.Capacities,
+        Role = entity.Role.ToString(),
+        Modules = entity.Modules?.ToList() ?? new List<string>(),
+        AccessLevel = entity.AccessLevel,
         Phone = entity.Phone,
         Email = entity.Email,
         DisplayName = entity.DisplayName,

@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldFinancialResult } from '../../services/financialSummaryService';
 import { UNASSIGNED_FIELD_QUERY } from '../../finance/buildYearSummary';
-import { formatOfficialAmount, formatOfficialNet } from '../../finance/format';
+import { formatOfficialAmount, formatOfficialNet, perAreaForDisplay } from '../../finance/format';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import './Money.css';
 
@@ -58,7 +58,12 @@ const MoneyFieldRows: React.FC<Props> = ({
               </span>
               <span>
                 {showPerHectare && row.costPerHectare != null
-                  ? `${t('costPerHectare')} ${formatOfficialAmount(row.costPerHectare, currency, locale, unknown)}`
+                  ? `${t('costPerHectare')} ${formatOfficialAmount(
+                      perAreaForDisplay(row.costPerHectare, locale),
+                      currency,
+                      locale,
+                      unknown
+                    )}`
                   : t('openField')}
               </span>
             </button>

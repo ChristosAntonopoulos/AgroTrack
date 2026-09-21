@@ -5,54 +5,52 @@ import PartnersSheet from './PartnersSheet';
 import FamilySharePanel from './FamilySharePanel';
 import FamilyAccessFields from './FamilyAccessFields';
 import {
-  CreateFamilyInvitePayload,
-  DEFAULT_FAMILY_MODULES,
-  FamilyAccessLevel,
-  FamilyInviteShare,
-  FamilyModule,
-  familyService,
-} from '../../services/familyService';
+  DEFAULT_FIELD_MODULES,
+  FieldAccessLevel,
+  FieldInvite,
+  FieldModule,
+  fieldPeopleService,
+} from '../../services/fieldPeopleService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 
 type Props = {
   open?: boolean;
+  fieldId: string;
   onClose: () => void;
   onCreated?: () => void;
 };
 
-const AddFamilySheet: React.FC<Props> = ({ open = true, onClose, onCreated }) => {
+const AddFamilySheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCreated }) => {
   const { t } = useTranslation(['partners', 'common']);
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [modules, setModules] = useState<FamilyModule[]>([...DEFAULT_FAMILY_MODULES]);
-  const [accessLevel, setAccessLevel] = useState<FamilyAccessLevel>('view');
+  const [modules, setModules] = useState<FieldModule[]>([...DEFAULT_FIELD_MODULES]);
+  const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>('view');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [invite, setInvite] = useState<FamilyInviteShare | null>(null);
+  const [invite, setInvite] = useState<FieldInvite | null>(null);
 
-  const toggleModule = (module: FamilyModule) => {
+  const toggleModule = (module: FieldModule) => {
     setModules((prev) =>
       prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
     );
   };
 
-  const canSubmit = Boolean(name.trim() && (phone.trim() || email.trim()) && modules.length > 0);
+  const canSubmit = Boolean(fieldId && name.trim() && email.trim() && modules.length > 0);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canSubmit) return;
-    const payload: CreateFamilyInvitePayload = {
-      displayName: name.trim(),
-      phone: phone.trim() || undefined,
-      email: email.trim() || undefined,
-      modules,
-      accessLevel,
-    };
     try {
       setSaving(true);
       setError(null);
-      const created = await familyService.createInvite(payload);
+      const created = await fieldPeopleService.createInvite(fieldId, {
+        role: 'Family',
+        displayName: name.trim(),
+        email: email.trim(),
+        modules,
+        accessLevel,
+      });
       setInvite(created);
       onCreated?.();
     } catch (err: unknown) {
@@ -96,27 +94,16 @@ const AddFamilySheet: React.FC<Props> = ({ open = true, onClose, onCreated }) =>
                 required
               />
             </label>
-            <div className="partners-form-row">
-              <label>
-                <span>{t('partners:invitePhone')}</span>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  autoComplete="tel"
-                  inputMode="tel"
-                />
-              </label>
-              <label>
-                <span>{t('partners:inviteEmail')}</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-              </label>
-            </div>
+            <label>
+              <span>{t('partners:inviteEmail')}</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </label>
             <p className="family-form-hint">{t('partners:family.contactHint')}</p>
           </div>
 

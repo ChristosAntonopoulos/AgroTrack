@@ -45,13 +45,29 @@ export const resolveFieldPolygon = (field: Field): LatLng[] | undefined => {
   return ring.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
 };
 
-export const formatFieldArea = (field: Field): string => {
+export const formatAreaFromSqm = (sqm: number, locale: 'el' | 'en' | 'it' = 'el'): string => {
+  if (locale === 'el') {
+    const stremmata = sqm / 1000;
+    const digits = stremmata >= 10 ? 1 : 2;
+    const rounded = Math.round(stremmata * 10 ** digits) / 10 ** digits;
+    return `${rounded.toLocaleString('el-GR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: digits,
+    })} στρ.`;
+  }
+  if (sqm >= 10000) {
+    return `${(sqm / 10000).toFixed(2)} ha`;
+  }
+  return `${Math.round(sqm)} m²`;
+};
+
+export const formatFieldArea = (
+  field: Field,
+  locale: 'el' | 'en' | 'it' = 'el'
+): string => {
   const sqm = formatFieldAreaSqm(field);
   if (sqm != null && sqm > 0) {
-    if (sqm >= 10000) {
-      return `${(sqm / 10000).toFixed(2)} ha`;
-    }
-    return `${Math.round(sqm)} m²`;
+    return formatAreaFromSqm(sqm, locale);
   }
   return '—';
 };

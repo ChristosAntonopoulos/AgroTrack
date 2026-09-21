@@ -2,6 +2,7 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Reports;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Entities.Geospatial;
@@ -27,7 +28,7 @@ public class ReportsService : IReportsService
     internal const double DryDayMaxMm = 0.5;
     internal const double HeatStressTempC = 35;
 
-    private readonly IFieldRepository _fieldRepository;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly ITaskExecutionRepository _executions;
     private readonly IHarvestRecordRepository _harvestRecordRepository;
@@ -37,7 +38,7 @@ public class ReportsService : IReportsService
     private readonly IDateTimeProvider _dateTimeProvider;
 
     public ReportsService(
-        IFieldRepository fieldRepository,
+        IFieldAccessScopeService fieldAccessScope,
         IFieldTaskRepository fieldTasks,
         ITaskExecutionRepository executions,
         IHarvestRecordRepository harvestRecordRepository,
@@ -46,7 +47,7 @@ public class ReportsService : IReportsService
         IFieldWeatherPeriodReviewRepository weatherReviews,
         IDateTimeProvider dateTimeProvider)
     {
-        _fieldRepository = fieldRepository;
+        _fieldAccessScope = fieldAccessScope;
         _fieldTasks = fieldTasks;
         _executions = executions;
         _harvestRecordRepository = harvestRecordRepository;
@@ -64,31 +65,45 @@ public class ReportsService : IReportsService
         string? periodBasis = null,
         CancellationToken cancellationToken = default)
     {
-        var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
+        var fields = FilterFields(
+            await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, cancellationToken: cancellationToken),
+            lifecycleYear).ToList();
         var fieldIds = fields.Select(f => f.Id).ToList();
-        var tasks = fieldIds.Count == 0
+
+        var taskFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Tasks, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        var harvestFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Harvest, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        var moneyFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Money, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+
+        var taskQueryIds = fieldIds.Where(taskFieldIds.Contains).ToList();
+        var harvestQueryIds = fieldIds.Where(harvestFieldIds.Contains).ToList();
+        var moneyQueryIds = fieldIds.Where(moneyFieldIds.Contains).ToList();
+
+        var tasks = taskQueryIds.Count == 0
             ? Array.Empty<FieldTask>()
-            : await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldIds = fieldIds }, cancellationToken);
-        var executions = fieldIds.Count == 0
+            : await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldIds = taskQueryIds }, cancellationToken);
+        var executions = taskQueryIds.Count == 0
             ? Array.Empty<TaskExecution>()
-            : await _executions.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            : await _executions.GetByFieldIdsAsync(taskQueryIds, cancellationToken);
         var activeByTaskId = executions
             .Where(e => e.IsActive)
             .GroupBy(e => e.TaskId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.CompletedAt).First(), StringComparer.Ordinal);
-        var harvests = fieldIds.Count == 0
+        var harvests = harvestQueryIds.Count == 0
             ? Enumerable.Empty<HarvestRecord>()
-            : await _harvestRecordRepository.GetByFieldIdsAsync(fieldIds, cancellationToken);
-        var ledger = fieldIds.Count == 0
+            : await _harvestRecordRepository.GetByFieldIdsAsync(harvestQueryIds, cancellationToken);
+        var ledger = moneyQueryIds.Count == 0
             ? Enumerable.Empty<FinancialTransaction>()
-            : await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
+            : await _financialTransactions.GetPostedByFieldIdsAsync(moneyQueryIds, cancellationToken);
 
         var now = _dateTimeProvider.UtcNow;
         return fields.Select(field =>
         {
             var fieldTaskList = tasks.Where(t => t.FieldId == field.Id).ToList();
             var fieldHarvests = harvests
-                .Where(h => h.FieldId == field.Id && MatchesSeason(h.HarvestDate, season, periodBasis) && h.Status != FinancialEntryStatus.Voided)
+                .Where(h => h.FieldId == field.Id && MatchesHarvestYear(h, season, periodBasis) && h.Status != FinancialEntryStatus.Voided)
                 .ToList();
             var fieldEntries = ledger
                 .Where(e => e.FieldId == field.Id && MatchesSeason(e.OccurredOn, season, periodBasis) && MatchesLifecycleYear(e.ResultYear, lifecycleYear))
@@ -149,14 +164,16 @@ public class ReportsService : IReportsService
         string? periodBasis = null,
         CancellationToken cancellationToken = default)
     {
-        var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
+        var fields = FilterFields(
+            await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, FamilyModules.Harvest, cancellationToken),
+            lifecycleYear).ToList();
         var fieldMap = fields.ToDictionary(f => f.Id, f => f);
         var records = fieldMap.Count == 0
             ? Enumerable.Empty<HarvestRecord>()
             : await _harvestRecordRepository.GetByFieldIdsAsync(fieldMap.Keys, cancellationToken);
 
         return records
-            .Where(r => r.Status != FinancialEntryStatus.Voided && MatchesSeason(r.HarvestDate, season, periodBasis))
+            .Where(r => r.Status != FinancialEntryStatus.Voided && MatchesHarvestYear(r, season, periodBasis))
             .Select(r =>
             {
                 fieldMap.TryGetValue(r.FieldId, out var field);
@@ -173,10 +190,13 @@ public class ReportsService : IReportsService
                     KgPerHa = areaHa > 0 ? RoundKg(r.OliveKg / areaHa) : 0,
                     MillName = r.MillName,
                     OilKg = r.OilKg.HasValue ? RoundKg(r.OilKg.Value) : null,
+                    OilLitres = r.OilLitres is > 0 ? (double)r.OilLitres.Value : null,
                     OilYieldPercent = r.OilYieldPercent.HasValue ? RoundOne(r.OilYieldPercent.Value) : null,
                     QualityGrade = r.QualityGrade,
                     Notes = r.Notes,
-                    Status = r.Status.ToApiString()
+                    Status = r.Status.ToApiString(),
+                    BatchId = r.BatchId,
+                    AllocationWeight = r.AllocationWeight
                 };
             });
     }
@@ -194,7 +214,9 @@ public class ReportsService : IReportsService
             throw new ForbiddenException("You do not have permission to view profit and loss reports.");
         }
 
-        var fields = FilterFields(await GetAccessibleFieldsAsync(userId, userRole, cancellationToken), lifecycleYear).ToList();
+        var fields = FilterFields(
+            await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, FamilyModules.Money, cancellationToken),
+            lifecycleYear).ToList();
         var fieldIds = fields.Select(f => f.Id).ToList();
         var ledger = fieldIds.Count == 0
             ? Enumerable.Empty<FinancialTransaction>()
@@ -255,7 +277,8 @@ public class ReportsService : IReportsService
         var now = _dateTimeProvider.UtcNow;
         var year = ResolveYear(season, now);
         var monthNumber = month is >= 1 and <= 12 ? month.Value : now.Month;
-        var fields = (await GetAccessibleFieldsAsync(userId, userRole, cancellationToken)).ToList();
+        var fields = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, cancellationToken: cancellationToken)).ToList();
         var daysInMonth = DateTime.DaysInMonth(year, monthNumber);
         var from = new DateOnly(year - 1, monthNumber, 1);
         var to = new DateOnly(year, monthNumber, daysInMonth);
@@ -294,26 +317,34 @@ public class ReportsService : IReportsService
     {
         var now = _dateTimeProvider.UtcNow;
         var year = ResolveYear(season, now);
-        var fields = (await GetAccessibleFieldsAsync(userId, userRole, cancellationToken)).ToList();
+        var fields = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, cancellationToken: cancellationToken)).ToList();
         var fieldIds = fields.Select(f => f.Id).ToList();
         var from = new DateOnly(year - 1, 1, 1);
         var to = new DateOnly(year, 12, 31);
         var periodFrom = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var periodTo = new DateTime(year, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
-        var tasks = fieldIds.Count == 0
+        var taskFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Tasks, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        var moneyFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Money, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        var taskQueryIds = fieldIds.Where(taskFieldIds.Contains).ToList();
+        var moneyQueryIds = fieldIds.Where(moneyFieldIds.Contains).ToList();
+
+        var tasks = taskQueryIds.Count == 0
             ? Array.Empty<FieldTask>()
-            : await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldIds = fieldIds }, cancellationToken);
-        var executions = fieldIds.Count == 0
+            : await _fieldTasks.QueryAsync(new FieldTaskQuery { FieldIds = taskQueryIds }, cancellationToken);
+        var executions = taskQueryIds.Count == 0
             ? Array.Empty<TaskExecution>()
-            : await _executions.GetByFieldIdsAsync(fieldIds, cancellationToken);
+            : await _executions.GetByFieldIdsAsync(taskQueryIds, cancellationToken);
         var activeByTaskId = executions
             .Where(e => e.IsActive)
             .GroupBy(e => e.TaskId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.CompletedAt).First(), StringComparer.Ordinal);
-        var ledger = fieldIds.Count == 0
+        var ledger = moneyQueryIds.Count == 0
             ? Enumerable.Empty<FinancialTransaction>()
-            : await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
+            : await _financialTransactions.GetPostedByFieldIdsAsync(moneyQueryIds, cancellationToken);
         var reviews = fieldIds.Count == 0
             ? Array.Empty<FieldWeatherPeriodReview>()
             : await _weatherReviews.GetByFieldIdsAsync(fieldIds, periodFrom, periodTo, cancellationToken);
@@ -663,6 +694,11 @@ public class ReportsService : IReportsService
         return int.TryParse(filterYear.Trim(), out var year) && resultYear == year;
     }
 
+    /// <summary>
+    /// Default period is καλλιεργητική χρονιά (ResultYear / AgriculturalYear).
+    /// Use periodBasis=season|cultivation for Sep–Aug operational harvest period,
+    /// or periodBasis=calendar for Jan–Dec.
+    /// </summary>
     private static bool MatchesSeason(DateTime date, string? season, string? periodBasis = null)
     {
         if (string.IsNullOrWhiteSpace(season))
@@ -670,7 +706,48 @@ public class ReportsService : IReportsService
             return true;
         }
 
-        return int.TryParse(season.Trim(), out var year) && CultivationSeason.MatchesPeriod(date, year, periodBasis);
+        if (!int.TryParse(season.Trim(), out var year))
+        {
+            return false;
+        }
+
+        if (string.Equals(periodBasis, "season", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(periodBasis, "cultivation", StringComparison.OrdinalIgnoreCase))
+        {
+            return CultivationSeason.Contains(date, year);
+        }
+
+        if (string.Equals(periodBasis, "calendar", StringComparison.OrdinalIgnoreCase))
+        {
+            return AthensTime.CalendarYear(date) == year;
+        }
+
+        return AgriculturalYear.For(date) == year;
+    }
+
+    private static bool MatchesHarvestYear(HarvestRecord record, string? season, string? periodBasis = null)
+    {
+        if (string.IsNullOrWhiteSpace(season))
+        {
+            return true;
+        }
+
+        if (!int.TryParse(season.Trim(), out var year))
+        {
+            return false;
+        }
+
+        if (string.Equals(periodBasis, "season", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(periodBasis, "cultivation", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(periodBasis, "calendar", StringComparison.OrdinalIgnoreCase))
+        {
+            return MatchesSeason(record.HarvestDate, season, periodBasis);
+        }
+
+        var resultYear = record.ResultYear > 0
+            ? record.ResultYear
+            : AgriculturalYear.For(record.HarvestDate);
+        return resultYear == year;
     }
 
     private static decimal SumFieldCost(IEnumerable<FinancialTransaction> entries) =>
@@ -680,26 +757,8 @@ public class ReportsService : IReportsService
         entries.Where(e => e.Type == FinancialTransactionType.Income).Sum(e => e.Amount);
 
     private static double RoundHa(double value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
-    private static double RoundKg(double value) => Math.Round(value, 0, MidpointRounding.AwayFromZero);
+    private static double RoundKg(double value) => GroveMass.RoundKg(value);
     private static double RoundOne(double value) => Math.Round(value, 1, MidpointRounding.AwayFromZero);
     private static decimal RoundMoney(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
     private static string? FormatDate(DateTime? value) => value?.ToString("yyyy-MM-dd");
-
-    private async Task<IEnumerable<Field>> GetAccessibleFieldsAsync(
-        string userId,
-        string userRole,
-        CancellationToken cancellationToken)
-    {
-        if (userRole == Roles.FieldOwner || userRole == Roles.Administrator)
-        {
-            return await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken);
-        }
-
-        if (userRole == Roles.Producer)
-        {
-            return await _fieldRepository.GetByAssignedProducerIdAsync(userId, cancellationToken);
-        }
-
-        throw new ForbiddenException("You do not have permission to view reports.");
-    }
 }

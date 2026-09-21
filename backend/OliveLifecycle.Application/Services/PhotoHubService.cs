@@ -4,7 +4,6 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Storage;
 using OliveLifecycle.Application.DTOs.Photos;
-using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -16,14 +15,8 @@ public class PhotoHubService : IPhotoHubService
     public const int MaxImagesPerLinkedOwner = 5;
     public const long MaxUploadBytes = 10 * 1024 * 1024;
 
-    private static readonly HashSet<string> OwnerRoles = new(StringComparer.Ordinal)
-    {
-        Roles.FieldOwner,
-        Roles.Administrator
-    };
-
     private readonly IMediaAttachmentRepository _media;
-    private readonly IFieldRepository _fields;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFieldAccessService _fieldAccess;
     private readonly IFileStorageService _storage;
     private readonly IImageMetadataService _images;
@@ -35,7 +28,7 @@ public class PhotoHubService : IPhotoHubService
 
     public PhotoHubService(
         IMediaAttachmentRepository media,
-        IFieldRepository fields,
+        IFieldAccessScopeService fieldAccessScope,
         IFieldAccessService fieldAccess,
         IFileStorageService storage,
         IImageMetadataService images,
@@ -46,7 +39,7 @@ public class PhotoHubService : IPhotoHubService
         IFieldPhenologyObservationRepository phenology)
     {
         _media = media;
-        _fields = fields;
+        _fieldAccessScope = fieldAccessScope;
         _fieldAccess = fieldAccess;
         _storage = storage;
         _images = images;
@@ -68,7 +61,7 @@ public class PhotoHubService : IPhotoHubService
             throw new ValidationException("At least one image is required.");
         }
 
-        var accessible = (await GetAccessibleFieldsAsync(userId, userRole, cancellationToken)).ToList();
+        var accessible = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, cancellationToken: cancellationToken)).ToList();
         var results = new List<PhotoUploadResultDto>();
 
         foreach (var file in files)
@@ -85,7 +78,7 @@ public class PhotoHubService : IPhotoHubService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        var accessibleIds = (await GetAccessibleFieldsAsync(userId, userRole, cancellationToken))
+        var accessibleIds = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, cancellationToken: cancellationToken))
             .Select(f => f.Id)
             .ToList();
 
@@ -491,24 +484,6 @@ public class PhotoHubService : IPhotoHubService
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
-    }
-
-    private async Task<IEnumerable<Field>> GetAccessibleFieldsAsync(
-        string userId,
-        string userRole,
-        CancellationToken cancellationToken)
-    {
-        if (OwnerRoles.Contains(userRole))
-        {
-            return await _fields.GetByOwnerIdAsync(userId, cancellationToken);
-        }
-
-        if (userRole == Roles.Producer)
-        {
-            return await _fields.GetByAssignedProducerIdAsync(userId, cancellationToken);
-        }
-
-        return await _fields.GetByMemberUserIdAsync(userId, cancellationToken);
     }
 
     public static PhotoDto ToDto(MediaAttachment entity) => new()

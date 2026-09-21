@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Pin } from 'lucide-react';
+import { taskPeekPath } from '../../navigation/intents';
 import Button from '../Common/Button';
 import HarvestMoneyPanel from '../money/HarvestMoneyPanel';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
@@ -17,6 +18,7 @@ import type { FieldTask } from '../../services/fieldWorkService';
 import type { FinancialTransaction } from '../../services/financialTransactionService';
 import type { Note } from '../../services/noteService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { formatGroveMassKg } from '../../utils/groveTotals';
 import { taskStatusI18nKey } from '../../utils/categoryNormalize';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { financialStatusLabel, financialTypeLabel } from '../../finance/display';
@@ -31,6 +33,7 @@ import { chronologioDetailKind } from '../../chronologio/detailKind';
 import { buildDayWeatherView, type DayWeatherInput } from '../../chronologio/dayWeather';
 import { EntityCache } from '../../utils/entityCache';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 
 type Props = {
   entry: ChronologioEntry;
@@ -60,14 +63,20 @@ const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, 
 };
 
 const MediaGallery: React.FC<{ entry: ChronologioEntry; title: string }> = ({ entry, title }) => {
-  const { t } = useTranslation('photos');
+  const { t } = useTranslation(['photos', 'chronologio']);
   const lightbox = usePhotoLightbox();
   const photos = entry.media || [];
   const audio = photos.filter((m) => (m.url || m.thumbnailUrl) && /audio|voice/i.test(m.type || ''));
+  const documents = photos.filter(
+    (m) => (m.url || m.thumbnailUrl) && /document/i.test(m.type || '')
+  );
   const items = useMemo(
     () =>
       (entry.media || [])
-        .filter((m) => (m.url || m.thumbnailUrl) && !/audio|voice/i.test(m.type || ''))
+        .filter(
+          (m) =>
+            (m.url || m.thumbnailUrl) && !/audio|voice|document/i.test(m.type || '')
+        )
         .map((m) => {
           const src = resolvePublicAssetUrl(m.url || m.thumbnailUrl) || m.url || m.thumbnailUrl || '';
           return {
@@ -78,7 +87,7 @@ const MediaGallery: React.FC<{ entry: ChronologioEntry; title: string }> = ({ en
         }),
     [entry.media, t]
   );
-  if (!items.length && !audio.length) return null;
+  if (!items.length && !audio.length && !documents.length) return null;
   return (
     <div className="chrono-drawer-media">
       <h3>{title}</h3>
@@ -101,6 +110,24 @@ const MediaGallery: React.FC<{ entry: ChronologioEntry; title: string }> = ({ en
         return src ? (
           <audio key={m.id} className="chrono-drawer-audio" controls src={src} />
         ) : null;
+      })}
+      {documents.map((m) => {
+        const src = resolvePublicAssetUrl(m.url) || m.url;
+        if (!src) return null;
+        const label =
+          entry.summary ||
+          t('chronologio:drawer.document', { defaultValue: 'Document' });
+        return (
+          <a
+            key={m.id}
+            className="chrono-drawer-document"
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {label}
+          </a>
+        );
       })}
       <PhotoLightbox
         open={lightbox.open}
@@ -158,6 +185,7 @@ const ChronologioEventDetail: React.FC<Props> = ({ entry, numberLocale, dayWeath
   }
   if (kind === 'warning') {
     const intel = entry.details.intelligence;
+    const relatedTaskId = intel?.relatedSourceIds?.[0];
     return (
       <dl className="chrono-drawer-facts">
         <Fact label={t('drawer.severity')}>
@@ -168,12 +196,14 @@ const ChronologioEventDetail: React.FC<Props> = ({ entry, numberLocale, dayWeath
         <Fact label={t('living.field')}>{entry.field?.name}</Fact>
         <Fact label={t('drawer.why')}>{intel?.message || entry.summary}</Fact>
         <Fact label={t('drawer.response')}>{intel?.recommendation}</Fact>
-        {intel?.relatedSourceIds?.[0] ? (
+        {relatedTaskId ? (
           <Fact label={t('drawer.relatedTask')}>
             <button
               type="button"
               className="money-text-link"
-              onClick={() => navigate(`/tasks/${intel.relatedSourceIds?.[0]}`)}
+              onClick={() => {
+                if (relatedTaskId) navigate(taskPeekPath(relatedTaskId));
+              }}
             >
               {t('living.openTask')}
             </button>
@@ -212,6 +242,7 @@ const TaskDetail: React.FC<{
   const { t, i18n } = useTranslation(['chronologio', 'common', 'today']);
   const navigate = useNavigate();
   const task = entry.details.task;
+  const followUpTaskId = task?.followUpTaskId;
   const [full, setFull] = useState<FieldTask | null>(null);
 
   useEffect(() => {
@@ -305,8 +336,13 @@ const TaskDetail: React.FC<{
         </section>
       ) : null}
       <MediaGallery entry={mediaEntry} title={t('living.photos')} />
-      {task?.followUpTaskId ? (
-        <Button variant="ghost" onClick={() => navigate(`/tasks/${task.followUpTaskId}`)}>
+      {followUpTaskId ? (
+        <Button
+          variant="ghost"
+          onClick={() => {
+            if (followUpTaskId) navigate(taskPeekPath(followUpTaskId));
+          }}
+        >
           {t('drawer.relatedTask')}
         </Button>
       ) : null}
@@ -380,6 +416,7 @@ const MoneyDetail: React.FC<{
   const { t, i18n } = useTranslation(['chronologio', 'common', 'money']);
   const navigate = useNavigate();
   const expense = entry.details.expense;
+  const linkedTaskId = expense?.linkedTaskId;
   const [tx, setTx] = useState<FinancialTransaction | null>(null);
 
   useEffect(() => {
@@ -430,12 +467,14 @@ const MoneyDetail: React.FC<{
           {tx ? financialStatusLabel(tx.status, i18n.language) : null}
         </Fact>
         <Fact label={t('living.actor')}>{actor || tx?.counterpartyName}</Fact>
-        {expense?.relatedTaskTitle ? (
+        {linkedTaskId && expense?.relatedTaskTitle ? (
           <Fact label={t('relatedTask', { title: expense.relatedTaskTitle })}>
             <button
               type="button"
               className="money-text-link"
-              onClick={() => navigate(`/tasks/${expense.linkedTaskId}`)}
+              onClick={() => {
+                if (linkedTaskId) navigate(taskPeekPath(linkedTaskId));
+              }}
             >
               {expense.relatedTaskTitle}
             </button>
@@ -458,58 +497,80 @@ const HarvestDetail: React.FC<{
   const { t, i18n } = useTranslation(['chronologio', 'common']);
   const harvest = entry.details.harvest;
   if (!harvest) return null;
+  const isDay = /^Harvest:day:/i.test(entry.id);
+  const presented = presentChronologioEvent(entry, i18n.language);
   return (
     <>
-      <div className="chronologio-harvest-stats">
-        <div className="chronologio-harvest-stat">
-          <strong>
-            {harvest.oliveKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
-          </strong>
-          <span>{t('olivesUnit')}</span>
-        </div>
-        {harvest.oilLitres != null || harvest.oilKg != null ? (
+      <div className={`chronologio-harvest-stats${isDay ? ' is-day-snapshot' : ''}`}>
+        {harvest.oliveKg > 0 ? (
           <div className="chronologio-harvest-stat">
-            <strong>
-              {(harvest.oilLitres ?? harvest.oilKg ?? 0).toLocaleString(numberLocale, {
-                maximumFractionDigits: 1,
-              })}
-            </strong>
-            <span>{harvest.oilLitres != null ? t('drawer.oilLitres') : t('oilUnit')}</span>
+            <strong>{formatGroveMassKg(harvest.oliveKg, numberLocale)}</strong>
+            <span>
+              {harvest.hasOfficialWeight === false
+                ? t('approxOlives', { defaultValue: 'περίπου kg' })
+                : t('officialOlives', { defaultValue: 'επίσημο βάρος' })}
+            </span>
           </div>
         ) : null}
-        {harvest.oilKg != null && harvest.oilLitres != null ? (
+        {(harvest.sackCount ?? 0) > 0 ? (
           <div className="chronologio-harvest-stat">
-            <strong>
-              {harvest.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })}
-            </strong>
+            <strong>{harvest.sackCount}</strong>
+            <span>{t('sacksUnit', { defaultValue: 'σακιά' })}</span>
+          </div>
+        ) : null}
+        {isDay && harvest.workers > 0 ? (
+          <div className="chronologio-harvest-stat">
+            <strong>{harvest.workers}</strong>
+            <span>{t('workers')}</span>
+          </div>
+        ) : null}
+        {harvest.oilKg != null && harvest.oilKg > 0 ? (
+          <div className="chronologio-harvest-stat">
+            <strong>{formatGroveMassKg(harvest.oilKg, numberLocale)}</strong>
             <span>{t('oilUnit')}</span>
           </div>
         ) : null}
-        {harvest.oilYieldPercent != null ? (
+        {harvest.oilLitres != null && harvest.oilLitres > 0 ? (
           <div className="chronologio-harvest-stat">
-            <strong>{harvest.oilYieldPercent}%</strong>
+            <strong>
+              {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 3 }).format(harvest.oilLitres)}
+            </strong>
+            <span>{t('drawer.oilLitres')}</span>
+          </div>
+        ) : null}
+        {!isDay && harvest.oilYieldPercent != null ? (
+          <div className="chronologio-harvest-stat">
+            <strong>{formatGroveMassKg(harvest.oilYieldPercent, numberLocale)}%</strong>
             <span>{t('yieldUnit')}</span>
           </div>
         ) : null}
+        {!harvest.oliveKg && !(harvest.sackCount ?? 0) ? (
+          <div className="chronologio-harvest-stat">
+            <strong>—</strong>
+            <span>{t('olivesUnit')}</span>
+          </div>
+        ) : null}
       </div>
-      <HarvestMoneyPanel
-        harvestId={harvest.harvestId}
-        fieldId={entry.fieldId}
-        harvestDate={entry.occurredAt}
-      />
+      {presented.description ? <p className="chronologio-harvest-day-summary">{presented.description}</p> : null}
+      {!isDay ? (
+        <HarvestMoneyPanel
+          harvestId={harvest.harvestId}
+          fieldId={entry.fieldId}
+          harvestDate={entry.occurredAt}
+        />
+      ) : null}
       <dl className="chrono-drawer-facts">
-        <Fact label={t('drawer.eventType')}>
-          {presentChronologioEvent(entry, i18n.language).label}
-        </Fact>
+        <Fact label={t('drawer.eventType')}>{presented.label}</Fact>
         <Fact label={t('drawer.date')}>
           {new Date(entry.occurredAt).toLocaleDateString(i18n.language, { dateStyle: 'long' })}
         </Fact>
-        <Fact label={t('living.field')}>{entry.field?.name}</Fact>
-        <Fact label={t('mill')}>{harvest.mill}</Fact>
-        <Fact label={t('drawer.quality')}>{presentHarvestQuality(harvest.quality, i18n.language)}</Fact>
-        <Fact label={t('workers')}>{harvest.workers || null}</Fact>
+        <Fact label={t('living.field')}>{entry.field?.name ? friendlyFieldLabel(entry.field.name) : null}</Fact>
         <Fact label={t('living.actor')}>{actor}</Fact>
-        <Fact label={t('common:description')}>{entry.summary}</Fact>
+        {!isDay && harvest.workers > 0 ? <Fact label={t('workers')}>{harvest.workers}</Fact> : null}
+        {harvest.mill ? <Fact label={t('mill')}>{harvest.mill}</Fact> : null}
+        {presentHarvestQuality(harvest.quality, i18n.language) ? (
+          <Fact label={t('quality')}>{presentHarvestQuality(harvest.quality, i18n.language)}</Fact>
+        ) : null}
       </dl>
       <MediaGallery entry={entry} title={t('living.photos')} />
     </>

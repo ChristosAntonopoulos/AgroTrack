@@ -19,6 +19,8 @@ interface ExperienceModeContextType {
   largeControls: boolean;
   setFontScale: (scale: FontScale) => void;
   setLargeControls: (enabled: boolean) => void;
+  applyEasyUsePreset: () => void;
+  resetComfortDefaults: () => void;
   applyComfortToDocument: () => void;
 }
 
@@ -86,6 +88,20 @@ export const ExperienceModeProvider: React.FC<{ children: ReactNode }> = ({ chil
     void syncPrefsToServer({ largeControls: enabled });
   }, []);
 
+  const applyEasyUsePreset = useCallback(() => {
+    setFontScaleState('large');
+    setLargeControlsState(true);
+    settingsService.savePreferences({ fontScale: 'large', largeControls: true });
+    void syncPrefsToServer({ fontScale: 'large', largeControls: true });
+  }, []);
+
+  const resetComfortDefaults = useCallback(() => {
+    setFontScaleState('default');
+    setLargeControlsState(false);
+    settingsService.savePreferences({ fontScale: 'default', largeControls: false });
+    void syncPrefsToServer({ fontScale: 'default', largeControls: false });
+  }, []);
+
   const applyComfortToDocument = useCallback(() => {
     applyDocumentComfort(fontScale, largeControls);
   }, [fontScale, largeControls]);
@@ -96,9 +112,19 @@ export const ExperienceModeProvider: React.FC<{ children: ReactNode }> = ({ chil
       largeControls,
       setFontScale,
       setLargeControls,
+      applyEasyUsePreset,
+      resetComfortDefaults,
       applyComfortToDocument,
     }),
-    [fontScale, largeControls, setFontScale, setLargeControls, applyComfortToDocument]
+    [
+      fontScale,
+      largeControls,
+      setFontScale,
+      setLargeControls,
+      applyEasyUsePreset,
+      resetComfortDefaults,
+      applyComfortToDocument,
+    ]
   );
 
   return (

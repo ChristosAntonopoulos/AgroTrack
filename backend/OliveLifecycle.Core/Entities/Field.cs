@@ -17,8 +17,10 @@ public class Field : BaseEntity
     public bool IrrigationStatus { get; set; }
     public string CurrentLifecycleYear { get; set; } = "low";
     public string CurrentLifecycleStage { get; set; } = OliveLifecycleStage.Dormancy;
-    public List<string> AssignedProducerIds { get; set; } = new();
-    public List<FieldMembership> Memberships { get; set; } = new();
+
+    /// <summary>Per-field seats: 1 Admin, 1 Partner, 2 Family.</summary>
+    public List<FieldPerson> People { get; set; } = new();
+
     public List<AdvisorComment> AdvisorComments { get; set; } = new();
 
     public FieldStatus Status { get; set; } = FieldStatus.Active;

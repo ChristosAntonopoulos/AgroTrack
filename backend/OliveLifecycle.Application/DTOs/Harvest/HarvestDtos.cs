@@ -8,6 +8,7 @@ public class CreateHarvestRecordDto
     public int? ResultYear { get; set; }
     public string? HarvestMethod { get; set; }
     public int WorkersUsed { get; set; }
+    public int SackCount { get; set; }
     public double OliveKg { get; set; }
     public string? MillName { get; set; }
     public double? OilKg { get; set; }
@@ -21,6 +22,9 @@ public class CreateHarvestRecordDto
     public decimal? SaleAmount { get; set; }
     public decimal? MillCost { get; set; }
     public List<string>? MediaUrls { get; set; }
+    /// <summary>Shared lot id when this row is one share of a multi-field mill/oil ticket.</summary>
+    public string? BatchId { get; set; }
+    public double? AllocationWeight { get; set; }
 }
 
 public class HarvestRecordDetailDto
@@ -31,6 +35,7 @@ public class HarvestRecordDetailDto
     public int ResultYear { get; set; }
     public string HarvestMethod { get; set; } = string.Empty;
     public int WorkersUsed { get; set; }
+    public int SackCount { get; set; }
     public double OliveKg { get; set; }
     public string? MillName { get; set; }
     public double? OilKg { get; set; }
@@ -44,6 +49,8 @@ public class HarvestRecordDetailDto
     public string Status { get; set; } = "posted";
     public string? VoidReason { get; set; }
     public DateTime? VoidedAt { get; set; }
+    public string? BatchId { get; set; }
+    public double? AllocationWeight { get; set; }
 }
 
 public class VoidHarvestRecordDto

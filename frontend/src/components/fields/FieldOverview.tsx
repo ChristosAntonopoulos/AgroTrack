@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import type { FieldPhenology, FieldTask, TaskProposal } from '../../services/fieldWorkService';
@@ -7,7 +7,6 @@ import type { FieldYearSummary, YearFinancialSummary } from '../../services/fina
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { countPlannedRemaining, resolveFieldAttention } from '../../utils/fieldOverviewAttention';
 import FieldStatusStrip from './FieldStatusStrip';
-import FieldAttentionCard from './FieldAttentionCard';
 import FieldWeatherCard from './FieldWeatherCard';
 import FieldYearGlance from './FieldYearGlance';
 import FieldRecentChronologio from './FieldRecentChronologio';
@@ -52,7 +51,6 @@ const FieldOverview: React.FC<Props> = ({
   onOpenMap,
 }) => {
   const { i18n } = useTranslation();
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const isDraft = field.status === 'Draft';
   const isHistoricalYear = year < currentYear;
   const latestEntry = useMemo(
@@ -72,15 +70,15 @@ const FieldOverview: React.FC<Props> = ({
         tasks,
         proposals,
         language: i18n.language,
-        dismissedIds,
       }),
-    [isDraft, isHistoricalYear, alerts, tasks, proposals, dismissedIds, i18n.language]
+    [isDraft, isHistoricalYear, alerts, tasks, proposals, i18n.language]
   );
 
   return (
     <div className="field-overview">
       <FieldStatusStrip
         phenology={phenology}
+        currentLifecycleStage={field.currentLifecycleStage}
         tasks={tasks}
         attention={attention}
         latestEntry={latestEntry}
@@ -90,17 +88,13 @@ const FieldOverview: React.FC<Props> = ({
         <div className="field-overview-map">
           <FieldDetailMap
             field={field}
-            heightPx={470}
+            heightPx={320}
             variant="peek"
             weather={weather}
             onOpenMapTab={onOpenMap}
           />
         </div>
         <aside className="field-overview-side">
-          <FieldAttentionCard
-            attention={attention}
-            onKeepDate={(id) => setDismissedIds((prev) => [...prev, id])}
-          />
           <FieldWeatherCard
             weather={weather}
             loading={weatherLoading}
@@ -111,25 +105,27 @@ const FieldOverview: React.FC<Props> = ({
             attention={attention}
             nextTaskTitle={attention.kind === 'nextTask' || attention.kind === 'weatherReschedule' ? attention.title : undefined}
             onRetry={onRetryWeather}
+            onSeeMore={onOpenMap}
           />
         </aside>
       </div>
 
-      <FieldYearGlance
-        fieldId={field.id}
-        year={year}
-        costSummary={costSummary}
-        yearRollup={yearRollup}
-        plannedRemaining={countPlannedRemaining(tasks)}
-      />
+      <div className="field-overview-lower">
+        <FieldYearGlance
+          fieldId={field.id}
+          year={year}
+          costSummary={costSummary}
+          yearRollup={yearRollup}
+          plannedRemaining={countPlannedRemaining(tasks)}
+        />
+        <FieldRecentChronologio
+          fieldId={field.id}
+          entries={recentEntries}
+          onSelect={onOpenChronologio}
+        />
+      </div>
 
       <FieldPhotosStrip fieldId={field.id} />
-
-      <FieldRecentChronologio
-        fieldId={field.id}
-        entries={recentEntries}
-        onSelect={onOpenChronologio}
-      />
     </div>
   );
 };

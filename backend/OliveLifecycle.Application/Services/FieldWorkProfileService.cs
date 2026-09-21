@@ -366,7 +366,7 @@ public class FieldWorkProfileService : IFieldWorkProfileService
             var assigneeId = entry.AssigneeUserId;
             var allowed = string.Equals(assigneeId, targetField.OwnerId, StringComparison.Ordinal)
                 || string.Equals(assigneeId, actingUserId, StringComparison.Ordinal)
-                || FieldMembershipSync.IsMember(targetField, assigneeId);
+                || FieldPeopleRules.IsMember(targetField, assigneeId);
 
             if (!allowed)
             {

@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LocaleProvider } from './context/LocaleProvider';
 import { NotificationProvider } from './context/NotificationContext';
+import { InAppMessageProvider } from './context/InAppMessageContext';
 import { ExperienceModeProvider } from './context/ExperienceModeContext';
 import { OfflineProvider } from './context/OfflineContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
@@ -22,16 +23,17 @@ import FieldWeatherVegetationPage from './pages/FieldWeatherVegetationPage';
 import FieldWorkSetupPage from './pages/FieldWorkSetupPage';
 import FieldWorkProfilePage from './pages/FieldWorkProfilePage';
 import ChronologioPage from './pages/ChronologioPage';
-import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import TaskFormPage from './pages/TaskFormPage';
 import TaskCompletionPage from './pages/TaskCompletionPage';
-import CalendarPage from './pages/CalendarPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import DataSourcesPage from './pages/DataSourcesPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
+import CampaignsPage from './pages/admin/CampaignsPage';
+import CampaignEditorPage from './pages/admin/CampaignEditorPage';
+import FeedbackInboxPage from './pages/admin/FeedbackInboxPage';
 import { CHRONOLOGIO_HOME, migrateLegacyHomePath } from './navigation/homePath';
 import PartnersPage from './pages/PartnersPage';
 import PartnerSearchPage from './pages/PartnerSearchPage';
@@ -40,10 +42,8 @@ import MyServiceProfilePage from './pages/MyServiceProfilePage';
 import ServiceRequestsPage from './pages/ServiceRequestsPage';
 import MoneyPage from './pages/MoneyPage';
 import PhotoHubPage from './pages/PhotoHubPage';
-import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
 import HarvestCampaignPage from './pages/HarvestCampaignPage';
-import FamilyInviteAcceptPage from './pages/FamilyInviteAcceptPage';
-import PartnerInviteAcceptPage from './pages/PartnerInviteAcceptPage';
+import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import './App.css';
 
@@ -51,6 +51,11 @@ const FieldPeopleRedirect: React.FC = () => {
   const { id } = useParams();
   const search = id ? `?fieldId=${encodeURIComponent(id)}` : '';
   return <Navigate to={`/partners${search}`} replace />;
+};
+
+const LegacyInviteRedirect: React.FC = () => {
+  const { token } = useParams();
+  return <Navigate to={token ? `/invite/${token}` : '/login'} replace />;
 };
 
 const TodayRedirect: React.FC = () => {
@@ -76,7 +81,6 @@ function App() {
         <AuthProvider>
           <ExperienceModeProvider>
             <OfflineProvider>
-            <NotificationProvider>
               <Router>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
@@ -87,16 +91,20 @@ function App() {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                   </Route>
                   <Route path="/invite/:token" element={<InviteAcceptPage />} />
-                  <Route path="/family-invite/:token" element={<FamilyInviteAcceptPage />} />
-                  <Route path="/partner-invite/:token" element={<PartnerInviteAcceptPage />} />
+                  <Route path="/family-invite/:token" element={<LegacyInviteRedirect />} />
+                  <Route path="/partner-invite/:token" element={<LegacyInviteRedirect />} />
                   <Route
                     element={
                       <ProtectedRoute>
-                        <MainLayout />
+                        <InAppMessageProvider>
+                          <NotificationProvider>
+                            <MainLayout />
+                          </NotificationProvider>
+                        </InAppMessageProvider>
                       </ProtectedRoute>
                     }
                   >
-                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="dashboard" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
                     <Route path="fields" element={<FieldsPage />} />
                     <Route path="fields/new" element={<FieldFormPage />} />
                     <Route path="fields/:id/chronologio" element={<FieldChronologioRedirect />} />
@@ -125,7 +133,7 @@ function App() {
                     <Route path="harvest" element={<HarvestCampaignPage />} />
                     <Route path="this-harvest" element={<Navigate to="/harvest" replace />} />
                     <Route path="this-harvest/review" element={<ThisHarvestReviewPage />} />
-                    <Route path="calendar" element={<CalendarPage />} />
+                    <Route path="calendar" element={<Navigate to="/tasks?view=upcoming" replace />} />
                     <Route
                       path="analytics"
                       element={<Navigate to="/reports" replace />}
@@ -136,10 +144,13 @@ function App() {
                     <Route path="ministry" element={<MinistryNotificationsPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="data-sources" element={<DataSourcesPage />} />
+                    <Route path="admin/campaigns" element={<CampaignsPage />} />
+                    <Route path="admin/campaigns/new" element={<CampaignEditorPage />} />
+                    <Route path="admin/campaigns/:id" element={<CampaignEditorPage />} />
+                    <Route path="admin/feedback" element={<FeedbackInboxPage />} />
                   </Route>
                 </Routes>
               </Router>
-            </NotificationProvider>
             </OfflineProvider>
           </ExperienceModeProvider>
         </AuthProvider>

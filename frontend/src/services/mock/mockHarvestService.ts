@@ -24,6 +24,7 @@ export const mockHarvestService: typeof harvestService = {
       harvestDate: input.harvestDate || new Date().toISOString(),
       harvestMethod: input.harvestMethod || '',
       workersUsed: input.workersUsed || 0,
+      sackCount: input.sackCount,
       oliveKg: input.oliveKg,
       millName: input.millName,
       oilKg: input.oilKg,
@@ -32,6 +33,8 @@ export const mockHarvestService: typeof harvestService = {
       qualityGrade: '',
       notes: input.notes,
       status: 'posted',
+      batchId: input.batchId,
+      allocationWeight: input.allocationWeight,
     };
     write([record, ...read()]);
     return record;

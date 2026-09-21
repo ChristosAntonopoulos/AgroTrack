@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { useFamilyMembershipModules } from '../../hooks/useFamilyMembershipModules';
+import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
 import { isMockMode } from '../../services/serviceFactory';
 import {
@@ -22,14 +22,18 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const { t } = useTranslation(['nav', 'common']);
   const { user } = useAuth();
-  const familyModules = useFamilyMembershipModules();
+  const activeField = useActiveFieldAccess();
   const feedback = useFeedbackOptional();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
   const filteredItems = useMemo(
-    () => filterNavItemsForUser(navItems, userRole, isMockMode(), familyModules),
-    [userRole, familyModules]
+    () =>
+      filterNavItemsForUser(navItems, userRole, isMockMode(), {
+        modules: activeField.modules,
+        isAdminOnActive: activeField.isAdminOnActive,
+      }),
+    [userRole, activeField.modules, activeField.isAdminOnActive]
   );
 
   const visibleSections = navSections.filter((s) => filteredItems.some((i) => i.section === s.id));

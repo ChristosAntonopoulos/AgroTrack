@@ -9,7 +9,6 @@ import { periodEventCount } from '../../utils/summaryFacts';
 import {
   buildMonthWeatherView,
   harvestHasResult,
-  monthSeasonStage,
   primaryMonthHighlight,
 } from '../../chronologio/monthPresentation';
 import { createElevation, motion, radii } from '../../theme';
@@ -66,7 +65,7 @@ const SummaryChip: React.FC<ChipProps> = ({ accent, soft, kicker, title, icon, o
 };
 
 /**
- * Month chapter card — phase, weather, activity chips (web ChronologioMonthSection).
+ * Month chapter card — weather and activity chips (web ChronologioMonthSection).
  */
 const ChronologioMonthChapterCard: React.FC<Props> = ({
   summary,
@@ -81,12 +80,11 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
 
   const count = periodEventCount(summary);
   const empty = count === 0 && !buildMonthWeatherView(summary).hasAny;
-  const phase = monthSeasonStage(summary.month);
   const weather = buildMonthWeatherView(summary);
   const highlight = primaryMonthHighlight(summary);
   const title = new Date(Date.UTC(summary.year, summary.month - 1, 1)).toLocaleDateString(
     i18n.language,
-    { month: 'long', timeZone: 'UTC' }
+    { month: 'long', year: 'numeric', timeZone: 'UTC' }
   );
 
   const rain =
@@ -180,55 +178,65 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
           hitSlop={4}
           style={({ pressed }) => ({ opacity: pressed ? motion.pressOpacity : 1, flex: 1, minWidth: 0 })}
         >
-          <Text
-            style={[
-              styles.title,
-              {
-                color: empty ? colors.textSecondary : colors.textPrimary,
-                fontSize: 20 * fontScaleMultiplier,
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-          <Text style={[styles.phase, { color: colors.textTertiary, fontSize: 11 * fontScaleMultiplier }]}>
-            {t(`yearView.stages.${phase}`)}
-            {isCurrent ? ` · ${t('monthView.currentMonth')}` : ''}
-          </Text>
-        </Pressable>
-
-        <View style={styles.metaCol}>
-          {(rain || temps) && onPressWeather ? (
-            <Pressable
-              onPress={onPressWeather}
-              hitSlop={6}
-              style={({ pressed }) => [
-                styles.wxChip,
+          <View style={styles.titleRow}>
+            <Text
+              style={[
+                styles.title,
                 {
-                  backgroundColor: colors.eventWeatherSoft,
-                  borderColor: colors.borderLight,
-                  opacity: pressed ? motion.pressOpacity : 1,
+                  color: empty ? colors.textSecondary : colors.textPrimary,
+                  fontSize: 20 * fontScaleMultiplier,
+                  flexShrink: 1,
                 },
               ]}
+              numberOfLines={1}
             >
-              <Ionicons name="rainy-outline" size={12} color={colors.eventWeather} />
-              <Text style={[styles.wxText, { color: colors.eventWeather }]} numberOfLines={1}>
-                {[rain, temps].filter(Boolean).join(' · ')}
-              </Text>
-            </Pressable>
-          ) : rain || temps ? (
-            <Text style={[styles.metaCount, { color: colors.textSecondary }]} numberOfLines={1}>
-              {[rain, temps].filter(Boolean).join(' · ')}
+              {title}
             </Text>
-          ) : null}
-          <Text style={[styles.metaCount, { color: colors.textSecondary }]}>
-            {count === 1
-              ? t('monthView.recordOne')
-              : t('monthView.records', { count })}
-          </Text>
-        </View>
+            {isCurrent ? (
+              <Text
+                style={[
+                  styles.nowBadge,
+                  {
+                    color: colors.primary,
+                    backgroundColor: colors.primaryLight,
+                    fontSize: 10 * fontScaleMultiplier,
+                  },
+                ]}
+              >
+                {t('yearView.here')}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+        <Text style={[styles.metaCount, { color: colors.textSecondary }]}>
+          {count === 1 ? t('monthView.recordOne') : t('monthView.records', { count })}
+        </Text>
       </View>
+
+      {rain || temps ? (
+        <Pressable
+          onPress={onPressWeather}
+          disabled={!onPressWeather}
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.wxRow,
+            { opacity: pressed && onPressWeather ? motion.pressOpacity : 1 },
+          ]}
+        >
+          {rain ? (
+            <View style={[styles.wxChip, { backgroundColor: colors.eventWeatherSoft, borderColor: colors.borderLight }]}>
+              <Ionicons name="rainy-outline" size={12} color={colors.eventWeather} />
+              <Text style={[styles.wxText, { color: colors.eventWeather }]}>{rain}</Text>
+            </View>
+          ) : null}
+          {temps ? (
+            <View style={[styles.wxChip, { backgroundColor: colors.eventWeatherSoft, borderColor: colors.borderLight }]}>
+              <Ionicons name="thermometer-outline" size={12} color={colors.eventWeather} />
+              <Text style={[styles.wxText, { color: colors.eventWeather }]}>{temps}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      ) : null}
 
       {summary.dominantWorkLabel ? (
         <Text style={[styles.dominant, { color: colors.textSecondary }]} numberOfLines={1}>
@@ -273,8 +281,14 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
   },
   title: {
     fontWeight: '700',
@@ -282,20 +296,23 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
     lineHeight: 26,
   },
-  phase: {
-    fontWeight: '600',
-    letterSpacing: 0.3,
+  nowBadge: {
+    fontWeight: '700',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginTop: 3,
-  },
-  metaCol: {
-    alignItems: 'flex-end',
-    gap: 4,
-    maxWidth: '42%',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.full,
+    overflow: 'hidden',
   },
   metaCount: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  wxRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   wxChip: {
     flexDirection: 'row',
@@ -305,7 +322,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
-    maxWidth: '100%',
   },
   wxText: {
     fontSize: 11,

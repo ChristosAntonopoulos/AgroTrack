@@ -108,6 +108,8 @@ public class ChronologioHarvestDetailsDto
     public string? Mill { get; set; }
     public string? Quality { get; set; }
     public int Workers { get; set; }
+    public int SackCount { get; set; }
+    public bool HasOfficialWeight { get; set; }
     public string? HarvestMethod { get; set; }
 }
 

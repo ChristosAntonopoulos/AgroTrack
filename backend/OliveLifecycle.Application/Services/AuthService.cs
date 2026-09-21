@@ -24,24 +24,21 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly IFamilyService? _familyService;
-    private readonly IOwnerPartnerService? _ownerPartnerService;
+    private readonly IFieldPeopleService? _fieldPeople;
     private readonly IEmailSender? _emailSender;
 
     public AuthService(
         IUserRepository userRepository,
         IConfiguration configuration,
         IDateTimeProvider dateTimeProvider,
-        IFamilyService? familyService = null,
-        IEmailSender? emailSender = null,
-        IOwnerPartnerService? ownerPartnerService = null)
+        IFieldPeopleService? fieldPeople = null,
+        IEmailSender? emailSender = null)
     {
         _userRepository = userRepository;
         _configuration = configuration;
         _dateTimeProvider = dateTimeProvider;
-        _familyService = familyService;
+        _fieldPeople = fieldPeople;
         _emailSender = emailSender;
-        _ownerPartnerService = ownerPartnerService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
@@ -55,11 +52,16 @@ public class AuthService : IAuthService
         }
 
         var inviteCode = registerDto.InviteCode?.Trim();
-        var inviteKind = InviteKind.None;
         if (!string.IsNullOrWhiteSpace(inviteCode))
         {
-            inviteKind = await ResolveInviteKindAsync(inviteCode, cancellationToken);
-            if (inviteKind == InviteKind.None)
+            if (_fieldPeople == null)
+            {
+                throw new ValidationException("Invitation codes are not available.");
+            }
+
+            var invite = await _fieldPeople.GetInviteAsync(inviteCode, cancellationToken);
+            if (invite == null
+                || !string.Equals(invite.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             {
                 throw new ValidationException("This invitation code is not valid.");
             }
@@ -84,16 +86,9 @@ public class AuthService : IAuthService
 
         var created = await _userRepository.CreateAsync(user, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(inviteCode))
+        if (!string.IsNullOrWhiteSpace(inviteCode) && _fieldPeople != null)
         {
-            if (inviteKind == InviteKind.Family && _familyService != null)
-            {
-                await _familyService.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
-            }
-            else if (inviteKind == InviteKind.Partner && _ownerPartnerService != null)
-            {
-                await _ownerPartnerService.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
-            }
+            await _fieldPeople.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
         }
 
         return GenerateAuthResponse(created);
@@ -197,43 +192,6 @@ public class AuthService : IAuthService
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
-
-    private enum InviteKind
-    {
-        None,
-        Family,
-        Partner
-    }
-
-    private async Task<InviteKind> ResolveInviteKindAsync(string inviteCode, CancellationToken cancellationToken)
-    {
-        if (_familyService != null)
-        {
-            var family = await _familyService.GetInviteAsync(inviteCode, null, cancellationToken);
-            if (family != null
-                && string.Equals(family.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
-            {
-                return InviteKind.Family;
-            }
-        }
-
-        if (_ownerPartnerService != null)
-        {
-            var partner = await _ownerPartnerService.GetInviteAsync(inviteCode, null, cancellationToken);
-            if (partner != null
-                && string.Equals(partner.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
-            {
-                return InviteKind.Partner;
-            }
-        }
-
-        if (_familyService == null && _ownerPartnerService == null)
-        {
-            throw new ValidationException("Invitation codes are not available.");
-        }
-
-        return InviteKind.None;
-    }
 
     private static string CreateResetToken()
     {

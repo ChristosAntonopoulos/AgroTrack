@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { Text, StyleSheet, Image } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
-import LoadingSpinner from '../components/LoadingSpinner';
+import InviteAcceptFrame from '../components/auth/InviteAcceptFrame';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { OwnerPartnerInviteShare, ownerPartnerService } from '../services/ownerPartnerService';
 import { setPendingPartnerInviteToken } from '../utils/pendingInvite';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
 import { qrImageUrl } from '../utils/shareHelpers';
-import { spacing, typography } from '../theme';
+import { typography } from '../theme';
 
 type Route = RouteProp<RootStackParamList & AuthStackParamList, 'PartnerInviteAccept'>;
 type Nav = NativeStackNavigationProp<RootStackParamList & AuthStackParamList>;
@@ -69,17 +68,19 @@ const PartnerInviteAcceptScreen = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner fullScreen />;
-
   const moduleLabels =
     invite?.modules?.map((m) => t(`partners:family.modules.${m}`)).join(', ') || '';
   const canAccept = invite?.status?.toLowerCase() === 'pending';
 
   return (
-    <ScreenLayout padded>
-      {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
+    <InviteAcceptFrame
+      loading={loading}
+      error={error}
+      loginLabel={t('auth:login.title')}
+      onLogin={() => navigation.navigate('Login')}
+    >
       {invite ? (
-        <View style={styles.body}>
+        <>
           <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
             {invite.ownerDisplayName
               ? t('partners:ownerPartner.acceptBody', {
@@ -124,17 +125,13 @@ const PartnerInviteAcceptScreen = () => {
               />
             </>
           )}
-        </View>
-      ) : !error ? (
-        <Button title={t('auth:login.title')} onPress={() => navigation.navigate('Login')} />
-      ) : null}
-    </ScreenLayout>
+        </>
+      ) : undefined}
+    </InviteAcceptFrame>
   );
 };
 
 const styles = StyleSheet.create({
-  error: { ...typography.styles.body, marginBottom: spacing.md },
-  body: { gap: spacing.md },
   bodyText: { ...typography.styles.body, lineHeight: 22 },
   qr: { width: 220, height: 220, alignSelf: 'center', borderRadius: 12 },
 });

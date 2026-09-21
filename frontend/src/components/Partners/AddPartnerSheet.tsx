@@ -5,53 +5,52 @@ import PartnersSheet from './PartnersSheet';
 import FamilySharePanel from './FamilySharePanel';
 import FamilyAccessFields from './FamilyAccessFields';
 import {
-  CreateOwnerPartnerInvitePayload,
-  DEFAULT_PARTNER_MODULES,
-  OwnerPartnerInviteShare,
-  ownerPartnerService,
-} from '../../services/ownerPartnerService';
-import { FamilyAccessLevel, FamilyModule } from '../../services/familyService';
+  DEFAULT_FIELD_MODULES,
+  FieldAccessLevel,
+  FieldInvite,
+  FieldModule,
+  fieldPeopleService,
+} from '../../services/fieldPeopleService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 
 type Props = {
   open?: boolean;
+  fieldId: string;
   onClose: () => void;
   onCreated?: () => void;
 };
 
-const AddPartnerSheet: React.FC<Props> = ({ open = true, onClose, onCreated }) => {
+const AddPartnerSheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCreated }) => {
   const { t } = useTranslation(['partners', 'common']);
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [modules, setModules] = useState<FamilyModule[]>([...DEFAULT_PARTNER_MODULES]);
-  const [accessLevel, setAccessLevel] = useState<FamilyAccessLevel>('work');
+  const [modules, setModules] = useState<FieldModule[]>([...DEFAULT_FIELD_MODULES]);
+  const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>('work');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [invite, setInvite] = useState<OwnerPartnerInviteShare | null>(null);
+  const [invite, setInvite] = useState<FieldInvite | null>(null);
 
-  const toggleModule = (module: FamilyModule) => {
+  const toggleModule = (module: FieldModule) => {
     setModules((prev) =>
       prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
     );
   };
 
-  const canSubmit = Boolean(name.trim() && (phone.trim() || email.trim()) && modules.length > 0);
+  const canSubmit = Boolean(fieldId && name.trim() && email.trim() && modules.length > 0);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canSubmit) return;
-    const payload: CreateOwnerPartnerInvitePayload = {
-      displayName: name.trim(),
-      phone: phone.trim() || undefined,
-      email: email.trim() || undefined,
-      modules,
-      accessLevel,
-    };
     try {
       setSaving(true);
       setError(null);
-      const created = await ownerPartnerService.createInvite(payload);
+      const created = await fieldPeopleService.createInvite(fieldId, {
+        role: 'Partner',
+        displayName: name.trim(),
+        email: email.trim(),
+        modules,
+        accessLevel,
+      });
       setInvite(created);
       onCreated?.();
     } catch (err: unknown) {
@@ -81,14 +80,7 @@ const AddPartnerSheet: React.FC<Props> = ({ open = true, onClose, onCreated }) =
       }
     >
       {invite ? (
-        <FamilySharePanel
-          invite={{
-            ...invite,
-            memberId: invite.linkId,
-          }}
-          copyNs="ownerPartner"
-          onDone={onClose}
-        />
+        <FamilySharePanel invite={invite} copyNs="ownerPartner" onDone={onClose} />
       ) : (
         <form id="add-partner-form" className="partners-form family-invite-form" onSubmit={submit}>
           <div className="family-form-section">
@@ -102,27 +94,16 @@ const AddPartnerSheet: React.FC<Props> = ({ open = true, onClose, onCreated }) =
                 required
               />
             </label>
-            <div className="partners-form-row">
-              <label>
-                <span>{t('partners:invitePhone')}</span>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  autoComplete="tel"
-                  inputMode="tel"
-                />
-              </label>
-              <label>
-                <span>{t('partners:inviteEmail')}</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-              </label>
-            </div>
+            <label>
+              <span>{t('partners:inviteEmail')}</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </label>
             <p className="family-form-hint">{t('partners:ownerPartner.contactHint')}</p>
           </div>
 

@@ -9,6 +9,7 @@ export type MoneyKindFilter = 'all' | 'income' | 'expense' | 'draft';
 
 type Props = {
   year: number;
+  yearRangeLabel?: string;
   kind: MoneyKindFilter;
   hideIncome?: boolean;
   tapMin: number;
@@ -19,6 +20,7 @@ type Props = {
 /** Year stepper + kind chips — mirrors web MoneyContextBar. */
 const MoneyContextBar: React.FC<Props> = ({
   year,
+  yearRangeLabel,
   kind,
   hideIncome,
   tapMin,
@@ -58,14 +60,25 @@ const MoneyContextBar: React.FC<Props> = ({
         >
           <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </Pressable>
-        <Text
-          style={[
-            styles.year,
-            { color: colors.textPrimary, fontSize: 22 * fontScaleMultiplier },
-          ]}
-        >
-          {year}
-        </Text>
+        <View style={styles.yearLabel}>
+          <Text
+            style={[
+              styles.year,
+              { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier },
+            ]}
+            accessibilityLiveRegion="polite"
+          >
+            {t('agriculturalYearShort', { year })}
+          </Text>
+          {yearRangeLabel ? (
+            <Text
+              style={[styles.yearRange, { color: colors.textTertiary, fontSize: 11 * fontScaleMultiplier }]}
+              numberOfLines={1}
+            >
+              {yearRangeLabel}
+            </Text>
+          ) : null}
+        </View>
         <Pressable
           onPress={() => onYearChange(year + 1)}
           accessibilityLabel={t('nextYear')}
@@ -131,12 +144,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   yearBtn: { alignItems: 'center', justifyContent: 'center' },
+  yearLabel: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    minWidth: 96,
+  },
   year: {
     fontWeight: '700',
     letterSpacing: -0.4,
-    minWidth: 72,
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
+  },
+  yearRange: {
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 1,
   },
   kindRail: { gap: spacing.sm, paddingVertical: 2 },
   kindChip: {

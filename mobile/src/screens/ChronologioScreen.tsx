@@ -51,6 +51,8 @@ import { resolveFieldColor } from '../utils/fieldColors';
 import { yearFixedMetrics } from '../utils/summaryFacts';
 import { buildMonthWeatherView, monthSeasonStage } from '../chronologio/monthPresentation';
 import { previousYearSummary } from '../chronologio/yearPresentation';
+import { daysLandingMonth } from '../chronologio/daysLanding';
+import { athensParts } from '../utils/athensDate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Zoom = 'years' | 'year' | 'month';
@@ -93,8 +95,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     fieldIdProp ?? (route.params as { fieldId?: string } | undefined)?.fieldId;
   const fieldMode = Boolean(fieldId);
   const numberLocale = i18n.language?.startsWith('el') ? 'el-GR' : 'en-US';
-  const nowYear = new Date().getFullYear();
-  const nowMonth = new Date().getMonth() + 1;
+  const now = useMemo(() => athensParts(new Date()), []);
+  const nowYear = now.year;
+  const nowMonth = now.month;
   const tt = useCallback(
     (key: string, opts?: Record<string, string | number>) =>
       t(`chronologio:${key}`, opts as Record<string, unknown>),
@@ -109,9 +112,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const [lifecycleYear, setLifecycleYear] = useState<'' | 'low' | 'high'>('');
   const [filterFieldId, setFilterFieldId] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [periodYear, setPeriodYear] = useState(new Date().getUTCFullYear());
-  const [monthYear, setMonthYear] = useState(new Date().getUTCFullYear());
-  const [month, setMonth] = useState(new Date().getUTCMonth() + 1);
+  const [periodYear, setPeriodYear] = useState(nowYear);
+  const [monthYear, setMonthYear] = useState(nowYear);
+  const [month, setMonth] = useState(nowMonth);
   const [years, setYears] = useState<ChronologioPeriodSummary[]>([]);
   const [months, setMonths] = useState<ChronologioMonthSummary[]>([]);
   const [entries, setEntries] = useState<ChronologioEntry[]>([]);
@@ -335,15 +338,21 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
 
   const journalLive = monthYear === nowYear && month === nowMonth;
 
-  const setZoomAndPage = useCallback((z: Zoom) => {
-    if (z === 'month') {
-      const now = new Date();
-      setMonthYear(now.getUTCFullYear());
-      setMonth(now.getUTCMonth() + 1);
-      setVisibleMonth(null);
-    }
-    setZoom(z);
-  }, []);
+  const landDaysOnCurrentPeriod = useCallback(() => {
+    const landing = daysLandingMonth(periodYear, { year: monthYear, month }, now);
+    if (!landing) return;
+    setMonthYear(landing.year);
+    setMonth(landing.month);
+    setVisibleMonth(null);
+  }, [month, monthYear, now, periodYear]);
+
+  const setZoomAndPage = useCallback(
+    (z: Zoom) => {
+      if (z === 'month' && zoom !== 'month') landDaysOnCurrentPeriod();
+      setZoom(z);
+    },
+    [landDaysOnCurrentPeriod, zoom]
+  );
 
   const openMonthWeatherPeek = useCallback(
     (year: number, month: number) => {
@@ -451,10 +460,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   };
 
   const returnToToday = () => {
-    const now = new Date();
-    setMonthYear(now.getUTCFullYear());
-    setMonth(now.getUTCMonth() + 1);
-    setPeriodYear(now.getUTCFullYear());
+    setMonthYear(nowYear);
+    setMonth(nowMonth);
+    setPeriodYear(nowYear);
     setVisibleMonth(null);
     setHeaderCompact(false);
     setPeek(null);
@@ -567,18 +575,21 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     (index: number) => {
       const z = ZOOM_DISPLAY_ORDER[index];
       if (!z || z === zoom) return;
-      if (z === 'month') {
-        // Land on the live journal when swiping into Days
-        const now = new Date();
-        setMonthYear(now.getUTCFullYear());
-        setMonth(now.getUTCMonth() + 1);
-        setVisibleMonth(null);
-        setPeriodYear(now.getUTCFullYear());
-      }
+      if (z === 'month') landDaysOnCurrentPeriod();
       setZoom(z);
     },
-    [zoom]
+    [landDaysOnCurrentPeriod, zoom]
   );
+
+  const handleVisibleMonth = useCallback((year: number, monthNum: number) => {
+    setVisibleMonth((prev) =>
+      prev?.year === year && prev?.month === monthNum ? prev : { year, month: monthNum }
+    );
+  }, []);
+
+  const handleScrollY = useCallback((y: number) => {
+    setHeaderCompact(y > 48);
+  }, []);
 
   const body = (
     <View style={styles.shell}>
@@ -701,14 +712,8 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                 hasMore={hasMore}
                 onLoadMore={loadMore}
                 onPressEntry={(entry) => setPeek({ mode: 'event', entry })}
-                onScrollY={(y) => setHeaderCompact(y > 48)}
-                onVisibleMonth={(year, monthNum) => {
-                  setVisibleMonth((prev) =>
-                    prev?.year === year && prev?.month === monthNum
-                      ? prev
-                      : { year, month: monthNum }
-                  );
-                }}
+                onScrollY={handleScrollY}
+                onVisibleMonth={handleVisibleMonth}
                 empty={
                   <EmptyState
                     title={t('chronologio:living.emptyMonthTitle')}
@@ -769,14 +774,23 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                   monthRows.forEach((m) => {
                     const stage = monthSeasonStage(m.month);
                     if (stage !== lastStage) {
+                      const first = lastStage === '';
                       lastStage = stage;
                       nodes.push(
-                        <Text
+                        <View
                           key={`season-${stage}-${m.year}-${m.month}`}
-                          style={[styles.seasonMark, { color: colors.primary }]}
+                          style={[styles.seasonMark, first && styles.seasonMarkFirst]}
                         >
-                          {t(`chronologio:yearView.stages.${stage}`)}
-                        </Text>
+                          <Text style={[styles.seasonMarkLabel, { color: colors.primary }]}>
+                            {t(`chronologio:yearView.stages.${stage}`)}
+                          </Text>
+                          <View
+                            style={[
+                              styles.seasonMarkRule,
+                              { backgroundColor: colors.primary },
+                            ]}
+                          />
+                        </View>
                       );
                     }
                     const hasWx = buildMonthWeatherView(m).hasAny;
@@ -985,7 +999,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             : peek
         }
         numberLocale={numberLocale}
+        fieldOptions={fields.map((f) => ({ id: f.id, name: f.name }))}
         onClose={() => setPeek(null)}
+        onMutated={() => setReloadToken((n) => n + 1)}
         onDrillToMonths={(year) => {
           setPeriodYear(year);
           setPeek(null);
@@ -1065,13 +1081,26 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   seasonMark: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginTop: 8,
-    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+    marginBottom: 10,
     paddingLeft: 2,
+  },
+  seasonMarkFirst: {
+    marginTop: 18,
+  },
+  seasonMarkLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  seasonMarkRule: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    opacity: 0.35,
   },
   pager: { flex: 1 },
   filterLabel: {

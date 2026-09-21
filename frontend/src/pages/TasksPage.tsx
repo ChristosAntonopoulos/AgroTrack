@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
@@ -20,6 +20,7 @@ import { isTaskDueToday } from '../utils/taskListUtils';
 import { resolveWeatherKind } from '../utils/taskWeather';
 import LearningPromptSheet from '../components/FieldWork/LearningPromptSheet';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
+import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import {
   buildTaskSearchParams,
   parseTaskAssigneeId,
@@ -30,6 +31,7 @@ import {
   saveTaskListScroll,
   type TaskPageView,
 } from '../utils/taskViewState';
+import { readFieldId } from '../navigation/intents';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -67,11 +69,12 @@ const TasksPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
+  const pageGuard = useModulePageGuard({ module: 'tasks' });
 
   const defaultYear = athensCalendarYear(new Date());
   const view = parseTaskView(searchParams.get('view'));
   const yearFilter = parseTaskYear(searchParams.get('year'), defaultYear);
-  const fieldFilter = parseTaskFieldId(searchParams.get('field'));
+  const fieldFilter = parseTaskFieldId(readFieldId(searchParams));
   const assigneeFilter = parseTaskAssigneeId(searchParams.get('assignee'));
   const createdId = searchParams.get('created') || '';
   const selectedTaskId = searchParams.get('task') || '';
@@ -537,6 +540,18 @@ const TasksPage: React.FC = () => {
   }, [defaultYear]);
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) || null;
+
+  if (pageGuard.loading) {
+    return (
+      <PageContainer className="tasks-page-container">
+        <Breadcrumbs />
+        <LoadingSpinner />
+      </PageContainer>
+    );
+  }
+  if (!pageGuard.allowed) {
+    return <Navigate to="/chronologio" replace />;
+  }
 
   if (loading) {
     return (

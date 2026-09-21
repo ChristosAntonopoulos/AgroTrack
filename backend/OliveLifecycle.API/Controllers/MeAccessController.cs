@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OliveLifecycle.Application.Abstractions.Services;
-using OliveLifecycle.Application.DTOs.Family;
-using OliveLifecycle.Application.DTOs.OwnerPartner;
+using OliveLifecycle.Application.DTOs.Field;
 using OliveLifecycle.Application.Services;
+using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.API.Controllers;
 
@@ -11,34 +11,31 @@ namespace OliveLifecycle.API.Controllers;
 [Route("api/v1/me/access-context")]
 public class MeAccessController : BaseApiController
 {
-    private readonly IFamilyService _family;
-    private readonly IOwnerPartnerService _partners;
+    private readonly IFieldPeopleService _fieldPeople;
 
     public MeAccessController(
-        IFamilyService family,
-        IOwnerPartnerService partners,
+        IFieldPeopleService fieldPeople,
         ICurrentUserContext currentUser)
         : base(currentUser)
     {
-        _family = family;
-        _partners = partners;
+        _fieldPeople = fieldPeople;
     }
 
     [HttpGet]
     public async Task<ActionResult<AccessContextDto>> Get(CancellationToken cancellationToken)
     {
-        var family = await _family.GetMyMembershipAccessAsync(UserContext.UserId, cancellationToken);
-        var partner = await _partners.GetMyMembershipAccessAsync(UserContext.UserId, cancellationToken);
+        var fields = await _fieldPeople.GetMyFieldAccessAsync(UserContext.UserId, cancellationToken);
         return OkResult(new AccessContextDto
         {
-            FamilyMemberships = family,
-            PartnerMemberships = partner
+            Fields = fields,
+            OwnsAnyField = fields.Any(f =>
+                string.Equals(f.Role, FieldPersonRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase))
         });
     }
 }
 
 public class AccessContextDto
 {
-    public IReadOnlyList<FamilyAccessSnapshot> FamilyMemberships { get; set; } = Array.Empty<FamilyAccessSnapshot>();
-    public IReadOnlyList<OwnerPartnerAccessSnapshot> PartnerMemberships { get; set; } = Array.Empty<OwnerPartnerAccessSnapshot>();
+    public IReadOnlyList<FieldAccessSnapshotDto> Fields { get; set; } = Array.Empty<FieldAccessSnapshotDto>();
+    public bool OwnsAnyField { get; set; }
 }

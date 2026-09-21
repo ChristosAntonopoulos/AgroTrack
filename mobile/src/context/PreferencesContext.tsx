@@ -7,8 +7,8 @@ import { useAuth } from './AuthContext';
 import { isMockMode } from '../services/serviceFactory';
 import { userPreferencesService } from '../services/userPreferencesService';
 
-export type AppLanguage = 'en' | 'el';
-export type DefaultStartView = 'today' | 'dashboard' | 'fields' | 'chronologio';
+export type AppLanguage = 'en' | 'el' | 'it';
+export type DefaultStartView = 'fields' | 'chronologio';
 export type DateFormatPref = 'dd/MM/yyyy' | 'yyyy-MM-dd' | 'medium';
 
 interface PreferencesContextType {
@@ -43,7 +43,7 @@ const DATE_FORMAT_KEY = '@Oleachron_date_format';
 
 export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [language, setLanguageState] = useState<AppLanguage>('en');
+  const [language, setLanguageState] = useState<AppLanguage>('el');
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [fontScale, setFontScaleState] = useState<FontScale>('default');
   const [largeControls, setLargeControlsState] = useState(false);
@@ -72,7 +72,12 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           AsyncStorage.getItem(DEFAULT_VIEW_KEY),
           AsyncStorage.getItem(DATE_FORMAT_KEY),
         ]);
-        if (storedLang === 'en' || storedLang === 'el') setLanguageState(storedLang);
+        if (storedLang === 'en' || storedLang === 'el' || storedLang === 'it') {
+          setLanguageState(storedLang);
+        } else {
+          setLanguageState('el');
+          await AsyncStorage.setItem(LANG_KEY, 'el');
+        }
         if (storedTheme === 'system' || storedTheme === 'light' || storedTheme === 'dark') {
           setThemeModeState(storedTheme);
         }
@@ -82,6 +87,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
         if (storedLarge === 'true') setLargeControlsState(true);
         if (storedDefaultView === 'dashboard' || storedDefaultView === 'today') {
           setDefaultViewState('chronologio');
+          await AsyncStorage.setItem(DEFAULT_VIEW_KEY, 'chronologio');
         } else if (storedDefaultView === 'fields' || storedDefaultView === 'chronologio') {
           setDefaultViewState(storedDefaultView);
         }
@@ -106,7 +112,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       try {
         const server = await userPreferencesService.get();
         if (cancelled) return;
-        if (server.language === 'en' || server.language === 'el') {
+        if (server.language === 'en' || server.language === 'el' || server.language === 'it') {
           setLanguageState(server.language);
           await AsyncStorage.setItem(LANG_KEY, server.language);
         }

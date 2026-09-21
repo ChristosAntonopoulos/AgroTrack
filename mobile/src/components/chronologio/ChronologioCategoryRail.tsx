@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
     marginBottom: 2,
+    marginLeft: spacing.sm,
   },
   row: {
     flexDirection: 'row',

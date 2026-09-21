@@ -180,10 +180,24 @@ public class GreekCadastreInfoDocument
     public double? AreaDifferencePercent { get; set; }
 }
 
+/// <summary>
+/// Embedded field seat. Stored under "memberships" for backward compatibility.
+/// New fields: role, modules, accessLevel, displayName, email, inviteId.
+/// Legacy: capacities (own/work/advise/help/view).
+/// </summary>
 public class FieldMembershipDocument
 {
     [BsonElement("userId")]
     public string UserId { get; set; } = string.Empty;
+
+    [BsonElement("role")]
+    public string? Role { get; set; }
+
+    [BsonElement("modules")]
+    public List<string> Modules { get; set; } = new();
+
+    [BsonElement("accessLevel")]
+    public string? AccessLevel { get; set; }
 
     [BsonElement("capacities")]
     public List<string> Capacities { get; set; } = new();
@@ -191,8 +205,17 @@ public class FieldMembershipDocument
     [BsonElement("status")]
     public string Status { get; set; } = "active";
 
+    [BsonElement("inviteId")]
+    public string? InviteId { get; set; }
+
     [BsonElement("invitedBy")]
     public string? InvitedBy { get; set; }
+
+    [BsonElement("displayName")]
+    public string? DisplayName { get; set; }
+
+    [BsonElement("email")]
+    public string? Email { get; set; }
 
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -230,6 +253,18 @@ public class FieldInviteDocument
 
     [BsonElement("invitedBy")]
     public string InvitedBy { get; set; } = string.Empty;
+
+    [BsonElement("code")]
+    public string? Code { get; set; }
+
+    [BsonElement("role")]
+    public string? Role { get; set; }
+
+    [BsonElement("modules")]
+    public List<string> Modules { get; set; } = new();
+
+    [BsonElement("accessLevel")]
+    public string? AccessLevel { get; set; }
 
     [BsonElement("capacities")]
     public List<string> Capacities { get; set; } = new();

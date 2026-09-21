@@ -11,7 +11,9 @@ public class LocalFileStorageService : IFileStorageService
     private readonly ILogger<LocalFileStorageService> _logger;
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".webp", ".gif"
+        ".jpg", ".jpeg", ".png", ".webp", ".gif",
+        ".m4a", ".mp3", ".webm", ".wav", ".aac", ".ogg",
+        ".pdf", ".doc", ".docx", ".txt"
     };
 
     private static readonly HashSet<string> AllowedFieldDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)

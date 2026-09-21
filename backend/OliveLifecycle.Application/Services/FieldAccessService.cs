@@ -1,8 +1,10 @@
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Persistence;
-using OliveLifecycle.Application.DTOs.Family;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
+using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Entities.FieldWork;
+using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.Application.Services;
 
@@ -10,19 +12,13 @@ public class FieldAccessService : IFieldAccessService
 {
     private readonly IFieldRepository _fieldRepository;
     private readonly IFieldTaskRepository _fieldTasks;
-    private readonly IFamilyMemberRepository _familyMembers;
-    private readonly IOwnerPartnerLinkRepository _partnerLinks;
 
     public FieldAccessService(
         IFieldRepository fieldRepository,
-        IFieldTaskRepository fieldTasks,
-        IFamilyMemberRepository familyMembers,
-        IOwnerPartnerLinkRepository partnerLinks)
+        IFieldTaskRepository fieldTasks)
     {
         _fieldRepository = fieldRepository;
         _fieldTasks = fieldTasks;
-        _familyMembers = familyMembers;
-        _partnerLinks = partnerLinks;
     }
 
     public async Task<bool> CanUserAccessFieldAsync(
@@ -42,30 +38,22 @@ public class FieldAccessService : IFieldAccessService
             return true;
         }
 
-        FieldMembershipSync.EnsureBackfilled(field);
-        if (FieldMembershipSync.IsMember(field, userId))
+        FieldPeopleRules.EnsureNormalized(field);
+        if (FieldPeopleRules.IsActiveMember(field, userId))
         {
             return true;
         }
 
-        if (field.OwnerId == userId || field.AssignedProducerIds.Contains(userId))
-        {
-            return true;
-        }
-
-        var family = await GetFamilyAccessForOwnerAsync(field.OwnerId, userId, cancellationToken);
-        if (family != null && HasModule(family, FamilyModules.Fields))
+        if (string.Equals(field.OwnerId, userId, StringComparison.Ordinal))
         {
             return true;
         }
 
         if (userRole == Roles.Producer)
         {
-            // FieldTask AssignedUserId grants field access. AssignedCollaboratorId must never
-            // be treated as assignment — contacting/hiring a partner does not grant field access.
             var tasks = await _fieldTasks.QueryAsync(
                 new FieldTaskQuery { AssignedUserId = userId },
-                cancellationToken);
+                cancellationToken) ?? Array.Empty<FieldTask>();
             return tasks.Any(t => t.FieldId == fieldId);
         }
 
@@ -83,8 +71,8 @@ public class FieldAccessService : IFieldAccessService
             return false;
         }
 
-        FieldMembershipSync.EnsureBackfilled(field);
-        return FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Own) || field.OwnerId == userId;
+        FieldPeopleRules.EnsureNormalized(field);
+        return FieldPeopleRules.IsAdmin(field, userId);
     }
 
     public async Task<bool> CanUserAccessFieldDocumentsAsync(
@@ -104,42 +92,13 @@ public class FieldAccessService : IFieldAccessService
             return false;
         }
 
-        FieldMembershipSync.EnsureBackfilled(field);
-        if (FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Own) || field.OwnerId == userId)
+        FieldPeopleRules.EnsureNormalized(field);
+        if (FieldPeopleRules.IsAdmin(field, userId))
         {
             return true;
         }
 
-        return await CanFamilyAccessModuleAsync(fieldId, userId, FamilyModules.Documents, cancellationToken);
-    }
-
-    public async Task<bool> HasCapacityAsync(
-        string fieldId,
-        string userId,
-        string capacity,
-        CancellationToken cancellationToken = default)
-    {
-        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
-        if (field == null)
-        {
-            return false;
-        }
-
-        return FieldMembershipSync.HasCapacity(field, userId, capacity);
-    }
-
-    public async Task<FamilyAccessSnapshot?> GetFamilyAccessForFieldAsync(
-        string fieldId,
-        string userId,
-        CancellationToken cancellationToken = default)
-    {
-        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
-        if (field == null)
-        {
-            return null;
-        }
-
-        return await GetFamilyAccessForOwnerAsync(field.OwnerId, userId, cancellationToken);
+        return FieldPeopleRules.HasModule(field, userId, FamilyModules.Documents);
     }
 
     public async Task<bool> CanFamilyAccessModuleAsync(
@@ -148,8 +107,19 @@ public class FieldAccessService : IFieldAccessService
         string module,
         CancellationToken cancellationToken = default)
     {
-        var access = await GetFamilyAccessForFieldAsync(fieldId, userId, cancellationToken);
-        return access != null && HasModule(access, module);
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
+        if (field == null)
+        {
+            return false;
+        }
+
+        FieldPeopleRules.EnsureNormalized(field);
+        if (FieldPeopleRules.IsAdmin(field, userId))
+        {
+            return true;
+        }
+
+        return FieldPeopleRules.HasModule(field, userId, module);
     }
 
     public async Task<bool> CanFamilyWriteModuleAsync(
@@ -159,47 +129,13 @@ public class FieldAccessService : IFieldAccessService
         bool requireCreateLevel = false,
         CancellationToken cancellationToken = default)
     {
-        var access = await GetFamilyAccessForFieldAsync(fieldId, userId, cancellationToken);
-        if (access == null || !HasModule(access, module))
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
+        if (field == null)
         {
             return false;
         }
 
-        return requireCreateLevel
-            ? FamilyAccessLevels.CanCreateContent(access.AccessLevel)
-            : FamilyAccessLevels.CanWrite(access.AccessLevel);
+        FieldPeopleRules.EnsureNormalized(field);
+        return FieldPeopleRules.CanWriteModule(field, userId, module, requireCreateLevel);
     }
-
-    private async Task<FamilyAccessSnapshot?> GetFamilyAccessForOwnerAsync(
-        string ownerUserId,
-        string userId,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(ownerUserId) || string.IsNullOrWhiteSpace(userId))
-        {
-            return null;
-        }
-
-        var members = await _familyMembers.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
-        var match = members.FirstOrDefault(m =>
-            string.Equals(m.OwnerUserId, ownerUserId, StringComparison.Ordinal));
-        if (match != null)
-        {
-            return new FamilyAccessSnapshot(match.OwnerUserId, match.Id, match.Modules, match.AccessLevel);
-        }
-
-        // Owner-wide partner seat uses the same modules + access-level model as family.
-        var partners = await _partnerLinks.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
-        var partner = partners.FirstOrDefault(p =>
-            string.Equals(p.OwnerUserId, ownerUserId, StringComparison.Ordinal));
-        if (partner == null)
-        {
-            return null;
-        }
-
-        return new FamilyAccessSnapshot(partner.OwnerUserId, partner.Id, partner.Modules, partner.AccessLevel);
-    }
-
-    private static bool HasModule(FamilyAccessSnapshot access, string module) =>
-        access.Modules.Any(m => string.Equals(m, FamilyModules.Normalize(module), StringComparison.OrdinalIgnoreCase));
 }

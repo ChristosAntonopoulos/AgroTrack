@@ -87,7 +87,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
             : null;
 
   const [kind, setKind] = useState<FinancialTransactionType | null>(preferredKind);
-  const [category, setCategory] = useState<FinancialCategory>(defaultCategoryForType(preferredKind || 'expense'));
+  const [category, setCategory] = useState<FinancialCategory>(
+    context.category || defaultCategoryForType(preferredKind || 'expense')
+  );
   const [mode, setMode] = useState<FinancialCalculationMode>(defaultModeForCategory(category));
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState<FinancialQuantityUnit>(
@@ -97,7 +99,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const [amount, setAmount] = useState('');
   const [fieldId, setFieldId] = useState(context.fieldId || '');
   const [occurredOn, setOccurredOn] = useState(todayIsoDate(context.occurredAt));
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(context.description || '');
   const [moreOpen, setMoreOpen] = useState(Boolean(context.taskId || context.harvestId));
   const [relatedTaskId, setRelatedTaskId] = useState(context.taskId || '');
   const [relatedHarvestId, setRelatedHarvestId] = useState(context.harvestId || '');
@@ -120,20 +122,35 @@ const MoneyCaptureForm: React.FC<Props> = ({
   useEffect(() => {
     if (preferredKind) {
       setKind(preferredKind);
-      setCategory(defaultCategoryForType(preferredKind));
+      if (!context.category) setCategory(defaultCategoryForType(preferredKind));
     }
-  }, [preferredKind]);
+  }, [preferredKind, context.category]);
 
   useEffect(() => {
     if (context.fieldId) setFieldId(context.fieldId);
     if (context.taskId) setRelatedTaskId(context.taskId);
     if (context.harvestId) setRelatedHarvestId(context.harvestId);
+  }, [context.fieldId, context.taskId, context.harvestId]);
+
+  useEffect(() => {
+    if (!context.category) return;
+    setCategory(context.category);
+    const units = suggestedUnitsForCategory(context.category);
+    if (units[0]) setUnit(units[0] as FinancialQuantityUnit);
+    setMode(defaultModeForCategory(context.category));
+  }, [context.category]);
+
+  useEffect(() => {
+    if (context.description) setDescription(context.description);
+  }, [context.description]);
+
+  useEffect(() => {
     if (context.occurredAt) {
       const date = todayIsoDate(context.occurredAt);
       setOccurredOn(date);
       if (!resultYearTouched) setResultYear(yearFromIsoDate(date));
     }
-  }, [context.fieldId, context.taskId, context.harvestId, context.occurredAt, resultYearTouched]);
+  }, [context.occurredAt, resultYearTouched]);
 
   useEffect(() => {
     if (!fieldId) {
@@ -281,7 +298,15 @@ const MoneyCaptureForm: React.FC<Props> = ({
           ? t('capture:income.saved')
           : t('capture:expense.saved');
       onSaved(
-        { type: kind, fieldId: fieldId || '', sourceId: created.id },
+        {
+          type: kind,
+          fieldId: fieldId || '',
+          sourceId: created.id,
+          amount: resolvedAmount,
+          occurredOn,
+          description: text,
+          harvestCampaignLink: context.harvestCampaignLink,
+        },
         message,
         {
           transactionId: created.id,
@@ -292,6 +317,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
             harvestId,
             preferredType: kind,
             occurredAt: context.occurredAt,
+            category,
+            description: text,
+            harvestCampaignLink: context.harvestCampaignLink,
           },
         }
       );

@@ -10,6 +10,9 @@ import { Field } from '../../services/fieldService';
 import { locationService, Location } from '../../services/locationService';
 import {
   MapLayerType,
+  MAP_MAX_ZOOM,
+  MAP_MAX_NATIVE_ZOOM,
+  MAP_MIN_ZOOM,
   SATELLITE_LABELS_TILE,
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
@@ -137,7 +140,7 @@ const FitBounds: React.FC<{ bounds: L.LatLngBoundsExpression | null; fieldsKey: 
     map.fitBounds(bounds, {
       paddingTopLeft: [36, 48],
       paddingBottomRight: [48, 88],
-      maxZoom: 16,
+      maxZoom: MAP_MAX_ZOOM,
       animate: false,
     });
   }, [map, bounds, fieldsKey]);
@@ -158,7 +161,7 @@ const FocusField: React.FC<{ item: MappableField | null }> = ({ item }) => {
     if (item.polygon && item.polygon.length >= 3) {
       map.fitBounds(item.polygon, {
         padding: [56, 72],
-        maxZoom: 17,
+        maxZoom: MAP_MAX_ZOOM,
         animate: !reduce,
         duration: 0.45,
       });
@@ -354,20 +357,43 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         </button>
       </div>
 
-      <MapContainer center={defaultCenter} zoom={13} scrollWheelZoom className="fields-map-leaflet">
+      <MapContainer
+        center={defaultCenter}
+        zoom={13}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
+        scrollWheelZoom
+        className="fields-map-leaflet"
+      >
         {mapLayer === 'satellite' ? (
           <>
             <TileLayer
               attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
               url={SATELLITE_TILE}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
             />
-            <TileLayer attribution="" url={SATELLITE_PLACES_TILE} opacity={0.92} />
-            <TileLayer attribution="" url={SATELLITE_LABELS_TILE} opacity={0.65} />
+            <TileLayer
+              attribution=""
+              url={SATELLITE_PLACES_TILE}
+              opacity={0.92}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+            />
+            <TileLayer
+              attribution=""
+              url={SATELLITE_LABELS_TILE}
+              opacity={0.65}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+            />
           </>
         ) : (
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url={STREET_TILE}
+            maxZoom={MAP_MAX_ZOOM}
+            maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
           />
         )}
 

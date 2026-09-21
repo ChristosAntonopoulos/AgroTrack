@@ -39,6 +39,8 @@ const SettingsPage: React.FC = () => {
     setFontScale,
     largeControls,
     setLargeControls,
+    applyEasyUsePreset,
+    resetComfortDefaults,
   } = useExperienceMode();
   const [preferences, setPreferences] = useState<UserPreferences>(settingsService.getPreferences());
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -122,6 +124,28 @@ const SettingsPage: React.FC = () => {
     } catch {
       setSaveStatus('error');
       setLastFailed(() => () => onLargeControls(enabled));
+    }
+  };
+
+  const onEasyUsePreset = () => {
+    try {
+      applyEasyUsePreset();
+      setLastFailed(null);
+      flashSaved();
+    } catch {
+      setSaveStatus('error');
+      setLastFailed(() => onEasyUsePreset);
+    }
+  };
+
+  const onResetComfort = () => {
+    try {
+      resetComfortDefaults();
+      setLastFailed(null);
+      flashSaved();
+    } catch {
+      setSaveStatus('error');
+      setLastFailed(() => onResetComfort);
     }
   };
 
@@ -255,6 +279,22 @@ const SettingsPage: React.FC = () => {
               >
                 <span className="settings-switch-knob" />
               </button>
+            </div>
+
+            <div className="settings-comfort-presets">
+              <div className="settings-row-text">
+                <p className="settings-label">{t('appearance.easyUsePreset')}</p>
+                <p className="settings-help">{t('appearance.easyUsePresetDesc')}</p>
+                <p className="settings-help settings-help--preview">{t('appearance.livePreviewNote')}</p>
+              </div>
+              <div className="settings-preset-actions">
+                <Button type="button" variant="primary" size="md" onClick={onEasyUsePreset}>
+                  {t('appearance.easyUseApply')}
+                </Button>
+                <Button type="button" variant="outline" size="md" onClick={onResetComfort}>
+                  {t('appearance.resetDefaults')}
+                </Button>
+              </div>
             </div>
           </section>
 

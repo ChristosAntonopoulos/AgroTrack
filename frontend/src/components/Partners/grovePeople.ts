@@ -1,4 +1,7 @@
-import { FieldMembership } from '../../services/fieldPeopleService';
+import {
+  FieldMembership,
+  capacitiesForMembership,
+} from '../../services/fieldPeopleService';
 import {
   SavedContact,
   ServiceCategory,
@@ -6,13 +9,25 @@ import {
   categoryName,
 } from '../../services/partnerService';
 
-export type GroveConnection = 'owner' | 'works' | 'advises' | 'helps' | 'sees' | 'invited' | 'partner' | 'contact' | 'app';
+export type GroveConnection =
+  | 'owner'
+  | 'works'
+  | 'advises'
+  | 'helps'
+  | 'sees'
+  | 'invited'
+  | 'partner'
+  | 'contact'
+  | 'app'
+  | 'family'
+  | 'partnerSeat';
 
 export type GrovePerson = {
   id: string;
   userId?: string;
   displayName: string;
   phone?: string;
+  email?: string;
   connections: GroveConnection[];
   serviceLabels: string[];
   listed: boolean;
@@ -32,16 +47,39 @@ const union = (current: GroveConnection[], extra: GroveConnection[]) => {
 
 const KEEP_CONTACT = new Set(['New', 'Viewed', 'Accepted', 'Closed']);
 
-const ORDER: GroveConnection[] = ['owner', 'works', 'advises', 'helps', 'sees', 'invited', 'partner', 'contact', 'app'];
+const ORDER: GroveConnection[] = [
+  'owner',
+  'partnerSeat',
+  'family',
+  'works',
+  'advises',
+  'helps',
+  'sees',
+  'invited',
+  'partner',
+  'contact',
+  'app',
+];
 
 export function connectionsFromMembership(member: FieldMembership): GroveConnection[] {
   const out: GroveConnection[] = [];
   if (member.status === 'invited' || member.status === 'pending') out.push('invited');
-  if (member.capacities.includes('own')) out.push('owner');
-  if (member.capacities.includes('work')) out.push('works');
-  if (member.capacities.includes('advise')) out.push('advises');
-  if (member.capacities.includes('help')) out.push('helps');
-  if (member.capacities.includes('view') && !out.includes('owner') && !out.includes('works')) {
+  if (member.role === 'Admin') out.push('owner');
+  else if (member.role === 'Partner') out.push('partnerSeat');
+  else if (member.role === 'Family') out.push('family');
+
+  const capacities = capacitiesForMembership(member);
+  if (capacities.includes('work') && !out.includes('owner') && !out.includes('partnerSeat')) {
+    out.push('works');
+  }
+  if (capacities.includes('help') && !out.includes('family')) out.push('helps');
+  if (
+    capacities.includes('view') &&
+    !out.includes('owner') &&
+    !out.includes('works') &&
+    !out.includes('partnerSeat') &&
+    !out.includes('family')
+  ) {
     out.push('sees');
   }
   return out.length > 0 ? out : ['works'];
@@ -64,7 +102,7 @@ export function mergeGrovePeople(
   const map = new Map<string, GrovePerson>();
 
   members.forEach((member) => {
-    if (member.status === 'removed') return;
+    if (member.status === 'removed' || member.status === 'revoked') return;
     const connections = connectionsFromMembership(member);
     const existing = map.get(member.userId);
     if (existing) {
@@ -118,6 +156,7 @@ export function mergeGrovePeople(
       if (!linked.connections.includes('app')) linked.connections.push('app');
       linked.savedContact = contact;
       linked.phone = contact.phone || linked.phone;
+      linked.email = contact.email || linked.email;
       labels.forEach((label) => {
         if (!linked.serviceLabels.includes(label)) linked.serviceLabels.push(label);
       });
@@ -132,6 +171,7 @@ export function mergeGrovePeople(
       userId: contact.linkedUserId,
       displayName: contact.displayName,
       phone: contact.phone,
+      email: contact.email,
       connections,
       serviceLabels: labels,
       listed: false,
@@ -145,4 +185,23 @@ export function mergeGrovePeople(
     const bi = Math.min(...b.connections.map((c) => ORDER.indexOf(c)));
     return ai - bi || a.displayName.localeCompare(b.displayName, language);
   });
+}
+
+/** Phone-book entries only — not field memberships or marketplace listings. */
+export function fromSavedContacts(
+  savedContacts: SavedContact[],
+  language: string,
+  categories: ServiceCategory[] = []
+): GrovePerson[] {
+  return mergeGrovePeople([], [], savedContacts, '', language, categories);
+}
+
+export function occupiesAccessSeat(
+  person: GrovePerson,
+  accessUserIds: Set<string>,
+  accessEmails: Set<string>
+): boolean {
+  if (person.userId && accessUserIds.has(person.userId)) return true;
+  const email = (person.email || person.savedContact?.email || '').trim().toLowerCase();
+  return Boolean(email && accessEmails.has(email));
 }

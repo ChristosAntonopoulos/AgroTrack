@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   Camera,
   CheckSquare,
+  FileText,
+  Mic,
   StickyNote,
   Wallet,
   Wheat,
@@ -19,6 +21,7 @@ import { harvestService } from '../../services/harvestService';
 import { fileUploadService } from '../../services/fileUploadService';
 import type { Field } from '../../services/fieldService';
 import { useAuth } from '../../context/AuthContext';
+import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { readLastMoneyFieldId } from '../../finance/lastField';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import './Capture.css';
@@ -57,8 +60,14 @@ const CaptureDrawer: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation(['capture', 'fields', 'common']);
   const { user } = useAuth();
+  const activeField = useActiveFieldAccess();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const docFileRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceStreamRef = useRef<MediaStream | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
 
   const [step, setStep] = useState<'choose' | CaptureType>(context.preferredType || 'choose');
   const wasOpenRef = useRef(open);
@@ -78,13 +87,19 @@ const CaptureDrawer: React.FC<Props> = ({
   const [body, setBody] = useState('');
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
 
+  // Voice
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null);
+
+  // Document
+  const [documentName, setDocumentName] = useState('');
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+
   // Harvest
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
-  const [mill, setMill] = useState('');
-  const [quality, setQuality] = useState('');
-  const [workers, setWorkers] = useState('');
-  const [method, setMethod] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
 
   const permissions = useMemo(
@@ -99,8 +114,10 @@ const CaptureDrawer: React.FC<Props> = ({
           user?.role === 'Producer' ||
           user?.role === 'FieldOwner' ||
           user?.role === 'Administrator',
+        familyModules: activeField.modules,
+        accessLevel: activeField.accessLevel,
       }),
-    [fields, user]
+    [fields, user, activeField.modules, activeField.accessLevel]
   );
 
   const yieldPct = useMemo(() => {
@@ -126,18 +143,33 @@ const CaptureDrawer: React.FC<Props> = ({
     setMoreOpen(false);
     setBody('');
     setPhotos([]);
+    setRecording(false);
+    setRecordingSeconds(0);
+    setVoiceBlob(null);
+    setVoicePreviewUrl(null);
+    setDocumentName('');
+    setDocumentFile(null);
     setOliveKg('');
     setOilKg('');
-    setMill('');
-    setQuality('');
-    setWorkers('');
-    setMethod('');
     setHarvestNotes('');
     void getFieldService()
       .getFields()
       .then(setFields)
       .catch(() => setFields([]));
-  }, [open, context.preferredType, context.fieldId, context.occurredAt, context.taskId]);
+  }, [open, context.preferredType, context.fieldId, context.occurredAt, context.taskId, context.harvestId, context.category, context.description]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current != null) window.clearInterval(recordingTimerRef.current);
+      voiceStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+    };
+  }, [voicePreviewUrl]);
 
   const markDirty = () => setDirty(true);
 
@@ -200,6 +232,79 @@ const CaptureDrawer: React.FC<Props> = ({
     return urls;
   };
 
+  const clearVoice = () => {
+    if (recordingTimerRef.current != null) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      if (mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    }
+    voiceStreamRef.current?.getTracks().forEach((track) => track.stop());
+    voiceStreamRef.current = null;
+    mediaRecorderRef.current = null;
+    setRecording(false);
+    setRecordingSeconds(0);
+    setVoiceBlob(null);
+    setVoicePreviewUrl(null);
+  };
+
+  const startVoiceRecording = async () => {
+    setError(null);
+    try {
+      clearVoice();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceStreamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+            ? 'audio/mp4'
+            : '';
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      voiceChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) voiceChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const type = recorder.mimeType || mimeType || 'audio/webm';
+        const blob = new Blob(voiceChunksRef.current, { type });
+        setVoiceBlob(blob);
+        setVoicePreviewUrl(URL.createObjectURL(blob));
+        voiceStreamRef.current?.getTracks().forEach((track) => track.stop());
+        voiceStreamRef.current = null;
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+      markDirty();
+    } catch {
+      setError(t('capture:errors.micDenied'));
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (recordingTimerRef.current != null) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+  };
+
   const ensureField = () => {
     if (!fieldId) {
       setError(t('capture:errors.fieldRequired'));
@@ -229,7 +334,13 @@ const CaptureDrawer: React.FC<Props> = ({
           mediaUrls,
         });
         onSaved(
-          { type: 'observation', fieldId, sourceId: note.id },
+          {
+            type: 'observation',
+            fieldId,
+            sourceId: note.id,
+            description: body.trim() || undefined,
+            harvestCampaignLink: context.harvestCampaignLink,
+          },
           t('capture:observation.saved')
         );
       } else if (step === 'work') {
@@ -254,14 +365,69 @@ const CaptureDrawer: React.FC<Props> = ({
           oliveKg: olives,
           oilKg: oil && !Number.isNaN(oil) ? oil : undefined,
           oilYieldPercent: yieldPct ?? undefined,
-          millName: mill.trim() || undefined,
-          qualityGrade: quality.trim() || undefined,
-          workersUsed: workers.trim() ? Number(workers) : 0,
-          harvestMethod: method.trim() || undefined,
           notes: harvestNotes.trim() || undefined,
           mediaUrls,
         });
         onSaved({ type: 'harvest', fieldId, sourceId: harvest.id }, t('capture:harvest.saved'));
+      } else if (step === 'voice') {
+        let blob = voiceBlob;
+        if (recording || (!blob && mediaRecorderRef.current?.state === 'recording')) {
+          blob = await new Promise<Blob | null>((resolve) => {
+            const recorder = mediaRecorderRef.current;
+            if (!recorder || recorder.state === 'inactive') {
+              resolve(voiceBlob);
+              return;
+            }
+            recorder.onstop = () => {
+              const type = recorder.mimeType || 'audio/webm';
+              const next = new Blob(voiceChunksRef.current, { type });
+              setVoiceBlob(next);
+              setVoicePreviewUrl(URL.createObjectURL(next));
+              voiceStreamRef.current?.getTracks().forEach((track) => track.stop());
+              voiceStreamRef.current = null;
+              resolve(next);
+            };
+            stopVoiceRecording();
+          });
+        }
+        if (!blob) {
+          setError(t('capture:errors.voiceEmpty'));
+          setSubmitting(false);
+          return;
+        }
+        const ext = blob.type.includes('mp4') ? 'm4a' : 'webm';
+        const file = new File([blob], `voice-${Date.now()}.${ext}`, {
+          type: blob.type || 'audio/webm',
+        });
+        const mediaUrl = await fileUploadService.uploadFile(file);
+        const note = await noteService.createNote({
+          body: t('capture:voice.noteBody'),
+          fieldId,
+          pinned: true,
+          occurredAt: when,
+          mediaUrls: [mediaUrl],
+        });
+        onSaved({ type: 'voice', fieldId, sourceId: note.id }, t('capture:voice.saved'));
+      } else if (step === 'document') {
+        if (!documentName.trim()) {
+          setError(t('capture:errors.documentNameRequired'));
+          setSubmitting(false);
+          return;
+        }
+        if (!documentFile) {
+          setError(t('capture:errors.documentFileRequired'));
+          setSubmitting(false);
+          return;
+        }
+        const mediaUrl = await fileUploadService.uploadFile(documentFile);
+        const note = await noteService.createNote({
+          body: documentName.trim(),
+          fieldId,
+          pinned: true,
+          occurredAt: when,
+          mediaUrls: [mediaUrl],
+        });
+        onSaved({ type: 'document', fieldId, sourceId: note.id }, t('capture:document.saved'));
       }
     } catch {
       setError(t('capture:errors.saveFailed'));
@@ -279,6 +445,8 @@ const CaptureDrawer: React.FC<Props> = ({
     { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
     { type: 'money', icon: <Wallet size={22} />, enabled: permissions.canRecordMoney },
     { type: 'harvest', icon: <Wheat size={22} />, enabled: permissions.canRecordHarvest },
+    { type: 'voice', icon: <Mic size={22} />, enabled: permissions.canRecordVoice },
+    { type: 'document', icon: <FileText size={22} />, enabled: permissions.canRecordDocument },
   ];
 
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
@@ -411,6 +579,92 @@ const CaptureDrawer: React.FC<Props> = ({
                     </>
                   ) : null}
 
+                  {step === 'voice' ? (
+                    <div className="capture-label">
+                      <p>{t('capture:voice.hint')}</p>
+                      <div className="capture-voice-row">
+                        <button
+                          type="button"
+                          className={`capture-voice-btn${recording ? ' is-recording' : ''}`}
+                          onClick={() => {
+                            if (recording) stopVoiceRecording();
+                            else void startVoiceRecording();
+                          }}
+                        >
+                          <Mic size={18} />
+                          {recording
+                            ? t('capture:voice.stop', {
+                                time: `${Math.floor(recordingSeconds / 60)}:${String(
+                                  recordingSeconds % 60
+                                ).padStart(2, '0')}`,
+                              })
+                            : voiceBlob
+                              ? t('capture:voice.rerecord')
+                              : t('capture:voice.record')}
+                        </button>
+                        {voiceBlob ? (
+                          <button
+                            type="button"
+                            className="capture-voice-btn"
+                            onClick={() => {
+                              clearVoice();
+                              markDirty();
+                            }}
+                          >
+                            <X size={16} />
+                            {t('capture:voice.clear')}
+                          </button>
+                        ) : null}
+                      </div>
+                      {voicePreviewUrl ? (
+                        <audio className="capture-voice-preview" controls src={voicePreviewUrl} />
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {step === 'document' ? (
+                    <>
+                      <label className="capture-label">
+                        {t('capture:document.nameLabel')}
+                        <input
+                          value={documentName}
+                          placeholder={t('capture:document.namePlaceholder')}
+                          onChange={(e) => {
+                            setDocumentName(e.target.value);
+                            markDirty();
+                          }}
+                        />
+                      </label>
+                      <div className="capture-document-row">
+                        <button
+                          type="button"
+                          className="capture-document-btn"
+                          onClick={() => docFileRef.current?.click()}
+                        >
+                          <FileText size={18} />
+                          {documentFile
+                            ? documentFile.name
+                            : t('capture:document.chooseFile')}
+                        </button>
+                        <input
+                          ref={docFileRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx,.txt,application/pdf,text/plain"
+                          hidden
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setDocumentFile(file);
+                            if (file && !documentName.trim()) {
+                              setDocumentName(file.name.replace(/\.[^.]+$/, ''));
+                            }
+                            markDirty();
+                            e.target.value = '';
+                          }}
+                        />
+                      </div>
+                    </>
+                  ) : null}
+
                   {step === 'work' ? (
                     <div className="capture-label">
                       <p>{t('capture:work.whatWork')}</p>
@@ -458,22 +712,6 @@ const CaptureDrawer: React.FC<Props> = ({
                       </button>
                       {moreOpen ? (
                         <>
-                          <label className="capture-label">
-                            {t('capture:harvest.mill')}
-                            <input value={mill} onChange={(e) => { setMill(e.target.value); markDirty(); }} />
-                          </label>
-                          <label className="capture-label">
-                            {t('capture:harvest.quality')}
-                            <input value={quality} onChange={(e) => { setQuality(e.target.value); markDirty(); }} />
-                          </label>
-                          <label className="capture-label">
-                            {t('capture:harvest.workers')}
-                            <input inputMode="numeric" value={workers} onChange={(e) => { setWorkers(e.target.value); markDirty(); }} />
-                          </label>
-                          <label className="capture-label">
-                            {t('capture:harvest.method')}
-                            <input value={method} onChange={(e) => { setMethod(e.target.value); markDirty(); }} />
-                          </label>
                           <label className="capture-label">
                             {t('capture:harvest.notes')}
                             <textarea rows={2} value={harvestNotes} onChange={(e) => { setHarvestNotes(e.target.value); markDirty(); }} />

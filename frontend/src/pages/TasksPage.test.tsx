@@ -168,7 +168,9 @@ describe('TasksPage Phase 1 shell', () => {
       {
         userId: 'u-kostas',
         displayName: 'Κώστας',
-        capacities: ['work'],
+        role: 'Partner',
+        modules: ['fields', 'tasks', 'calendar'],
+        accessLevel: 'work',
         status: 'active',
         createdAt: '2026-01-01T00:00:00Z',
       },
@@ -385,7 +387,7 @@ describe('TasksPage Phase 1 shell', () => {
     await waitFor(() => {
       expect(within(screen.getByRole('tab', { name: 'Προτάσεις' })).getByText('1')).toBeInTheDocument();
     });
-    expect(mockSearchState.current.get('field')).toBe('field-2');
+      expect(mockSearchState.current.get('fieldId')).toBe('field-2');
   });
 
   it('persists the year filter in the URL across tab changes', async () => {

@@ -1,9 +1,12 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../capture/types';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import CaptureDrawer from '../components/Capture/CaptureDrawer';
 import { getFinancialTransactionService } from '../services/serviceFactory';
+import { useHarvestCampaignOptional } from './HarvestCampaignContext';
+import { shouldRouteCaptureToHarvest } from '../harvestCampaign/routeCapture';
 import '../components/Capture/Capture.css';
 
 type CaptureApi = {
@@ -22,14 +25,20 @@ const CaptureContextValue = createContext<CaptureApi | null>(null);
 
 export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t } = useTranslation(['capture']);
+  const navigate = useNavigate();
+  const harvest = useHarvestCampaignOptional();
   const [open, setOpen] = useState(false);
   const [context, setContext] = useState<CaptureContext>({});
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const openCapture = useCallback((ctx?: CaptureContext) => {
+    if (harvest?.isLive && shouldRouteCaptureToHarvest(ctx?.preferredType)) {
+      navigate('/harvest?add=1');
+      return;
+    }
     setContext(ctx || {});
     setOpen(true);
-  }, []);
+  }, [harvest?.isLive, navigate]);
 
   const closeCapture = useCallback(() => {
     setOpen(false);

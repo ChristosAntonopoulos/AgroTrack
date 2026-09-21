@@ -13,22 +13,16 @@ import InfoRow from '../components/ui/InfoRow';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import FieldPreviewHero from '../components/domain/FieldPreviewHero';
-import AddFieldMethodStep, { AddFieldMethod } from '../components/fields/AddFieldMethodStep';
 import WizardStepIndicator, { WizardStepKey } from '../components/fields/WizardStepIndicator';
 import FieldBoundaryDrawMap, { BoundaryPoint } from '../components/fields/FieldBoundaryDrawMap';
-import CadastreUploadStep from '../components/fields/CadastreUploadStep';
-import GreekCadastreInfoCard from '../components/domain/GreekCadastreInfoCard';
 import FieldColorPicker from '../components/fields/FieldColorPicker';
-import { CreateFieldDto, Field, GeoJsonPolygon, GreekCadastreInfo, ImportGreekCadastreFieldResponse } from '../services/fieldService';
+import LocationSearchField from '../components/fields/LocationSearchField';
+import { CreateFieldDto, Field, GeoJsonPolygon } from '../services/fieldService';
 import { resolveFieldColor } from '../utils/fieldColors';
 import { geoJsonToPoints, pointsToGeoJsonPolygon } from '../utils/polygonArea';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import {
-  CROP_TYPE_OPTIONS,
   VARIETY_OPTIONS,
-  IRRIGATION_OPTIONS,
-  SOIL_OPTIONS,
-  SLOPE_OPTIONS,
   toSelectOptions,
 } from '../constants/fieldFormOptions';
 import { typography, spacing } from '../theme';
@@ -40,10 +34,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
 
 type WizardStep = WizardStepKey | 'basics-edit';
 
-const NEW_DRAW_STEPS: WizardStepKey[] = ['method', 'basics', 'boundary', 'crop', 'review'];
-const NEW_CADASTRE_STEPS: WizardStepKey[] = ['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'];
+const NEW_DRAW_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
 const EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
-const KAEK_REGEX = /^(?:\d{12}|\d{2}\s*\d{3}\s*\d{2}\s*\d{2}\s*\d{3})\s*\/\s*\d+\s*\/\s*\d+$/;
 
 const emptyForm = (): CreateFieldDto => ({
   name: '',
@@ -64,8 +56,7 @@ const FieldFormScreen = () => {
   const { t } = useTranslation(['fields', 'common']);
   const isEdit = !!fieldId;
 
-  const [step, setStep] = useState<WizardStep>(isEdit ? 'basics' : 'method');
-  const [method, setMethod] = useState<AddFieldMethod | null>(isEdit ? 'draw' : null);
+  const [step, setStep] = useState<WizardStep>('basics');
   const [formData, setFormData] = useState<CreateFieldDto>(emptyForm);
   const [boundaryPoints, setBoundaryPoints] = useState<BoundaryPoint[]>([]);
   const [measuredAreaSqm, setMeasuredAreaSqm] = useState(0);
@@ -76,15 +67,11 @@ const FieldFormScreen = () => {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
-  const [kaekInput, setKaekInput] = useState('');
-  const [cadastre, setCadastre] = useState<GreekCadastreInfo | undefined>();
-  const [cadastreAcknowledged, setCadastreAcknowledged] = useState(false);
 
   const activeSteps = useMemo(() => {
     if (isEdit) return EDIT_STEPS;
-    if (method === 'cadastre') return NEW_CADASTRE_STEPS;
     return NEW_DRAW_STEPS;
-  }, [isEdit, method]);
+  }, [isEdit]);
 
   const stepIndex = useMemo(() => {
     const key = step === 'basics-edit' ? 'basics' : step;
@@ -166,10 +153,6 @@ const FieldFormScreen = () => {
           setBoundaryConfirmed(true);
         }
         if (f.appMeasuredAreaSqm) setMeasuredAreaSqm(f.appMeasuredAreaSqm);
-        if (f.greekCadastre) {
-          setCadastre(f.greekCadastre);
-          setKaekInput(f.greekCadastre.normalizedKaek || f.greekCadastre.kaek || '');
-        }
         setStep(getFieldSetupResumeStep(f));
       })
       .catch(() => setError(t('fields:form.failedLoad')))
@@ -187,25 +170,15 @@ const FieldFormScreen = () => {
       name: formData.name.trim(),
       area: formData.area || 0,
       status: 'Draft',
-      greekCadastre: cadastre
-        ? { ...cadastre, kaek: kaekInput || cadastre.kaek, normalizedKaek: kaekInput || cadastre.normalizedKaek }
-        : kaekInput
-          ? { kaek: kaekInput, source: 'Manual' }
-          : undefined,
     });
     setDraftFieldId(created.id);
     return created.id;
   };
 
   const validateStep = (): string | null => {
-    if (step === 'method' && !method) return t('fields:addField.errors.methodRequired');
-    if (step === 'cadastre' && !draftFieldId) return t('fields:addField.cadastre.bothRequired');
     if (step === 'basics' || step === 'basics-edit') {
       if (!formData.name.trim() || formData.name.trim().length < 2) {
         return t('fields:form.errors.nameRequired');
-      }
-      if (method === 'kaek' && kaekInput && !KAEK_REGEX.test(kaekInput.replace(/\s/g, ' ').trim())) {
-        return t('fields:addField.errors.kaekInvalid');
       }
     }
     if (step === 'boundary' && boundaryPoints.length < 3) {
@@ -218,7 +191,6 @@ const FieldFormScreen = () => {
       if (isEdit && boundaryChanged && !boundaryConfirmed) {
         return t('fields:addField.errors.confirmBoundary');
       }
-      if (cadastre && !cadastreAcknowledged) return t('fields:addField.errors.confirmCadastre');
     }
     return null;
   };
@@ -235,18 +207,6 @@ const FieldFormScreen = () => {
     }
   };
 
-  const handleCadastreImported = (response: ImportGreekCadastreFieldResponse) => {
-    setDraftFieldId(response.draftFieldId);
-    setCadastre(response.greekCadastre);
-    patchForm({
-      name: response.suggestedName || formData.name,
-      locationText: response.greekCadastre.locationFromCadastre || formData.locationText,
-      area: response.greekCadastre.officialAreaSqm || formData.area,
-      status: 'NeedsBoundaryConfirmation',
-    });
-    setKaekInput(response.greekCadastre.normalizedKaek || response.greekCadastre.kaek || '');
-  };
-
   const goNext = async () => {
     const err = validateStep();
     if (err) {
@@ -257,7 +217,7 @@ const FieldFormScreen = () => {
 
     try {
       setSaving(true);
-      if (step === 'basics' && method !== 'cadastre') {
+      if (step === 'basics') {
         await ensureDraftField();
       }
       if (step === 'boundary' && draftFieldId) {
@@ -342,33 +302,22 @@ const FieldFormScreen = () => {
         name: formData.name.trim(),
         cropType: formData.cropType,
         locationText: formData.locationText,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
         variety: formData.variety,
         treeCount: formData.treeCount,
         treeAge: formData.treeAge,
-        groundType: formData.soilType || formData.groundType,
-        soilType: formData.soilType,
-        irrigationType: formData.irrigationType,
-        irrigationStatus:
-          formData.irrigationStatus ||
-          Boolean(formData.irrigationType && formData.irrigationType !== 'Rainfed'),
-        slope: formData.slope,
-        accessNotes: formData.accessNotes,
         area: measuredAreaSqm || formData.area,
         color: formData.color,
-        greekCadastre: cadastre
-          ? { ...cadastre, kaek: kaekInput || cadastre.kaek }
-          : kaekInput
-            ? { kaek: kaekInput, source: 'Manual' }
-            : undefined,
       });
       if (boundaryPoints.length >= 3) {
         await persistBoundary(id);
       }
       const result = await getFieldService().activateField(id, {
         boundaryConfirmed: boundaryConfirmed || boundaryPoints.length >= 3,
-        cadastreReferenceAcknowledged: cadastre ? cadastreAcknowledged : true,
+        cadastreReferenceAcknowledged: true,
       });
-      navigation.replace('FieldDetail', { fieldId: result.field.id });
+      navigation.replace('FieldWorkSetup', { fieldId: result.field.id });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
     } finally {
@@ -465,21 +414,6 @@ const FieldFormScreen = () => {
       ) : null}
 
       <Card variant="outlined" style={styles.panel}>
-        {step === 'method' ? (
-          <AddFieldMethodStep
-            method={method}
-            onSelect={(m) => {
-              setMethod(m);
-              setError(null);
-              if (m === 'cadastre') setStep('cadastre');
-            }}
-          />
-        ) : null}
-
-        {step === 'cadastre' ? (
-          <CadastreUploadStep onImported={handleCadastreImported} parsedCadastre={cadastre} />
-        ) : null}
-
         {(step === 'basics' || step === 'basics-edit') ? (
           <View style={styles.stepBody}>
             <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
@@ -494,35 +428,23 @@ const FieldFormScreen = () => {
               onChangeText={(name) => patchForm({ name })}
               editable={!saving}
             />
+            <LocationSearchField
+              value={formData.locationText || ''}
+              disabled={saving}
+              onChange={(next) =>
+                patchForm({
+                  locationText: next.locationText,
+                  latitude: next.latitude,
+                  longitude: next.longitude,
+                })
+              }
+            />
             <FieldColorPicker
               value={formData.color}
               fieldId={draftFieldId || fieldId}
               onChange={(color) => patchForm({ color })}
               disabled={saving}
             />
-            <FormSelect
-              label={t('fields:addField.cropType')}
-              value={formData.cropType || 'Olive'}
-              options={toSelectOptions(CROP_TYPE_OPTIONS)}
-              onValueChange={(cropType) => patchForm({ cropType })}
-              disabled={saving}
-            />
-            <FormField
-              label={t('fields:addField.locationText')}
-              value={formData.locationText || ''}
-              onChangeText={(locationText) => patchForm({ locationText })}
-              placeholder={t('fields:addField.locationPlaceholder')}
-              editable={!saving}
-            />
-            {method === 'kaek' || kaekInput ? (
-              <FormField
-                label="KAEK"
-                value={kaekInput}
-                onChangeText={setKaekInput}
-                placeholder="123456789012 / 0 / 0"
-                editable={!saving}
-              />
-            ) : null}
           </View>
         ) : null}
 
@@ -530,9 +452,6 @@ const FieldFormScreen = () => {
           <View style={styles.stepBody}>
             <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
               {t('fields:addField.steps.boundary')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('fields:addFieldWizard.boundaryDesc')}
             </Text>
             <FieldBoundaryDrawMap
               points={boundaryPoints}
@@ -542,7 +461,10 @@ const FieldFormScreen = () => {
               }}
               onMeasuredAreaChange={setMeasuredAreaSqm}
               onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
-              height={isEdit ? 380 : 320}
+              locationQuery={formData.locationText}
+              latitude={formData.latitude}
+              longitude={formData.longitude}
+              height={360}
             />
           </View>
         ) : null}
@@ -568,49 +490,6 @@ const FieldFormScreen = () => {
               value={formData.treeCount != null ? String(formData.treeCount) : ''}
               onChangeText={(v) => patchForm({ treeCount: v ? parseInt(v, 10) : undefined })}
               keyboardType="number-pad"
-              editable={!saving}
-            />
-            <FormField
-              label={t('fields:treeAge')}
-              value={formData.treeAge != null ? String(formData.treeAge) : ''}
-              onChangeText={(v) => patchForm({ treeAge: v ? parseInt(v, 10) : undefined })}
-              keyboardType="number-pad"
-              editable={!saving}
-            />
-            <FormSelect
-              label={t('fields:addField.irrigationType')}
-              value={formData.irrigationType || ''}
-              options={toSelectOptions(IRRIGATION_OPTIONS)}
-              placeholder={t('fields:addField.selectOption')}
-              onValueChange={(irrigationType) =>
-                patchForm({
-                  irrigationType,
-                  irrigationStatus: Boolean(irrigationType && irrigationType !== 'Rainfed'),
-                })
-              }
-              disabled={saving}
-            />
-            <FormSelect
-              label={t('fields:addField.soilType')}
-              value={formData.soilType || ''}
-              options={toSelectOptions(SOIL_OPTIONS)}
-              placeholder={t('fields:addField.selectOption')}
-              onValueChange={(soilType) => patchForm({ soilType, groundType: soilType })}
-              disabled={saving}
-            />
-            <FormSelect
-              label={t('fields:addField.slope')}
-              value={formData.slope || ''}
-              options={toSelectOptions(SLOPE_OPTIONS)}
-              placeholder={t('fields:addField.selectOption')}
-              onValueChange={(slope) => patchForm({ slope })}
-              disabled={saving}
-            />
-            <FormField
-              label={t('fields:addField.accessNotes')}
-              value={formData.accessNotes || ''}
-              onChangeText={(accessNotes) => patchForm({ accessNotes })}
-              multiline
               editable={!saving}
             />
           </View>
@@ -657,22 +536,6 @@ const FieldFormScreen = () => {
                 />
               </View>
             ) : null}
-            {cadastre ? (
-              <>
-                <GreekCadastreInfoCard cadastre={cadastre} />
-                <View style={[styles.confirmRow, { borderTopColor: colors.borderLight }]}>
-                  <Text style={[styles.confirmLabel, { color: colors.textPrimary }]}>
-                    {t('fields:addField.confirmCadastre')}
-                  </Text>
-                  <Switch
-                    value={cadastreAcknowledged}
-                    onValueChange={setCadastreAcknowledged}
-                    trackColor={{ false: colors.border, true: colors.primary }}
-                    thumbColor={colors.onOlive}
-                  />
-                </View>
-              </>
-            ) : null}
           </View>
         ) : null}
 
@@ -706,7 +569,7 @@ const FieldFormScreen = () => {
         </View>
       </Card>
 
-      {!isLast && step !== 'method' ? (
+      {!isLast ? (
         <Button
           title={isEdit ? t('fields:saveChanges') : t('fields:addField.saveDraft')}
           variant="ghost"

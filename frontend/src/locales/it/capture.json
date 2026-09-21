@@ -27,6 +27,14 @@
     "money": {
       "title": "Denaro",
       "description": "Entrata o spesa"
+    },
+    "voice": {
+      "title": "Messaggio vocale",
+      "description": "Registrazione salvata nella timeline"
+    },
+    "document": {
+      "title": "Documento",
+      "description": "Carica un file con un nome"
     }
   },
   "fieldLabel": "Oliveto",
@@ -47,6 +55,21 @@
     "placeholder": "Cosa hai notato?",
     "addPhoto": "Aggiungi foto",
     "saved": "Osservazione registrata."
+  },
+  "voice": {
+    "hint": "Tocca registra e parla. Il messaggio appare nella timeline.",
+    "record": "Registra",
+    "stop": "Stop {{time}}",
+    "rerecord": "Registra di nuovo",
+    "clear": "Cancella",
+    "noteBody": "Messaggio vocale",
+    "saved": "Messaggio vocale registrato."
+  },
+  "document": {
+    "nameLabel": "Nome documento",
+    "namePlaceholder": "es. Analisi del suolo",
+    "chooseFile": "Scegli file",
+    "saved": "Documento registrato."
   },
   "work": {
     "whatWork": "Che lavoro è stato fatto?",
@@ -85,6 +108,10 @@
   "errors": {
     "fieldRequired": "Scegli un oliveto.",
     "observationEmpty": "Aggiungi una nota o una foto.",
+    "voiceEmpty": "Registra prima un messaggio vocale.",
+    "documentNameRequired": "Inserisci un nome per il documento.",
+    "documentFileRequired": "Scegli un file.",
+    "micDenied": "Serve l’autorizzazione al microfono.",
     "workTypeRequired": "Scegli il lavoro svolto.",
     "amountRequired": "Inserisci un importo.",
     "oliveRequired": "Inserisci i chili di olive.",

@@ -27,6 +27,7 @@ export type ChronologioSourceType =
   | 'Income'
   | 'Harvest'
   | 'Note'
+  | 'Photo'
   | 'Activity'
   | 'WeatherReview';
 
@@ -86,6 +87,8 @@ export interface ChronologioHarvestDetails {
   mill?: string;
   quality?: string;
   workers: number;
+  sackCount?: number;
+  hasOfficialWeight?: boolean;
   harvestMethod?: string;
 }
 

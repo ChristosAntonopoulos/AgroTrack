@@ -6,13 +6,17 @@
   min-height: 0;
 }
 
+.field-detail-map-wrap--peek {
+  min-height: 200px;
+}
+
 .field-detail-map {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 44rem;
+  min-height: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -26,8 +30,8 @@
 
 @media (max-width: 900px) {
   .field-detail-map--compact {
-    height: 220px !important;
-    min-height: 220px;
+    height: 200px !important;
+    min-height: 200px;
   }
 }
 
@@ -43,8 +47,67 @@
 .field-detail-map-canvas {
   position: relative;
   flex: 1 1 0;
-  min-height: 18rem;
+  min-height: 0;
   overflow: hidden;
+}
+
+.field-detail-map--peek .field-detail-map-stage,
+.field-detail-map--compact .field-detail-map-stage {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.field-detail-map--peek .field-detail-map-canvas,
+.field-detail-map--compact .field-detail-map-canvas {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 200px;
+}
+
+.field-detail-map--full {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  width: min(100%, 48rem);
+  background: var(--bg-card, var(--bg-elevated));
+}
+
+.field-detail-map-stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.field-detail-map--full .field-detail-map-canvas {
+  width: 100%;
+  max-width: min(30rem, 58vh);
+  height: min(30rem, 58vh);
+  min-height: 16rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 900px) {
+  .field-detail-map--full {
+    width: min(100%, 54rem);
+    grid-template-columns: minmax(0, 1fr) 18.5rem;
+  }
+
+  .field-detail-map--full .map-look {
+    border-left: 1px solid var(--color-border);
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .field-detail-map--full .field-detail-map-canvas {
+    max-width: none;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+    margin: 0;
+  }
 }
 
 .field-detail-map-leaflet {
@@ -60,8 +123,8 @@
   z-index: 500;
   flex: 0 0 auto;
   display: grid;
-  gap: 0.4rem;
-  padding: 0.6rem 0.75rem 0.7rem;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem 0.4rem;
   background: color-mix(in srgb, var(--bg-card) 96%, transparent);
   border-top: 1px solid var(--color-border);
 }
@@ -145,19 +208,29 @@
 }
 
 .field-detail-map--simple,
-.field-detail-map--full,
-.field-detail-map--peek {
+.field-detail-map--full {
   min-height: 0;
+}
+
+.field-detail-map--peek {
+  min-height: 200px;
 }
 
 .field-detail-map .leaflet-bar a {
   background-color: var(--bg-elevated) !important;
   color: var(--color-text-primary) !important;
   border-bottom-color: var(--color-border) !important;
-  width: 48px !important;
-  height: 48px !important;
-  line-height: 48px !important;
-  font-size: 20px !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 16px !important;
+}
+
+.field-detail-map--peek .leaflet-bar a {
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  font-size: 14px !important;
 }
 
 .field-detail-map .leaflet-control-attribution {

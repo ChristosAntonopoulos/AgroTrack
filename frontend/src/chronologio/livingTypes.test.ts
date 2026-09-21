@@ -1,4 +1,4 @@
-import { parseChronologioView, VIEW_TO_ZOOM, viewFromZoom } from './livingTypes';
+import { livingZoomFromSearch, parseChronologioView, VIEW_TO_ZOOM, viewFromZoom } from './livingTypes';
 
 describe('Chronologio view URL', () => {
   it('accepts the public days/months/years names and the legacy zoom names', () => {
@@ -15,5 +15,11 @@ describe('Chronologio view URL', () => {
     expect(VIEW_TO_ZOOM.months).toBe('year');
     expect(VIEW_TO_ZOOM.years).toBe('years');
     expect(viewFromZoom('month')).toBe('days');
+  });
+
+  it('does not pin Days when the URL also has a years or months view', () => {
+    expect(livingZoomFromSearch('years', null)).toBe('years');
+    expect(livingZoomFromSearch('months', 'month')).toBe('year');
+    expect(livingZoomFromSearch('days', null)).toBe('month');
   });
 });

@@ -8,7 +8,7 @@ export type ChronologioDayDisplayItem =
   | { type: 'photoGroup'; id: string; entries: ChronologioEntry[] };
 
 const isImageMedia = (m: ChronologioMedia): boolean =>
-  Boolean(m.url || m.thumbnailUrl) && !/audio|voice/i.test(m.type || '');
+  Boolean(m.url || m.thumbnailUrl) && !/audio|voice|document/i.test(m.type || '');
 
 /**
  * Collapses all Photo Hub / photo-category entries for a single day into one

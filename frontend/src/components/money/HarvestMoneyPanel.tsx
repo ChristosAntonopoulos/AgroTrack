@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../Common/Button';
 import { useCaptureOptional } from '../../context/CaptureContext';
-import { formatOfficialAmount, formatOfficialNet, isForbiddenError } from '../../finance/format';
+import { isForbiddenError } from '../../finance/format';
 import { getFinancialSummaryService } from '../../services/serviceFactory';
 import type { HarvestFinancialSummary } from '../../services/financialSummaryService';
+import MoneyTriadFacts from './MoneyTriadFacts';
 
 type Props = {
   harvestId: string;
@@ -46,41 +47,20 @@ const HarvestMoneyPanel: React.FC<Props> = ({ harvestId, fieldId, harvestDate })
   return (
     <section className="fw-detail-section harvest-money-panel">
       <h2>{t('fields:overview.financeTitle')}</h2>
-      <dl className="fw-money-facts">
-        <div>
-          <dt>{t('fields:overview.income')}</dt>
-          <dd>
-            {formatOfficialAmount(
-              summary?.income,
-              'EUR',
-              i18n.language,
-              summary?.incomeMessage || t('fields:harvestMoney.noIncome')
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('fields:overview.expenses')}</dt>
-          <dd>
-            {formatOfficialAmount(
-              summary?.expenses,
-              'EUR',
-              i18n.language,
-              t('money:unknownAmount')
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('fields:overview.result')}</dt>
-          <dd>
-            {formatOfficialNet(
-              summary?.netResult,
-              'EUR',
-              i18n.language,
-              summary?.hasRecordedIncome ? t('money:unknownAmount') : t('fields:harvestMoney.noIncome')
-            )}
-          </dd>
-        </div>
-      </dl>
+      <MoneyTriadFacts
+        className="fw-money-facts"
+        income={summary?.income}
+        expenses={summary?.expenses}
+        net={summary?.netResult}
+        currency="EUR"
+        locale={i18n.language}
+        unknown={t('money:unknownAmount')}
+        incomeLabel={t('fields:overview.income')}
+        expensesLabel={t('fields:overview.expenses')}
+        resultLabel={t('fields:overview.result')}
+        incomeEmpty={summary?.incomeMessage || t('fields:harvestMoney.noIncome')}
+        netEmpty={summary?.hasRecordedIncome ? t('money:unknownAmount') : t('fields:harvestMoney.noIncome')}
+      />
       <div className="fw-card-actions">
         <Button variant="primary" size="lg" onClick={() => open('income')}>
           {t('fields:harvestMoney.addIncome')}

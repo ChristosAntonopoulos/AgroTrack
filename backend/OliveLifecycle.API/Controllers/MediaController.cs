@@ -40,7 +40,12 @@ public class MediaController : BaseApiController
         [FromQuery] string ownerId,
         CancellationToken cancellationToken)
     {
-        var items = await _media.GetByOwnerAsync(ownerType, ownerId, cancellationToken);
+        var items = await _media.GetByOwnerAsync(
+            ownerType,
+            ownerId,
+            UserContext.UserId,
+            UserContext.Role,
+            cancellationToken);
         return OkResult(items);
     }
 }

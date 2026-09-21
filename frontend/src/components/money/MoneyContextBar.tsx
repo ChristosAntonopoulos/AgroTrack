@@ -7,6 +7,7 @@ type KindFilter = 'all' | 'income' | 'expense' | 'draft';
 
 type Props = {
   year: number;
+  yearRangeLabel?: string;
   kind: KindFilter;
   hideIncome?: boolean;
   onYearChange: (year: number) => void;
@@ -15,6 +16,7 @@ type Props = {
 
 const MoneyContextBar: React.FC<Props> = ({
   year,
+  yearRangeLabel,
   kind,
   hideIncome,
   onYearChange,
@@ -36,7 +38,10 @@ const MoneyContextBar: React.FC<Props> = ({
         <button type="button" aria-label={t('prevYear')} onClick={() => onYearChange(year - 1)}>
           <ChevronLeft size={20} />
         </button>
-        <strong aria-live="polite">{year}</strong>
+        <div className="money-year-label">
+          <strong aria-live="polite">{t('agriculturalYearShort', { year })}</strong>
+          {yearRangeLabel ? <span className="money-year-range">{yearRangeLabel}</span> : null}
+        </div>
         <button type="button" aria-label={t('nextYear')} onClick={() => onYearChange(year + 1)}>
           <ChevronRight size={20} />
         </button>

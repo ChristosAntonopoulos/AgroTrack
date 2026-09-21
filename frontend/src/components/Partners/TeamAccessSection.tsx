@@ -2,42 +2,47 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Handshake, Plus, Users } from 'lucide-react';
 import Button from '../Common/Button';
-import FamilyMemberCard from './FamilyMemberCard';
-import PartnerLinkCard from './PartnerLinkCard';
-import { FamilyCircle } from '../../services/familyService';
-import { OwnerPartnerSeat } from '../../services/ownerPartnerService';
+import FieldSeatCard from './FieldSeatCard';
+import {
+  FieldMembership,
+  MAX_FAMILY_SEATS,
+  MAX_PARTNER_SEATS,
+  countSeats,
+} from '../../services/fieldPeopleService';
 
 type Props = {
-  family: FamilyCircle | null;
-  partnerSeat: OwnerPartnerSeat | null;
+  fieldId: string;
+  people: FieldMembership[];
   loading?: boolean;
   canManage?: boolean;
   onAddFamily: () => void;
   onAddPartner: () => void;
-  onFamilyChanged: () => void;
-  onPartnerChanged: () => void;
+  onChanged: () => void;
 };
 
 const TeamAccessSection: React.FC<Props> = ({
-  family,
-  partnerSeat,
+  fieldId,
+  people,
   loading,
   canManage,
   onAddFamily,
   onAddPartner,
-  onFamilyChanged,
-  onPartnerChanged,
+  onChanged,
 }) => {
   const { t } = useTranslation(['partners']);
-  const familyUsed = family?.seatsUsed ?? 0;
-  const familyMax = family?.seatsMax ?? 2;
-  const members = family?.members ?? [];
-  const partner = partnerSeat?.partner ?? null;
-  const partnerUsed = partnerSeat?.seatsUsed ?? (partner ? 1 : 0);
-  const partnerMax = partnerSeat?.seatsMax ?? 1;
+  const familyUsed = countSeats(people, 'Family');
+  const partnerUsed = countSeats(people, 'Partner');
+  const familyMax = MAX_FAMILY_SEATS;
+  const partnerMax = MAX_PARTNER_SEATS;
+  const familyMembers = people.filter(
+    (p) => p.role === 'Family' && !/^revoked$/i.test(p.status) && !/^removed$/i.test(p.status)
+  );
+  const partners = people.filter(
+    (p) => p.role === 'Partner' && !/^revoked$/i.test(p.status) && !/^removed$/i.test(p.status)
+  );
   const canAddFamily = Boolean(canManage && familyUsed < familyMax);
-  const canAddPartner = Boolean(canManage && partnerUsed < partnerMax && !partner);
-  const hasAnyone = members.length > 0 || Boolean(partner);
+  const canAddPartner = Boolean(canManage && partnerUsed < partnerMax);
+  const hasAnyone = familyMembers.length > 0 || partners.length > 0;
 
   return (
     <section className="partners-section team-access-section" aria-labelledby="team-access-title">
@@ -90,17 +95,24 @@ const TeamAccessSection: React.FC<Props> = ({
 
       {hasAnyone ? (
         <div className="partners-people-list team-access-people">
-          {members.map((member) => (
-            <FamilyMemberCard
-              key={member.id}
-              member={member}
+          {familyMembers.map((member) => (
+            <FieldSeatCard
+              key={`${member.userId}-family`}
+              fieldId={fieldId}
+              person={member}
               canManage={canManage}
-              onChanged={onFamilyChanged}
+              onChanged={onChanged}
             />
           ))}
-          {partner ? (
-            <PartnerLinkCard link={partner} canManage={canManage} onChanged={onPartnerChanged} />
-          ) : null}
+          {partners.map((partner) => (
+            <FieldSeatCard
+              key={`${partner.userId}-partner`}
+              fieldId={fieldId}
+              person={partner}
+              canManage={canManage}
+              onChanged={onChanged}
+            />
+          ))}
         </div>
       ) : null}
     </section>

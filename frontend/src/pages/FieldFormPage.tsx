@@ -3,12 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getFieldService } from '../services/serviceFactory';
 import {
-  AddFieldMethod,
   CreateFieldDto,
   FieldAreaValidationResponse,
   GeoJsonPolygon,
-  GreekCadastreInfo,
-  ImportGreekCadastreFieldResponse,
   UpdateFieldDto,
 } from '../services/fieldService';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -16,9 +13,7 @@ import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import AddFieldMethodStep from '../components/fields/AddFieldMethodStep';
 import BasicFieldDetailsStep from '../components/fields/BasicFieldDetailsStep';
-import CadastreUploadStep from '../components/fields/CadastreUploadStep';
 import FieldBoundaryMapStep from '../components/fields/FieldBoundaryMapStep';
 import CropDetailsStep from '../components/fields/CropDetailsStep';
 import ReviewFieldStep from '../components/fields/ReviewFieldStep';
@@ -26,10 +21,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ClipboardList,
   MapPin,
   Sprout,
-  Layers,
 } from 'lucide-react';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
@@ -37,10 +30,8 @@ import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
-type WizardStep = 'method' | 'basics' | 'cadastre' | 'boundary' | 'crop' | 'review';
-const WIZARD_STEPS: WizardStep[] = ['method', 'basics', 'boundary', 'crop', 'review'];
-
-const KAEK_REGEX = /^(?:\d{12}|\d{2}\s*\d{3}\s*\d{2}\s*\d{2}\s*\d{3})\s*\/\s*\d+\s*\/\s*\d+$/;
+type WizardStep = 'basics' | 'boundary' | 'crop' | 'review';
+const WIZARD_STEPS: WizardStep[] = ['basics', 'boundary', 'crop', 'review'];
 
 const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
@@ -48,8 +39,7 @@ const FieldFormPage: React.FC = () => {
   const navigate = useNavigate();
   const isEdit = !!id;
 
-  const [step, setStep] = useState<WizardStep | 'basics-edit'>('method');
-  const [method, setMethod] = useState<AddFieldMethod | null>(null);
+  const [step, setStep] = useState<WizardStep | 'basics-edit'>('basics');
   const [draftFieldId, setDraftFieldId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateFieldDto>({
     name: '',
@@ -61,12 +51,9 @@ const FieldFormPage: React.FC = () => {
     status: 'Draft',
     worksThisFieldMyself: true,
   });
-  const [kaekInput, setKaekInput] = useState('');
-  const [cadastre, setCadastre] = useState<GreekCadastreInfo | undefined>();
   const [boundary, setBoundary] = useState<GeoJsonPolygon | undefined>();
   const [areaValidation, setAreaValidation] = useState<FieldAreaValidationResponse | null>(null);
   const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
-  const [cadastreAcknowledged, setCadastreAcknowledged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,9 +84,7 @@ const FieldFormPage: React.FC = () => {
         color: field.color,
         status: field.status,
       });
-      setCadastre(field.greekCadastre);
       setBoundary(field.boundary);
-      setKaekInput(field.greekCadastre?.kaek || '');
       setDraftFieldId(field.id);
       setStep(getFieldSetupResumeStep(field) as WizardStep);
     } catch {
@@ -111,9 +96,7 @@ const FieldFormPage: React.FC = () => {
 
   const activeSteps = isEdit
     ? (['basics-edit', 'boundary', 'crop', 'review'] as const)
-    : method === 'cadastre'
-      ? (['method', 'cadastre', 'basics', 'boundary', 'crop', 'review'] as const)
-      : WIZARD_STEPS;
+    : WIZARD_STEPS;
 
   const stepIndex = activeSteps.indexOf(step as never);
   const isFirst = stepIndex <= 0;
@@ -144,27 +127,9 @@ const FieldFormPage: React.FC = () => {
       appMeasuredAreaSqm: formData.area || undefined,
       area: formData.area ? hectaresFromSqm(formData.area) : 0,
       status: 'Draft',
-      greekCadastre: cadastre
-        ? { ...cadastre, kaek: kaekInput || cadastre.kaek, normalizedKaek: kaekInput || cadastre.normalizedKaek }
-        : kaekInput
-          ? { kaek: kaekInput, source: 'Manual' }
-          : undefined,
     });
     setDraftFieldId(created.id);
     return created.id;
-  };
-
-  const handleCadastreImported = (response: ImportGreekCadastreFieldResponse) => {
-    setDraftFieldId(response.draftFieldId);
-    setCadastre(response.greekCadastre);
-    setFormData((prev) => ({
-      ...prev,
-      name: response.suggestedName || prev.name,
-      locationText: response.greekCadastre.locationFromCadastre || prev.locationText,
-      area: response.greekCadastre.officialAreaSqm || prev.area,
-      status: 'NeedsBoundaryConfirmation',
-    }));
-    setKaekInput(response.greekCadastre.normalizedKaek || response.greekCadastre.kaek || '');
   };
 
   const handleBoundaryChange = async (geo?: GeoJsonPolygon, areaSqm?: number) => {
@@ -182,17 +147,12 @@ const FieldFormPage: React.FC = () => {
   };
 
   const validateStep = (): string | null => {
-    if (step === 'method' && !method) return t('fields:addField.errors.methodRequired');
     if (step === 'basics' || step === ('basics-edit' as WizardStep)) {
       if (!formData.name.trim() || formData.name.length < 2) return t('fields:form.errors.nameRequired');
-      if (method === 'kaek' && kaekInput && !KAEK_REGEX.test(kaekInput.replace(/\s/g, ' ').trim())) {
-        return t('fields:addField.errors.kaekInvalid');
-      }
     }
     if (step === 'boundary' && !boundary) return t('fields:addField.errors.boundaryRequired');
     if (step === 'review') {
       if (boundary && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
-      if (cadastre && !cadastreAcknowledged) return t('fields:addField.errors.confirmCadastre');
     }
     return null;
   };
@@ -205,7 +165,7 @@ const FieldFormPage: React.FC = () => {
     }
     setError(null);
 
-    if (step === 'basics' && method !== 'cadastre') {
+    if (step === 'basics') {
       await ensureDraftField();
     }
 
@@ -217,22 +177,24 @@ const FieldFormPage: React.FC = () => {
     if (!isFirst) setStep(activeSteps[stepIndex - 1] as WizardStep);
   };
 
+  const fieldPayload = (): UpdateFieldDto =>
+    ({
+      name: formData.name,
+      cropType: formData.cropType,
+      locationText: formData.locationText,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      variety: formData.variety,
+      treeCount: formData.treeCount,
+      color: formData.color,
+    }) as UpdateFieldDto;
+
   const handleSaveDraft = async () => {
     setLoading(true);
     setError(null);
     try {
       const fieldId = draftFieldId || (await ensureDraftField());
-      await getFieldService().updateField(fieldId, {
-        name: formData.name,
-        cropType: formData.cropType,
-        locationText: formData.locationText,
-        variety: formData.variety,
-        treeCount: formData.treeCount,
-        irrigationType: formData.irrigationType,
-        accessNotes: formData.accessNotes,
-        color: formData.color,
-        greekCadastre: cadastre,
-      } as UpdateFieldDto);
+      await getFieldService().updateField(fieldId, fieldPayload());
 
       if (boundary) {
         await getFieldService().updateBoundary(fieldId, boundary);
@@ -271,17 +233,7 @@ const FieldFormPage: React.FC = () => {
     setError(null);
     try {
       const fieldId = draftFieldId || (await ensureDraftField());
-      await getFieldService().updateField(fieldId, {
-        name: formData.name,
-        cropType: formData.cropType,
-        locationText: formData.locationText,
-        variety: formData.variety,
-        treeCount: formData.treeCount,
-        irrigationType: formData.irrigationType,
-        accessNotes: formData.accessNotes,
-        color: formData.color,
-        greekCadastre: cadastre,
-      } as UpdateFieldDto);
+      await getFieldService().updateField(fieldId, fieldPayload());
 
       if (boundary) {
         await getFieldService().updateBoundary(fieldId, boundary);
@@ -289,7 +241,7 @@ const FieldFormPage: React.FC = () => {
 
       const result = await getFieldService().activateField(fieldId, {
         boundaryConfirmed,
-        cadastreReferenceAcknowledged: cadastre ? cadastreAcknowledged : true,
+        cadastreReferenceAcknowledged: true,
       });
 
       navigate(`/fields/${result.field.id}/work-setup`, {
@@ -304,10 +256,6 @@ const FieldFormPage: React.FC = () => {
 
   const stepIcon = (s: string) => {
     switch (s) {
-      case 'method':
-        return <Layers size={16} />;
-      case 'cadastre':
-        return <ClipboardList size={16} />;
       case 'basics':
       case 'basics-edit':
         return <Sprout size={16} />;
@@ -369,28 +317,19 @@ const FieldFormPage: React.FC = () => {
         {error && <div className="field-form-error">{error}</div>}
 
         <Card className="field-form-card">
-          {step === 'method' && (
-            <AddFieldMethodStep
-              method={method}
-              onSelect={(m) => {
-                setMethod(m);
-                if (m === 'cadastre') setStep('cadastre');
-              }}
-            />
-          )}
-
-          {step === 'cadastre' && (
-            <CadastreUploadStep onImported={handleCadastreImported} parsedCadastre={cadastre} />
-          )}
-
           {(step === 'basics' || step === ('basics-edit' as WizardStep)) && (
             <BasicFieldDetailsStep
               formData={formData}
-              kaekInput={kaekInput}
-              showKaek={method === 'kaek'}
               fieldId={draftFieldId || id}
               onChange={handleChange}
-              onKaekChange={setKaekInput}
+              onLocationChange={(next) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  locationText: next.locationText,
+                  latitude: next.latitude,
+                  longitude: next.longitude,
+                }))
+              }
               onColorChange={(color) => setFormData((prev) => ({ ...prev, color }))}
             />
           )}
@@ -398,9 +337,10 @@ const FieldFormPage: React.FC = () => {
           {step === 'boundary' && (
             <FieldBoundaryMapStep
               boundary={boundary}
-              cadastre={cadastre}
-              officialAreaSqm={cadastre?.officialAreaSqm}
               measuredAreaSqm={formData.area}
+              locationQuery={formData.locationText}
+              latitude={formData.latitude}
+              longitude={formData.longitude}
               onBoundaryChange={handleBoundaryChange}
             />
           )}
@@ -411,12 +351,9 @@ const FieldFormPage: React.FC = () => {
             <ReviewFieldStep
               formData={formData}
               boundary={boundary}
-              cadastre={cadastre}
               areaValidation={areaValidation}
               boundaryConfirmed={boundaryConfirmed}
-              cadastreAcknowledged={cadastreAcknowledged}
               onBoundaryConfirmedChange={setBoundaryConfirmed}
-              onCadastreAcknowledgedChange={setCadastreAcknowledged}
               onWorksMyselfChange={(v) =>
                 setFormData((prev) => ({ ...prev, worksThisFieldMyself: v }))
               }
@@ -432,7 +369,7 @@ const FieldFormPage: React.FC = () => {
               <span />
             )}
             <div className="field-form-nav-actions">
-              {!isLast && step !== 'method' ? (
+              {!isLast ? (
                 <Button
                   type="button"
                   variant="secondary"

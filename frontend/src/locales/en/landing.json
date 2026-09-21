@@ -13,7 +13,8 @@
   "hero": {
     "eyebrow": "Your grove’s knowledge, organised.",
     "title": "Nobody knows your olive grove better than you.",
-    "sub": "Oleachron keeps what you know, what you do, and what happens in the field — so every year leaves knowledge behind, not papers and memories.",
+    "definition": "Your grove’s digital diary — tasks, costs, weather, and harvest, organised by year.",
+    "sub": "Oleachron keeps what you know, what you do, and what happens in the field — so every year leaves knowledge behind.",
     "benefits": [
       "Record easily.",
       "See what happened.",
@@ -29,7 +30,7 @@
     "dataTitle": "Tie it to time",
     "dataText": "Every entry lands on the right day, year, and growing season — automatically.",
     "passTitle": "Keep it for later",
-    "passText": "The knowledge stays with the grove and can pass to the next person who cares for it."
+    "passText": "The knowledge stays with the grove — ready for whoever cares for it next."
   },
   "problem": {
     "title": "Years of knowledge don’t fit in a notebook.",
@@ -99,15 +100,15 @@
     "close": "Whatever belongs to the grove stays with the grove."
   },
   "sharing": {
-    "title": "Knowledge shouldn’t leave with the person who holds it.",
-    "text": "A parent. A child. An agronomist. A partner. Everyone can understand what happened in the grove without starting from zero.",
+    "title": "Knowledge stays with the field — not only with one person.",
+    "text": "Family, agronomist, or partner can see what happened without starting from zero.",
     "familyTitle": "In the family",
     "familyText": "The next generation finds the story ready.",
     "partnersTitle": "With collaborators",
     "partnersText": "The agronomist or worker has the context they need.",
     "agronomistTitle": "For the next owner",
     "agronomistText": "The grove keeps its history.",
-    "close": "Knowledge becomes an asset of the field."
+    "close": "Knowledge becomes part of the field itself."
   },
   "timeValue": {
     "title": "Every year makes your grove clearer.",
@@ -179,7 +180,8 @@
       "Weather history"
     ],
     "trust": "No card · Your data stays yours",
-    "download": "Download Android APK",
+    "download": "Android app in trial version",
+    "downloadHint": "Optional phone trial — not a Play Store substitute.",
     "webCta": "Create your first grove",
     "version": "Version",
     "versionValue": "0.1.0-alpha",
@@ -187,16 +189,16 @@
     "platformValue": "Web & Android",
     "status": "Status",
     "statusValue": "Free to start",
-    "installGuide": "Android install guide",
-    "installTitle": "How to install the APK",
+    "installGuide": "Install guide (trial)",
+    "installTitle": "How to install the trial app",
     "installSteps": [
-      "Download the APK on your Android phone.",
+      "Download the file on your Android phone.",
       "Open the file.",
       "Allow installs from this source if asked.",
       "Open Oleachron.",
       "Create an account or sign in."
     ],
-    "safety": "Install only from the official Oleachron site."
+    "safety": "Install only from the official Oleachron site. Trial build."
   },
   "demo": {
     "title": "See an example",

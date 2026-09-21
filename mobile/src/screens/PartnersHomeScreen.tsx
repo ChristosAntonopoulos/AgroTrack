@@ -32,9 +32,8 @@ import {
 import {
   SavedContact,
   ServiceCategory,
-  ServiceContactRequest,
 } from '../services/partnerService';
-import { mergeGrovePeople, GrovePerson } from '../utils/grovePeople';
+import { fromSavedContacts, GrovePerson, occupiesAccessSeat } from '../utils/grovePeople';
 import { canPickDeviceContact, pickDeviceContact } from '../utils/pickDeviceContact';
 import {
   groupPeople,
@@ -97,7 +96,6 @@ const PartnersHomeScreen = () => {
 
   const [addingFamily, setAddingFamily] = useState(false);
   const [familyName, setFamilyName] = useState('');
-  const [familyPhone, setFamilyPhone] = useState('');
   const [familyEmail, setFamilyEmail] = useState('');
   const [familyModules, setFamilyModules] = useState<FamilyModule[]>([...DEFAULT_FAMILY_MODULES]);
   const [familyLevel, setFamilyLevel] = useState<FamilyAccessLevel>('view');
@@ -106,7 +104,6 @@ const PartnersHomeScreen = () => {
 
   const [addingPartner, setAddingPartner] = useState(false);
   const [partnerName, setPartnerName] = useState('');
-  const [partnerPhone, setPartnerPhone] = useState('');
   const [partnerEmail, setPartnerEmail] = useState('');
   const [partnerModules, setPartnerModules] = useState<FamilyModule[]>([...DEFAULT_PARTNER_MODULES]);
   const [partnerLevel, setPartnerLevel] = useState<FamilyAccessLevel>('work');
@@ -163,21 +160,12 @@ const PartnersHomeScreen = () => {
 
   useEffect(() => {
     void (async () => {
-      const memberLists = await Promise.all(
-        fields.map(async (field) => {
-          const rows = await fieldPeopleService.getPeople(field.id, field).catch(() => []);
-          return rows.map((member) => ({ ...member, fieldId: field.id }));
-        })
-      );
-      const [outgoing, saved] = await Promise.all([
-        getPartnerService().getRequests('outgoing').catch(() => [] as ServiceContactRequest[]),
-        getPartnerService()
-          .getContacts()
-          .catch(() => [] as SavedContact[]),
-      ]);
-      setPeople(mergeGrovePeople(memberLists.flat(), outgoing, saved, '', i18n.language, categories));
+      const saved = await getPartnerService()
+        .getContacts()
+        .catch(() => [] as SavedContact[]);
+      setPeople(fromSavedContacts(saved, i18n.language, categories));
     })();
-  }, [peopleTick, fields, i18n.language, categories]);
+  }, [peopleTick, i18n.language, categories]);
 
   useEffect(() => {
     if (!user) {
@@ -224,7 +212,6 @@ const PartnersHomeScreen = () => {
   const openFamilyInvite = () => {
     setFamilyInvite(null);
     setFamilyName('');
-    setFamilyPhone('');
     setFamilyEmail('');
     setFamilyModules([...DEFAULT_FAMILY_MODULES]);
     setFamilyLevel('view');
@@ -236,7 +223,6 @@ const PartnersHomeScreen = () => {
   const openPartnerInvite = () => {
     setPartnerInvite(null);
     setPartnerName('');
-    setPartnerPhone('');
     setPartnerEmail('');
     setPartnerModules([...DEFAULT_PARTNER_MODULES]);
     setPartnerLevel('work');
@@ -266,11 +252,9 @@ const PartnersHomeScreen = () => {
         setContactSource('PhoneBook');
       } else if (target === 'family') {
         if (picked.displayName) setFamilyName(picked.displayName);
-        if (picked.phone) setFamilyPhone(picked.phone);
         if (picked.email) setFamilyEmail(picked.email);
       } else if (target === 'partner') {
         if (picked.displayName) setPartnerName(picked.displayName);
-        if (picked.phone) setPartnerPhone(picked.phone);
         if (picked.email) setPartnerEmail(picked.email);
       } else {
         if (picked.displayName) setInviteName(picked.displayName);
@@ -336,15 +320,14 @@ const PartnersHomeScreen = () => {
   };
 
   const createFamilyInvite = async () => {
-    if (!familyName.trim() || (!familyPhone.trim() && !familyEmail.trim()) || familyModules.length === 0) {
+    if (!familyName.trim() || !familyEmail.trim() || familyModules.length === 0) {
       return;
     }
     setSavingFamily(true);
     try {
       const created = await familyService.createInvite({
         displayName: familyName.trim(),
-        phone: familyPhone.trim() || undefined,
-        email: familyEmail.trim() || undefined,
+        email: familyEmail.trim(),
         modules: familyModules,
         accessLevel: familyLevel,
       });
@@ -361,15 +344,14 @@ const PartnersHomeScreen = () => {
   };
 
   const createPartnerInvite = async () => {
-    if (!partnerName.trim() || (!partnerPhone.trim() && !partnerEmail.trim()) || partnerModules.length === 0) {
+    if (!partnerName.trim() || !partnerEmail.trim() || partnerModules.length === 0) {
       return;
     }
     setSavingPartner(true);
     try {
       const created = await ownerPartnerService.createInvite({
         displayName: partnerName.trim(),
-        phone: partnerPhone.trim() || undefined,
-        email: partnerEmail.trim() || undefined,
+        email: partnerEmail.trim(),
         modules: partnerModules,
         accessLevel: partnerLevel,
       });
@@ -396,19 +378,48 @@ const PartnersHomeScreen = () => {
   const hasTeamAnyone = (family?.members || []).length > 0 || Boolean(partner);
   const canPickPhone = canPickDeviceContact();
 
+  const accessUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    family?.members?.forEach((member) => {
+      if (member.linkedUserId) ids.add(member.linkedUserId);
+    });
+    if (partnerSeat?.partner?.linkedUserId) ids.add(partnerSeat.partner.linkedUserId);
+    return ids;
+  }, [family, partnerSeat]);
+
+  const accessEmails = useMemo(() => {
+    const emails = new Set<string>();
+    family?.members?.forEach((member) => {
+      if (member.email) emails.add(member.email.trim().toLowerCase());
+    });
+    if (partnerSeat?.partner?.email) emails.add(partnerSeat.partner.email.trim().toLowerCase());
+    return emails;
+  }, [family, partnerSeat]);
+
+  const contactPeople = useMemo(
+    () =>
+      people.filter((person) => {
+        if (!person.savedContact) return false;
+        if (user?.id && person.userId === user.id) return false;
+        return !occupiesAccessSeat(person, accessUserIds, accessEmails);
+      }),
+    [people, user?.id, accessUserIds, accessEmails]
+  );
+
   const filteredPeople = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return people;
-    return people.filter(
+    if (!q) return contactPeople;
+    return contactPeople.filter(
       (p) =>
         p.displayName.toLowerCase().includes(q) ||
         (p.phone || '').toLowerCase().includes(q) ||
+        (p.email || '').toLowerCase().includes(q) ||
         personSubtitle(p, fields, t).toLowerCase().includes(q)
     );
-  }, [people, query, t, fields]);
+  }, [contactPeople, query, t, fields]);
 
   const { onField, services, showGroups } = useMemo(() => groupPeople(filteredPeople), [filteredPeople]);
-  const showSearch = people.length >= 12;
+  const showSearch = contactPeople.length >= 12;
 
   const renderPerson = (person: GrovePerson) => {
     const subtitle = personSubtitle(person, fields, t);
@@ -452,12 +463,14 @@ const PartnersHomeScreen = () => {
   return (
     <ScreenLayout scroll padded canvasOpacity={0.45}>
       <Text style={[styles.countLine, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier, marginBottom: spacing.sm }]}>
-        {t('partners:peopleCount', { count: people.length })}
+        {t('partners:peopleCount', { count: contactPeople.length })}
       </Text>
 
       {user && (hasTeamAnyone || canAddFamily || canAddPartner) ? (
         <View style={styles.teamBlock}>
-          <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>{t('partners:team.title')}</Text>
+          <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>
+            {t('partners:accessSectionTitle', { defaultValue: 'Πρόσβαση στο Oleachron' })}
+          </Text>
 
           <View style={styles.seatActions}>
             {canAddFamily ? (
@@ -540,7 +553,11 @@ const PartnersHomeScreen = () => {
         />
       ) : null}
 
-      {people.length === 0 ? (
+      <Text style={[styles.groupLabel, { color: colors.textTertiary, marginTop: spacing.sm }]}>
+        {t('partners:contactsSectionTitle', { defaultValue: 'Επαφές' })}
+      </Text>
+
+      {contactPeople.length === 0 ? (
         <EmptyState
           title={t('partners:emptyPeople')}
           description={t('partners:emptyPeopleHint')}
@@ -814,6 +831,7 @@ const PartnersHomeScreen = () => {
                 title={t('partners:family.sendInvite')}
                 loading={savingFamily}
                 onPress={() => void createFamilyInvite()}
+                disabled={!familyName.trim() || !familyEmail.trim() || familyModules.length === 0}
               />
               <Button title={t('common:cancel')} variant="outline" onPress={() => setAddingFamily(false)} />
             </>
@@ -832,14 +850,6 @@ const PartnersHomeScreen = () => {
               onChangeText={setFamilyName}
               placeholder={t('partners:inviteName')}
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={familyPhone}
-              onChangeText={setFamilyPhone}
-              placeholder={t('partners:invitePhone')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
               style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
             />
             <TextInput
@@ -877,6 +887,7 @@ const PartnersHomeScreen = () => {
                 title={t('partners:ownerPartner.sendInvite')}
                 loading={savingPartner}
                 onPress={() => void createPartnerInvite()}
+                disabled={!partnerName.trim() || !partnerEmail.trim() || partnerModules.length === 0}
               />
               <Button title={t('common:cancel')} variant="outline" onPress={() => setAddingPartner(false)} />
             </>
@@ -895,14 +906,6 @@ const PartnersHomeScreen = () => {
               onChangeText={setPartnerName}
               placeholder={t('partners:inviteName')}
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={partnerPhone}
-              onChangeText={setPartnerPhone}
-              placeholder={t('partners:invitePhone')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
               style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
             />
             <TextInput

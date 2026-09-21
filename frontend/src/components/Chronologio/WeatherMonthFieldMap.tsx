@@ -6,7 +6,7 @@ import { getFieldService } from '../../services/serviceFactory';
 import { geospatialService, type FieldMapData } from '../../services/geospatialService';
 import type { Field } from '../../services/fieldService';
 import type { ChronologioWeatherScene } from '../../services/chronologioService';
-import { SATELLITE_TILE, fieldPolygonStyle } from '../../utils/mapLayers';
+import { MAP_MAX_ZOOM, MAP_MAX_NATIVE_ZOOM, MAP_MIN_ZOOM, SATELLITE_TILE, fieldPolygonStyle } from '../../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon } from '../../utils/fieldGeo';
 import FieldMapOverlay, { type OverlayBounds } from '../fields/FieldMapOverlay';
 
@@ -31,9 +31,9 @@ const FitField: React.FC<{ polygon?: [number, number][]; center: [number, number
   const map = useMap();
   useEffect(() => {
     if (polygon?.length) {
-      map.fitBounds(polygon, { padding: [18, 18], maxZoom: 18, animate: false });
+      map.fitBounds(polygon, { padding: [18, 18], maxZoom: MAP_MAX_ZOOM, animate: false });
     } else {
-      map.setView(center, 16);
+      map.setView(center, Math.min(16, MAP_MAX_ZOOM));
     }
   }, [center, map, polygon]);
   return null;
@@ -147,7 +147,9 @@ const WeatherMonthFieldMap: React.FC<Props> = ({ fieldId, opening, closing }) =>
       <div className="weather-snap-map-frame">
         <MapContainer
           center={center}
-          zoom={16}
+          zoom={Math.min(16, MAP_MAX_ZOOM)}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
           className="weather-snap-map-leaflet"
           zoomControl={false}
           attributionControl={false}
@@ -155,7 +157,11 @@ const WeatherMonthFieldMap: React.FC<Props> = ({ fieldId, opening, closing }) =>
           scrollWheelZoom={false}
         >
           <EnsureMapPanes />
-          <TileLayer url={SATELLITE_TILE} />
+          <TileLayer
+            url={SATELLITE_TILE}
+            maxZoom={MAP_MAX_ZOOM}
+            maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+          />
           <FitField polygon={polygon} center={center} />
           <InvalidateOnResize />
           {leftLayer?.imageUrl && bounds ? (

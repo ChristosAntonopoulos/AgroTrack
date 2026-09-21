@@ -41,6 +41,7 @@
   "mobileNav": "Navigazione principale",
   "logout": "Esci",
   "logoutAria": "Esci",
+  "familyCollaboratorBadge": "Collaboratore di {{owner}}",
   "roles": {
     "FieldOwner": "Proprietario dell’uliveto",
     "Producer": "Partner di campo",

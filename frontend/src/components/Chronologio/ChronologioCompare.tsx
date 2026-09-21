@@ -5,6 +5,7 @@ import type {
   ChronologioPeriodSummary,
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { formatGroveMassKgLabel } from '../../utils/groveTotals';
 import { yearComparison } from '../../chronologio/yearPresentation';
 
 type Props = {
@@ -61,8 +62,8 @@ const ChronologioCompare: React.FC<Props> = ({
       ? [
           {
             label: t('yearSummary.harvestKg'),
-            a: left?.oliveKg && left.oliveKg > 0 ? `${Math.round(left.oliveKg).toLocaleString(numberLocale)} kg` : '—',
-            b: right?.oliveKg && right.oliveKg > 0 ? `${Math.round(right.oliveKg).toLocaleString(numberLocale)} kg` : '—',
+            a: left?.oliveKg && left.oliveKg > 0 ? formatGroveMassKgLabel(left.oliveKg, numberLocale) : '—',
+            b: right?.oliveKg && right.oliveKg > 0 ? formatGroveMassKgLabel(right.oliveKg, numberLocale) : '—',
           },
         ]
       : []),
@@ -70,8 +71,8 @@ const ChronologioCompare: React.FC<Props> = ({
       ? [
           {
             label: t('yearSummary.oilKg'),
-            a: left?.oilKg && left.oilKg > 0 ? `${Math.round(left.oilKg).toLocaleString(numberLocale)} kg` : '—',
-            b: right?.oilKg && right.oilKg > 0 ? `${Math.round(right.oilKg).toLocaleString(numberLocale)} kg` : '—',
+            a: left?.oilKg && left.oilKg > 0 ? formatGroveMassKgLabel(left.oilKg, numberLocale) : '—',
+            b: right?.oilKg && right.oilKg > 0 ? formatGroveMassKgLabel(right.oilKg, numberLocale) : '—',
           },
         ]
       : []),

@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FieldsListScreen from '../screens/FieldsListScreen';
+import FieldsStack from './FieldsStack';
 import TaskListScreen from '../screens/TaskListScreen';
 import MoreScreen from '../screens/MoreScreen';
 import ChronologioScreen from '../screens/ChronologioScreen';
@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { useTasks } from '../hooks/useTasks';
+import { useFamilyMembershipModules } from '../hooks/useFamilyMembershipModules';
 import { isTaskOverdue } from '../utils/taskListUtils';
 import { typography, createElevation, radii, motion } from '../theme';
 import { getDockMetrics } from './dockMetrics';
@@ -59,6 +60,7 @@ const MainTabs = () => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const { defaultView } = usePreferences();
   const capture = useCaptureOptional();
+  const familyModules = useFamilyMembershipModules();
   const { t } = useTranslation('nav');
   const { tasks } = useTasks();
   const insets = useSafeAreaInsets();
@@ -69,14 +71,16 @@ const MainTabs = () => {
     [safeTasks]
   );
 
+  const hasFamilyModules = Boolean(familyModules && familyModules.size > 0);
+  const showFields = !hasFamilyModules || Boolean(familyModules?.has('fields'));
+  const showTasks = !hasFamilyModules || Boolean(familyModules?.has('tasks'));
+
   const labelSize = Math.max(9, Math.round(10 * fontScaleMultiplier));
   const metrics = getDockMetrics(tapMin, insets.bottom);
   const { bottomInset, dockMargin, dockPadBottom, contentHeight, dockHeight, fabSize } = metrics;
 
   const startMap = {
-    today: 'ChronologioTab',
-    dashboard: 'ChronologioTab',
-    fields: 'Fields',
+    fields: showFields ? 'Fields' : 'ChronologioTab',
     chronologio: 'ChronologioTab',
   } as const;
   const initialRouteName = startMap[defaultView] ?? 'ChronologioTab';
@@ -138,9 +142,10 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name="Fields"
-        component={FieldsListScreen}
+        component={FieldsStack}
         options={{
           tabBarLabel: t('fields'),
+          tabBarButton: showFields ? undefined : () => null,
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               name={focused ? 'leaf' : 'leaf-outline'}
@@ -195,8 +200,9 @@ const MainTabs = () => {
         component={TaskListScreen}
         options={{
           tabBarLabel: t('tasks'),
+          tabBarButton: showTasks ? undefined : () => null,
           tabBarBadge:
-            taskBadgeCount > 0
+            showTasks && taskBadgeCount > 0
               ? taskBadgeCount > 99
                 ? '99+'
                 : String(taskBadgeCount)

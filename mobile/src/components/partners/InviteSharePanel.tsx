@@ -95,25 +95,22 @@ const InviteSharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }
         </Text>
       ) : null}
       <View style={styles.actions}>
-        <Button title={t(`${ns}.nativeShare`, { defaultValue: t('common:share', { defaultValue: 'Share' }) })} onPress={() => void handleNative()} />
-        {invite.whatsAppUrl ? (
-          <Button title={t('partners:shareWhatsApp')} onPress={() => void Linking.openURL(invite.whatsAppUrl!)} />
-        ) : null}
         {invite.mailtoUrl ? (
-          <Button
-            title={t(`${ns}.shareEmail`)}
-            variant="outline"
-            onPress={() => void Linking.openURL(invite.mailtoUrl!)}
-          />
-        ) : null}
-        {invite.phone && invite.smsUrl ? (
-          <Button title={t('partners:text')} variant="outline" onPress={() => void Linking.openURL(invite.smsUrl!)} />
+          <Button title={t(`${ns}.shareEmail`)} onPress={() => void Linking.openURL(invite.mailtoUrl!)} />
         ) : null}
         <Button
           title={copied === 'link' ? t(`${ns}.linkCopied`) : t('partners:copyLink', { defaultValue: 'Copy link' })}
           variant="outline"
           onPress={() => void handleCopyLink()}
         />
+        <Button
+          title={t(`${ns}.nativeShare`, { defaultValue: t('common:share', { defaultValue: 'Share' }) })}
+          variant="outline"
+          onPress={() => void handleNative()}
+        />
+        {invite.whatsAppUrl ? (
+          <Button title={t('partners:shareWhatsApp')} variant="outline" onPress={() => void Linking.openURL(invite.whatsAppUrl!)} />
+        ) : null}
         {onDone ? <Button title={t('common:close')} variant="outline" onPress={onDone} /> : null}
       </View>
     </View>

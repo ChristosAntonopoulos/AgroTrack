@@ -70,7 +70,11 @@ const PartnerProfilePage: React.FC = () => {
     try {
       setAdding(true);
       setError(null);
-      await fieldPeopleService.upsertMembership(fieldId, userId, ['work']);
+      await fieldPeopleService.upsertMembership(fieldId, userId, {
+        role: 'Partner',
+        modules: ['fields', 'tasks', 'calendar'],
+        accessLevel: 'work',
+      });
       setAdded(true);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t));

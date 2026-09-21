@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
-import { roleHomePath, AppRole } from '../navigation/navConfig';
+import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
+import { resolvePostAuthPath } from '../utils/firstGroveDestination';
 import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
 import Button from '../components/Common/Button';
 import { Mail, Lock, User, Eye, EyeOff, Ticket } from 'lucide-react';
@@ -27,13 +28,14 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState(inviteFromQuery);
   const [showInvite, setShowInvite] = useState(Boolean(inviteFromQuery));
+  const [showEmailForm, setShowEmailForm] = useState(Boolean(inviteFromQuery));
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const navigateAfterRegister = (userRole: string, joinedFamily: boolean) => {
+  const navigateAfterRegister = async (userRole: string, joinedFamily: boolean) => {
     if (joinedFamily) {
       navigate('/partners');
       return;
@@ -42,7 +44,8 @@ const RegisterPage: React.FC = () => {
       navigate(redirectTo);
       return;
     }
-    navigate(roleHomePath(userRole as AppRole));
+    const next = await resolvePostAuthPath((userRole || 'FieldOwner') as AppRole);
+    navigate(next);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,7 +69,7 @@ const RegisterPage: React.FC = () => {
     try {
       await register(email, password, firstName, lastName, inviteCode.trim() || undefined);
       const stored = authService.getStoredUser();
-      navigateAfterRegister(stored?.role || 'FieldOwner', Boolean(inviteCode.trim()));
+      await navigateAfterRegister(stored?.role || 'FieldOwner', Boolean(inviteCode.trim()));
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('auth:register.failed'));
     } finally {
@@ -90,139 +93,152 @@ const RegisterPage: React.FC = () => {
 
       <AuthSocialButtons />
 
-      <div className="login-divider">
-        <span>{t('auth:register.orEmail')}</span>
-      </div>
+      {!showEmailForm ? (
+        <button
+          type="button"
+          className="register-email-continue"
+          onClick={() => setShowEmailForm(true)}
+        >
+          <Mail size={18} aria-hidden />
+          {t('auth:register.continueWithEmail')}
+        </button>
+      ) : (
+        <>
+          <div className="login-divider">
+            <span>{t('auth:register.orEmail')}</span>
+          </div>
 
-      <form className="login-form" onSubmit={handleSubmit}>
-        <div className="register-name-row">
-          <div className="login-field">
-            <label htmlFor="firstName">{t('auth:register.firstName')}</label>
-            <div className="login-input-wrap">
-              <User size={18} className="login-input-icon" aria-hidden />
-              <input
-                type="text"
-                id="firstName"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder={t('auth:register.firstNamePlaceholder')}
-                autoComplete="given-name"
-                disabled={loading}
-              />
+          <form className="login-form" onSubmit={handleSubmit}>
+            <div className="register-name-row">
+              <div className="login-field">
+                <label htmlFor="firstName">{t('auth:register.firstName')}</label>
+                <div className="login-input-wrap">
+                  <User size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    type="text"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder={t('auth:register.firstNamePlaceholder')}
+                    autoComplete="given-name"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="lastName">{t('auth:register.lastName')}</label>
+                <div className="login-input-wrap">
+                  <User size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    type="text"
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder={t('auth:register.lastNamePlaceholder')}
+                    autoComplete="family-name"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="login-field">
-            <label htmlFor="lastName">{t('auth:register.lastName')}</label>
-            <div className="login-input-wrap">
-              <User size={18} className="login-input-icon" aria-hidden />
-              <input
-                type="text"
-                id="lastName"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder={t('auth:register.lastNamePlaceholder')}
-                autoComplete="family-name"
-                disabled={loading}
-              />
+            <div className="login-field">
+              <label htmlFor="email">{t('common:email')}</label>
+              <div className="login-input-wrap">
+                <Mail size={18} className="login-input-icon" aria-hidden />
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth:login.emailPlaceholder')}
+                  autoComplete="email"
+                  required
+                  disabled={loading}
+                />
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="login-field">
-          <label htmlFor="email">{t('common:email')}</label>
-          <div className="login-input-wrap">
-            <Mail size={18} className="login-input-icon" aria-hidden />
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('auth:login.emailPlaceholder')}
-              autoComplete="email"
-              required
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        <div className="login-field">
-          <label htmlFor="password">{t('common:password')}</label>
-          <div className="login-input-wrap">
-            <Lock size={18} className="login-input-icon" aria-hidden />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('auth:register.passwordPlaceholder')}
-              autoComplete="new-password"
-              required
-              minLength={MIN_PASSWORD_LENGTH}
-              disabled={loading}
-            />
-            <button
-              type="button"
-              className="login-password-toggle"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-          <p className="register-hint">{t('auth:register.passwordHint')}</p>
-        </div>
-
-        <div className="login-field">
-          <label htmlFor="confirmPassword">{t('auth:register.confirmPassword')}</label>
-          <div className="login-input-wrap">
-            <Lock size={18} className="login-input-icon" aria-hidden />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder={t('auth:register.confirmPasswordPlaceholder')}
-              autoComplete="new-password"
-              required
-              minLength={MIN_PASSWORD_LENGTH}
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        {showInvite ? (
-          <div className="login-field">
-            <label htmlFor="inviteCode">{t('auth:register.inviteCode')}</label>
-            <div className="login-input-wrap">
-              <Ticket size={18} className="login-input-icon" aria-hidden />
-              <input
-                type="text"
-                id="inviteCode"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder={t('auth:register.inviteCodePlaceholder')}
-                autoComplete="off"
-                spellCheck={false}
-                disabled={loading}
-              />
+            <div className="login-field">
+              <label htmlFor="password">{t('common:password')}</label>
+              <div className="login-input-wrap">
+                <Lock size={18} className="login-input-icon" aria-hidden />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('auth:register.passwordPlaceholder')}
+                  autoComplete="new-password"
+                  required
+                  minLength={MIN_PASSWORD_LENGTH}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="login-password-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <p className="register-hint">{t('auth:register.passwordHint')}</p>
             </div>
-            <p className="register-hint">{t('auth:register.inviteCodeHint')}</p>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="register-invite-toggle"
-            onClick={() => setShowInvite(true)}
-          >
-            {t('auth:register.inviteToggle')}
-          </button>
-        )}
 
-        <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
-          {t('auth:register.button')}
-        </Button>
-      </form>
+            <div className="login-field">
+              <label htmlFor="confirmPassword">{t('auth:register.confirmPassword')}</label>
+              <div className="login-input-wrap">
+                <Lock size={18} className="login-input-icon" aria-hidden />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={t('auth:register.confirmPasswordPlaceholder')}
+                  autoComplete="new-password"
+                  required
+                  minLength={MIN_PASSWORD_LENGTH}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            {showInvite ? (
+              <div className="login-field">
+                <label htmlFor="inviteCode">{t('auth:register.inviteCode')}</label>
+                <div className="login-input-wrap">
+                  <Ticket size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    type="text"
+                    id="inviteCode"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    placeholder={t('auth:register.inviteCodePlaceholder')}
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={loading}
+                  />
+                </div>
+                <p className="register-hint">{t('auth:register.inviteCodeHint')}</p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="register-invite-toggle"
+                onClick={() => setShowInvite(true)}
+              >
+                {t('auth:register.inviteToggle')}
+              </button>
+            )}
+
+            <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
+              {t('auth:register.button')}
+            </Button>
+          </form>
+        </>
+      )}
 
       <p className="login-register">
         {t('auth:register.hasAccount')}{' '}

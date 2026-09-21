@@ -202,7 +202,7 @@ const FieldDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageContainer maxWidth="full">
+      <PageContainer maxWidth="full" padding="none">
         <div className="field-page">
           <Breadcrumbs />
           <LoadingSpinner className="page-inline-loading" />
@@ -213,7 +213,7 @@ const FieldDetailPage: React.FC = () => {
 
   if (error || !field || !id) {
     return (
-      <PageContainer maxWidth="full">
+      <PageContainer maxWidth="full" padding="none">
         <div className="error-container">
           <div className="error-message">{error || t('fields:controlRoom.failedLoad')}</div>
           <Button to="/fields" icon={<ArrowLeft />} variant="outline">
@@ -225,7 +225,7 @@ const FieldDetailPage: React.FC = () => {
   }
 
   return (
-    <PageContainer maxWidth="full">
+    <PageContainer maxWidth="full" padding="none">
       <div className="field-page">
         <Breadcrumbs />
 
@@ -237,6 +237,7 @@ const FieldDetailPage: React.FC = () => {
           onCapture={openCapture}
           onDocuments={() => setTab('details')}
           onDelete={canOwn ? handleDelete : undefined}
+          phenology={phenology}
         />
 
         {grantedAccess ? (
@@ -267,14 +268,14 @@ const FieldDetailPage: React.FC = () => {
             <div className="fw-setup-banner-actions">
               <Button
                 variant="primary"
-                size="lg"
+                size="md"
                 onClick={() => navigate(`/fields/${id}/work-setup`)}
               >
                 {hasLocalDraft || workProfile?.status === 'draft'
                   ? t('tasks:fieldWork.onboarding.banner.resume')
                   : t('tasks:fieldWork.onboarding.banner.start')}
               </Button>
-              <Button variant="outline" size="lg" onClick={dismissBanner}>
+              <Button variant="outline" size="md" onClick={dismissBanner}>
                 {t('tasks:fieldWork.onboarding.banner.later')}
               </Button>
             </div>
@@ -287,7 +288,7 @@ const FieldDetailPage: React.FC = () => {
             <div className="fw-setup-banner-actions">
               <Button
                 variant="outline"
-                size="lg"
+                size="md"
                 onClick={() => navigate(`/fields/${id}/work-profile`)}
               >
                 {t('tasks:fieldWork.profile.open')}
@@ -363,7 +364,13 @@ const FieldDetailPage: React.FC = () => {
             role="tabpanel"
             aria-labelledby="field-tab-details"
           >
-            <FieldDetailsTab field={field} year={year} canOwn={Boolean(canOwn)} />
+            <FieldDetailsTab
+              field={field}
+              year={year}
+              canOwn={Boolean(canOwn)}
+              workProfile={workProfile}
+              phenology={phenology}
+            />
           </div>
         ) : null}
 

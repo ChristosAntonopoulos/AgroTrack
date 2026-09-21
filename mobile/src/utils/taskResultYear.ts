@@ -1,12 +1,5 @@
 import { parseIsoDateParts } from './taskFormDates';
-import { athensParts, parseBusinessDate } from './athensDate';
-
-const AGRICULTURAL_YEAR_START_MONTH = 2;
-
-const agriculturalYearFor = (value: Date): number => {
-  const parts = athensParts(parseBusinessDate(value));
-  return parts.month >= AGRICULTURAL_YEAR_START_MONTH ? parts.year : parts.year - 1;
-};
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 
 /**
  * ResultYear follows the olive agricultural year (1 Feb Y – 31 Jan Y+1).

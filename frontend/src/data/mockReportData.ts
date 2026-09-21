@@ -43,6 +43,7 @@ export interface HarvestRecord {
   millName?: string;
   deliveryTime?: string;
   oilKg?: number;
+  oilLitres?: number;
   oilYieldPercent?: number;
   oilAcidity?: number;
   qualityGrade?: string;

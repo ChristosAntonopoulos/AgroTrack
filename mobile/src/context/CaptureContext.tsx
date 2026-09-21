@@ -1,10 +1,16 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { Alert, DeviceEventEmitter } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import { useTranslation } from 'react-i18next';
 import type { CaptureContext as CaptureCtx, CaptureSavedDetail, CaptureSavedOptions } from '../capture/types';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import CaptureSheet from '../components/capture/CaptureSheet';
 import { getFinancialTransactionService } from '../services/serviceFactory';
+import { useHarvestCampaignOptional } from './HarvestCampaignContext';
+import { shouldRouteCaptureToHarvest } from '../harvestCampaign/routeCapture';
+import { openHarvestCampaign } from '../navigation/intents';
 
 type CaptureApi = {
   openCapture: (ctx?: CaptureCtx) => void;
@@ -16,13 +22,22 @@ const Ctx = createContext<CaptureApi | null>(null);
 
 export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t } = useTranslation(['capture', 'common']);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const harvest = useHarvestCampaignOptional();
   const [open, setOpen] = useState(false);
   const [context, setContext] = useState<CaptureCtx>({});
 
   const openCapture = useCallback((ctx?: CaptureCtx) => {
+    if (harvest?.isLive && shouldRouteCaptureToHarvest(ctx?.preferredType)) {
+      openHarvestCampaign(navigation, {
+        add: true,
+        fieldId: ctx?.fieldId,
+      });
+      return;
+    }
     setContext(ctx || {});
     setOpen(true);
-  }, []);
+  }, [harvest?.isLive, navigation]);
 
   const closeCapture = useCallback(() => setOpen(false), []);
 

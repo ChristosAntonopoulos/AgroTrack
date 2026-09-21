@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   counter: {
     color: '#f4f7f2',
     fontSize: 15,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   closeBtn: {
     width: 40,

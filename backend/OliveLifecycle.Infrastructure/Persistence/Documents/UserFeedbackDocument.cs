@@ -36,6 +36,9 @@ public class UserFeedbackDocument
     [BsonElement("photoUrl")]
     public string? PhotoUrl { get; set; }
 
+    [BsonElement("seenAt")]
+    public DateTime? SeenAt { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

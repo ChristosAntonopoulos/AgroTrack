@@ -32,4 +32,66 @@ describe('capture money permissions', () => {
     expect(perms.canRecordIncome).toBe(false);
     expect(perms.canRecordExpense).toBe(false);
   });
+
+  it('hides income and harvest when family modules omit money/harvest', () => {
+    const perms = getAvailableCaptureActions({
+      hasAnyFieldAccess: true,
+      canOwn: true,
+      canWork: true,
+      familyModules: new Set(['fields', 'tasks']),
+    });
+    expect(perms.canRecordExpense).toBe(true);
+    expect(perms.canRecordObservation).toBe(true);
+    expect(perms.canRecordWork).toBe(true);
+    expect(perms.canRecordIncome).toBe(false);
+    expect(perms.canRecordHarvest).toBe(false);
+  });
+
+  it('view accessLevel disables all create actions', () => {
+    const perms = getAvailableCaptureActions({
+      hasAnyFieldAccess: true,
+      canOwn: true,
+      canWork: true,
+      accessLevel: 'view',
+    });
+    expect(perms.canRecordObservation).toBe(false);
+    expect(perms.canRecordWork).toBe(false);
+    expect(perms.canRecordExpense).toBe(false);
+    expect(perms.canRecordIncome).toBe(false);
+    expect(perms.canRecordHarvest).toBe(false);
+    expect(perms.canRecordMoney).toBe(false);
+    expect(perms.canRecordVoice).toBe(false);
+    expect(perms.canRecordDocument).toBe(false);
+  });
+
+  it('help accessLevel allows work/observation but not money or harvest create', () => {
+    const perms = getAvailableCaptureActions({
+      hasAnyFieldAccess: true,
+      canOwn: false,
+      canWork: true,
+      accessLevel: 'help',
+      familyModules: new Set(['fields', 'tasks', 'money', 'harvest']),
+    });
+    expect(perms.canRecordObservation).toBe(true);
+    expect(perms.canRecordWork).toBe(true);
+    expect(perms.canRecordVoice).toBe(true);
+    expect(perms.canRecordDocument).toBe(true);
+    expect(perms.canRecordExpense).toBe(false);
+    expect(perms.canRecordIncome).toBe(false);
+    expect(perms.canRecordHarvest).toBe(false);
+    expect(perms.canRecordMoney).toBe(false);
+  });
+
+  it('work accessLevel keeps existing create behavior', () => {
+    const perms = getAvailableCaptureActions({
+      hasAnyFieldAccess: true,
+      canOwn: false,
+      canWork: true,
+      accessLevel: 'work',
+    });
+    expect(perms.canRecordWork).toBe(true);
+    expect(perms.canRecordExpense).toBe(true);
+    expect(perms.canRecordMoney).toBe(true);
+    expect(perms.canRecordIncome).toBe(false);
+  });
 });

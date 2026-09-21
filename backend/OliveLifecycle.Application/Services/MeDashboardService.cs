@@ -38,7 +38,7 @@ public class MeDashboardService : IMeDashboardService
     private readonly IActivityRepository _activities;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly ITaskExecutionRepository _executions;
-    private readonly IFieldRepository _fields;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFinancialTransactionRepository _financialTransactions;
     private readonly IServiceContactRequestRepository _contactRequests;
     private readonly IDateTimeProvider _clock;
@@ -47,7 +47,7 @@ public class MeDashboardService : IMeDashboardService
         IActivityRepository activities,
         IFieldTaskRepository fieldTasks,
         ITaskExecutionRepository executions,
-        IFieldRepository fields,
+        IFieldAccessScopeService fieldAccessScope,
         IFinancialTransactionRepository financialTransactions,
         IServiceContactRequestRepository contactRequests,
         IDateTimeProvider clock)
@@ -55,7 +55,7 @@ public class MeDashboardService : IMeDashboardService
         _activities = activities;
         _fieldTasks = fieldTasks;
         _executions = executions;
-        _fields = fields;
+        _fieldAccessScope = fieldAccessScope;
         _financialTransactions = financialTransactions;
         _contactRequests = contactRequests;
         _clock = clock;
@@ -83,7 +83,7 @@ public class MeDashboardService : IMeDashboardService
             cancellationToken)).ToList();
 
         var contacts = await _contactRequests.GetByRequesterUserIdAsync(userId, cancellationToken);
-        var fields = (await GetAccessibleFieldsAsync(userId, userRole, cancellationToken)).ToList();
+        var fields = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, cancellationToken: cancellationToken)).ToList();
         var fieldIds = fields.Select(f => f.Id).ToList();
 
         var expenses = fieldIds.Count == 0
@@ -278,24 +278,6 @@ public class MeDashboardService : IMeDashboardService
 
     public static bool IsCompleted(FieldTask task, IReadOnlySet<string> activeExecutionTaskIds) =>
         task.Status == FieldTaskStatus.Completed || activeExecutionTaskIds.Contains(task.Id);
-
-    private async Task<IEnumerable<Field>> GetAccessibleFieldsAsync(
-        string userId,
-        string userRole,
-        CancellationToken cancellationToken)
-    {
-        if (OwnerRoles.Contains(userRole))
-        {
-            return await _fields.GetByOwnerIdAsync(userId, cancellationToken);
-        }
-
-        if (userRole == Roles.Producer)
-        {
-            return await _fields.GetByAssignedProducerIdAsync(userId, cancellationToken);
-        }
-
-        return await _fields.GetByMemberUserIdAsync(userId, cancellationToken);
-    }
 
     private static bool HasMeta(Activity activity, string key, string expected)
     {

@@ -14,7 +14,10 @@ import {
   rankAndPresentProposals,
   type BriefProposal,
 } from '../today/buildDailyBrief';
+import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
+import { harvestEveningNudge } from '../harvestCampaign/eveningNudge';
 import { getDismissedProposalIds } from '../today/dismissStore';
+import { athensCalendarDateKey } from '../utils/athensDate';
 import { isActiveTask, isTaskOverdue } from '../utils/taskListUtils';
 import { normalizeTaskStatus } from '../utils/categoryNormalize';
 
@@ -26,7 +29,7 @@ export type AttentionItem = {
   titleParams?: Record<string, string | number>;
   reasonKey: string;
   reasonParams?: Record<string, string | number>;
-  action: 'open_task' | 'capture' | 'weather' | 'schedule' | 'tasks';
+  action: 'open_task' | 'capture' | 'weather' | 'schedule' | 'tasks' | 'harvest_add' | 'harvest_evening';
   taskId?: string;
   fieldId?: string;
 };
@@ -133,6 +136,7 @@ export const useTodaySummary = (input: {
   fieldId?: string;
   fields: Field[];
 }) => {
+  const harvest = useHarvestCampaignOptional();
   const { enabled, fieldId, fields } = input;
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -207,18 +211,48 @@ export const useTodaySummary = (input: {
     return picked;
   }, [openTasks, partitioned.dueToday, partitioned.nextTasks, partitioned.overdue]);
 
-  const attention = useMemo(
-    () =>
-      pickAttention({
-        weather,
-        overdue: partitioned.overdue,
-        dueToday: partitioned.dueToday,
-        nextTasks: partitioned.nextTasks,
-        featured: proposals.featured,
-        rainConflictCount,
-      }),
-    [partitioned.dueToday, partitioned.nextTasks, partitioned.overdue, proposals.featured, rainConflictCount, weather]
-  );
+  const attention = useMemo(() => {
+    const base = pickAttention({
+      weather,
+      overdue: partitioned.overdue,
+      dueToday: partitioned.dueToday,
+      nextTasks: partitioned.nextTasks,
+      featured: proposals.featured,
+      rainConflictCount,
+    });
+    if (base.kind === 'warning' || !harvest?.isLive) return base;
+    const today = athensCalendarDateKey(new Date());
+    const nudge = harvestEveningNudge(harvest.campaign, today);
+    if (nudge) {
+      return {
+        kind: 'proposal' as const,
+        titleKey:
+          nudge.kind === 'yesterday'
+            ? 'fields:harvestCampaign.nudge.yesterdayTitle'
+            : 'fields:harvestCampaign.nudge.todayTitle',
+        reasonKey:
+          nudge.kind === 'yesterday'
+            ? 'fields:harvestCampaign.nudge.yesterdayReason'
+            : 'fields:harvestCampaign.nudge.todayReason',
+        action: 'harvest_evening' as const,
+      };
+    }
+    return {
+      kind: 'proposal' as const,
+      titleKey: 'fields:harvestCampaign.status.active',
+      reasonKey: 'fields:harvestCampaign.nudge.daytimeReason',
+      action: 'harvest_add' as const,
+    };
+  }, [
+    harvest?.campaign,
+    harvest?.isLive,
+    partitioned.dueToday,
+    partitioned.nextTasks,
+    partitioned.overdue,
+    proposals.featured,
+    rainConflictCount,
+    weather,
+  ]);
 
   const conditions = useMemo(
     () =>

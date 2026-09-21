@@ -38,11 +38,9 @@ import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
 import { formatOfficialAmount } from '../finance/format';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
-import { formatDate, formatNumber } from '../utils/localeFormatters';
+import { formatDate } from '../utils/localeFormatters';
+import { formatGroveMassKg } from '../utils/groveTotals';
 import './ThisHarvestPage.css';
-
-const formatKg = (kg: number, locale: string) =>
-  formatNumber(kg, { locale: locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en', maximumFractionDigits: 1 });
 
 const ThisHarvestReviewPage: React.FC = () => {
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
@@ -186,9 +184,9 @@ const ThisHarvestReviewPage: React.FC = () => {
               </div>
               <h2 id="ravdos-result" className="ravdos-story-now">
                 {finance.oilKg > 0
-                  ? `${formatKg(finance.oilKg, locale)} ${t('fields:thisHarvest.oilUnit')}`
+                  ? `${formatGroveMassKg(finance.oilKg, locale)} ${t('fields:thisHarvest.oilUnit')}`
                   : finance.oliveKg > 0
-                    ? `${formatKg(finance.oliveKg, locale)} ${t('fields:thisHarvest.olivesUnit')}`
+                    ? `${formatGroveMassKg(finance.oliveKg, locale)} ${t('fields:thisHarvest.olivesUnit')}`
                     : t('fields:apologismos.progressNone')}
               </h2>
               <p className="ravdos-story-kicker">
@@ -208,16 +206,16 @@ const ThisHarvestReviewPage: React.FC = () => {
               <div className="ravdos-money-grid">
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.olives')}</span>
-                  <strong>{formatKg(finance.oliveKg, locale)} kg</strong>
+                  <strong>{formatGroveMassKg(finance.oliveKg, locale)} kg</strong>
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.oil')}</span>
-                  <strong>{formatKg(finance.oilKg, locale)} kg</strong>
+                  <strong>{formatGroveMassKg(finance.oilKg, locale)} kg</strong>
                 </div>
                 {finance.oliveKg > 0 && finance.oilKg > 0 ? (
                   <div className="ravdos-money-stat">
                     <span>{t('fields:thisHarvest.oilYieldSoFar')}</span>
-                    <strong>{formatKg((finance.oilKg / finance.oliveKg) * 100, locale)}%</strong>
+                    <strong>{formatGroveMassKg((finance.oilKg / finance.oliveKg) * 100, locale)}%</strong>
                   </div>
                 ) : null}
                 <div className="ravdos-money-stat">
@@ -317,8 +315,8 @@ const ThisHarvestReviewPage: React.FC = () => {
                       <Link to={`/fields/${card.fieldId}`} className="ravdos-field-link">
                         <span className="ravdos-field-name">{card.fieldName}</span>
                         <span className="ravdos-field-meta">
-                        {formatKg(card.oliveKg, locale)} kg
-                        {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
+                        {formatGroveMassKg(card.oliveKg, locale)} kg
+                        {card.oilKg > 0 ? ` · ${formatGroveMassKg(card.oilKg, locale)} kg` : ''}
                       </span>
                       </Link>
                     </li>

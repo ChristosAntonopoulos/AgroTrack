@@ -108,15 +108,12 @@ const TaskFormPage: React.FC = () => {
     };
   }, [fieldId, mode, proposal?.templateCode, user?.userId]);
 
-  const capacityHint = (capacities: FieldMembership['capacities']): { group: AssigneeOption['group']; hint: string } => {
-    if (capacities.includes('work')) {
-      return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
-    }
-    if (capacities.includes('help')) {
+  const capacityHint = (person: FieldMembership): { group: AssigneeOption['group']; hint: string } => {
+    if (person.role === 'Family' || person.accessLevel === 'help') {
       return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
     }
-    if (capacities.includes('advise')) {
-      return { group: 'partner', hint: t('fieldWork.form.assigneeHintAdvisor') };
+    if (person.role === 'Partner' || person.accessLevel === 'work') {
+      return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
     }
     return { group: 'partner', hint: t('fieldWork.form.collaborator') };
   };
@@ -131,7 +128,8 @@ const TaskFormPage: React.FC = () => {
     ];
     people.forEach((person) => {
       if (person.userId && person.userId === user?.userId) return;
-      const meta = capacityHint(person.capacities || []);
+      if (person.role === 'Admin') return;
+      const meta = capacityHint(person);
       options.push({
         key: `user:${person.userId}`,
         label: person.displayName || person.email || t('fieldWork.form.collaborator'),

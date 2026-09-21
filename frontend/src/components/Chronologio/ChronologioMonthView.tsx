@@ -29,6 +29,8 @@ type Props = {
   todayWeather?: DayWeatherInput | null;
   onLoadMore: () => void;
   onSelect: (entry: ChronologioEntry) => void;
+  /** Clear the Chronologio side peek so photo day can own the same drawer. */
+  onClearSelection?: () => void;
   onOpenWeather?: (year: number, month: number, dateKey: string) => void;
 };
 
@@ -68,6 +70,7 @@ const ChronologioMonthView: React.FC<Props> = ({
   todayWeather,
   onLoadMore,
   onSelect,
+  onClearSelection,
   onOpenWeather,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'today']);
@@ -82,6 +85,16 @@ const ChronologioMonthView: React.FC<Props> = ({
   const weatherFor = (dateKey: string): DayWeatherInput | null => {
     if (dateKey === todayKey && todayWeather) return todayWeather;
     return weatherByDate?.[dateKey] ?? null;
+  };
+
+  const selectEntry = (entry: ChronologioEntry) => {
+    setPhotoDayEntries(null);
+    onSelect(entry);
+  };
+
+  const openPhotoDay = (dayEntries: ChronologioEntry[]) => {
+    onClearSelection?.();
+    setPhotoDayEntries(dayEntries);
   };
 
   const rows = useMemo(() => {
@@ -259,7 +272,9 @@ const ChronologioMonthView: React.FC<Props> = ({
                     </header>
                     {row.monthReviews.length > 0 ? (
                       <div className="chrono-weather-cluster">
-                        <p className="chrono-weather-cluster-kicker">{t('weatherReview.pickGrove')}</p>
+                        <p className="chrono-weather-cluster-kicker">
+                          {t('weatherReview.fieldsCompare', { count: row.monthReviews.length })}
+                        </p>
                         <div className="chrono-weather-cluster-row" role="list">
                           {row.monthReviews.map((entry) => (
                             <div
@@ -274,7 +289,7 @@ const ChronologioMonthView: React.FC<Props> = ({
                                 locale={locale}
                                 selected={selectedEntryId === entry.id}
                                 weatherTile
-                                onSelect={onSelect}
+                                onSelect={selectEntry}
                               />
                             </div>
                           ))}
@@ -292,7 +307,7 @@ const ChronologioMonthView: React.FC<Props> = ({
                                 entries={item.entries}
                                 selected={selected}
                                 showField={showField}
-                                onOpen={() => setPhotoDayEntries(item.entries)}
+                                onOpen={() => openPhotoDay(item.entries)}
                               />
                             </div>
                           );
@@ -310,7 +325,7 @@ const ChronologioMonthView: React.FC<Props> = ({
                               showField={showField}
                               locale={locale}
                               selected={selectedEntryId === entry.id}
-                              onSelect={onSelect}
+                              onSelect={selectEntry}
                             />
                           </div>
                         );

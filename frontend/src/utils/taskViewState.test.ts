@@ -39,7 +39,7 @@ describe('task view URL state', () => {
     });
     expect(params.get('view')).toBe('upcoming');
     expect(params.get('year')).toBeNull();
-    expect(params.get('field')).toBeNull();
+    expect(params.get('fieldId')).toBeNull();
 
     const filtered = buildTaskSearchParams({
       view: 'proposals',
@@ -47,6 +47,6 @@ describe('task view URL state', () => {
       defaultYear: 2026,
       fieldId: 'field-2',
     });
-    expect(filtered.toString()).toBe('view=proposals&year=2025&field=field-2');
+    expect(filtered.toString()).toBe('view=proposals&year=2025&fieldId=field-2');
   });
 });

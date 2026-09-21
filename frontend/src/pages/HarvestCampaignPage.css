@@ -634,7 +634,9 @@
   }
 
   .hc-meters,
-  .hc-row {
+  .hc-row,
+  .hc-stat-grid,
+  .hc-setup-cards {
     grid-template-columns: 1fr;
   }
 
@@ -648,6 +650,15 @@
 
   .hc-setup-grove {
     grid-template-columns: 2.1rem minmax(0, 1fr);
+  }
+
+  .hc-grove-card {
+    flex-direction: column;
+  }
+
+  .hc-grove-card .hc-ghost {
+    width: 100%;
+    justify-content: center;
   }
 
   .hc-setup-grove-tools {
@@ -667,3 +678,1072 @@
     justify-self: start;
   }
 }
+
+.hc-setup-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin: 0.85rem 0 0.4rem;
+}
+
+.hc-setup-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-height: 4.4rem;
+}
+
+.hc-setup-card-btn span {
+  color: var(--color-text-secondary);
+  font-weight: 550;
+  font-size: calc(0.85rem * var(--font-scale, 1));
+}
+
+.hc-section-title,
+.hc-page-title {
+  margin: 0 0 0.85rem;
+  font-size: calc(1.22rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.hc-live-home {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hc-live-chrome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.15rem;
+}
+
+.hc-quick-add {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--harvest-gold) 22%, var(--border-subtle, var(--color-border)));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--harvest-gold-soft) 35%, var(--surface-1, var(--bg-card)));
+}
+
+.hc-quick-add-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.hc-quick-add-head .hc-section-title {
+  margin: 0;
+}
+
+.hc-quick-add-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--harvest-gold);
+  color: #fffaf0;
+  font: inherit;
+  font-size: calc(0.82rem * var(--font-scale, 1));
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hc-quick-add .hc-action-grid {
+  margin: 0;
+}
+
+.hc-panel-head {
+  margin-bottom: 1rem;
+}
+
+.hc-panel-head .hc-page-title {
+  margin-bottom: 0.35rem;
+}
+
+.hc-chain-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.hc-chain-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--harvest-gold) 34%, var(--color-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--harvest-gold-soft) 55%, var(--surface-1, var(--bg-card)));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hc-chain-row strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.hc-chain-row span {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--harvest-gold-deep, var(--olive-primary));
+}
+
+.hc-chain-complete {
+  margin: 0;
+  padding: 0.75rem 0.95rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--harvest-gold-soft) 35%, var(--surface-1, var(--bg-card)));
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.hc-chain-toast {
+  margin: 0 0 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--harvest-gold) 14%, transparent);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.hc-day-summary {
+  padding: 1.1rem 1.15rem 1.15rem;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  border-radius: 18px;
+  background: var(--surface-1, var(--bg-card));
+}
+
+.hc-day-summary.is-nudge {
+  border-color: color-mix(in srgb, var(--harvest-gold) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--harvest-gold-soft) 55%, var(--surface-1, var(--bg-card)));
+}
+
+.hc-day-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.hc-day-summary-head h2 {
+  margin: 0.2rem 0 0;
+  font-size: calc(1.35rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.hc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--harvest-gold) 18%, var(--surface-1));
+  color: var(--harvest-gold-deep, var(--harvest-ink));
+  font-size: calc(0.72rem * var(--font-scale, 1));
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.hc-status-pill.is-closed {
+  background: color-mix(in srgb, var(--color-text-secondary) 14%, var(--surface-1));
+  color: var(--color-text-secondary);
+}
+
+.hc-day-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.hc-day-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2, var(--bg-section)) 80%, transparent);
+}
+
+.hc-day-metric span {
+  color: var(--color-text-secondary);
+  font-size: calc(0.72rem * var(--font-scale, 1));
+  font-weight: 700;
+}
+
+.hc-day-metric strong {
+  font-size: calc(1.15rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hc-day-metric em {
+  font-style: normal;
+  color: var(--color-text-secondary);
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.hc-day-fields {
+  margin: 0.85rem 0 0;
+  color: var(--color-text-secondary);
+  font-weight: 650;
+}
+
+.hc-day-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+  padding: 1.05rem 1.1rem 1.15rem;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-1, var(--bg-card)) 92%, var(--harvest-gold-soft, #c4a35a));
+}
+
+.hc-day-activity-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.hc-day-activity-head h3 {
+  margin: 0.15rem 0 0;
+  font-size: calc(1.15rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hc-day-activity-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.hc-day-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hc-day-activity-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  background: var(--surface-1, var(--bg-card));
+  box-shadow: 0 1px 0 color-mix(in srgb, #000 12%, transparent);
+}
+
+.hc-day-activity-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: min(100%, 14rem);
+  flex: 1;
+}
+
+.hc-day-activity-kind {
+  font-size: calc(0.7rem * var(--font-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.hc-day-activity-main strong {
+  font-size: calc(1.05rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hc-day-activity-main span {
+  color: var(--color-text-secondary);
+  font-size: calc(0.84rem * var(--font-scale, 1));
+  line-height: 1.35;
+}
+
+.hc-day-activity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.hc-ghost.is-danger {
+  color: var(--color-danger, #c44);
+}
+
+.hc-stat-grid-filled {
+  margin-bottom: 1rem;
+}
+
+.hc-log-metrics {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.hc-log-card.is-closed {
+  opacity: 0.82;
+}
+
+@media (min-width: 640px) {
+  .hc-day-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.hc-live-home .hc-hero {
+  margin-bottom: 1.25rem;
+  padding: 1.15rem 1.2rem 1.1rem;
+}
+
+.hc-live-home .hc-hero h1 {
+  font-size: calc(1.75rem * var(--font-scale, 1));
+}
+
+.hc-live-home .hc-action-grid {
+  margin-bottom: 1.25rem;
+}
+
+.hc-today-card,
+.hc-pending-card,
+.hc-grove-card,
+.hc-log-card,
+.hc-stat-card {
+  padding: 1.05rem 1.1rem;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  border-radius: 18px;
+  background: var(--surface-1, var(--bg-card));
+}
+
+.hc-today-card.is-nudge {
+  border-color: color-mix(in srgb, var(--harvest-gold) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--harvest-gold-soft) 55%, var(--surface-1, var(--bg-card)));
+}
+
+.hc-today-card h2,
+.hc-pending-card h2 {
+  margin: 0 0 0.4rem;
+}
+
+.hc-nudge-copy {
+  margin: 0.75rem 0 0;
+  font-weight: 650;
+  color: var(--harvest-gold-deep, var(--color-text-primary));
+}
+
+.hc-official {
+  margin: 0;
+  font-size: calc(1.55rem * var(--font-scale, 1));
+  font-weight: 800;
+  color: var(--harvest-olive, var(--color-text-primary));
+}
+
+.hc-estimate-hero {
+  margin: 0;
+  font-size: calc(1.45rem * var(--font-scale, 1));
+  font-weight: 800;
+  color: var(--harvest-gold-deep, var(--color-text-secondary));
+}
+
+.hc-today-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.hc-today-extra .hc-chip {
+  cursor: default;
+}
+
+.hc-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin: 0.2rem 0 1rem;
+}
+
+.hc-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 5.4rem;
+}
+
+.hc-stat-card span {
+  color: var(--color-text-secondary);
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 700;
+}
+
+.hc-stat-card strong {
+  font-size: calc(1.02rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.hc-pending-link {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.7rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--harvest-live, var(--color-warning-dark));
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hc-field-status,
+.hc-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hc-grove-card,
+.hc-log-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.hc-grove-card p,
+.hc-log-card span,
+.hc-log-card em {
+  display: block;
+  margin: 0.3rem 0 0;
+  color: var(--color-text-secondary);
+  font-style: normal;
+  font-weight: 550;
+}
+
+.hc-grove-card strong,
+.hc-log-card strong {
+  display: inline;
+  font-size: calc(1rem * var(--font-scale, 1));
+}
+
+.hc-log-card {
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  background: var(--surface-1, var(--bg-card));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hc-log-detail {
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: var(--surface-2, var(--bg-section));
+}
+
+.hc-log-detail p {
+  margin: 0.2rem 0;
+}
+
+.hc-status {
+  display: inline-flex;
+  margin-left: 0.45rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: calc(0.72rem * var(--font-scale, 1));
+  font-weight: 750;
+  vertical-align: middle;
+}
+
+.hc-status-not_started {
+  background: var(--surface-2);
+  color: var(--color-text-muted);
+}
+
+.hc-status-in_progress {
+  background: var(--harvest-gold-soft);
+  color: var(--harvest-gold-deep);
+}
+
+.hc-status-done {
+  background: color-mix(in srgb, var(--status-success, #3d7a4a) 18%, var(--surface-1));
+  color: var(--status-success, #3d7a4a);
+}
+
+.hc-mode-nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0;
+  padding: 0.45rem;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  border-radius: 18px;
+  background: var(--surface-1, var(--bg-card));
+}
+
+.hc-mode-nav-top {
+  margin: 0;
+}
+
+.hc-mode-tab {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hc-mode-tab.is-on {
+  background: color-mix(in srgb, var(--harvest-gold-soft) 80%, var(--surface-1));
+  color: var(--olive-primary);
+}
+
+.hc-mode-plus {
+  width: 3.1rem;
+  height: 3.1rem;
+  justify-self: center;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  background: var(--harvest-gold);
+  color: #fffaf0;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.hc-mode-plus:hover {
+  background: var(--harvest-gold-deep);
+}
+
+.harvest-campaign.is-mode {
+  padding-bottom: 1.5rem;
+}
+
+.hc-done-banner {
+  margin-top: 1rem;
+}
+
+.hc-day-nav {
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hc-day-masthead {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hc-day-masthead-copy {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.hc-day-title {
+  margin: 0;
+  color: var(--harvest-ink, var(--color-text-primary));
+  font-size: calc(1.35rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.hc-day-sub {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: calc(0.88rem * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.hc-day-closed {
+  color: var(--harvest-gold-deep, var(--color-primary));
+}
+
+.hc-day-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  border-radius: 12px;
+  background: var(--surface-1, var(--bg-card));
+  color: inherit;
+  cursor: pointer;
+}
+
+.hc-day-chevron:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hc-day-strip {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.15rem 0.1rem;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.hc-day-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 44px;
+  padding: 0.45rem 0.35rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2, var(--bg-muted)) 80%, transparent);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.hc-day-chip-num {
+  font-size: calc(0.92rem * var(--font-scale, 1));
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.hc-day-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
+}
+
+.hc-day-chip.is-active .hc-day-chip-dot {
+  background: var(--harvest-gold, var(--color-primary));
+}
+
+.hc-day-chip.is-closed .hc-day-chip-dot {
+  background: var(--harvest-gold-deep, var(--color-primary));
+}
+
+.hc-day-chip.is-selected {
+  border-color: color-mix(in srgb, var(--harvest-gold) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--harvest-gold-soft) 75%, var(--surface-1));
+  color: var(--harvest-ink, var(--color-text-primary));
+}
+
+.hc-day-chip.is-today:not(.is-selected) {
+  border-color: color-mix(in srgb, var(--harvest-gold) 28%, transparent);
+}
+
+.hc-log-card.is-selected {
+  border-color: color-mix(in srgb, var(--harvest-gold) 50%, var(--color-border));
+  background: color-mix(in srgb, var(--harvest-gold-soft) 55%, var(--surface-1));
+}
+
+/* Vertical harvest genealogy: field → harvest day → mill → oil */
+.hc-gene {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.hc-gene-header .hc-page-title {
+  margin-bottom: 0.25rem;
+}
+
+.hc-gene-path {
+  margin: 0;
+  padding: 0.75rem 0.95rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--harvest-gold-soft, var(--color-primary-soft)) 72%, var(--surface-1));
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: calc(0.95rem * var(--font-scale, 1));
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+
+.hc-gene-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: calc(0.88rem * var(--font-scale, 1));
+}
+
+.hc-gene-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2.6rem;
+  width: 100%;
+  overflow: visible;
+  padding: 0.45rem 0 0.65rem;
+  box-sizing: border-box;
+}
+
+.hc-gene-wires {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.hc-gene-wire {
+  transition: opacity 180ms ease;
+}
+
+.hc-gene-wire.is-muted {
+  opacity: 0.16;
+}
+
+.hc-gene-wire.is-lit {
+  opacity: 1;
+}
+
+.hc-gene-wire-glow {
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.16;
+}
+
+.hc-gene-wire-line {
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.92;
+}
+
+.hc-gene-wire.is-focus .hc-gene-wire-glow {
+  stroke-width: 10;
+  opacity: 0.28;
+}
+
+.hc-gene-wire.is-focus .hc-gene-wire-line {
+  stroke-width: 2.85;
+  opacity: 1;
+}
+
+.hc-gene-wire-port {
+  fill: color-mix(in srgb, var(--surface-1, var(--bg-card)) 70%, currentColor);
+  stroke-width: 1.75;
+  opacity: 0.95;
+}
+
+.hc-gene-wire.is-muted .hc-gene-wire-port {
+  opacity: 0.35;
+}
+
+.hc-gene-wire-badge {
+  fill: color-mix(in srgb, var(--surface-1, var(--bg-card)) 90%, currentColor);
+  stroke-width: 1;
+}
+
+.hc-gene-wire-badge-text {
+  fill: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.hc-gene-layer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.hc-gene-layer-label {
+  margin: 0;
+  font-size: calc(0.72rem * var(--font-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.hc-gene-nodes {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.85rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.hc-gene-node {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: opacity 160ms ease;
+}
+
+.hc-gene-node.is-dim {
+  opacity: 0.2;
+}
+
+.hc-gene-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.32rem;
+  width: 100%;
+  min-height: 8.6rem;
+  padding: 0.95rem 1rem 1rem;
+  border: 0;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-2, var(--bg-secondary)) 55%, var(--surface-1, var(--bg-card)));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent),
+    0 1px 0 color-mix(in srgb, #000 18%, transparent);
+}
+
+.hc-gene-card.has-accent {
+  box-shadow:
+    inset 3px 0 0 var(--hc-gene-accent),
+    inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent),
+    0 1px 0 color-mix(in srgb, #000 18%, transparent);
+}
+
+.hc-gene-node.is-selected .hc-gene-card {
+  background: color-mix(in srgb, var(--hc-gene-accent, var(--harvest-gold-soft, var(--color-primary-soft))) 28%, var(--surface-1));
+  box-shadow:
+    inset 3px 0 0 var(--hc-gene-accent, var(--harvest-gold, var(--color-primary))),
+    0 0 0 2px color-mix(in srgb, var(--hc-gene-accent, var(--harvest-gold, var(--color-primary))) 42%, transparent);
+}
+
+.hc-gene-card-kicker {
+  font-size: calc(0.68rem * var(--font-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.hc-gene-card-title {
+  font-size: calc(1.02rem * var(--font-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hc-gene-card-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.hc-gene-card-metric em {
+  font-style: normal;
+  font-size: calc(1.75rem * var(--font-scale, 1));
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hc-gene-card-metric small {
+  font-size: calc(0.85rem * var(--font-scale, 1));
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.hc-gene-card-line {
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.hc-gene-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.hc-gene-chip {
+  font-style: normal;
+  font-size: calc(0.68rem * var(--font-scale, 1));
+  font-weight: 750;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--harvest-gold, #c4a35a) 16%, transparent);
+  color: var(--harvest-gold-deep, var(--olive-primary));
+}
+
+.hc-gene-chip-yield {
+  background: color-mix(in srgb, var(--harvest-gold, #c4a35a) 22%, transparent);
+  color: var(--harvest-gold-deep, var(--olive-primary));
+}
+
+.hc-gene-node-oil.is-hero .hc-gene-card {
+  min-height: 9.4rem;
+  background: color-mix(in srgb, var(--harvest-gold-soft, #c4a35a) 58%, var(--surface-1));
+}
+
+.hc-gene-node-oil.is-hero .hc-gene-card-metric em {
+  font-size: calc(2.05rem * var(--font-scale, 1));
+}
+
+.hc-gene-node-cta {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  background: color-mix(in srgb, var(--harvest-gold, var(--olive-primary)) 18%, transparent);
+  color: var(--harvest-gold-deep, var(--olive-primary));
+  font: inherit;
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 750;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.hc-gene-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-1, var(--bg-card)) 92%, var(--harvest-gold-soft, #c4a35a));
+}
+
+.hc-gene-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.hc-gene-detail-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.hc-gene-detail-head strong {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.hc-gene-detail-path {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.hc-gene-detail-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.85rem;
+}
+
+.hc-gene-detail-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.hc-gene-detail-cols ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.hc-gene-detail-cols li button {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-2, var(--bg-secondary)) 70%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hc-gene-detail-cols li button span {
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hc-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+

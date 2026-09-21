@@ -77,10 +77,10 @@ const guessType = (name: string) => {
   return 'image/jpeg';
 };
 
-/** Upload local device URIs to Photo Hub (server-side EXIF). */
-const uploadLocalUris = async (uris: string[]): Promise<PhotoUploadResult[]> => {
-  if (uris.length === 0) return [];
+/** Max files per multipart upload request (keeps payloads manageable). */
+export const PHOTO_UPLOAD_CHUNK_SIZE = 12;
 
+const uploadLocalUrisChunk = async (uris: string[]): Promise<PhotoUploadResult[]> => {
   const formData = new FormData();
   uris.forEach((uri, index) => {
     const name = guessName(uri, index);
@@ -103,8 +103,7 @@ const uploadLocalUris = async (uris: string[]): Promise<PhotoUploadResult[]> => 
     let message = 'Upload failed';
     try {
       const body = await response.json();
-      message =
-        body?.error?.message || body?.message || message;
+      message = body?.error?.message || body?.message || message;
     } catch {
       /* ignore */
     }
@@ -112,6 +111,29 @@ const uploadLocalUris = async (uris: string[]): Promise<PhotoUploadResult[]> => 
   }
 
   return (await response.json()) as PhotoUploadResult[];
+};
+
+export type UploadLocalUrisOptions = {
+  chunkSize?: number;
+  onProgress?: (done: number, total: number) => void;
+};
+
+/** Upload local device URIs to Photo Hub (server-side EXIF). Chunks large batches. */
+const uploadLocalUris = async (
+  uris: string[],
+  options: UploadLocalUrisOptions = {}
+): Promise<PhotoUploadResult[]> => {
+  if (uris.length === 0) return [];
+
+  const chunkSize = Math.max(1, options.chunkSize ?? PHOTO_UPLOAD_CHUNK_SIZE);
+  const results: PhotoUploadResult[] = [];
+  for (let i = 0; i < uris.length; i += chunkSize) {
+    const chunk = uris.slice(i, i + chunkSize);
+    const chunkResults = await uploadLocalUrisChunk(chunk);
+    results.push(...chunkResults);
+    options.onProgress?.(Math.min(i + chunk.length, uris.length), uris.length);
+  }
+  return results;
 };
 
 export const photoService = {

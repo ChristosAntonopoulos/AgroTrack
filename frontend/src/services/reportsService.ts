@@ -100,6 +100,7 @@ export const reportsService = {
       kgPerHa?: number;
       millName?: string;
       oilKg?: number;
+      oilLitres?: number;
       oilYieldPercent?: number;
       qualityGrade?: string;
       notes?: string;
@@ -116,6 +117,7 @@ export const reportsService = {
       kgPerHa: row.kgPerHa,
       millName: row.millName,
       oilKg: row.oilKg,
+      oilLitres: row.oilLitres,
       oilYieldPercent: row.oilYieldPercent,
       qualityGrade: row.qualityGrade || undefined,
       notes: row.notes,

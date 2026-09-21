@@ -11,7 +11,7 @@ import { isDeviceOnline } from '../utils/networkStatus';
 import { locationService } from '../services/locationService';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { getFieldShortLocation } from '../utils/shortLocation';
-import { countTasksToday, fieldSearchHaystack, getFieldOpenPath } from '../utils/fieldDisplay';
+import { countTasksToday, fieldSearchHaystack, getFieldOpenPath, isListedGrove } from '../utils/fieldDisplay';
 import { distinctFieldColors } from '../utils/fieldColors';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
@@ -109,7 +109,7 @@ const FieldsPage: React.FC = () => {
 
   const filteredFields = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = fields;
+    let list = fields.filter(isListedGrove);
     if (q) {
       list = list.filter((f) => {
         const short = getFieldShortLocation(f).toLowerCase();
@@ -175,7 +175,7 @@ const FieldsPage: React.FC = () => {
   }, [fields, fieldTasks, tasksReady]);
 
   return (
-    <PageContainer>
+    <PageContainer padding="none">
       <div className="fields-page">
         <Breadcrumbs />
 
@@ -184,11 +184,13 @@ const FieldsPage: React.FC = () => {
             <h1>{t('fields:title')}</h1>
             <p className="fields-subtitle">{subtitle}</p>
           </div>
-          {canCreate && (
-            <Button to="/fields/new" icon={<Plus />} className="fields-add-btn">
-              {t('fields:addFieldCta')}
-            </Button>
-          )}
+          <div className="fields-page-header-actions">
+            {canCreate && (
+              <Button to="/fields/new" icon={<Plus />} size="md" className="fields-add-btn">
+                {t('fields:addFieldCta')}
+              </Button>
+            )}
+          </div>
         </header>
 
         {loading ? (
@@ -199,7 +201,7 @@ const FieldsPage: React.FC = () => {
 
             {fields.length === 0 ? (
               <EmptyState
-                icon={<Layers size={64} />}
+                icon={<Layers size={40} />}
                 title={t('fields:emptyTitle')}
                 description={t('fields:emptyDescription')}
                 action={
@@ -212,15 +214,6 @@ const FieldsPage: React.FC = () => {
               />
             ) : (
               <>
-                <div className="fields-summary-strip" aria-live="polite">
-                  <span className="fields-summary-item">
-                    <strong>{fields.length}</strong> {t('fields:summary.fields')}
-                  </span>
-                  <span className={`fields-summary-item${tasksTodayTotal > 0 ? ' fields-summary-item--active' : ''}`}>
-                    <strong>{tasksReady ? tasksTodayTotal : '…'}</strong> {t('fields:summary.activeTasks')}
-                  </span>
-                </div>
-
                 <div className="fields-toolbar">
                   <div className="fields-search-wrap">
                     <Search size={18} className="fields-search-icon" aria-hidden />
@@ -232,6 +225,14 @@ const FieldsPage: React.FC = () => {
                       onChange={(e) => setSearch(e.target.value)}
                       aria-label={t('fields:searchPlaceholder')}
                     />
+                  </div>
+                  <div className="fields-summary-strip" aria-live="polite">
+                    <span className="fields-summary-item">
+                      <strong>{fields.length}</strong> {t('fields:summary.fields')}
+                    </span>
+                    <span className={`fields-summary-item${tasksTodayTotal > 0 ? ' fields-summary-item--active' : ''}`}>
+                      <strong>{tasksReady ? tasksTodayTotal : '…'}</strong> {t('fields:summary.activeTasks')}
+                    </span>
                   </div>
                   <div className="fields-toolbar-right">
                     <label className="fields-sort">

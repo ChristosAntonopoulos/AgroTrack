@@ -8,9 +8,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import {
+  useFamilyCollaboratorOwnerLabel,
+  useFamilyMembershipModules,
+} from '../../hooks/useFamilyMembershipModules';
 import { typography, spacing, radii, motion } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
+import { openHarvestCampaign } from '../../navigation/intents';
 import { getPartnerService } from '../../services/serviceFactory';
+import { inAppMessageService } from '../../services/inAppCampaignService';
+import { useInAppMessagesOptional } from '../../context/InAppMessageContext';
 import BrandLogo from '../ui/BrandLogo';
 import ScreenHeader from './ScreenHeader';
 import HeaderIconButton from './HeaderIconButton';
@@ -41,23 +48,41 @@ const MoreMenuPanel: React.FC = () => {
   const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
   const navigation = useNavigation<Nav>();
   const harvest = useHarvestCampaignOptional();
+  const familyModules = useFamilyMembershipModules();
+  const collaboratorOwnerLabel = useFamilyCollaboratorOwnerLabel();
+  const inApp = useInAppMessagesOptional();
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const rowHeight = Math.max(tapMin, 52);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
+  const hasFamilyModules = Boolean(familyModules && familyModules.size > 0);
+  const showPartners = !hasFamilyModules;
+  const showMoney = canMoney && (!hasFamilyModules || Boolean(familyModules?.has('money')));
+  const showHarvest =
+    isFieldOwner() && (!hasFamilyModules || Boolean(familyModules?.has('harvest')));
+  const showPhotos = canMoney && (!hasFamilyModules || Boolean(familyModules?.has('fields')));
+  const collaboratorBadge = collaboratorOwnerLabel
+    ? t('common:familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
+    : null;
 
   const loadAlerts = useCallback(() => {
     if (!user) return;
-    void getPartnerService()
-      .getNotifications()
-      .then(items => items.filter(n => !n.isRead).length)
+    void inAppMessageService
+      .getInbox()
+      .then((items) => items.filter((n) => !n.isRead).length)
       .then(setUnreadAlerts)
-      .catch(() => setUnreadAlerts(0));
+      .catch(() =>
+        getPartnerService()
+          .getNotifications()
+          .then((items) => items.filter((n) => !n.isRead).length)
+          .then(setUnreadAlerts)
+          .catch(() => setUnreadAlerts(0))
+      );
   }, [user]);
 
   useEffect(() => {
     loadAlerts();
-  }, [loadAlerts]);
+  }, [loadAlerts, inApp?.refreshInboxSignal]);
 
   useFocusEffect(
     useCallback(() => {
@@ -68,81 +93,85 @@ const MoreMenuPanel: React.FC = () => {
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
   const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
 
+  const workItems: MenuItem[] = [];
+  if (showPartners) {
+    workItems.push({
+      id: 'partners',
+      icon: 'people-circle-outline',
+      label: t('nav:partners'),
+      onPress: () => navigation.navigate('Partners'),
+      showArrow: true,
+    });
+  }
+  if (showMoney) {
+    workItems.push({
+      id: 'money',
+      icon: 'wallet-outline',
+      label: t('nav:money', { defaultValue: 'Costs' }),
+      onPress: () => navigation.navigate('Money'),
+      showArrow: true,
+    });
+  }
+  if (showPhotos) {
+    workItems.push({
+      id: 'photos',
+      icon: 'images-outline',
+      label: t('nav:photos', { defaultValue: 'Photos' }),
+      onPress: () => navigation.navigate('Photos'),
+      showArrow: true,
+    });
+  }
+  if (showHarvest) {
+    workItems.push({
+      id: 'harvest',
+      icon: 'basket-outline',
+      label: harvest?.isLive
+        ? `${t('fields:harvestCampaign.title', {
+            defaultValue: t('fields:thisHarvest.title'),
+          })} · ${t('fields:harvestCampaign.headerOpen', { defaultValue: 'Live' })}`
+        : t('fields:harvestCampaign.title', {
+            defaultValue: t('fields:thisHarvest.title'),
+          }),
+      onPress: () => openHarvestCampaign(navigation),
+      showArrow: true,
+    });
+  }
+
+  const accountItems: MenuItem[] = [
+    {
+      id: 'feedback',
+      icon: 'heart-outline',
+      label: t('nav:feedback', { defaultValue: 'Feedback' }),
+      onPress: () => navigation.navigate('Feedback'),
+      showArrow: true,
+    },
+    {
+      id: 'settings',
+      icon: 'settings-outline',
+      label: t('nav:settings'),
+      onPress: () => navigation.navigate('Settings'),
+      showArrow: true,
+    },
+  ];
+
   const sections: MenuSection[] = [
     {
       id: 'work',
       title: t('nav:sections.work'),
-      items: [
-        {
-          id: 'partners',
-          icon: 'people-circle-outline',
-          label: t('nav:partners'),
-          onPress: () => navigation.navigate('Partners'),
-          showArrow: true,
-        },
-        ...(canMoney
-          ? [
-              {
-                id: 'money',
-                icon: 'wallet-outline' as const,
-                label: t('nav:money', { defaultValue: 'Costs' }),
-                onPress: () => navigation.navigate('Money'),
-                showArrow: true,
-              },
-              {
-                id: 'photos',
-                icon: 'images-outline' as const,
-                label: t('nav:photos', { defaultValue: 'Photos' }),
-                onPress: () => navigation.navigate('Photos'),
-                showArrow: true,
-              },
-            ]
-          : []),
-        ...(isFieldOwner()
-          ? [
-              {
-                id: 'harvest',
-                icon: 'basket-outline' as const,
-                label: harvest?.isLive
-                  ? `${t('fields:harvestCampaign.title', {
-                      defaultValue: t('fields:thisHarvest.title'),
-                    })} · ${t('fields:harvestCampaign.headerOpen', { defaultValue: 'Live' })}`
-                  : t('fields:harvestCampaign.title', {
-                      defaultValue: t('fields:thisHarvest.title'),
-                    }),
-                onPress: () => navigation.navigate('HarvestCampaign'),
-                showArrow: true,
-              },
-            ]
-          : []),
-      ],
+      items: workItems,
     },
     {
       id: 'account',
       title: t('nav:sections.account'),
-      items: [
-        {
-          id: 'feedback',
-          icon: 'heart-outline',
-          label: t('nav:feedback', { defaultValue: 'Feedback' }),
-          onPress: () => navigation.navigate('Feedback'),
-          showArrow: true,
-        },
-        {
-          id: 'settings',
-          icon: 'settings-outline',
-          label: t('nav:settings'),
-          onPress: () => navigation.navigate('Settings'),
-          showArrow: true,
-        },
-      ],
+      items: accountItems,
     },
-  ];
+  ].filter((section) => section.items.length > 0);
 
   return (
     <ScreenLayout scroll tabBarInset padded>
       <ScreenHeader
         title={displayName || t('nav:more')}
+        subtitle={collaboratorBadge || undefined}
         action={
           <HeaderIconButton
             icon="notifications-outline"

@@ -61,6 +61,8 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
   const { t, i18n } = useTranslation(['chronologio', 'photos']);
   const { colors } = useTheme();
   const stickyMeta = useRef<{ label: string; year: number; month: number }[]>([]);
+  const onVisibleMonthRef = useRef(onVisibleMonth);
+  onVisibleMonthRef.current = onVisibleMonth;
   const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
   const [viewer, setViewer] = useState<{ items: PhotoViewerItem[]; index: number } | null>(null);
 
@@ -89,17 +91,14 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
       year: r.year,
       month: r.month,
     }));
-    if (rows[0] && onVisibleMonth) {
-      onVisibleMonth(rows[0].year, rows[0].month, rows[0].stickyLabel);
-    }
-  }, [onVisibleMonth, rows]);
+  }, [rows]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
       const first = viewableItems.find((v) => v.isViewable && v.index != null);
       if (first?.index == null) return;
       const meta = stickyMeta.current[first.index];
-      if (meta && onVisibleMonth) onVisibleMonth(meta.year, meta.month, meta.label);
+      if (meta) onVisibleMonthRef.current?.(meta.year, meta.month, meta.label);
     }
   ).current;
 

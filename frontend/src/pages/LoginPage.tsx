@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import { demoAccounts } from '../services/demoAccounts';
 import { showDemoLogin } from '../config/apiConfig';
-import { roleHomePath, AppRole } from '../navigation/navConfig';
+import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
+import { resolvePostAuthPath } from '../utils/firstGroveDestination';
 import LoginDemoPicker from '../components/Auth/LoginDemoPicker';
 import Button from '../components/Common/Button';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -27,12 +28,13 @@ const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const navigateAfterLogin = (role: string) => {
+  const navigateAfterLogin = async (role: string) => {
     if (redirectTo) {
       navigate(redirectTo);
       return;
     }
-    navigate(roleHomePath(role as AppRole));
+    const next = await resolvePostAuthPath((role || 'FieldOwner') as AppRole);
+    navigate(next);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +49,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       const stored = authService.getStoredUser();
-      navigateAfterLogin(stored?.role || 'FieldOwner');
+      await navigateAfterLogin(stored?.role || 'FieldOwner');
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
     } finally {
@@ -64,7 +66,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(demoUser.email, demoUser.password);
       const stored = authService.getStoredUser();
-      navigateAfterLogin(stored?.role || demoUser.role);
+      await navigateAfterLogin(stored?.role || demoUser.role);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
     } finally {
@@ -164,8 +166,17 @@ const LoginPage: React.FC = () => {
       </p>
 
       {showQuickLogin && (
-        <LoginDemoPicker loading={loading} onSelect={handleQuickLogin} />
+        <>
+          <LoginDemoPicker loading={loading} onSelect={handleQuickLogin} />
+          <p className="login-demo-note">{t('auth:login.demoDataNote')}</p>
+        </>
       )}
+
+      <p className="login-legal">
+        <Link to="/privacy">{t('auth:login.privacy')}</Link>
+        <span aria-hidden="true"> · </span>
+        <Link to="/terms">{t('auth:login.terms')}</Link>
+      </p>
     </>
   );
 };

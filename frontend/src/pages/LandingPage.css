@@ -506,6 +506,15 @@
   color: var(--lp-primary);
 }
 
+.landing-hero .landing-definition {
+  margin: 0 0 0.85rem;
+  max-width: 40rem;
+  font-size: clamp(1.05rem, 2vw, 1.175rem);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--lp-text-light, #f4f7f1);
+}
+
 .landing-hero .landing-lead {
   font-size: clamp(1.0625rem, 2vw, 1.2rem);
   color: var(--lp-text-light-muted);
@@ -927,6 +936,14 @@
 
 .landing-apk-guide li {
   margin-bottom: 0.4rem;
+}
+
+.landing-apk-hint {
+  margin: 0.35rem 0 0.15rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--lp-text-muted);
+  text-align: center;
 }
 
 .landing-apk-warning {

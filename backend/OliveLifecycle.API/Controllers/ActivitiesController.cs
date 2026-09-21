@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Activity;
 using OliveLifecycle.Application.Services;
+using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 
 namespace OliveLifecycle.API.Controllers;
 
@@ -34,7 +36,28 @@ public class ActivitiesController : BaseApiController
             throw new OliveLifecycle.Core.Exceptions.ForbiddenException("You do not have access to this field.");
         }
 
-        var activities = await _activityService.GetByFieldIdAsync(fieldId, limit, cancellationToken);
-        return OkResult(activities);
+        var activities = (await _activityService.GetByFieldIdAsync(fieldId, limit, cancellationToken)).ToList();
+        var canMoney = await _fieldAccessService.CanFamilyAccessModuleAsync(
+            fieldId, UserContext.UserId, FamilyModules.Money, cancellationToken)
+            || string.Equals(UserContext.Role, Roles.Administrator, StringComparison.Ordinal);
+        var canHarvest = await _fieldAccessService.CanFamilyAccessModuleAsync(
+            fieldId, UserContext.UserId, FamilyModules.Harvest, cancellationToken)
+            || string.Equals(UserContext.Role, Roles.Administrator, StringComparison.Ordinal);
+
+        if (!canMoney)
+        {
+            activities = activities
+                .Where(a => !a.Type.StartsWith("financial_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (!canHarvest)
+        {
+            activities = activities
+                .Where(a => !a.Type.StartsWith("harvest_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        return OkResult((IEnumerable<ActivityDto>)activities);
     }
 }

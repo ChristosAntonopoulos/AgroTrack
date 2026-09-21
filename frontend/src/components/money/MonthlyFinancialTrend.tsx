@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MonthlyFinancialResult } from '../../services/financialSummaryService';
+import { shortMonthLabel } from '../../finance/display';
 import { formatOfficialAmount } from '../../finance/format';
 import './Money.css';
 
@@ -28,6 +29,10 @@ const MonthlyFinancialTrend: React.FC<Props> = ({
       Array.from({ length: 12 }, (_, index) =>
         new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(year, index, 1))
       ),
+    [locale, year]
+  );
+  const monthShort = useMemo(
+    () => Array.from({ length: 12 }, (_, index) => shortMonthLabel(year, index, locale)),
     [locale, year]
   );
   if (!recorded.length) {
@@ -84,7 +89,7 @@ const MonthlyFinancialTrend: React.FC<Props> = ({
                   fill={active ? '#b8845c' : '#d19a72'}
                 />
                 <text x={x + barWidth} y={height + 20} textAnchor="middle" fontSize="11" fill="currentColor">
-                  {monthNames[index].slice(0, 3)}
+                  {monthShort[index]}
                 </text>
                 <rect
                   x={x}

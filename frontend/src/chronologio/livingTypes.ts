@@ -45,6 +45,10 @@ export const parseChronologioView = (value?: string | null): ChronologioView => 
   return 'days';
 };
 
+/** Zoom follows the view param only — `focus=today` must not pin Days. */
+export const livingZoomFromSearch = (view: string | null, zoom: string | null): ChronologioZoom =>
+  VIEW_TO_ZOOM[parseChronologioView(view || zoom)];
+
 export const viewFromZoom = (zoom: ChronologioZoom): ChronologioView => ZOOM_TO_VIEW[zoom];
 
 export const SEASON_START_MONTH = 9;

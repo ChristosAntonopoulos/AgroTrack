@@ -775,7 +775,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   );
 
   const returnToToday = useCallback(() => {
-    living.setFocusDate(todayIso);
+    living.openJournal();
     if (living.zoom === 'years') {
       const el = document.getElementById(`chrono-year-${agriculturalYearFor(new Date())}`);
       el?.scrollIntoView({
@@ -783,7 +783,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         behavior: reduceMotion ? 'auto' : 'smooth',
       });
     }
-  }, [living, nowYear, reduceMotion, todayIso]);
+  }, [living, nowYear, reduceMotion]);
 
   const transition = reduceMotion
     ? { duration: 0 }
@@ -803,7 +803,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         embedded={embedded}
         onBack={embedded || !fieldId ? undefined : () => navigate(`/fields/${fieldId}`)}
         onSetZoom={living.setZoom}
-        onOpenJournal={living.openJournal}
         onSetFilters={living.setFilters}
         onCompareToggle={() => living.setCompareOpen(!living.compareOpen)}
       />
@@ -901,6 +900,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                       setChapterPeek({ mode: 'monthWeather', year, month });
                     }}
                     onSelect={(e) => living.setSelectedEntry(e.id)}
+                    onClearSelection={closePeek}
                   />
                 ) : null}
                 {living.zoom === 'month' ? (
@@ -937,6 +937,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         todayWeather={todayWeather}
                         onLoadMore={loadMoreJournal}
                         onSelect={(e) => living.setSelectedEntry(e.id)}
+                        onClearSelection={closePeek}
                         onOpenWeather={(year, month, dateKey) => {
                           living.setSelectedEntry(null);
                           setWeatherEventPeek(null);
@@ -980,7 +981,9 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         peek={resolvedPeek}
         numberLocale={numberLocale}
         weatherByDate={weatherByDate}
+        fieldOptions={fields.map((f) => ({ id: f.id, name: f.name }))}
         onClose={closePeek}
+        onMutated={() => setReloadToken((n) => n + 1)}
         onDrillToMonths={(periodYear) => {
           setChapterPeek(null);
           living.openPeriod(periodYear);

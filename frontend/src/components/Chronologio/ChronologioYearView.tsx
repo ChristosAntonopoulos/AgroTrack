@@ -16,6 +16,7 @@ import {
   monthHasActivity,
   monthsForOverview,
 } from '../../chronologio/monthPresentation';
+import { formatGroveMassKg } from '../../utils/groveTotals';
 import {
   monthSeasonStage,
   seasonStageIndex,
@@ -43,6 +44,7 @@ type Props = {
   onOpenMonthDays: (year: number, month: number) => void;
   onPeekMonthWeather: (year: number, month: number) => void;
   onSelect?: (entry: ChronologioEntry) => void;
+  onClearSelection?: () => void;
 };
 
 const monthWeatherKey = (year: number, month: number) =>
@@ -89,6 +91,7 @@ const ChronologioYearView: React.FC<Props> = ({
   onOpenMonthDays,
   onPeekMonthWeather,
   onSelect,
+  onClearSelection,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
   const parentRef = useRef<HTMLDivElement>(null);
@@ -144,12 +147,12 @@ const ChronologioYearView: React.FC<Props> = ({
     estimateSize: (i) => {
       const row = rows[i];
       if (!row) return 168;
-      if (row.kind === 'season') return 48;
+      if (row.kind === 'season') return 44;
       const picks = showField ? row.reviews.length : 0;
       const cards = row.entries.length || 2;
       const empty = !monthHasActivity(row.month) && row.entries.length === 0 && row.reviews.length === 0;
-      if (empty) return 96;
-      return 108 + (picks > 1 ? 176 : 0) + Math.ceil(Math.max(1, cards) / 2) * 156;
+      if (empty) return 88;
+      return 118 + (picks > 1 ? 176 : 0) + Math.ceil(Math.max(1, cards) / 2) * 156;
     },
     overscan: 6,
     paddingEnd: 32,
@@ -165,7 +168,7 @@ const ChronologioYearView: React.FC<Props> = ({
     <div className="chrono-year-view chrono-year-feed chrono-journal-view chrono-day-timeline">
       <header className="chrono-year-hero">
         <p className="chrono-year-hero-kicker">
-          {live ? t('yearView.liveYear') : t('yearView.closedYear')}
+          {live ? t('yearView.liveYearSoFar') : t('yearView.closedYear')}
         </p>
         <h2 className="chrono-year-view-title">{periodYear}</h2>
         {range ? <p className="chrono-year-range">{range}</p> : null}
@@ -174,8 +177,8 @@ const ChronologioYearView: React.FC<Props> = ({
         ) : harvestHasResult({ oliveKg, oilKg }) ? (
           <p className="chrono-year-oil-hero">
             {oilKg > 0
-              ? `${oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
-              : `${Math.round(oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+              ? `${formatGroveMassKg(oilKg, numberLocale)} ${t('oilUnit')}`
+              : `${formatGroveMassKg(oliveKg, numberLocale)} ${t('olivesUnit')}`}
           </p>
         ) : null}
       </header>
@@ -224,6 +227,7 @@ const ChronologioYearView: React.FC<Props> = ({
                     onOpenMonth={() => onPeekMonth(row.month.year, row.month.month)}
                     onOpenDays={() => onOpenMonthDays(row.month.year, row.month.month)}
                     onSelect={onSelect}
+                    onClearSelection={onClearSelection}
                     onPeekWeather={() => onPeekMonthWeather(row.month.year, row.month.month)}
                   />
                 )}

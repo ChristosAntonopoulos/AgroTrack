@@ -275,11 +275,11 @@ public class SavedContactService : ISavedContactService
 
         foreach (var field in fields)
         {
-            FieldMembershipSync.EnsureBackfilled(field);
-            foreach (var membership in field.Memberships.Where(m => m.Status != "removed"))
+            FieldPeopleRules.EnsureNormalized(field);
+            foreach (var person in FieldPeopleRules.OccupiedSeats(field))
             {
-                var user = await _users.GetByIdAsync(membership.UserId, cancellationToken);
-                Remember(membership.UserId, user?.Email, null);
+                var user = await _users.GetByIdAsync(person.UserId, cancellationToken);
+                Remember(person.UserId, user?.Email ?? person.Email, null);
             }
         }
 

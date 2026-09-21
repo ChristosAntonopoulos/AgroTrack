@@ -46,12 +46,17 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   const [targets, setTargets] = useState<LinkTarget[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmFieldId, setConfirmFieldId] = useState('');
 
   const fieldId = photo?.fieldId || '';
 
   useEffect(() => {
     setOwnerId('');
   }, [ownerType, photo?.id]);
+
+  useEffect(() => {
+    setConfirmFieldId('');
+  }, [photo?.id]);
 
   useEffect(() => {
     if (!open || !fieldId || !photo) {
@@ -116,6 +121,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
 
   const src = resolvePublicAssetUrl(photo.url) || photo.url;
   const fieldName = fields.find((f) => f.id === photo.fieldId)?.name || photo.fieldId || '—';
+  const needsField = !photo.fieldId;
 
   return (
     <RightDrawer open={open} onClose={onClose} title={t('detail.title')} size="md">
@@ -133,134 +139,161 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
         ) : (
           <img src={src} alt={photo.fileName || t('detail.title')} />
         )}
-        <dl className="photo-detail-meta">
-          <dt>{t('detail.field')}</dt>
-          <dd>{fieldName}</dd>
-          <dt>{t('detail.captured')}</dt>
-          <dd>{new Date(photo.effectiveCapturedAt).toLocaleString()}</dd>
-          <dt>{t('detail.uploaded')}</dt>
-          <dd>{new Date(photo.createdAt).toLocaleString()}</dd>
-          <dt>{t('detail.location')}</dt>
-          <dd>
-            {photo.latitude != null && photo.longitude != null
-              ? `${photo.latitude.toFixed(5)}, ${photo.longitude.toFixed(5)}`
-              : t('detail.noGps')}
-          </dd>
-          {linkedLabel ? (
-            <>
-              <dt>{t('detail.linkedAs')}</dt>
-              <dd>{linkedLabel}</dd>
-            </>
-          ) : null}
-        </dl>
+
+        <section className="photo-detail-section" aria-label={t('detail.metaSection')}>
+          <h3 className="photo-detail-section-title">{t('detail.metaSection')}</h3>
+          <dl className="photo-detail-meta">
+            <dt>{t('detail.field')}</dt>
+            <dd>{fieldName}</dd>
+            <dt>{t('detail.captured')}</dt>
+            <dd>{new Date(photo.effectiveCapturedAt).toLocaleString()}</dd>
+            <dt>{t('detail.uploaded')}</dt>
+            <dd>{new Date(photo.createdAt).toLocaleString()}</dd>
+            <dt>{t('detail.location')}</dt>
+            <dd>
+              {photo.latitude != null && photo.longitude != null
+                ? `${photo.latitude.toFixed(5)}, ${photo.longitude.toFixed(5)}`
+                : t('detail.noGps')}
+            </dd>
+            {linkedLabel ? (
+              <>
+                <dt>{t('detail.linkedAs')}</dt>
+                <dd>{linkedLabel}</dd>
+              </>
+            ) : null}
+          </dl>
+        </section>
 
         {photo.latitude != null && photo.longitude != null ? (
-          <PhotoLocationMap latitude={photo.latitude} longitude={photo.longitude} />
+          <section className="photo-detail-section" aria-label={t('detail.mapSection')}>
+            <h3 className="photo-detail-section-title">{t('detail.mapSection')}</h3>
+            <PhotoLocationMap latitude={photo.latitude} longitude={photo.longitude} />
+          </section>
         ) : null}
 
-        {!photo.fieldId ? (
-          <label>
-            {t('review.pickField')}
-            <select
-              defaultValue=""
-              onChange={async (e) => {
-                if (!e.target.value) return;
-                setBusy(true);
-                try {
-                  await onConfirmField(photo.id, e.target.value);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <option value="">{t('review.pickField')}</option>
+        {needsField ? (
+          <section className="photo-detail-section" aria-label={t('detail.fieldSection')}>
+            <h3 className="photo-detail-section-title">{t('detail.fieldSection')}</h3>
+            <div className="photo-detail-field-chips" role="group">
               {fields.map((f) => (
-                <option key={f.id} value={f.id}>
+                <button
+                  key={f.id}
+                  type="button"
+                  className={`photo-review-field-chip${
+                    confirmFieldId === f.id ? ' is-selected' : ''
+                  }`}
+                  disabled={busy}
+                  onClick={() => setConfirmFieldId(f.id)}
+                >
                   {f.name}
-                </option>
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+            <div className="photo-detail-actions">
+              <Button
+                size="sm"
+                disabled={busy || !confirmFieldId}
+                loading={busy}
+                onClick={async () => {
+                  if (!confirmFieldId) return;
+                  setBusy(true);
+                  try {
+                    await onConfirmField(photo.id, confirmFieldId);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t('review.confirmField')}
+              </Button>
+            </div>
+          </section>
         ) : null}
 
-        <div className="photo-link-form">
-          <strong>{t('detail.link')}</strong>
-          <label>
-            {t('detail.ownerType')}
-            <select value={ownerType} onChange={(e) => setOwnerType(e.target.value)}>
-              <option value="task">{t('badges.task')}</option>
-              <option value="note">{t('badges.note')}</option>
-              <option value="harvest">{t('badges.harvest')}</option>
-              <option value="phenology">{t('badges.phenology')}</option>
-            </select>
-          </label>
-          <label>
-            {t('detail.pickRecord')}
-            <select
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-              disabled={loadingTargets || !photo.fieldId}
-            >
-              <option value="">
-                {loadingTargets ? t('detail.loadingRecords') : t('detail.pickRecord')}
-              </option>
-              {targets.map((target) => (
-                <option key={target.id} value={target.id}>
-                  {target.label}
+        <section className="photo-detail-section" aria-label={t('detail.link')}>
+          <h3 className="photo-detail-section-title">{t('detail.link')}</h3>
+          <div className="photo-link-form">
+            <label>
+              {t('detail.ownerType')}
+              <select value={ownerType} onChange={(e) => setOwnerType(e.target.value)}>
+                <option value="task">{t('badges.task')}</option>
+                <option value="note">{t('badges.note')}</option>
+                <option value="harvest">{t('badges.harvest')}</option>
+                <option value="phenology">{t('badges.phenology')}</option>
+              </select>
+            </label>
+            <label>
+              {t('detail.pickRecord')}
+              <select
+                value={ownerId}
+                onChange={(e) => setOwnerId(e.target.value)}
+                disabled={loadingTargets || !photo.fieldId}
+              >
+                <option value="">
+                  {loadingTargets ? t('detail.loadingRecords') : t('detail.pickRecord')}
                 </option>
-              ))}
-            </select>
-          </label>
-          {!loadingTargets && photo.fieldId && targets.length === 0 ? (
-            <p className="photo-link-empty">{t('detail.noRecords')}</p>
-          ) : null}
+                {targets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!loadingTargets && photo.fieldId && targets.length === 0 ? (
+              <p className="photo-link-empty">{t('detail.noRecords')}</p>
+            ) : null}
+            <div className="photo-detail-actions">
+              <Button
+                disabled={busy || !ownerId.trim() || !photo.fieldId}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await onLink(photo.id, ownerType, ownerId.trim());
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t('detail.saveLink')}
+              </Button>
+              {photo.isLinked ? (
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await onUnlink(photo.id);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  {t('detail.unlink')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <div className="photo-detail-danger">
           <Button
-            disabled={busy || !ownerId.trim() || !photo.fieldId}
+            variant="error"
+            disabled={busy}
             onClick={async () => {
+              if (!window.confirm(t('detail.deleteConfirm'))) return;
               setBusy(true);
               try {
-                await onLink(photo.id, ownerType, ownerId.trim());
+                await onDelete(photo.id);
+                onClose();
               } finally {
                 setBusy(false);
               }
             }}
           >
-            {t('detail.saveLink')}
+            {t('detail.delete')}
           </Button>
-          {photo.isLinked ? (
-            <Button
-              variant="secondary"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await onUnlink(photo.id);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {t('detail.unlink')}
-            </Button>
-          ) : null}
         </div>
-
-        <Button
-          variant="error"
-          disabled={busy}
-          onClick={async () => {
-            if (!window.confirm(t('detail.deleteConfirm'))) return;
-            setBusy(true);
-            try {
-              await onDelete(photo.id);
-              onClose();
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          {t('detail.delete')}
-        </Button>
       </div>
     </RightDrawer>
   );

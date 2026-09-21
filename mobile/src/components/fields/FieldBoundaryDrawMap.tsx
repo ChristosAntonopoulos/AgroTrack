@@ -1,13 +1,14 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
-import MapPointLayer from '../maps/MapPointLayer';
 import MapZoomControls from '../maps/MapZoomControls';
+import BoundaryVertexPins from './BoundaryVertexPins';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import MapLayerToggle from '../domain/MapLayerToggle';
-import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MapLayerType } from '../../utils/mapLayers';
 import { regionForCenter, regionForPolygon } from '../../utils/fieldGeo';
 import {
   FIELD_HERO_MAX_ZOOM,
@@ -18,41 +19,49 @@ import {
 import { capRegionZoom, type MapRegion } from '../../utils/maplibreGeo';
 import { estimatePolygonAreaSqm } from '../../utils/polygonArea';
 import { locationService } from '../../services/locationService';
-import { typography, spacing } from '../../theme';
+import { geocodeFirstPlace } from '../../utils/geocodeLocation';
+import { typography, spacing, radii, createElevation } from '../../theme';
 
 export type BoundaryPoint = { latitude: number; longitude: number };
+
+type DrawPhase = 'locate' | 'drawing' | 'done';
 
 interface Props {
   points: BoundaryPoint[];
   onPointsChange: (points: BoundaryPoint[]) => void;
   onMeasuredAreaChange?: (sqm: number) => void;
   onGestureActiveChange?: (active: boolean) => void;
+  locationQuery?: string;
+  latitude?: number;
+  longitude?: number;
   height?: number;
 }
 
-const GREECE_DEFAULT: MapRegion = capRegionZoom(
-  {
-    latitude: 37.05,
-    longitude: 21.85,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  },
-  FIELD_HERO_MAX_ZOOM
-);
+const GREECE_OVERVIEW: MapRegion = {
+  latitude: 38.42,
+  longitude: 23.72,
+  latitudeDelta: 7.8,
+  longitudeDelta: 7.8,
+};
 
 const FieldBoundaryDrawMap: React.FC<Props> = ({
   points,
   onPointsChange,
   onMeasuredAreaChange,
   onGestureActiveChange,
-  height = 320,
+  locationQuery,
+  latitude,
+  longitude,
+  height = 360,
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('fields');
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
-  const [region, setRegion] = useState<MapRegion>(GREECE_DEFAULT);
+  const [region, setRegion] = useState<MapRegion>(GREECE_OVERVIEW);
+  const [phase, setPhase] = useState<DrawPhase>(() => (points.length >= 3 ? 'done' : 'locate'));
   const mapRef = useRef<AppMapViewRef>(null);
   const mapReadyRef = useRef(false);
+  const suppressMapTapUntilRef = useRef(0);
   /** True when the step opened with a saved polygon (edit) — frame once on load only. */
   const hadBoundaryOnMount = useRef(points.length >= 3);
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,6 +93,48 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
     }
     return region;
   }, [points, region]);
+
+  const [locationMissing, setLocationMissing] = useState(false);
+
+  useEffect(() => {
+    if (points.length >= 3) return;
+    const goTo = (lat: number, lng: number) => {
+      const next = capRegionZoom(regionForCenter({ latitude: lat, longitude: lng }, FIELD_HERO_MIN_DELTA), FIELD_HERO_MAX_ZOOM);
+      setRegion(next);
+      setLocationMissing(false);
+      mapRef.current?.animateToRegion(next, FIELD_HERO_MAX_ZOOM);
+    };
+    if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      goTo(latitude, longitude);
+      return;
+    }
+    const query = (locationQuery || '').trim();
+    if (!query) {
+      setRegion(GREECE_OVERVIEW);
+      setLocationMissing(false);
+      mapRef.current?.animateToRegion(GREECE_OVERVIEW);
+      return;
+    }
+    let cancelled = false;
+    void geocodeFirstPlace(query).then((place) => {
+      if (cancelled) return;
+      if (place) goTo(place.latitude, place.longitude);
+      else {
+        setRegion(GREECE_OVERVIEW);
+        setLocationMissing(true);
+        mapRef.current?.animateToRegion(GREECE_OVERVIEW);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locationQuery, latitude, longitude, points.length]);
+
+  useEffect(() => {
+    if (points.length >= 3 && phase === 'locate') {
+      setPhase('done');
+    }
+  }, [points.length, phase]);
 
   const focusMap = useCallback(() => {
     if (points.length >= 3) {
@@ -119,14 +170,12 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
     return Math.round(estimatePolygonAreaSqm(ring));
   }, [points]);
 
-  const vertexPoints = useMemo(
-    () =>
-      points.map((p, i) => ({
-        id: `vertex-${i}`,
-        coordinate: p,
-        color: colors.primary,
-      })),
-    [points, colors.primary]
+  const movePoint = useCallback(
+    (index: number, point: BoundaryPoint) => {
+      const next = points.map((p, i) => (i === index ? point : p));
+      onPointsChange(next);
+    },
+    [onPointsChange, points]
   );
 
   const centerOnUser = async () => {
@@ -138,22 +187,55 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
         FIELD_HERO_MAX_ZOOM
       );
       setRegion(next);
+      setLocationMissing(false);
       mapRef.current?.animateToRegion(next, FIELD_HERO_MAX_ZOOM);
-      if (points.length === 0) {
-        onPointsChange([center]);
-      }
     } catch {
       /* location unavailable */
     }
   };
 
+  const finishShape = () => {
+    if (points.length < 3) return;
+    setPhase('done');
+  };
+
+  const clearBoundary = () => {
+    onPointsChange([]);
+    setPhase('drawing');
+  };
+
+  const coachText =
+    phase === 'locate'
+      ? locationMissing
+        ? t('addField.locationNotFound')
+        : t('addField.boundaryCoachLocate')
+      : phase === 'drawing'
+        ? points.length === 0
+          ? t('addField.boundaryCoachFirst')
+          : points.length < 3
+            ? t('addField.boundaryCoachMore', { count: points.length })
+            : t('addField.boundaryCoachFinish')
+        : t('addField.boundaryCoachDone');
+
+  const overlayBg = colors.surfaceElevated + 'F2';
+  const overlayElevation = createElevation(colors, 'sm');
+
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.desc, { color: colors.textSecondary }]}>
-        {t('addFieldWizard.boundaryDesc')}
-      </Text>
+      <View style={[styles.coach, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
+        <Ionicons name="location-outline" size={18} color={colors.primary} />
+        <Text style={[styles.coachText, { color: colors.primary }]}>{coachText}</Text>
+      </View>
+
       <View
-        style={[styles.mapWrap, { height, borderColor: colors.borderLight }]}
+        style={[
+          styles.mapWrap,
+          {
+            height,
+            borderColor: phase === 'drawing' ? colors.primary : colors.borderLight,
+            borderWidth: phase === 'drawing' ? 2 : 1,
+          },
+        ]}
         onTouchStart={() => setGestureActive(true)}
         onTouchEnd={() => setGestureActive(false)}
         onTouchCancel={() => setGestureActive(false)}
@@ -163,7 +245,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
           key={`boundary-draw-${mapLayer}`}
           style={styles.map}
           initialRegion={framedRegion}
-          maxZoom={FIELD_HERO_MAX_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
           mapLayer={mapLayer}
           scrollEnabled
           zoomEnabled
@@ -175,16 +257,130 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
               focusMap();
             }
           }}
-          onPress={({ coordinate }) => onPointsChange([...points, coordinate])}
+          onPress={({ coordinate }) => {
+            if (phase !== 'drawing') return;
+            if (Date.now() < suppressMapTapUntilRef.current) return;
+            onPointsChange([...points, coordinate]);
+          }}
         >
-          <MapPointLayer sourceId="boundary-vertices" points={vertexPoints} radius={8} />
+          <BoundaryVertexPins
+            points={points}
+            onMove={movePoint}
+            suppressMapTapUntilRef={suppressMapTapUntilRef}
+            onDragActiveChange={setGestureActive}
+          />
           {points.length >= 3 ? (
             <MapPolygonLayer id="draft-boundary" ring={points} />
           ) : null}
         </AppMapView>
-        <View style={styles.toggle} pointerEvents="box-none">
-          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+
+        <View style={styles.overlays} pointerEvents="box-none">
+          <View style={styles.overlayTop} pointerEvents="box-none">
+            <View style={styles.toggle} pointerEvents="box-none">
+              <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
+            </View>
+
+            <View
+              style={[
+                styles.actionBar,
+                { backgroundColor: overlayBg, borderColor: colors.borderLight, ...overlayElevation },
+              ]}
+            >
+              {phase === 'locate' ? (
+                <>
+                  <Pressable
+                    style={[styles.toolBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
+                    onPress={centerOnUser}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('addField.useCurrentLocation')}
+                  >
+                    <Ionicons name="navigate-outline" size={16} color={colors.textPrimary} />
+                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                      {t('addField.useCurrentLocation')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => setPhase('drawing')}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('addField.boundaryStartMarking')}
+                  >
+                    <Ionicons name="locate-outline" size={18} color={colors.onOlive} />
+                    <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
+                      {t('addField.boundaryStartMarking')}
+                    </Text>
+                  </Pressable>
+                </>
+              ) : null}
+
+              {phase === 'drawing' ? (
+                <>
+                  <Pressable
+                    style={[
+                      styles.toolBtn,
+                      { borderColor: colors.borderLight, backgroundColor: colors.surface, opacity: points.length === 0 ? 0.45 : 1 },
+                    ]}
+                    onPress={() => onPointsChange(points.slice(0, -1))}
+                    disabled={points.length === 0}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="arrow-undo-outline" size={16} color={colors.textPrimary} />
+                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                      {t('addField.boundaryUndo')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.toolBtn,
+                      { borderColor: colors.borderLight, backgroundColor: colors.surface, opacity: points.length === 0 ? 0.45 : 1 },
+                    ]}
+                    onPress={clearBoundary}
+                    disabled={points.length === 0}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.textPrimary} />
+                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                      {t('addField.boundaryClear')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.primaryBtn,
+                      { backgroundColor: colors.primary, opacity: points.length < 3 ? 0.45 : 1 },
+                    ]}
+                    onPress={finishShape}
+                    disabled={points.length < 3}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="checkmark" size={18} color={colors.onOlive} />
+                    <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
+                      {t('addField.boundaryFinish')}
+                    </Text>
+                  </Pressable>
+                </>
+              ) : null}
+
+              {phase === 'done' ? (
+                <>
+                  <Pressable
+                    style={[styles.toolBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
+                    onPress={clearBoundary}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="refresh-outline" size={16} color={colors.textPrimary} />
+                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                      {t('addField.boundaryRedraw')}
+                    </Text>
+                  </Pressable>
+                  <Text style={[styles.doneNote, { color: colors.textSecondary }]}>
+                    {t('addField.boundarySavedHint')}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+          </View>
         </View>
+
         <View style={styles.zoom} pointerEvents="box-none">
           <MapZoomControls
             onZoomIn={() => mapRef.current?.zoomIn()}
@@ -193,48 +389,93 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
         </View>
       </View>
 
-      <View style={styles.toolbar}>
-        <Pressable style={[styles.toolBtn, { borderColor: colors.borderLight }]} onPress={() => onPointsChange(points.slice(0, -1))}>
-          <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.undoPoint')}</Text>
-        </Pressable>
-        <Pressable style={[styles.toolBtn, { borderColor: colors.borderLight }]} onPress={() => onPointsChange([])}>
-          <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.toolBtn, { borderColor: colors.primary, backgroundColor: colors.primary + '12' }]}
-          onPress={centerOnUser}
-        >
-          <Text style={{ color: colors.primary }}>{t('addField.useCurrentLocation')}</Text>
-        </Pressable>
-      </View>
-
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        {t('addFieldWizard.tapToAddPoint')}
-        {measuredSqm > 0 ? ` · ${measuredSqm} m²` : ''}
-      </Text>
+      {points.length > 0 ? (
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          {t('addField.boundaryCornerCount', { count: points.length })}
+          {measuredSqm > 0 ? ` · ${measuredSqm} m²` : ''}
+        </Text>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
-  desc: { ...typography.styles.bodySmall },
+  coach: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+  },
+  coachText: {
+    ...typography.styles.bodySmall,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 20,
+  },
   mapWrap: {
-    borderRadius: 12,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     borderWidth: 1,
+    position: 'relative',
   },
   map: { flex: 1 },
-  toggle: { position: 'absolute', top: spacing.sm, right: spacing.sm },
-  zoom: { position: 'absolute', bottom: spacing.sm, right: spacing.sm },
-  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  overlays: {
+    ...StyleSheet.absoluteFillObject,
+    padding: spacing.sm,
+  },
+  overlayTop: {
+    gap: spacing.sm,
+  },
+  toggle: { alignSelf: 'flex-end' },
+  actionBar: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.sm,
+    gap: spacing.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
   toolBtn: {
-    paddingHorizontal: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: 8,
+    borderRadius: radii.md,
     borderWidth: 1,
   },
-  hint: { ...typography.styles.caption },
+  toolBtnText: {
+    ...typography.styles.caption,
+    fontWeight: '600',
+  },
+  primaryBtn: {
+    flexGrow: 1,
+    flexBasis: '100%',
+    minHeight: 48,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  primaryBtnText: {
+    ...typography.styles.body,
+    fontWeight: '700',
+  },
+  doneNote: {
+    ...typography.styles.caption,
+    fontWeight: '600',
+    flex: 1,
+  },
+  zoom: { position: 'absolute', bottom: spacing.sm, right: spacing.sm },
+  hint: { ...typography.styles.caption, fontWeight: '600' },
 });
 
 export default FieldBoundaryDrawMap;

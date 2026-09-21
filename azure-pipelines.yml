@@ -25,6 +25,13 @@ parameters:
     type: boolean
     default: true
 
+  # Destructive: drops the OliveLifecycle Mongo database so API seed recreates field-centric demos.
+  # Leave true for this cutover deploy; set false afterward so routine CI does not wipe prod data.
+  - name: wipeProductionDatabase
+    displayName: 'Wipe production MongoDB (OliveLifecycle) before backend deploy'
+    type: boolean
+    default: true
+
 variables:
   # Library variable group (Pipelines → Library → Agrotrack-Secrets).
   # Must stay linked or DOCKER_*/JWT_*/MONGODB_* will be empty and docker login breaks.
@@ -259,6 +266,24 @@ stages:
           - script: 'kubectl apply -f backend/k8s/pvc.yaml'
             displayName: 'Apply backend uploads PVC'
             condition: eq('${{ parameters.deployBackend }}', true)
+
+          - task: Bash@3
+            displayName: 'Wipe production MongoDB (OliveLifecycle)'
+            condition: and(eq('${{ parameters.deployBackend }}', true), eq('${{ parameters.wipeProductionDatabase }}', true))
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+                if [ -z "${MONGODB_CONNECTION_STRING:-}" ]; then
+                  echo "ERROR: MONGODB_CONNECTION_STRING is empty; cannot wipe database."
+                  exit 1
+                fi
+                DB_NAME="OliveLifecycle"
+                echo "Dropping MongoDB database '${DB_NAME}' (field-centric reseed on next API start)..."
+                docker run --rm mongo:7 mongosh "${MONGODB_CONNECTION_STRING}" --quiet --eval "db.getSiblingDB('${DB_NAME}').dropDatabase()"
+                echo "Database '${DB_NAME}' dropped."
+            env:
+              MONGODB_CONNECTION_STRING: $(MONGODB_CONNECTION_STRING)
 
           - task: Bash@3
             displayName: 'Create backend Kubernetes Secrets'

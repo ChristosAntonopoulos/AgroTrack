@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronRight, CloudRain, ExternalLink, MoreHorizontal, Pin } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronRight,
+  CloudRain,
+  ExternalLink,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  Trash2,
+} from 'lucide-react';
 import Button from '../Common/Button';
 import ChronologioDetailShell from './ChronologioDetailShell';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
@@ -11,8 +20,19 @@ import ChronologioTodayWeatherDetail from './ChronologioTodayWeatherDetail';
 import type { TodayWeatherField } from './ChronologioTodayWeatherDetail';
 import type { FieldWeather } from '../../services/geospatialService';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import NoteSheet from '../Dashboard/NoteSheet';
 import { useCaptureOptional } from '../../context/CaptureContext';
-import { getNoteService } from '../../services/serviceFactory';
+import { useAuth } from '../../context/AuthContext';
+import { taskFormPath, taskPeekPath } from '../../navigation/intents';
+import {
+  getFieldWorkService,
+  getFinancialTransactionService,
+  getHarvestService,
+  getNoteService,
+  getPhotoService,
+} from '../../services/serviceFactory';
+import type { Note } from '../../services/noteService';
+import { CAPTURE_SAVED_EVENT } from '../../capture/types';
 import type {
   ChronologioEntry,
   ChronologioMonthSummary,
@@ -30,10 +50,20 @@ import {
 import { resolveFieldColor, resolveWeatherMood, WEATHER_MOOD_COLORS } from '../../utils/fieldColors';
 import { presentCategory, presentChronologioEvent } from '../../chronologio/eventPresentation';
 import { chronologioDetailKind, detailAccentToken } from '../../chronologio/detailKind';
+import {
+  chronologioEntryCapabilities,
+  chronologioHarvestId,
+  chronologioMoneyTxId,
+  chronologioNoteId,
+  chronologioPhotoId,
+  chronologioTaskId,
+  chronologioWebDestination,
+} from '../../chronologio/entryDestination';
 import { harvestHasResult } from '../../chronologio/monthPresentation';
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
 import { harvestYearCopyKey, yearComparison } from '../../chronologio/yearPresentation';
 import { isMeaningfulHighlight } from '../../chronologio/monthPresentation';
+import { formatGroveMassKg } from '../../utils/groveTotals';
 import type { EventAccentToken } from '../../chronologio/eventCardLayout';
 
 export type ChronologioPeekTarget =
@@ -75,11 +105,15 @@ export type ChronologioPeekTarget =
       seed?: { fieldId: string; weather: FieldWeather };
     };
 
+type FieldOption = { id: string; name: string };
+
 type Props = {
   peek: ChronologioPeekTarget | null;
   numberLocale: string;
   weatherByDate?: Record<string, DayWeatherInput>;
+  fieldOptions?: FieldOption[];
   onClose: () => void;
+  onMutated?: () => void;
   onDrillToMonths?: (periodYear: number) => void;
   onDrillToDays?: (year: number, month: number) => void;
   onSelectRecent?: (entry: ChronologioEntry) => void;
@@ -89,14 +123,17 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
   peek,
   numberLocale,
   weatherByDate,
+  fieldOptions = [],
   onClose,
+  onMutated,
   onDrillToMonths,
   onDrillToDays,
   onSelectRecent,
 }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'common']);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'money', 'fields']);
   const navigate = useNavigate();
   const capture = useCaptureOptional();
+  const { user } = useAuth();
   const tt = (key: string, opts?: Record<string, string | number>) =>
     t(key, opts as Record<string, unknown>);
 
@@ -117,8 +154,13 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
 
   const entry = peek?.mode === 'event' ? peek.entry : null;
   const kind = entry ? chronologioDetailKind(entry) : null;
+  const caps = entry
+    ? chronologioEntryCapabilities(entry, { userId: user?.userId, role: user?.role })
+    : { canEdit: false, removeAction: null };
   const [notePinned, setNotePinned] = useState(Boolean(entry?.details.note?.pinned));
   const [pinBusy, setPinBusy] = useState(false);
+  const [mutateBusy, setMutateBusy] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   useEffect(() => {
     setNotePinned(Boolean(entry?.details.note?.pinned));
@@ -218,17 +260,30 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
         ? peek.fieldColor || undefined
         : undefined;
 
-  const openFull = () => {
+  const notifyMutated = () => {
+    window.dispatchEvent(new CustomEvent(CAPTURE_SAVED_EVENT));
+    onMutated?.();
+  };
+
+  const openDestination = () => {
     if (!entry) return;
-    if (entry.sourceType === 'Task' || entry.sourceType === 'TaskExecution') {
-      navigate(`/tasks/${entry.details.task?.taskId || entry.sourceId}`);
-    } else if (entry.sourceType === 'Expense' || entry.sourceType === 'Income') {
-      navigate(
-        `/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&tx=${encodeURIComponent(entry.sourceId)}` : ''}`
-      );
-    } else if (entry.sourceType === 'Harvest') navigate('/harvest');
-    else if (entry.sourceType === 'WeatherReview' || kind === 'weatherPeriod') {
-      navigate(`/fields/${entry.fieldId}?tab=map`);
+    const dest = chronologioWebDestination(entry);
+    if (dest.kind === 'path') {
+      navigate(dest.path);
+      return;
+    }
+    if (dest.kind === 'noteEdit') {
+      void openNoteEditor(dest.noteId, dest.fieldId);
+    }
+  };
+
+  const openNoteEditor = async (noteId: string, fieldId: string) => {
+    try {
+      const notes = await getNoteService().getNotes({ fieldId: fieldId || undefined });
+      const note = notes.find((n) => n.id === noteId);
+      if (note) setEditingNote(note);
+    } catch {
+      // keep peek open
     }
   };
 
@@ -243,12 +298,12 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
 
   const createTaskFromNote = () => {
     if (!entry) return;
-    navigate(`/tasks/new?fieldId=${encodeURIComponent(entry.fieldId)}`);
+    navigate(taskFormPath({ fieldId: entry.fieldId }));
   };
 
   const togglePin = async () => {
     if (!entry) return;
-    const id = entry.details.note?.noteId || entry.sourceId;
+    const id = chronologioNoteId(entry);
     if (!id) return;
     setPinBusy(true);
     try {
@@ -261,6 +316,7 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
         pinned: !notePinned,
       });
       setNotePinned(next.pinned);
+      notifyMutated();
     } catch {
       // keep current pin state
     } finally {
@@ -268,11 +324,88 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     }
   };
 
+  const removeEntry = async () => {
+    if (!entry || !caps.removeAction) return;
+    const action = caps.removeAction;
+    const confirmKey =
+      action === 'cancel'
+        ? 'drawer.cancelConfirm'
+        : action === 'void'
+          ? 'drawer.voidConfirm'
+          : 'drawer.deleteConfirm';
+    if (!window.confirm(t(confirmKey, { defaultValue: t('common:delete') }))) return;
+
+    setMutateBusy(true);
+    try {
+      if (action === 'delete' && (entry.sourceType === 'Note' || entry.category === 'note')) {
+        const id = chronologioNoteId(entry);
+        if (id) await getNoteService().deleteNote(id);
+      } else if (action === 'delete' && (entry.sourceType === 'Photo' || entry.category === 'photo')) {
+        const id = chronologioPhotoId(entry);
+        if (id) await getPhotoService().delete(id);
+      } else if (action === 'void' && kind === 'money') {
+        const id = chronologioMoneyTxId(entry);
+        if (id) {
+          const tx = await getFinancialTransactionService().getById(id);
+          if (tx.status === 'draft') await getFinancialTransactionService().deleteDraft(id);
+          else if (tx.status === 'posted') {
+            await getFinancialTransactionService().void(id, t('money:voidReasonPrompt'));
+          }
+        }
+      } else if (action === 'void' && kind === 'harvest') {
+        const id = chronologioHarvestId(entry);
+        if (id) await getHarvestService().void(id, t('drawer.voidConfirm'));
+      } else if (action === 'cancel' && kind === 'task') {
+        const id = chronologioTaskId(entry);
+        if (id) await getFieldWorkService().cancelFieldTask(id);
+      }
+      notifyMutated();
+      onClose();
+    } catch {
+      window.alert(t('drawer.mutateFailed', { defaultValue: 'Could not update that record.' }));
+    } finally {
+      setMutateBusy(false);
+    }
+  };
+
+  const removeLabel =
+    caps.removeAction === 'cancel'
+      ? t('drawer.cancelTask', { defaultValue: t('common:cancel') })
+      : caps.removeAction === 'void'
+        ? t('drawer.void', { defaultValue: 'Void' })
+        : t('common:delete');
+
+  const mutateButtons =
+    entry && (caps.canEdit || caps.removeAction) ? (
+      <>
+        {caps.canEdit ? (
+          <Button
+            variant={kind === 'task' ? 'ghost' : 'outline'}
+            icon={kind === 'task' ? <MoreHorizontal size={14} /> : <Pencil size={14} />}
+            disabled={mutateBusy}
+            onClick={openDestination}
+          >
+            {t('common:edit')}
+          </Button>
+        ) : null}
+        {caps.removeAction ? (
+          <Button
+            variant="outline"
+            icon={<Trash2 size={14} />}
+            disabled={mutateBusy}
+            onClick={() => void removeEntry()}
+          >
+            {removeLabel}
+          </Button>
+        ) : null}
+      </>
+    ) : null;
+
   const footer = (() => {
     if (peek?.mode === 'event' && kind === 'task') {
       return (
         <>
-          <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openFull}>
+          <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openDestination}>
             {t('living.openTask')}
           </Button>
           {capture ? (
@@ -280,41 +413,78 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
               {t('drawer.addNote')}
             </Button>
           ) : null}
-          <Button variant="ghost" icon={<MoreHorizontal size={14} />} onClick={openFull}>
-            {t('common:edit')}
+          {mutateButtons}
+        </>
+      );
+    }
+    if (peek?.mode === 'event' && entry?.sourceType === 'Photo') {
+      return (
+        <>
+          <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openDestination}>
+            {t('drawer.openPhoto', { defaultValue: 'Open photo' })}
           </Button>
+          {mutateButtons}
         </>
       );
     }
     if (peek?.mode === 'event' && kind === 'observation') {
       return (
         <>
-          <Button variant="primary" onClick={createTaskFromNote}>
-            {t('drawer.createTask')}
-          </Button>
-          <Button variant="outline" icon={<Pin size={14} />} onClick={() => void togglePin()} disabled={pinBusy}>
-            {notePinned ? t('drawer.unpin') : t('drawer.pin')}
-          </Button>
+          {caps.canEdit ? (
+            <Button variant="primary" icon={<Pencil size={14} />} disabled={mutateBusy} onClick={openDestination}>
+              {t('common:edit')}
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={createTaskFromNote}>
+              {t('drawer.createTask')}
+            </Button>
+          )}
+          {caps.canEdit ? (
+            <Button variant="outline" icon={<Pin size={14} />} onClick={() => void togglePin()} disabled={pinBusy}>
+              {notePinned ? t('drawer.unpin') : t('drawer.pin')}
+            </Button>
+          ) : null}
+          {caps.removeAction ? (
+            <Button
+              variant="outline"
+              icon={<Trash2 size={14} />}
+              disabled={mutateBusy}
+              onClick={() => void removeEntry()}
+            >
+              {removeLabel}
+            </Button>
+          ) : null}
+          {caps.canEdit ? (
+            <Button variant="outline" onClick={createTaskFromNote}>
+              {t('drawer.createTask')}
+            </Button>
+          ) : null}
         </>
       );
     }
     if (peek?.mode === 'event' && kind === 'money') {
       return (
-        <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openFull}>
-          {t('drawer.openMoney')}
-        </Button>
+        <>
+          <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openDestination}>
+            {t('drawer.openMoney')}
+          </Button>
+          {mutateButtons}
+        </>
       );
     }
     if (peek?.mode === 'event' && kind === 'harvest') {
       return (
-        <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openFull}>
-          {t('living.openHarvest')}
-        </Button>
+        <>
+          <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openDestination}>
+            {t('living.openHarvest')}
+          </Button>
+          {mutateButtons}
+        </>
       );
     }
     if (peek?.mode === 'event' && kind === 'weatherPeriod') {
       return (
-        <Button variant="outline" icon={<ExternalLink size={14} />} onClick={openFull}>
+        <Button variant="outline" icon={<ExternalLink size={14} />} onClick={openDestination}>
           {t('weatherReview.openMap')}
         </Button>
       );
@@ -322,7 +492,7 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     if (peek?.mode === 'event' && kind === 'warning' && entry?.details.intelligence?.relatedSourceIds?.[0]) {
       const related = entry.details.intelligence.relatedSourceIds[0];
       return (
-        <Button variant="primary" onClick={() => navigate(`/tasks/${related}`)}>
+        <Button variant="primary" onClick={() => navigate(taskPeekPath(related))}>
           {t('living.openTask')}
         </Button>
       );
@@ -371,6 +541,7 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     entry && weatherByDate ? weatherByDate[dayWeatherDateKey(entry.occurredAt)] || null : null;
 
   return (
+    <>
     <ChronologioDetailShell
       open={Boolean(peek)}
       onClose={onClose}
@@ -442,9 +613,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
             <h3>{t('monthView.harvest')}</h3>
             {harvestHasResult(peek.summary) ? (
               <p>
-                {`${Math.round(peek.summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+                {`${formatGroveMassKg(peek.summary.oliveKg, numberLocale)} ${t('olivesUnit')}`}
                 {peek.summary.oilKg > 0
-                  ? ` · ${peek.summary.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
+                  ? ` · ${formatGroveMassKg(peek.summary.oilKg, numberLocale)} ${t('oilUnit')}`
                   : ''}
               </p>
             ) : (
@@ -554,9 +725,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
             <h3>{t('monthView.harvest')}</h3>
             {harvestYearCopyKey(peek.summary) === 'result' && harvestHasResult(peek.summary) ? (
               <p>
-                {`${Math.round(peek.summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+                {`${formatGroveMassKg(peek.summary.oliveKg, numberLocale)} ${t('olivesUnit')}`}
                 {peek.summary.oilKg > 0
-                  ? ` · ${peek.summary.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
+                  ? ` · ${formatGroveMassKg(peek.summary.oilKg, numberLocale)} ${t('oilUnit')}`
                   : ''}
               </p>
             ) : (
@@ -654,6 +825,18 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
         </div>
       ) : null}
     </ChronologioDetailShell>
+    <NoteSheet
+      open={Boolean(editingNote)}
+      note={editingNote || undefined}
+      fields={fieldOptions}
+      onClose={() => setEditingNote(null)}
+      onChanged={async () => {
+        setEditingNote(null);
+        notifyMutated();
+        onClose();
+      }}
+    />
+    </>
   );
 };
 

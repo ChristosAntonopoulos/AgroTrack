@@ -38,6 +38,7 @@ import { resolveWeatherKind } from '../utils/taskWeather';
 import { isWeatherSensitiveTemplate } from '../data/fieldWorkCatalogueLabels';
 import { weatherExplanationCopy } from '../utils/proposalPresentation';
 import { RootStackParamList } from '../navigation/types';
+import { openChronologioHome } from '../navigation/intents';
 
 type Route = RouteProp<RootStackParamList, 'TaskDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -514,7 +515,7 @@ const TaskDetailScreen = () => {
         </View>
 
         {status === 'completed' ? (
-          <Pressable onPress={() => navigation.navigate('Chronologio', {})} style={{ paddingVertical: spacing.md }}>
+          <Pressable onPress={() => openChronologioHome(navigation)} style={{ paddingVertical: spacing.md }}>
             <Text style={{ color: colors.link, fontWeight: '700', textAlign: 'center' }}>
               {t('fieldWork.seeCompletedInChronologio')}
             </Text>

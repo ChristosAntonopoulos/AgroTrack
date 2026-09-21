@@ -159,7 +159,9 @@ describe('TaskFormPage Phase 4', () => {
       {
         userId: 'partner-1',
         displayName: 'Κώστας',
-        capacities: ['work'],
+        role: 'Partner',
+        modules: ['fields', 'tasks', 'calendar'],
+        accessLevel: 'work',
         status: 'Active',
         createdAt: '2026-01-01T00:00:00Z',
       },

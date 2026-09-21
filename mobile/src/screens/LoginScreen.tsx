@@ -181,6 +181,7 @@ const LoginScreen = () => {
                 <View style={styles.demoSection}>
                   <Text style={styles.demoTitle}>{t('auth:login.demoTitle')}</Text>
                   <Text style={styles.demoHint}>{t('auth:login.demoHint')}</Text>
+                  <Text style={styles.demoDataNote}>{t('auth:login.demoDataNote')}</Text>
                   <View style={styles.demoRow}>
                     {mobileDemoUsers.map((u) => (
                       <UserCard
@@ -336,6 +337,11 @@ const styles = StyleSheet.create({
   demoHint: {
     ...typography.styles.caption,
     color: loginTheme.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  demoDataNote: {
+    ...typography.styles.caption,
+    color: loginTheme.textMuted,
     marginBottom: spacing.md,
   },
   demoRow: {

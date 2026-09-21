@@ -26,7 +26,6 @@ type Props = {
   embedded?: boolean;
   onBack?: () => void;
   onSetZoom: (z: ChronologioZoom) => void;
-  onOpenJournal?: () => void;
   onSetFilters: (f: Partial<LivingFilters>) => void;
   onCompareToggle: () => void;
 };
@@ -62,7 +61,6 @@ const ChronologioChrome: React.FC<Props> = ({
   embedded = false,
   onBack,
   onSetZoom,
-  onOpenJournal,
   onSetFilters,
   onCompareToggle,
 }) => {
@@ -72,10 +70,6 @@ const ChronologioChrome: React.FC<Props> = ({
   const railCategory = railFromFilter(filters.category);
 
   const setView = (next: ChronologioView) => {
-    if (next === 'days' && onOpenJournal) {
-      onOpenJournal();
-      return;
-    }
     onSetZoom(VIEW_TO_ZOOM[next]);
   };
 

@@ -3,6 +3,7 @@ import type {
   ChronologioPeriodSummary,
 } from '../services/chronologioService';
 import { formatChronologioMoney } from '../utils/chronologioGrouping';
+import { formatGroveMassKg, formatGroveMassKgLabel } from '../utils/groveTotals';
 
 type TFn = (key: string, opts?: Record<string, string | number>) => string;
 
@@ -30,12 +31,12 @@ export const monthChapterFacts = (
     facts.push(formatChronologioMoney(m.expenseTotal, m.currency, numberLocale));
   }
   if (m.oliveKg > 0) {
-    facts.push(`${Math.round(m.oliveKg).toLocaleString(numberLocale)} kg`);
+    facts.push(formatGroveMassKgLabel(m.oliveKg, numberLocale));
   }
   if (m.rainfallMm != null && m.rainfallMm > 0 && facts.length < 4) {
     facts.push(t('living.statRain', { mm: Math.round(m.rainfallMm) }));
   } else if (m.oilKg > 0 && facts.length < 4) {
-    facts.push(`${Math.round(m.oilKg).toLocaleString(numberLocale)} kg ${t('living.metricOil')}`);
+    facts.push(`${formatGroveMassKgLabel(m.oilKg, numberLocale)} ${t('living.metricOil')}`);
   }
   return facts.slice(0, 4);
 };
@@ -70,18 +71,17 @@ export const yearFixedMetrics = (
     },
     {
       label: t('living.metricOlives'),
-      value:
-        s.oliveKg > 0 ? `${Math.round(s.oliveKg).toLocaleString(numberLocale)} kg` : dash,
+      value: s.oliveKg > 0 ? formatGroveMassKgLabel(s.oliveKg, numberLocale) : dash,
     },
     {
       label: t('living.metricOil'),
-      value: s.oilKg > 0 ? `${Math.round(s.oilKg).toLocaleString(numberLocale)} kg` : dash,
+      value: s.oilKg > 0 ? formatGroveMassKgLabel(s.oilKg, numberLocale) : dash,
     },
     {
       label: t('living.metricYield'),
       value:
         s.oilYieldPercent != null && s.oilYieldPercent > 0
-          ? `${s.oilYieldPercent}%`
+          ? `${formatGroveMassKg(s.oilYieldPercent, numberLocale)}%`
           : dash,
     },
   ];

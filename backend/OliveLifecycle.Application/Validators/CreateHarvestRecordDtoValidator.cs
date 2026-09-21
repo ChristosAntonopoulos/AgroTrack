@@ -8,8 +8,12 @@ public class CreateHarvestRecordDtoValidator : AbstractValidator<CreateHarvestRe
     public CreateHarvestRecordDtoValidator()
     {
         RuleFor(x => x.FieldId).NotEmpty();
-        RuleFor(x => x.OliveKg).GreaterThan(0);
+        RuleFor(x => x.OliveKg).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.SackCount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.WorkersUsed).GreaterThanOrEqualTo(0);
+        RuleFor(x => x)
+            .Must(x => x.OliveKg > 0 || x.SackCount > 0 || x.OilKg is > 0 || x.OilLitres is > 0 || x.WorkersUsed > 0)
+            .WithMessage("Record olives, sacks, oil, or people.");
         RuleFor(x => x.OilKg).GreaterThan(0).When(x => x.OilKg.HasValue);
         RuleFor(x => x.SaleAmount).GreaterThan(0).When(x => x.SaleAmount.HasValue);
         RuleFor(x => x.MillCost).GreaterThan(0).When(x => x.MillCost.HasValue);

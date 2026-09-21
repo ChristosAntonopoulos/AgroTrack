@@ -1,15 +1,36 @@
-/** Olive agricultural / harvest year: 1 Feb Y → 31 Jan Y+1. */
+import { athensParts, parseBusinessDate } from '../utils/athensDate';
+
+/** Olive agricultural / harvest year: 1 Feb Y → 31 Jan Y+1. Matches backend ResultYear. */
 export const AGRICULTURAL_YEAR_START_MONTH = 2;
 
-export const agriculturalYearFor = (value: Date | number = new Date()): number => {
-  const d = typeof value === 'number' ? new Date(value, 0, 1) : value;
-  const month = d.getMonth() + 1;
-  const year = d.getFullYear();
-  return month >= AGRICULTURAL_YEAR_START_MONTH ? year : year - 1;
+export const agriculturalYearFor = (value: string | Date | number = new Date()): number => {
+  const parts = athensParts(parseBusinessDate(value));
+  return parts.month >= AGRICULTURAL_YEAR_START_MONTH ? parts.year : parts.year - 1;
 };
 
-export const agriculturalYearRangeLabel = (resultYear: number, language = 'en'): string => {
-  const locale = language.toLowerCase().startsWith('el') ? 'el-GR' : 'en-GB';
+export const agriculturalYearBounds = (resultYear: number): { from: Date; to: Date } => ({
+  from: new Date(Date.UTC(resultYear, AGRICULTURAL_YEAR_START_MONTH - 1, 1, 0, 0, 0)),
+  to: new Date(Date.UTC(resultYear + 1, AGRICULTURAL_YEAR_START_MONTH - 1, 1, 0, 0, 0) - 1),
+});
+
+export const agriculturalYearMonths = (resultYear: number): { year: number; month: number }[] => {
+  const months: { year: number; month: number }[] = [];
+  for (let month = AGRICULTURAL_YEAR_START_MONTH; month <= 12; month += 1) {
+    months.push({ year: resultYear, month });
+  }
+  for (let month = 1; month < AGRICULTURAL_YEAR_START_MONTH; month += 1) {
+    months.push({ year: resultYear + 1, month });
+  }
+  return months;
+};
+
+export const agriculturalYearTitle = (resultYear: number, language = 'el'): string =>
+  language.toLowerCase().startsWith('en')
+    ? `Agricultural year ${resultYear}`
+    : `Καλλιεργητική χρονιά ${resultYear}`;
+
+export const agriculturalYearRangeLabel = (resultYear: number, language = 'el'): string => {
+  const locale = language.toLowerCase().startsWith('en') ? 'en-GB' : 'el-GR';
   const from = new Date(resultYear, AGRICULTURAL_YEAR_START_MONTH - 1, 1);
   const to = new Date(resultYear + 1, 0, 31);
   const fmt = (d: Date) =>

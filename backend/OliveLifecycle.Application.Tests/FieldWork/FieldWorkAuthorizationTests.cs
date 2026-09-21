@@ -70,12 +70,6 @@ public class FieldWorkAuthorizationTests
     public async Task Agronomist_CanRecordPhenology_ButNotMoney()
     {
         var field = ActiveField("owner-1");
-        field.Memberships.Add(new FieldMembership
-        {
-            UserId = "agro-1",
-            Capacities = [FieldCapacities.Advise],
-            Status = "active"
-        });
         _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
         _fieldAccess.Setup(a => a.CanUserModifyFieldAsync("field-1", "agro-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -113,14 +107,9 @@ public class FieldWorkAuthorizationTests
         OwnerId = ownerId,
         Status = FieldStatus.Active,
         Name = "Κτήμα Φιλιατρών",
-        Memberships =
+        People =
         [
-            new FieldMembership
-            {
-                UserId = ownerId,
-                Capacities = [FieldCapacities.Own, FieldCapacities.Work],
-                Status = "active"
-            }
+            FieldPeopleRules.CreateAdminSeat(ownerId)
         ]
     };
 }

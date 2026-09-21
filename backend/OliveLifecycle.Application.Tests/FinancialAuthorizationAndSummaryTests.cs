@@ -1,7 +1,6 @@
 using Moq;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
-using OliveLifecycle.Application.DTOs.Family;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
@@ -32,8 +31,6 @@ public class FinancialAuthorizationServiceTests
             .ReturnsAsync(true);
         _access.Setup(a => a.CanUserModifyFieldAsync("field-1", "agro-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _access.Setup(a => a.GetFamilyAccessForFieldAsync("field-1", "agro-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((FamilyAccessSnapshot?)null);
 
         var result = await _service.ResolveForFieldAsync("field-1", "agro-1", Roles.Agronomist);
 
@@ -47,13 +44,19 @@ public class FinancialAuthorizationServiceTests
     public async Task Collaborator_CanAddExpense_ButNotSeeIncomeOrYearResult()
     {
         var field = ActiveField();
+        FieldPeopleRules.AddOrReplaceSeat(
+            field,
+            FieldPersonRole.Family,
+            "helper-1",
+            [FamilyModules.Money, FamilyModules.Fields],
+            FamilyAccessLevels.Work,
+            "owner-1",
+            status: FamilyMemberStatuses.Active);
         _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
         _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "helper-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _access.Setup(a => a.CanUserModifyFieldAsync("field-1", "helper-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _access.Setup(a => a.GetFamilyAccessForFieldAsync("field-1", "helper-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FamilyAccessSnapshot("owner-1", "mem-1", [FamilyModules.Money], FamilyAccessLevels.Work));
 
         var result = await _service.ResolveForFieldAsync("field-1", "helper-1", Roles.FieldOwner);
 
@@ -123,6 +126,7 @@ public class FinancialSummaryServiceTests
 {
     private readonly Mock<IFinancialTransactionRepository> _transactions = new();
     private readonly Mock<IFieldRepository> _fields = new();
+    private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IHarvestRecordRepository> _harvests = new();
     private readonly Mock<IFinancialAuthorizationService> _auth = new();
@@ -133,6 +137,7 @@ public class FinancialSummaryServiceTests
         _service = new FinancialSummaryService(
             _transactions.Object,
             _fields.Object,
+            _fieldAccessScope.Object,
             _fieldTasks.Object,
             _harvests.Object,
             _auth.Object);
@@ -141,7 +146,8 @@ public class FinancialSummaryServiceTests
     [Fact]
     public async Task GetYearSummary_UsesCalculatorAndExcludesDraftFields()
     {
-        _fields.Setup(r => r.GetByOwnerIdAsync("owner-1", It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                "owner-1", Roles.FieldOwner, FamilyModules.Money, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new Field { Id = "field-1", OwnerId = "owner-1", Name = "Ενεργό", Status = FieldStatus.Active, Area = 2 },
@@ -201,7 +207,8 @@ public class FinancialSummaryServiceTests
     [Fact]
     public async Task GetYearSummary_ProfessionalForbidden()
     {
-        _fields.Setup(r => r.GetByOwnerIdAsync("agro-1", It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                "agro-1", Roles.Agronomist, FamilyModules.Money, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Field>());
         _auth.Setup(a => a.ResolveForUnassignedAsync("agro-1", Roles.Agronomist, It.IsAny<CancellationToken>()))
             .ReturnsAsync(FinancialAccess.None);

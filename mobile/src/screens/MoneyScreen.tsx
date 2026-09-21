@@ -34,18 +34,32 @@ import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
 import { UNASSIGNED_FIELD_QUERY } from '../finance/buildYearSummary';
-import { formatOfficialAmount, formatOfficialNet, isForbiddenError } from '../finance/format';
+import {
+  formatOfficialAmount,
+  formatOfficialNet,
+  isForbiddenError,
+  perAreaForDisplay,
+} from '../finance/format';
 import {
   financialCategoryLabel,
   financialStatusLabel,
   financialTypeLabel,
   isRawFinancialValue,
   resultLabel,
+  shortMonthLabel,
   unassignedFieldLabel,
 } from '../finance/display';
+import {
+  agriculturalYearFor,
+  agriculturalYearRangeLabel,
+} from '../chronologio/agriculturalYear';
 import { spacing, typography, radii, createElevation } from '../theme';
 
-const overlayUnassigned = (summary: YearFinancialSummary, language: string): YearFinancialSummary => {
+const overlayUnassigned = (
+  summary: YearFinancialSummary,
+  language: string,
+  isActiveYear: boolean
+): YearFinancialSummary => {
   const row = summary.fieldResults.find((item) => item.isUnassigned);
   const hasPosted = Boolean(row && row.transactionCount > 0);
   return {
@@ -54,7 +68,10 @@ const overlayUnassigned = (summary: YearFinancialSummary, language: string): Yea
     totalIncome: row?.income ?? null,
     totalExpenses: row?.expenses ?? null,
     netResult: row?.netResult ?? null,
-    resultLabel: resultLabel(row?.netResult, hasPosted, language),
+    resultLabel: resultLabel(row?.netResult, hasPosted, language, {
+      isActiveYear,
+      totalIncome: row?.income ?? null,
+    }),
     transactionCount: row?.transactionCount ?? 0,
     monthlyResults: summary.monthlyResults.map((month) => ({
       ...month,
@@ -84,9 +101,10 @@ const MoneyScreen = () => {
   const capture = useCaptureOptional();
   const navigation = useNavigation();
   const route = useRoute();
-  const routeParams = route.params as { fieldId?: string; year?: number } | undefined;
+  const routeParams = route.params as { fieldId?: string; year?: number; tx?: string } | undefined;
   const routeFieldId = routeParams?.fieldId || '';
   const routeYear = routeParams?.year;
+  const routeTx = routeParams?.tx || '';
 
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<Field[]>([]);
@@ -97,7 +115,7 @@ const MoneyScreen = () => {
   const [year, setYear] = useState(
     typeof routeYear === 'number' && Number.isFinite(routeYear)
       ? routeYear
-      : new Date().getFullYear()
+      : agriculturalYearFor(new Date())
   );
   const [month, setMonth] = useState(0);
   const [kind, setKind] = useState<MoneyKindFilter>('all');
@@ -133,9 +151,10 @@ const MoneyScreen = () => {
       }),
     ]);
     setSummaryForbidden(!yearSummary.ok);
+    const isActiveYear = year === agriculturalYearFor(new Date());
     setSummary(
       yearSummary.result && fieldId === UNASSIGNED_FIELD_QUERY
-        ? overlayUnassigned(yearSummary.result, locale)
+        ? overlayUnassigned(yearSummary.result, locale, isActiveYear)
         : yearSummary.result
     );
     setTransactions(
@@ -172,6 +191,25 @@ const MoneyScreen = () => {
       setYear(routeYear);
     }
   }, [routeYear]);
+
+  useEffect(() => {
+    if (!routeTx || loading) return;
+    const fromList = transactions.find((row) => row.id === routeTx);
+    if (fromList) {
+      setSelected(fromList);
+      return;
+    }
+    let cancelled = false;
+    void getFinancialTransactionService()
+      .getById(routeTx)
+      .then((tx) => {
+        if (!cancelled) setSelected(tx);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [routeTx, loading, transactions]);
 
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
   const emptyYear =
@@ -270,6 +308,7 @@ const MoneyScreen = () => {
         <View style={styles.stack}>
           <MoneyContextBar
             year={year}
+            yearRangeLabel={agriculturalYearRangeLabel(year, locale)}
             kind={kind}
             hideIncome={summaryForbidden}
             tapMin={tapMin}
@@ -306,9 +345,7 @@ const MoneyScreen = () => {
 
             {month > 0 ? (
               <DismissibleChip
-                label={new Intl.DateTimeFormat(locale, { month: 'short' }).format(
-                  new Date(year, month - 1, 1)
-                )}
+                label={shortMonthLabel(year, month - 1, locale)}
                 onDismiss={() => setMonth(0)}
               />
             ) : null}
@@ -370,9 +407,7 @@ const MoneyScreen = () => {
                 >
                   <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t('money:monthly')}</Text>
                   {summary.monthlyResults.map((item) => {
-                    const name = new Intl.DateTimeFormat(locale, { month: 'short' }).format(
-                      new Date(year, item.month - 1, 1)
-                    );
+                    const name = shortMonthLabel(year, item.month - 1, locale);
                     const active = month === item.month;
                     return (
                       <Pressable
@@ -456,7 +491,8 @@ const MoneyScreen = () => {
                       </Text>
                       {row.costPerHectare != null ? (
                         <Text style={{ color: colors.textTertiary, marginTop: 2 }}>
-                          {money(row.costPerHectare)} {t('money:perHectare')}
+                          {money(perAreaForDisplay(row.costPerHectare, locale))}{' '}
+                          {t('money:perHectare')}
                         </Text>
                       ) : null}
                     </Pressable>

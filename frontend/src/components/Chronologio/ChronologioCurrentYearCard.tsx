@@ -36,7 +36,7 @@ const ChronologioCurrentYearCard: React.FC<Props> = ({ summary, numberLocale, on
     >
       <header className="chrono-year-chapter-head">
         <div>
-          <p className="chrono-year-chapter-kicker">{t('yearView.liveYear')}</p>
+          <p className="chrono-year-chapter-kicker">{t('yearView.liveYearSoFar')}</p>
           <h2>{summary.periodYear}</h2>
           <p className="chrono-year-range">
             {agriculturalYearRangeLabel(summary.periodYear, i18n.language)}

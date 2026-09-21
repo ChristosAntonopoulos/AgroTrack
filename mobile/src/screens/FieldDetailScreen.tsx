@@ -11,7 +11,13 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../services/fieldService';
-import { FieldTask, TaskProposal, isActiveFieldTask, type FieldPhenology } from '../services/fieldWorkService';
+import {
+  FieldTask,
+  TaskProposal,
+  isActiveFieldTask,
+  type FieldPhenology,
+  type FieldWorkProfile,
+} from '../services/fieldWorkService';
 import type { YearFinancialSummary, FieldYearSummary } from '../services/financialSummaryService';
 import type { ChronologioEntry } from '../services/chronologioService';
 import type { FieldEnvironmentalAlert, FieldWeather } from '../services/geospatialService';
@@ -60,14 +66,16 @@ import {
   type FieldAttentionModel,
 } from '../utils/fieldOverviewAttention';
 import { RootStackParamList } from '../navigation/types';
+import { openHarvestCampaign } from '../navigation/intents';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
+import {
+  dismissWorkSetupBanner,
+  isWorkSetupBannerDismissed,
+  readWorkProfileDraft,
+} from '../utils/fieldWorkProfileDraft';
 
 type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
-
-const athensYear = (): number =>
-  Number(
-    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Athens', year: 'numeric' }).format(new Date())
-  );
 
 const parseTab = (mode?: string): FieldTab => {
   if (mode === 'map' || mode === 'details' || mode === 'chronologio') return mode;
@@ -81,10 +89,10 @@ const FieldDetailScreen = () => {
   const { isFieldOwner, user } = useAuth();
   const capture = useCaptureOptional();
   const { colors, tapMin } = useTheme();
-  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks']);
   const insets = useSafeAreaInsets();
   const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
-  const currentYear = athensYear();
+  const currentYear = agriculturalYearFor(new Date());
 
   const [field, setField] = useState<Field | null>(null);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
@@ -101,6 +109,9 @@ const FieldDetailScreen = () => {
   const [plannedRemaining, setPlannedRemaining] = useState(0);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
   const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
+  const [workProfile, setWorkProfile] = useState<FieldWorkProfile | null | undefined>(undefined);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,8 +136,19 @@ const FieldDetailScreen = () => {
     try {
       const finance = getFinancialSummaryService();
       const work = getFieldWorkService();
-      const [fieldData, taskPlan, summary, rollup, chrono, fieldAlerts, fieldPhenology, harvests] =
-        await Promise.all([
+      const [
+        fieldData,
+        taskPlan,
+        summary,
+        rollup,
+        chrono,
+        fieldAlerts,
+        fieldPhenology,
+        harvests,
+        profile,
+        dismissed,
+        draft,
+      ] = await Promise.all([
           getFieldService().getField(fieldId),
           work.getTaskPlan(fieldId, year).catch(() => null),
           finance.getYear(year, fieldId, i18n.language).catch(() => null),
@@ -141,6 +163,9 @@ const FieldDetailScreen = () => {
           geospatialService.getAlerts(fieldId).catch(() => [] as FieldEnvironmentalAlert[]),
           work.getPhenology(fieldId).catch(() => null),
           getHarvestService().listByField(fieldId).catch(() => [] as HarvestRecord[]),
+          work.getWorkProfile(fieldId).catch(() => null),
+          isWorkSetupBannerDismissed(fieldId),
+          readWorkProfileDraft(fieldId),
         ]);
       if (isFieldSetupIncomplete(fieldData.status)) {
         navigation.replace('FieldForm', { fieldId: fieldData.id });
@@ -159,6 +184,9 @@ const FieldDetailScreen = () => {
       setYearRollup(rollup);
       setRecentEntries(chrono);
       setHarvestRecords(Array.isArray(harvests) ? harvests : []);
+      setWorkProfile(profile);
+      setBannerDismissed(dismissed);
+      setHasLocalDraft(Boolean(draft?.stepId));
       setError(null);
     } catch {
       setError(t('fields:form.failedLoad'));
@@ -246,6 +274,12 @@ const FieldDetailScreen = () => {
   ]);
 
   const canOwn = Boolean(isFieldOwner() || field?.ownerId === user?.id);
+  const showWorkSetupBanner =
+    Boolean(canOwn) &&
+    field?.status === 'Active' &&
+    !bannerDismissed &&
+    workProfile !== undefined &&
+    (workProfile == null || workProfile.status === 'draft');
 
   useEffect(() => {
     if (!field) return;
@@ -354,7 +388,7 @@ const FieldDetailScreen = () => {
         {field.status === 'Draft' ? (
           <Text style={[styles.draft, { color: colors.warning }]}>{t('fields:page.draftField')}</Text>
         ) : null}
-        <FieldIdentity field={field} size="page" hideTitle />
+        <FieldIdentity field={field} size="page" hideTitle phenology={phenology} />
         <FieldResultYearControl year={year} onYearChange={setYear} />
       </View>
 
@@ -368,9 +402,44 @@ const FieldDetailScreen = () => {
 
       {tab === 'overview' ? (
         <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
+          {showWorkSetupBanner ? (
+            <View
+              style={[
+                styles.workBanner,
+                { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder },
+              ]}
+              accessibilityRole="header"
+            >
+              <Text style={[styles.workBannerTitle, { color: colors.textPrimary }]}>
+                {t('tasks:fieldWork.onboarding.banner.title')}
+              </Text>
+              <Text style={[styles.workBannerBody, { color: colors.textSecondary }]}>
+                {t('tasks:fieldWork.onboarding.banner.body')}
+              </Text>
+              <Button
+                title={
+                  hasLocalDraft || workProfile?.status === 'draft'
+                    ? t('tasks:fieldWork.onboarding.banner.resume')
+                    : t('tasks:fieldWork.onboarding.banner.start')
+                }
+                onPress={() => navigation.navigate('FieldWorkSetup', { fieldId: field.id })}
+                fullWidth
+              />
+              <Button
+                title={t('tasks:fieldWork.onboarding.banner.later')}
+                variant="outline"
+                fullWidth
+                onPress={() => {
+                  void dismissWorkSetupBanner(field.id);
+                  setBannerDismissed(true);
+                }}
+              />
+            </View>
+          ) : null}
           {attention ? (
             <FieldStatusStrip
               phenology={phenology}
+              currentLifecycleStage={field.currentLifecycleStage}
               tasks={tasks}
               attention={attention}
               latestEntry={latestEntry}
@@ -423,7 +492,7 @@ const FieldDetailScreen = () => {
             onLogHarvest={() =>
               capture?.openCapture({ preferredType: 'harvest', fieldId: field.id })
             }
-            onOpenCampaign={() => navigation.navigate('HarvestCampaign')}
+            onOpenCampaign={() => openHarvestCampaign(navigation)}
             onVoid={async (id) => {
               await getHarvestService().void(id);
               await load();
@@ -437,7 +506,14 @@ const FieldDetailScreen = () => {
 
       {tab === 'details' ? (
         <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
-          <FieldFacts field={field} year={year} canOwn={canOwn} />
+          <FieldFacts
+            field={field}
+            year={year}
+            canOwn={canOwn}
+            workProfile={workProfile}
+            phenology={phenology}
+            onOpenMap={() => setTab('map')}
+          />
         </ScrollView>
       ) : null}
 
@@ -466,6 +542,21 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: spacing['3xl'] + 56,
+  },
+  workBanner: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: spacing.base,
+    gap: spacing.sm,
+  },
+  workBannerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  workBannerBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: spacing.xs,
   },
   stickyCapture: {
     position: 'absolute',

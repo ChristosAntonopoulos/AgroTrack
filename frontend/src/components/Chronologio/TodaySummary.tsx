@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckSquare, Leaf } from 'lucide-react';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import {
+  fieldWeatherPath,
+  harvestPath,
+  taskFormPath,
+  taskPeekPath,
+} from '../../navigation/intents';
 import type { useTodaySummary } from '../../chronologio/useTodaySummary';
 import GroveWeatherCard from '../weather/GroveWeatherCard';
 
@@ -15,7 +21,7 @@ type Props = {
 };
 
 const TodaySummary: React.FC<Props> = ({ today, fieldId, onOpenWeather }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'today']);
+  const { t, i18n } = useTranslation(['chronologio', 'today', 'fields']);
   const navigate = useNavigate();
   const capture = useCaptureOptional();
   const dateLabel = new Date().toLocaleDateString(i18n.language, {
@@ -27,20 +33,28 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, onOpenWeather }) => {
   const runAttention = () => {
     const item = today.attention;
     if (item.action === 'open_task' && item.taskId) {
-      navigate(`/tasks/${item.taskId}`);
+      navigate(taskPeekPath(item.taskId));
       return;
     }
     if (item.action === 'tasks') {
-      navigate('/tasks?focus=action');
+      navigate('/tasks');
       return;
     }
     if (item.action === 'schedule') {
-      navigate(item.fieldId ? `/tasks/new?fieldId=${encodeURIComponent(item.fieldId)}` : '/tasks/new');
+      navigate(taskFormPath({ fieldId: item.fieldId }));
       return;
     }
     if (item.action === 'weather') {
       if (onOpenWeather) onOpenWeather();
-      else if (item.fieldId) navigate(`/fields/${item.fieldId}/weather`);
+      else if (item.fieldId) navigate(fieldWeatherPath(item.fieldId));
+      return;
+    }
+    if (item.action === 'harvest_evening') {
+      navigate(harvestPath({ evening: true }));
+      return;
+    }
+    if (item.action === 'harvest_add') {
+      navigate(harvestPath({ add: true }));
       return;
     }
     capture?.openCapture({ fieldId: item.fieldId || fieldId });
@@ -83,7 +97,11 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, onOpenWeather }) => {
                 ? t('chronologio:living.openTask')
                 : today.attention.action === 'weather'
                   ? t('chronologio:today.seeConditions')
-                  : t('chronologio:today.scheduleCheck')}
+                  : today.attention.action === 'harvest_evening'
+                    ? t('fields:harvestCampaign.today.close')
+                    : today.attention.action === 'harvest_add'
+                      ? t('fields:harvestCampaign.today.add')
+                      : t('chronologio:today.scheduleCheck')}
             </button>
           )}
           {today.work.length > 0 ? (

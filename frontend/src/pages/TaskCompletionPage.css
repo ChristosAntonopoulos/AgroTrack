@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(6.5rem + var(--bottom-nav-height, 0px) + env(safe-area-inset-bottom, 0px));
 }
 
 .task-complete-page .task-form-error,
@@ -402,7 +402,7 @@
 
 .task-complete-actions {
   position: sticky;
-  bottom: 0;
+  bottom: calc(var(--bottom-nav-height, 0px) + env(safe-area-inset-bottom, 0px));
   z-index: 6;
   display: flex;
   flex-wrap: wrap;

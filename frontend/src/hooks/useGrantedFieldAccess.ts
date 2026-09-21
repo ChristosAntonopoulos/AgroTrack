@@ -1,60 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { Field } from '../services/fieldService';
-import type { FamilyAccessLevel, FamilyModule } from '../services/familyService';
-import { ownerPartnerService, AccessContext } from '../services/ownerPartnerService';
+import type { FieldAccessLevel, FieldModule } from '../services/fieldPeopleService';
+import { useAccessContext } from './useAccessContext';
 import { useAuth } from '../context/AuthContext';
 
 export type GrantedFieldAccess = {
   kind: 'family' | 'partner';
-  accessLevel: FamilyAccessLevel;
-  modules: FamilyModule[];
+  accessLevel: FieldAccessLevel;
+  modules: FieldModule[];
+  adminUserId: string;
+  /** @deprecated Use adminUserId */
   ownerUserId: string;
 };
 
-/** When the signed-in user is not the field owner, resolve family/partner grant for that owner. */
+/** When the signed-in user is not Admin on this field, resolve Partner/Family grant by fieldId. */
 export const useGrantedFieldAccess = (field: Field | null | undefined): GrantedFieldAccess | null => {
   const { user, isAuthenticated } = useAuth();
-  const [ctx, setCtx] = useState<AccessContext | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setCtx(null);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const next = await ownerPartnerService.getAccessContext();
-      if (!cancelled) setCtx(next);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, user?.userId]);
+  const { context } = useAccessContext();
 
   return useMemo(() => {
-    if (!field || !user || !ctx) return null;
-    if (field.ownerId === user.userId) return null;
+    if (!field || !user || !isAuthenticated || !context) return null;
 
-    const family = ctx.familyMemberships.find((m) => m.ownerUserId === field.ownerId);
-    if (family) {
-      return {
-        kind: 'family' as const,
-        accessLevel: family.accessLevel,
-        modules: family.modules,
-        ownerUserId: family.ownerUserId,
-      };
-    }
+    const snap = context.fields.find((f) => f.fieldId === field.id);
+    if (!snap || snap.role === 'Admin') return null;
 
-    const partner = ctx.partnerMemberships.find((m) => m.ownerUserId === field.ownerId);
-    if (partner) {
-      return {
-        kind: 'partner' as const,
-        accessLevel: partner.accessLevel,
-        modules: partner.modules,
-        ownerUserId: partner.ownerUserId,
-      };
-    }
-
-    return null;
-  }, [field, user, ctx]);
+    return {
+      kind: snap.role === 'Partner' ? ('partner' as const) : ('family' as const),
+      accessLevel: snap.accessLevel,
+      modules: snap.modules,
+      adminUserId: snap.adminUserId,
+      ownerUserId: snap.adminUserId,
+    };
+  }, [field, user, isAuthenticated, context]);
 };

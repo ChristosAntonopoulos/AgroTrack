@@ -1,4 +1,14 @@
-export type CaptureType = 'observation' | 'work' | 'expense' | 'income' | 'harvest' | 'money';
+import type { FinancialCategory } from '../finance/display';
+
+export type CaptureType =
+  | 'observation'
+  | 'work'
+  | 'expense'
+  | 'income'
+  | 'harvest'
+  | 'money'
+  | 'voice'
+  | 'document';
 
 export type CaptureContext = {
   fieldId?: string;
@@ -6,6 +16,9 @@ export type CaptureContext = {
   harvestId?: string;
   preferredType?: CaptureType;
   occurredAt?: string;
+  category?: FinancialCategory;
+  description?: string;
+  harvestCampaignLink?: boolean;
 };
 
 export type CapturePermissions = {
@@ -15,6 +28,8 @@ export type CapturePermissions = {
   canRecordIncome: boolean;
   canRecordHarvest: boolean;
   canRecordMoney: boolean;
+  canRecordVoice: boolean;
+  canRecordDocument: boolean;
 };
 
 export const CAPTURE_SAVED_EVENT = 'oleachron:capture-saved';
@@ -23,6 +38,10 @@ export type CaptureSavedDetail = {
   type: CaptureType;
   fieldId: string;
   sourceId?: string;
+  amount?: number;
+  occurredOn?: string;
+  description?: string;
+  harvestCampaignLink?: boolean;
 };
 
 export type CaptureSavedOptions = {

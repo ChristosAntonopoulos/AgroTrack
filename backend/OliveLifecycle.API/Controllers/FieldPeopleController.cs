@@ -41,6 +41,17 @@ public class FieldPeopleController : BaseApiController
         return OkResult(membership);
     }
 
+    [HttpPatch("{userId}")]
+    public async Task<ActionResult<FieldMembershipDto>> UpdatePerson(
+        string fieldId,
+        string userId,
+        [FromBody] UpdateFieldPersonDto dto,
+        CancellationToken cancellationToken)
+    {
+        var membership = await _peopleService.UpdatePersonAsync(fieldId, UserContext.UserId, userId, dto, cancellationToken);
+        return OkResult(membership);
+    }
+
     [HttpDelete("{userId}")]
     public async Task<IActionResult> RemoveMembership(string fieldId, string userId, CancellationToken cancellationToken)
     {

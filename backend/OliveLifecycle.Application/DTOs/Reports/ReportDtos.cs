@@ -39,10 +39,13 @@ public class HarvestRecordDto
     public double KgPerHa { get; set; }
     public string? MillName { get; set; }
     public double? OilKg { get; set; }
+    public double? OilLitres { get; set; }
     public double? OilYieldPercent { get; set; }
     public string QualityGrade { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public string Status { get; set; } = "posted";
+    public string? BatchId { get; set; }
+    public double? AllocationWeight { get; set; }
 }
 
 public class ProfitLossReportDto

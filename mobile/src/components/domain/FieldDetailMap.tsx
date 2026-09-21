@@ -16,7 +16,7 @@ import {
   FIELD_HERO_POLYGON_FACTOR,
   FIELD_HERO_POLYGON_PADDING,
 } from '../../utils/fieldMapFraming';
-import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MapLayerType } from '../../utils/mapLayers';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
@@ -163,7 +163,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         key={`field-map-${field.id}-${mapLayer}`}
         style={styles.map}
         initialRegion={region}
-        maxZoom={FIELD_HERO_MAX_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
         mapLayer={mapLayer}
         scrollEnabled
         zoomEnabled

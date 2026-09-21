@@ -1,56 +1,155 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ImagePlus } from 'lucide-react';
 
 type Props = {
   disabled?: boolean;
   onFiles: (files: File[]) => void;
+  /** When true, render take/choose actions instead of the dropzone chrome. */
+  emptyActions?: boolean;
+  /** Optional determinate progress (e.g. batch uploads). */
+  progress?: { done: number; total: number } | null;
+  className?: string;
+  id?: string;
 };
 
-const PhotoUploadDropzone: React.FC<Props> = ({ disabled, onFiles }) => {
-  const { t } = useTranslation('photos');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
+const takeFiles = (
+  list: FileList | null,
+  onFiles: (files: File[]) => void
+) => {
+  if (!list || list.length === 0) return;
+  const images = Array.from(list).filter((f) => f.type.startsWith('image/'));
+  if (images.length) onFiles(images);
+};
 
-  const takeFiles = (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    const images = Array.from(list).filter((f) => f.type.startsWith('image/'));
-    if (images.length) onFiles(images);
-  };
+const PhotoUploadDropzone: React.FC<Props> = ({
+  disabled,
+  onFiles,
+  emptyActions,
+  progress,
+  className = '',
+  id,
+}) => {
+  const { t } = useTranslation('photos');
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = React.useState(false);
+
+  if (emptyActions) {
+    return (
+      <div className={`photo-empty-actions ${className}`.trim()}>
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={disabled}
+          className="photo-hidden-input"
+          onChange={(e) => {
+            takeFiles(e.target.files, onFiles);
+            e.target.value = '';
+          }}
+        />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
+          disabled={disabled}
+          className="photo-hidden-input"
+          onChange={(e) => {
+            takeFiles(e.target.files, onFiles);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className="photo-empty-btn"
+          disabled={disabled}
+          onClick={() => cameraRef.current?.click()}
+        >
+          {t('takePhoto')}
+        </button>
+        <button
+          type="button"
+          className="photo-empty-btn is-secondary"
+          disabled={disabled}
+          onClick={() => galleryRef.current?.click()}
+        >
+          {t('choosePhotos')}
+        </button>
+      </div>
+    );
+  }
+
+  const determinate =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.done / progress.total) * 100))
+      : null;
 
   return (
     <div
-      className={`photo-dropzone${dragging ? ' is-dragging' : ''}`}
-      onClick={() => !disabled && inputRef.current?.click()}
+      id={id}
+      className={`photo-dropzone${dragging ? ' is-dragging' : ''}${disabled ? ' is-uploading' : ''} ${className}`.trim()}
+      onClick={() => !disabled && galleryRef.current?.click()}
       onDragEnter={(e) => {
         e.preventDefault();
-        setDragging(true);
+        if (!disabled) setDragging(true);
       }}
       onDragOver={(e) => e.preventDefault()}
       onDragLeave={() => setDragging(false)}
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
-        if (!disabled) takeFiles(e.dataTransfer.files);
+        if (!disabled) takeFiles(e.dataTransfer.files, onFiles);
       }}
       role="button"
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click();
+        if (disabled) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          galleryRef.current?.click();
+        }
       }}
     >
       <input
-        ref={inputRef}
+        ref={galleryRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
         multiple
         disabled={disabled}
         onChange={(e) => {
-          takeFiles(e.target.files);
+          takeFiles(e.target.files, onFiles);
           e.target.value = '';
         }}
       />
-      <strong>{disabled ? t('uploading') : t('upload')}</strong>
-      <div>{t('dropHint')}</div>
+      <span className="photo-dropzone-icon" aria-hidden>
+        <ImagePlus size={22} strokeWidth={1.75} />
+      </span>
+      <strong className="photo-dropzone-title">
+        {disabled ? t('uploading') : dragging ? t('dropActive') : t('upload')}
+      </strong>
+      <div className="photo-dropzone-body">{t('dropHint')}</div>
+      <div className="photo-dropzone-hint">{t('choosePhotosHint')}</div>
+      {disabled ? (
+        <div
+          className={`photo-dropzone-progress${determinate != null ? ' is-determinate' : ''}`}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={determinate ?? undefined}
+          aria-label={t('uploading')}
+        >
+          <div className="photo-dropzone-progress-track">
+            <div
+              className="photo-dropzone-progress-bar"
+              style={determinate != null ? { width: `${determinate}%` } : undefined}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

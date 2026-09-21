@@ -16,6 +16,8 @@ export interface HarvestRecord {
   status: 'posted' | 'voided';
   voidReason?: string;
   voidedAt?: string;
+  batchId?: string | null;
+  allocationWeight?: number | null;
 }
 
 export interface CreateHarvestRecordInput {
@@ -24,6 +26,7 @@ export interface CreateHarvestRecordInput {
   oliveKg: number;
   harvestMethod?: string;
   workersUsed?: number;
+  sackCount?: number;
   millName?: string;
   oilKg?: number;
   oilLitres?: number;
@@ -33,6 +36,8 @@ export interface CreateHarvestRecordInput {
   saleAmount?: number;
   millCost?: number;
   mediaUrls?: string[];
+  batchId?: string;
+  allocationWeight?: number;
 }
 
 export const harvestService = {

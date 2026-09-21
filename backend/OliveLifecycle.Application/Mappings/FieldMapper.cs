@@ -1,4 +1,5 @@
 using OliveLifecycle.Application.DTOs.Field;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Units;
@@ -33,8 +34,7 @@ public static class FieldMapper
         IrrigationStatus = field.IrrigationStatus,
         CurrentLifecycleYear = field.CurrentLifecycleYear,
         CurrentLifecycleStage = OliveLifecycleStage.Normalize(field.CurrentLifecycleStage),
-        AssignedProducerIds = field.AssignedProducerIds,
-        Memberships = field.Memberships.Select(ToMembershipDto).ToList(),
+        Memberships = field.People.Select(ToMembershipDto).ToList(),
         AdvisorComments = field.AdvisorComments.Select(ToAdvisorCommentDto).ToList(),
         CreatedAt = field.CreatedAt,
         UpdatedAt = field.UpdatedAt,
@@ -58,13 +58,18 @@ public static class FieldMapper
     };
     }
 
-    public static FieldMembershipDto ToMembershipDto(FieldMembership membership) => new()
+    public static FieldMembershipDto ToMembershipDto(FieldPerson person) => new()
     {
-        UserId = membership.UserId,
-        Capacities = membership.Capacities,
-        Status = membership.Status,
-        InvitedBy = membership.InvitedBy,
-        CreatedAt = membership.CreatedAt
+        UserId = person.UserId,
+        DisplayName = string.IsNullOrWhiteSpace(person.DisplayName) ? null : person.DisplayName,
+        Email = person.Email,
+        Role = person.Role.ToString(),
+        Modules = person.Modules.ToList(),
+        AccessLevel = person.AccessLevel,
+        Status = person.Status,
+        InviteId = person.InviteId,
+        InvitedBy = person.InvitedBy,
+        CreatedAt = person.CreatedAt
     };
 
     public static AdvisorCommentDto ToAdvisorCommentDto(AdvisorComment comment) => new()

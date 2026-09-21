@@ -4,13 +4,15 @@ import { phoneHref } from '../../utils/phoneLinks';
 
 type Props = {
   phone?: string | null;
+  email?: string | null;
 };
 
-const PhoneActions: React.FC<Props> = ({ phone }) => {
+const PhoneActions: React.FC<Props> = ({ phone, email }) => {
   const { t } = useTranslation(['partners']);
   const tel = phoneHref(phone, 'tel');
   const sms = phoneHref(phone, 'sms');
-  if (!tel && !sms) return null;
+  const mail = email?.trim() ? `mailto:${email.trim()}` : '';
+  if (!tel && !sms && !mail) return null;
 
   return (
     <div className="partner-phone-actions">
@@ -22,6 +24,11 @@ const PhoneActions: React.FC<Props> = ({ phone }) => {
       {sms ? (
         <a className="btn btn-outline btn-sm" href={sms}>
           {t('partners:text')}
+        </a>
+      ) : null}
+      {mail ? (
+        <a className="btn btn-outline btn-sm" href={mail}>
+          {t('partners:emailAction')}
         </a>
       ) : null}
     </div>

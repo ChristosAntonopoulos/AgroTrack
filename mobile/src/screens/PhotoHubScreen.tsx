@@ -14,7 +14,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import HeaderIconButton from '../components/layout/HeaderIconButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import FilterChips from '../components/ui/FilterChips';
@@ -25,6 +24,14 @@ import { useTheme } from '../context/ThemeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useRefresh } from '../hooks/useRefresh';
 import { pickCapturePhotoUris } from '../capture/photos';
+import {
+  isMediaLibraryAvailable,
+  MediaLibraryUnavailableError,
+  requestLibraryScanPermission,
+  scanLibraryForFieldPhotos,
+  type LibraryFieldMatch,
+  type LibraryScanRange,
+} from '../capture/libraryFieldScan';
 import { resolvePublicAssetUrl } from '../config/env';
 import {
   getFieldService,
@@ -40,6 +47,7 @@ import type {
   PhotoUploadResult,
 } from '../services/photoService';
 import { notePreviewTitle } from '../services/noteService';
+import { fieldHasGeo } from '../utils/fieldGeo';
 import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
 import { RootStackParamList } from '../navigation/types';
 import { spacing, typography, radii, createElevation } from '../theme';
@@ -50,6 +58,7 @@ type LinkTarget = { id: string; label: string };
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const MAX_UPLOAD = 12;
+const SCAN_SAMPLE = 6;
 
 const badgeKey = (photo: Photo): string => {
   if (!photo.isLinked || photo.ownerType === 'field') return 'standalone';
@@ -67,14 +76,20 @@ const PhotoHubScreen: React.FC = () => {
   const { isOnline } = useOfflineMode();
   const navigation = useNavigation<Nav>();
   const route = useRoute();
-  const params = route.params as { fieldId?: string; photoId?: string } | undefined;
+  const params = route.params as
+    | { fieldId?: string; photoId?: string; importNearby?: boolean }
+    | undefined;
   const { width } = useWindowDimensions();
-  const columns = width >= 720 ? 3 : 2;
-  const gap = spacing.sm;
+  const columns = width >= 720 ? 4 : width >= 360 ? 3 : 2;
+  const gap = spacing.xs;
   const tile = (width - spacing.md * 2 - gap * (columns - 1)) / columns;
+  const sampleTile = Math.min(72, (width - spacing.md * 2 - spacing.sm * (SCAN_SAMPLE - 1)) / SCAN_SAMPLE);
 
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
   const [fields, setFields] = useState<Field[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [fieldId, setFieldId] = useState(params?.fieldId || '');
@@ -85,6 +100,15 @@ const PhotoHubScreen: React.FC = () => {
   const [fieldPickerOpen, setFieldPickerOpen] = useState(false);
   const [uploadPickerOpen, setUploadPickerOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanRange, setScanRange] = useState<LibraryScanRange>('12m');
+  const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState<{ scanned: number; matches: number } | null>(
+    null
+  );
+  const [scanMatches, setScanMatches] = useState<LibraryFieldMatch[]>([]);
+  const [scanTruncated, setScanTruncated] = useState(false);
+  const [scanPhase, setScanPhase] = useState<'range' | 'confirm'>('range');
   const [busy, setBusy] = useState(false);
   const [ownerType, setOwnerType] = useState<LinkOwner>('task');
   const [ownerId, setOwnerId] = useState('');
@@ -141,6 +165,124 @@ const PhotoHubScreen: React.FC = () => {
   }, [params?.fieldId]);
 
   useEffect(() => {
+    if (!params?.importNearby) return;
+    setUploadPickerOpen(false);
+    setScanPhase('range');
+    setScanMatches([]);
+    setScanTruncated(false);
+    setScanProgress(null);
+    setScanOpen(true);
+    navigation.setParams({ importNearby: undefined });
+  }, [navigation, params?.importNearby]);
+
+  const openScanSheet = () => {
+    setUploadPickerOpen(false);
+    setScanPhase('range');
+    setScanMatches([]);
+    setScanTruncated(false);
+    setScanProgress(null);
+    setScanOpen(true);
+  };
+
+  const scanTargetFields = useMemo(() => {
+    const withGeo = fields.filter(fieldHasGeo);
+    if (fieldId) {
+      const scoped = withGeo.filter((f) => f.id === fieldId);
+      return scoped.length > 0 ? scoped : withGeo;
+    }
+    return withGeo;
+  }, [fieldId, fields]);
+
+  const runLibraryScan = async () => {
+    if (!isMediaLibraryAvailable()) {
+      Alert.alert(t('photos:scan.title'), t('photos:scan.nativeUnavailable'));
+      return;
+    }
+    if (!isOnline) {
+      Alert.alert('', t('photos:offline'));
+      return;
+    }
+    if (scanTargetFields.length === 0) {
+      Alert.alert('', t('photos:scan.noFields'));
+      return;
+    }
+
+    const granted = await requestLibraryScanPermission({
+      rationaleMessage: t('photos:scan.rationale'),
+      deniedMessage: t('photos:scan.denied'),
+    });
+    if (!granted) {
+      if (!isMediaLibraryAvailable()) {
+        Alert.alert(t('photos:scan.title'), t('photos:scan.nativeUnavailable'));
+      }
+      return;
+    }
+
+    setScanning(true);
+    setScanProgress({ scanned: 0, matches: 0 });
+    try {
+      const result = await scanLibraryForFieldPhotos({
+        fields: scanTargetFields,
+        range: scanRange,
+        onProgress: (scanned, matches) => setScanProgress({ scanned, matches }),
+      });
+      setScanMatches(result.matches);
+      setScanTruncated(result.truncated);
+      if (result.matches.length === 0) {
+        Alert.alert(t('photos:scan.title'), t('photos:scan.noMatches'));
+        setScanPhase('range');
+      } else {
+        setScanPhase('confirm');
+      }
+    } catch (err) {
+      if (err instanceof MediaLibraryUnavailableError) {
+        Alert.alert(t('photos:scan.title'), t('photos:scan.nativeUnavailable'));
+      } else {
+        Alert.alert(t('photos:errors.scan'));
+      }
+    } finally {
+      setScanning(false);
+      setScanProgress(null);
+    }
+  };
+
+  const runScanUpload = async () => {
+    if (scanMatches.length === 0) return;
+    if (!isOnline) {
+      Alert.alert('', t('photos:offline'));
+      return;
+    }
+
+    setScanOpen(false);
+    setUploading(true);
+    setUploadProgress({ done: 0, total: scanMatches.length });
+    try {
+      const uris = scanMatches.map((m) => m.uri);
+      const results = await getPhotoService().uploadLocalUris(uris, {
+        onProgress: (done, total) => setUploadProgress({ done, total }),
+      });
+      const needsReview = results.filter(
+        (r) =>
+          r.photo.fieldAssignment === 'needsReview' ||
+          r.photo.fieldAssignment === 'unassigned' ||
+          r.duplicateWarning
+      );
+      if (needsReview.length > 0) {
+        setReviewItems((prev) => [...needsReview, ...prev]);
+        setReviewOpen(true);
+      }
+      setScanMatches([]);
+      setScanPhase('range');
+      await load();
+    } catch {
+      Alert.alert(t('photos:errors.upload'));
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  useEffect(() => {
     const photoId = params?.photoId;
     if (!photoId) return;
     const fromList = photos.find((p) => p.id === photoId);
@@ -165,15 +307,20 @@ const PhotoHubScreen: React.FC = () => {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: t('nav:photos', { defaultValue: 'Photos' }),
       headerRight: () => (
-        <HeaderIconButton
-          icon="add"
-          accessibilityLabel={t('photos:upload')}
+        <Pressable
           onPress={() => setUploadPickerOpen(true)}
-        />
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('photos:upload')}
+          style={styles.headerAdd}
+        >
+          <Ionicons name="add" size={28} color={colors.primary} />
+        </Pressable>
       ),
     });
-  }, [navigation, t]);
+  }, [navigation, t, colors.primary]);
 
   const refreshPhoto = (photo: Photo) => {
     setSelected(photo);
@@ -197,8 +344,11 @@ const PhotoHubScreen: React.FC = () => {
     if (uris.length === 0) return;
 
     setUploading(true);
+    setUploadProgress({ done: 0, total: uris.length });
     try {
-      const results = await getPhotoService().uploadLocalUris(uris);
+      const results = await getPhotoService().uploadLocalUris(uris, {
+        onProgress: (done, total) => setUploadProgress({ done, total }),
+      });
       const needsReview = results.filter(
         (r) =>
           r.photo.fieldAssignment === 'needsReview' ||
@@ -214,6 +364,7 @@ const PhotoHubScreen: React.FC = () => {
       Alert.alert(t('photos:errors.upload'));
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -292,171 +443,182 @@ const PhotoHubScreen: React.FC = () => {
   }
 
   return (
-    <ScreenLayout
-      scroll
-      padded
-      refreshControl={{ refreshing, onRefresh }}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        {t('photos:subtitle')}
-      </Text>
-
-      <View style={styles.toolbar}>
-        <Pressable
-          onPress={() => setFieldPickerOpen(true)}
-          style={[
-            styles.scopeChip,
-            {
-              backgroundColor: colors.surfaceElevated,
-              borderColor: colors.border,
-              minHeight: Math.max(tapMin * 0.7, 36),
-            },
-          ]}
-        >
-          <Ionicons name="leaf-outline" size={16} color={colors.primary} />
-          <Text style={[styles.scopeText, { color: colors.textPrimary }]} numberOfLines={1}>
-            {fieldScopeLabel}
-          </Text>
-          <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
-        </Pressable>
-
-        {reviewItems.length > 0 ? (
+    <ScreenLayout scroll padded refreshControl={{ refreshing, onRefresh }}>
+      <View style={styles.stack}>
+        <View style={styles.scopeRow}>
           <Pressable
-            onPress={() => setReviewOpen(true)}
+            onPress={() => setFieldPickerOpen(true)}
+            accessibilityLabel={t('photos:filters.field')}
             style={[
-              styles.reviewChip,
+              styles.scopeChip,
               {
-                backgroundColor: colors.warningLight || colors.surfaceElevated,
-                borderColor: colors.warning || colors.border,
-                minHeight: Math.max(tapMin * 0.7, 36),
+                minHeight: Math.max(44, tapMin * 0.9),
+                backgroundColor: colors.surface,
+                borderColor: colors.borderLight,
+                ...createElevation(colors, 'flat'),
               },
             ]}
           >
-            <Ionicons name="alert-circle-outline" size={16} color={colors.warning || colors.primary} />
-            <Text style={[styles.scopeText, { color: colors.textPrimary }]}>
-              {t('photos:review.title')} ({reviewItems.length})
+            <Ionicons name="map-outline" size={16} color={colors.primary} />
+            <Text
+              style={{ color: colors.textPrimary, fontWeight: '600', flexShrink: 1 }}
+              numberOfLines={1}
+            >
+              {fieldScopeLabel}
             </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
           </Pressable>
-        ) : null}
-      </View>
 
-      <FilterChips
-        compact
-        options={[
-          { value: 'all', label: t('photos:filters.all') },
-          { value: 'standalone', label: t('photos:filters.standalone') },
-          { value: 'linked', label: t('photos:filters.linked') },
-        ]}
-        selected={linkStatus}
-        onSelect={(v) => setLinkStatus(v as PhotoLinkStatus)}
-        style={styles.chipRow}
-      />
-      <FilterChips
-        compact
-        options={[
-          { value: '', label: t('photos:filters.all') },
-          { value: 'needsReview', label: t('photos:filters.needsReview') },
-          { value: 'unassigned', label: t('photos:filters.unassigned') },
-        ]}
-        selected={assignment}
-        onSelect={setAssignment}
-        style={styles.chipRow}
-      />
-
-      {uploading ? (
-        <View style={styles.uploading}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={{ color: colors.textSecondary }}>{t('photos:uploading')}</Text>
+          {reviewItems.length > 0 ? (
+            <Pressable
+              onPress={() => setReviewOpen(true)}
+              style={[
+                styles.reviewChip,
+                {
+                  minHeight: Math.max(44, tapMin * 0.9),
+                  backgroundColor: colors.warningLight || colors.surface,
+                  borderColor: colors.warning || colors.borderLight,
+                },
+              ]}
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.warning || colors.primary}
+              />
+              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+                {t('photos:filters.needsReview')} ({reviewItems.length})
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-      ) : null}
 
-      {!isOnline ? (
-        <Text style={[styles.offline, { color: colors.warning || colors.textSecondary }]}>
-          {t('photos:offline')}
-        </Text>
-      ) : null}
-
-      {photos.length === 0 ? (
-        <EmptyState
-          icon={<Ionicons name="images-outline" size={36} color={colors.textSecondary} />}
-          title={t('photos:empty')}
-          description={t('photos:emptyHint')}
+        <FilterChips
+          compact
+          options={[
+            { value: 'all', label: t('photos:filters.all') },
+            { value: 'standalone', label: t('photos:filters.standalone') },
+            { value: 'linked', label: t('photos:filters.linked') },
+          ]}
+          selected={linkStatus}
+          onSelect={(v) => setLinkStatus(v as PhotoLinkStatus)}
         />
-      ) : (
-        <View style={[styles.grid, { gap }]}>
-          {photos.map((photo) => {
-            const src =
-              resolvePublicAssetUrl(photo.thumbnailUrl || photo.url) || photo.url;
-            const key = badgeKey(photo);
-            const showReview =
-              photo.fieldAssignment === 'needsReview' ||
-              photo.fieldAssignment === 'unassigned';
-            return (
-              <Pressable
-                key={photo.id}
-                onPress={() => setSelected(photo)}
-                onLongPress={() => {
-                  const idx = photos.findIndex((p) => p.id === photo.id);
-                  setViewerIndex(idx >= 0 ? idx : 0);
-                }}
-                style={[
-                  styles.tile,
-                  {
-                    width: tile,
-                    backgroundColor: colors.surfaceElevated,
-                    borderColor: photo.isLinked ? colors.primary : colors.border,
-                    ...createElevation(colors, 'sm'),
-                  },
-                ]}
-              >
-                <Image source={{ uri: src }} style={styles.thumb} />
-                <View style={styles.badges}>
-                  <View
-                    style={[
-                      styles.badge,
-                      {
-                        backgroundColor: photo.isLinked
-                          ? colors.primary
-                          : colors.surface,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.badgeText,
-                        { color: photo.isLinked ? colors.onOlive : colors.textSecondary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {t(`photos:badges.${key}`)}
-                    </Text>
-                  </View>
-                  {showReview ? (
+        <FilterChips
+          compact
+          options={[
+            { value: '', label: t('photos:filters.all') },
+            { value: 'needsReview', label: t('photos:filters.needsReview') },
+            { value: 'unassigned', label: t('photos:filters.unassigned') },
+          ]}
+          selected={assignment}
+          onSelect={setAssignment}
+        />
+
+        {uploading ? (
+          <View style={styles.uploading}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={{ color: colors.textSecondary }}>
+              {uploadProgress
+                ? t('photos:uploadingProgress', {
+                    done: uploadProgress.done,
+                    total: uploadProgress.total,
+                  })
+                : t('photos:uploading')}
+            </Text>
+          </View>
+        ) : null}
+
+        {!isOnline ? (
+          <Text style={[styles.offline, { color: colors.warning || colors.textSecondary }]}>
+            {t('photos:offline')}
+          </Text>
+        ) : null}
+
+        {photos.length === 0 ? (
+          <EmptyState
+            icon={<Ionicons name="images-outline" size={36} color={colors.textSecondary} />}
+            title={t('photos:empty')}
+            description={t('photos:emptyHint')}
+            action={{
+              label: t('photos:upload'),
+              onPress: () => setUploadPickerOpen(true),
+            }}
+          />
+        ) : (
+          <View style={[styles.grid, { gap }]}>
+            {photos.map((photo) => {
+              const src =
+                resolvePublicAssetUrl(photo.thumbnailUrl || photo.url) || photo.url;
+              const key = badgeKey(photo);
+              const showReview =
+                photo.fieldAssignment === 'needsReview' ||
+                photo.fieldAssignment === 'unassigned';
+              return (
+                <Pressable
+                  key={photo.id}
+                  onPress={() => setSelected(photo)}
+                  onLongPress={() => {
+                    const idx = photos.findIndex((p) => p.id === photo.id);
+                    setViewerIndex(idx >= 0 ? idx : 0);
+                  }}
+                  style={[
+                    styles.tile,
+                    {
+                      width: tile,
+                      backgroundColor: colors.surfaceElevated,
+                      borderColor: photo.isLinked ? colors.primary : colors.border,
+                      ...createElevation(colors, 'sm'),
+                    },
+                  ]}
+                >
+                  <Image source={{ uri: src }} style={styles.thumb} />
+                  <View style={styles.badges}>
                     <View
                       style={[
                         styles.badge,
-                        { backgroundColor: colors.warningLight || colors.surface },
+                        {
+                          backgroundColor: photo.isLinked
+                            ? colors.primary
+                            : colors.surface,
+                        },
                       ]}
                     >
                       <Text
-                        style={[styles.badgeText, { color: colors.warning || colors.textPrimary }]}
+                        style={[
+                          styles.badgeText,
+                          { color: photo.isLinked ? colors.onOlive : colors.textSecondary },
+                        ]}
                         numberOfLines={1}
                       >
-                        {t(
-                          `photos:badges.${
-                            photo.fieldAssignment === 'unassigned' ? 'unassigned' : 'needsReview'
-                          }`
-                        )}
+                        {t(`photos:badges.${key}`)}
                       </Text>
                     </View>
-                  ) : null}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+                    {showReview ? (
+                      <View
+                        style={[
+                          styles.badge,
+                          { backgroundColor: colors.warningLight || colors.surface },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.badgeText, { color: colors.warning || colors.textPrimary }]}
+                          numberOfLines={1}
+                        >
+                          {t(
+                            `photos:badges.${
+                              photo.fieldAssignment === 'unassigned' ? 'unassigned' : 'needsReview'
+                            }`
+                          )}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </View>
 
       <Sheet
         open={uploadPickerOpen}
@@ -472,14 +634,205 @@ const PhotoHubScreen: React.FC = () => {
             fullWidth
             icon={<Ionicons name="camera-outline" size={18} color={colors.onOlive} />}
           />
-          <Button
-            title={t('photos:uploadLibrary')}
-            variant="secondary"
-            onPress={() => void runUpload(false)}
-            fullWidth
-            icon={<Ionicons name="images-outline" size={18} color={colors.textPrimary} />}
-          />
+          <View style={styles.optionBlock}>
+            <Button
+              title={t('photos:uploadLibrary')}
+              variant="secondary"
+              onPress={() => void runUpload(false)}
+              fullWidth
+              icon={<Ionicons name="images-outline" size={18} color={colors.textPrimary} />}
+            />
+            <Text style={[styles.optionHint, { color: colors.textSecondary }]}>
+              {t('photos:uploadLibraryHint')}
+            </Text>
+          </View>
+          <View style={styles.orRow}>
+            <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.orLabel, { color: colors.textSecondary }]}>
+              {t('photos:uploadOr')}
+            </Text>
+            <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+          </View>
+          <Pressable
+            onPress={openScanSheet}
+            disabled={!isOnline || uploading}
+            accessibilityRole="button"
+            accessibilityLabel={t('photos:importNearby')}
+            style={({ pressed }) => [
+              styles.findCard,
+              {
+                backgroundColor: colors.surfaceElevated,
+                borderColor: colors.border,
+                opacity: !isOnline || uploading ? 0.5 : pressed ? 0.92 : 1,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.findIconWrap,
+                { backgroundColor: colors.primaryLight },
+              ]}
+            >
+              <Ionicons name="locate-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.findCopy}>
+              <Text style={[styles.findTitle, { color: colors.textPrimary }]}>
+                {t('photos:importNearby')}
+              </Text>
+              <Text style={[styles.findBody, { color: colors.textSecondary }]}>
+                {t('photos:importNearbyHint')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </Pressable>
         </View>
+      </Sheet>
+
+      <Sheet
+        open={scanOpen}
+        onClose={() => {
+          if (scanning) return;
+          setScanOpen(false);
+          setScanPhase('range');
+        }}
+        title={
+          scanPhase === 'confirm' ? t('photos:scan.confirmTitle') : t('photos:scan.title')
+        }
+        edge="bottom"
+        size="lg"
+        footer={
+          scanPhase === 'confirm' ? (
+            <View style={styles.sheetActions}>
+              <Button
+                title={t('photos:scan.confirmUpload', { count: scanMatches.length })}
+                onPress={() => void runScanUpload()}
+                fullWidth
+                disabled={uploading || scanning}
+                icon={<Ionicons name="cloud-upload-outline" size={18} color={colors.onOlive} />}
+              />
+              <Button
+                title={t('photos:scan.changeRange')}
+                variant="secondary"
+                onPress={() => {
+                  setScanPhase('range');
+                  setScanMatches([]);
+                }}
+                fullWidth
+                disabled={scanning || uploading}
+              />
+            </View>
+          ) : (
+            <Button
+              title={scanning ? t('photos:scan.scanning') : t('photos:scan.start')}
+              onPress={() => void runLibraryScan()}
+              fullWidth
+              disabled={scanning || uploading || !isOnline}
+              loading={scanning}
+              icon={
+                scanning ? undefined : (
+                  <Ionicons name="scan-outline" size={18} color={colors.onOlive} />
+                )
+              }
+            />
+          )
+        }
+      >
+        {scanPhase === 'range' ? (
+          <View style={styles.sheetActions}>
+            <Text style={[styles.scanLead, { color: colors.textPrimary }]}>
+              {t('photos:scan.lead')}
+            </Text>
+            <View
+              style={[
+                styles.howCard,
+                { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.howTitle, { color: colors.textSecondary }]}>
+                {t('photos:scan.howTitle')}
+              </Text>
+              {(
+                [
+                  t('photos:scan.step1'),
+                  t('photos:scan.step2'),
+                  t('photos:scan.step3'),
+                ] as string[]
+              ).map((step, index) => (
+                <View key={step} style={styles.howStep}>
+                  <View
+                    style={[
+                      styles.howNum,
+                      {
+                        backgroundColor: colors.primaryLight,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.howNumText, { color: colors.primary }]}>
+                      {index + 1}
+                    </Text>
+                  </View>
+                  <Text style={[styles.howStepText, { color: colors.textPrimary }]}>{step}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+              {t('photos:scan.rangeTitle')}
+            </Text>
+            <FilterChips
+              compact
+              options={[
+                { value: '3m', label: t('photos:scan.range3m') },
+                { value: '12m', label: t('photos:scan.range12m') },
+                { value: 'all', label: t('photos:scan.rangeAll') },
+              ]}
+              selected={scanRange}
+              onSelect={(v) => setScanRange(v as LibraryScanRange)}
+            />
+            {scanning && scanProgress ? (
+              <Text style={{ color: colors.textSecondary }}>
+                {t('photos:scan.scanningProgress', {
+                  scanned: scanProgress.scanned,
+                  matches: scanProgress.matches,
+                })}
+              </Text>
+            ) : (
+              <Text style={[styles.optionHint, { color: colors.textSecondary }]}>
+                {t('photos:scan.rationale')}
+              </Text>
+            )}
+          </View>
+        ) : (
+          <View style={styles.sheetActions}>
+            <Text style={{ color: colors.textPrimary }}>
+              {t('photos:scan.confirmCount', { count: scanMatches.length })}
+            </Text>
+            {scanTruncated ? (
+              <Text style={{ color: colors.textSecondary }}>
+                {t('photos:scan.confirmTruncated', { count: scanMatches.length })}
+              </Text>
+            ) : null}
+            <Text style={{ color: colors.textSecondary }}>{t('photos:scan.confirmHint')}</Text>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+              {t('photos:scan.sampleLabel')}
+            </Text>
+            <View style={[styles.sampleRow, { gap: spacing.sm }]}>
+              {scanMatches.slice(0, SCAN_SAMPLE).map((match) => (
+                <Image
+                  key={match.assetId}
+                  source={{ uri: match.uri }}
+                  style={[
+                    styles.sampleThumb,
+                    {
+                      width: sampleTile,
+                      height: sampleTile,
+                      backgroundColor: '#ddd',
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        )}
       </Sheet>
 
       <Sheet
@@ -850,14 +1203,15 @@ const PhotoHubScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  content: {
+  headerAdd: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 4,
+  },
+  stack: {
     gap: spacing.md,
-    paddingBottom: spacing['3xl'],
   },
-  subtitle: {
-    ...typography.styles.bodySmall,
-  },
-  toolbar: {
+  scopeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
@@ -865,7 +1219,7 @@ const styles = StyleSheet.create({
   scopeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 8,
     paddingHorizontal: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.full,
@@ -874,17 +1228,10 @@ const styles = StyleSheet.create({
   reviewChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 8,
     paddingHorizontal: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.full,
-  },
-  scopeText: {
-    ...typography.styles.label,
-    maxWidth: 180,
-  },
-  chipRow: {
-    marginBottom: 0,
   },
   uploading: {
     flexDirection: 'row',
@@ -900,7 +1247,7 @@ const styles = StyleSheet.create({
   },
   tile: {
     borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.5,
     overflow: 'hidden',
   },
   thumb: {
@@ -912,22 +1259,116 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.xs,
     right: spacing.xs,
-    bottom: spacing.xs,
+    top: spacing.xs,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
   },
   badge: {
-    borderRadius: radii.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: radii.full,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
   badgeText: {
     ...typography.styles.caption,
     fontSize: 10,
+    fontWeight: '600',
   },
   sheetActions: {
     gap: spacing.sm,
+  },
+  optionBlock: {
+    gap: spacing.xs,
+  },
+  optionHint: {
+    ...typography.styles.caption,
+    lineHeight: 18,
+  },
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginVertical: spacing.xs,
+  },
+  orLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  orLabel: {
+    ...typography.styles.caption,
+    fontWeight: '600',
+  },
+  findCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.md,
+    padding: spacing.md,
+  },
+  findIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  findCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  findTitle: {
+    ...typography.styles.body,
+    fontWeight: '600',
+  },
+  findBody: {
+    ...typography.styles.caption,
+    lineHeight: 18,
+  },
+  scanLead: {
+    ...typography.styles.body,
+    lineHeight: 22,
+  },
+  howCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  howTitle: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  howStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  howNum: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  howNumText: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+  },
+  howStepText: {
+    ...typography.styles.body,
+    flex: 1,
+    lineHeight: 20,
+  },
+  sampleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  sampleThumb: {
+    borderRadius: radii.sm,
   },
   pickerRow: {
     flexDirection: 'row',

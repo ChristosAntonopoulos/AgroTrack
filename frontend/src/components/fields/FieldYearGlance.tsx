@@ -6,8 +6,10 @@ import {
   formatEuroPerLitre,
   formatLitres,
   formatOfficialAmount,
-  formatOfficialNet,
+  perAreaForDisplay,
 } from '../../finance/format';
+import MoneyTriadFacts from '../money/MoneyTriadFacts';
+import { moneyPath } from '../../navigation/intents';
 
 type Props = {
   fieldId: string;
@@ -42,8 +44,9 @@ const FieldYearGlance: React.FC<Props> = ({
   const oliveKg = yearRollup?.oliveKilograms ?? null;
   const oilLitres = yearRollup?.oliveOil?.producedLitres ?? null;
   const costPerHa = costSummary?.costPerHectare ?? null;
+  const costPerArea = perAreaForDisplay(costPerHa, i18n.language);
   const costPerLitre = yearRollup?.oliveOil?.productionCostPerLitre ?? null;
-  const showPerHa = hasPosted && costPerHa != null && !availability?.areaIsMissing;
+  const showPerHa = hasPosted && costPerArea != null && !availability?.areaIsMissing;
   const showPerLitre = hasPosted && costPerLitre != null && oilLitres != null;
 
   return (
@@ -75,43 +78,41 @@ const FieldYearGlance: React.FC<Props> = ({
       </dl>
 
       {hasPosted ? (
-        <dl className="field-year-glance-money">
-          <div>
-            <dt>{t('overview.income')}</dt>
-            <dd>
-              {formatOfficialAmount(income, currency, i18n.language, unknown)}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('overview.expenses')}</dt>
-            <dd>
-              {formatOfficialAmount(expenses, currency, i18n.language, unknown)}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('overview.result')}</dt>
-            <dd>
-              {formatOfficialNet(net, currency, i18n.language, unknown)}
-            </dd>
-          </div>
-          {showPerHa ? (
-            <div>
-              <dt>{t('overview.yearGlance.perHectare')}</dt>
-              <dd>{formatOfficialAmount(costPerHa, currency, i18n.language, unknown)}</dd>
-            </div>
+        <>
+          <MoneyTriadFacts
+            className="field-year-glance-money"
+            income={income}
+            expenses={expenses}
+            net={net}
+            currency={currency}
+            locale={i18n.language}
+            unknown={unknown}
+            incomeLabel={t('overview.income')}
+            expensesLabel={t('overview.expenses')}
+            resultLabel={t('overview.result')}
+          />
+          {showPerHa || showPerLitre ? (
+            <dl className="field-year-glance-money">
+              {showPerHa ? (
+                <div>
+                  <dt>{t('overview.yearGlance.perHectare')}</dt>
+                  <dd>{formatOfficialAmount(costPerArea, currency, i18n.language, unknown)}</dd>
+                </div>
+              ) : null}
+              {showPerLitre ? (
+                <div>
+                  <dt>{t('overview.yearGlance.perLitre')}</dt>
+                  <dd>{formatEuroPerLitre(costPerLitre, i18n.language, unknown)}</dd>
+                </div>
+              ) : null}
+            </dl>
           ) : null}
-          {showPerLitre ? (
-            <div>
-              <dt>{t('overview.yearGlance.perLitre')}</dt>
-              <dd>{formatEuroPerLitre(costPerLitre, i18n.language, unknown)}</dd>
-            </div>
-          ) : null}
-        </dl>
+        </>
       ) : (
         <p className="field-year-glance-empty">{t('overview.yearGlance.noMoney', { year })}</p>
       )}
 
-      <Link className="fd-text-link" to={`/money?year=${year}&fieldId=${encodeURIComponent(fieldId)}`}>
+      <Link className="fd-text-link" to={moneyPath({ year, fieldId })}>
         {t('overview.seeFinance')}
       </Link>
     </section>

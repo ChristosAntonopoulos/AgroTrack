@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import * as Localization from 'expo-localization';
 
 import enAuth from '../locales/en/auth.json';
 import enCommon from '../locales/en/common.json';
@@ -38,8 +37,10 @@ import elMoney from '../locales/el/money.json';
 import elPhotos from '../locales/el/photos.json';
 import elFeedback from '../locales/el/feedback.json';
 
-const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
-const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
+import itFields from '../locales/it/fields.json';
+
+/** Greek is the product default for Oleachron. */
+const defaultLng = 'el';
 
 i18n.use(initReactI18next).init({
   compatibilityJSON: 'v4',
@@ -82,15 +83,22 @@ i18n.use(initReactI18next).init({
       photos: elPhotos,
       feedback: elFeedback,
     },
+    it: {
+      // Harvest campaign Italian from FE; other namespaces fall back to English/Greek.
+      fields: itFields,
+    },
   },
   lng: defaultLng,
-  fallbackLng: 'en',
+  fallbackLng: {
+    it: ['en', 'el'],
+    default: ['el'],
+  },
   defaultNS: 'common',
   interpolation: { escapeValue: false },
 });
 
 export default i18n;
 
-export const changeAppLanguage = async (lang: 'en' | 'el') => {
+export const changeAppLanguage = async (lang: 'en' | 'el' | 'it') => {
   await i18n.changeLanguage(lang);
 };

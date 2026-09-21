@@ -5,11 +5,13 @@ import type { FieldPhenology, FieldTask } from '../../services/fieldWorkService'
 import type { ChronologioEntry } from '../../services/chronologioService';
 import type { FieldAttentionModel } from '../../utils/fieldOverviewAttention';
 import { getNextUpcomingTask } from '../../utils/fieldDisplay';
+import { resolveFieldStageLabel } from '../../utils/fieldStage';
 import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing } from '../../theme';
 
 type Props = {
   phenology: FieldPhenology | null;
+  currentLifecycleStage?: string | null;
   tasks: FieldTask[];
   attention: FieldAttentionModel;
   latestEntry?: ChronologioEntry;
@@ -79,6 +81,7 @@ const StatusCell: React.FC<CellProps> = ({
  */
 const FieldStatusStrip: React.FC<Props> = ({
   phenology,
+  currentLifecycleStage,
   tasks,
   attention,
   latestEntry,
@@ -94,9 +97,13 @@ const FieldStatusStrip: React.FC<Props> = ({
       ? t('overview.statusStrip.noWarning')
       : attention.title || t('overview.needsAttention');
   const lastLabel = latestEntry?.title || t('overview.statusStrip.noRecording');
-  const stageLabel = phenology?.isKnown
-    ? phenology.stageLabel
-    : phenology?.message || t('overview.statusStrip.unknownStage');
+  const stageLabel =
+    resolveFieldStageLabel({
+      phenology,
+      currentLifecycleStage,
+      t,
+      unknownLabel: t('overview.statusStrip.unknownStage'),
+    }) || t('overview.statusStrip.unknownStage');
 
   return (
     <View

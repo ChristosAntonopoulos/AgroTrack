@@ -16,6 +16,7 @@ public static class DependencyInjection
 
         services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddScoped<IFieldAccessService, FieldAccessService>();
+        services.AddScoped<IFieldAccessScopeService, FieldAccessScopeService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFieldService, FieldService>();
@@ -41,9 +42,10 @@ public static class DependencyInjection
         services.AddScoped<IPhotoHubService, PhotoHubService>();
         services.AddScoped<IUserNotificationService, UserNotificationService>();
         services.AddScoped<IMeDashboardService, MeDashboardService>();
-        services.AddScoped<IFamilyService, FamilyService>();
-        services.AddScoped<IOwnerPartnerService, OwnerPartnerService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
+        services.AddScoped<IAdminCampaignService, AdminCampaignService>();
+        services.AddScoped<IInAppMessageService, InAppMessageService>();
         services.AddScoped<IChronologioService, ChronologioService>();
         services.AddScoped<IFieldWorkAuthorizationService, FieldWorkAuthorizationService>();
         services.AddScoped<IFieldWorkTemplateService, FieldWorkTemplateService>();

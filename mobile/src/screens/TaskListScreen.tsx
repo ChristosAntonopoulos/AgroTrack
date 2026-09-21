@@ -25,6 +25,7 @@ import LearningPromptSheet from '../components/tasks/LearningPromptSheet';
 import { TaskHelpText } from '../components/tasks/TaskChoiceChips';
 import { typography, spacing, radii } from '../theme';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
+import { openChronologioHome } from '../navigation/intents';
 import {
   getFieldService,
   getFieldWorkService,
@@ -386,7 +387,7 @@ const TaskListScreen = () => {
   };
 
   const years = useMemo(() => [defaultYear - 1, defaultYear, defaultYear + 1], [defaultYear]);
-  const openChronologio = () => navigation.navigate('Chronologio', {});
+  const openChronologio = () => openChronologioHome(navigation);
   const handleCreate = () => navigation.navigate('CreateTask', { fieldId: fieldFilter || undefined });
 
   const renderTaskCard = (

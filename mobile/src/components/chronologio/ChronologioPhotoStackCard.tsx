@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { collectChronologioImages } from '../../utils/chronologioPhotoGroups';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { radii, spacing, typography } from '../../theme';
 
 type Props = {
@@ -30,7 +31,13 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
     .filter(Boolean);
   const count = Math.max(images.length, entries.length);
   const fieldNames = showField
-    ? [...new Set(entries.map((e) => e.field?.name).filter(Boolean))]
+    ? [
+        ...new Set(
+          entries
+            .map((e) => (e.field?.name ? friendlyFieldLabel(e.field.name) : ''))
+            .filter(Boolean)
+        ),
+      ]
     : [];
   const time = (() => {
     const d = new Date(entries[0]?.occurredAt || '');
@@ -141,7 +148,7 @@ const styles = StyleSheet.create({
     ...typography.styles.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   title: {
     ...typography.styles.body,

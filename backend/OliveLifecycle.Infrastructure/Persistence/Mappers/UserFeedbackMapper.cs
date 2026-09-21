@@ -17,6 +17,7 @@ public static class UserFeedbackMapper
         UserAgent = document.UserAgent,
         ScreenshotUrl = document.ScreenshotUrl,
         PhotoUrl = document.PhotoUrl,
+        SeenAt = document.SeenAt,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -33,6 +34,7 @@ public static class UserFeedbackMapper
         UserAgent = entity.UserAgent,
         ScreenshotUrl = entity.ScreenshotUrl,
         PhotoUrl = entity.PhotoUrl,
+        SeenAt = entity.SeenAt,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

@@ -103,12 +103,14 @@ const ACTOR_EL: Record<string, string> = {
   'giorgos papadakis': 'Γιώργος Παπαδάκης',
   'giorgos papadopoulos': 'Γιώργος Παπαδόπουλος',
   'kostas manousakis': 'Κώστας Μανούσακης',
+  'eleni papadaki': 'Ελένη Παπαδάκη',
 };
 
 const ACTOR_EN: Record<string, string> = {
   'γιώργος παπαδάκης': 'Giorgos Papadakis',
   'γιώργος παπαδόπουλος': 'Giorgos Papadopoulos',
   'κώστας μανούσακης': 'Kostas Manousakis',
+  'ελένη παπαδάκη': 'Eleni Papadaki',
 };
 
 const QUALITY_EL: Record<string, string> = {
@@ -142,9 +144,30 @@ const STAGE_EN: Record<string, string> = {
 };
 
 const isEnglish = (language?: string) => (language || 'el').toLowerCase().startsWith('en');
+const isItalian = (language?: string) => (language || 'el').toLowerCase().startsWith('it');
 
 const pick = (el: Record<string, string>, en: Record<string, string>, key: string, language?: string) =>
   (isEnglish(language) ? en[key] : el[key]) || el[key];
+
+const harvestDayLabel = (occurredAt: string, language: string): string => {
+  const base = isEnglish(language)
+    ? 'Harvest day'
+    : isItalian(language)
+      ? 'Giorno di raccolta'
+      : 'Ημέρα συγκομιδής';
+  const d = new Date(occurredAt);
+  if (Number.isNaN(d.getTime())) return base;
+  const locale = isEnglish(language) ? 'en-GB' : isItalian(language) ? 'it-IT' : 'el-GR';
+  const datePart = d.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Europe/Athens',
+  });
+  return `${base} · ${datePart}`;
+};
+
+const isMergedHarvestDayEntry = (entry: ChronologioEntry): boolean =>
+  entry.sourceType === 'Harvest' && /^Harvest:day:/i.test(entry.id);
 
 export const chronologioEventKey = (entry: Pick<ChronologioEntry, 'sourceType' | 'sourceId'> & {
   occurrenceId?: string | null;
@@ -270,6 +293,19 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
   }
 
   if (category === 'harvest') {
+    if (isMergedHarvestDayEntry(entry)) {
+      return {
+        label: harvestDayLabel(entry.occurredAt, language),
+        shortLabel: isEnglish(language)
+          ? 'Harvest day'
+          : isItalian(language)
+            ? 'Giorno di raccolta'
+            : 'Ημέρα συγκομιδής',
+        icon,
+        accent,
+        description: entry.summary || undefined,
+      };
+    }
     return {
       label: presentCategory('harvest', language),
       shortLabel,

@@ -1,9 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
+import type { FieldPhenology } from '../../services/fieldWorkService';
 import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
-import { getFieldStatusLabel, getLifecycleStageLabel } from '../../utils/fieldDisplay';
+import { getFieldStatusLabel } from '../../utils/fieldDisplay';
+import { resolveFieldStageLabel } from '../../utils/fieldStage';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import './FieldIdentity.css';
@@ -12,6 +14,7 @@ type Props = {
   field: Field;
   size?: 'card' | 'page';
   showMeta?: boolean;
+  phenology?: FieldPhenology | null;
 };
 
 type MetaChip = {
@@ -20,21 +23,29 @@ type MetaChip = {
   kind: 'status' | 'variety' | 'area' | 'stage';
 };
 
-const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true }) => {
+const FieldIdentity: React.FC<Props> = ({ field, size = 'card', showMeta = true, phenology }) => {
   const { t } = useTranslation(['fields', 'common']);
   const displayName = friendlyFieldLabel(field.name);
   const accent = resolveFieldColor(field.color, field.id);
   const shortLocation = getFieldShortLocation(field);
   const status = getFieldStatusLabel(field.status, t);
-  const stage = getLifecycleStageLabel(field.currentLifecycleStage, t);
-  const variety = field.variety || field.oliveVariety;
+  const stage = resolveFieldStageLabel({
+    phenology,
+    currentLifecycleStage: field.currentLifecycleStage,
+    t,
+  });
+  const varietyRaw = field.variety || field.oliveVariety;
+  const variety = varietyRaw
+    ? t(`fields:addField.varietyOptions.${varietyRaw}`, { defaultValue: varietyRaw })
+    : null;
   const area = formatFieldArea(field);
 
   const chips: MetaChip[] = [];
   if (status) chips.push({ key: 'status', label: status, kind: 'status' });
-  if (variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
   if (area) chips.push({ key: 'area', label: area, kind: 'area' });
   if (size === 'page' && stage) chips.push({ key: 'stage', label: stage, kind: 'stage' });
+  // Variety lives on the field page only — list cards keep the grove name clean.
+  if (size === 'page' && variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
 
   return (
     <div

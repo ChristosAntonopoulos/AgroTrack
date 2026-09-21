@@ -42,37 +42,3 @@ public interface ISavedContactRepository : IRepository<SavedContact, string>
     Task<IReadOnlyList<SavedContact>> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
 }
 
-public interface IFamilyCircleRepository : IRepository<FamilyCircle, string>
-{
-    Task<FamilyCircle?> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
-}
-
-public interface IFamilyMemberRepository : IRepository<FamilyMember, string>
-{
-    Task<IReadOnlyList<FamilyMember>> GetByCircleIdAsync(string circleId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<FamilyMember>> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
-    Task<FamilyMember?> GetActiveByLinkedUserIdAsync(string linkedUserId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<FamilyMember>> GetActiveByLinkedUserIdAllAsync(string linkedUserId, CancellationToken cancellationToken = default);
-    Task<int> CountOccupiedSeatsAsync(string ownerUserId, CancellationToken cancellationToken = default);
-}
-
-public interface IFamilyInviteRepository : IRepository<FamilyInvite, string>
-{
-    Task<FamilyInvite?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<FamilyInvite>> GetPendingByCircleIdAsync(string circleId, CancellationToken cancellationToken = default);
-}
-
-/// <summary>Owner-wide work-partner seat (max 1). Not marketplace providers.</summary>
-public interface IOwnerPartnerLinkRepository : IRepository<OwnerPartnerLink, string>
-{
-    Task<IReadOnlyList<OwnerPartnerLink>> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
-    Task<OwnerPartnerLink?> GetActiveByLinkedUserIdAsync(string linkedUserId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<OwnerPartnerLink>> GetActiveByLinkedUserIdAllAsync(string linkedUserId, CancellationToken cancellationToken = default);
-    Task<int> CountOccupiedSeatsAsync(string ownerUserId, CancellationToken cancellationToken = default);
-}
-
-public interface IOwnerPartnerInviteRepository : IRepository<OwnerPartnerInvite, string>
-{
-    Task<OwnerPartnerInvite?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<OwnerPartnerInvite>> GetPendingByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
-}

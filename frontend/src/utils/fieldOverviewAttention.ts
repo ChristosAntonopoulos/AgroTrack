@@ -2,6 +2,7 @@ import type { FieldEnvironmentalAlert } from '../services/geospatialService';
 import type { FieldTask, TaskProposal } from '../services/fieldWorkService';
 import { templateTitle } from '../data/fieldWorkCatalogueLabels';
 import { getNextUpcomingTask } from './fieldDisplay';
+import { taskPeekPath } from '../navigation/intents';
 
 export type FieldAttentionKind =
   | 'safety'
@@ -130,7 +131,7 @@ export function resolveFieldAttention(input: {
         explanationKey: 'overview.attention.alertBody',
         explanationParams: { message: safety.message },
         primaryKey: 'overview.attention.seeChange',
-        primaryTo: safety.relatedTaskId ? `/tasks/${safety.relatedTaskId}` : undefined,
+        primaryTo: safety.relatedTaskId ? taskPeekPath(safety.relatedTaskId) : undefined,
       };
     }
 
@@ -144,7 +145,7 @@ export function resolveFieldAttention(input: {
         explanationKey: 'overview.attention.alertBody',
         explanationParams: { message: agronomy.message },
         primaryKey: 'overview.attention.seeChange',
-        primaryTo: agronomy.relatedTaskId ? `/tasks/${agronomy.relatedTaskId}` : undefined,
+        primaryTo: agronomy.relatedTaskId ? taskPeekPath(agronomy.relatedTaskId) : undefined,
       };
     }
   }
@@ -159,7 +160,7 @@ export function resolveFieldAttention(input: {
       explanationKey: 'overview.attention.overdueBody',
       window: windowForTask(overdue),
       primaryKey: 'overview.attention.openTask',
-      primaryTo: `/tasks/${overdue.id}`,
+      primaryTo: taskPeekPath(overdue.id),
       taskId: overdue.id,
     };
   }
@@ -179,7 +180,7 @@ export function resolveFieldAttention(input: {
         window: windowForTask(weatherTask),
         reason: weatherTask.weatherSuitabilityLabel,
         primaryKey: 'overview.attention.seeChange',
-        primaryTo: `/tasks/${weatherTask.id}`,
+        primaryTo: taskPeekPath(weatherTask.id),
         secondaryKey: 'overview.attention.keepDate',
         taskId: weatherTask.id,
       };
@@ -196,7 +197,7 @@ export function resolveFieldAttention(input: {
       explanationKey: 'overview.attention.nextBody',
       window: windowForTask(nextTask),
       primaryKey: 'overview.attention.openTask',
-      primaryTo: `/tasks/${nextTask.id}`,
+      primaryTo: taskPeekPath(nextTask.id),
       taskId: nextTask.id,
     };
   }

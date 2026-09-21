@@ -10,9 +10,6 @@ public interface IFieldService
     Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(string userId, string userRole, CancellationToken cancellationToken = default);
     Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default);
     Task<bool> DeleteFieldAsync(string id, string userId, CancellationToken cancellationToken = default);
-    Task AssignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default);
-    Task UnassignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<string>> GetAssignedProducerIdsAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreAsync(
         string ownerId,
         Stream kdFile,

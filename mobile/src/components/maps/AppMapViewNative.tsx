@@ -1,5 +1,4 @@
 import React, { useEffect, useImperativeHandle, useMemo, useRef } from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
 import {
   MapView,
   Camera,
@@ -8,7 +7,7 @@ import {
   type MapViewRef,
 } from '@maplibre/maplibre-react-native';
 import { LatLng } from '../../utils/fieldGeo';
-import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MAP_MIN_ZOOM } from '../../utils/mapLayers';
 import { getMapLibreStyle } from '../../utils/maplibreStyles';
 import {
   boundsFromPoints,
@@ -17,7 +16,7 @@ import {
   regionToCameraStop,
   type MapRegion,
 } from '../../utils/maplibreGeo';
-import type { AppMapPressEvent, AppMapViewProps, AppMapViewRef } from './AppMapView';
+import type { AppMapViewProps, AppMapViewRef } from './AppMapView';
 
 const GREECE_DEFAULT: MapRegion = {
   latitude: 37.05,
@@ -26,8 +25,8 @@ const GREECE_DEFAULT: MapRegion = {
   longitudeDelta: 0.08,
 };
 
-const MIN_ZOOM = 8;
-const MAX_ZOOM = 19;
+const MIN_ZOOM = MAP_MIN_ZOOM;
+const MAX_ZOOM = MAP_MAX_ZOOM;
 
 type RegionPayload = {
   zoomLevel?: number;
@@ -59,12 +58,13 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
   ) => {
     const cameraRef = useRef<CameraRef>(null);
     const mapRef = useRef<MapViewRef>(null);
+    const zoomCeiling = Math.min(Math.max(maxZoom ?? MAX_ZOOM, MIN_ZOOM), MAX_ZOOM);
     const zoomRef = useRef<number>(13);
 
     const mapStyle = useMemo(() => getMapLibreStyle(mapLayer), [mapLayer]);
 
     const defaultCamera = useMemo(() => {
-      const stop = regionToCameraStop(initialRegion ?? region ?? GREECE_DEFAULT, maxZoom);
+      const stop = regionToCameraStop(initialRegion ?? region ?? GREECE_DEFAULT, zoomCeiling);
       zoomRef.current = stop.zoomLevel ?? 13;
       return stop;
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,49 +72,60 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
 
     const applyZoom = (nextZoom: number, animationDuration = 200) => {
       if (!cameraRef.current) return;
-      const zoomLevel = Math.min(Math.max(nextZoom, MIN_ZOOM), MAX_ZOOM);
+      const zoomLevel = Math.min(Math.max(nextZoom, MIN_ZOOM), zoomCeiling);
       zoomRef.current = zoomLevel;
       cameraRef.current.setCamera({ zoomLevel, animationDuration });
     };
 
     useEffect(() => {
       if (!region || !cameraRef.current) return;
-      const stop = regionToCameraStop(region, maxZoom);
+      const stop = regionToCameraStop(region, zoomCeiling);
       if (stop.zoomLevel != null) zoomRef.current = stop.zoomLevel;
       cameraRef.current.setCamera(stop);
-    }, [region?.latitude, region?.longitude, region?.latitudeDelta, region?.longitudeDelta, maxZoom]);
+    }, [
+      region?.latitude,
+      region?.longitude,
+      region?.latitudeDelta,
+      region?.longitudeDelta,
+      zoomCeiling,
+    ]);
 
-    useImperativeHandle(ref, () => ({
-      fitCoordinates: (points: LatLng[], padding = 48, singlePointZoom = 16, fitMaxZoom?: number) => {
-        const bounds = boundsFromPoints(points);
-        if (!bounds || !cameraRef.current) return;
-        const ceiling = fitMaxZoom ?? maxZoom ?? MAX_ZOOM;
-        if (points.length === 1) {
-          const zoomLevel = Math.min(singlePointZoom, ceiling);
-          zoomRef.current = zoomLevel;
-          cameraRef.current.setCamera({
-            centerCoordinate: [points[0].longitude, points[0].latitude],
-            zoomLevel,
-            animationDuration: 0,
-          });
-          return;
-        }
-        const expanded = expandBoundsForMaxZoom(bounds, ceiling);
-        cameraRef.current.fitBounds(expanded.ne, expanded.sw, padding, 0);
-      },
-      animateToRegion: (nextRegion: MapRegion, animateMaxZoom?: number) => {
-        if (!cameraRef.current) return;
-        const stop = regionToCameraStop(nextRegion, animateMaxZoom ?? maxZoom);
-        if (stop.zoomLevel != null) zoomRef.current = stop.zoomLevel;
-        cameraRef.current.setCamera({ ...stop, animationDuration: 0 });
-      },
-      zoomIn: () => {
-        applyZoom(zoomRef.current + 1);
-      },
-      zoomOut: () => {
-        applyZoom(zoomRef.current - 1);
-      },
-    }));
+    useImperativeHandle(
+      ref,
+      () => ({
+        fitCoordinates: (points: LatLng[], padding = 48, singlePointZoom = 16, fitMaxZoom?: number) => {
+          const bounds = boundsFromPoints(points);
+          if (!bounds || !cameraRef.current) return;
+          const ceiling = Math.min(fitMaxZoom ?? maxZoom ?? MAX_ZOOM, zoomCeiling);
+          if (points.length === 1) {
+            const zoomLevel = Math.min(singlePointZoom, ceiling);
+            zoomRef.current = zoomLevel;
+            cameraRef.current.setCamera({
+              centerCoordinate: [points[0].longitude, points[0].latitude],
+              zoomLevel,
+              animationDuration: 0,
+            });
+            return;
+          }
+          const expanded = expandBoundsForMaxZoom(bounds, ceiling);
+          cameraRef.current.fitBounds(expanded.ne, expanded.sw, padding, 0);
+        },
+        animateToRegion: (nextRegion: MapRegion, animateMaxZoom?: number) => {
+          if (!cameraRef.current) return;
+          const ceiling = Math.min(animateMaxZoom ?? maxZoom ?? MAX_ZOOM, zoomCeiling);
+          const stop = regionToCameraStop(nextRegion, ceiling);
+          if (stop.zoomLevel != null) zoomRef.current = stop.zoomLevel;
+          cameraRef.current.setCamera({ ...stop, animationDuration: 0 });
+        },
+        zoomIn: () => {
+          applyZoom(zoomRef.current + 1);
+        },
+        zoomOut: () => {
+          applyZoom(zoomRef.current - 1);
+        },
+      }),
+      [maxZoom, zoomCeiling]
+    );
 
     return (
       <MapView
@@ -131,7 +142,16 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
         onDidFinishLoadingMap={onMapReady}
         onRegionDidChange={(feature) => {
           const zoom = readZoomFromRegionEvent(feature);
-          if (zoom != null) zoomRef.current = zoom;
+          if (zoom == null) return;
+          if (zoom > zoomCeiling + 0.05) {
+            applyZoom(zoomCeiling, 0);
+            return;
+          }
+          if (zoom < MIN_ZOOM - 0.05) {
+            applyZoom(MIN_ZOOM, 0);
+            return;
+          }
+          zoomRef.current = zoom;
         }}
         onPress={
           onPress
@@ -146,7 +166,7 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
           ref={cameraRef}
           defaultSettings={defaultCamera}
           minZoomLevel={MIN_ZOOM}
-          maxZoomLevel={MAX_ZOOM}
+          maxZoomLevel={zoomCeiling}
         />
         {showUserLocation ? <UserLocation visible /> : null}
         {children}

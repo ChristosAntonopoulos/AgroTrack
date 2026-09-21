@@ -16,6 +16,7 @@ import {
 import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { taskPeekPath } from '../../navigation/intents';
 import './Money.css';
 
 type Props = {
@@ -197,7 +198,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 <dt>{t('money:relatedTask')}</dt>
                 <dd>
                   {relatedTaskTitle ? (
-                    <Link to={`/tasks/${transaction.relatedTaskId}`}>{relatedTaskTitle}</Link>
+                    <Link to={taskPeekPath(transaction.relatedTaskId)}>{relatedTaskTitle}</Link>
                   ) : (
                     t('money:relatedTask')
                   )}

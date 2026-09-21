@@ -12,7 +12,7 @@
   "items": {
     "dashboard": "Πίνακας ελέγχου",
     "today": "Πρωινή ματιά",
-    "fields": "Αγροτεμάχια",
+    "fields": "Χωράφια",
     "tasks": "Εργασίες",
     "partners": "Συνεργάτες",
     "money": "Χρήματα",
@@ -22,6 +22,8 @@
     "reports": "Αναφορές",
     "ministry": "Υπουργείο",
     "dataSources": "Πηγές δεδομένων",
+    "campaigns": "Μηνύματα",
+    "userFeedback": "Σχόλια χρηστών",
     "feedback": "Πες μας",
     "settings": "Ρυθμίσεις",
     "thisHarvest": "Συγκομιδή",

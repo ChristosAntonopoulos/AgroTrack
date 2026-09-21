@@ -54,7 +54,7 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
       type="button"
       className={`chrono-photo-stack${selected ? ' is-selected' : ''}`}
       onClick={onOpen}
-      aria-label={t('photos:dayStack.openSheet')}
+      aria-label={t('photos:dayStack.openSheet', { defaultValue: 'Open photos' })}
     >
       <div className={`chrono-photo-stack-collage ${collageClass}`} aria-hidden>
         {thumbs.length ? (

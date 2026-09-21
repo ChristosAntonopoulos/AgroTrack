@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
 import LoadingSpinner from '../Common/LoadingSpinner';
-import WeatherSuitabilityBadge from './WeatherSuitabilityBadge';
 import {
   getFieldService,
   getFieldWorkService,
@@ -13,20 +12,15 @@ import {
 } from '../../services/serviceFactory';
 import { fieldPeopleService, type FieldMembership } from '../../services/fieldPeopleService';
 import type { SavedContact } from '../../services/partnerService';
-import type { FieldTask, FieldTaskChecklistItem } from '../../services/fieldWorkService';
+import type { FieldTask } from '../../services/fieldWorkService';
 import type { Field } from '../../services/fieldService';
 import type { TaskFinancialSummary } from '../../services/financialSummaryService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
-import { formatTaskDateRange, formatTaskDay } from '../../utils/taskDateRange';
 import { checklistProgress } from '../../utils/plannedTaskGroups';
-import { resolveWeatherKind } from '../../utils/taskWeather';
-import { isWeatherSensitiveTemplate } from '../../data/fieldWorkCatalogueLabels';
-import { weatherExplanationCopy, type ProposalChip } from '../../utils/proposalPresentation';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { formatOfficialAmount } from '../../finance/format';
-import '../Tasks/form/TaskForm.css';
-import '../../pages/TaskDetailPage.css';
+import TaskPeekBody from './TaskPeekBody';
+import { assigneeKeyOf, buildAssigneeOptions } from './taskPeekModel';
 
 interface TaskDetailDrawerProps {
   taskId: string | null;
@@ -39,11 +33,6 @@ interface TaskDetailDrawerProps {
   onReschedule: (task: FieldTask) => void;
 }
 
-const checklistLabel = (item: FieldTaskChecklistItem, lang: string) => {
-  if (lang.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
-  return item.englishLabel || item.label;
-};
-
 const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   taskId,
   task: seedTask,
@@ -51,8 +40,8 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   onClose,
   onChanged,
   onStart,
-  onPause,
-  onReschedule,
+  onPause: _onPause,
+  onReschedule: _onReschedule,
 }) => {
   const { t, i18n } = useTranslation(['tasks', 'common', 'errors', 'money']);
   const navigate = useNavigate();
@@ -76,9 +65,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         const data = await getFieldWorkService().getFieldTask(taskId);
         if (cancelled) return;
         setTask(data);
-        if (data.assignedUserId) setAssigneeKey(`user:${data.assignedUserId}`);
-        else if (data.assignedCollaboratorId) setAssigneeKey(`contact:${data.assignedCollaboratorId}`);
-        else setAssigneeKey('');
+        setAssigneeKey(assigneeKeyOf(data));
 
         const [fields, memberships, saved, taskMoney] = await Promise.all([
           getFieldService().getFields().catch(() => [] as Field[]),
@@ -110,7 +97,6 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const status = String(task?.status || '').toLowerCase();
   const canStart = status === 'planned' || status === 'ready' || status === 'blocked';
-  const inProgress = status === 'in_progress';
   const isTerminal = status === 'completed' || status === 'cancelled';
   const progress = task ? checklistProgress(task) : { done: 0, total: 0 };
   const remaining = Math.max(0, progress.total - progress.done);
@@ -118,59 +104,11 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const title = task ? taskDisplayTitle(task.title, task.templateCode, i18n.language) : '';
   const fieldName = field ? friendlyFieldLabel(field.name) : task?.fieldId || '';
-  const period = task ? formatTaskDateRange(task.plannedStart, task.plannedEnd, i18n.language) : '';
 
-  const weatherKind = resolveWeatherKind(task?.weatherSuitability);
-  const showWeather =
-    Boolean(task) &&
-    (weatherKind === 'unknown' ||
-      (isWeatherSensitiveTemplate(task?.templateCode) && weatherKind !== 'not_sensitive'));
-  const weatherChip: ProposalChip | null = showWeather
-    ? {
-        id:
-          weatherKind === 'good'
-            ? 'good'
-            : weatherKind === 'caution'
-              ? 'caution'
-              : weatherKind === 'unsuitable'
-                ? 'unsuitable'
-                : 'unknown',
-        labelKey: `fieldWork.proposal.chips.${weatherKind === 'unknown' ? 'unknown' : weatherKind}`,
-      }
-    : null;
-
-  const weatherCopy = useMemo(
-    () =>
-      weatherExplanationCopy(
-        weatherKind === 'not_sensitive' ? 'not_sensitive' : weatherKind,
-        [],
-        i18n.language
-      ),
-    [weatherKind, i18n.language]
+  const assigneeOptions = useMemo(
+    () => buildAssigneeOptions(people, contacts, t('fieldWork.form.unassigned')),
+    [people, contacts, t]
   );
-
-  const assigneeOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string; userId?: string; contactId?: string }> = [
-      { key: '', label: t('fieldWork.form.unassigned') },
-    ];
-    people.forEach((p) => {
-      opts.push({
-        key: `user:${p.userId}`,
-        label: p.displayName || p.email || p.userId,
-        userId: p.userId,
-      });
-    });
-    contacts.forEach((c) => {
-      if (c.linkedUserId && people.some((p) => p.userId === c.linkedUserId)) return;
-      opts.push({
-        key: `contact:${c.id}`,
-        label: c.displayName,
-        contactId: c.id,
-        userId: c.linkedUserId,
-      });
-    });
-    return opts;
-  }, [people, contacts, t]);
 
   const handleAssign = async (nextKey: string) => {
     if (!task || isTerminal) return;
@@ -223,10 +161,6 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     return t('fieldWork.actions.continueChecks');
   };
 
-  const checklist = (task?.checklist || [])
-    .slice()
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-
   return (
     <RightDrawer
       open={open}
@@ -239,16 +173,6 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           <div className="task-detail-drawer-footer">
             <p className="task-form-help">{nextStepCopy()}</p>
             <div className="task-detail-actions">
-              {inProgress && !task.isPaused ? (
-                <Button variant="outline" size="lg" onClick={() => onPause(task)} disabled={busy}>
-                  {t('fieldWork.actions.pause')}
-                </Button>
-              ) : null}
-              {(canStart || inProgress) && !task.isPaused ? (
-                <Button variant="outline" size="lg" onClick={() => onReschedule(task)} disabled={busy}>
-                  {t('fieldWork.actions.changeDate')}
-                </Button>
-              ) : null}
               <Button variant="primary" size="lg" onClick={primaryNext} disabled={busy}>
                 {primaryLabel()}
               </Button>
@@ -258,110 +182,21 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       }
     >
       {loading ? <LoadingSpinner /> : null}
-      {error ? (
+      {task && !loading ? (
+        <TaskPeekBody
+          variant="peek"
+          task={task}
+          field={field}
+          money={money}
+          assigneeKey={assigneeKey}
+          assigneeOptions={assigneeOptions}
+          busy={busy}
+          error={error}
+          onAssign={(key) => void handleAssign(key)}
+        />
+      ) : error ? (
         <div className="task-form-error" role="alert">
           {error}
-        </div>
-      ) : null}
-      {task && !loading ? (
-        <div className="task-detail-drawer-body">
-          <div className="task-detail-chips">
-            <span className="task-detail-status">{task.statusLabel}</span>
-            {task.isPaused ? (
-              <span className="task-detail-status is-blocked">{t('fieldWork.task.paused')}</span>
-            ) : null}
-          </div>
-          <p className="task-detail-meta">
-            {period ? <span>{period}</span> : null}
-            {task.startedAt ? (
-              <span>
-                {' '}
-                · {t('detail.actualStart')}:{' '}
-                {formatTaskDay(task.startedAt, i18n.language, task.resultYear)}
-              </span>
-            ) : null}
-          </p>
-
-          {weatherChip ? (
-            <div className="task-detail-weather">
-              <WeatherSuitabilityBadge
-                chip={weatherChip}
-                label={
-                  weatherChip.id === 'unknown'
-                    ? t('fieldWork.weather.unknown')
-                    : t(weatherChip.labelKey)
-                }
-                headline={weatherCopy.headline}
-                facts={weatherCopy.facts}
-              />
-            </div>
-          ) : null}
-
-          <section className="task-detail-card">
-            <h2>{t('fieldWork.detail.checklist')}</h2>
-            {progress.total > 0 ? (
-              <p className="task-work-progress-label">
-                {t('fieldWork.task.progressSentence', {
-                  started: task.startedAt
-                    ? formatTaskDay(task.startedAt, i18n.language, task.resultYear)
-                    : t('fieldWork.task.startedRecently'),
-                  done: progress.done,
-                  total: progress.total,
-                })}
-              </p>
-            ) : null}
-            <ul className="task-detail-checklist">
-              {checklist.map((item) => (
-                <li key={item.key} className={`task-detail-check${item.isAnswered ? ' is-done' : ''}`}>
-                  <span className="task-detail-check-mark" aria-hidden>
-                    {item.isAnswered ? '✓' : '○'}
-                  </span>
-                  <strong>{checklistLabel(item, i18n.language)}</strong>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="task-detail-card">
-            <h2>{t('fieldWork.person')}</h2>
-            <select
-              className="task-form-input"
-              value={assigneeKey}
-              disabled={isTerminal || busy}
-              onChange={(e) => void handleAssign(e.target.value)}
-            >
-              {assigneeOptions.map((option) => (
-                <option key={option.key || 'unassigned'} value={option.key}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </section>
-
-          {money ? (
-            <section className="task-detail-card">
-              <h2>{t('fieldWork.detail.money')}</h2>
-              <p>
-                {formatOfficialAmount(
-                  money.actualCost ?? money.estimatedCost,
-                  'EUR',
-                  i18n.language,
-                  t('money:unknownAmount')
-                )}
-              </p>
-            </section>
-          ) : null}
-
-          {task.notes ? (
-            <section className="task-detail-card">
-              <h2>{t('fieldWork.form.notes', { defaultValue: 'Σημειώσεις' })}</h2>
-              <p>{task.notes}</p>
-            </section>
-          ) : null}
-
-          <p className="task-form-help">
-            <Link to={`/tasks/${task.id}`}>{t('fieldWork.detail.openFullPage')}</Link>
-          </p>
         </div>
       ) : null}
     </RightDrawer>

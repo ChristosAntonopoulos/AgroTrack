@@ -43,7 +43,7 @@ export const buildTaskSearchParams = (input: {
     params.set('year', String(input.year));
   }
   if (input.fieldId) {
-    params.set('field', input.fieldId);
+    params.set('fieldId', input.fieldId);
   }
   if (input.assigneeId) {
     params.set('assignee', input.assigneeId);

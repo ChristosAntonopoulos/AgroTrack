@@ -19,7 +19,9 @@ import ChronologioThumbnail from './ChronologioThumbnail';
 import { pickRealMediaUrl } from '../../chronologio/mediaGuard';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import type { SupportedLocale } from '../../i18n/config';
+import './Chronologio.css';
 
 export type EventDensity = 'summary' | 'compact' | 'card';
 
@@ -131,7 +133,7 @@ const ChronologioEvent: React.FC<Props> = ({
           </span>
           <span className="chrono-event-compact-title">{presented.label}</span>
           {showField && entry.field?.name ? (
-            <span className="chrono-event-compact-field">{entry.field.name}</span>
+            <span className="chrono-event-compact-field">{friendlyFieldLabel(entry.field.name)}</span>
           ) : null}
         </span>
         {money ? <span className="chrono-event-compact-value">{money}</span> : null}

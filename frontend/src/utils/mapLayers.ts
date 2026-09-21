@@ -4,6 +4,11 @@ import { getMapPalette } from '../styles/colorTokens';
 
 export type MapLayerType = 'satellite' | 'street' | 'terrain';
 
+/** Hard stop for user zoom. Past native zoom, tiles are overscaled so the map stays visible. */
+export const MAP_MAX_ZOOM = 19;
+export const MAP_MAX_NATIVE_ZOOM = 18;
+export const MAP_MIN_ZOOM = 5;
+
 export const SATELLITE_TILE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 

@@ -76,6 +76,15 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDelete, onOpenChronol
     icon: 'images-outline',
     onPress: () => run(() => navigation.navigate('Photos', { fieldId: field.id })),
   });
+  if (center) {
+    actions.push({
+      key: 'importNearby',
+      label: t('fields:more.importNearbyPhotos'),
+      icon: 'scan-outline',
+      onPress: () =>
+        run(() => navigation.navigate('Photos', { fieldId: field.id, importNearby: true })),
+    });
+  }
   actions.push({
     key: 'weather',
     label: t('chronologio:weatherVegetation.button'),

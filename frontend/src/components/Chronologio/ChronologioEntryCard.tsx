@@ -6,6 +6,7 @@ import { Pin } from 'lucide-react';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { formatGroveMassKg } from '../../utils/groveTotals';
 import { taskStatusI18nKey } from '../../utils/categoryNormalize';
 import {
   presentActorName,
@@ -15,7 +16,9 @@ import {
 } from '../../chronologio/eventPresentation';
 import type { SupportedLocale } from '../../i18n/config';
 import { resolveFieldColor } from '../../utils/fieldColors';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
+import { chronologioWebDestination, isChronologioMergedHarvestDay } from '../../chronologio/entryDestination';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import './Chronologio.css';
@@ -81,33 +84,13 @@ const ChronologioEntryCard: React.FC<Props> = ({
       onSelect(entry);
       return;
     }
-    if (
-      (entry.sourceType === 'Task' || entry.sourceType === 'TaskExecution') &&
-      (entry.details.task?.taskId || entry.sourceId)
-    ) {
-      navigate(`/tasks/${entry.details.task?.taskId || entry.sourceId}`);
+    const dest = chronologioWebDestination(entry);
+    if (dest.kind === 'path') {
+      navigate(dest.path);
       return;
     }
-    if (entry.sourceType === 'Expense') {
-      navigate(`/money?fieldId=${encodeURIComponent(entry.fieldId)}${entry.sourceId ? `&entry=${encodeURIComponent(entry.sourceId)}` : ''}`);
-      return;
-    }
-    if (entry.sourceType === 'Harvest') {
-      navigate('/harvest');
-      return;
-    }
-    if (entry.sourceType === 'Note') {
+    if (dest.kind === 'noteEdit') {
       navigate('/chronologio');
-      return;
-    }
-    if (entry.sourceType === 'Photo') {
-      navigate(
-        `/photos?fieldId=${encodeURIComponent(entry.fieldId)}&photoId=${encodeURIComponent(entry.sourceId)}`
-      );
-      return;
-    }
-    if (entry.sourceType === 'WeatherReview') {
-      navigate(`/fields/${entry.fieldId}/weather`);
       return;
     }
     setExpanded((v) => !v);
@@ -126,20 +109,20 @@ const ChronologioEntryCard: React.FC<Props> = ({
   })();
   const photoCount = entry.media?.length || 0;
 
+  const isHarvestDay = isChronologioMergedHarvestDay(entry);
   const hasExtraDetails = Boolean(
     lifecycle?.message ||
       intelligence?.message ||
       intelligence?.recommendation ||
       (!isPeriodReview && weather?.source) ||
-      harvest?.mill ||
-      harvest?.quality ||
+      (!isHarvestDay && (harvest?.mill || harvest?.quality)) ||
       expense?.description
   );
 
   return (
     <button
       type="button"
-      className={`chronologio-event-card chronologio-event-card--${accent} is-${size}${tone ? ` ${tone}` : ''}${selected ? ' is-selected' : ''}${weatherTile ? ' is-weather-tile' : ''}${isPeriodReview && !weatherTile ? ' is-month-report' : ''}${category === 'photo' ? ' chrono-cat-photo' : ''}`}
+      className={`chronologio-event-card chronologio-event-card--${accent} is-${size}${tone ? ` ${tone}` : ''}${selected ? ' is-selected' : ''}${weatherTile ? ' is-weather-tile' : ''}${isPeriodReview && !weatherTile ? ' is-month-report' : ''}${isHarvestDay ? ' is-harvest-day' : ''}${category === 'photo' ? ' chrono-cat-photo' : ''}`}
       style={weatherTile ? ({ '--field-accent': fieldAccent } as React.CSSProperties) : undefined}
       aria-pressed={weatherTile ? selected : undefined}
       onClick={onActivate}
@@ -154,7 +137,9 @@ const ChronologioEntryCard: React.FC<Props> = ({
           {weatherTile ? (
             <div className="weather-pick-field">
               <span className="chrono-field-dot" style={{ background: fieldAccent }} aria-hidden />
-              <h3 className="weather-pick-title">{entry.field?.name || presented.label}</h3>
+              <h3 className="weather-pick-title">
+                {entry.field?.name ? friendlyFieldLabel(entry.field.name) : presented.label}
+              </h3>
             </div>
           ) : null}
           {!weatherTile ? (
@@ -178,33 +163,56 @@ const ChronologioEntryCard: React.FC<Props> = ({
           ) : null}
           {!weatherTile ? <h3 className="chronologio-card-title">{presented.label}</h3> : null}
           {category === 'harvest' && harvest ? (
-            <div className="chronologio-harvest-stats">
-              <div className="chronologio-harvest-stat">
-                <strong>
-                  {harvest.oliveKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
-                </strong>
-                <span>{t('chronologio:olivesUnit')}</span>
+            isHarvestDay ? (
+              <div className="chronologio-harvest-stats is-day-snapshot">
+                {harvest.oliveKg > 0 ? (
+                  <div className="chronologio-harvest-stat">
+                    <strong>{formatGroveMassKg(harvest.oliveKg, numberLocale)}</strong>
+                    <span>{t('chronologio:olivesUnit')}</span>
+                  </div>
+                ) : null}
+                {(harvest.sackCount ?? 0) > 0 ? (
+                  <div className="chronologio-harvest-stat">
+                    <strong>{harvest.sackCount}</strong>
+                    <span>{t('chronologio:sacksUnit')}</span>
+                  </div>
+                ) : null}
+                {harvest.workers > 0 ? (
+                  <div className="chronologio-harvest-stat">
+                    <strong>{harvest.workers}</strong>
+                    <span>{t('chronologio:workers')}</span>
+                  </div>
+                ) : null}
+                {harvest.oilKg != null && harvest.oilKg > 0 ? (
+                  <div className="chronologio-harvest-stat">
+                    <strong>{formatGroveMassKg(harvest.oilKg, numberLocale)}</strong>
+                    <span>{t('chronologio:oilUnit')}</span>
+                  </div>
+                ) : null}
               </div>
-              {harvest.oilKg != null ? (
+            ) : (
+              <div className="chronologio-harvest-stats">
                 <div className="chronologio-harvest-stat">
-                  <strong>
-                    {harvest.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })}
-                  </strong>
-                  <span>{t('chronologio:oilUnit')}</span>
+                  <strong>{formatGroveMassKg(harvest.oliveKg, numberLocale)}</strong>
+                  <span>{t('chronologio:olivesUnit')}</span>
                 </div>
-              ) : null}
-              {harvest.oilYieldPercent != null ? (
-                <div className="chronologio-harvest-stat">
-                  <strong>
-                    {harvest.oilYieldPercent.toLocaleString(numberLocale, {
-                      maximumFractionDigits: 1,
-                    })}
-                    %
-                  </strong>
-                  <span>{t('chronologio:yieldUnit')}</span>
-                </div>
-              ) : null}
-            </div>
+                {harvest.oilKg != null ? (
+                  <div className="chronologio-harvest-stat">
+                    <strong>{formatGroveMassKg(harvest.oilKg, numberLocale)}</strong>
+                    <span>{t('chronologio:oilUnit')}</span>
+                  </div>
+                ) : null}
+                {harvest.oilYieldPercent != null ? (
+                  <div className="chronologio-harvest-stat">
+                    <strong>{formatGroveMassKg(harvest.oilYieldPercent, numberLocale)}%</strong>
+                    <span>{t('chronologio:yieldUnit')}</span>
+                  </div>
+                ) : null}
+              </div>
+            )
+          ) : null}
+          {isHarvestDay && presented.description ? (
+            <p className="chronologio-harvest-day-summary">{presented.description}</p>
           ) : null}
 
           {category === 'expense' || category === 'income' || (category === 'task' && entry.amount) ? (
@@ -327,7 +335,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
               {showField && !weatherTile && entry.field?.name ? (
                 <div className="chronologio-card-field">
                   <span className="chrono-field-dot" style={{ background: fieldAccent }} aria-hidden />
-                  <span>{entry.field.name}</span>
+                  <span>{friendlyFieldLabel(entry.field.name)}</span>
                 </div>
               ) : null}
               {presentActorName(entry.actor?.displayName, i18n.language) || photoCount > 0 ? (

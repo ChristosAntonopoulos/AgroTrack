@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
+import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { isDeviceOnline } from '../utils/networkStatus';
 import {
   getFieldService,
@@ -21,9 +23,10 @@ import type { FinancialTransaction } from '../services/financialTransactionServi
 import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap } from '../utils/fieldLabels';
-import { athensCalendarYear } from '../utils/athensDate';
+import { readFieldId } from '../navigation/intents';
+import { agriculturalYearFor, agriculturalYearRangeLabel } from '../chronologio/agriculturalYear';
 import { UNASSIGNED_FIELD_QUERY, overlayUnassignedSummary } from '../finance/buildYearSummary';
-import { formatOfficialAmount, isForbiddenError } from '../finance/format';
+import { formatOfficialAmount, isForbiddenError, perAreaForDisplay } from '../finance/format';
 import MoneyPageHeader from '../components/money/MoneyPageHeader';
 import MoneyContextBar from '../components/money/MoneyContextBar';
 import MoneySummaryGrid from '../components/money/MoneySummaryGrid';
@@ -47,10 +50,11 @@ const MoneyPage: React.FC = () => {
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const capture = useCaptureOptional();
   const [searchParams, setSearchParams] = useSearchParams();
+  const pageGuard = useModulePageGuard({ module: 'money' });
 
-  const currentYear = athensCalendarYear(new Date());
+  const currentYear = agriculturalYearFor(new Date());
   const year = Number(searchParams.get('year')) || currentYear;
-  const fieldId = searchParams.get('fieldId') || '';
+  const fieldId = readFieldId(searchParams);
   const month = Number(searchParams.get('month')) || 0;
   const kindParam = searchParams.get('kind');
   const kind: KindFilter =
@@ -195,8 +199,32 @@ const MoneyPage: React.FC = () => {
   };
 
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
-  const selected = transactions.find((row) => row.id === txId) || null;
+  const [deepLinkedTx, setDeepLinkedTx] = useState<FinancialTransaction | null>(null);
+  const selected = transactions.find((row) => row.id === txId) || deepLinkedTx;
   const [relatedTitles, setRelatedTitles] = useState<{ task?: string; harvest?: string }>({});
+
+  useEffect(() => {
+    if (!txId) {
+      setDeepLinkedTx(null);
+      return;
+    }
+    if (transactions.some((row) => row.id === txId)) {
+      setDeepLinkedTx(null);
+      return;
+    }
+    let cancelled = false;
+    void getFinancialTransactionService()
+      .getById(txId)
+      .then((tx) => {
+        if (!cancelled) setDeepLinkedTx(tx);
+      })
+      .catch(() => {
+        if (!cancelled) setDeepLinkedTx(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [txId, transactions]);
 
   useEffect(() => {
     if (!selected?.relatedTaskId && !selected?.relatedHarvestId) {
@@ -266,6 +294,17 @@ const MoneyPage: React.FC = () => {
     </PageContainer>
   );
 
+  if (pageGuard.loading) {
+    return (
+      <PageContainer>
+        <LoadingSpinner />
+      </PageContainer>
+    );
+  }
+  if (!pageGuard.allowed) {
+    return <Navigate to="/chronologio" replace />;
+  }
+
   if (loading && !summary) {
     return shell(
       <>
@@ -297,6 +336,7 @@ const MoneyPage: React.FC = () => {
         />
         <MoneyContextBar
           year={year}
+          yearRangeLabel={agriculturalYearRangeLabel(year, i18n.language)}
           kind={kind}
           hideIncome={summaryForbidden}
           onYearChange={(next) => patch({ year: String(next), month: null })}
@@ -341,7 +381,7 @@ const MoneyPage: React.FC = () => {
                   <p>
                     {t('money:costPerHectare')}:{' '}
                     {formatOfficialAmount(
-                      summary.costPerHectare,
+                      perAreaForDisplay(summary.costPerHectare, i18n.language),
                       summary.currency,
                       i18n.language,
                       t('money:unknownAmount')
@@ -352,7 +392,7 @@ const MoneyPage: React.FC = () => {
                   <p>
                     {t('money:incomePerHectare')}:{' '}
                     {formatOfficialAmount(
-                      summary.incomePerHectare,
+                      perAreaForDisplay(summary.incomePerHectare, i18n.language),
                       summary.currency,
                       i18n.language,
                       t('money:unknownAmount')
@@ -363,7 +403,7 @@ const MoneyPage: React.FC = () => {
                   <p>
                     {t('money:netPerHectare')}:{' '}
                     {formatOfficialAmount(
-                      summary.netPerHectare,
+                      perAreaForDisplay(summary.netPerHectare, i18n.language),
                       summary.currency,
                       i18n.language,
                       t('money:unknownAmount')

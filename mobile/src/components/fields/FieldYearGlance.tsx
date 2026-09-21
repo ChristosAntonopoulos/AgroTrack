@@ -7,11 +7,12 @@ import {
   formatEuroPerLitre,
   formatLitres,
   formatOfficialAmount,
-  formatOfficialNet,
+  perAreaForDisplay,
 } from '../../finance/format';
 import { numberLocaleFor } from '../../utils/fieldDisplay';
 import { typography } from '../../theme';
 import FieldOverviewCard from './FieldOverviewCard';
+import MoneyTriadFacts from '../money/MoneyTriadFacts';
 
 type Props = {
   year: number;
@@ -52,8 +53,9 @@ const FieldYearGlance: React.FC<Props> = ({
   const oliveKg = yearRollup?.oliveKilograms ?? null;
   const oilLitres = yearRollup?.oliveOil?.producedLitres ?? null;
   const costPerHa = costSummary?.costPerHectare ?? null;
+  const costPerArea = perAreaForDisplay(costPerHa, i18n.language);
   const costPerLitre = yearRollup?.oliveOil?.productionCostPerLitre ?? null;
-  const showPerHa = hasPosted && costPerHa != null && !availability?.areaIsMissing;
+  const showPerHa = hasPosted && costPerArea != null && !availability?.areaIsMissing;
   const showPerLitre = hasPosted && costPerLitre != null && oilLitres != null;
 
   return (
@@ -91,37 +93,27 @@ const FieldYearGlance: React.FC<Props> = ({
 
       {hasPosted ? (
         <View style={[styles.moneyBlock, { borderTopColor: colors.borderLight }]}>
-          <View style={styles.moneyRow}>
-            <Text style={[styles.moneyLabel, { color: colors.textSecondary }]}>
-              {t('fields:overview.income')}
-            </Text>
-            <Text style={[styles.moneyValue, { color: colors.successDark }]}>
-              {formatOfficialAmount(income, currency, locale, unknown)}
-            </Text>
-          </View>
-          <View style={styles.moneyRow}>
-            <Text style={[styles.moneyLabel, { color: colors.textSecondary }]}>
-              {t('fields:overview.expenses')}
-            </Text>
-            <Text style={[styles.moneyValue, { color: colors.textPrimary }]}>
-              {formatOfficialAmount(expenses, currency, locale, unknown)}
-            </Text>
-          </View>
-          <View style={styles.moneyRow}>
-            <Text style={[styles.moneyLabel, { color: colors.textSecondary }]}>
-              {t('fields:overview.result')}
-            </Text>
-            <Text style={[styles.moneyValueStrong, { color: colors.textPrimary }]}>
-              {formatOfficialNet(net, currency, locale, unknown)}
-            </Text>
-          </View>
+          <MoneyTriadFacts
+            income={income}
+            expenses={expenses}
+            net={net}
+            currency={currency}
+            locale={locale}
+            unknown={unknown}
+            incomeLabel={t('fields:overview.income')}
+            expensesLabel={t('fields:overview.expenses')}
+            resultLabel={t('fields:overview.result')}
+            labelColor={colors.textSecondary}
+            valueColor={colors.textPrimary}
+            incomeColor={colors.successDark}
+          />
           {showPerHa ? (
             <View style={styles.moneyRow}>
               <Text style={[styles.moneyLabel, { color: colors.textSecondary }]}>
                 {t('fields:overview.yearGlance.perHectare')}
               </Text>
               <Text style={[styles.moneyValue, { color: colors.textPrimary }]}>
-                {formatOfficialAmount(costPerHa, currency, locale, unknown)}
+                {formatOfficialAmount(costPerArea, currency, locale, unknown)}
               </Text>
             </View>
           ) : null}
@@ -213,10 +205,6 @@ const styles = StyleSheet.create({
   moneyValue: {
     fontSize: 14,
     fontWeight: '700',
-  },
-  moneyValueStrong: {
-    fontSize: 15,
-    fontWeight: '800',
   },
   emptyMoney: {
     fontSize: 13,

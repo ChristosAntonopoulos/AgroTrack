@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import ChronologioEvent from '../Chronologio/ChronologioEvent';
 import { useLocale } from '../../context/LocaleProvider';
+import { fieldStreamPath } from '../../navigation/intents';
 
 type Props = {
   fieldId: string;
@@ -27,7 +28,7 @@ const FieldRecentChronologio: React.FC<Props> = ({ fieldId, entries, onSelect })
             <li key={entry.id}>
               <ChronologioEvent
                 entry={entry}
-                density="card"
+                density="compact"
                 showField={false}
                 locale={locale}
                 onSelect={onSelect}
@@ -36,7 +37,7 @@ const FieldRecentChronologio: React.FC<Props> = ({ fieldId, entries, onSelect })
           ))}
         </ul>
       )}
-      <Link className="fd-text-link" to={`/fields/${fieldId}?tab=chronologio`}>
+      <Link className="fd-text-link" to={fieldStreamPath(fieldId)}>
         {t('fields:overview.seeAllChronologio')}
       </Link>
     </section>

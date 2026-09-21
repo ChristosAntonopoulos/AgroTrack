@@ -80,12 +80,13 @@ const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange
 type Props = {
   fieldId: string;
   fieldName?: string;
+  compact?: boolean;
 };
 
 /**
  * Multi-year weather + vegetation charts (relocated from Field History).
  */
-const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) => {
+const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName, compact = false }) => {
   const { t } = useTranslation(['chronologio']);
   const [snapshots, setSnapshots] = useState<DailyWeatherSnapshot[]>([]);
   const [observations, setObservations] = useState<FieldSatelliteObservation[]>([]);
@@ -163,6 +164,8 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
     { id: '3y', label: t('chronologio:weatherVegetation.range3y') },
   ];
 
+  const chartH = compact ? 168 : 300;
+
   if (loading) {
     return (
       <div className="field-wv-loading">
@@ -179,15 +182,15 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
   const hasVegetation = vegetationPoints.length > 0;
 
   return (
-    <section className="field-wv-panel">
+    <section className={`field-wv-panel${compact ? ' field-wv-panel--compact' : ''}`}>
       <header className="field-wv-header">
-        <p className="field-wv-kicker">{t('chronologio:weatherVegetation.kicker')}</p>
+        {compact ? null : <p className="field-wv-kicker">{t('chronologio:weatherVegetation.kicker')}</p>}
         <h2>
           {fieldName
             ? t('chronologio:weatherVegetation.title', { name: fieldName })
             : t('chronologio:weatherVegetation.kicker')}
         </h2>
-        <p className="field-wv-desc">{t('chronologio:weatherVegetation.description')}</p>
+        {compact ? null : <p className="field-wv-desc">{t('chronologio:weatherVegetation.description')}</p>}
       </header>
 
       {gathering ? <p className="field-wv-gathering">{t('chronologio:weatherVegetation.gathering')}</p> : null}
@@ -216,10 +219,12 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
         <div className="field-wv-charts">
           {hasWeather ? (
             <>
+              {compact ? null : <p className="field-wv-plain">{t('chronologio:weatherVegetation.plainWeather')}</p>}
               <LineChart
                 data={weatherPoints}
                 dataKey="max"
                 xAxisKey="label"
+                height={chartH}
                 title={t('chronologio:weatherVegetation.temperatureTitle')}
                 lines={[
                   { dataKey: 'max', name: t('chronologio:weatherVegetation.maxTemp'), color: getCssToken('--temperature') },
@@ -229,6 +234,7 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
               <BarChart
                 data={weatherPoints}
                 xAxisKey="label"
+                height={chartH}
                 title={t('chronologio:weatherVegetation.rainTitle')}
                 bars={[{ dataKey: 'rain', name: t('chronologio:weatherVegetation.rainMm'), color: getCssToken('--rain') }]}
               />
@@ -236,6 +242,7 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
                 data={weatherPoints}
                 dataKey="et0"
                 xAxisKey="label"
+                height={chartH}
                 title={t('chronologio:weatherVegetation.etTitle')}
                 lines={[{ dataKey: 'et0', name: t('chronologio:weatherVegetation.et0Mm'), color: getChartPalette().olive }]}
               />
@@ -243,16 +250,20 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
           ) : null}
 
           {hasVegetation ? (
-            <LineChart
-              data={vegetationPoints}
-              dataKey="ndvi"
-              xAxisKey="label"
-              title={t('chronologio:weatherVegetation.vegetationTitle')}
-              lines={[
-                { dataKey: 'ndvi', name: t('chronologio:weatherVegetation.ndvi'), color: getChartPalette().olive },
-                { dataKey: 'ndmi', name: t('chronologio:weatherVegetation.ndmi'), color: getChartPalette().weather },
-              ]}
-            />
+            <>
+              {compact ? null : <p className="field-wv-plain">{t('chronologio:weatherVegetation.plainVegetation')}</p>}
+              <LineChart
+                data={vegetationPoints}
+                dataKey="ndvi"
+                xAxisKey="label"
+                height={chartH}
+                title={t('chronologio:weatherVegetation.vegetationTitle')}
+                lines={[
+                  { dataKey: 'ndvi', name: t('chronologio:weatherVegetation.ndvi'), color: getChartPalette().olive },
+                  { dataKey: 'ndmi', name: t('chronologio:weatherVegetation.ndmi'), color: getChartPalette().weather },
+                ]}
+              />
+            </>
           ) : (
             <EmptyState
               title={t('chronologio:weatherVegetation.vegetationEmptyTitle')}

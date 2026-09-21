@@ -6,9 +6,12 @@ import type { FieldTask } from '../../services/fieldWorkService';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import type { FieldAttentionModel } from '../../utils/fieldOverviewAttention';
 import { getNextUpcomingTask } from '../../utils/fieldDisplay';
+import { resolveFieldStageLabel } from '../../utils/fieldStage';
+import { fieldStreamPath, taskPeekPath } from '../../navigation/intents';
 
 type Props = {
   phenology: FieldPhenology | null;
+  currentLifecycleStage?: string | null;
   tasks: FieldTask[];
   attention: FieldAttentionModel;
   latestEntry?: ChronologioEntry;
@@ -24,26 +27,37 @@ const StatusValue: React.FC<{ to?: string; children: React.ReactNode }> = ({ to,
   );
 };
 
-const FieldStatusStrip: React.FC<Props> = ({ phenology, tasks, attention, latestEntry, now }) => {
-  const { t } = useTranslation('fields');
+const FieldStatusStrip: React.FC<Props> = ({
+  phenology,
+  currentLifecycleStage,
+  tasks,
+  attention,
+  latestEntry,
+  now,
+}) => {
+  const { t } = useTranslation(['fields', 'common']);
   const nextTask = getNextUpcomingTask(tasks, now);
   const attentionLabel =
     attention.kind === 'none'
       ? t('overview.statusStrip.noWarning')
       : attention.title || t('overview.needsAttention');
   const lastLabel = latestEntry?.title || t('overview.statusStrip.noRecording');
+  const stageLabel = resolveFieldStageLabel({
+    phenology,
+    currentLifecycleStage,
+    t,
+    unknownLabel: t('overview.statusStrip.unknownStage'),
+  });
 
   return (
     <section className="field-status-strip" aria-label={t('overview.statusStrip.aria')}>
       <div className="field-status-item">
         <p className="field-status-label">{t('overview.statusStrip.now')}</p>
-        <p className="field-status-value">
-          {phenology?.isKnown ? phenology.stageLabel : phenology?.message || t('overview.statusStrip.unknownStage')}
-        </p>
+        <p className="field-status-value">{stageLabel}</p>
       </div>
       <div className="field-status-item">
         <p className="field-status-label">{t('overview.nextTask')}</p>
-        <StatusValue to={nextTask ? `/tasks/${nextTask.id}` : undefined}>
+        <StatusValue to={nextTask ? taskPeekPath(nextTask.id) : undefined}>
           {nextTask?.title || t('overview.noNextTask')}
         </StatusValue>
       </div>
@@ -56,7 +70,7 @@ const FieldStatusStrip: React.FC<Props> = ({ phenology, tasks, attention, latest
         <StatusValue
           to={
             latestEntry
-              ? `/fields/${latestEntry.fieldId}?tab=chronologio&entry=${encodeURIComponent(latestEntry.id)}`
+              ? fieldStreamPath(latestEntry.fieldId, { entry: latestEntry.id })
               : undefined
           }
         >

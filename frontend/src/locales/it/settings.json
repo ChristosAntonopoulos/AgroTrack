@@ -38,7 +38,12 @@
       "xl": "Extra grande"
     },
     "largeControls": "Pulsanti più grandi",
-    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile."
+    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile.",
+    "easyUsePreset": "Uso facile",
+    "easyUsePresetDesc": "Attiva testo grande e controlli grandi insieme.",
+    "easyUseApply": "Applica Uso facile",
+    "resetDefaults": "Ripristina predefiniti",
+    "livePreviewNote": "Le modifiche si applicano subito in questa pagina."
   },
   "locale": {
     "language": "Lingua",
@@ -47,8 +52,6 @@
   "startup": {
     "label": "Quando apro OLEACHRON",
     "options": {
-      "today": "Oggi",
-      "dashboard": "Dashboard",
       "fields": "Campi",
       "chronologio": "Cronologio"
     }

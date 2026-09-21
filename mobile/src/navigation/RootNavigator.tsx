@@ -8,22 +8,25 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { getFieldService } from '../services/serviceFactory';
+import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
 import { CaptureProvider } from '../context/CaptureContext';
+import { InAppMessageProvider } from '../context/InAppMessageContext';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from '../theme';
 import AuthNavigator from './AuthNavigator';
 import MainLayout from './MainLayout';
 import FieldDetailScreen from '../screens/FieldDetailScreen';
 import FieldWeatherVegetationScreen from '../screens/FieldWeatherVegetationScreen';
-import ChronologioScreen from '../screens/ChronologioScreen';
+import ChronologioStackRedirect from '../screens/ChronologioStackRedirect';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import TaskCompletionScreen from '../screens/TaskCompletionScreen';
 import FieldFormScreen from '../screens/FieldFormScreen';
+import FieldWorkSetupScreen from '../screens/FieldWorkSetupScreen';
 import FieldMapBoundaryScreen from '../screens/FieldMapBoundaryScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import NotesListScreen from '../screens/NotesListScreen';
-import HarvestCampaignScreen from '../screens/HarvestCampaignScreen';
+import HarvestCampaignRedirect from '../screens/HarvestCampaignRedirect';
 import ThisHarvestReviewScreen from '../screens/ThisHarvestReviewScreen';
 import MoneyScreen from '../screens/MoneyScreen';
 import PhotoHubScreen from '../screens/PhotoHubScreen';
@@ -40,7 +43,7 @@ import ServiceRequestsScreen from '../screens/ServiceRequestsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
-import DashboardScreen from '../screens/DashboardScreen';
+import LegacyHomeRedirect from '../screens/LegacyHomeRedirect';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { RootStackParamList } from './types';
 import { setSessionExpiredHandler } from '../services/api';
@@ -54,15 +57,19 @@ import { View, StyleSheet } from 'react-native';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { isAuthenticated, isLoading, logout, user, isFieldOwner } = useAuth();
   const { colors, isDark, fontScaleMultiplier } = useTheme();
   const headerTitleSize = 17 * fontScaleMultiplier;
-  const { t } = useTranslation(['nav', 'fields', 'partners', 'dashboard', 'chronologio', 'settings', 'feedback', 'common', 'photos']);
+  const { t } = useTranslation(['nav', 'fields', 'partners', 'chronologio', 'settings', 'feedback', 'common', 'photos']);
   const [sessionExpired, setSessionExpired] = useState(false);
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const firstGroveChecked = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      firstGroveChecked.current = false;
+      return;
+    }
     const token = takePendingInviteToken();
     const familyToken = takePendingFamilyInviteToken();
     const partnerToken = takePendingPartnerInviteToken();
@@ -74,6 +81,24 @@ const RootNavigator = () => {
     }, 0);
     return () => clearTimeout(id);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isFieldOwner() || firstGroveChecked.current) return;
+    firstGroveChecked.current = true;
+    const userId = user?.id || '';
+    void getFieldService()
+      .getFields(userId, user?.role || 'FieldOwner')
+      .then((fields) => {
+        if (!fields.length) {
+          navRef.current?.navigate('FieldForm', {});
+          return;
+        }
+        if (fields.some((field) => field.status === 'Active')) return;
+        const draft = fields.find((field) => isFieldSetupIncomplete(field.status));
+        if (draft) navRef.current?.navigate('FieldForm', { fieldId: draft.id });
+      })
+      .catch(() => undefined);
+  }, [isAuthenticated, isFieldOwner, user]);
 
   useEffect(() => {
     setSessionExpiredHandler(() => {
@@ -138,7 +163,12 @@ const RootNavigator = () => {
             Main: {
               screens: {
                 ChronologioTab: 'today',
-                Fields: 'fields',
+                Fields: {
+                  screens: {
+                    FieldsHome: 'fields',
+                    HarvestCampaign: 'harvest',
+                  },
+                },
                 Tasks: 'tasks',
                 More: 'more',
               },
@@ -150,7 +180,6 @@ const RootNavigator = () => {
             Photos: 'photos',
             Analytics: 'analytics',
             Reports: 'reports',
-            HarvestCampaign: 'harvest',
             ThisHarvest: 'this-harvest',
             ThisHarvestReview: 'this-harvest/review',
             Notifications: 'notifications',
@@ -165,6 +194,7 @@ const RootNavigator = () => {
       }}
     >
       <CaptureProvider>
+        <InAppMessageProvider>
         <View style={styles.shell}>
           <Stack.Navigator
             screenOptions={{
@@ -194,8 +224,8 @@ const RootNavigator = () => {
               />
               <Stack.Screen
                 name="Chronologio"
-                component={ChronologioScreen}
-                options={{ title: t('chronologio:title') }}
+                component={ChronologioStackRedirect}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="FieldWeatherVegetation"
@@ -211,6 +241,15 @@ const RootNavigator = () => {
                 })}
               />
               <Stack.Screen
+                name="FieldWorkSetup"
+                component={FieldWorkSetupScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'fullScreenModal',
+                  gestureEnabled: true,
+                }}
+              />
+              <Stack.Screen
                 name="FieldMapBoundary"
                 component={FieldMapBoundaryScreen}
                 options={{ title: t('fields'), presentation: 'modal' }}
@@ -223,8 +262,8 @@ const RootNavigator = () => {
               <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('notifications') }} />
               <Stack.Screen
                 name="NotesList"
-                component={NotesListScreen}
-                options={{ title: t('dashboard:notes.title', { defaultValue: 'Notes' }) }}
+                component={LegacyHomeRedirect}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="InviteAccept"
@@ -243,21 +282,13 @@ const RootNavigator = () => {
               />
               <Stack.Screen
                 name="HarvestCampaign"
-                component={HarvestCampaignScreen}
-                options={{
-                  title: t('fields:harvestCampaign.title', {
-                    defaultValue: t('fields:thisHarvest.title', { defaultValue: 'Harvest' }),
-                  }),
-                }}
+                component={HarvestCampaignRedirect}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="ThisHarvest"
-                component={HarvestCampaignScreen}
-                options={{
-                  title: t('fields:harvestCampaign.title', {
-                    defaultValue: t('fields:thisHarvest.title', { defaultValue: 'Harvest' }),
-                  }),
-                }}
+                component={HarvestCampaignRedirect}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="ThisHarvestReview"
@@ -272,7 +303,7 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="Photos"
                 component={PhotoHubScreen}
-                options={{ title: t('photos:title', { defaultValue: 'Photo Hub' }) }}
+                options={{ title: t('nav:photos', { defaultValue: 'Photos' }) }}
               />
               <Stack.Screen
                 name="Analytics"
@@ -320,11 +351,12 @@ const RootNavigator = () => {
                 component={FeedbackScreen}
                 options={{ title: t('feedback', { defaultValue: 'Feedback' }) }}
               />
-              <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: t('dashboard') }} />
+              <Stack.Screen name="Dashboard" component={LegacyHomeRedirect} options={{ headerShown: false }} />
             </>
           )}
         </Stack.Navigator>
         </View>
+        </InAppMessageProvider>
       </CaptureProvider>
     </NavigationContainer>
   );

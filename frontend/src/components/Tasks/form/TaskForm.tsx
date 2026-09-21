@@ -229,7 +229,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
             key={id}
             className={`task-form-step-dot${index === stepIndex ? ' is-active' : ''}${index < stepIndex ? ' is-done' : ''}`}
           >
-            {index + 1}
+            <span className="task-form-step-num" aria-hidden>
+              {index + 1}
+            </span>
+            <span className="task-form-step-label">{t(`form.steps.${id}`)}</span>
           </span>
         ))}
       </div>

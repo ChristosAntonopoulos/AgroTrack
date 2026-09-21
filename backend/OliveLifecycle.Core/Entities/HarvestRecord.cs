@@ -14,6 +14,7 @@ public class HarvestRecord : BaseEntity
     public int ResultYear { get; set; }
     public string HarvestMethod { get; set; } = string.Empty;
     public int WorkersUsed { get; set; }
+    public int SackCount { get; set; }
     public double OliveKg { get; set; }
     public string? MillName { get; set; }
     public double? OilKg { get; set; }
@@ -26,6 +27,12 @@ public class HarvestRecord : BaseEntity
     public double? OilYieldPercent { get; set; }
     public string QualityGrade { get; set; } = string.Empty;
     public string? Notes { get; set; }
+    /// <summary>
+    /// Shared identity when one mill/oil lot is persisted as multiple field-allocated records.
+    /// </summary>
+    public string? BatchId { get; set; }
+    /// <summary>Relative allocation weight for this field within the batch (usually sack count).</summary>
+    public double? AllocationWeight { get; set; }
     public FinancialEntryStatus Status { get; set; } = FinancialEntryStatus.Posted;
     public string? VoidReason { get; set; }
     public DateTime? VoidedAt { get; set; }

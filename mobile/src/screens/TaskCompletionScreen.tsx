@@ -33,6 +33,7 @@ import { TaskChoiceChips, TaskHelpText, TaskSectionLabel } from '../components/t
 import { typography, spacing, radii } from '../theme';
 import { createElevation } from '../theme/elevation';
 import { RootStackParamList } from '../navigation/types';
+import { openChronologioHome, openHarvestCampaign } from '../navigation/intents';
 
 type Route = RouteProp<RootStackParamList, 'TaskCompletion'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -621,7 +622,7 @@ const TaskCompletionScreen = () => {
         <View style={styles.successActions}>
           <Button
             title={t('fieldWork.seeCompletedInChronologio')}
-            onPress={() => navigation.navigate('Chronologio', {})}
+            onPress={() => openChronologioHome(navigation)}
             disabled={busy}
           />
           {isHarvestTemplate(task.templateCode) ? (
@@ -630,7 +631,7 @@ const TaskCompletionScreen = () => {
                 defaultValue: t('fields:harvestCampaign.title', { defaultValue: 'Harvest' }),
               })}
               variant="outline"
-              onPress={() => navigation.navigate('HarvestCampaign')}
+              onPress={() => openHarvestCampaign(navigation)}
             />
           ) : null}
           {undoToast.followUpTaskId ? (

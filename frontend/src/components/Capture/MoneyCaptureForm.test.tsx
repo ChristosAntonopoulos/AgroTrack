@@ -123,6 +123,20 @@ test('skips the type chooser when an expense is preselected with field and task'
   expect(await screen.findByDisplayValue('Κλάδεμα')).toBeInTheDocument();
 });
 
+test('prefills a harvest expense with description and other-expense category', async () => {
+  renderForm({
+    context: {
+      preferredType: 'expense',
+      fieldId: 'field-1',
+      category: 'other_expense',
+      description: 'Έξοδο συγκομιδής',
+      harvestCampaignLink: true,
+    },
+  });
+  expect(await screen.findByDisplayValue('Έξοδο συγκομιδής')).toBeInTheDocument();
+  expect(screen.getByText('Άλλο έξοδο')).toBeInTheDocument();
+});
+
 test('posts a confirmed expense through the financial transaction API', async () => {
   const onSaved = jest.fn();
   renderForm({
@@ -146,7 +160,12 @@ test('posts a confirmed expense through the financial transaction API', async ()
     })
   );
   expect(onSaved).toHaveBeenCalledWith(
-    expect.objectContaining({ type: 'expense', fieldId: 'field-1', sourceId: 'ft-1' }),
+    expect.objectContaining({
+      type: 'expense',
+      fieldId: 'field-1',
+      sourceId: 'ft-1',
+      amount: 45,
+    }),
     'Το έξοδο καταγράφηκε.',
     expect.objectContaining({ transactionId: 'ft-1', status: 'posted' })
   );

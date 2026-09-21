@@ -9,10 +9,23 @@ export type AuthStackParamList = {
   PartnerInviteAccept: { token: string };
 };
 
+export type HarvestCampaignParams = {
+  add?: boolean;
+  evening?: boolean;
+  fieldId?: string;
+  harvestId?: string;
+  day?: string;
+};
+
+export type FieldsStackParamList = {
+  FieldsHome: undefined;
+  HarvestCampaign: HarvestCampaignParams | undefined;
+};
+
 /** Visible bottom tabs: Chronologio · Fields · Capture · Tasks · More */
 export type MainTabParamList = {
   ChronologioTab: undefined;
-  Fields: undefined;
+  Fields: NavigatorScreenParams<FieldsStackParamList> | undefined;
   Capture: undefined;
   Tasks: {
     fieldId?: string;
@@ -36,11 +49,11 @@ export type RootStackParamList = {
   InviteAccept: { token: string };
   FamilyInviteAccept: { token: string };
   PartnerInviteAccept: { token: string };
-  HarvestCampaign: undefined;
+  HarvestCampaign: HarvestCampaignParams | undefined;
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
-  Money: { fieldId?: string; year?: number } | undefined;
-  Photos: { fieldId?: string; photoId?: string } | undefined;
+  Money: { fieldId?: string; year?: number; tx?: string } | undefined;
+  Photos: { fieldId?: string; photoId?: string; importNearby?: boolean } | undefined;
   Analytics: undefined;
   Reports: undefined;
   Partners: { fieldId?: string; category?: string; taskId?: string; addContact?: boolean } | undefined;
@@ -53,14 +66,17 @@ export type RootStackParamList = {
   TaskDetail: { taskId: string };
   TaskCompletion: { taskId: string };
   FieldForm: { fieldId?: string };
+  FieldWorkSetup: { fieldId: string; edit?: boolean };
   FieldMapBoundary: { fieldId: string };
   CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string; proposalId?: string };
   Notifications: undefined;
+  /** Deep-link alias; redirects to Chronologio. */
   NotesList: undefined;
   /** Secondary destinations previously hidden tabs — now root stack. */
   Calendar: { date?: string; fieldId?: string } | undefined;
   Settings: undefined;
   Feedback: undefined;
+  /** Deep-link alias; redirects to Chronologio. */
   Dashboard: undefined;
 };
 

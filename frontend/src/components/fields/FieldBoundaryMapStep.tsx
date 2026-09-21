@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Polygon, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
@@ -8,8 +8,17 @@ import { GeoJsonPolygon, GreekCadastreInfo } from '../../services/fieldService';
 import AreaComparisonCard from './AreaComparisonCard';
 import { locationService } from '../../services/locationService';
 import {
+  GREECE_CENTER,
+  GREECE_OVERVIEW_ZOOM,
+  PLACE_ZOOM,
+  searchPlaces,
+} from '../../utils/geocodeLocation';
+import {
   FIELD_POLYGON_STYLE,
   MapLayerType,
+  MAP_MAX_ZOOM,
+  MAP_MAX_NATIVE_ZOOM,
+  MAP_MIN_ZOOM,
   SATELLITE_LABELS_TILE,
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
@@ -18,15 +27,26 @@ import {
 
 interface Props {
   boundary?: GeoJsonPolygon;
-  officialAreaSqm?: number;
   cadastre?: GreekCadastreInfo;
   measuredAreaSqm?: number;
+  locationQuery?: string;
+  latitude?: number;
+  longitude?: number;
   onBoundaryChange: (boundary: GeoJsonPolygon | undefined, areaSqm?: number) => void;
 }
 
 type DrawPhase = 'locate' | 'drawing' | 'done';
 
 type Corner = { lat: number; lng: number };
+
+const cornerIcon = (index: number) =>
+  L.divIcon({
+    className: 'boundary-corner-pin',
+    html: `<span class="boundary-corner-pin-dot" aria-hidden="true">${index + 1}</span>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+
 
 const polygonToGeoJson = (corners: Corner[]): GeoJsonPolygon => {
   const ring = corners.map((c) => [c.lng, c.lat]);
@@ -64,6 +84,7 @@ const boundaryToCorners = (boundary?: GeoJsonPolygon): Corner[] => {
 const MapViewUpdater: React.FC<{ center: [number, number]; zoom?: number }> = ({ center, zoom = 18 }) => {
   const map = useMap();
   useEffect(() => {
+    map.invalidateSize();
     map.setView(center, zoom);
   }, [map, center, zoom]);
   return null;
@@ -88,45 +109,80 @@ const buildCadastreSearchQuery = (cadastre?: GreekCadastreInfo): string | undefi
   return parts.length > 1 ? parts.join(', ') : cadastre.locationFromCadastre;
 };
 
+const hasCoords = (lat?: number, lng?: number) =>
+  lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
+
 const FieldBoundaryMapStep: React.FC<Props> = ({
   boundary,
-  officialAreaSqm,
   cadastre,
   measuredAreaSqm,
+  locationQuery,
+  latitude,
+  longitude,
   onBoundaryChange,
 }) => {
   const { t } = useTranslation('fields');
   const cadastreSearch = buildCadastreSearchQuery(cadastre);
+  const initialQuery = cadastreSearch || locationQuery || '';
   const initialCorners = useMemo(() => boundaryToCorners(boundary), [boundary]);
-  const [search, setSearch] = useState(cadastreSearch ?? '');
-  const [center, setCenter] = useState<[number, number]>([37.05, 21.85]);
-  const [mapZoom, setMapZoom] = useState(18);
+  const [search, setSearch] = useState(initialQuery);
+  const [center, setCenter] = useState<[number, number]>(
+    hasCoords(latitude, longitude) ? [latitude as number, longitude as number] : GREECE_CENTER
+  );
+  const [mapZoom, setMapZoom] = useState(hasCoords(latitude, longitude) ? PLACE_ZOOM : GREECE_OVERVIEW_ZOOM);
   const [mapLayer, setMapLayer] = useState<MapLayerType>('satellite');
   const [corners, setCorners] = useState<Corner[]>(initialCorners);
   const [phase, setPhase] = useState<DrawPhase>(initialCorners.length >= 3 ? 'done' : 'locate');
   const [localMeasured, setLocalMeasured] = useState<number | undefined>(measuredAreaSqm);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'found' | 'missing'>('idle');
+  const [placeSuggestions, setPlaceSuggestions] = useState<{ label: string; lat: number; lng: number }[]>([]);
 
-  const geocodeSearch = useCallback(async (query: string) => {
-    if (!query.trim()) return;
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-        { headers: { 'Accept-Language': 'el,en' } }
-      );
-      const data = await res.json();
-      if (data[0]) {
-        setCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
-        setMapZoom(18);
-      }
-    } catch {
-      /* ignore */
-    }
+  const showGreece = useCallback(() => {
+    setCenter(GREECE_CENTER);
+    setMapZoom(GREECE_OVERVIEW_ZOOM);
+    setLocationStatus('missing');
   }, []);
 
+  const geocodeSearch = useCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        showGreece();
+        setPlaceSuggestions([]);
+        return;
+      }
+      try {
+        const places = await searchPlaces(query, 5);
+        if (places[0]) {
+          setCenter([places[0].latitude, places[0].longitude]);
+          setMapZoom(PLACE_ZOOM);
+          setLocationStatus('found');
+          setPlaceSuggestions(places.slice(1).map((p) => ({ label: p.label, lat: p.latitude, lng: p.longitude })));
+          return;
+        }
+        showGreece();
+        setPlaceSuggestions([]);
+      } catch {
+        showGreece();
+        setPlaceSuggestions([]);
+      }
+    },
+    [showGreece]
+  );
+
   useEffect(() => {
-    if (cadastreSearch) void geocodeSearch(cadastreSearch);
+    if (hasCoords(latitude, longitude)) {
+      setCenter([latitude as number, longitude as number]);
+      setMapZoom(PLACE_ZOOM);
+      setLocationStatus('found');
+      return;
+    }
+    if (initialQuery.trim()) {
+      void geocodeSearch(initialQuery);
+      return;
+    }
+    showGreece();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cadastre?.municipality, cadastre?.prefecture, cadastre?.postalCode]);
+  }, [cadastre?.municipality, cadastre?.prefecture, cadastre?.postalCode, locationQuery, latitude, longitude]);
 
   const publishPolygon = useCallback(
     (nextCorners: Corner[]) => {
@@ -146,6 +202,19 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   const addCorner = (corner: Corner) => {
     setCorners((prev) => {
       const next = [...prev, corner];
+      return next;
+    });
+  };
+
+  const moveCorner = (index: number, corner: Corner) => {
+    setCorners((prev) => {
+      const next = prev.map((c, i) => (i === index ? corner : c));
+      if (phase === 'done') {
+        publishPolygon(next);
+      } else if (next.length >= 3) {
+        const geo = polygonToGeoJson(next);
+        setLocalMeasured(estimateAreaSqm(geo.coordinates[0]));
+      }
       return next;
     });
   };
@@ -186,7 +255,8 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     try {
       const loc = await locationService.getCurrentLocation();
       setCenter([loc.latitude, loc.longitude]);
-      setMapZoom(19);
+      setMapZoom(PLACE_ZOOM);
+      setLocationStatus('found');
     } catch {
       /* ignore */
     }
@@ -208,6 +278,8 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
             ? t('addField.boundaryCoachMore', { count: corners.length })
             : t('addField.boundaryCoachFinish')
         : t('addField.boundaryCoachDone');
+
+  const canDragCorners = phase === 'drawing' || phase === 'done';
 
   return (
     <div className="field-form-panel field-boundary-step">
@@ -250,39 +322,68 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
           {t('addField.useCurrentLocation')}
         </button>
       </div>
-
-      <div className="boundary-layer-toggle" role="group" aria-label={t('addField.mapLayerAria')}>
-        <button
-          type="button"
-          className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
-          onClick={() => setMapLayer('satellite')}
-        >
-          {t('mapLayerSatellite')}
-        </button>
-        <button
-          type="button"
-          className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
-          onClick={() => setMapLayer('street')}
-        >
-          {t('mapLayerStreet')}
-        </button>
-      </div>
+      {locationStatus === 'missing' ? (
+        <p className="boundary-location-status" role="status">
+          {t('addField.locationNotFound')}
+        </p>
+      ) : null}
+      {placeSuggestions.length > 0 ? (
+        <div className="boundary-place-suggestions">
+          {placeSuggestions.map((place) => (
+            <button
+              key={`${place.lat},${place.lng},${place.label}`}
+              type="button"
+              className="boundary-place-chip"
+              onClick={() => {
+                setSearch(place.label);
+                setCenter([place.lat, place.lng]);
+                setMapZoom(PLACE_ZOOM);
+                setLocationStatus('found');
+              }}
+            >
+              {place.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}>
-        <MapContainer center={center} zoom={mapZoom} style={{ height: 460, width: '100%' }}>
+        <MapContainer
+          center={center}
+          zoom={Math.min(mapZoom, MAP_MAX_ZOOM)}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          style={{ height: '100%', width: '100%' }}
+        >
           {mapLayer === 'satellite' ? (
             <>
               <TileLayer
                 attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
                 url={SATELLITE_TILE}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
               />
-              <TileLayer attribution="" url={SATELLITE_PLACES_TILE} opacity={0.92} />
-              <TileLayer attribution="" url={SATELLITE_LABELS_TILE} opacity={0.65} />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_PLACES_TILE}
+                opacity={0.92}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_LABELS_TILE}
+                opacity={0.65}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
             </>
           ) : (
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url={STREET_TILE}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
             />
           )}
           <MapViewUpdater center={center} zoom={mapZoom} />
@@ -299,74 +400,97 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
           ) : null}
           {closedPath ? <Polygon positions={closedPath} pathOptions={FIELD_POLYGON_STYLE} /> : null}
           {corners.map((corner, index) => (
-            <CircleMarker
-              key={`${corner.lat}-${corner.lng}-${index}`}
-              center={[corner.lat, corner.lng]}
-              radius={12}
-              pathOptions={{
-                color: '#1C1A14',
-                fillColor: '#F5C842',
-                fillOpacity: 1,
-                weight: 3,
+            <Marker
+              key={`corner-${index}`}
+              position={[corner.lat, corner.lng]}
+              icon={cornerIcon(index)}
+              draggable={canDragCorners}
+              eventHandlers={{
+                click(e) {
+                  L.DomEvent.stopPropagation(e.originalEvent);
+                },
+                dragstart() {
+                  /* prevent map click-to-add while dragging a pin */
+                },
+                dragend(e) {
+                  const { lat, lng } = e.target.getLatLng();
+                  moveCorner(index, { lat, lng });
+                },
               }}
-            >
-              <Tooltip permanent direction="top" offset={[0, -8]} className="boundary-corner-tip">
-                {index + 1}
-              </Tooltip>
-            </CircleMarker>
+              title={`${index + 1}`}
+            />
           ))}
         </MapContainer>
-      </div>
 
-      <div className="boundary-action-bar">
-        {phase === 'locate' ? (
-          <button type="button" className="btn btn-primary boundary-primary-action" onClick={startDrawing}>
-            <Crosshair size={20} aria-hidden />
-            {t('addField.boundaryStartMarking')}
-          </button>
-        ) : null}
-
-        {phase === 'drawing' ? (
-          <>
+        <div className="boundary-map-overlays">
+          <div className="boundary-layer-toggle" role="group" aria-label={t('addField.mapLayerAria')}>
             <button
               type="button"
-              className="btn btn-secondary boundary-tool-btn"
-              onClick={undoCorner}
-              disabled={corners.length === 0}
+              className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
+              onClick={() => setMapLayer('satellite')}
             >
-              <Undo2 size={18} aria-hidden />
-              {t('addField.boundaryUndo')}
+              {t('mapLayerSatellite')}
             </button>
             <button
               type="button"
-              className="btn btn-secondary boundary-tool-btn"
-              onClick={clearCorners}
-              disabled={corners.length === 0}
+              className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
+              onClick={() => setMapLayer('street')}
             >
-              <Trash2 size={18} aria-hidden />
-              {t('addField.boundaryClear')}
+              {t('mapLayerStreet')}
             </button>
-            <button
-              type="button"
-              className="btn btn-primary boundary-primary-action"
-              onClick={finishShape}
-              disabled={corners.length < 3}
-            >
-              <Check size={20} aria-hidden />
-              {t('addField.boundaryFinish')}
-            </button>
-          </>
-        ) : null}
+          </div>
 
-        {phase === 'done' ? (
-          <>
-            <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
-              <Trash2 size={18} aria-hidden />
-              {t('addField.boundaryRedraw')}
-            </button>
-            <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
-          </>
-        ) : null}
+          <div className="boundary-action-bar">
+            {phase === 'locate' ? (
+              <button type="button" className="btn btn-primary boundary-primary-action" onClick={startDrawing}>
+                <Crosshair size={20} aria-hidden />
+                {t('addField.boundaryStartMarking')}
+              </button>
+            ) : null}
+
+            {phase === 'drawing' ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary boundary-tool-btn"
+                  onClick={undoCorner}
+                  disabled={corners.length === 0}
+                >
+                  <Undo2 size={18} aria-hidden />
+                  {t('addField.boundaryUndo')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary boundary-tool-btn"
+                  onClick={clearCorners}
+                  disabled={corners.length === 0}
+                >
+                  <Trash2 size={18} aria-hidden />
+                  {t('addField.boundaryClear')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary boundary-primary-action"
+                  onClick={finishShape}
+                  disabled={corners.length < 3}
+                >
+                  <Check size={20} aria-hidden />
+                  {t('addField.boundaryFinish')}
+                </button>
+              </>
+            ) : null}
+
+            {phase === 'done' ? (
+              <>
+                <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
+                  <Trash2 size={18} aria-hidden />
+                  {t('addField.boundaryRedraw')}
+                </button>
+                <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {corners.length > 0 ? (
@@ -375,10 +499,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         </p>
       ) : null}
 
-      <AreaComparisonCard
-        officialAreaSqm={officialAreaSqm ?? cadastre?.officialAreaSqm}
-        measuredAreaSqm={localMeasured}
-      />
+      <AreaComparisonCard measuredAreaSqm={localMeasured} />
     </div>
   );
 };

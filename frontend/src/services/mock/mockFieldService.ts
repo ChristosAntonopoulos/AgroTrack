@@ -90,7 +90,6 @@ export const mockFieldService = {
     demoStore.ensureSeeded();
     const user = getCurrentUser();
     const userId = user?.userId || user?.id || DEMO_OWNER_ID;
-    const worksMyself = data.worksThisFieldMyself !== false;
     
     const newField: Field = {
       id: `field${Date.now()}`,
@@ -105,7 +104,9 @@ export const mockFieldService = {
         {
           userId,
           displayName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Owner' : 'Owner',
-          capacities: worksMyself ? ['own', 'work'] : ['own'],
+          role: 'Admin',
+          modules: ['fields', 'tasks', 'documents', 'money', 'calendar', 'harvest'],
+          accessLevel: 'work',
           status: 'active',
           createdAt: new Date().toISOString(),
         },

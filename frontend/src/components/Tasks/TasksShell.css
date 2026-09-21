@@ -506,7 +506,8 @@
 
 .task-form-steps {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 16px;
 }
 
@@ -514,12 +515,29 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: var(--surface-2);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.task-form-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  font-size: 0.6875rem;
+}
+
+.task-form-step-label {
+  font-weight: 650;
 }
 
 .task-form-step-dot.is-active {
@@ -529,6 +547,10 @@
 .task-form-step-dot.is-done {
   background: var(--color-primary);
   color: #fff;
+}
+
+.task-form-step-dot.is-done .task-form-step-num {
+  background: color-mix(in srgb, #fff 22%, transparent);
 }
 
 .task-form-step-title {

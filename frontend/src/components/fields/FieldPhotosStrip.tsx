@@ -6,6 +6,7 @@ import { getPhotoService } from '../../services/serviceFactory';
 import type { Photo } from '../../services/photoService';
 import PhotoLightbox from '../photos/PhotoLightbox';
 import { usePhotoLightbox } from '../photos/usePhotoLightbox';
+import { photosPath } from '../../navigation/intents';
 
 type Props = {
   fieldId: string;
@@ -51,13 +52,13 @@ const FieldPhotosStrip: React.FC<Props> = ({ fieldId }) => {
     };
   }, [fieldId]);
 
-  if (loading) return null;
+  if (loading || photos.length === 0) return null;
 
   return (
     <section className="field-photos-strip" aria-label={t('fields:controlRoom.latestPhotos')}>
       <div className="field-photos-strip-head">
         <h2>{t('fields:controlRoom.latestPhotos')}</h2>
-        <Link to={`/photos?fieldId=${encodeURIComponent(fieldId)}`}>
+        <Link to={photosPath({ fieldId })}>
           {t('photos:openHub', { defaultValue: 'Open Photo Hub' })}
         </Link>
       </div>

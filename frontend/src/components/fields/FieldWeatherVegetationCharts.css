@@ -1,6 +1,40 @@
 .field-wv-panel {
   width: 100%;
-  margin-top: 1rem;
+  margin-top: 0.25rem;
+}
+
+.field-wv-panel--compact {
+  margin-top: 0;
+}
+
+.field-wv-panel--compact .field-wv-header h2 {
+  font-size: 0.92rem;
+}
+
+.field-wv-panel--compact .field-wv-ranges {
+  margin: 0.4rem 0 0.55rem;
+}
+
+.field-wv-panel--compact .field-wv-range {
+  padding: 0.22rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+.field-wv-panel--compact .chart-container {
+  padding: 0.45rem 0.55rem 0.3rem;
+  margin-bottom: 0;
+  border-radius: 10px;
+}
+
+.field-wv-panel--compact .chart-title {
+  margin-bottom: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.field-wv-panel--compact .field-wv-gathering {
+  margin: 0.35rem 0;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
 }
 
 .field-wv-loading {
@@ -29,6 +63,14 @@
   max-width: 42rem;
   color: var(--color-text-secondary);
   font-size: 0.92rem;
+}
+
+.field-wv-plain {
+  margin: 0.75rem 0 0.35rem;
+  max-width: 40rem;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .field-wv-gathering {
@@ -75,9 +117,13 @@
   font-size: 0.85rem;
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 900px) {
   .field-wv-charts {
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+  }
+
+  .field-wv-panel--compact .field-wv-charts {
+    gap: 0.55rem;
   }
 }

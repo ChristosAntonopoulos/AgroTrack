@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
@@ -37,9 +38,15 @@ public class MongoIndexInitializer : IHostedService
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.OwnerId)));
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
-                Builders<FieldDocument>.IndexKeys.Ascending(f => f.AssignedProducerIds)));
-            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending("memberships.userId")));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys
+                    .Ascending("memberships.userId")
+                    .Ascending("memberships.status"),
+                new CreateIndexOptions { Name = "ix_fields_memberships_userId_status" }));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Ascending("memberships.role"),
+                new CreateIndexOptions { Name = "ix_fields_memberships_role", Sparse = true }));
 
             var invites = _context.GetCollection<FieldInviteDocument>("field_invites");
             invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
@@ -47,6 +54,9 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexOptions { Unique = true }));
             invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
                 Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.FieldId)));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Code),
+                new CreateIndexOptions { Unique = true, Sparse = true, Name = "ix_field_invites_code" }));
 
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.Status)));
@@ -185,47 +195,6 @@ public class MongoIndexInitializer : IHostedService
                 Builders<MediaAttachmentDocument>.IndexKeys
                     .Ascending(m => m.UploadedByUserId)
                     .Ascending(m => m.FieldAssignment)));
-
-            var familyCircles = _context.GetCollection<FamilyCircleDocument>("family_circles");
-            familyCircles.Indexes.CreateOne(new CreateIndexModel<FamilyCircleDocument>(
-                Builders<FamilyCircleDocument>.IndexKeys.Ascending(c => c.OwnerUserId),
-                new CreateIndexOptions { Unique = true }));
-
-            var familyMembers = _context.GetCollection<FamilyMemberDocument>("family_members");
-            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
-                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.OwnerUserId).Ascending(m => m.Status)));
-            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
-                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.CircleId)));
-            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
-                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.LinkedUserId),
-                new CreateIndexOptions { Sparse = true }));
-
-            var familyInvites = _context.GetCollection<FamilyInviteDocument>("family_invites");
-            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
-                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Token),
-                new CreateIndexOptions { Unique = true }));
-            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
-                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Code),
-                new CreateIndexOptions { Unique = true, Sparse = true }));
-            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
-                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.CircleId).Ascending(i => i.Status)));
-
-            var ownerPartnerLinks = _context.GetCollection<OwnerPartnerLinkDocument>("owner_partner_links");
-            ownerPartnerLinks.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerLinkDocument>(
-                Builders<OwnerPartnerLinkDocument>.IndexKeys.Ascending(m => m.OwnerUserId).Ascending(m => m.Status)));
-            ownerPartnerLinks.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerLinkDocument>(
-                Builders<OwnerPartnerLinkDocument>.IndexKeys.Ascending(m => m.LinkedUserId),
-                new CreateIndexOptions { Sparse = true }));
-
-            var ownerPartnerInvites = _context.GetCollection<OwnerPartnerInviteDocument>("owner_partner_invites");
-            ownerPartnerInvites.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerInviteDocument>(
-                Builders<OwnerPartnerInviteDocument>.IndexKeys.Ascending(i => i.Token),
-                new CreateIndexOptions { Unique = true }));
-            ownerPartnerInvites.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerInviteDocument>(
-                Builders<OwnerPartnerInviteDocument>.IndexKeys.Ascending(i => i.Code),
-                new CreateIndexOptions { Unique = true, Sparse = true }));
-            ownerPartnerInvites.Indexes.CreateOne(new CreateIndexModel<OwnerPartnerInviteDocument>(
-                Builders<OwnerPartnerInviteDocument>.IndexKeys.Ascending(i => i.OwnerUserId).Ascending(i => i.Status)));
 
             EnsureGeospatialIndexes();
 
@@ -384,9 +353,18 @@ public class MongoIndexInitializer : IHostedService
             Builders<FieldTaskDocument>.IndexKeys
                 .Ascending(t => t.AssignedUserId)
                 .Ascending(t => t.Status)));
+        // Partial (not sparse): multiple missing/null proposalId values must be allowed;
+        // uniqueness only applies when proposalId is a real string. Drop legacy sparse unique if present.
+        try { fieldTasks.Indexes.DropOne("proposalId_1"); }
+        catch (MongoCommandException) { /* index may not exist */ }
         fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
             Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.ProposalId),
-            new CreateIndexOptions { Unique = true, Sparse = true }));
+            new CreateIndexOptions<FieldTaskDocument>
+            {
+                Unique = true,
+                Name = "proposalId_1",
+                PartialFilterExpression = Builders<FieldTaskDocument>.Filter.Type(t => t.ProposalId, BsonType.String)
+            }));
         fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
             Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.RelatedHarvestId),
             new CreateIndexOptions { Sparse = true }));
@@ -426,5 +404,41 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(f => f.UserId)
                 .Descending(f => f.CreatedAt),
             new CreateIndexOptions { Name = "ix_user_feedback_userId_createdAt" }));
+        feedback.Indexes.CreateOne(new CreateIndexModel<UserFeedbackDocument>(
+            Builders<UserFeedbackDocument>.IndexKeys
+                .Ascending(f => f.SeenAt)
+                .Descending(f => f.CreatedAt),
+            new CreateIndexOptions { Name = "ix_user_feedback_seenAt_createdAt" }));
+
+        var campaigns = _context.GetCollection<InAppCampaignDocument>("in_app_campaigns");
+        campaigns.Indexes.CreateOne(new CreateIndexModel<InAppCampaignDocument>(
+            Builders<InAppCampaignDocument>.IndexKeys
+                .Ascending(c => c.Status)
+                .Ascending(c => c.StartsAt)
+                .Ascending(c => c.EndsAt),
+            new CreateIndexOptions { Name = "ix_in_app_campaigns_status_window" }));
+
+        var engagements = _context.GetCollection<CampaignEngagementDocument>("campaign_engagements");
+        engagements.Indexes.CreateOne(new CreateIndexModel<CampaignEngagementDocument>(
+            Builders<CampaignEngagementDocument>.IndexKeys
+                .Ascending(e => e.UserId)
+                .Ascending(e => e.CampaignId),
+            new CreateIndexOptions { Unique = true, Name = "ix_campaign_engagements_user_campaign" }));
+        engagements.Indexes.CreateOne(new CreateIndexModel<CampaignEngagementDocument>(
+            Builders<CampaignEngagementDocument>.IndexKeys.Ascending(e => e.CampaignId),
+            new CreateIndexOptions { Name = "ix_campaign_engagements_campaign" }));
+
+        var answers = _context.GetCollection<CampaignAnswerDocument>("campaign_answers");
+        answers.Indexes.CreateOne(new CreateIndexModel<CampaignAnswerDocument>(
+            Builders<CampaignAnswerDocument>.IndexKeys
+                .Ascending(a => a.UserId)
+                .Ascending(a => a.CampaignId)
+                .Ascending(a => a.QuestionId),
+            new CreateIndexOptions { Unique = true, Name = "ix_campaign_answers_user_campaign_question" }));
+        answers.Indexes.CreateOne(new CreateIndexModel<CampaignAnswerDocument>(
+            Builders<CampaignAnswerDocument>.IndexKeys
+                .Ascending(a => a.CampaignId)
+                .Descending(a => a.CreatedAt),
+            new CreateIndexOptions { Name = "ix_campaign_answers_campaign_createdAt" }));
     }
 }

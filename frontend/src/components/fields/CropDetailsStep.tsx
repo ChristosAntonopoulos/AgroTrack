@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { CreateFieldDto } from '../../services/fieldService';
 
 const VARIETY_OPTIONS = ['Koroneiki', 'Kalamon', 'Megaritiki', 'Manaki', 'Unknown', 'Other'];
-const IRRIGATION_OPTIONS = ['Rainfed', 'Drip irrigation', 'Sprinkler', 'Mixed', 'Unknown'];
 
 interface Props {
   formData: CreateFieldDto;
@@ -41,34 +40,6 @@ const CropDetailsStep: React.FC<Props> = ({ formData, onChange }) => {
             ))}
           </select>
         </div>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="irrigationType">{t('addField.irrigationType')}</label>
-        <select
-          id="irrigationType"
-          name="irrigationType"
-          value={formData.irrigationType || ''}
-          onChange={onChange}
-        >
-          <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-          {IRRIGATION_OPTIONS.map((v) => (
-            <option key={v} value={v}>
-              {t(`addField.irrigationOptions.${v}`, { defaultValue: v })}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="accessNotes">{t('addField.accessNotes')}</label>
-        <textarea
-          id="accessNotes"
-          name="accessNotes"
-          rows={3}
-          value={formData.accessNotes || ''}
-          onChange={onChange}
-        />
       </div>
     </div>
   );

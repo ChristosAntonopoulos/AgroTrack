@@ -2,19 +2,19 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FAMILY_MODULES,
-  FamilyAccessLevel,
-  FamilyModule,
-} from '../../services/familyService';
+  FieldAccessLevel,
+  FieldModule,
+} from '../../services/fieldPeopleService';
 
 type Props = {
-  modules: FamilyModule[];
-  accessLevel: FamilyAccessLevel;
+  modules: FieldModule[];
+  accessLevel: FieldAccessLevel;
   radioName?: string;
-  onToggleModule: (module: FamilyModule) => void;
-  onSetLevel: (level: FamilyAccessLevel) => void;
+  onToggleModule: (module: FieldModule) => void;
+  onSetLevel: (level: FieldAccessLevel) => void;
 };
 
-const LEVELS: FamilyAccessLevel[] = ['view', 'help', 'work'];
+const LEVELS: FieldAccessLevel[] = ['view', 'help', 'work'];
 
 const FamilyAccessFields: React.FC<Props> = ({
   modules,

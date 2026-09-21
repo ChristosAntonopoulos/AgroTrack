@@ -136,6 +136,10 @@
   color: var(--color-warning);
 }
 
+.field-boundary-step .field-form-panel-desc {
+  margin-bottom: 0.65rem;
+}
+
 .field-boundary-map {
   border-radius: 16px;
   overflow: hidden;
@@ -143,6 +147,8 @@
   border: 1px solid var(--border-default);
   box-shadow: var(--shadow-card);
   position: relative;
+  height: min(48vh, 420px);
+  min-height: 260px;
 }
 
 .field-boundary-map.is-drawing {
@@ -151,15 +157,63 @@
 }
 
 .field-boundary-map .leaflet-container {
+  height: 100% !important;
+  width: 100%;
   background: var(--surface-2);
   font-family: inherit;
 }
 
+.boundary-map-overlays {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 10px 10px 54px;
+}
+
+.boundary-map-overlays .boundary-layer-toggle,
+.boundary-map-overlays .boundary-action-bar {
+  pointer-events: auto;
+}
+
+.boundary-map-overlays .boundary-layer-toggle {
+  align-self: flex-end;
+  margin-bottom: 0;
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+}
+
+.boundary-map-overlays .boundary-action-bar {
+  margin: 0;
+  padding: 0.55rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-default);
+}
+
+.boundary-map-overlays .boundary-primary-action {
+  flex: 1 1 auto;
+  width: 100%;
+  justify-content: center;
+}
+
+.boundary-map-overlays .boundary-done-note {
+  flex: 1 1 auto;
+}
+
 .boundary-steps-guide {
-  display: grid;
-  gap: 0.45rem;
-  margin: 0 0 1rem;
-  padding: 0.85rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 0.65rem;
+  padding: 0.5rem 0.75rem;
   list-style: none;
   counter-reset: boundary-step;
   background: var(--surface-2);
@@ -171,9 +225,9 @@
   counter-increment: boundary-step;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  min-height: 36px;
-  font-size: 1rem;
+  gap: 0.45rem;
+  min-height: 28px;
+  font-size: 0.85rem;
   font-weight: 550;
   color: var(--text-muted);
 }
@@ -183,12 +237,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   background: var(--surface-3);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -215,9 +269,9 @@
 .boundary-coach {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
-  margin: 0 0 1rem;
-  padding: 0.95rem 1rem;
+  gap: 0.55rem;
+  margin: 0 0 0.65rem;
+  padding: 0.7rem 0.85rem;
   border-radius: 14px;
   background: var(--olive-soft);
   border: 1px solid var(--olive-border);
@@ -226,16 +280,16 @@
 
 .boundary-coach p {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 650;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .boundary-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.55rem;
 }
 
 .boundary-search-input {
@@ -271,7 +325,6 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   align-items: center;
-  margin: 0.35rem 0 0.75rem;
 }
 
 .boundary-done-note {
@@ -291,7 +344,6 @@
 .boundary-layer-toggle {
   display: inline-flex;
   gap: 0;
-  margin-bottom: 0.75rem;
   padding: 4px;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
@@ -349,6 +401,34 @@
 
 .boundary-corner-tip::before {
   border-top-color: #1C1A14 !important;
+}
+
+.boundary-corner-pin {
+  background: transparent;
+  border: 0;
+}
+
+.boundary-corner-pin-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #F5C842;
+  border: 3px solid #1C1A14;
+  color: #1C1A14;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  user-select: none;
+}
+
+.boundary-corner-pin.leaflet-drag-target .boundary-corner-pin-dot,
+.boundary-corner-pin:active .boundary-corner-pin-dot {
+  cursor: grabbing;
+  transform: scale(1.08);
 }
 
 .review-checkboxes {
@@ -418,8 +498,24 @@
 }
 
 @media (max-width: 640px) {
-  .boundary-action-bar .btn,
+  .field-boundary-map {
+    height: min(46vh, 340px);
+    min-height: 220px;
+  }
+
+  .boundary-steps-guide {
+    display: none;
+  }
+
   .boundary-toolbar .btn {
+    flex: 1 1 100%;
+  }
+
+  .field-boundary-map .boundary-action-bar .btn {
+    flex: 1 1 auto;
+  }
+
+  .field-boundary-map .boundary-primary-action {
     flex: 1 1 100%;
   }
 }

@@ -10,7 +10,9 @@ import NotificationBell from '../Notifications/NotificationBell';
 import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
+import { useActiveFieldCollaboratorLabel } from '../../hooks/useActiveFieldAccess';
 import './Header.css';
 import '../Capture/Capture.css';
 
@@ -26,7 +28,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const { user, logout } = useAuth();
   const { resolvedTheme } = useTheme();
   const capture = useCaptureOptional();
+  const harvest = useHarvestCampaignOptional();
   const feedback = useFeedbackOptional();
+  const collaboratorOwnerLabel = useActiveFieldCollaboratorLabel();
   const logoTone = resolvedTheme === 'dark' ? 'on-dark' : 'on-light';
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,9 +41,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
     location.pathname === '/tasks/new' ||
     location.pathname === '/chronologio' ||
     location.pathname === '/harvest';
-  const hideHeaderCapture = location.pathname === '/chronologio';
+  const hideHeaderCapture =
+    location.pathname === '/chronologio' ||
+    location.pathname === '/harvest' ||
+    location.pathname.startsWith('/harvest/') ||
+    Boolean(harvest?.isLive);
+  const fieldDetailMatch = /^\/fields\/([^/]+)$/.exec(location.pathname);
+  const captureFieldId =
+    fieldDetailMatch && fieldDetailMatch[1] !== 'new' ? fieldDetailMatch[1] : undefined;
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
+
+  const collaboratorBadge = collaboratorOwnerLabel
+    ? tCommon('familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
+    : null;
 
   const handleLogout = () => {
     logout();
@@ -101,7 +116,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             <button
               type="button"
               className="capture-header-cta"
-              onClick={() => capture.openCapture()}
+              onClick={() =>
+                capture.openCapture(captureFieldId ? { fieldId: captureFieldId } : undefined)
+              }
             >
               <Plus size={18} aria-hidden />
               {tCapture('cta')}
@@ -115,13 +132,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
               <User className="user-icon" />
               <div className="user-details">
                 <span className="user-name">{displayName}</span>
-                {displayName !== user?.email ? (
+                {collaboratorBadge ? (
+                  <span className="user-role user-role-badge">{collaboratorBadge}</span>
+                ) : displayName !== user?.email ? (
                   <span className="user-role">{user?.email}</span>
                 ) : null}
               </div>
             </div>
             <button className="logout-button" onClick={handleLogout} aria-label={tCommon('logoutAria')}>
-              <LogOut />
+              <LogOut size={18} aria-hidden />
+              <span>{tCommon('logout')}</span>
             </button>
           </div>
 
@@ -140,7 +160,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
               <div className="header-overflow-menu" role="menu">
                 <div className="header-overflow-user">
                   <User size={18} aria-hidden />
-                  <span className="header-overflow-user-name">{displayName}</span>
+                  <div className="header-overflow-user-meta">
+                    <span className="header-overflow-user-name">{displayName}</span>
+                    {collaboratorBadge ? (
+                      <span className="header-overflow-user-role">{collaboratorBadge}</span>
+                    ) : null}
+                  </div>
                 </div>
                 <button
                   type="button"

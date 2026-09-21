@@ -52,6 +52,23 @@ export const athensCalendarDateKey = (value: string | Date | number): string => 
   return `${p.year}-${pad2(p.month)}-${pad2(p.day)}`;
 };
 
+/** 0–23 in Europe/Athens. */
+export const athensHour = (value: Date = new Date()): number => {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: ATHENS_TIME_ZONE,
+    hour: '2-digit',
+    hourCycle: 'h23',
+  });
+  const hour = fmt.formatToParts(value).find((part) => part.type === 'hour')?.value;
+  return Number(hour);
+};
+
+export const shiftAthensDateKey = (key: string, days: number): string => {
+  const [year, month, day] = key.split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + days));
+  return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-${pad2(next.getUTCDate())}`;
+};
+
 export const startOfLocalDay = (value: Date): Date =>
   new Date(value.getFullYear(), value.getMonth(), value.getDate());
 

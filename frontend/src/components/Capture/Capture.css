@@ -211,6 +211,39 @@
   color: var(--color-text-secondary);
 }
 
+.capture-voice-row,
+.capture-document-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.capture-voice-btn,
+.capture-document-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.capture-voice-btn.is-recording {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+.capture-voice-preview {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
 .capture-error {
   margin: 0;
   color: #b33a3a;

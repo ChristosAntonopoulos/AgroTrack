@@ -148,19 +148,195 @@ export interface CompletionLearningEvaluateResult {
   promptMessage: string;
 }
 
-export type FieldWorkProfile = {
+export type FieldWorkProfileStatus = 'draft' | 'active';
+
+export interface PracticeProfile {
+  preferenceMode: string;
+  preferenceModeLabel?: string;
+  frequencyType: string;
+  frequencyTypeLabel?: string;
+  frequencyValue?: number | null;
+  preferredMonths?: number[];
+  lastPerformedYear?: number | null;
+  lastPerformedMonth?: number | null;
+  datePrecision?: string | null;
+  datePrecisionLabel?: string | null;
+  defaultAssigneeId?: string | null;
+  userNotes?: string | null;
+  source?: string;
+  confirmedAt?: string | null;
+}
+
+export interface IrrigationProfile extends PracticeProfile {
+  method: string;
+  decisionMaker: string;
+}
+
+export interface FertilisationProfile extends PracticeProfile {
+  decisionMaker: string;
+}
+
+export interface GroundCoverProfile extends PracticeProfile {
+  methods: string[];
+}
+
+export interface PestManagementProfile extends PracticeProfile {
+  decisionApproach: string;
+  trapStatus: string;
+}
+
+export interface AnalysisKindEntry {
+  kind: string;
+  lastPerformedYear?: number | null;
+  datePrecision?: string | null;
+}
+
+export interface AnalysisProfile extends PracticeProfile {
+  kinds: AnalysisKindEntry[];
+}
+
+export interface HarvestProfile extends PracticeProfile {
+  expectedStartMonth?: number | null;
+  organizer: string;
+  needsMillBooking: string;
+}
+
+export interface DefaultAssignmentEntry {
+  category: string;
+  assigneeUserId?: string | null;
+  isSelf: boolean;
+}
+
+export interface DefaultAssignments {
+  entries: DefaultAssignmentEntry[];
+}
+
+export interface NotificationPreference {
+  intensity: string;
+  intensityLabel?: string;
+  acceptedTaskReminderDaysBefore: number;
+}
+
+export interface ApproximateDate {
+  year?: number | null;
+  month?: number | null;
+  day?: number | null;
+  precision: string;
+  precisionLabel?: string | null;
+}
+
+export interface CurrentYearDeclaredWork {
+  category: string;
+  templateCode?: string | null;
+  resultYear: number;
+  completion: string;
+  approximateDate?: ApproximateDate | null;
+  source: string;
+}
+
+export interface FieldWorkProfile {
+  id?: string;
+  fieldId?: string;
+  resultYearCreated?: number;
+  profileVersion?: number;
+  onboardingVersion?: number;
+  status?: FieldWorkProfileStatus | string;
+  statusLabel?: string;
+  productionPurpose?: string;
+  productionPurposeLabel?: string;
+  irrigation?: IrrigationProfile;
+  pruning?: PracticeProfile;
+  fertilisation?: FertilisationProfile;
+  groundCover?: GroundCoverProfile;
+  pestManagement?: PestManagementProfile;
+  analysis?: AnalysisProfile;
+  harvest?: HarvestProfile;
+  defaultAssignments?: DefaultAssignments;
+  notificationPreference?: NotificationPreference;
+  currentYearDeclaredWork?: CurrentYearDeclaredWork[];
+  completedAt?: string | null;
+  completedByUserId?: string | null;
+  lastReviewedAt?: string | null;
+  createdByUserId?: string;
+  updatedByUserId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateFieldWorkProfileInput {
+  resultYearCreated?: number;
+}
+
+export interface UpdatePracticeProfileInput {
+  preferenceMode?: string;
+  frequencyType?: string;
+  frequencyValue?: number | null;
+  preferredMonths?: number[];
+  lastPerformedYear?: number | null;
+  lastPerformedMonth?: number | null;
+  datePrecision?: string | null;
+  defaultAssigneeId?: string | null;
+  userNotes?: string | null;
+  source?: string;
+  confirmedAt?: string | null;
+  clearFrequencyValue?: boolean;
+  clearLastPerformedYear?: boolean;
+  clearLastPerformedMonth?: boolean;
+  clearDatePrecision?: boolean;
+  clearDefaultAssigneeId?: boolean;
+}
+
+export interface UpdateIrrigationProfileInput extends UpdatePracticeProfileInput {
+  method?: string;
+  decisionMaker?: string;
+}
+
+export interface UpdateFertilisationProfileInput extends UpdatePracticeProfileInput {
+  decisionMaker?: string;
+}
+
+export interface UpdateGroundCoverProfileInput extends UpdatePracticeProfileInput {
+  methods?: string[];
+}
+
+export interface UpdatePestManagementProfileInput extends UpdatePracticeProfileInput {
+  decisionApproach?: string;
+  trapStatus?: string;
+}
+
+export interface UpdateAnalysisProfileInput extends UpdatePracticeProfileInput {
+  kinds?: AnalysisKindEntry[];
+}
+
+export interface UpdateHarvestProfileInput extends UpdatePracticeProfileInput {
+  expectedStartMonth?: number | null;
+  organizer?: string;
+  needsMillBooking?: string;
+  clearExpectedStartMonth?: boolean;
+}
+
+export interface UpdateNotificationPreferenceInput {
+  intensity?: string;
+  acceptedTaskReminderDaysBefore?: number;
+}
+
+export interface UpdateFieldWorkProfileInput {
+  productionPurpose?: string;
+  irrigation?: UpdateIrrigationProfileInput;
+  pruning?: UpdatePracticeProfileInput;
+  fertilisation?: UpdateFertilisationProfileInput;
+  groundCover?: UpdateGroundCoverProfileInput;
+  pestManagement?: UpdatePestManagementProfileInput;
+  analysis?: UpdateAnalysisProfileInput;
+  harvest?: UpdateHarvestProfileInput;
+  defaultAssignments?: DefaultAssignments;
+  notificationPreference?: UpdateNotificationPreferenceInput;
+  currentYearDeclaredWork?: CurrentYearDeclaredWork[];
+}
+
+export interface ActivateFieldWorkProfileInput {
   status?: string;
-  pruning?: { defaultAssigneeId?: string | null };
-  irrigation?: { defaultAssigneeId?: string | null };
-  fertilisation?: { defaultAssigneeId?: string | null };
-  groundCover?: { defaultAssigneeId?: string | null };
-  pestManagement?: { defaultAssigneeId?: string | null };
-  analysis?: { defaultAssigneeId?: string | null };
-  harvest?: { defaultAssigneeId?: string | null };
-  defaultAssignments?: {
-    entries?: Array<{ category: string; assigneeUserId?: string | null; isSelf: boolean }>;
-  };
-};
+}
 
 export interface TaskExecution {
   id: string;
@@ -380,6 +556,39 @@ export const fieldWorkService = {
   getWorkProfile: async (fieldId: string): Promise<FieldWorkProfile | null> => {
     const response = await api.get<FieldWorkProfile | null>(`/api/v1/fields/${fieldId}/work-profile`);
     return response.data ?? null;
+  },
+
+  createWorkProfile: async (
+    fieldId: string,
+    body?: CreateFieldWorkProfileInput
+  ): Promise<FieldWorkProfile> => {
+    const response = await api.post<FieldWorkProfile>(
+      `/api/v1/fields/${fieldId}/work-profile`,
+      body ?? {}
+    );
+    return response.data;
+  },
+
+  updateWorkProfile: async (
+    fieldId: string,
+    body: UpdateFieldWorkProfileInput
+  ): Promise<FieldWorkProfile> => {
+    const response = await api.put<FieldWorkProfile>(
+      `/api/v1/fields/${fieldId}/work-profile`,
+      body
+    );
+    return response.data;
+  },
+
+  activateWorkProfile: async (
+    fieldId: string,
+    body?: ActivateFieldWorkProfileInput
+  ): Promise<FieldWorkProfile> => {
+    const response = await api.post<FieldWorkProfile>(
+      `/api/v1/fields/${fieldId}/work-profile/activate`,
+      body ?? {}
+    );
+    return response.data;
   },
 
   evaluateDismissalLearning: async (

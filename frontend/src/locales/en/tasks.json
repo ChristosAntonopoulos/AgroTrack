@@ -103,9 +103,13 @@
     "editNotImplemented": "Edit is not available yet",
     "stepsAria": "Task creation steps",
     "steps": {
+      "what": "Task",
+      "where": "Field",
+      "when": "Date",
+      "who": "Assignee",
+      "review": "Confirm",
       "field": "Field",
-      "schedule": "Schedule",
-      "review": "Review"
+      "schedule": "Schedule"
     },
     "scheduleDesc": "Pick the days and who will do it. Everything else is ready.",
     "moreSettings": "Change title or priority",
@@ -562,6 +566,10 @@
         "activateFailed": "Could not activate the plan. Please try again.",
         "activating": "Activating…"
       },
+      "personalizing": {
+        "title": "Gathering your data",
+        "body": "Personalizing your timeline…"
+      },
       "completion": {
         "title": "The field is ready",
         "body": "Your work profile is active. Here are a few useful next steps.",
@@ -611,6 +619,7 @@
         "optionalWho": "You can skip this.",
         "optionalMonths": "Pick months or tap Skip.",
         "multiSelect": "You can pick more than one.",
+        "analysisNone": "Tap “I don’t do analyses” again if you want to change it.",
         "analysesYears": "Year is enough — no exact date needed.",
         "reminders": "You can change this later."
       },

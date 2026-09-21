@@ -114,33 +114,29 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
         string userRole,
         CancellationToken cancellationToken)
     {
-        if (userRole == Roles.Administrator || field.OwnerId == userId
+        FieldPeopleRules.EnsureNormalized(field);
+
+        if (userRole == Roles.Administrator
+            || FieldPeopleRules.IsAdmin(field, userId)
             || await _fieldAccessService.CanUserModifyFieldAsync(field.Id, userId, cancellationToken))
         {
             return OwnerAccess();
         }
 
-        if (IsProfessionalRole(userRole) || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Advise))
+        if (IsProfessionalRole(userRole))
         {
             return FinancialAccess.None;
         }
 
-        var family = await _fieldAccessService.GetFamilyAccessForFieldAsync(field.Id, userId, cancellationToken);
-        if (family != null)
+        var seat = FieldPeopleRules.GetActiveByUserId(field, userId);
+        if (seat != null)
         {
-            var hasMoney = family.Modules.Any(m =>
-                string.Equals(m, FamilyModules.Money, StringComparison.OrdinalIgnoreCase));
-            if (!hasMoney || !FamilyAccessLevels.CanCreateContent(family.AccessLevel))
+            var hasMoney = FieldPeopleRules.HasModule(field, userId, FamilyModules.Money);
+            if (!hasMoney || !FamilyAccessLevels.CanCreateContent(seat.AccessLevel))
             {
                 return FinancialAccess.None;
             }
 
-            return CollaboratorAccess();
-        }
-
-        if (FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Work)
-            || field.AssignedProducerIds.Contains(userId))
-        {
             return CollaboratorAccess();
         }
 

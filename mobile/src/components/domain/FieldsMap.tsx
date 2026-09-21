@@ -12,7 +12,7 @@ import {
   regionForCenter,
   LatLng,
 } from '../../utils/fieldGeo';
-import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MapLayerType } from '../../utils/mapLayers';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import MapLayerToggle from './MapLayerToggle';
@@ -172,6 +172,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
             style={styles.map}
             initialRegion={initialRegion}
             mapLayer={mapLayer}
+            maxZoom={MAP_MAX_ZOOM}
             showUserLocation={hasLocation}
             scrollEnabled
             zoomEnabled

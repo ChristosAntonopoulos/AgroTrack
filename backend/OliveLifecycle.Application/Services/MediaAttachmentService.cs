@@ -62,21 +62,24 @@ public class MediaAttachmentService : IMediaAttachmentService
         var existing = await _media.CountByOwnerAsync(type, ownerId, cancellationToken);
         if (existing + cleanUrls.Count > MaxImagesPerOwner)
         {
-            throw new ValidationException($"At most {MaxImagesPerOwner} photos are allowed.");
+            throw new ValidationException($"At most {MaxImagesPerOwner} attachments are allowed.");
         }
 
         var created = new List<MediaAttachmentDto>();
         var now = DateTime.UtcNow;
         foreach (var url in cleanUrls)
         {
+            var mediaType = InferMediaType(url);
             var entity = new MediaAttachment
             {
                 OwnerType = type,
                 OwnerId = ownerId,
                 FieldId = fieldId.Trim(),
-                MediaType = "image",
+                MediaType = mediaType,
                 Url = url,
-                ThumbnailUrl = url,
+                ThumbnailUrl = mediaType == "image" ? url : null,
+                FileName = InferFileName(url),
+                ContentType = InferContentType(url, mediaType),
                 UploadedByUserId = userId,
                 CapturedAt = now,
                 FieldAssignment = FieldAssignmentStatus.Manual,
@@ -91,15 +94,77 @@ public class MediaAttachmentService : IMediaAttachmentService
         return created;
     }
 
+    internal static string InferMediaType(string url)
+    {
+        var ext = Path.GetExtension(url.Split('?', 2)[0]).ToLowerInvariant();
+        return ext switch
+        {
+            ".m4a" or ".mp3" or ".webm" or ".wav" or ".aac" or ".ogg" => "audio",
+            ".pdf" or ".doc" or ".docx" or ".txt" => "document",
+            _ => "image"
+        };
+    }
+
+    private static string? InferFileName(string url)
+    {
+        var path = url.Split('?', 2)[0];
+        var name = Path.GetFileName(path);
+        return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
+
+    private static string? InferContentType(string url, string mediaType)
+    {
+        var ext = Path.GetExtension(url.Split('?', 2)[0]).ToLowerInvariant();
+        return ext switch
+        {
+            ".m4a" => "audio/mp4",
+            ".mp3" => "audio/mpeg",
+            ".webm" => "audio/webm",
+            ".wav" => "audio/wav",
+            ".aac" => "audio/aac",
+            ".ogg" => "audio/ogg",
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".txt" => "text/plain",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            _ => mediaType == "audio" ? "audio/mpeg" : mediaType == "document" ? "application/octet-stream" : "image/jpeg"
+        };
+    }
+
     public async Task<IReadOnlyList<MediaAttachmentDto>> GetByOwnerAsync(
         string ownerType,
         string ownerId,
+        string userId,
+        string userRole,
         CancellationToken cancellationToken = default)
     {
         var type = MediaOwnerTypeExtensions.FromApiString(ownerType)
             ?? throw new ValidationException("Invalid media owner type.");
         var items = await _media.GetByOwnerAsync(type, ownerId, cancellationToken);
-        return items.Select(ToDto).ToList();
+        var allowed = new List<MediaAttachmentDto>();
+        foreach (var item in items)
+        {
+            if (string.IsNullOrWhiteSpace(item.FieldId))
+            {
+                if (string.Equals(item.UploadedByUserId, userId, StringComparison.Ordinal))
+                {
+                    allowed.Add(ToDto(item));
+                }
+
+                continue;
+            }
+
+            if (await _fieldAccess.CanUserAccessFieldAsync(item.FieldId, userId, userRole, cancellationToken))
+            {
+                allowed.Add(ToDto(item));
+            }
+        }
+
+        return allowed;
     }
 
     public static MediaAttachmentDto ToDto(MediaAttachment entity) => new()

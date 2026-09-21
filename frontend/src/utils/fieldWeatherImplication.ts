@@ -45,6 +45,14 @@ export function resolveWeatherImplication(
   return { code: 'ok', textKey: 'weather.implication.ok' };
 }
 
+export type WeatherOutlookBar = WeatherOutlookBucket & {
+  /** Rain in this window only, when the API totals look cumulative. */
+  periodMm: number;
+};
+
+const DRY_MM = 0.4;
+const RAIN_BAR_FLOOR_MM = 8;
+
 /** Rain totals the API already aggregates. Do not invent daily temperatures. */
 export function weatherOutlookBuckets(weather: FieldWeather | null): WeatherOutlookBucket[] {
   if (!weather?.rain) return [];
@@ -56,4 +64,26 @@ export function weatherOutlookBuckets(weather: FieldWeather | null): WeatherOutl
     buckets.push({ key: 'h72', mm: weather.rain.forecast72hMm });
   }
   return buckets;
+}
+
+/** Prefer rain that falls in each window, not a running total. */
+export function weatherOutlookBars(weather: FieldWeather | null): WeatherOutlookBar[] {
+  const buckets = weatherOutlookBuckets(weather);
+  return buckets.map((bucket, index) => {
+    const previous = index === 0 ? 0 : buckets[index - 1].mm;
+    const looksCumulative = bucket.mm + 0.05 >= previous;
+    return {
+      ...bucket,
+      periodMm: looksCumulative ? Math.max(0, bucket.mm - previous) : bucket.mm,
+    };
+  });
+}
+
+export function rainOutlookScaleMm(bars: WeatherOutlookBar[]): number {
+  const peak = Math.max(0, ...bars.map((bar) => bar.periodMm));
+  return Math.max(RAIN_BAR_FLOOR_MM, peak);
+}
+
+export function isOutlookDry(bars: WeatherOutlookBar[]): boolean {
+  return bars.length > 0 && bars.every((bar) => bar.periodMm < DRY_MM);
 }

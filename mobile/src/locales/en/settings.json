@@ -21,8 +21,6 @@
   "startup": "Open app on",
   "startupHint": "This screen opens first",
   "startupOptions": {
-    "today": "Today",
-    "dashboard": "Dashboard",
     "fields": "Fields",
     "chronologio": "Chronologio"
   },
@@ -55,6 +53,10 @@
     },
     "largeControls": "Larger buttons",
     "largeControlsDesc": "Makes buttons and controls easier to tap",
+    "easyUsePreset": "Easy use",
+    "easyUsePresetDesc": "Turns on large text and large controls together.",
+    "easyUseApply": "Apply Easy use",
+    "resetDefaults": "Reset to defaults",
     "setupPhone": "Set up this phone",
     "comfortTitle": "Make it comfortable",
     "comfortSubtitle": "Choose how the app looks and feels. You can change this later in Settings.",

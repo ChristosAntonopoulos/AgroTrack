@@ -194,9 +194,8 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
             return OwnerAccess();
         }
 
-        var isOwner = field.OwnerId == userId
-            || await _fieldAccess.CanUserModifyFieldAsync(fieldId, userId, cancellationToken)
-            || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Own);
+        var isOwner = await _fieldAccess.CanUserModifyFieldAsync(fieldId, userId, cancellationToken)
+            || FieldPeopleRules.IsAdmin(field, userId);
 
         if (isOwner)
         {
@@ -210,8 +209,7 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
             return OwnerAccess();
         }
 
-        var hasAdvise = FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Advise)
-            || userRole == Roles.Agronomist;
+        var hasAdvise = userRole == Roles.Agronomist;
         if (hasAdvise)
         {
             return new FieldWorkAccess
@@ -230,9 +228,9 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
 
         var familyCanView = await _fieldAccess.CanFamilyAccessModuleAsync(
             fieldId, userId, FamilyModules.Tasks, cancellationToken);
-        var hasWork = FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Work)
-            || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Help)
-            || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.View);
+        var hasWork = FieldPeopleRules.IsActiveMember(field, userId)
+            && (FieldPeopleRules.CanWriteModule(field, userId, FamilyModules.Tasks)
+                || FieldPeopleRules.HasModule(field, userId, FamilyModules.Tasks));
 
         var assignedTasks = await _fieldTasks.QueryAsync(
             new FieldTaskQuery { FieldId = fieldId, AssignedUserId = userId },

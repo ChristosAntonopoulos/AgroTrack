@@ -37,7 +37,7 @@ const isAuthEndpoint = (config?: InternalAxiosRequestConfig) =>
 const isOptionalUserGet = (config?: InternalAxiosRequestConfig) => {
   const method = (config?.method || 'get').toLowerCase();
   if (method !== 'get') return false;
-  return /\/api\/v1\/(?:me\/(?:contacts|notifications|service-requests|notes)|fields\/[^/]+\/people)(?:\/|\?|$)/i.test(
+  return /\/api\/v1\/(?:me\/(?:contacts|notifications|notes|inbox|in-app-messages)|fields\/[^/]+\/people)(?:\/|\?|$)/i.test(
     requestUrl(config)
   );
 };

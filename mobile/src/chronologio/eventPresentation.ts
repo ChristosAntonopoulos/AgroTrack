@@ -94,12 +94,14 @@ const ACTOR_EL: Record<string, string> = {
   'giorgos papadakis': 'Γιώργος Παπαδάκης',
   'giorgos papadopoulos': 'Γιώργος Παπαδόπουλος',
   'kostas manousakis': 'Κώστας Μανούσακης',
+  'eleni papadaki': 'Ελένη Παπαδάκη',
 };
 
 const ACTOR_EN: Record<string, string> = {
   'γιώργος παπαδάκης': 'Giorgos Papadakis',
   'γιώργος παπαδόπουλος': 'Giorgos Papadopoulos',
   'κώστας μανούσακης': 'Kostas Manousakis',
+  'ελένη παπαδάκη': 'Eleni Papadaki',
 };
 
 const QUALITY_EL: Record<string, string> = {

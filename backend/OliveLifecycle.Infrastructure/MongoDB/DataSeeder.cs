@@ -26,13 +26,27 @@ public class DataSeeder : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        var seedDemo = string.Equals(
+            _configuration["DemoAccounts:Seed"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
         await SeedDemoUsersAsync(cancellationToken);
         await FieldWorkCatalogueSeeder.SeedAsync(_context, _logger, cancellationToken);
-        await SeedMinistryNotificationsAsync(cancellationToken);
+        // Alpha grove demo: no English ministry spam and no δάκος campaign on first login.
         await ServiceCategorySeeder.SeedAsync(_context, _logger, cancellationToken);
         await DemoFarmDataSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await FieldWorkDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
         await ChronologioDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
-        await PartnerDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        // Marketplace four-user listings skipped for alpha (three household people only).
+        await FamilyDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await OwnerPartnerDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+
+        if (seedDemo)
+        {
+            _logger.LogInformation(
+                "Alpha demo seeded: owner + συνεργάτης + family on Filiatra grove (no marketplace providers).");
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -41,6 +55,7 @@ public class DataSeeder : IHostedService
     [
         ("675555555555555555555501", "owner@olivefarm.com", "password123", Roles.FieldOwner, "Γιώργος", "Παπαδάκης"),
         ("675555555555555555555502", "producer1@olivefarm.com", "password123", Roles.Producer, "Κώστας", "Μανούσακης"),
+        ("675555555555555555555503", "family@olivefarm.com", "password123", Roles.FieldOwner, "Ελένη", "Παπαδάκη"),
     ];
 
     private async Task SeedDemoUsersAsync(CancellationToken cancellationToken)

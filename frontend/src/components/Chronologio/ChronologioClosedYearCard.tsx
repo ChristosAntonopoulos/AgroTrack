@@ -4,15 +4,15 @@ import type { ChronologioPeriodSummary } from '../../services/chronologioService
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
 import { isRealChronologioMediaUrl } from '../../chronologio/mediaGuard';
 import { harvestHasResult } from '../../chronologio/monthPresentation';
+import { yearFixedMetrics } from '../../chronologio/summaryFacts';
+import { formatGroveMassKg } from '../../utils/groveTotals';
 import {
   harvestYearCopyKey,
-  yearChapterFacts,
   yearComparison,
   yearHeadline,
   type AgriculturalYearState,
 } from '../../chronologio/yearPresentation';
 import ChronologioThumbnail from './ChronologioThumbnail';
-import ChronologioYearFacts from './ChronologioYearFacts';
 
 type Props = {
   summary: ChronologioPeriodSummary;
@@ -40,6 +40,11 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
       : state === 'upcoming'
         ? t('yearView.upcoming')
         : t('yearView.closed');
+  const metrics = yearFixedMetrics(summary, numberLocale, t);
+  const yieldPct =
+    summary.oilYieldPercent != null && summary.oilYieldPercent > 0
+      ? formatGroveMassKg(summary.oilYieldPercent, numberLocale)
+      : null;
 
   return (
     <button
@@ -64,14 +69,23 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
         {harvestKey === 'result' && harvestHasResult(summary) ? (
           <p className="chrono-year-oil-hero">
             {summary.oilKg > 0
-              ? `${summary.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
-              : `${Math.round(summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+              ? `${formatGroveMassKg(summary.oilKg, numberLocale)} ${t('oilUnit')}`
+              : `${formatGroveMassKg(summary.oliveKg, numberLocale)} ${t('olivesUnit')}`}
+            {yieldPct ? ` · ${t('yearView.yieldFact', { pct: yieldPct })}` : null}
           </p>
         ) : (
           <p className="chrono-year-harvest-copy">
             {harvestKey === 'noResult' ? t('monthView.harvestNoResult') : t('yearView.harvestNotStarted')}
           </p>
         )}
+
+        <ul className="chrono-year-chapter-facts">
+          {metrics.map((metric) => (
+            <li key={metric.label}>
+              {metric.label}: {metric.value}
+            </li>
+          ))}
+        </ul>
 
         {comparison ? (
           <p className="chrono-year-comparison">
@@ -81,8 +95,6 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
             })}
           </p>
         ) : null}
-
-        <ChronologioYearFacts facts={yearChapterFacts(summary)} numberLocale={numberLocale} />
 
         {headline ? <p className="chrono-year-headline">{headline}</p> : null}
         <span className="chrono-year-chapter-hint">{t('yearView.openHint')}</span>

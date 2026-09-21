@@ -7,59 +7,23 @@ import InfoRow from '../ui/InfoRow';
 import { typography, spacing } from '../../theme';
 
 export interface AreaComparisonCardProps {
-  officialAreaSqm?: number;
   measuredAreaSqm?: number;
-  differencePercent?: number;
 }
 
-const severityColor = (
-  colors: ReturnType<typeof useTheme>['colors'],
-  percent?: number
-): string => {
-  if (percent == null) return colors.borderLight;
-  if (percent > 15) return colors.error;
-  if (percent > 5) return colors.warning;
-  return colors.success;
-};
-
-const AreaComparisonCard: React.FC<AreaComparisonCardProps> = ({
-  officialAreaSqm,
-  measuredAreaSqm,
-  differencePercent,
-}) => {
+const AreaComparisonCard: React.FC<AreaComparisonCardProps> = ({ measuredAreaSqm }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('fields');
-
-  const borderColor = severityColor(colors, differencePercent);
+  if (measuredAreaSqm == null || measuredAreaSqm <= 0) return null;
 
   return (
-    <Card
-      variant="outlined"
-      style={{
-        marginTop: spacing.sm,
-        borderLeftColor: borderColor,
-        borderLeftWidth: 3,
-      }}
-    >
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('addField.areaComparison')}</Text>
+    <Card variant="outlined" style={{ marginTop: spacing.sm }}>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('addField.measuredArea')}</Text>
       <InfoRow
         icon="scan-outline"
         label={t('addField.measuredArea')}
-        value={measuredAreaSqm != null ? `${Math.round(measuredAreaSqm)} m²` : t('addField.notDrawn')}
+        value={`${Math.round(measuredAreaSqm)} m²`}
+        showDivider={false}
       />
-      <InfoRow
-        icon="document-text-outline"
-        label={t('addField.officialArea')}
-        value={officialAreaSqm != null ? `${Math.round(officialAreaSqm)} m²` : '—'}
-      />
-      {differencePercent != null ? (
-        <InfoRow
-          icon="git-compare-outline"
-          label={t('addField.difference')}
-          value={`${differencePercent.toFixed(1)}%`}
-          showDivider={false}
-        />
-      ) : null}
     </Card>
   );
 };
