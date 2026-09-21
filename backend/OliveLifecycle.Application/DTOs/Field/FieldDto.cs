@@ -40,4 +40,5 @@ public class FieldDto
     public string? Color { get; set; }
     public GreekCadastreInfoDto? GreekCadastre { get; set; }
     public List<FieldDocumentAttachmentDto> Documents { get; set; } = new();
+    public FieldCapabilitiesDto Capabilities { get; set; } = new();
 }

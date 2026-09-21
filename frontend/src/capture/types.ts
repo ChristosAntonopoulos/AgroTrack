@@ -16,6 +16,8 @@ export type CaptureContext = {
   harvestId?: string;
   preferredType?: CaptureType;
   occurredAt?: string;
+  /** Chronologio: date was forced to today because the user is not on Days of the live month. */
+  dateDefaultedToToday?: boolean;
   category?: FinancialCategory;
   description?: string;
   harvestCampaignLink?: boolean;

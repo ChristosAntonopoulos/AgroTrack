@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FIELD_COLOR_PRESETS, resolveFieldColor } from '../../utils/fieldColors';
+import { FIELD_COLOR_NAMES, FIELD_COLOR_PRESETS, resolveFieldColor } from '../../utils/fieldColors';
 import './FieldColorPicker.css';
 
 type Props = {
@@ -25,17 +25,22 @@ const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled 
       <div className="field-color-picker-swatches" role="radiogroup" aria-label={t('form.color')}>
         {FIELD_COLOR_PRESETS.map((color) => {
           const active = selected.toUpperCase() === color.toUpperCase();
+          const name =
+            t(`form.colorNames.${color.slice(1)}`, {
+              defaultValue: FIELD_COLOR_NAMES[color],
+            }) || FIELD_COLOR_NAMES[color];
           return (
             <button
               key={color}
               type="button"
               role="radio"
               aria-checked={active}
+              aria-label={name}
               disabled={disabled}
               className={`field-color-swatch ${active ? 'is-active' : ''}`}
               style={{ background: color }}
               onClick={() => onChange(color)}
-              title={color}
+              title={name}
             />
           );
         })}

@@ -8,6 +8,8 @@ import { resolveFieldColor } from '../../utils/fieldColors';
 import { presentGroveWeather } from '../../weather/presentGroveWeather';
 import { mergeGroveOutlook, presentGroveOutlook } from '../../weather/presentGroveOutlook';
 import GroveWeatherCard from '../weather/GroveWeatherCard';
+import GroveWeekForecast from '../weather/GroveWeekForecast';
+import { presentGroveForecast } from '../../weather/presentGroveForecast';
 
 export type TodayWeatherField = Pick<Field, 'id' | 'name'> & {
   color?: string | null;
@@ -69,6 +71,8 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
   const selected = shownFields.find((field) => field.id === selectedId) || shownFields[0];
   const selectedWeather = (selected && byId[selected.id]) || seed?.weather || null;
 
+  const week = useMemo(() => presentGroveForecast(selectedWeather), [selectedWeather]);
+
   const problems = useMemo(
     () =>
       mergeGroveOutlook(
@@ -120,6 +124,13 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
         fieldWeather={selectedWeather}
         fieldName={selected?.name}
       />
+
+      {week.length >= 2 ? (
+        <section className="chrono-grove-peek-outlook chrono-grove-peek-week">
+          <h3>{t('weatherPeek.week')}</h3>
+          <GroveWeekForecast fieldWeather={selectedWeather} variant="detail" />
+        </section>
+      ) : null}
 
       <section className="chrono-grove-peek-outlook">
         <h3>{t('weatherPeek.problems')}</h3>

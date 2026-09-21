@@ -1,26 +1,61 @@
 import api from './api';
 import { Field } from './fieldService';
+import type { FamilyModule, FamilyAccessLevel } from './familyService';
+import { FAMILY_MODULES, DEFAULT_FAMILY_MODULES } from './familyService';
 
+export type FieldPersonRole = 'Admin' | 'Partner' | 'Family';
+export type FieldAccessLevel = FamilyAccessLevel;
+export type FieldModule = FamilyModule;
 export type FieldCapacity = 'own' | 'work' | 'advise' | 'help' | 'view';
+
+export interface FieldCapabilities {
+  canViewField: boolean;
+  canViewTasks: boolean;
+  canViewPhotos: boolean;
+  canViewMoney: boolean;
+  canViewHarvest: boolean;
+  canViewDocuments: boolean;
+  canViewChronologio: boolean;
+  canManageAccess: boolean;
+}
 
 export interface FieldMembership {
   userId: string;
   displayName?: string;
   email?: string;
-  capacities: FieldCapacity[];
+  phone?: string;
+  role: FieldPersonRole;
+  modules: FieldModule[];
+  accessLevel: FieldAccessLevel;
   status: string;
+  inviteId?: string;
   fieldId?: string;
   fieldName?: string;
+  /** @deprecated Derived from role + accessLevel for older screens. */
+  capacities: FieldCapacity[];
 }
 
 export interface FieldInvite {
   id: string;
   token: string;
+  code?: string;
   fieldId: string;
   fieldName: string;
-  capacities?: FieldCapacity[];
+  invitedBy?: string;
+  role: FieldPersonRole;
+  modules: FieldModule[];
+  accessLevel: FieldAccessLevel;
   shareUrl: string;
   whatsAppUrl: string;
+  mailtoUrl?: string;
+  smsUrl?: string;
+  displayName?: string;
+  email?: string;
+  phone?: string;
+  status?: string;
+  expiresAt?: string;
+  /** @deprecated */
+  capacities?: FieldCapacity[];
 }
 
 export interface AdvisorComment {
@@ -31,40 +66,162 @@ export interface AdvisorComment {
   createdAt: string;
 }
 
+export interface FieldAccessSnapshot {
+  fieldId: string;
+  fieldName: string;
+  role: FieldPersonRole;
+  modules: FieldModule[];
+  accessLevel: FieldAccessLevel;
+  adminUserId: string;
+  capabilities?: FieldCapabilities;
+}
+
+export interface AccessContext {
+  fields: FieldAccessSnapshot[];
+  ownsAnyField: boolean;
+}
+
+const normalizeRole = (role?: string): FieldPersonRole => {
+  const value = (role || '').trim();
+  if (/^admin$/i.test(value)) return 'Admin';
+  if (/^partner$/i.test(value)) return 'Partner';
+  return 'Family';
+};
+
+const normalizeAccessLevel = (level?: string): FieldAccessLevel => {
+  const value = (level || '').trim().toLowerCase();
+  if (value === 'work' || value === 'help' || value === 'view') return value;
+  return 'view';
+};
+
+const normalizeModules = (modules?: string[]): FieldModule[] => {
+  if (!modules?.length) return [];
+  const allowed = new Set<string>(FAMILY_MODULES);
+  const seen = new Set<string>();
+  const result: FieldModule[] = [];
+  for (const raw of modules) {
+    const mapped = raw === 'calendar' ? 'chronologio' : raw;
+    if (!allowed.has(mapped) || seen.has(mapped)) continue;
+    seen.add(mapped);
+    result.push(mapped as FieldModule);
+  }
+  return result;
+};
+
+export const capacitiesForMembership = (member: {
+  role: FieldPersonRole;
+  accessLevel: FieldAccessLevel;
+}): FieldCapacity[] => {
+  if (member.role === 'Admin') return ['own', 'work'];
+  if (member.accessLevel === 'work') return ['work'];
+  if (member.accessLevel === 'help') return ['help'];
+  return ['view'];
+};
+
+const normalizeMembership = (
+  row: Partial<FieldMembership> & { capacities?: string[] },
+  fieldId?: string,
+  fieldName?: string
+): FieldMembership => {
+  const role = normalizeRole(row.role);
+  const accessLevel = normalizeAccessLevel(row.accessLevel) || (role === 'Admin' ? 'work' : 'view');
+  const modules =
+    row.modules && row.modules.length > 0
+      ? normalizeModules(row.modules)
+      : role === 'Admin'
+        ? [...FAMILY_MODULES]
+        : [...DEFAULT_FAMILY_MODULES];
+  const membership = {
+    userId: row.userId || '',
+    displayName: row.displayName,
+    email: row.email,
+    phone: row.phone,
+    role,
+    modules,
+    accessLevel,
+    status: row.status || 'active',
+    inviteId: row.inviteId,
+    fieldId,
+    fieldName,
+    capacities: [] as FieldCapacity[],
+  };
+  membership.capacities = capacitiesForMembership(membership);
+  return membership;
+};
+
+const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }): FieldInvite => {
+  const role = normalizeRole(row.role);
+  const accessLevel = normalizeAccessLevel(row.accessLevel);
+  const modules = normalizeModules(row.modules);
+  return {
+    id: row.id || '',
+    token: row.token || '',
+    code: row.code,
+    fieldId: row.fieldId || '',
+    fieldName: row.fieldName || '',
+    invitedBy: row.invitedBy,
+    role,
+    modules,
+    accessLevel,
+    shareUrl: row.shareUrl || '',
+    whatsAppUrl: row.whatsAppUrl || '',
+    mailtoUrl: row.mailtoUrl,
+    smsUrl: row.smsUrl,
+    displayName: row.displayName,
+    email: row.email,
+    phone: row.phone,
+    status: row.status,
+    expiresAt: row.expiresAt,
+    capacities: capacitiesForMembership({ role, accessLevel }),
+  };
+};
+
 const fallbackPeople = (field: Field): FieldMembership[] => {
   const people: FieldMembership[] = [];
   if (field.ownerId) {
-    people.push({
-      userId: field.ownerId,
-      displayName: 'Owner',
-      capacities: ['own', 'work'],
-      status: 'active',
-      fieldId: field.id,
-      fieldName: field.name,
-    });
+    people.push(
+      normalizeMembership(
+        {
+          userId: field.ownerId,
+          displayName: 'Owner',
+          role: 'Admin',
+          modules: [...FAMILY_MODULES],
+          accessLevel: 'work',
+          status: 'active',
+        },
+        field.id,
+        field.name
+      )
+    );
   }
-  (field.assignedProducerIds || []).forEach((id) => {
-    people.push({
-      userId: id,
-      displayName: 'Producer',
-      capacities: ['work'],
-      status: 'active',
-      fieldId: field.id,
-      fieldName: field.name,
-    });
-  });
   return people;
 };
 
 export const fieldPeopleService = {
+  getAccessContext: async (): Promise<AccessContext> => {
+    try {
+      const response = await api.get<AccessContext>('/api/v1/me/access-context');
+      const fields = (response.data?.fields || []).map((row) => ({
+        ...row,
+        role: normalizeRole(row.role),
+        modules: normalizeModules(row.modules),
+        accessLevel: normalizeAccessLevel(row.accessLevel),
+      }));
+      return {
+        fields,
+        ownsAnyField: Boolean(response.data?.ownsAnyField) || fields.some((f) => f.role === 'Admin'),
+      };
+    } catch {
+      return { fields: [], ownsAnyField: false };
+    }
+  },
+
   getPeople: async (fieldId: string, field?: Field): Promise<FieldMembership[]> => {
     try {
       const response = await api.get<FieldMembership[]>(`/api/v1/fields/${fieldId}/people`);
-      return response.data.map((person) => ({
-        ...person,
-        fieldId,
-        fieldName: field?.name,
-      }));
+      return (response.data || []).map((person) =>
+        normalizeMembership(person, fieldId, field?.name)
+      );
     } catch {
       return field ? fallbackPeople(field) : [];
     }
@@ -72,15 +229,35 @@ export const fieldPeopleService = {
 
   createInvite: async (
     fieldId: string,
-    payload: { capacities: FieldCapacity[]; phone?: string; email?: string; displayName?: string }
+    payload: {
+      role: 'Partner' | 'Family';
+      modules: FieldModule[];
+      accessLevel: FieldAccessLevel;
+      phone?: string;
+      email?: string;
+      displayName?: string;
+    }
   ): Promise<FieldInvite> => {
     const response = await api.post<FieldInvite>(`/api/v1/fields/${fieldId}/people/invites`, payload);
-    return response.data;
+    return normalizeInvite(response.data);
   },
 
-  upsertMembership: async (fieldId: string, userId: string, capacities: FieldCapacity[]): Promise<FieldMembership> => {
-    const response = await api.put<FieldMembership>(`/api/v1/fields/${fieldId}/people/${userId}`, { capacities });
-    return response.data;
+  upsertMembership: async (
+    fieldId: string,
+    userId: string,
+    payload: { role: 'Partner' | 'Family'; modules?: FieldModule[]; accessLevel?: FieldAccessLevel }
+  ): Promise<FieldMembership> => {
+    const response = await api.put<FieldMembership>(`/api/v1/fields/${fieldId}/people/${userId}`, payload);
+    return normalizeMembership(response.data, fieldId);
+  },
+
+  updatePerson: async (
+    fieldId: string,
+    userId: string,
+    payload: { modules?: FieldModule[]; accessLevel?: FieldAccessLevel; displayName?: string; phone?: string; email?: string }
+  ): Promise<FieldMembership> => {
+    const response = await api.patch<FieldMembership>(`/api/v1/fields/${fieldId}/people/${userId}`, payload);
+    return normalizeMembership(response.data, fieldId);
   },
 
   removeMembership: async (fieldId: string, userId: string): Promise<void> => {
@@ -89,12 +266,12 @@ export const fieldPeopleService = {
 
   getInvite: async (token: string): Promise<FieldInvite> => {
     const response = await api.get<FieldInvite>(`/api/v1/invites/${token}`);
-    return response.data;
+    return normalizeInvite(response.data);
   },
 
   acceptInvite: async (token: string): Promise<FieldMembership> => {
     const response = await api.post<FieldMembership>(`/api/v1/invites/${token}/accept`);
-    return response.data;
+    return normalizeMembership(response.data);
   },
 
   addAdvisorComment: async (fieldId: string, body: string): Promise<AdvisorComment> => {

@@ -29,6 +29,7 @@ import {
   ALPHA_APK_URL,
   ALPHA_APK_FILENAME,
   LANDING_CONTACT_EMAIL,
+  LANDING_SUPPORT_EMAIL,
   LANDING_NAV,
 } from '../config/landingConfig';
 import './LandingPage.css';
@@ -132,9 +133,6 @@ const LandingPage: React.FC = () => {
       </Link>
     </>
   );
-
-  const knowledgeTitle = t('knowledge.title').split('\n');
-  const futureTitle = t('future.title').split('\n');
 
   return (
     <div className="landing">
@@ -266,9 +264,9 @@ const LandingPage: React.FC = () => {
                 <button
                   type="button"
                   className="landing-btn landing-btn--hero-secondary"
-                  onClick={() => scrollTo('how-it-works')}
+                  onClick={() => setDemoOpen(true)}
                 >
-                  {t('hero.ctaSecondary')}
+                  {t('cta.secondary')}
                 </button>
               </div>
               <p className="landing-trust">{t('hero.trust')}</p>
@@ -292,38 +290,7 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 3. Problem — mood: warm paper */}
-        <section className="landing-section landing-mood-paper">
-          <div className="landing-mood-layer" aria-hidden data-mood="paper" />
-          <div className="landing-container landing-prose">
-            <h2>{t('problem.title')}</h2>
-            <ul className="landing-questions">
-              {lines('problem.lines').map((q) => (
-                <li key={q}>{q}</li>
-              ))}
-            </ul>
-            <p>{t('problem.bridge')}</p>
-            <p>{t('problem.solution')}</p>
-            <p className="landing-close">{t('problem.close')}</p>
-          </div>
-        </section>
-
-        {/* 4. Chapter / memory — mood: olive dark */}
-        <section className="landing-section landing-section--olive landing-mood-olive">
-          <div className="landing-mood-layer" aria-hidden data-mood="olive" />
-          <div className="landing-container landing-moment">
-            <h2>{t('brandMoment.title')}</h2>
-            <p className="landing-moment-intro">{t('brandMoment.intro')}</p>
-            <ol className="landing-flow">
-              {lines('brandMoment.flow').map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-            <p className="landing-close">{t('brandMoment.close')}</p>
-          </div>
-        </section>
-
-        {/* 5. Chronologio product — mood: clean */}
+        {/* Chronologio product */}
         <section id="chronologio" className="landing-section landing-section--clean landing-mood-clean">
           <div className="landing-container landing-chrono">
             <div className="landing-section-head landing-section-head--left">
@@ -353,24 +320,7 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 6. Differentiation — data the farmer knows */}
-        <section className="landing-section landing-mood-know">
-          <div className="landing-mood-layer" aria-hidden data-mood="know" />
-          <div className="landing-container landing-prose landing-knowledge">
-            <h2>
-              {knowledgeTitle.map((line) => (
-                <span key={line} className="landing-title-line">
-                  {line}
-                </span>
-              ))}
-            </h2>
-            <p>{t('knowledge.p1')}</p>
-            <p>{t('knowledge.p2')}</p>
-            <p className="landing-knowledge-close">{t('knowledge.close')}</p>
-          </div>
-        </section>
-
-        {/* 7. One grove / one memory */}
+        {/* One grove / one memory */}
         <section className="landing-section landing-section--cream landing-mood-clean">
           <div className="landing-container">
             <div className="landing-section-head">
@@ -421,70 +371,7 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 9. Compounding years */}
-        <section className="landing-section landing-section--cream landing-mood-clean">
-          <div className="landing-container landing-years-wrap">
-            <h2>{t('timeValue.title')}</h2>
-            <ol className="landing-years">
-              <li>
-                <span>1</span>
-                <div>
-                  <strong>{t('timeValue.year1Label')}</strong>
-                  <p>{t('timeValue.year1')}</p>
-                </div>
-              </li>
-              <li>
-                <span>2</span>
-                <div>
-                  <strong>{t('timeValue.year2Label')}</strong>
-                  <p>{t('timeValue.year2')}</p>
-                </div>
-              </li>
-              <li>
-                <span>3+</span>
-                <div>
-                  <strong>{t('timeValue.year3Label')}</strong>
-                  <p>{t('timeValue.year3')}</p>
-                </div>
-              </li>
-            </ol>
-            <ul className="landing-questions landing-questions--inline">
-              {lines('timeValue.questions').map((q) => (
-                <li key={q}>{q}</li>
-              ))}
-            </ul>
-            <p className="landing-knowledge-close">{t('timeValue.close')}</p>
-          </div>
-        </section>
-
-        {/* 10. Field simplicity + product shot */}
-        <section className="landing-section landing-mood-clean">
-          <div className="landing-container landing-simple">
-            <div className="landing-prose landing-prose--flush">
-              <h2>{t('simpleUse.title')}</h2>
-              <ul className="landing-questions">
-                {lines('simpleUse.lines').map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <ul className="landing-actions">
-                {lines('simpleUse.steps').map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <ul className="landing-bullet-row">
-                {lines('simpleUse.bullets').map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <figure className="landing-device landing-device--phone">
-              <img src={shots.phoneTask} alt={t('simpleUse.shotAlt')} />
-            </figure>
-          </div>
-        </section>
-
-        {/* 11. Onboarding */}
+        {/* Onboarding */}
         <section id="how-it-works" className="landing-section landing-section--cream landing-mood-clean">
           <div className="landing-container landing-section-head">
             <h2>{t('steps.title')}</h2>
@@ -506,36 +393,7 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 12. Continuity — mood: earth-dark */}
-        <section className="landing-section landing-section--earth landing-mood-earth">
-          <div className="landing-mood-layer" aria-hidden data-mood="earth" />
-          <div className="landing-container landing-moment">
-            <h2>
-              {futureTitle.map((line) => (
-                <span key={line} className="landing-title-line">
-                  {line}
-                </span>
-              ))}
-            </h2>
-            <div className="landing-future-grid">
-              <article>
-                <h3>{t('future.pastTitle')}</h3>
-                <p>{t('future.pastText')}</p>
-              </article>
-              <article>
-                <h3>{t('future.todayTitle')}</h3>
-                <p>{t('future.todayText')}</p>
-              </article>
-              <article>
-                <h3>{t('future.nextTitle')}</h3>
-                <p>{t('future.nextText')}</p>
-              </article>
-            </div>
-            <p className="landing-close">{t('future.close')}</p>
-          </div>
-        </section>
-
-        {/* 13. Free plan */}
+        {/* Free plan */}
         <section id="pricing" className="landing-section landing-section--clean landing-mood-clean">
           <div className="landing-container landing-alpha-grid">
             <div className="landing-section-head">
@@ -564,6 +422,13 @@ const LandingPage: React.FC = () => {
               <Link to="/register" className="landing-btn landing-btn--primary landing-btn--block">
                 {t('alpha.webCta')}
               </Link>
+            </article>
+            <article className="landing-apk-card landing-apk-card--sideload">
+              <h3>{t('alpha.androidTestTitle')}</h3>
+              <p className="landing-apk-hint">{t('alpha.downloadHint')}</p>
+              <p className="landing-apk-meta">
+                {t('alpha.version')}: {t('alpha.versionValue')} · {t('alpha.released')}: {t('alpha.releasedValue')} · {t('alpha.size')}: {t('alpha.sizeValue')}
+              </p>
               <a
                 href={ALPHA_APK_URL}
                 download={ALPHA_APK_FILENAME}
@@ -648,7 +513,11 @@ const LandingPage: React.FC = () => {
             <h4>{t('footer.contact')}</h4>
             <a href={`mailto:${LANDING_CONTACT_EMAIL}`}>
               <Mail size={14} aria-hidden />
-              {t('footer.contactEmail')}
+              {LANDING_CONTACT_EMAIL}
+            </a>
+            <a href={`mailto:${LANDING_SUPPORT_EMAIL}`}>
+              <Mail size={14} aria-hidden />
+              {LANDING_SUPPORT_EMAIL}
             </a>
             <div className="landing-lang landing-lang--footer">
               {(['el', 'en'] as SupportedLocale[]).map((code) => (
@@ -665,8 +534,8 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
         <div className="landing-container landing-footer-bottom">
-          <span>{t('footer.privacy')}</span>
-          <span>{t('footer.terms')}</span>
+          <Link to="/privacy">{t('footer.privacy')}</Link>
+          <Link to="/terms">{t('footer.terms')}</Link>
         </div>
       </footer>
 

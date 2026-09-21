@@ -58,7 +58,7 @@ const CaptureDrawer: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t } = useTranslation(['capture', 'fields', 'common']);
+  const { t } = useTranslation(['capture', 'fields', 'common', 'chronologio']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const navigate = useNavigate();
@@ -156,7 +156,17 @@ const CaptureDrawer: React.FC<Props> = ({
       .getFields()
       .then(setFields)
       .catch(() => setFields([]));
-  }, [open, context.preferredType, context.fieldId, context.occurredAt, context.taskId, context.harvestId, context.category, context.description]);
+  }, [
+    open,
+    context.preferredType,
+    context.fieldId,
+    context.occurredAt,
+    context.dateDefaultedToToday,
+    context.taskId,
+    context.harvestId,
+    context.category,
+    context.description,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -561,9 +571,17 @@ const CaptureDrawer: React.FC<Props> = ({
                       }}
                     />
                   </label>
+                  {context.dateDefaultedToToday ? (
+                    <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
+                  ) : null}
 
                   {step === 'observation' ? (
                     <>
+                      {context.harvestCampaignLink ? (
+                        <p className="capture-hint">
+                          {t('fields:harvestCampaign.note.chronologioHint')}
+                        </p>
+                      ) : null}
                       <label className="capture-label">
                         {t('capture:types.observation.title')}
                         <textarea

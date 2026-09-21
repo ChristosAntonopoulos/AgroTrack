@@ -226,9 +226,10 @@
     "modules": {
       "fields": "Χωράφια",
       "tasks": "Εργασίες",
+      "photos": "Φωτογραφίες",
       "documents": "Έγγραφα",
       "money": "Χρήματα",
-      "calendar": "Ημερολόγιο",
+      "chronologio": "Χρονολόγιο",
       "harvest": "Συγκομιδή"
     },
     "levels": {

@@ -1,34 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FamilyModule } from '../services/familyService';
-import { ownerPartnerService } from '../services/ownerPartnerService';
+import { fieldPeopleService, FieldAccessSnapshot } from '../services/fieldPeopleService';
 import { useAuth } from '../context/AuthContext';
 import { testUsers } from '../services/mockUsers';
 
+const FIELD_KEY = '@Oleachron/lastPartnerFieldId';
+
+const pickActiveSnapshot = (
+  fields: FieldAccessSnapshot[],
+  preferredId: string | null
+): FieldAccessSnapshot | null => {
+  if (fields.length === 0) return null;
+  if (preferredId) {
+    const match = fields.find((f) => f.fieldId === preferredId);
+    if (match) return match;
+  }
+  return fields[0];
+};
+
 /**
- * Union of modules from active family + partner memberships for the signed-in user.
- * Used to show nav items the invitee can open on owners' groves.
+ * Modules for the currently selected field only (not a union across groves).
  */
 export const useFamilyMembershipModules = (): ReadonlySet<FamilyModule> | null => {
   const { user, isAuthenticated } = useAuth();
-  const [modules, setModules] = useState<FamilyModule[] | null>(null);
+  const [snapshot, setSnapshot] = useState<FieldAccessSnapshot | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      setModules(null);
+      setSnapshot(null);
       return;
     }
     let cancelled = false;
     void (async () => {
-      const ctx = await ownerPartnerService.getAccessContext();
+      const [ctx, preferred] = await Promise.all([
+        fieldPeopleService.getAccessContext(),
+        AsyncStorage.getItem(FIELD_KEY),
+      ]);
       if (cancelled) return;
-      const union = Array.from(
-        new Set([
-          ...ctx.familyMemberships.flatMap((m) => m.modules),
-          ...ctx.partnerMemberships.flatMap((m) => m.modules),
-        ])
-      );
-      setModules(union);
+      setSnapshot(pickActiveSnapshot(ctx.fields, preferred));
     })();
     return () => {
       cancelled = true;
@@ -36,20 +47,47 @@ export const useFamilyMembershipModules = (): ReadonlySet<FamilyModule> | null =
   }, [isAuthenticated, user?.id]);
 
   return useMemo(() => {
-    if (!modules || modules.length === 0) return null;
-    return new Set(modules);
-  }, [modules]);
+    if (!snapshot) return null;
+    if (snapshot.role === 'Admin') return null;
+    return new Set(snapshot.modules);
+  }, [snapshot]);
 };
 
-/** Demo owner genitive label for Greek badge copy. */
+export const useActiveFieldAccessLevel = (): 'view' | 'help' | 'work' | null => {
+  const { user, isAuthenticated } = useAuth();
+  const [level, setLevel] = useState<'view' | 'help' | 'work' | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setLevel(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const [ctx, preferred] = await Promise.all([
+        fieldPeopleService.getAccessContext(),
+        AsyncStorage.getItem(FIELD_KEY),
+      ]);
+      if (cancelled) return;
+      const snap = pickActiveSnapshot(ctx.fields, preferred);
+      if (!snap || snap.role === 'Admin') {
+        setLevel(null);
+        return;
+      }
+      setLevel(snap.accessLevel);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user?.id]);
+
+  return level;
+};
+
 const DEMO_OWNER_GENITIVE_EL: Record<string, string> = {
   [testUsers[0].userId]: 'Γιώργου Παπαδάκη',
 };
 
-/**
- * Owner display name when the signed-in user is a family collaborator (not grove owner).
- * Prefer access-context ownerDisplayName; Greek demo uses genitive for natural copy.
- */
 export const useFamilyCollaboratorOwnerLabel = (): string | null => {
   const { user, isAuthenticated } = useAuth();
   const { i18n } = useTranslation();
@@ -62,16 +100,19 @@ export const useFamilyCollaboratorOwnerLabel = (): string | null => {
     }
     let cancelled = false;
     void (async () => {
-      const ctx = await ownerPartnerService.getAccessContext();
+      const [ctx, preferred] = await Promise.all([
+        fieldPeopleService.getAccessContext(),
+        AsyncStorage.getItem(FIELD_KEY),
+      ]);
       if (cancelled) return;
-      const membership = ctx.familyMemberships[0];
-      if (!membership || membership.ownerUserId === user.id) {
+      const snap = pickActiveSnapshot(ctx.fields, preferred);
+      if (!snap || snap.role === 'Admin' || snap.adminUserId === user.id) {
         setOwnerLabel(null);
         return;
       }
       const lang = i18n.language?.startsWith('el') ? 'el' : i18n.language;
-      const demoGenitive = lang === 'el' ? DEMO_OWNER_GENITIVE_EL[membership.ownerUserId] : undefined;
-      setOwnerLabel(demoGenitive || membership.ownerDisplayName || null);
+      const demoGenitive = lang === 'el' ? DEMO_OWNER_GENITIVE_EL[snap.adminUserId] : undefined;
+      setOwnerLabel(demoGenitive || snap.fieldName || null);
     })();
     return () => {
       cancelled = true;

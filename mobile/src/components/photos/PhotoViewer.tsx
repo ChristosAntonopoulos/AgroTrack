@@ -27,10 +27,18 @@ type Props = {
   index: number;
   onClose: () => void;
   onIndexChange?: (index: number) => void;
+  onOpenDetails?: (index: number) => void;
 };
 
 /** Shared fullscreen photo pager for Photo Hub and Chronologio. */
-const PhotoViewer: React.FC<Props> = ({ open, items, index, onClose, onIndexChange }) => {
+const PhotoViewer: React.FC<Props> = ({
+  open,
+  items,
+  index,
+  onClose,
+  onIndexChange,
+  onOpenDetails,
+}) => {
   const { t } = useTranslation('photos');
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -101,6 +109,16 @@ const PhotoViewer: React.FC<Props> = ({ open, items, index, onClose, onIndexChan
             </View>
           )}
         />
+        {onOpenDetails ? (
+          <Pressable
+            onPress={() => onOpenDetails(active)}
+            accessibilityRole="button"
+            accessibilityLabel={t('viewer.openDetails')}
+            style={[styles.detailsBtn, { bottom: Math.max(insets.bottom, 12) + 8 }]}
+          >
+            <Text style={styles.detailsText}>{t('viewer.openDetails')}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </Modal>
   );
@@ -130,6 +148,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(28, 38, 26, 0.72)',
+  },
+  detailsBtn: {
+    position: 'absolute',
+    alignSelf: 'center',
+    left: '50%',
+    transform: [{ translateX: -70 }],
+    minWidth: 140,
+    minHeight: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 16,
+  },
+  detailsText: {
+    color: '#142016',
+    fontWeight: '700',
+    fontSize: 15,
   },
   image: {
     width: '100%',

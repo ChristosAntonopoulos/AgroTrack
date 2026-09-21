@@ -42,7 +42,8 @@
     "observation": "Notes",
     "money": "Money",
     "harvest": "Harvest",
-    "weather": "Weather"
+    "weather": "Weather",
+    "field_change": "Field changes"
   },
   "today": "Today",
   "yesterday": "Yesterday",
@@ -105,6 +106,7 @@
     "allFields": "All fields",
     "statTasks": "{{count}} completed works",
     "metricTasks": "Works",
+    "noRecordedTasks": "No recorded tasks",
     "metricExpenses": "Expenses",
     "metricOlives": "Olives",
     "metricOil": "Oil",
@@ -275,8 +277,10 @@
     "currentMonth": "Current month",
     "addRecord": "Add a record",
     "noRecords": "There are no records",
-    "workShort": "{{count}} tasks",
-    "notesShort": "{{count}} observations",
+    "workShort_one": "{{count}} task",
+    "workShort_other": "{{count}} tasks",
+    "notesShort_one": "{{count}} observation",
+    "notesShort_other": "{{count}} observations",
     "expensesShort": "{{amount}} expenses",
     "observationShortLabel": "Observations",
     "harvestNotStarted": "Harvest has not started",
@@ -284,6 +288,7 @@
     "records": "{{count}} records",
     "recordOne": "1 record",
     "openDays": "See days",
+    "openMonth": "Open month",
     "dominantWork": "Main work"
   },
   "yearView": {
@@ -303,14 +308,21 @@
     "stageOf": "{{stage}} · {{current}} of {{total}}",
     "mainResult": "Main harvest result",
     "harvestNotStarted": "Harvest has not started",
-    "recordsFact": "{{count}} records",
+    "recordsFact_one": "{{count}} record",
+    "recordsFact_other": "{{count}} records",
     "compare": {
       "oilUp": "+{{pct}}% oil vs {{year}}",
+      "oilUp_ytd": "So far · +{{pct}}% oil vs the same date in {{year}}",
       "oilDown": "{{pct}}% less oil than {{year}}",
+      "oilDown_ytd": "So far · {{pct}}% less oil than the same date in {{year}}",
       "olivesUp": "+{{pct}}% olives vs {{year}}",
+      "olivesUp_ytd": "So far · +{{pct}}% olives vs the same date in {{year}}",
       "olivesDown": "{{pct}}% fewer olives than {{year}}",
+      "olivesDown_ytd": "So far · {{pct}}% fewer olives than the same date in {{year}}",
       "expensesUp": "+{{pct}}% expenses vs {{year}}",
-      "expensesDown": "{{pct}}% lower expenses than {{year}}"
+      "expensesUp_ytd": "So far · +{{pct}}% expenses vs the same date in {{year}}",
+      "expensesDown": "{{pct}}% lower expenses than {{year}}",
+      "expensesDown_ytd": "So far · {{pct}}% lower expenses than the same date in {{year}}"
     },
     "stages": {
       "afterHarvest": "After harvest",

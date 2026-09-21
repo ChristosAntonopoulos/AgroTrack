@@ -1,0 +1,35 @@
+.legal-page {
+  min-height: 100dvh;
+  background: #f6f3ec;
+  color: #1f2a1c;
+}
+
+.legal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(31, 42, 28, 0.08);
+}
+
+.legal-brand {
+  display: inline-flex;
+}
+
+.legal-body {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.legal-disclaimer {
+  font-size: 0.85rem;
+  color: #5c6758;
+}
+
+.legal-body h1 {
+  font-size: 1.75rem;
+  margin: 0.5rem 0 1.25rem;
+}
+
+.legal-body p {
+  line-height: 1.55;
+  margin: 0 0 0.85rem;
+}

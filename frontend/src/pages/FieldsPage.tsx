@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
@@ -11,7 +11,14 @@ import { isDeviceOnline } from '../utils/networkStatus';
 import { locationService } from '../services/locationService';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { getFieldShortLocation } from '../utils/shortLocation';
-import { countTasksToday, fieldSearchHaystack, getFieldOpenPath, isListedGrove } from '../utils/fieldDisplay';
+import {
+  countFieldListBuckets,
+  countTasksToday,
+  fieldSearchHaystack,
+  getFieldOpenPath,
+  isOwnedField,
+  isVisibleOnFieldsList,
+} from '../utils/fieldDisplay';
 import { distinctFieldColors } from '../utils/fieldColors';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
@@ -22,6 +29,7 @@ import SegmentedControl from '../components/Common/SegmentedControl';
 import FieldsMap from '../components/Field/FieldsMap';
 import FieldCard, { FieldCardStats } from '../components/Field/FieldCard';
 import { Plus, Layers, Map as MapIcon, List as ListIcon, Search } from 'lucide-react';
+import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import './FieldsPage.css';
 
 type SortKey = 'name' | 'area' | 'activity' | 'distance';
@@ -30,6 +38,7 @@ type ViewMode = 'list' | 'map';
 const FieldsPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common', 'errors']);
   const { user } = useAuth();
+  const pageGuard = useModulePageGuard({ module: 'fields' });
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
   const [fields, setFields] = useState<Field[]>([]);
@@ -45,11 +54,11 @@ const FieldsPage: React.FC = () => {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
-    loadFields();
+    void loadFields();
   }, [refreshGeneration]);
 
   useEffect(() => {
-    if (fields.length > 0) loadFieldTasks();
+    if (fields.length > 0) void loadFieldTasks();
   }, [fields]);
 
   useEffect(() => {
@@ -87,7 +96,7 @@ const FieldsPage: React.FC = () => {
       for (const field of fields) {
         tasksMap.set(
           field.id,
-          all.filter((t) => t.fieldId === field.id)
+          all.filter((task) => task.fieldId === field.id)
         );
       }
       setFieldTasks(tasksMap);
@@ -107,16 +116,8 @@ const FieldsPage: React.FC = () => {
     userCoords && fields.some((field) => resolveFieldCenter(field))
   );
 
-  const filteredFields = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = fields.filter(isListedGrove);
-    if (q) {
-      list = list.filter((f) => {
-        const short = getFieldShortLocation(f).toLowerCase();
-        return fieldSearchHaystack(f).includes(q) || short.includes(q);
-      });
-    }
-    return [...list].sort((a, b) => {
+  const sortFields = (list: Field[]): Field[] =>
+    [...list].sort((a, b) => {
       if (sortBy === 'area') {
         const areaA = a.appMeasuredAreaSqm || a.area || 0;
         const areaB = b.appMeasuredAreaSqm || b.area || 0;
@@ -138,7 +139,32 @@ const FieldsPage: React.FC = () => {
       }
       return a.name.localeCompare(b.name);
     });
+
+  const filteredFields = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = fields.filter(isVisibleOnFieldsList);
+    if (q) {
+      list = list.filter((f) => {
+        const short = getFieldShortLocation(f).toLowerCase();
+        return fieldSearchHaystack(f).includes(q) || short.includes(q);
+      });
+    }
+    return sortFields(list);
   }, [fields, search, sortBy, userCoords]);
+
+  const listCounts = useMemo(
+    () => countFieldListBuckets(filteredFields, user?.userId),
+    [filteredFields, user?.userId]
+  );
+
+  const ownedFields = useMemo(
+    () => filteredFields.filter((f) => isOwnedField(f, user?.userId)),
+    [filteredFields, user?.userId]
+  );
+  const sharedFields = useMemo(
+    () => filteredFields.filter((f) => !isOwnedField(f, user?.userId)),
+    [filteredFields, user?.userId]
+  );
 
   const fieldAccents = useMemo(() => distinctFieldColors(fields), [fields]);
   const paintField = (field: Field): Field => ({
@@ -171,8 +197,76 @@ const FieldsPage: React.FC = () => {
 
   const tasksTodayTotal = useMemo(() => {
     if (!tasksReady) return 0;
-    return fields.reduce((sum, field) => sum + countTasksToday(fieldTasks.get(field.id) || []), 0);
-  }, [fields, fieldTasks, tasksReady]);
+    return filteredFields.reduce((sum, field) => sum + countTasksToday(fieldTasks.get(field.id) || []), 0);
+  }, [filteredFields, fieldTasks, tasksReady]);
+
+  const renderCard = (field: Field, compact = false) => (
+    <FieldCard
+      key={field.id}
+      field={paintField(field)}
+      stats={getFieldCardStats(field.id)}
+      currentUserId={user?.userId}
+      compact={compact}
+      selected={compact ? selectedFieldId === field.id : undefined}
+      onSelect={compact ? setSelectedFieldId : undefined}
+      onHover={compact ? setHoveredFieldId : undefined}
+      showActivityDate={sortBy === 'activity'}
+    />
+  );
+
+  const renderSections = (compact = false) => {
+    if (ownedFields.length === 0 && sharedFields.length === 0) return null;
+    const showSections = ownedFields.length > 0 && sharedFields.length > 0;
+    return (
+      <>
+        {ownedFields.length > 0 ? (
+          <section className="fields-section" aria-label={t('fields:summary.mineSection')}>
+            {showSections ? <h2 className="fields-section-title">{t('fields:summary.mineSection')}</h2> : null}
+            <div className={compact ? undefined : 'fields-list'}>
+              {ownedFields.map((field) =>
+                compact ? (
+                  <div key={field.id} id={`fields-split-item-${field.id}`} role="listitem">
+                    {renderCard(field, true)}
+                  </div>
+                ) : (
+                  renderCard(field)
+                )
+              )}
+            </div>
+          </section>
+        ) : null}
+        {sharedFields.length > 0 ? (
+          <section className="fields-section" aria-label={t('fields:summary.sharedSection')}>
+            {showSections || ownedFields.length === 0 ? (
+              <h2 className="fields-section-title">{t('fields:summary.sharedSection')}</h2>
+            ) : null}
+            <div className={compact ? undefined : 'fields-list'}>
+              {sharedFields.map((field) =>
+                compact ? (
+                  <div key={field.id} id={`fields-split-item-${field.id}`} role="listitem">
+                    {renderCard(field, true)}
+                  </div>
+                ) : (
+                  renderCard(field)
+                )
+              )}
+            </div>
+          </section>
+        ) : null}
+      </>
+    );
+  };
+
+  if (pageGuard.loading) {
+    return (
+      <PageContainer padding="none">
+        <LoadingSpinner />
+      </PageContainer>
+    );
+  }
+  if (!pageGuard.allowed) {
+    return <Navigate to="/access-denied?module=fields" replace />;
+  }
 
   return (
     <PageContainer padding="none">
@@ -199,7 +293,7 @@ const FieldsPage: React.FC = () => {
           <>
             {error && <div className="fields-error">{error}</div>}
 
-            {fields.length === 0 ? (
+            {fields.filter(isVisibleOnFieldsList).length === 0 ? (
               <EmptyState
                 icon={<Layers size={40} />}
                 title={t('fields:emptyTitle')}
@@ -228,12 +322,19 @@ const FieldsPage: React.FC = () => {
                   </div>
                   <div className="fields-summary-strip" aria-live="polite">
                     <span className="fields-summary-item">
-                      <strong>{fields.length}</strong> {t('fields:summary.fields')}
+                      {t('fields:summary.breakdown', {
+                        active: listCounts.active,
+                        draft: listCounts.draft,
+                        shared: listCounts.shared,
+                      })}
                     </span>
                     <span className={`fields-summary-item${tasksTodayTotal > 0 ? ' fields-summary-item--active' : ''}`}>
-                      <strong>{tasksReady ? tasksTodayTotal : '…'}</strong> {t('fields:summary.activeTasks')}
+                      {tasksReady
+                        ? t('fields:summary.tasksTodayCount', { count: tasksTodayTotal })
+                        : '…'}
                     </span>
                   </div>
+                  <p className="fields-status-legend">{t('fields:summary.statusLegend')}</p>
                   <div className="fields-toolbar-right">
                     <label className="fields-sort">
                       <span className="fields-sort-label">{t('fields:sortLabel')}</span>
@@ -295,30 +396,11 @@ const FieldsPage: React.FC = () => {
                       />
                     </div>
                     <div className="fields-split-list" role="list" aria-label={t('fields:title')}>
-                      {filteredFields.map((field) => (
-                        <div
-                          key={field.id}
-                          id={`fields-split-item-${field.id}`}
-                          role="listitem"
-                        >
-                          <FieldCard
-                            field={paintField(field)}
-                            stats={getFieldCardStats(field.id)}
-                            compact
-                            selected={selectedFieldId === field.id}
-                            onSelect={setSelectedFieldId}
-                            onHover={setHoveredFieldId}
-                          />
-                        </div>
-                      ))}
+                      {renderSections(true)}
                     </div>
                   </div>
                 ) : (
-                  <div className="fields-list">
-                    {filteredFields.map((field) => (
-                      <FieldCard key={field.id} field={paintField(field)} stats={getFieldCardStats(field.id)} />
-                    ))}
-                  </div>
+                  renderSections(false)
                 )}
               </>
             )}

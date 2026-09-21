@@ -69,6 +69,30 @@ const badgeKey = (photo: Photo): string => {
   return 'standalone';
 };
 
+const formatAthensDateTime = (value: string, locale: string) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(locale.startsWith('el') ? 'el-GR' : locale, {
+    timeZone: 'Europe/Athens',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const formatAthensCardDate = (value: string, locale: string) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(locale.startsWith('el') ? 'el-GR' : locale, {
+    timeZone: 'Europe/Athens',
+    day: 'numeric',
+    month: 'short',
+  });
+};
+
 const PhotoHubScreen: React.FC = () => {
   const { t, i18n } = useTranslation(['photos', 'common', 'nav']);
   const { colors, tapMin } = useTheme();
@@ -410,7 +434,7 @@ const PhotoHubScreen: React.FC = () => {
           const harvests = await getHarvestService().listByField(selected.fieldId);
           next = harvests.map((h) => ({
             id: h.id,
-            label: `${new Date(h.harvestDate).toLocaleDateString(i18n.language)} · ${h.oliveKg} kg`,
+            label: `${formatAthensCardDate(h.harvestDate, i18n.language)} · ${h.oliveKg} kg`,
           }));
         } else if (ownerType === 'phenology') {
           const observations = await getFieldWorkService().listPhenologyObservations(
@@ -418,7 +442,7 @@ const PhotoHubScreen: React.FC = () => {
           );
           next = observations.map((o) => ({
             id: o.id,
-            label: `${o.stageLabel || o.stageCode} · ${new Date(o.observedOn).toLocaleDateString(i18n.language)}`,
+            label: `${o.stageLabel || o.stageCode} · ${formatAthensCardDate(o.observedOn, i18n.language)}`,
           }));
         }
         if (!cancelled) setTargets(next);
@@ -513,6 +537,22 @@ const PhotoHubScreen: React.FC = () => {
           selected={assignment}
           onSelect={setAssignment}
         />
+        {fieldId || linkStatus !== 'all' || assignment ? (
+          <Pressable
+            onPress={() => {
+              setFieldId('');
+              setLinkStatus('all');
+              setAssignment('');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t('photos:clearAllFilters')}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: '600' }}>
+              {t('photos:clearAllFilters')}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {uploading ? (
           <View style={styles.uploading}>
@@ -537,30 +577,72 @@ const PhotoHubScreen: React.FC = () => {
         {photos.length === 0 ? (
           <EmptyState
             icon={<Ionicons name="images-outline" size={36} color={colors.textSecondary} />}
-            title={t('photos:empty')}
-            description={t('photos:emptyHint')}
-            action={{
-              label: t('photos:upload'),
-              onPress: () => setUploadPickerOpen(true),
-            }}
+            title={
+              fieldId || linkStatus !== 'all' || assignment
+                ? t('photos:emptyFiltered', {
+                    filters: [
+                      fieldId
+                        ? `${t('photos:filters.field')}: ${fieldNames[fieldId] || fieldId}`
+                        : null,
+                      linkStatus !== 'all' ? t(`photos:filters.${linkStatus}`) : null,
+                      assignment ? t(`photos:filters.${assignment}`) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' + '),
+                  })
+                : t('photos:empty')
+            }
+            description={
+              fieldId || linkStatus !== 'all' || assignment
+                ? undefined
+                : t('photos:emptyHint')
+            }
+            action={
+              fieldId || linkStatus !== 'all' || assignment
+                ? {
+                    label: t('photos:clearFilters'),
+                    onPress: () => {
+                      setFieldId('');
+                      setLinkStatus('all');
+                      setAssignment('');
+                    },
+                  }
+                : {
+                    label: t('photos:upload'),
+                    onPress: () => setUploadPickerOpen(true),
+                  }
+            }
           />
         ) : (
           <View style={[styles.grid, { gap }]}>
             {photos.map((photo) => {
               const src =
                 resolvePublicAssetUrl(photo.thumbnailUrl || photo.url) || photo.url;
-              const key = badgeKey(photo);
+              const dateLabel = formatAthensCardDate(photo.effectiveCapturedAt, i18n.language);
+              const fieldLabel =
+                photo.fieldName ||
+                (photo.fieldId
+                  ? fieldNames[photo.fieldId] || friendlyFieldLabel(photo.fieldId)
+                  : t('photos:badges.unassigned'));
+              const statusLabel = photo.isLinked
+                ? t('photos:badges.linkedWith', {
+                    title:
+                      photo.linkedTitle ||
+                      t(`photos:badges.${badgeKey(photo)}`),
+                  })
+                : t('photos:badges.standalone');
               const showReview =
                 photo.fieldAssignment === 'needsReview' ||
                 photo.fieldAssignment === 'unassigned';
               return (
                 <Pressable
                   key={photo.id}
-                  onPress={() => setSelected(photo)}
-                  onLongPress={() => {
+                  onPress={() => {
                     const idx = photos.findIndex((p) => p.id === photo.id);
                     setViewerIndex(idx >= 0 ? idx : 0);
                   }}
+                  onLongPress={() => setSelected(photo)}
+                  accessibilityLabel={`${dateLabel} · ${fieldLabel}. ${statusLabel}`}
                   style={[
                     styles.tile,
                     {
@@ -572,28 +654,16 @@ const PhotoHubScreen: React.FC = () => {
                   ]}
                 >
                   <Image source={{ uri: src }} style={styles.thumb} />
-                  <View style={styles.badges}>
-                    <View
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: photo.isLinked
-                            ? colors.primary
-                            : colors.surface,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.badgeText,
-                          { color: photo.isLinked ? colors.onOlive : colors.textSecondary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {t(`photos:badges.${key}`)}
-                      </Text>
-                    </View>
-                    {showReview ? (
+                  <View style={styles.overlay}>
+                    <Text style={styles.overlayPrimary} numberOfLines={1}>
+                      {[dateLabel, fieldLabel].filter(Boolean).join(' · ')}
+                    </Text>
+                    <Text style={styles.overlayStatus} numberOfLines={1}>
+                      {statusLabel}
+                    </Text>
+                  </View>
+                  {showReview ? (
+                    <View style={styles.badges}>
                       <View
                         style={[
                           styles.badge,
@@ -611,8 +681,8 @@ const PhotoHubScreen: React.FC = () => {
                           )}
                         </Text>
                       </View>
-                    ) : null}
-                  </View>
+                    </View>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -962,7 +1032,12 @@ const PhotoHubScreen: React.FC = () => {
       <Sheet
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
-        title={t('photos:detail.title')}
+        title={
+          selected?.fieldName ||
+          (selected?.fieldId
+            ? fieldNames[selected.fieldId] || friendlyFieldLabel(selected.fieldId)
+            : t('photos:detail.title'))
+        }
         edge="end"
         size="lg"
       >
@@ -989,15 +1064,16 @@ const PhotoHubScreen: React.FC = () => {
                 {t('photos:detail.field')}
               </Text>
               <Text style={{ color: colors.textPrimary }}>
-                {selected.fieldId
-                  ? fieldNames[selected.fieldId] || friendlyFieldLabel(selected.fieldId)
-                  : '—'}
+                {selected.fieldName ||
+                  (selected.fieldId
+                    ? fieldNames[selected.fieldId] || friendlyFieldLabel(selected.fieldId)
+                    : '—')}
               </Text>
               <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
                 {t('photos:detail.captured')}
               </Text>
               <Text style={{ color: colors.textPrimary }}>
-                {new Date(selected.effectiveCapturedAt).toLocaleString(i18n.language)}
+                {formatAthensDateTime(selected.effectiveCapturedAt, i18n.language)}
               </Text>
               <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
                 {t('photos:detail.location')}
@@ -1007,17 +1083,49 @@ const PhotoHubScreen: React.FC = () => {
                   ? `${selected.latitude.toFixed(5)}, ${selected.longitude.toFixed(5)}`
                   : t('photos:detail.noGps')}
               </Text>
-              {selected.isLinked ? (
+              {selected.assignmentReason ? (
                 <>
                   <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
-                    {t('photos:detail.linkedAs')}
+                    {t('photos:detail.assignmentReason')}
                   </Text>
                   <Text style={{ color: colors.textPrimary }}>
-                    {t(`photos:badges.${badgeKey(selected)}`)}
+                    {t(`photos:detail.reasons.${selected.assignmentReason}`, {
+                      defaultValue: selected.assignmentReason,
+                    })}
                   </Text>
                 </>
               ) : null}
             </View>
+
+            {selected.isLinked ? (
+              <View
+                style={[
+                  styles.linkedCard,
+                  {
+                    borderColor: selected.linkBroken ? colors.warning || colors.border : colors.border,
+                    backgroundColor: colors.surfaceElevated,
+                  },
+                ]}
+              >
+                <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                  {t(`photos:badges.${badgeKey(selected)}`)}
+                </Text>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                  {selected.linkedTitle || t('photos:detail.linkedAs')}
+                </Text>
+                {selected.linkedOccurredAt ? (
+                  <Text style={{ color: colors.textSecondary }}>
+                    {formatAthensDateTime(selected.linkedOccurredAt, i18n.language)}
+                    {selected.linkedStatus ? ` · ${selected.linkedStatus}` : ''}
+                  </Text>
+                ) : null}
+                {selected.linkBroken ? (
+                  <Text style={{ color: colors.warning || colors.textSecondary }}>
+                    {t('photos:detail.linkBroken')}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
 
             {!selected.fieldId ? (
               <View style={styles.linkBlock}>
@@ -1069,6 +1177,9 @@ const PhotoHubScreen: React.FC = () => {
             <View style={styles.linkBlock}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
                 {t('photos:detail.link')}
+              </Text>
+              <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+                {t('photos:detail.linkMoves')}
               </Text>
               <FilterChips
                 compact
@@ -1159,35 +1270,37 @@ const PhotoHubScreen: React.FC = () => {
               ) : null}
             </View>
 
-            <Button
-              title={t('photos:detail.delete')}
-              variant="error"
-              disabled={busy}
-              fullWidth
-              onPress={() => {
-                Alert.alert(t('photos:detail.delete'), t('photos:detail.deleteConfirm'), [
-                  { text: t('common:cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
-                  {
-                    text: t('photos:detail.delete'),
-                    style: 'destructive',
-                    onPress: () => {
-                      void (async () => {
-                        setBusy(true);
-                        try {
-                          await getPhotoService().delete(selected.id);
-                          setSelected(null);
-                          await load();
-                        } catch {
-                          Alert.alert(t('photos:errors.save'));
-                        } finally {
-                          setBusy(false);
-                        }
-                      })();
+            {selected.canTrash !== false ? (
+              <Button
+                title={t('photos:detail.delete')}
+                variant="secondary"
+                disabled={busy}
+                fullWidth
+                onPress={() => {
+                  Alert.alert(t('photos:detail.delete'), t('photos:detail.deleteConfirm'), [
+                    { text: t('common:cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+                    {
+                      text: t('photos:detail.delete'),
+                      style: 'destructive',
+                      onPress: () => {
+                        void (async () => {
+                          setBusy(true);
+                          try {
+                            await getPhotoService().delete(selected.id);
+                            setSelected(null);
+                            await load();
+                          } catch {
+                            Alert.alert(t('photos:errors.save'));
+                          } finally {
+                            setBusy(false);
+                          }
+                        })();
+                      },
                     },
-                  },
-                ]);
-              }}
-            />
+                  ]);
+                }}
+              />
+            ) : null}
           </View>
         ) : null}
       </Sheet>
@@ -1197,6 +1310,12 @@ const PhotoHubScreen: React.FC = () => {
         items={viewerItems}
         index={viewerIndex ?? 0}
         onClose={() => setViewerIndex(null)}
+        onOpenDetails={(idx) => {
+          const photo = photos[idx];
+          if (!photo) return;
+          setViewerIndex(null);
+          setSelected(photo);
+        }}
       />
     </ScreenLayout>
   );
@@ -1273,6 +1392,34 @@ const styles = StyleSheet.create({
     ...typography.styles.caption,
     fontSize: 10,
     fontWeight: '600',
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.xs,
+    paddingTop: 28,
+    paddingBottom: spacing.xs,
+    backgroundColor: 'rgba(12,18,10,0.72)',
+  },
+  overlayPrimary: {
+    ...typography.styles.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#f7faf5',
+  },
+  overlayStatus: {
+    ...typography.styles.caption,
+    fontSize: 10,
+    color: '#d7e8cf',
+  },
+  linkedCard: {
+    borderWidth: 1,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
   },
   sheetActions: {
     gap: spacing.sm,

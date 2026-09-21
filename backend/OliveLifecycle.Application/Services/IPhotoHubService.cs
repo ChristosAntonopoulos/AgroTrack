@@ -49,11 +49,22 @@ public interface IPhotoHubService
         string userRole,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Soft-delete (trash). Requires uploader or field-admin capability.</summary>
     Task DeleteAsync(
         string id,
         string userId,
         string userRole,
         CancellationToken cancellationToken = default);
+
+    Task<PhotoContentResult> GetContentBySignatureAsync(
+        string id,
+        string variant,
+        long expUnix,
+        string signature,
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    string CreateSignedUrl(string photoId, string variant, string userId);
 }
 
 public sealed class PhotoUploadFile

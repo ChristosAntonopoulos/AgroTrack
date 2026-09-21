@@ -17,6 +17,10 @@ type Props = {
   categories?: ServiceCategory[];
   canInviteFamily?: boolean;
   canInvitePartner?: boolean;
+  familyUsed?: number;
+  familyMax?: number;
+  partnerUsed?: number;
+  partnerMax?: number;
   onClose: () => void;
   onSaved?: () => void;
   onInviteFamily?: () => void;
@@ -33,6 +37,10 @@ const AddPersonSheet: React.FC<Props> = ({
   categories,
   canInviteFamily = false,
   canInvitePartner = false,
+  familyUsed = 0,
+  familyMax = 2,
+  partnerUsed = 0,
+  partnerMax = 1,
   onClose,
   onSaved,
   onInviteFamily,
@@ -84,44 +92,49 @@ const AddPersonSheet: React.FC<Props> = ({
           <span className="partners-choice-icon" aria-hidden>
             <BookUser size={22} />
           </span>
-          <span className="partners-choice-title">{t('partners:saveContact')}</span>
+          <span className="partners-choice-title">{t('partners:newContact')}</span>
           <span className="partners-choice-desc">{t('partners:saveContactHint')}</span>
         </button>
-        {canInviteFamily ? (
-          <button
-            type="button"
-            className="partners-choice-card"
-            onClick={() => {
-              onClose();
-              onInviteFamily?.();
-            }}
-          >
-            <span className="partners-choice-icon" aria-hidden>
-              <Users size={22} />
-            </span>
-            <span className="partners-choice-title">{t('partners:inviteFamilySeat')}</span>
-            <span className="partners-choice-desc">{t('partners:inviteFamilySeatHint')}</span>
-          </button>
-        ) : null}
-        {canInvitePartner ? (
-          <button
-            type="button"
-            className="partners-choice-card"
-            onClick={() => {
-              onClose();
-              onInvitePartner?.();
-            }}
-          >
-            <span className="partners-choice-icon" aria-hidden>
-              <Handshake size={22} />
-            </span>
-            <span className="partners-choice-title">{t('partners:invitePartnerSeat')}</span>
-            <span className="partners-choice-desc">{t('partners:invitePartnerSeatHint')}</span>
-          </button>
-        ) : null}
-        {!canInviteFamily && !canInvitePartner ? (
-          <p className="partners-inline-hint">{t('partners:seatsFullHint')}</p>
-        ) : null}
+        <button
+          type="button"
+          className="partners-choice-card"
+          disabled={!canInviteFamily}
+          onClick={() => {
+            if (!canInviteFamily) return;
+            onClose();
+            onInviteFamily?.();
+          }}
+        >
+          <span className="partners-choice-icon" aria-hidden>
+            <Users size={22} />
+          </span>
+          <span className="partners-choice-title">{t('partners:inviteMember')}</span>
+          <span className="partners-choice-desc">
+            {canInviteFamily
+              ? t('partners:inviteFamilySeatHint')
+              : t('partners:inviteFamilySeatFull', { used: familyUsed, max: familyMax })}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="partners-choice-card"
+          disabled={!canInvitePartner}
+          onClick={() => {
+            if (!canInvitePartner) return;
+            onClose();
+            onInvitePartner?.();
+          }}
+        >
+          <span className="partners-choice-icon" aria-hidden>
+            <Handshake size={22} />
+          </span>
+          <span className="partners-choice-title">{t('partners:inviteCollaborator')}</span>
+          <span className="partners-choice-desc">
+            {canInvitePartner
+              ? t('partners:invitePartnerSeatHint')
+              : t('partners:invitePartnerSeatFull', { used: partnerUsed, max: partnerMax })}
+          </span>
+        </button>
       </div>
       <div className="partners-sheet-actions">
         <Button type="button" variant="ghost" onClick={onClose}>

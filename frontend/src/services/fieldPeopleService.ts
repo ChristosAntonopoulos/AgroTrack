@@ -6,7 +6,7 @@ import { isDeviceOnline, isNetworkError } from '../utils/networkStatus';
 
 export type FieldPersonRole = 'Admin' | 'Partner' | 'Family';
 export type FieldAccessLevel = 'view' | 'help' | 'work';
-export type FieldModule = 'fields' | 'tasks' | 'documents' | 'money' | 'calendar' | 'harvest';
+export type FieldModule = 'fields' | 'tasks' | 'photos' | 'documents' | 'money' | 'chronologio' | 'harvest';
 
 /** @deprecated Prefer FieldModule — kept for invite/access copy compatibility */
 export type FamilyModule = FieldModule;
@@ -16,14 +16,16 @@ export type FamilyAccessLevel = FieldAccessLevel;
 export const FIELD_MODULES: FieldModule[] = [
   'fields',
   'tasks',
+  'photos',
   'documents',
   'money',
-  'calendar',
+  'chronologio',
   'harvest',
 ];
 
+/** Modules currently exposed in the collaborator picker. Documents stay hidden this cycle. */
 export const FAMILY_MODULES = FIELD_MODULES;
-export const DEFAULT_FIELD_MODULES: FieldModule[] = ['fields', 'tasks', 'calendar'];
+export const DEFAULT_FIELD_MODULES: FieldModule[] = ['fields', 'tasks', 'photos', 'chronologio'];
 export const DEFAULT_FAMILY_MODULES = DEFAULT_FIELD_MODULES;
 
 export const MAX_PARTNER_SEATS = 1;
@@ -53,6 +55,7 @@ export interface FieldInvite {
   fieldId: string;
   fieldName: string;
   invitedBy: string;
+  invitedByName?: string;
   role: FieldPersonRole;
   modules: FieldModule[];
   accessLevel: FieldAccessLevel;
@@ -92,6 +95,27 @@ export interface FieldPeopleStats {
   people: PersonWorkStats[];
 }
 
+export interface FieldCapabilities {
+  canViewField: boolean;
+  canViewBoundary: boolean;
+  canViewSensitiveIdentity: boolean;
+  canViewEnvironmentalData: boolean;
+  canViewChronologio: boolean;
+  canCreateRecords: boolean;
+  canViewTasks: boolean;
+  canManageTasks: boolean;
+  canViewPhotos: boolean;
+  canUploadPhotos: boolean;
+  canViewMoney: boolean;
+  canViewHarvest: boolean;
+  canViewDocuments: boolean;
+  canManageDocuments: boolean;
+  canManageAccess: boolean;
+  canEditField: boolean;
+  canArchiveField: boolean;
+  canDeleteField: boolean;
+}
+
 export interface FieldAccessSnapshot {
   fieldId: string;
   fieldName: string;
@@ -99,6 +123,7 @@ export interface FieldAccessSnapshot {
   modules: FieldModule[];
   accessLevel: FieldAccessLevel;
   adminUserId: string;
+  capabilities: FieldCapabilities;
 }
 
 export interface AccessContext {
@@ -142,7 +167,15 @@ const normalizeAccessLevel = (level?: string): FieldAccessLevel => {
 const normalizeModules = (modules?: string[]): FieldModule[] => {
   if (!modules?.length) return [];
   const allowed = new Set<string>(FIELD_MODULES);
-  return modules.filter((m): m is FieldModule => allowed.has(m));
+  const seen = new Set<string>();
+  const result: FieldModule[] = [];
+  for (const raw of modules) {
+    const mapped = raw === 'calendar' ? 'chronologio' : raw;
+    if (!allowed.has(mapped) || seen.has(mapped)) continue;
+    seen.add(mapped);
+    result.push(mapped as FieldModule);
+  }
+  return result;
 };
 
 const normalizeMembership = (row: Partial<FieldMembership> & { capacities?: string[] }): FieldMembership => {
@@ -175,6 +208,7 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
   fieldId: row.fieldId || '',
   fieldName: row.fieldName || '',
   invitedBy: row.invitedBy || '',
+  invitedByName: row.invitedByName,
   role: normalizeRole(row.role),
   modules: normalizeModules(row.modules),
   accessLevel: normalizeAccessLevel(row.accessLevel),
@@ -189,14 +223,51 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
   smsUrl: row.smsUrl,
 });
 
-const normalizeAccessSnapshot = (row: Partial<FieldAccessSnapshot>): FieldAccessSnapshot => ({
-  fieldId: row.fieldId || '',
-  fieldName: row.fieldName || '',
-  role: normalizeRole(row.role),
-  modules: normalizeModules(row.modules),
-  accessLevel: normalizeAccessLevel(row.accessLevel),
-  adminUserId: row.adminUserId || '',
-});
+export const capabilitiesForAccess = (
+  role: FieldPersonRole,
+  modules: FieldModule[],
+  accessLevel: FieldAccessLevel
+): FieldCapabilities => {
+  const admin = role === 'Admin';
+  const has = (module: FieldModule) => admin || modules.includes(module);
+  const canWrite = admin || accessLevel === 'help' || accessLevel === 'work';
+  const canCreate = admin || accessLevel === 'work';
+  return {
+    canViewField: true,
+    canViewBoundary: true,
+    canViewSensitiveIdentity: admin,
+    canViewEnvironmentalData: true,
+    canViewChronologio: has('chronologio'),
+    canCreateRecords: canCreate,
+    canViewTasks: has('tasks'),
+    canManageTasks: has('tasks') && canWrite,
+    canViewPhotos: has('photos'),
+    canUploadPhotos: has('photos') && canCreate,
+    canViewMoney: has('money'),
+    canViewHarvest: has('harvest'),
+    canViewDocuments: has('documents'),
+    canManageDocuments: has('documents') && canCreate,
+    canManageAccess: admin,
+    canEditField: admin,
+    canArchiveField: false,
+    canDeleteField: admin,
+  };
+};
+
+const normalizeAccessSnapshot = (row: Partial<FieldAccessSnapshot>): FieldAccessSnapshot => {
+  const role = normalizeRole(row.role);
+  const modules = normalizeModules(row.modules);
+  const accessLevel = normalizeAccessLevel(row.accessLevel);
+  return {
+    fieldId: row.fieldId || '',
+    fieldName: row.fieldName || '',
+    role,
+    modules,
+    accessLevel,
+    adminUserId: row.adminUserId || '',
+    capabilities: row.capabilities || capabilitiesForAccess(role, modules, accessLevel),
+  };
+};
 
 /** Map seat role + access level to legacy capacity labels for older UI helpers. */
 export const capacitiesForMembership = (member: FieldMembership): FieldCapacity[] => {

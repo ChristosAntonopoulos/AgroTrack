@@ -460,6 +460,89 @@
   background: color-mix(in srgb, var(--harvest-gold, #c4a35a) 16%, transparent);
 }
 
+.hc-mill-kept {
+  display: grid;
+  gap: 0.55rem;
+}
+
+@media (min-width: 560px) {
+  .hc-mill-kept {
+    grid-template-columns: minmax(0, 1fr) 11.5rem;
+    align-items: end;
+  }
+}
+
+.hc-oil-split {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.35rem;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--olive-primary) 28%, var(--color-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--olive-soft, #eef3e6) 55%, var(--surface-1, var(--bg-card)));
+}
+
+.hc-oil-split-bar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 65%, transparent);
+}
+
+.hc-oil-split-bar > span,
+.hc-oil-split-swatch {
+  background: var(--olive-primary);
+}
+
+.hc-oil-split-bar > span[data-part='tin17'],
+.hc-oil-split-swatch[data-part='tin17'] {
+  background: var(--harvest-gold, #c4a35a);
+}
+
+.hc-oil-split-bar > span[data-part='bulk'],
+.hc-oil-split-swatch[data-part='bulk'] {
+  background: color-mix(in srgb, var(--olive-primary) 42%, white);
+}
+
+.hc-oil-split-bar > span[data-part='mill'],
+.hc-oil-split-swatch[data-part='mill'] {
+  background: color-mix(in srgb, var(--money-text-secondary, #6b6458) 78%, var(--harvest-gold, #c4a35a));
+}
+
+.hc-oil-split-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.hc-oil-split-list li {
+  display: grid;
+  grid-template-columns: 0.55rem minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+  align-items: center;
+  font-weight: 650;
+}
+
+.hc-oil-split-swatch {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 99px;
+}
+
+.hc-oil-split-pct {
+  min-width: 3.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--money-text-secondary, var(--color-text-secondary));
+}
+
+.hc-oil-split .capture-yield {
+  margin: 0;
+}
+
 @media (max-width: 520px) {
   .hc-action-tile {
     min-height: 6.4rem;

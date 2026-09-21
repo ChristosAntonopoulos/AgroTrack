@@ -69,7 +69,7 @@
     "harvestTitle": "Οικονομικά",
     "harvestText": "Τι κόστισε και τι απέδωσε.",
     "foot": "Και όλα συνδέονται με το ίδιο αγροτεμάχιο.",
-    "cta": "Δες το Χρονολόγιο",
+    "cta": "Ξεκίνα δωρεάν",
     "shotAlt": "Το Χρονολόγιο του ελαιώνα στο κινητό"
   },
   "knowledge": {
@@ -183,6 +183,13 @@
     "download": "Android εφαρμογή σε δοκιμαστική έκδοση",
     "downloadHint": "Προαιρετική δοκιμή στο τηλέφωνο — όχι υποκατάστατο του Play Store.",
     "webCta": "Δημιούργησε τον πρώτο σου ελαιώνα",
+    "androidTestTitle": "Δοκιμή Android",
+    "released": "Ημερομηνία",
+    "releasedValue": "2026-09",
+    "size": "Μέγεθος",
+    "sizeValue": "βλ. το αρχείο",
+    "checksum": "Checksum",
+    "checksumValue": "Θα δημοσιευτεί με την επίσημη έκδοση",
     "version": "Έκδοση",
     "versionValue": "0.1.0-alpha",
     "platform": "Πλατφόρμα",

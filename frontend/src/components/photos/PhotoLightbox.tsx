@@ -17,6 +17,7 @@ export type PhotoLightboxProps = {
   index: number;
   onClose: () => void;
   onIndexChange?: (index: number) => void;
+  footerAction?: React.ReactNode;
 };
 
 const FOCUSABLE =
@@ -32,6 +33,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   index,
   onClose,
   onIndexChange,
+  footerAction,
 }) => {
   const { t } = useTranslation('photos');
   const titleId = useId();
@@ -179,6 +181,8 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
           <ChevronRight size={28} aria-hidden />
         </button>
       ) : null}
+
+      {footerAction ? <div className="photo-lightbox-footer">{footerAction}</div> : null}
     </div>,
     document.body
   );

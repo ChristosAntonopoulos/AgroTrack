@@ -12,7 +12,9 @@ export const harvestExpenseCaptureContext = (input: {
   description: string;
 }): CaptureContext => ({
   preferredType: 'expense',
-  fieldId: input.fieldId || input.campaign.fieldOrder[0],
+  fieldId:
+    input.fieldId ||
+    (input.campaign.fieldOrder.length === 1 ? input.campaign.fieldOrder[0] : undefined),
   occurredAt: `${input.today}T12:00:00`,
   harvestId: harvestLinkedRecordId(input.campaign),
   category: 'other_expense',
@@ -32,10 +34,15 @@ export const harvestNoteCaptureContext = (input: {
   campaign: HarvestCampaign;
   fieldId?: string;
   today: string;
+  /** Shown / prefills observation body with Chronologio guidance when provided. */
+  description?: string;
 }): CaptureContext => ({
   preferredType: 'observation',
-  fieldId: input.fieldId || input.campaign.fieldOrder[0],
+  fieldId:
+    input.fieldId ||
+    (input.campaign.fieldOrder.length === 1 ? input.campaign.fieldOrder[0] : undefined),
   occurredAt: `${input.today}T12:00:00`,
+  description: input.description,
   harvestCampaignLink: true,
 });
 

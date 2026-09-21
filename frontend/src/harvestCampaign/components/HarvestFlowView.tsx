@@ -397,12 +397,47 @@ export const HarvestFlowView: React.FC<Props> = ({
         <p className="hc-gene-path" role="status">
           {pathStory}
         </p>
-      ) : (
+      ) : !empty ? (
         <p className="hc-gene-hint">{t('harvestCampaign.flow.tapHint')}</p>
-      )}
+      ) : null}
 
       {empty ? (
-        <p className="hc-help">{t('harvestCampaign.flow.empty')}</p>
+        <>
+          <p className="hc-help">{t('harvestCampaign.flow.empty')}</p>
+          <p className="hc-help">{t('harvestCampaign.flow.emptyHint')}</p>
+          {summaries.some((row) => row.sacks > 0 || row.officialKg > 0 || row.oilKg > 0) ? (
+            <div className="hc-field-summary-table" role="table" aria-label={t('harvestCampaign.nav.fields')}>
+              <div className="hc-field-summary-row hc-field-summary-head" role="row">
+                <span role="columnheader">{t('harvestCampaign.nav.fields')}</span>
+                <span role="columnheader">{t('harvestCampaign.actions.sacks')}</span>
+                <span role="columnheader">{t('harvestCampaign.actions.mill')}</span>
+                <span role="columnheader">{t('harvestCampaign.actions.oil')}</span>
+              </div>
+              {summaries.map((row) => (
+                <div key={row.fieldId} className="hc-field-summary-row" role="row">
+                  <span role="cell">
+                    {friendlyFieldLabel(fields.find((f) => f.id === row.fieldId)?.name || row.fieldId)}
+                  </span>
+                  <span role="cell">{row.sacks || '—'}</span>
+                  <span role="cell">
+                    {row.officialKg > 0 ? `${formatGroveMassKg(row.officialKg, locale)} kg` : '—'}
+                  </span>
+                  <span role="cell">
+                    {row.oilKg > 0 ? `${formatGroveMassKg(row.oilKg, locale)} kg` : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : summaries.length > 0 ? (
+            <ul className="hc-field-participant-list">
+              {summaries.map((row) => (
+                <li key={row.fieldId}>
+                  {friendlyFieldLabel(fields.find((f) => f.id === row.fieldId)?.name || row.fieldId)}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
       ) : (
         <div className="hc-gene-stack" ref={bindStack}>
           <HarvestGenealogyConnectors

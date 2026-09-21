@@ -23,6 +23,10 @@ import { getFieldStatusLabel } from '../../utils/fieldDisplay';
 import { resolveFieldStageLabel } from '../../utils/fieldStage';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { buildWorkProfileAnswerRows } from '../../utils/fieldWorkProfileAnswers';
+import {
+  pickLatestUsableSatellite,
+  resolveSentinelStatus,
+} from '../../utils/sentinelStatus';
 import DataSourceInfoModal, { type DataSourceInfo } from '../Common/DataSourceInfoModal';
 import type { SupportedLocale } from '../../i18n/config';
 import './FieldDetailsTab.css';
@@ -33,6 +37,7 @@ type Props = {
   canOwn: boolean;
   workProfile?: FieldWorkProfile | null;
   phenology?: FieldPhenology | null;
+  onDelete?: () => void;
 };
 
 type SourceEntry = {
@@ -112,7 +117,6 @@ const ndviBand = (value?: number): 'high' | 'medium' | 'low' | null => {
   return 'low';
 };
 
-const GREENNESS_FRESH_DAYS = 75;
 const FIRE_NEAR_KM = 25;
 
 const daysSince = (iso?: string): number | null => {
@@ -125,13 +129,6 @@ const daysSince = (iso?: string): number | null => {
 const sameUtcDay = (a?: string, b?: string): boolean => {
   if (!a || !b) return false;
   return a.slice(0, 10) === b.slice(0, 10);
-};
-
-const pickLatestGreenPass = (dates: SatelliteDate[]): SatelliteDate | null => {
-  const usable = dates
-    .filter((d) => d.isUsable && d.ndviMean != null)
-    .sort((a, b) => new Date(b.observationDate).getTime() - new Date(a.observationDate).getTime());
-  return usable[0] ?? null;
 };
 
 const formatPassDay = (iso: string, locale: string): string =>
@@ -153,7 +150,7 @@ const InfoButton: React.FC<{ label: string; onClick: () => void }> = ({ label, o
   </button>
 );
 
-const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, phenology }) => {
+const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, phenology, onDelete }) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
   const { formatDateTime, formatRelativeTime, formatNumber } = useLocaleFormatters();
   const locale = (i18n.language?.startsWith('el')
@@ -189,7 +186,7 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
       setSpatial(profile);
       setIntel(summary);
       setSatelliteDates(dates);
-      const pass = pickLatestGreenPass(dates);
+      const pass = pickLatestUsableSatellite(dates);
       if (pass?.observationId) {
         const obs = await geospatialService
           .getSatelliteObservation(field.id, pass.observationId)
@@ -232,28 +229,35 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
   const landCover: LandCoverSummary | undefined = spatial?.landCover ?? intel?.landCover;
   const environment = spatial?.environment ?? intel?.environment;
   const satellite: SatelliteSummary | undefined = spatial?.satellite ?? intel?.vegetation;
-  const greenPass = useMemo(() => pickLatestGreenPass(satelliteDates), [satelliteDates]);
+  const greenPass = useMemo(() => pickLatestUsableSatellite(satelliteDates), [satelliteDates]);
+  const sentinelStatus = useMemo(
+    () =>
+      resolveSentinelStatus(satelliteDates, {
+        processing: collecting,
+        failed: spatial?.processingStatus === 'failed',
+      }),
+    [satelliteDates, collecting, spatial?.processingStatus]
+  );
   const greenDate = greenObs?.observationDate ?? greenPass?.observationDate ?? satellite?.observationDate;
   const greenAgeDays = daysSince(greenDate);
-  const greenFresh = greenAgeDays != null && greenAgeDays <= GREENNESS_FRESH_DAYS;
   const greenNdvi =
-    greenObs?.ndvi?.mean ?? greenPass?.ndviMean ?? (greenFresh ? satellite?.ndviMean : undefined);
-  const greenNdmi = greenFresh
-    ? greenObs?.ndmi?.mean ??
-      (sameUtcDay(satellite?.observationDate, greenDate) ? satellite?.ndmiMean : undefined)
-    : undefined;
+    greenObs?.ndvi?.mean ?? greenPass?.ndviMean ?? (sentinelStatus.kind !== 'NoClearAcquisition' ? satellite?.ndviMean : undefined);
+  const greenNdmi =
+    greenObs?.ndmi?.mean ??
+    (sameUtcDay(satellite?.observationDate, greenDate) ? satellite?.ndmiMean : undefined);
   const greenCloud =
     greenObs?.fieldCloudCoverPercent ??
     greenObs?.cloudCoverPercent ??
     greenPass?.fieldCloudCoverPercent ??
     greenPass?.cloudCoverPercent ??
-    (greenFresh ? satellite?.fieldCloudCoverPercent ?? satellite?.cloudCoverPercent : undefined);
+    satellite?.fieldCloudCoverPercent ??
+    satellite?.cloudCoverPercent;
   const greenMeta = greenObs?.metadata ?? (sameUtcDay(satellite?.observationDate, greenDate) ? satellite?.metadata : undefined);
   const geometry = spatial?.geometry;
   const cadastre = field.greekCadastre;
 
   const unknown = t('fields:details.unknown');
-  const recordedInApp = t('fields:details.sources.oleachron');
+  const recordedInApp = t('fields:details.sources.declaredByUser');
   const sourceAria = t('fields:details.sourceAria');
 
   const varietyRaw = field.variety || field.oliveVariety;
@@ -751,8 +755,16 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
               />
             ) : null}
           </div>
-          {greenFresh && greenNdvi != null ? (
+          {greenNdvi != null ? (
             <>
+              {sentinelStatus.isStale && greenDate ? (
+                <p className="fd-banner fd-banner--stale">
+                  {t('fields:details.greenStale', {
+                    when: formatPassDay(greenDate, numberLocale),
+                    days: greenAgeDays ?? '—',
+                  })}
+                </p>
+              ) : null}
               <div className="fd-stats">
                 <div className="fd-stat">
                   <span>{t('fields:intelligence.ndviMean')}</span>
@@ -791,15 +803,14 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
               </div>
               <dl className="fd-rows">
                 <Row label={t('fields:details.cloudCover')} value={formatPct(greenCloud, numberLocale)} />
+                <Row
+                  label={t('fields:details.sentinelStatusLabel')}
+                  value={t(`fields:details.sentinelStatus.${sentinelStatus.kind}`)}
+                />
               </dl>
             </>
-          ) : greenDate && !greenFresh ? (
-            <p className="fd-banner fd-banner--stale">
-              {t('fields:details.greenStale', {
-                when: formatPassDay(greenDate, numberLocale),
-                days: greenAgeDays ?? '—',
-              })}
-            </p>
+          ) : sentinelStatus.kind === 'Processing' ? (
+            <p className="fd-empty">{t('fields:details.collectingBody')}</p>
           ) : (
             <p className="fd-empty">{t('fields:details.greenNone')}</p>
           )}
@@ -879,12 +890,16 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
             <Row label={t('fields:addField.cropType')} value={cropType} />
             <Row label={t('fields:locationLabel')} value={getFieldShortLocation(field)} />
             <Row label={t('fields:overview.area')} value={areaFull || areaPrimary} />
-            <Row label={t('fields:details.coordinates')} value={coords} />
+            {field.capabilities?.canViewSensitiveIdentity !== false ? (
+              <Row label={t('fields:details.coordinates')} value={coords} />
+            ) : null}
             <Row
               label={t('fields:details.boundary')}
               value={field.boundary ? t('fields:details.hasBoundary') : t('fields:details.noBoundary')}
             />
-            {cadastre ? <Row label="KAEK" value={cadastre.normalizedKaek || cadastre.kaek} /> : null}
+            {field.capabilities?.canViewSensitiveIdentity !== false && cadastre ? (
+              <Row label="KAEK" value={cadastre.normalizedKaek || cadastre.kaek} />
+            ) : null}
             <Row label={t('fields:addField.officialArea')} value={official} />
             <Row label={t('fields:addField.measuredArea')} value={measured} />
             <Row label={t('fields:addField.municipality')} value={cadastre?.municipality} />
@@ -894,7 +909,9 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
               value={field.updatedAt ? formatDateTime(field.updatedAt) : null}
             />
           </dl>
-          {field.accessNotes ? <p className="fd-note">{field.accessNotes}</p> : null}
+          {field.capabilities?.canViewSensitiveIdentity !== false && field.accessNotes ? (
+            <p className="fd-note">{field.accessNotes}</p>
+          ) : null}
           {cadastre ? <p className="fd-note">{t('fields:details.cadastreNote')}</p> : null}
           <div className="fd-foot">
             <span>{cadastre ? cadastreSourceLabel : recordedInApp}</span>
@@ -928,6 +945,37 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
             ))}
           </ul>
         </section>
+
+        {canOwn ? (
+          <section className="fd-panel fd-span fd-danger-zone" aria-labelledby="fd-danger">
+            <div className="fd-panel-head">
+              <div>
+                <p className="fd-kicker">{t('fields:details.danger.kicker')}</p>
+                <h3 id="fd-danger">{t('fields:details.danger.title')}</h3>
+              </div>
+            </div>
+            <p className="fd-empty">{t('fields:details.danger.body')}</p>
+            <ul className="fd-danger-list">
+              <li>{t('fields:details.danger.tasks')}</li>
+              <li>{t('fields:details.danger.photos')}</li>
+              <li>{t('fields:details.danger.money')}</li>
+              <li>{t('fields:details.danger.harvest')}</li>
+              <li>{t('fields:details.danger.notes')}</li>
+              <li>{t('fields:details.danger.chronologio')}</li>
+              <li>{t('fields:details.danger.collaborators')}</li>
+            </ul>
+            <div className="fd-danger-actions">
+              <button type="button" className="btn btn-secondary" disabled title={t('fields:page.archiveUnavailable')}>
+                {t('fields:page.archive')}
+              </button>
+              {onDelete ? (
+                <button type="button" className="btn btn-error" onClick={onDelete}>
+                  {t('fields:deleteField')}
+                </button>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
       </div>
 
       {sourceInfo ? <DataSourceInfoModal info={sourceInfo} onClose={() => setSourceInfo(null)} /> : null}

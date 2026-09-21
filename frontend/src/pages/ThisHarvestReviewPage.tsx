@@ -142,7 +142,10 @@ const ThisHarvestReviewPage: React.FC = () => {
     <PageContainer>
       <div className="ravdos-page">
         <Breadcrumbs />
-        <PageHeader title={t('fields:apologismos.title')} subtitle={t('fields:apologismos.subtitle')} />
+        <PageHeader
+          title={t('fields:apologismos.title')}
+          subtitle={t('fields:apologismos.subtitle')}
+        />
 
         <Link to="/harvest" className="ravdos-section-link ravdos-back">
           <ArrowLeft size={16} aria-hidden /> {t('fields:apologismos.backToProgress')}

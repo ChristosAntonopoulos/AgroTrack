@@ -32,6 +32,7 @@ export const HarvestMillSheet: React.FC<
       fieldIds: string[];
       fieldShares?: HarvestFieldShare[];
       sackIds: string[];
+      receiptRef?: string;
       note?: string;
     }) => void;
   }
@@ -104,22 +105,21 @@ export const HarvestMillSheet: React.FC<
     if (initial?.fieldIds?.length) return initial.fieldIds;
     const fromSacks = fieldsFromSackIds(initialSackIds);
     if (fromSacks.length > 0) return fromSacks;
-    return campaign.fieldOrder[0]
-      ? [campaign.fieldOrder[0]]
-      : fields[0]
-        ? [fields[0].id]
-        : [];
+    if (campaign.fieldOrder.length === 1) return [campaign.fieldOrder[0]];
+    // Multiple participants: do not silently pick API first field.
+    return [];
   }, [initial, initialSackIds, campaign, fields]);
 
   const [kg, setKg] = useState(initial ? String(initial.kg) : '');
   const [fieldIds, setFieldIds] = useState<string[]>(initialFields);
   const [sackIds, setSackIds] = useState<string[]>(initialSackIds);
   const [expandIncludes, setExpandIncludes] = useState(false);
-  const [more, setMore] = useState(Boolean(initial?.note));
+  const [more, setMore] = useState(Boolean(initial?.note || initial?.receiptRef));
   const [adjustShares, setAdjustShares] = useState(false);
   const [manualShares, setManualShares] = useState<HarvestFieldShare[]>(
     initial?.fieldShares || []
   );
+  const [receiptRef, setReceiptRef] = useState(initial?.receiptRef || '');
   const [note, setNote] = useState(initial?.note || '');
   const kgNumber = parseHarvestDecimal(kg);
 
@@ -202,6 +202,7 @@ export const HarvestMillSheet: React.FC<
                   : fieldIds,
                 fieldShares: activeShares.length > 0 ? activeShares : undefined,
                 sackIds,
+                receiptRef: more && receiptRef.trim() ? receiptRef.trim() : undefined,
                 note: more && note.trim() ? note.trim() : undefined,
               })
             }
@@ -340,10 +341,22 @@ export const HarvestMillSheet: React.FC<
         {more ? t('harvestCampaign.less') : t('harvestCampaign.more')}
       </button>
       {more ? (
-        <label className="money-form-label">
-          {t('harvestCampaign.noteOptional')}
-          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-        </label>
+        <>
+          <p className="capture-hint">{t('harvestCampaign.millKg.tareHint')}</p>
+          <label className="money-form-label">
+            {t('harvestCampaign.millKg.receiptRef')}
+            <input
+              type="text"
+              value={receiptRef}
+              onChange={(e) => setReceiptRef(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <label className="money-form-label">
+            {t('harvestCampaign.noteOptional')}
+            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+        </>
       ) : null}
     </HarvestSheetShell>
   );

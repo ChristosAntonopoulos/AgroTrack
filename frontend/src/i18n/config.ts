@@ -27,6 +27,7 @@ export const NAMESPACES = [
   'ministry',
   'today',
   'landing',
+  'legal',
   'admin',
   'partners',
   'chronologio',

@@ -17,9 +17,10 @@ import type { ChronologioEntry } from '../../services/chronologioService';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { FinancialTransaction } from '../../services/financialTransactionService';
 import type { Note } from '../../services/noteService';
-import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import { taskStatusI18nKey } from '../../utils/categoryNormalize';
+import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { financialStatusLabel, financialTypeLabel } from '../../finance/display';
 import {
@@ -294,7 +295,11 @@ const TaskDetail: React.FC<{
       <dl className="chrono-drawer-facts">
         <Fact label={t('drawer.taskName')}>{entry.title}</Fact>
         <Fact label={t('drawer.taskCategory')}>
-          {task?.taskType || full?.templateCode}
+          {taskDisplayTitle(
+            task?.taskType || full?.templateCode || entry.title,
+            full?.templateCode || task?.taskType,
+            i18n.language
+          )}
         </Fact>
         <Fact label={t('drawer.actualStart')}>
           {formatWhen(task?.startDate || full?.startedAt || full?.plannedStart, i18n.language)}
@@ -306,9 +311,27 @@ const TaskDetail: React.FC<{
           {task?.status ? t(taskStatusI18nKey(task.status)) : full?.statusLabel}
         </Fact>
         <Fact label={t('living.field')}>{entry.field?.name}</Fact>
-        <Fact label={t('drawer.people')}>
-          {[actor, task?.assigneeName].filter(Boolean).join(' · ') || null}
-        </Fact>
+        {(() => {
+          const assignee = (task?.assigneeName || '').trim();
+          const completedBy = (actor || '').trim();
+          const same =
+            assignee &&
+            completedBy &&
+            assignee.localeCompare(completedBy, undefined, { sensitivity: 'accent' }) === 0;
+          if (same) {
+            return <Fact label={t('drawer.personOnce', { defaultValue: t('drawer.people') })}>{assignee}</Fact>;
+          }
+          return (
+            <>
+              {assignee ? (
+                <Fact label={t('drawer.assignedTo', { defaultValue: 'Assigned to' })}>{assignee}</Fact>
+              ) : null}
+              {completedBy ? (
+                <Fact label={t('drawer.completedBy', { defaultValue: 'Completed by' })}>{completedBy}</Fact>
+              ) : null}
+            </>
+          );
+        })()}
         <Fact label={t('common:description')}>{full?.notes || entry.summary}</Fact>
         {entry.amount ? (
           <Fact label={t('drawer.cost')}>
@@ -395,7 +418,7 @@ const ObservationDetail: React.FC<{ entry: ChronologioEntry; actor: string }> = 
       {body ? <p className="chrono-drawer-notes">{body}</p> : null}
       <dl className="chrono-drawer-facts">
         <Fact label={t('living.field')}>{entry.field?.name}</Fact>
-        <Fact label={t('living.actor')}>{actor}</Fact>
+        <Fact label={t('drawer.recordedBy', { defaultValue: 'Recorded by' })}>{actor}</Fact>
         <Fact label={t('drawer.exactTime')}>{formatWhen(entry.occurredAt, i18n.language)}</Fact>
         {noteMeta?.pinned || note?.pinned ? (
           <p className="chrono-drawer-pin-flag">
@@ -447,7 +470,12 @@ const MoneyDetail: React.FC<{
     <>
       {entry.amount ? (
         <p className="chrono-drawer-amount">
-          {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
+          {formatChronologioMoneySigned(
+            entry.amount.value,
+            entry.amount.currency,
+            numberLocale,
+            entry.category === 'income' ? 'income' : 'expense'
+          )}
         </p>
       ) : null}
       <dl className="chrono-drawer-facts">

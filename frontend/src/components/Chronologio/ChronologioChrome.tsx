@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, GitCompare, Plus } from 'lucide-react';
 import Button from '../Common/Button';
@@ -6,7 +6,15 @@ import ChronologioViewTabs from './ChronologioViewTabs';
 import CategoryFilterRail, { type RailCategory } from './CategoryFilterRail';
 import FieldScopeSelector from './FieldScopeSelector';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useAuth } from '../../context/AuthContext';
+import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
+import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import type { Field } from '../../services/fieldService';
+import {
+  preferredCaptureTypeFromCategory,
+  resolveChronologioCaptureDate,
+} from '../../chronologio/captureContext';
+import { isMoreFilterCategory, isPrimaryRailCategory } from '../../chronologio/primaryCategories';
 import {
   viewFromZoom,
   VIEW_TO_ZOOM,
@@ -22,26 +30,23 @@ type Props = {
   fields: Field[];
   filters: LivingFilters;
   zoom: ChronologioZoom;
+  focusDate: string;
   compareOpen: boolean;
   embedded?: boolean;
   onBack?: () => void;
   onSetZoom: (z: ChronologioZoom) => void;
   onSetFilters: (f: Partial<LivingFilters>) => void;
   onCompareToggle: () => void;
+  onJumpToDate?: (isoDate: string) => void;
 };
 
 const railFromFilter = (category: LivingFilters['category']): RailCategory => {
   if (category === 'task') return 'work';
-  if (category === 'note' || category === 'photo') return 'observation';
+  if (category === 'note') return 'observation';
   if (category === 'expense' || category === 'income') return 'money';
-  if (
-    category === 'all' ||
-    category === 'work' ||
-    category === 'observation' ||
-    category === 'money' ||
-    category === 'harvest' ||
-    category === 'weather'
-  ) {
+  if (category === 'lifecycle') return 'field_change';
+  if (category === 'photo' || category === 'collaborator') return category;
+  if (isMoreFilterCategory(category) || isPrimaryRailCategory(category) || category === 'all') {
     return category;
   }
   return 'all';
@@ -57,20 +62,60 @@ const ChronologioChrome: React.FC<Props> = ({
   fields,
   filters,
   zoom,
+  focusDate,
   compareOpen,
   embedded = false,
   onBack,
   onSetZoom,
   onSetFilters,
   onCompareToggle,
+  onJumpToDate,
 }) => {
   const { t } = useTranslation(['chronologio', 'capture']);
+  const { user } = useAuth();
+  const activeField = useActiveFieldAccess();
   const capture = useCaptureOptional();
   const view = viewFromZoom(zoom);
   const railCategory = railFromFilter(filters.category);
+  const hideHarvest = useMemo(() => {
+    const caps = getHarvestCapabilities({
+      hasAnyFieldAccess: fields.length > 0 || Boolean(activeField.fieldId),
+      canOwn:
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        activeField.ownsAnyField,
+      canWork:
+        user?.role === 'Producer' ||
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        activeField.isCollaboratorOnActive,
+      familyModules: activeField.modules,
+      accessLevel: activeField.accessLevel,
+      harvestModuleGranted:
+        !activeField.modules ||
+        activeField.modules.size === 0 ||
+        activeField.modules.has('harvest') ||
+        activeField.isAdminOnActive,
+    });
+    return !caps.canUseChronologioHarvest;
+  }, [fields.length, user, activeField]);
 
   const setView = (next: ChronologioView) => {
     onSetZoom(VIEW_TO_ZOOM[next]);
+  };
+
+  const openCapture = () => {
+    if (!capture) return;
+    const { occurredAt, dateDefaultedToToday } = resolveChronologioCaptureDate({
+      zoom,
+      focusDate,
+    });
+    capture.openCapture({
+      fieldId: filters.fieldId || fieldId || undefined,
+      preferredType: preferredCaptureTypeFromCategory(filters.category),
+      occurredAt,
+      dateDefaultedToToday,
+    });
   };
 
   const TitleTag = embedded ? 'h2' : 'h1';
@@ -106,15 +151,7 @@ const ChronologioChrome: React.FC<Props> = ({
             )}
 
             {capture ? (
-              <button
-                type="button"
-                className="chrono-capture-cta"
-                onClick={() =>
-                  capture.openCapture({
-                    fieldId: filters.fieldId || fieldId || undefined,
-                  })
-                }
-              >
+              <button type="button" className="chrono-capture-cta" onClick={openCapture}>
                 <Plus size={18} aria-hidden />
                 {t('chronologio:captureNew')}
               </button>
@@ -136,8 +173,23 @@ const ChronologioChrome: React.FC<Props> = ({
 
       <div className="chronologio-sticky chrono-locked-toolbar">
         <ChronologioViewTabs view={view} onChange={setView} />
+        {onJumpToDate ? (
+          <label className="chrono-jump-date">
+            <span className="sr-only">{t('chronologio:living.jumpToDate')}</span>
+            <input
+              type="date"
+              value={focusDate.slice(0, 10)}
+              aria-label={t('chronologio:living.jumpToDate')}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next) onJumpToDate(next);
+              }}
+            />
+          </label>
+        ) : null}
         <CategoryFilterRail
           value={railCategory}
+          hideHarvest={hideHarvest}
           onChange={(category) => onSetFilters({ category: category === 'all' ? 'all' : category })}
         />
       </div>

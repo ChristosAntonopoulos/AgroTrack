@@ -52,6 +52,43 @@
   flex: 1;
 }
 
+.field-card-v2-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.field-card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: var(--surface-muted, #f3f1ec);
+  color: var(--text-muted);
+}
+
+.field-card-badge--draft {
+  background: color-mix(in srgb, #c9a227 22%, white);
+  color: #7a5b00;
+}
+
+.field-card-badge--mine {
+  background: color-mix(in srgb, #3d7a4a 18%, white);
+  color: #245734;
+}
+
+.field-card-badge--shared {
+  background: color-mix(in srgb, #6b7280 16%, white);
+  color: #374151;
+}
+
+.field-card-v2--draft {
+  border-style: dashed;
+}
+
 .field-card-v2-footer {
   display: flex;
   align-items: center;
@@ -60,6 +97,19 @@
   margin-top: auto;
   margin-left: 1.35rem;
   padding-top: 0;
+}
+
+.field-card-v2-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.field-card-v2-activity {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .field-card-v2-today {

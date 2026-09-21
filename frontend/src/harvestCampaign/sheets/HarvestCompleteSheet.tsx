@@ -12,6 +12,7 @@ export const HarvestCompleteSheet: React.FC<{
   personDays: number;
   expenseEur: number;
   unweighedSacks: number;
+  openDays?: number;
   locale: string;
   onFill: () => void;
   onFinish: () => void;
@@ -23,11 +24,25 @@ export const HarvestCompleteSheet: React.FC<{
   personDays,
   expenseEur,
   unweighedSacks,
+  openDays = 0,
   locale,
   onFill,
   onFinish,
 }) => {
   const { t } = useTranslation('fields');
+  const missing: string[] = [];
+  if (officialKg <= 0) missing.push(t('harvestCampaign.complete.missingMill'));
+  if (oilKg <= 0) missing.push(t('harvestCampaign.complete.missingOil'));
+  if (unweighedSacks > 0) {
+    missing.push(t('harvestCampaign.complete.unweighed', { count: unweighedSacks }));
+  }
+  if (openDays > 0) {
+    missing.push(t('harvestCampaign.complete.missingOpenDays', { count: openDays }));
+  }
+  if (days <= 0 && officialKg <= 0 && oilKg <= 0) {
+    missing.push(t('harvestCampaign.complete.missingEmpty'));
+  }
+
   return (
     <HarvestSheetShell
       footer={
@@ -38,16 +53,14 @@ export const HarvestCompleteSheet: React.FC<{
             </button>
           ) : null}
           <button type="button" className="money-primary-action" onClick={onFinish}>
-            {unweighedSacks > 0 ? t('harvestCampaign.complete.without') : t('harvestCampaign.complete.confirm')}
+            {missing.length > 0
+              ? t('harvestCampaign.complete.confirmAnyway')
+              : t('harvestCampaign.complete.confirm')}
           </button>
         </>
       }
     >
-      <p className="capture-prompt hc-complete-hero">
-        {t('harvestCampaign.complete.finishedTitle', {
-          defaultValue: t('harvestCampaign.complete.includes'),
-        })}
-      </p>
+      <p className="capture-prompt hc-complete-hero">{t('harvestCampaign.complete.readyTitle')}</p>
       <div className="hc-complete-metrics" role="list">
         <div className="hc-complete-metric" role="listitem">
           <span>{t('harvestCampaign.complete.olives', { kg: formatGroveMassKg(officialKg, locale) })}</span>
@@ -74,8 +87,15 @@ export const HarvestCompleteSheet: React.FC<{
           <span>{t('harvestCampaign.complete.expense', { amount: expenseEur })}</span>
         </div>
       </div>
-      {unweighedSacks > 0 ? (
-        <p className="money-warn">{t('harvestCampaign.complete.unweighed', { count: unweighedSacks })}</p>
+      {missing.length > 0 ? (
+        <div className="money-warn" role="status">
+          <p>{t('harvestCampaign.complete.missingTitle')}</p>
+          <ul>
+            {missing.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
       ) : null}
     </HarvestSheetShell>
   );

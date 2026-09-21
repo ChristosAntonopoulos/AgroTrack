@@ -57,7 +57,8 @@ public static class OwnerPartnerDemoSeeder
                     [
                         FamilyModules.Fields,
                         FamilyModules.Tasks,
-                        FamilyModules.Calendar,
+                        FamilyModules.Photos,
+                        FamilyModules.Chronologio,
                     ],
                     AccessLevel = FamilyAccessLevels.Work,
                     Status = FamilyMemberStatuses.Active,
@@ -74,7 +75,8 @@ public static class OwnerPartnerDemoSeeder
                 [
                     FamilyModules.Fields,
                     FamilyModules.Tasks,
-                    FamilyModules.Calendar,
+                    FamilyModules.Photos,
+                    FamilyModules.Chronologio,
                 ];
                 seat.AccessLevel = FamilyAccessLevels.Work;
                 seat.Status = FamilyMemberStatuses.Active;
@@ -111,7 +113,7 @@ public static class OwnerPartnerDemoSeeder
                             FamilyModules.Tasks,
                             FamilyModules.Documents,
                             FamilyModules.Money,
-                            FamilyModules.Calendar,
+                            FamilyModules.Chronologio,
                             FamilyModules.Harvest,
                         ],
                         AccessLevel = FamilyAccessLevels.Work,

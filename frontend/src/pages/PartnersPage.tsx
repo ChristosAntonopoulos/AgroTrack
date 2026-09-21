@@ -144,6 +144,7 @@ const PartnersPage: React.FC = () => {
     let cancelled = false;
     void (async () => {
       setSeatsLoading(true);
+      setFieldPeople([]);
       try {
         const rows = await fieldPeopleService.getPeople(fieldId);
         if (!cancelled) setFieldPeople(rows);
@@ -240,7 +241,7 @@ const PartnersPage: React.FC = () => {
     );
   }
   if (!pageGuard.allowed) {
-    return <Navigate to="/chronologio" replace />;
+    return <Navigate to="/access-denied?module=access" replace />;
   }
 
   if (loading) {
@@ -258,6 +259,8 @@ const PartnersPage: React.FC = () => {
     <PageContainer>
       <div className="partners-page">
         <Breadcrumbs />
+
+        <h1 className="partners-page-title">{t('partners:title')}</h1>
 
         {fields.length > 0 ? (
           <div className="partners-field-picker">
@@ -277,12 +280,12 @@ const PartnersPage: React.FC = () => {
         <section className="partners-section partners-contacts-hero" aria-labelledby="my-people-title">
           <div className="partners-section-head">
             <div>
-              <h1 id="my-people-title" className="partners-page-title">
+              <h2 id="my-people-title" className="partners-section-title">
                 {t('partners:contactsSection')}
                 {!peopleLoading && peopleCount > 0 ? (
                   <span className="partners-count">{peopleCount}</span>
                 ) : null}
-              </h1>
+              </h2>
               <p className="partners-lead">{t('partners:contactsSectionHint')}</p>
             </div>
             {user ? (
@@ -300,7 +303,7 @@ const PartnersPage: React.FC = () => {
                   onClick={() => setAdding(true)}
                   icon={<Plus size={18} aria-hidden />}
                 >
-                  {t('partners:addPerson')}
+                  {t('partners:newContact')}
                 </Button>
               </div>
             ) : null}
@@ -328,7 +331,7 @@ const PartnersPage: React.FC = () => {
                       onClick={() => setAdding(true)}
                       icon={<Plus size={18} aria-hidden />}
                     >
-                      {t('partners:addPerson')}
+                      {t('partners:newContact')}
                     </Button>
                   ) : null}
                   {SHOW_PARTNER_MARKETPLACE ? (
@@ -350,6 +353,9 @@ const PartnersPage: React.FC = () => {
                 fields={fields}
                 canManage={canManage}
                 onEditContact={(row) => setEditing(row.savedContact || null)}
+                onInviteContact={() => {
+                  setAddingFamily(true);
+                }}
                 onRemoved={() => setPeopleTick((n) => n + 1)}
               />
             ))}
@@ -386,6 +392,10 @@ const PartnersPage: React.FC = () => {
             categories={categories}
             canInviteFamily={Boolean(canManage && fieldId && familyUsed < MAX_FAMILY_SEATS)}
             canInvitePartner={Boolean(canManage && fieldId && partnerUsed < MAX_PARTNER_SEATS)}
+            familyUsed={familyUsed}
+            familyMax={MAX_FAMILY_SEATS}
+            partnerUsed={partnerUsed}
+            partnerMax={MAX_PARTNER_SEATS}
             onClose={() => setAdding(false)}
             onSaved={() => setPeopleTick((n) => n + 1)}
             onInviteFamily={() => setAddingFamily(true)}

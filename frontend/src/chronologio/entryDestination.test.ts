@@ -147,7 +147,7 @@ describe('chronologioEntryCapabilities', () => {
     });
   });
 
-  it('hides void on merged harvest days', () => {
+  it('hides edit and void on merged harvest days', () => {
     expect(
       chronologioEntryCapabilities(
         {
@@ -160,6 +160,6 @@ describe('chronologioEntryCapabilities', () => {
         },
         { userId: 'u1', role: 'FieldOwner' }
       )
-    ).toEqual({ canEdit: true, removeAction: null });
+    ).toEqual({ canEdit: false, removeAction: null });
   });
 });

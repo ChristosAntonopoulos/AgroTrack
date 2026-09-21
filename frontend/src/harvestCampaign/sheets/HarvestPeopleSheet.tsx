@@ -14,14 +14,19 @@ export const HarvestPeopleSheet: React.FC<
       people: number;
       hours: HarvestPeopleHours;
       otherHours?: number;
+      costEur?: number;
     }) => void;
   }
 > = ({ initial, onSave, onClose }) => {
   const { t } = useTranslation('fields');
-  const [people, setPeople] = useState(initial?.people ?? 4);
+  const [people, setPeople] = useState(initial?.people ?? 0);
   const [hours, setHours] = useState<HarvestPeopleHours>(initial?.hours ?? 'full');
   const [otherHours, setOtherHours] = useState(
     initial?.otherHours != null ? String(initial.otherHours) : ''
+  );
+  const [more, setMore] = useState(initial?.costEur != null && initial.costEur > 0);
+  const [costEur, setCostEur] = useState(
+    initial?.costEur != null ? String(initial.costEur) : ''
   );
   const editing = Boolean(initial);
 
@@ -39,6 +44,10 @@ export const HarvestPeopleSheet: React.FC<
                 hours,
                 otherHours:
                   hours === 'other' ? parseHarvestDecimal(otherHours) ?? undefined : undefined,
+                costEur:
+                  more && parseHarvestDecimal(costEur) != null && parseHarvestDecimal(costEur)! > 0
+                    ? parseHarvestDecimal(costEur)!
+                    : undefined,
               })
             }
           >
@@ -59,7 +68,7 @@ export const HarvestPeopleSheet: React.FC<
         label={t('harvestCampaign.people.unit')}
         value={people}
         onChange={setPeople}
-        min={1}
+        min={0}
         suffix={t('harvestCampaign.people.unit')}
       />
       <p className="hc-form-section">{t('harvestCampaign.people.hoursPrompt')}</p>
@@ -79,6 +88,17 @@ export const HarvestPeopleSheet: React.FC<
           value={otherHours}
           onChange={setOtherHours}
           suffix="h"
+        />
+      ) : null}
+      <button type="button" className="capture-more-toggle" onClick={() => setMore((v) => !v)}>
+        {more ? t('harvestCampaign.less') : t('harvestCampaign.more')}
+      </button>
+      {more ? (
+        <HarvestNumberInput
+          label={t('harvestCampaign.people.cost')}
+          value={costEur}
+          onChange={setCostEur}
+          suffix="€"
         />
       ) : null}
     </HarvestSheetShell>

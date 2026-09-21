@@ -12,6 +12,7 @@ import type {
   HarvestPeopleEntry,
   HarvestSackEntry,
 } from './types';
+import { extractionYieldPercent, plausibleOilYield } from './utils/harvestCalculations';
 
 const OIL_KG_PER_LITRE = 0.916;
 
@@ -125,7 +126,7 @@ export const campaignTotals = (campaign: HarvestCampaign): HarvestCampaignTotals
     unweighedSacks,
     unweighedEstimatedKg,
     oilKg,
-    extractionYield: officialKg > 0 && oilKg > 0 ? (oilKg / officialKg) * 100 : null,
+    extractionYield: plausibleOilYield(extractionYieldPercent(officialKg, oilKg)),
     harvestDays,
     personDays,
     expenseEur: spend,

@@ -31,5 +31,17 @@ public class MediaAttachment : BaseEntity
     public int? Orientation { get; set; }
     public long? ByteSize { get; set; }
 
+    /// <summary>Why the field was assigned (e.g. gpsInside, gpsNear, noGps, manual).</summary>
+    public string? AssignmentReason { get; set; }
+
+    /// <summary>Denormalized linked-record label for hub cards when the owner still exists or after soft orphaning.</summary>
+    public string? LinkedTitle { get; set; }
+    public DateTime? LinkedOccurredAt { get; set; }
+    public string? LinkedStatus { get; set; }
+
+    public DateTime? DeletedAt { get; set; }
+    public string? DeletedByUserId { get; set; }
+
     public DateTime EffectiveCapturedAt => CapturedAt ?? CreatedAt;
+    public bool IsTrashed => DeletedAt.HasValue;
 }

@@ -209,52 +209,34 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
             return OwnerAccess();
         }
 
-        var hasAdvise = userRole == Roles.Agronomist;
-        if (hasAdvise)
-        {
-            return new FieldWorkAccess
-            {
-                CanView = true,
-                CanManageProposals = false,
-                CanCreateTasks = false,
-                CanOperateAssignedTasks = false,
-                CanRecordPhenology = true,
-                CanEditWorkProfile = false,
-                IsOwner = false,
-                IsAgronomist = true,
-                FinancialCapabilities = []
-            };
-        }
-
         var familyCanView = await _fieldAccess.CanFamilyAccessModuleAsync(
             fieldId, userId, FamilyModules.Tasks, cancellationToken);
-        var hasWork = FieldPeopleRules.IsActiveMember(field, userId)
-            && (FieldPeopleRules.CanWriteModule(field, userId, FamilyModules.Tasks)
-                || FieldPeopleRules.HasModule(field, userId, FamilyModules.Tasks));
+        if (!familyCanView)
+        {
+            return FieldWorkAccess.None;
+        }
+
+        var canWriteTasks = await _fieldAccess.CanFamilyWriteModuleAsync(
+            fieldId, userId, FamilyModules.Tasks, requireCreateLevel: false, cancellationToken);
 
         var assignedTasks = await _fieldTasks.QueryAsync(
             new FieldTaskQuery { FieldId = fieldId, AssignedUserId = userId },
             cancellationToken);
         var isAssigned = assignedTasks.Count > 0;
 
-        if (familyCanView || hasWork || isAssigned
-            || await _fieldAccess.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+        return new FieldWorkAccess
         {
-            return new FieldWorkAccess
-            {
-                CanView = true,
-                CanManageProposals = false,
-                CanCreateTasks = false,
-                CanOperateAssignedTasks = isAssigned || hasWork,
-                CanRecordPhenology = hasWork || familyCanView,
-                CanEditWorkProfile = false,
-                IsOwner = false,
-                IsAssignedWorker = isAssigned,
-                FinancialCapabilities = []
-            };
-        }
-
-        return FieldWorkAccess.None;
+            CanView = true,
+            CanManageProposals = false,
+            CanCreateTasks = false,
+            CanOperateAssignedTasks = isAssigned || canWriteTasks,
+            CanRecordPhenology = canWriteTasks || familyCanView,
+            CanEditWorkProfile = false,
+            IsOwner = false,
+            IsAgronomist = userRole == Roles.Agronomist,
+            IsAssignedWorker = isAssigned,
+            FinancialCapabilities = []
+        };
     }
 
     private static FieldWorkAccess OwnerAccess() => new()

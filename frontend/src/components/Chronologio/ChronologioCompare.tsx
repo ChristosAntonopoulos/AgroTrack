@@ -5,8 +5,8 @@ import type {
   ChronologioPeriodSummary,
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
-import { formatGroveMassKgLabel } from '../../utils/groveTotals';
-import { yearComparison } from '../../chronologio/yearPresentation';
+import { formatGroveMassKg, formatGroveMassKgLabel } from '../../utils/groveTotals';
+import { yearComparison, yearComparisonCopyKey } from '../../chronologio/yearPresentation';
 
 type Props = {
   left: ChronologioPeriodSummary | null;
@@ -40,7 +40,16 @@ const ChronologioCompare: React.FC<Props> = ({
     return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(Date.UTC(2020, i, 1))));
   }, [i18n.language]);
 
-  const comparison = yearComparison(left, right);
+  const comparison = yearComparison(left, right, {
+    currentMonths:
+      left && right && left.periodYear >= right.periodYear
+        ? leftMonths
+        : rightMonths,
+    previousMonths:
+      left && right && left.periodYear >= right.periodYear
+        ? rightMonths
+        : leftMonths,
+  });
 
   const rows = [
     ...(left?.expenseTotal || right?.expenseTotal
@@ -80,8 +89,14 @@ const ChronologioCompare: React.FC<Props> = ({
       ? [
           {
             label: t('living.yield'),
-            a: left?.oilYieldPercent != null ? `${left.oilYieldPercent}%` : '—',
-            b: right?.oilYieldPercent != null ? `${right.oilYieldPercent}%` : '—',
+            a:
+              left?.oilYieldPercent != null
+                ? `${formatGroveMassKg(left.oilYieldPercent, numberLocale)}%`
+                : '—',
+            b:
+              right?.oilYieldPercent != null
+                ? `${formatGroveMassKg(right.oilYieldPercent, numberLocale)}%`
+                : '—',
           },
         ]
       : []),
@@ -155,8 +170,9 @@ const ChronologioCompare: React.FC<Props> = ({
 
       {comparison ? (
         <p className="chrono-compare-conclusion">
-          {t(`yearView.compare.${comparison.kind}${comparison.percent >= 0 ? 'Up' : 'Down'}`, {
-            pct: Math.abs(comparison.percent),
+          {t(yearComparisonCopyKey(comparison), {
+            context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+            pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
             year: comparison.previousYear,
           })}
         </p>

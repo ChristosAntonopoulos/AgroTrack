@@ -93,6 +93,33 @@ public class PhotosController : BaseApiController
         return OkResult(result);
     }
 
+    /// <summary>
+    /// Serves original or thumbnail bytes via a short-lived HMAC signature (no auth cookie required for img tags).
+    /// Invalid/expired signatures return 404.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{id}/content")]
+    public async Task<IActionResult> GetContent(
+        string id,
+        [FromQuery] string variant = "original",
+        [FromQuery] long exp = 0,
+        [FromQuery] string? sig = null,
+        [FromQuery] string? uid = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _photos.GetContentBySignatureAsync(
+                id, variant, exp, sig ?? string.Empty, uid ?? string.Empty, cancellationToken);
+            Response.Headers.CacheControl = "private, max-age=300";
+            return File(result.Content, result.ContentType, enableRangeProcessing: false);
+        }
+        catch
+        {
+            return NotFound();
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<PhotoDto>> GetById(string id, CancellationToken cancellationToken)
     {

@@ -53,7 +53,11 @@ const PartnerProfileScreen = () => {
 
   const addToField = async () => {
     if (!params.fieldId) return;
-    await fieldPeopleService.upsertMembership(params.fieldId, params.userId, ['work']);
+    await fieldPeopleService.upsertMembership(params.fieldId, params.userId, {
+      role: 'Partner',
+      modules: ['fields', 'tasks', 'photos', 'chronologio'],
+      accessLevel: 'work',
+    });
     setAdded(true);
   };
 

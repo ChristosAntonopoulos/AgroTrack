@@ -782,12 +782,14 @@
 
 .money-type-toggle button {
   min-height: 48px;
+  padding: 8px 10px;
   border: 1px solid transparent;
   border-radius: 10px;
   color: var(--money-text-secondary);
   background: transparent;
   font: inherit;
   font-weight: 700;
+  line-height: 1.15;
   cursor: pointer;
   transition:
     background-color 140ms ease,
@@ -796,11 +798,12 @@
     box-shadow 140ms ease;
 }
 
-.money-type-toggle button[aria-selected='true'] {
+.money-type-toggle button[aria-selected='true'],
+.money-type-toggle button[aria-pressed='true'] {
   color: var(--money-text-primary);
-  background: var(--money-surface-1);
-  border-color: var(--money-border-strong);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--money-text-primary) 8%, transparent);
+  background: var(--money-accent-soft);
+  border-color: var(--money-accent);
+  box-shadow: inset 0 -3px 0 var(--money-accent);
 }
 
 .money-type-toggle button.is-income {

@@ -5,18 +5,15 @@ import { ImagePlus } from 'lucide-react';
 type Props = {
   disabled?: boolean;
   onFiles: (files: File[]) => void;
-  /** When true, render take/choose actions instead of the dropzone chrome. */
-  emptyActions?: boolean;
   /** Optional determinate progress (e.g. batch uploads). */
   progress?: { done: number; total: number } | null;
   className?: string;
   id?: string;
+  /** When false, hide drop chrome (pointer-coarse / empty CTA uses header only). */
+  showDropChrome?: boolean;
 };
 
-const takeFiles = (
-  list: FileList | null,
-  onFiles: (files: File[]) => void
-) => {
+const takeFiles = (list: FileList | null, onFiles: (files: File[]) => void) => {
   if (!list || list.length === 0) return;
   const images = Array.from(list).filter((f) => f.type.startsWith('image/'));
   if (images.length) onFiles(images);
@@ -25,19 +22,28 @@ const takeFiles = (
 const PhotoUploadDropzone: React.FC<Props> = ({
   disabled,
   onFiles,
-  emptyActions,
   progress,
   className = '',
   id,
+  showDropChrome = true,
 }) => {
   const { t } = useTranslation('photos');
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
 
-  if (emptyActions) {
+  const openPicker = () => {
+    if (!disabled) galleryRef.current?.click();
+  };
+
+  const determinate =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.done / progress.total) * 100))
+      : null;
+
+  if (!showDropChrome) {
     return (
-      <div className={`photo-empty-actions ${className}`.trim()}>
+      <div className={`photo-upload-compact ${className}`.trim()}>
         <input
           ref={cameraRef}
           type="file"
@@ -64,7 +70,7 @@ const PhotoUploadDropzone: React.FC<Props> = ({
         />
         <button
           type="button"
-          className="photo-empty-btn"
+          className="photo-hub-cta photo-upload-compact-camera"
           disabled={disabled}
           onClick={() => cameraRef.current?.click()}
         >
@@ -72,9 +78,9 @@ const PhotoUploadDropzone: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          className="photo-empty-btn is-secondary"
+          className="photo-hub-cta is-secondary"
           disabled={disabled}
-          onClick={() => galleryRef.current?.click()}
+          onClick={openPicker}
         >
           {t('choosePhotos')}
         </button>
@@ -82,16 +88,11 @@ const PhotoUploadDropzone: React.FC<Props> = ({
     );
   }
 
-  const determinate =
-    progress && progress.total > 0
-      ? Math.min(100, Math.round((progress.done / progress.total) * 100))
-      : null;
-
   return (
     <div
       id={id}
       className={`photo-dropzone${dragging ? ' is-dragging' : ''}${disabled ? ' is-uploading' : ''} ${className}`.trim()}
-      onClick={() => !disabled && galleryRef.current?.click()}
+      onClick={openPicker}
       onDragEnter={(e) => {
         e.preventDefault();
         if (!disabled) setDragging(true);
@@ -110,7 +111,7 @@ const PhotoUploadDropzone: React.FC<Props> = ({
         if (disabled) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          galleryRef.current?.click();
+          openPicker();
         }
       }}
     >
@@ -120,6 +121,7 @@ const PhotoUploadDropzone: React.FC<Props> = ({
         accept="image/jpeg,image/png,image/webp,image/gif"
         multiple
         disabled={disabled}
+        className="photo-hidden-input"
         onChange={(e) => {
           takeFiles(e.target.files, onFiles);
           e.target.value = '';
@@ -132,7 +134,6 @@ const PhotoUploadDropzone: React.FC<Props> = ({
         {disabled ? t('uploading') : dragging ? t('dropActive') : t('upload')}
       </strong>
       <div className="photo-dropzone-body">{t('dropHint')}</div>
-      <div className="photo-dropzone-hint">{t('choosePhotosHint')}</div>
       {disabled ? (
         <div
           className={`photo-dropzone-progress${determinate != null ? ' is-determinate' : ''}`}

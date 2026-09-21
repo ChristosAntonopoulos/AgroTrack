@@ -99,4 +99,18 @@ export const formatChronologioMoney = (
   }
 };
 
+/** Explicit signed amount for expense (−) / income (+) — do not rely on color alone. */
+export const formatChronologioMoneySigned = (
+  value: number,
+  currency: string,
+  locale: string,
+  kind: 'expense' | 'income' | 'neutral' = 'neutral'
+): string => {
+  const abs = Math.abs(value);
+  const formatted = formatChronologioMoney(abs, currency, locale);
+  if (kind === 'expense' || value < 0) return `−${formatted}`;
+  if (kind === 'income' || value > 0) return `+${formatted}`;
+  return formatted;
+};
+
 export const PAGE_SIZE = 30;

@@ -1456,3 +1456,61 @@
 .family-share-panel .partner-invite-link {
   word-break: break-all;
 }
+
+.team-access-section {
+  position: relative;
+}
+
+.team-access-section.is-updating {
+  min-height: 12rem;
+}
+
+.team-access-updating {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-surface, #fff) 78%, transparent);
+  font-weight: 650;
+}
+
+.team-access-skeletons {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.team-access-skeleton {
+  height: 4.5rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-text-secondary) 12%, transparent);
+}
+
+.partners-choice-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.family-form-hint,
+.family-calculated-access p {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.family-calculated-modules {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.partner-remove-action {
+  color: var(--color-text-secondary);
+}
+
+.partners-choice-card,
+.partner-actions .btn,
+.team-seat-row .btn {
+  min-height: 44px;
+}

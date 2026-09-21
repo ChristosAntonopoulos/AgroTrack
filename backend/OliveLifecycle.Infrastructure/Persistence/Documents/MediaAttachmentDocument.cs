@@ -69,6 +69,24 @@ public class MediaAttachmentDocument
     [BsonElement("byteSize")]
     public long? ByteSize { get; set; }
 
+    [BsonElement("assignmentReason")]
+    public string? AssignmentReason { get; set; }
+
+    [BsonElement("linkedTitle")]
+    public string? LinkedTitle { get; set; }
+
+    [BsonElement("linkedOccurredAt")]
+    public DateTime? LinkedOccurredAt { get; set; }
+
+    [BsonElement("linkedStatus")]
+    public string? LinkedStatus { get; set; }
+
+    [BsonElement("deletedAt")]
+    public DateTime? DeletedAt { get; set; }
+
+    [BsonElement("deletedByUserId")]
+    public string? DeletedByUserId { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

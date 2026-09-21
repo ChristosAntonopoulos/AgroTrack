@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   ChronologioEntry,
@@ -7,18 +7,16 @@ import type {
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import { formatGroveMassKg } from '../../utils/groveTotals';
-import { groupSameDayPhotoEntries } from '../../utils/chronologioPhotoGroups';
 import {
   buildMonthWeatherView,
   harvestHasResult,
   isMeaningfulHighlight,
 } from '../../chronologio/monthPresentation';
-import { eventCardSpan } from '../../chronologio/eventCardLayout';
+import { isFeaturedChronologioCard } from '../../chronologio/eventCardLayout';
+import { periodEventCount } from '../../chronologio/summaryFacts';
 import type { SupportedLocale } from '../../i18n/config';
 import ChronologioEvent from './ChronologioEvent';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
-import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
-import ChronologioPhotoDaySheet from './ChronologioPhotoDaySheet';
 
 type Props = {
   month: ChronologioMonthSummary;
@@ -29,6 +27,8 @@ type Props = {
   locale: SupportedLocale;
   fieldId?: string;
   showField?: boolean;
+  /** Field names in scope that lack a weather review for this month. */
+  missingWeatherFields?: string[];
   selectedEntryId?: string | null;
   active?: boolean;
   isCurrent?: boolean;
@@ -43,6 +43,10 @@ type Props = {
 const isMonthReview = (entry: ChronologioEntry) =>
   entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
 
+const pickPinnedOrImportant = (entries: ChronologioEntry[]): ChronologioEntry | undefined =>
+  entries.find((entry) => entry.details.note?.pinned) ||
+  entries.find((entry) => isFeaturedChronologioCard(entry));
+
 const ChronologioMonthSection: React.FC<Props> = ({
   month,
   weather,
@@ -52,6 +56,7 @@ const ChronologioMonthSection: React.FC<Props> = ({
   locale,
   fieldId: _fieldId,
   showField = false,
+  missingWeatherFields = [],
   selectedEntryId,
   active,
   isCurrent,
@@ -59,21 +64,14 @@ const ChronologioMonthSection: React.FC<Props> = ({
   onOpenMonth,
   onOpenDays,
   onSelect,
-  onClearSelection,
   onPeekWeather,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
-  const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
 
   const selectEntry = (entry: ChronologioEntry) => {
-    setPhotoDayEntries(null);
     onSelect?.(entry);
   };
 
-  const openPhotoDay = (dayEntries: ChronologioEntry[]) => {
-    onClearSelection?.();
-    setPhotoDayEntries(dayEntries);
-  };
   const title = new Date(Date.UTC(month.year, month.month - 1, 1)).toLocaleDateString(i18n.language, {
     month: 'long',
     year: 'numeric',
@@ -87,6 +85,8 @@ const ChronologioMonthSection: React.FC<Props> = ({
   const fieldPicks = showField ? weatherReviews.filter((entry) => entry.eventType === 'weather.monthReview') : [];
   const showPicks = fieldPicks.length > 1;
   const singleReview = !showPicks ? weatherReviews[0] : undefined;
+  const eventCount = periodEventCount(month) + fieldPicks.length;
+  const spotlight = pickPinnedOrImportant(journal);
 
   if (empty) {
     return (
@@ -106,12 +106,26 @@ const ChronologioMonthSection: React.FC<Props> = ({
   const rain =
     weatherView.rainMm == null
       ? null
-      : `${weatherView.rainMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm`;
+      : t('weatherReview.rainChip', {
+          mm: weatherView.rainMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 }),
+          defaultValue: `Rain ${weatherView.rainMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm`,
+        });
   const temps =
     weatherView.tempMin != null && weatherView.tempMax != null
-      ? `${Math.round(weatherView.tempMin)}°–${Math.round(weatherView.tempMax)}°`
+      ? t('weatherReview.tempChip', {
+          min: Math.round(weatherView.tempMin),
+          max: Math.round(weatherView.tempMax),
+          defaultValue: `Temperature ${Math.round(weatherView.tempMin)}–${Math.round(weatherView.tempMax)}°C`,
+        })
       : null;
   const water = weather?.waterBalanceMm;
+  const waterLabel =
+    water == null
+      ? null
+      : t('weatherReview.balanceChip', {
+          mm: water.toLocaleString(numberLocale, { maximumFractionDigits: 0 }),
+          defaultValue: `Balance ${water.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm`,
+        });
   const openWeather = () => {
     if (singleReview) {
       selectEntry(singleReview);
@@ -119,143 +133,146 @@ const ChronologioMonthSection: React.FC<Props> = ({
     }
     onPeekWeather?.();
   };
-  const hasWeather = !showPicks && (rain || temps || water != null);
+  const hasWeather = !showPicks && (rain || temps || waterLabel);
+  const fieldPickNames = fieldPicks
+    .map((entry) => entry.field?.name)
+    .filter(Boolean)
+    .join(' · ');
+
+  const hasSummaryChips =
+    month.taskCount > 0 ||
+    month.noteCount > 0 ||
+    month.expenseCount > 0 ||
+    month.expenseTotal > 0 ||
+    harvestHasResult(month);
 
   return (
-    <>
-    <section
-      className={`chrono-day-group chrono-month-group${active ? ' is-active' : ''}${isCurrent ? ' is-current' : ''}`}
-    >
-      <header className="chrono-month-head">
-        <div className="chrono-month-head-main">
-          <button type="button" className="chrono-month-heading-btn" onClick={onOpenDays}>
-            <h3 className="chrono-day-heading">{title}</h3>
-          </button>
-          {isCurrent ? <span className="chrono-month-now">{t('yearView.here')}</span> : null}
-        </div>
-        <p className="chrono-month-count">
-          {t('timeline.entryCount', { count: journal.length + fieldPicks.length })}
-        </p>
-        {hasWeather ? (
-          <button type="button" className="chrono-month-wx" onClick={openWeather}>
-            {rain ? <span className="chrono-month-wx-chip">{rain}</span> : null}
-            {temps ? <span className="chrono-month-wx-chip">{temps}</span> : null}
-            {water != null ? (
-              <span className={`chrono-month-wx-chip ${water < 0 ? 'is-deficit' : 'is-surplus'}`}>
-                {`${water.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm`}
-              </span>
-            ) : null}
-          </button>
-        ) : null}
-      </header>
-
-      {showPicks ? (
-        <div className="chrono-weather-cluster">
-          <p className="chrono-weather-cluster-kicker">
-            {t('weatherReview.fieldsCompare', { count: fieldPicks.length })}
-          </p>
-          <div className="chrono-weather-cluster-row" role="list">
-            {fieldPicks.map((entry) => (
-              <div key={entry.id} className="chrono-day-event-cell is-field-pick" role="listitem">
-                <ChronologioEvent
-                  entry={entry}
-                  density="card"
-                  showField
-                  locale={locale}
-                  selected={selectedEntryId === entry.id}
-                  weatherTile
-                  onSelect={selectEntry}
-                />
-              </div>
-            ))}
+      <section
+        className={`chrono-day-group chrono-month-group is-summary${active ? ' is-active' : ''}${isCurrent ? ' is-current' : ''}`}
+      >
+        <header className="chrono-month-head">
+          <div className="chrono-month-head-main">
+            <button type="button" className="chrono-month-heading-btn" onClick={onOpenDays}>
+              <h3 className="chrono-day-heading">{title}</h3>
+            </button>
+            {isCurrent ? <span className="chrono-month-now">{t('yearView.here')}</span> : null}
           </div>
-        </div>
-      ) : null}
+          {eventCount > 0 ? (
+            <p className="chrono-month-count">{t('timeline.entryCount', { count: eventCount })}</p>
+          ) : null}
+          {hasWeather ? (
+            <button type="button" className="chrono-month-wx" onClick={openWeather}>
+              {rain ? <span className="chrono-month-wx-chip">{rain}</span> : null}
+              {temps ? <span className="chrono-month-wx-chip">{temps}</span> : null}
+              {waterLabel ? (
+                <span className={`chrono-month-wx-chip ${water != null && water < 0 ? 'is-deficit' : 'is-surplus'}`}>
+                  {waterLabel}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
+        </header>
 
-      {journal.length > 0 ? (
-        <div className="chrono-day-event-grid">
-          {groupSameDayPhotoEntries(journal).map((item) => {
-            if (item.type === 'photoGroup') {
-              const selected = item.entries.some((e) => e.id === selectedEntryId);
-              return (
-                <div key={item.id} className="chrono-day-event-cell is-featured">
-                  <ChronologioPhotoStackCard
-                    entries={item.entries}
-                    selected={selected}
-                    showField={showField}
-                    onOpen={() => openPhotoDay(item.entries)}
+        {showPicks ? (
+          <div className="chrono-weather-cluster">
+            <p className="chrono-weather-cluster-kicker">
+              {fieldPickNames
+                ? t('weatherReview.fieldsCompareNamed', {
+                    count: fieldPicks.length,
+                    names: fieldPickNames,
+                    defaultValue: '{{count}} fields · {{names}}',
+                  })
+                : t('weatherReview.fieldsCompare', { count: fieldPicks.length })}
+            </p>
+            <div className="chrono-weather-cluster-row" role="list">
+              {fieldPicks.map((entry) => (
+                <div key={entry.id} className="chrono-day-event-cell is-field-pick" role="listitem">
+                  <ChronologioEvent
+                    entry={entry}
+                    density="card"
+                    showField
+                    locale={locale}
+                    selected={selectedEntryId === entry.id}
+                    weatherTile
+                    onSelect={selectEntry}
                   />
                 </div>
-              );
-            }
-            const entry = item.entry;
-            const featured = journal.length === 1 || eventCardSpan(entry) === 2;
-            return (
-              <div
-                key={entry.id}
-                className={`chrono-day-event-cell${featured ? ' is-featured' : ''}`}
-              >
-                <ChronologioEvent
-                  entry={entry}
-                  density="card"
-                  showField={showField}
-                  locale={locale}
-                  selected={selectedEntryId === entry.id}
-                  onSelect={selectEntry}
-                />
-              </div>
-            );
-          })}
+              ))}
+            </div>
+            {missingWeatherFields && missingWeatherFields.length > 0
+              ? missingWeatherFields.map((name) => (
+                  <p key={name} className="chrono-weather-missing">
+                    {t('weatherReview.fieldNoWeather', { field: name })}
+                  </p>
+                ))
+              : null}
+          </div>
+        ) : null}
+
+        {hasSummaryChips ? (
+          <div className="chrono-day-event-grid chrono-month-summary-grid">
+            {month.taskCount > 0 ? (
+              <SummaryCard
+                category="task"
+                kicker={t('monthView.work')}
+                title={t('monthView.workShort', { count: month.taskCount })}
+                onClick={onOpenMonth}
+              />
+            ) : null}
+            {month.noteCount > 0 ? (
+              <SummaryCard
+                category="note"
+                kicker={t('monthView.observationShortLabel')}
+                title={highlight || t('monthView.notesShort', { count: month.noteCount })}
+                onClick={onOpenMonth}
+              />
+            ) : null}
+            {month.expenseCount > 0 || month.expenseTotal > 0 ? (
+              <SummaryCard
+                category="expense"
+                kicker={t('monthView.money')}
+                title={t('monthView.expensesShort', {
+                  amount: formatChronologioMoney(month.expenseTotal, month.currency, numberLocale),
+                })}
+                onClick={onOpenMonth}
+              />
+            ) : null}
+            {harvestHasResult(month) ? (
+              <SummaryCard
+                category="harvest"
+                kicker={t('monthView.harvest')}
+                title={
+                  month.oilKg > 0
+                    ? `${formatGroveMassKg(month.oilKg, numberLocale)} ${t('oilUnit')}`
+                    : `${formatGroveMassKg(month.oliveKg, numberLocale)} ${t('olivesUnit')}`
+                }
+                onClick={onOpenMonth}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        {spotlight ? (
+          <div className="chrono-day-event-grid chrono-month-spotlight">
+            <div className="chrono-day-event-cell is-featured">
+              <ChronologioEvent
+                entry={spotlight}
+                density="card"
+                showField={showField}
+                locale={locale}
+                selected={selectedEntryId === spotlight.id}
+                onSelect={selectEntry}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="chrono-month-cta-row">
+          <button type="button" className="chrono-quiet-btn is-primary" onClick={onOpenDays}>
+            {t('monthView.openMonth')}
+          </button>
         </div>
-      ) : (
-        <div className="chrono-day-event-grid">
-          {month.taskCount > 0 ? (
-            <SummaryCard
-              category="task"
-              kicker={t('monthView.work')}
-              title={t('monthView.workShort', { count: month.taskCount })}
-              onClick={onOpenMonth}
-            />
-          ) : null}
-          {month.noteCount > 0 ? (
-            <SummaryCard
-              category="note"
-              kicker={t('monthView.observationShortLabel')}
-              title={highlight || t('monthView.notesShort', { count: month.noteCount })}
-              onClick={onOpenMonth}
-            />
-          ) : null}
-          {month.expenseCount > 0 || month.expenseTotal > 0 ? (
-            <SummaryCard
-              category="expense"
-              kicker={t('monthView.money')}
-              title={t('monthView.expensesShort', {
-                amount: formatChronologioMoney(month.expenseTotal, month.currency, numberLocale),
-              })}
-              onClick={onOpenMonth}
-            />
-          ) : null}
-          {harvestHasResult(month) ? (
-            <SummaryCard
-              category="harvest"
-              kicker={t('monthView.harvest')}
-              title={
-                month.oilKg > 0
-                  ? `${formatGroveMassKg(month.oilKg, numberLocale)} ${t('oilUnit')}`
-                  : `${formatGroveMassKg(month.oliveKg, numberLocale)} ${t('olivesUnit')}`
-              }
-              onClick={onOpenMonth}
-            />
-          ) : null}
-        </div>
-      )}
-    </section>
-    <ChronologioPhotoDaySheet
-      open={!!photoDayEntries?.length}
-      entries={photoDayEntries || []}
-      onClose={() => setPhotoDayEntries(null)}
-    />
-    </>
+      </section>
   );
 };
 

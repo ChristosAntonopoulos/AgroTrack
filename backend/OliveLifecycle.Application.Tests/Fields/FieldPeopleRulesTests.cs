@@ -123,6 +123,31 @@ public class FieldPeopleRulesTests
         Assert.True(FieldPeopleRules.HasModule(field, "owner-1", FamilyModules.Money));
         Assert.True(FieldPeopleRules.HasModule(field, "p1", FamilyModules.Tasks));
         Assert.False(FieldPeopleRules.HasModule(field, "p1", FamilyModules.Money));
+        Assert.False(FieldPeopleRules.HasModule(field, "p1", FamilyModules.Photos));
+        Assert.False(FieldPeopleRules.HasModule(field, "p1", FamilyModules.Chronologio));
+    }
+
+    [Fact]
+    public void HasModule_MapsLegacyCalendarToChronologio()
+    {
+        var field = AdminField();
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Family, "f1",
+            ["fields", "tasks", "calendar"], FamilyAccessLevels.View, "owner-1",
+            status: FamilyMemberStatuses.Active);
+
+        Assert.True(FieldPeopleRules.HasModule(field, "f1", FamilyModules.Chronologio));
+        Assert.True(FieldPeopleRules.HasModule(field, "f1", FamilyModules.Calendar));
+        Assert.Contains(FamilyModules.Chronologio, field.People.First(p => p.UserId == "f1").Modules);
+        Assert.DoesNotContain("calendar", field.People.First(p => p.UserId == "f1").Modules);
+    }
+
+    [Fact]
+    public void DefaultOnInvite_IncludesPhotosAndChronologio()
+    {
+        Assert.Contains(FamilyModules.Photos, FamilyModules.DefaultOnInvite);
+        Assert.Contains(FamilyModules.Chronologio, FamilyModules.DefaultOnInvite);
+        Assert.Contains(FamilyModules.Photos, FamilyModules.All);
     }
 
     [Fact]

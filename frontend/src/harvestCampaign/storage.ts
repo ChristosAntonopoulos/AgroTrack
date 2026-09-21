@@ -88,6 +88,7 @@ const parseMillWeight = (value: unknown): HarvestMillWeightEntry | null => {
     fieldIds: fieldShares ? fieldIdsFromShares(fieldShares) : fieldIds,
     fieldShares,
     sackIds: asStringArray(value.sackIds),
+    receiptRef: asString(value.receiptRef),
     note: asString(value.note),
     photoCount: asNumber(value.photoCount),
     batchId: asString(value.batchId),
@@ -108,6 +109,16 @@ const parseOil = (value: unknown): HarvestOilEntry | null => {
     date: value.date,
     amount,
     unit: value.unit === 'litres' ? 'litres' : 'kg',
+    millKept: asNumber(value.millKept),
+    tin16Count:
+      asNumber(value.tin16Count) ??
+      (value.tinSizeLitres === 16 ? asNumber(value.tinCount) : undefined),
+    tin17Count:
+      asNumber(value.tin17Count) ??
+      (value.tinSizeLitres === 17 ? asNumber(value.tinCount) : undefined),
+    tinSizeLitres: value.tinSizeLitres === 16 || value.tinSizeLitres === 17 ? value.tinSizeLitres : undefined,
+    tinCount: asNumber(value.tinCount),
+    extraLitres: asNumber(value.extraLitres),
     millWeightIds: asStringArray(value.millWeightIds),
     fieldIds: fieldShares ? fieldIdsFromShares(fieldShares) : fieldIds,
     fieldShares,
@@ -392,6 +403,16 @@ export const addNote = (campaign: HarvestCampaign, entry: HarvestNoteEntry): Har
   notes: [...campaign.notes, entry],
 });
 
+export const removeExpense = (campaign: HarvestCampaign, id: string): HarvestCampaign => ({
+  ...campaign,
+  expenses: campaign.expenses.filter((row) => row.id !== id),
+});
+
+export const removeNote = (campaign: HarvestCampaign, id: string): HarvestCampaign => ({
+  ...campaign,
+  notes: campaign.notes.filter((row) => row.id !== id),
+});
+
 export const updateSack = (
   campaign: HarvestCampaign,
   id: string,
@@ -465,7 +486,20 @@ export const updateOil = (
   patch: Partial<
     Pick<
       HarvestOilEntry,
-      'amount' | 'unit' | 'millWeightIds' | 'fieldIds' | 'fieldShares' | 'acidity' | 'note' | 'date'
+      | 'amount'
+      | 'unit'
+      | 'millKept'
+      | 'tin16Count'
+      | 'tin17Count'
+      | 'tinSizeLitres'
+      | 'tinCount'
+      | 'extraLitres'
+      | 'millWeightIds'
+      | 'fieldIds'
+      | 'fieldShares'
+      | 'acidity'
+      | 'note'
+      | 'date'
     >
   >
 ): HarvestCampaign => ({
@@ -492,7 +526,7 @@ export const removeOil = (campaign: HarvestCampaign, id: string): HarvestCampaig
 export const updatePeople = (
   campaign: HarvestCampaign,
   id: string,
-  patch: Partial<Pick<HarvestPeopleEntry, 'people' | 'hours' | 'otherHours' | 'date'>>
+  patch: Partial<Pick<HarvestPeopleEntry, 'people' | 'hours' | 'otherHours' | 'costEur' | 'addedToMoney' | 'date'>>
 ): HarvestCampaign => ({
   ...campaign,
   peopleLogs: campaign.peopleLogs.map((row) => (row.id === id ? { ...row, ...patch } : row)),

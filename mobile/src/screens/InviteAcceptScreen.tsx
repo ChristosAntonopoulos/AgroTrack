@@ -74,7 +74,7 @@ const InviteAcceptScreen = () => {
           <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
             {t('fields:people.inviteAcceptBody', {
               field: invite.fieldName,
-              capacities: (invite.capacities || []).join(', '),
+              capacities: (invite.modules || []).join(', '),
             })}
           </Text>
           <Button

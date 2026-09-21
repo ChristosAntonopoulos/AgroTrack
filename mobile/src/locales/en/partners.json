@@ -226,9 +226,10 @@
     "modules": {
       "fields": "Fields",
       "tasks": "Tasks",
+      "photos": "Photos",
       "documents": "Documents",
       "money": "Money",
-      "calendar": "Calendar",
+      "chronologio": "Chronologio",
       "harvest": "Harvest"
     },
     "levels": {

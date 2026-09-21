@@ -5,9 +5,10 @@ import { useTheme } from '../../context/ThemeContext';
 import type { ChronologioCategory } from '../../services/chronologioService';
 import { motion, radii, spacing } from '../../theme';
 
-export type RailCategory = 'all' | 'task' | 'note' | 'expense' | 'harvest' | 'weather';
+/** Primary rail mirrors web: Όλα / Εργασίες / Παρατηρήσεις / Χρήματα / Συγκομιδή. */
+export type RailCategory = 'all' | 'work' | 'observation' | 'money' | 'harvest';
 
-const RAIL: RailCategory[] = ['all', 'task', 'note', 'expense', 'harvest', 'weather'];
+const RAIL: RailCategory[] = ['all', 'work', 'observation', 'money', 'harvest'];
 
 const accentFor = (
   id: RailCategory,
@@ -22,38 +23,45 @@ const accentFor = (
     eventExpenseSoft: string;
     eventHarvest: string;
     eventHarvestSoft: string;
-    eventWeather: string;
-    eventWeatherSoft: string;
   }
 ): { accent: string; soft: string } => {
   switch (id) {
-    case 'task':
+    case 'work':
       return { accent: colors.eventWork, soft: colors.eventWorkSoft };
-    case 'note':
+    case 'observation':
       return { accent: colors.eventObservation, soft: colors.eventObservationSoft };
-    case 'expense':
+    case 'money':
       return { accent: colors.eventExpense, soft: colors.eventExpenseSoft };
     case 'harvest':
       return { accent: colors.eventHarvest, soft: colors.eventHarvestSoft };
-    case 'weather':
-      return { accent: colors.eventWeather, soft: colors.eventWeatherSoft };
     default:
       return { accent: colors.primary, soft: colors.primaryLight };
   }
 };
 
+const railFromFilter = (value: ChronologioCategory | 'all' | string): RailCategory | null => {
+  if (value === 'all' || value === 'work' || value === 'observation' || value === 'money' || value === 'harvest') {
+    return value;
+  }
+  if (value === 'task') return 'work';
+  if (value === 'note' || value === 'photo') return 'observation';
+  if (value === 'expense' || value === 'income') return 'money';
+  return null;
+};
+
 type Props = {
-  value: ChronologioCategory | 'all';
+  value: ChronologioCategory | 'all' | string;
   onChange: (value: RailCategory) => void;
 };
 
 /**
- * Light category chip rail under zoom — mirrors web CategoryFilterRail.
+ * Light category chip rail under zoom — mirrors web CategoryFilterRail primary chips.
+ * Weather and other types stay in the more-filters sheet.
  */
 const ChronologioCategoryRail: React.FC<Props> = ({ value, onChange }) => {
   const { t } = useTranslation('chronologio');
   const { colors, fontScaleMultiplier } = useTheme();
-  const selected = RAIL.includes(value as RailCategory) ? (value as RailCategory) : null;
+  const selected = railFromFilter(value);
 
   return (
     <ScrollView
@@ -67,18 +75,9 @@ const ChronologioCategoryRail: React.FC<Props> = ({ value, onChange }) => {
       {RAIL.map((id) => {
         const active = selected === id;
         const { accent, soft } = accentFor(id, colors);
-        const label =
-          id === 'all'
-            ? t('primaryCategories.all', { defaultValue: t('categories.all') })
-            : id === 'task'
-              ? t('primaryCategories.work', { defaultValue: 'Work' })
-              : id === 'note'
-                ? t('primaryCategories.observation', { defaultValue: 'Notes' })
-                : id === 'expense'
-                  ? t('primaryCategories.money', { defaultValue: 'Money' })
-                  : t(`primaryCategories.${id}`, {
-                      defaultValue: t(`categories.${id}`),
-                    });
+        const label = t(`primaryCategories.${id}`, {
+          defaultValue: t(`categories.${id === 'work' ? 'task' : id === 'observation' ? 'note' : id === 'money' ? 'expense' : id}`),
+        });
 
         return (
           <Pressable

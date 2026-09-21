@@ -1171,6 +1171,125 @@
   max-width: 760px;
 }
 
+.chronologio-layout.is-refreshing,
+.chrono-living-layout.is-refreshing {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.chrono-jump-date input {
+  min-height: var(--tap-min, 44px);
+  padding: 0.35rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  background: var(--surface-1, #fff);
+  font: inherit;
+  font-size: calc(0.85rem * var(--font-scale, 1));
+}
+
+.chrono-pinned-strip {
+  padding: 0.65rem 0.85rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2, #f5f5f0) 90%, transparent);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.chrono-pinned-strip summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: calc(0.9rem * var(--font-scale, 1));
+}
+
+.chrono-pinned-strip ul {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.chrono-pinned-chip {
+  width: 100%;
+  display: flex;
+  gap: 0.65rem;
+  align-items: baseline;
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chrono-pinned-chip time {
+  color: var(--color-text-secondary);
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chrono-drawer-advanced {
+  width: 100%;
+}
+
+.chrono-drawer-advanced summary {
+  cursor: pointer;
+  font-size: calc(0.85rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.chrono-year-completeness {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: calc(0.9rem * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.chrono-weather-missing {
+  margin: 0.45rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: calc(0.82rem * var(--font-scale, 1));
+}
+
+.chronologio-skeleton-day-group,
+.chronologio-skeleton-month-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.chronologio-skeleton-day-head,
+.chronologio-skeleton-month-head,
+.chronologio-skeleton-track,
+.chronologio-skeleton-year-card {
+  background: color-mix(in srgb, var(--color-border) 65%, transparent);
+  border-radius: 12px;
+  animation: chronologio-pulse 1.2s ease-in-out infinite;
+}
+
+.chronologio-skeleton-day-head {
+  height: 1.1rem;
+  width: 42%;
+  margin-bottom: 0.25rem;
+}
+
+.chronologio-skeleton-month-head {
+  height: 1.25rem;
+  width: 36%;
+}
+
+.chronologio-skeleton-track {
+  height: 2.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.chronologio-skeleton-year-card {
+  height: 9rem;
+}
+
 .chronologio-skeleton-row {
   display: grid;
   grid-template-columns: 2.4rem 1fr;
@@ -1503,6 +1622,61 @@
 .chrono-category-chip--money.is-selected { --event-accent: var(--event-expense); --event-accent-soft: var(--event-expense-soft); }
 .chrono-category-chip--harvest.is-selected { --event-accent: var(--event-harvest); --event-accent-soft: var(--event-harvest-soft); }
 .chrono-category-chip--weather.is-selected { --event-accent: var(--event-weather); --event-accent-soft: var(--event-weather-soft); }
+.chrono-category-chip--more.is-selected {
+  --event-accent: var(--olive-primary);
+  --event-accent-soft: var(--olive-soft);
+}
+.chrono-more-filters {
+  position: relative;
+  flex: 0 0 auto;
+}
+.chrono-more-filters-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: var(--z-popover, 1060);
+  min-width: 14rem;
+  padding: 0.55rem;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  border-radius: 14px;
+  background: var(--surface-1, var(--color-surface, #fff));
+  box-shadow: 0 12px 28px rgba(20, 27, 21, 0.14);
+}
+.chrono-more-filters-title {
+  margin: 0 0 0.35rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #666);
+}
+.chrono-more-filters-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+.chrono-more-filters-item:hover,
+.chrono-more-filters-item:focus-visible {
+  background: var(--olive-soft, #eef3ea);
+  outline: none;
+}
+.chrono-more-filters-item.is-selected {
+  font-weight: 700;
+  background: var(--event-accent-soft, var(--olive-soft));
+  color: var(--event-accent, var(--olive-primary));
+}
+.chrono-more-filters-item--weather.is-selected { --event-accent: var(--event-weather); --event-accent-soft: var(--event-weather-soft); }
 .chrono-filter-overlay {
   position: fixed;
   inset: 0;
@@ -2877,6 +3051,19 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 }
 .chrono-month-group.is-empty .chrono-quiet-btn {
   margin: 0 0 0.35rem;
+}
+.chrono-month-group.is-summary .chrono-month-summary-grid {
+  margin-top: 0.35rem;
+}
+.chrono-month-group.is-summary .chrono-month-spotlight {
+  margin-top: 0.5rem;
+}
+.chrono-month-cta-row {
+  display: flex;
+  margin-top: 0.65rem;
+}
+.chrono-month-cta-row .chrono-quiet-btn {
+  width: 100%;
 }
 .chrono-year-feed .chrono-year-season-mark {
   display: flex;

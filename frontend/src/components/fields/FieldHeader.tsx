@@ -13,9 +13,10 @@ type Props = {
   field: Field;
   year: number;
   canOwn: boolean;
+  canManageAccess?: boolean;
+  showYearControl?: boolean;
   onYearChange: (year: number) => void;
-  onCapture: () => void;
-  onDocuments: () => void;
+  onCapture?: () => void;
   onDelete?: () => void;
   phenology?: FieldPhenology | null;
 };
@@ -24,14 +25,15 @@ const FieldHeader: React.FC<Props> = ({
   field,
   year,
   canOwn,
+  canManageAccess = false,
+  showYearControl = true,
   onYearChange,
   onCapture,
-  onDocuments,
   onDelete,
   phenology,
 }) => {
   const { t } = useTranslation('fields');
-  const isDraft = field.status === 'Draft';
+  const isDraft = field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation' || field.status === 'NeedsAreaReview';
 
   return (
     <header className="field-header">
@@ -40,21 +42,25 @@ const FieldHeader: React.FC<Props> = ({
         <FieldIdentity field={field} size="page" phenology={phenology} />
       </div>
       <div className="field-header-actions">
-        <FieldResultYearControl year={year} onYearChange={onYearChange} />
-        <Button
-          icon={<Plus />}
-          variant="primary"
-          size="md"
-          className="field-header-capture"
-          onClick={onCapture}
-        >
-          {t('page.capture')}
-        </Button>
+        {showYearControl ? (
+          <FieldResultYearControl year={year} onYearChange={onYearChange} />
+        ) : null}
+        {onCapture && (field.capabilities?.canCreateRecords ?? true) ? (
+          <Button
+            icon={<Plus />}
+            variant="primary"
+            size="md"
+            className="field-header-capture"
+            onClick={onCapture}
+          >
+            {t('page.capture')}
+          </Button>
+        ) : null}
         <FieldMoreMenu
           field={field}
           canOwn={canOwn}
-          onDocuments={onDocuments}
-          onDelete={canOwn ? onDelete : undefined}
+          canManageAccess={canManageAccess}
+          onDelete={onDelete}
         />
       </div>
     </header>

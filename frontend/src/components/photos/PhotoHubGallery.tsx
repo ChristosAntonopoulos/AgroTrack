@@ -1,35 +1,36 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Expand, Info } from 'lucide-react';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
+import { formatPhotoCardDate } from '../../utils/localeFormatters';
 import type { Photo } from '../../services/photoService';
 
 type Props = {
   photos: Photo[];
-  onSelect: (photo: Photo) => void;
-  /** Opens shared fullscreen viewer among the current filtered set. */
-  onExpand?: (photo: Photo, index: number) => void;
+  /** Opens fullscreen viewer among the current filtered set. */
+  onOpenViewer: (photo: Photo, index: number) => void;
 };
 
-const ownerBadgeKey = (photo: Photo) => {
-  if (!photo.isLinked || photo.ownerType === 'field') return 'standalone';
-  if (photo.ownerType === 'task') return 'task';
-  if (photo.ownerType === 'note') return 'note';
-  if (photo.ownerType === 'harvest') return 'harvest';
-  if (photo.ownerType === 'phenology') return 'phenology';
-  return 'standalone';
-};
-
-const PhotoHubGallery: React.FC<Props> = ({ photos, onSelect, onExpand }) => {
-  const { t } = useTranslation('photos');
+const PhotoHubGallery: React.FC<Props> = ({ photos, onOpenViewer }) => {
+  const { t, i18n } = useTranslation('photos');
 
   return (
     <div className="photo-gallery" role="list">
       {photos.map((photo, index) => {
         const src = resolvePublicAssetUrl(photo.thumbnailUrl || photo.url) || photo.url;
-        const badge = ownerBadgeKey(photo);
+        const dateLabel = formatPhotoCardDate(photo.effectiveCapturedAt, i18n.language);
+        const fieldLabel =
+          photo.fieldName ||
+          (photo.fieldId ? photo.fieldId : t('badges.unassigned'));
+        const overlayPrimary = [dateLabel, fieldLabel].filter(Boolean).join(' · ');
+        const statusLabel = photo.isLinked
+          ? t('badges.linkedWith', {
+              title: photo.linkedTitle || t(`badges.${photo.ownerType}`, { defaultValue: photo.ownerType }),
+            })
+          : t('badges.standalone');
         const needsReview =
           photo.fieldAssignment === 'needsReview' || photo.fieldAssignment === 'unassigned';
+        const aria = `${overlayPrimary}. ${statusLabel}`;
+
         return (
           <div
             key={photo.id}
@@ -39,15 +40,18 @@ const PhotoHubGallery: React.FC<Props> = ({ photos, onSelect, onExpand }) => {
             <button
               type="button"
               className="photo-card-main"
-              onClick={() => onSelect(photo)}
-              aria-label={photo.fileName || t('detail.title')}
+              onClick={() => onOpenViewer(photo, index)}
+              aria-label={aria}
             >
               <img src={src} alt="" loading="lazy" decoding="async" />
+              <div className="photo-card-overlay">
+                <span className="photo-card-overlay-primary">{overlayPrimary}</span>
+                <span className={`photo-card-overlay-status${photo.isLinked ? ' is-linked' : ''}`}>
+                  {statusLabel}
+                </span>
+              </div>
             </button>
             <div className="photo-card-badges">
-              <span className={`photo-badge${photo.isLinked ? ' linked' : ''}`}>
-                {t(`badges.${badge}`)}
-              </span>
               {needsReview ? (
                 <span className="photo-badge review">
                   {photo.fieldAssignment === 'unassigned'
@@ -55,26 +59,6 @@ const PhotoHubGallery: React.FC<Props> = ({ photos, onSelect, onExpand }) => {
                     : t('badges.needsReview')}
                 </span>
               ) : null}
-            </div>
-            <div className="photo-card-actions">
-              {onExpand ? (
-                <button
-                  type="button"
-                  className="photo-card-action"
-                  onClick={() => onExpand(photo, index)}
-                  aria-label={t('viewer.expand')}
-                >
-                  <Expand size={14} aria-hidden />
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="photo-card-action"
-                onClick={() => onSelect(photo)}
-                aria-label={t('viewer.openDetails')}
-              >
-                <Info size={14} aria-hidden />
-              </button>
             </div>
           </div>
         );

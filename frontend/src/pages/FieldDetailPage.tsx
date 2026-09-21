@@ -143,7 +143,15 @@ const FieldDetailPage: React.FC = () => {
 
   const capacity = useFieldCapacity(field);
   const grantedAccess = useGrantedFieldAccess(field);
-  const canOwn = capacity.canOwn || field?.ownerId === user?.userId;
+  const capabilities = field?.capabilities;
+  const canOwn = capabilities
+    ? capabilities.canEditField
+    : capacity.canOwn || field?.ownerId === user?.userId;
+  const canManageAccess = Boolean(capabilities?.canManageAccess ?? canOwn);
+  const canDelete = Boolean(capabilities?.canDeleteField ?? canOwn);
+  const canViewMoney =
+    capabilities == null ? Boolean(canOwn) : Boolean(capabilities.canViewMoney);
+  const canCapture = capabilities?.canCreateRecords !== false;
 
   const showWorkSetupBanner =
     Boolean(canOwn) &&
@@ -191,7 +199,7 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!id || !window.confirm(t('fields:deleteConfirm'))) return;
+    if (!id || !window.confirm(t('fields:details.danger.confirmDelete'))) return;
     try {
       await getFieldService().deleteField(id);
       navigate('/fields');
@@ -233,10 +241,11 @@ const FieldDetailPage: React.FC = () => {
           field={field}
           year={year}
           canOwn={Boolean(canOwn)}
+          canManageAccess={canManageAccess}
+          showYearControl={tab === 'overview'}
           onYearChange={setYear}
-          onCapture={openCapture}
-          onDocuments={() => setTab('details')}
-          onDelete={canOwn ? handleDelete : undefined}
+          onCapture={canCapture ? openCapture : undefined}
+          onDelete={canDelete ? handleDelete : undefined}
           phenology={phenology}
         />
 
@@ -252,7 +261,10 @@ const FieldDetailPage: React.FC = () => {
               }
             )}
             {grantedAccess.modules.length > 0
-              ? ` · ${grantedAccess.modules.map((m) => t(`partners:family.modules.${m}`)).join(', ')}`
+              ? ` · ${grantedAccess.modules
+                  .filter((m) => m !== 'documents')
+                  .map((m) => t(`partners:family.modules.${m}`))
+                  .join(', ')}`
               : null}
           </p>
         ) : null}
@@ -297,9 +309,13 @@ const FieldDetailPage: React.FC = () => {
           </div>
         ) : null}
 
-        <FieldLocalNavigation tab={tab} onTabChange={setTab} />
+        <FieldLocalNavigation
+          tab={tab}
+          onTabChange={setTab}
+          capabilities={capabilities}
+        />
 
-        {tab === 'chronologio' ? (
+        {tab === 'chronologio' && capabilities?.canViewChronologio !== false ? (
           <div
             className="field-tab-panel"
             id="field-panel-chronologio"
@@ -332,6 +348,7 @@ const FieldDetailPage: React.FC = () => {
               costSummary={costSummary}
               yearRollup={yearRollup}
               recentEntries={recentEntries}
+              canViewMoney={Boolean(canViewMoney)}
               onOpenChronologio={(entry) => {
                 writeFieldViewPreferences({ lastTab: 'chronologio' });
                 replaceParams((params) => {
@@ -346,7 +363,7 @@ const FieldDetailPage: React.FC = () => {
           </div>
         ) : null}
 
-        {tab === 'map' ? (
+        {tab === 'map' && capabilities?.canViewBoundary !== false ? (
           <div
             className="field-tab-panel"
             id="field-panel-map"
@@ -370,15 +387,16 @@ const FieldDetailPage: React.FC = () => {
               canOwn={Boolean(canOwn)}
               workProfile={workProfile}
               phenology={phenology}
+              onDelete={canDelete ? handleDelete : undefined}
             />
           </div>
         ) : null}
 
-        <div className="field-sticky-capture">
+        {canCapture ? <div className="field-sticky-capture">
           <Button icon={<Plus />} variant="primary" onClick={openCapture}>
             {t('fields:page.capture')}
           </Button>
-        </div>
+        </div> : null}
       </div>
     </PageContainer>
   );

@@ -35,6 +35,11 @@ public interface IMediaAttachmentRepository : IRepository<MediaAttachment, strin
         DateTime? from,
         DateTime? to,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Hard-delete trashed rows older than cutoff. Returns count removed.</summary>
+    Task<int> PurgeTrashedOlderThanAsync(
+        DateTime cutoffUtc,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class MediaAttachmentQuery

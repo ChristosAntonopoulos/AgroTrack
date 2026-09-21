@@ -6,8 +6,11 @@ public class PhotoDto
     public string OwnerType { get; set; } = "field";
     public string OwnerId { get; set; } = string.Empty;
     public string FieldId { get; set; } = string.Empty;
+    public string? FieldName { get; set; }
     public string MediaType { get; set; } = "image";
+    /// <summary>Short-lived signed content URL for the original.</summary>
     public string Url { get; set; } = string.Empty;
+    /// <summary>Short-lived signed content URL for the thumbnail.</summary>
     public string? ThumbnailUrl { get; set; }
     public string? FileName { get; set; }
     public string? ContentType { get; set; }
@@ -18,12 +21,18 @@ public class PhotoDto
     public double? Longitude { get; set; }
     public string FieldAssignment { get; set; } = "unassigned";
     public double? FieldMatchScore { get; set; }
+    public string? AssignmentReason { get; set; }
     public string Kind { get; set; } = "general";
     public string? ContentHash { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
     public long? ByteSize { get; set; }
     public bool IsLinked { get; set; }
+    public string? LinkedTitle { get; set; }
+    public DateTime? LinkedOccurredAt { get; set; }
+    public string? LinkedStatus { get; set; }
+    public bool LinkBroken { get; set; }
+    public bool CanTrash { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -41,6 +50,10 @@ public class PhotoUploadResultDto
 {
     public PhotoDto Photo { get; set; } = new();
     public bool DuplicateWarning { get; set; }
+    /// <summary>True when an identical hash+field photo already existed and no new row was created.</summary>
+    public bool DuplicateSkipped { get; set; }
+    public bool Failed { get; set; }
+    public string? Error { get; set; }
     public IReadOnlyList<PhotoFieldCandidateDto> Candidates { get; set; } = Array.Empty<PhotoFieldCandidateDto>();
 }
 
@@ -80,4 +93,11 @@ public class PhotoQueryDto
     public string? LinkStatus { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 48;
+}
+
+public sealed class PhotoContentResult
+{
+    public required Stream Content { get; init; }
+    public required string ContentType { get; init; }
+    public string? FileName { get; init; }
 }

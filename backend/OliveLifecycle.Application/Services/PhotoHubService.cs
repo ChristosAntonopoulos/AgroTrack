@@ -4,6 +4,8 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Storage;
 using OliveLifecycle.Application.DTOs.Photos;
+using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -14,13 +16,17 @@ public class PhotoHubService : IPhotoHubService
 {
     public const int MaxImagesPerLinkedOwner = 5;
     public const long MaxUploadBytes = 10 * 1024 * 1024;
+    public static readonly TimeSpan TrashRetention = TimeSpan.FromDays(30);
 
     private readonly IMediaAttachmentRepository _media;
     private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFieldAccessService _fieldAccess;
+    private readonly IFieldRepository _fields;
     private readonly IFileStorageService _storage;
     private readonly IImageMetadataService _images;
     private readonly IFieldGeoMatchService _geoMatch;
+    private readonly IPhotoContentUrlSigner _urlSigner;
+    private readonly IUserRepository _users;
     private readonly INoteRepository _notes;
     private readonly IHarvestRecordRepository _harvests;
     private readonly IFieldTaskRepository _tasks;
@@ -30,9 +36,12 @@ public class PhotoHubService : IPhotoHubService
         IMediaAttachmentRepository media,
         IFieldAccessScopeService fieldAccessScope,
         IFieldAccessService fieldAccess,
+        IFieldRepository fields,
         IFileStorageService storage,
         IImageMetadataService images,
         IFieldGeoMatchService geoMatch,
+        IPhotoContentUrlSigner urlSigner,
+        IUserRepository users,
         INoteRepository notes,
         IHarvestRecordRepository harvests,
         IFieldTaskRepository tasks,
@@ -41,9 +50,12 @@ public class PhotoHubService : IPhotoHubService
         _media = media;
         _fieldAccessScope = fieldAccessScope;
         _fieldAccess = fieldAccess;
+        _fields = fields;
         _storage = storage;
         _images = images;
         _geoMatch = geoMatch;
+        _urlSigner = urlSigner;
+        _users = users;
         _notes = notes;
         _harvests = harvests;
         _tasks = tasks;
@@ -61,12 +73,25 @@ public class PhotoHubService : IPhotoHubService
             throw new ValidationException("At least one image is required.");
         }
 
-        var accessible = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, cancellationToken: cancellationToken)).ToList();
+        var accessible = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, FamilyModules.Photos, cancellationToken)).ToList();
         var results = new List<PhotoUploadResultDto>();
 
         foreach (var file in files)
         {
-            results.Add(await IngestOneAsync(file, accessible, userId, cancellationToken));
+            try
+            {
+                results.Add(await IngestOneAsync(file, accessible, userId, userRole, cancellationToken));
+            }
+            catch (Exception ex) when (ex is ValidationException or InvalidOperationException)
+            {
+                results.Add(new PhotoUploadResultDto
+                {
+                    Failed = true,
+                    Error = ex.Message,
+                    Photo = new PhotoDto { FileName = Path.GetFileName(file.FileName) }
+                });
+            }
         }
 
         return results;
@@ -78,13 +103,24 @@ public class PhotoHubService : IPhotoHubService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        var accessibleIds = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(userId, userRole, cancellationToken: cancellationToken))
-            .Select(f => f.Id)
-            .ToList();
+        await PurgeExpiredTrashAsync(cancellationToken);
+
+        var accessible = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, FamilyModules.Photos, cancellationToken)).ToList();
+        var accessibleIds = accessible.Select(f => f.Id).ToList();
+        var fieldNames = accessible.ToDictionary(f => f.Id, f => f.Name, StringComparer.Ordinal);
 
         if (!string.IsNullOrWhiteSpace(query.FieldId))
         {
-            await EnsureFieldAccessAsync(query.FieldId, userId, userRole, cancellationToken);
+            await EnsurePhotoAccessAsync(query.FieldId, userId, userRole, cancellationToken);
+            if (!fieldNames.ContainsKey(query.FieldId))
+            {
+                var field = await _fields.GetByIdAsync(query.FieldId.Trim(), cancellationToken);
+                if (field != null)
+                {
+                    fieldNames[field.Id] = field.Name;
+                }
+            }
         }
 
         bool? linkedOnly = query.LinkStatus?.Trim().ToLowerInvariant() switch
@@ -108,9 +144,15 @@ public class PhotoHubService : IPhotoHubService
             PageSize = query.PageSize
         }, cancellationToken);
 
+        var dtos = new List<PhotoDto>();
+        foreach (var item in items)
+        {
+            dtos.Add(await ToDtoAsync(item, userId, userRole, fieldNames, cancellationToken));
+        }
+
         return new PhotoListDto
         {
-            Items = items.Select(ToDto).ToList(),
+            Items = dtos,
             TotalCount = total,
             Page = Math.Max(1, query.Page),
             PageSize = Math.Clamp(query.PageSize, 1, 100)
@@ -124,7 +166,7 @@ public class PhotoHubService : IPhotoHubService
         CancellationToken cancellationToken = default)
     {
         var photo = await GetAccessiblePhotoAsync(id, userId, userRole, cancellationToken);
-        return ToDto(photo);
+        return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
     }
 
     public async Task<PhotoDto> ConfirmFieldAsync(
@@ -140,11 +182,12 @@ public class PhotoHubService : IPhotoHubService
         }
 
         var photo = await GetAccessiblePhotoAsync(id, userId, userRole, cancellationToken);
-        await EnsureFieldAccessAsync(dto.FieldId, userId, userRole, cancellationToken);
+        await EnsurePhotoAccessAsync(dto.FieldId, userId, userRole, cancellationToken);
 
         photo.FieldId = dto.FieldId.Trim();
         photo.FieldAssignment = FieldAssignmentStatus.Manual;
         photo.FieldMatchScore = 1.0;
+        photo.AssignmentReason = "manual";
         if (photo.OwnerType == MediaOwnerType.Field)
         {
             photo.OwnerId = string.Empty;
@@ -152,7 +195,7 @@ public class PhotoHubService : IPhotoHubService
 
         photo.UpdatedAt = DateTime.UtcNow;
         await _media.UpdateAsync(photo, cancellationToken);
-        return ToDto(photo);
+        return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
     }
 
     public async Task<PhotoDto> UpdateAsync(
@@ -175,7 +218,7 @@ public class PhotoHubService : IPhotoHubService
 
         photo.UpdatedAt = DateTime.UtcNow;
         await _media.UpdateAsync(photo, cancellationToken);
-        return ToDto(photo);
+        return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
     }
 
     public async Task<PhotoDto> LinkAsync(
@@ -203,13 +246,13 @@ public class PhotoHubService : IPhotoHubService
             throw new ValidationException("Assign a field before linking this photo.");
         }
 
-        var targetFieldId = await ResolveOwnerFieldIdAsync(ownerType, dto.OwnerId.Trim(), cancellationToken);
-        if (!string.Equals(targetFieldId, photo.FieldId, StringComparison.Ordinal))
+        var snapshot = await ResolveLinkedSnapshotAsync(ownerType, dto.OwnerId.Trim(), cancellationToken);
+        if (!string.Equals(snapshot.FieldId, photo.FieldId, StringComparison.Ordinal))
         {
             throw new ValidationException("Photo field must match the linked record field.");
         }
 
-        await EnsureFieldAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
+        await EnsurePhotoAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
 
         if (ownerType is MediaOwnerType.Note or MediaOwnerType.Task or MediaOwnerType.Harvest)
         {
@@ -227,6 +270,9 @@ public class PhotoHubService : IPhotoHubService
 
         photo.OwnerType = ownerType;
         photo.OwnerId = dto.OwnerId.Trim();
+        photo.LinkedTitle = snapshot.Title;
+        photo.LinkedOccurredAt = snapshot.OccurredAt;
+        photo.LinkedStatus = snapshot.Status;
         photo.UpdatedAt = DateTime.UtcNow;
         await _media.UpdateAsync(photo, cancellationToken);
 
@@ -238,7 +284,7 @@ public class PhotoHubService : IPhotoHubService
         }
 
         await SyncOwnerAttachmentIdsAsync(photo.OwnerType, photo.OwnerId, photo, link: true, cancellationToken);
-        return ToDto(photo);
+        return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
     }
 
     public async Task<PhotoDto> UnlinkAsync(
@@ -250,7 +296,7 @@ public class PhotoHubService : IPhotoHubService
         var photo = await GetAccessiblePhotoAsync(id, userId, userRole, cancellationToken);
         if (!photo.OwnerType.IsLinkedRecord())
         {
-            return ToDto(photo);
+            return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(photo.FieldId))
@@ -258,17 +304,22 @@ public class PhotoHubService : IPhotoHubService
             throw new ValidationException("Cannot unlink a photo without a field assignment.");
         }
 
-        await EnsureFieldAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
+        await EnsurePhotoAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
 
         var previousType = photo.OwnerType;
         var previousOwnerId = photo.OwnerId;
+        var preservedFieldId = photo.FieldId;
         photo.OwnerType = MediaOwnerType.Field;
         photo.OwnerId = string.Empty;
+        photo.LinkedTitle = null;
+        photo.LinkedOccurredAt = null;
+        photo.LinkedStatus = null;
+        photo.FieldId = preservedFieldId;
         photo.UpdatedAt = DateTime.UtcNow;
         await _media.UpdateAsync(photo, cancellationToken);
 
         await SyncOwnerAttachmentIdsAsync(previousType, previousOwnerId, photo, link: false, cancellationToken);
-        return ToDto(photo);
+        return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
     }
 
     public async Task DeleteAsync(
@@ -278,25 +329,90 @@ public class PhotoHubService : IPhotoHubService
         CancellationToken cancellationToken = default)
     {
         var photo = await GetAccessiblePhotoAsync(id, userId, userRole, cancellationToken);
+        if (!await CanTrashAsync(photo, userId, userRole, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to move this photo to the trash.");
+        }
+
         if (photo.OwnerType.IsLinkedRecord())
         {
             await SyncOwnerAttachmentIdsAsync(photo.OwnerType, photo.OwnerId, photo, link: false, cancellationToken);
         }
 
-        await _storage.DeleteAsync(photo.Url, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(photo.ThumbnailUrl) &&
-            !string.Equals(photo.ThumbnailUrl, photo.Url, StringComparison.OrdinalIgnoreCase))
+        photo.DeletedAt = DateTime.UtcNow;
+        photo.DeletedByUserId = userId;
+        photo.UpdatedAt = DateTime.UtcNow;
+        await _media.UpdateAsync(photo, cancellationToken);
+    }
+
+    public async Task<PhotoContentResult> GetContentBySignatureAsync(
+        string id,
+        string variant,
+        long expUnix,
+        string signature,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = NormalizeVariant(variant);
+        if (!_urlSigner.TryValidate(id, normalized, expUnix, signature, userId))
         {
-            await _storage.DeleteAsync(photo.ThumbnailUrl, cancellationToken);
+            throw new NotFoundException("Photo not found.");
         }
 
-        await _media.DeleteAsync(photo.Id, cancellationToken);
+        var photo = await _media.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Photo not found.");
+
+        if (photo.IsTrashed)
+        {
+            throw new NotFoundException("Photo not found.");
+        }
+
+        var user = await _users.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("Photo not found.");
+        var userRole = user.Role.ToString();
+
+        if (string.IsNullOrWhiteSpace(photo.FieldId))
+        {
+            if (!string.Equals(photo.UploadedByUserId, userId, StringComparison.Ordinal))
+            {
+                throw new NotFoundException("Photo not found.");
+            }
+        }
+        else
+        {
+            if (!await _fieldAccess.CanUserAccessFieldPhotosAsync(photo.FieldId, userId, userRole, cancellationToken))
+            {
+                throw new NotFoundException("Photo not found.");
+            }
+        }
+
+        var storageUrl = string.Equals(normalized, PhotoContentVariants.Thumb, StringComparison.Ordinal)
+            ? (photo.ThumbnailUrl ?? photo.Url)
+            : photo.Url;
+
+        var stream = await _storage.OpenReadAsync(storageUrl, cancellationToken)
+            ?? throw new NotFoundException("Photo not found.");
+
+        var contentType = string.Equals(normalized, PhotoContentVariants.Thumb, StringComparison.Ordinal)
+            ? "image/jpeg"
+            : (photo.ContentType ?? "application/octet-stream");
+
+        return new PhotoContentResult
+        {
+            Content = stream,
+            ContentType = contentType,
+            FileName = photo.FileName
+        };
     }
+
+    public string CreateSignedUrl(string photoId, string variant, string userId) =>
+        _urlSigner.CreateUrl(photoId, NormalizeVariant(variant), userId);
 
     private async Task<PhotoUploadResultDto> IngestOneAsync(
         PhotoUploadFile file,
         IReadOnlyList<Field> accessibleFields,
         string userId,
+        string userRole,
         CancellationToken cancellationToken)
     {
         if (file.Content.CanSeek)
@@ -315,9 +431,11 @@ public class PhotoHubService : IPhotoHubService
         var capturedAt = processed.CapturedAtUtc ?? now;
 
         FieldGeoMatchResult match = new() { Assignment = FieldAssignmentStatus.Unassigned };
+        string? assignmentReason = "noGps";
         if (processed.Latitude.HasValue && processed.Longitude.HasValue)
         {
             match = _geoMatch.Match(processed.Latitude.Value, processed.Longitude.Value, accessibleFields);
+            assignmentReason = ResolveAssignmentReason(match);
         }
 
         var fieldId = match.FieldId ?? string.Empty;
@@ -325,6 +443,20 @@ public class PhotoHubService : IPhotoHubService
             hash,
             string.IsNullOrWhiteSpace(fieldId) ? null : fieldId,
             cancellationToken);
+
+        if (duplicates.Count > 0 && !string.IsNullOrWhiteSpace(fieldId))
+        {
+            var existing = duplicates[0];
+            return new PhotoUploadResultDto
+            {
+                Photo = await ToDtoAsync(existing, userId, userRole,
+                    accessibleFields.ToDictionary(f => f.Id, f => f.Name, StringComparer.Ordinal),
+                    cancellationToken),
+                DuplicateWarning = true,
+                DuplicateSkipped = true,
+                Candidates = match.Candidates.Select(MapCandidate).ToList()
+            };
+        }
 
         await using var originalStream = new MemoryStream(processed.OriginalBytes);
         await using var thumbStream = new MemoryStream(processed.ThumbnailBytes);
@@ -351,6 +483,7 @@ public class PhotoHubService : IPhotoHubService
             Longitude = processed.Longitude,
             FieldAssignment = match.Assignment,
             FieldMatchScore = match.Score,
+            AssignmentReason = assignmentReason,
             Kind = PhotoKind.General,
             ContentHash = hash,
             Width = processed.Width,
@@ -364,18 +497,39 @@ public class PhotoHubService : IPhotoHubService
         var saved = await _media.CreateAsync(entity, cancellationToken);
         return new PhotoUploadResultDto
         {
-            Photo = ToDto(saved),
+            Photo = await ToDtoAsync(saved, userId, userRole,
+                accessibleFields.ToDictionary(f => f.Id, f => f.Name, StringComparer.Ordinal),
+                cancellationToken),
             DuplicateWarning = duplicates.Count > 0,
-            Candidates = match.Candidates.Select(c => new PhotoFieldCandidateDto
-            {
-                FieldId = c.FieldId,
-                FieldName = c.FieldName,
-                Reason = c.Reason,
-                Score = c.Score,
-                DistanceMetres = c.DistanceMetres
-            }).ToList()
+            Candidates = match.Candidates.Select(MapCandidate).ToList()
         };
     }
+
+    private static string ResolveAssignmentReason(FieldGeoMatchResult match)
+    {
+        var top = match.Candidates.FirstOrDefault();
+        if (top == null)
+        {
+            return "noGps";
+        }
+
+        return top.Reason switch
+        {
+            "boundary" => "gpsInside",
+            "boundaryOverlap" => "gpsOverlap",
+            "nearestCenter" => "gpsNear",
+            _ => top.Reason
+        };
+    }
+
+    private static PhotoFieldCandidateDto MapCandidate(FieldMatchCandidate c) => new()
+    {
+        FieldId = c.FieldId,
+        FieldName = c.FieldName,
+        Reason = c.Reason,
+        Score = c.Score,
+        DistanceMetres = c.DistanceMetres
+    };
 
     private async Task SyncOwnerAttachmentIdsAsync(
         MediaOwnerType ownerType,
@@ -431,24 +585,95 @@ public class PhotoHubService : IPhotoHubService
         }
     }
 
-    private async Task<string> ResolveOwnerFieldIdAsync(
+    private async Task<LinkedSnapshot> ResolveLinkedSnapshotAsync(
         MediaOwnerType ownerType,
         string ownerId,
         CancellationToken cancellationToken)
     {
-        return ownerType switch
+        switch (ownerType)
         {
-            MediaOwnerType.Note => (await _notes.GetByIdAsync(ownerId, cancellationToken)
-                ?? throw new NotFoundException("Note not found.")).FieldId
-                ?? throw new ValidationException("Note has no field."),
-            MediaOwnerType.Harvest => (await _harvests.GetByIdAsync(ownerId, cancellationToken)
-                ?? throw new NotFoundException("Harvest not found.")).FieldId,
-            MediaOwnerType.Task => (await _tasks.GetByIdAsync(ownerId, cancellationToken)
-                ?? throw new NotFoundException("Task not found.")).FieldId,
-            MediaOwnerType.Phenology => (await _phenology.GetByIdAsync(ownerId, cancellationToken)
-                ?? throw new NotFoundException("Phenology observation not found.")).FieldId,
-            _ => throw new ValidationException("Unsupported owner type.")
-        };
+            case MediaOwnerType.Note:
+            {
+                var note = await _notes.GetByIdAsync(ownerId, cancellationToken)
+                    ?? throw new NotFoundException("Note not found.");
+                var title = string.IsNullOrWhiteSpace(note.Body)
+                    ? "Observation"
+                    : (note.Body.Length <= 80 ? note.Body.Trim() : note.Body.Trim()[..80] + "…");
+                return new LinkedSnapshot(note.FieldId ?? string.Empty, title, note.OccurredAt, null);
+            }
+            case MediaOwnerType.Harvest:
+            {
+                var harvest = await _harvests.GetByIdAsync(ownerId, cancellationToken)
+                    ?? throw new NotFoundException("Harvest not found.");
+                return new LinkedSnapshot(
+                    harvest.FieldId,
+                    $"Harvest · {harvest.HarvestDate:yyyy-MM-dd}",
+                    harvest.HarvestDate,
+                    harvest.Status.ToString());
+            }
+            case MediaOwnerType.Task:
+            {
+                var task = await _tasks.GetByIdAsync(ownerId, cancellationToken)
+                    ?? throw new NotFoundException("Task not found.");
+                return new LinkedSnapshot(
+                    task.FieldId,
+                    string.IsNullOrWhiteSpace(task.Title) ? "Task" : task.Title,
+                    task.CreatedAt,
+                    task.Status.ToApiString());
+            }
+            case MediaOwnerType.Phenology:
+            {
+                var observation = await _phenology.GetByIdAsync(ownerId, cancellationToken)
+                    ?? throw new NotFoundException("Phenology observation not found.");
+                return new LinkedSnapshot(
+                    observation.FieldId,
+                    $"Phenology · {observation.StageCode}",
+                    observation.ObservedOn,
+                    observation.Confidence.ToString());
+            }
+            default:
+                throw new ValidationException("Unsupported owner type.");
+        }
+    }
+
+    private async Task RefreshLinkedSnapshotAsync(
+        MediaAttachment photo,
+        CancellationToken cancellationToken)
+    {
+        if (!photo.OwnerType.IsLinkedRecord() || string.IsNullOrWhiteSpace(photo.OwnerId))
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = await ResolveLinkedSnapshotAsync(photo.OwnerType, photo.OwnerId, cancellationToken);
+            photo.LinkedTitle = snapshot.Title;
+            photo.LinkedOccurredAt = snapshot.OccurredAt;
+            photo.LinkedStatus = snapshot.Status;
+        }
+        catch (NotFoundException)
+        {
+            // Keep existing snapshot; LinkBroken is derived in ToDto.
+        }
+    }
+
+    private async Task<bool> IsLinkBrokenAsync(MediaAttachment photo, CancellationToken cancellationToken)
+    {
+        if (!photo.OwnerType.IsLinkedRecord() || string.IsNullOrWhiteSpace(photo.OwnerId))
+        {
+            return false;
+        }
+
+        try
+        {
+            await ResolveLinkedSnapshotAsync(photo.OwnerType, photo.OwnerId, cancellationToken);
+            return false;
+        }
+        catch (NotFoundException)
+        {
+            return true;
+        }
     }
 
     private async Task<MediaAttachment> GetAccessiblePhotoAsync(
@@ -460,6 +685,11 @@ public class PhotoHubService : IPhotoHubService
         var photo = await _media.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Photo not found.");
 
+        if (photo.IsTrashed)
+        {
+            throw new NotFoundException("Photo not found.");
+        }
+
         if (string.IsNullOrWhiteSpace(photo.FieldId))
         {
             if (!string.Equals(photo.UploadedByUserId, userId, StringComparison.Ordinal))
@@ -470,47 +700,127 @@ public class PhotoHubService : IPhotoHubService
             return photo;
         }
 
-        await EnsureFieldAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
+        await EnsurePhotoAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
         return photo;
     }
 
-    private async Task EnsureFieldAccessAsync(
+    private async Task EnsurePhotoAccessAsync(
         string fieldId,
         string userId,
         string userRole,
         CancellationToken cancellationToken)
     {
-        if (!await _fieldAccess.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccess.CanUserAccessFieldPhotosAsync(fieldId, userId, userRole, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to photos for this field.");
         }
     }
 
-    public static PhotoDto ToDto(MediaAttachment entity) => new()
+    private async Task<bool> CanTrashAsync(
+        MediaAttachment photo,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken)
     {
-        Id = entity.Id,
-        OwnerType = entity.OwnerType.ToApiString(),
-        OwnerId = entity.OwnerId,
-        FieldId = entity.FieldId,
-        MediaType = entity.MediaType,
-        Url = entity.Url,
-        ThumbnailUrl = entity.ThumbnailUrl,
-        FileName = entity.FileName,
-        ContentType = entity.ContentType,
-        UploadedByUserId = entity.UploadedByUserId,
-        CapturedAt = entity.CapturedAt,
-        EffectiveCapturedAt = entity.EffectiveCapturedAt,
-        Latitude = entity.Latitude,
-        Longitude = entity.Longitude,
-        FieldAssignment = entity.FieldAssignment.ToApiString(),
-        FieldMatchScore = entity.FieldMatchScore,
-        Kind = entity.Kind.ToApiString(),
-        ContentHash = entity.ContentHash,
-        Width = entity.Width,
-        Height = entity.Height,
-        ByteSize = entity.ByteSize,
-        IsLinked = entity.OwnerType.IsLinkedRecord(),
-        CreatedAt = entity.CreatedAt,
-        UpdatedAt = entity.UpdatedAt
-    };
+        if (string.Equals(photo.UploadedByUserId, userId, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (string.Equals(userRole, Roles.Administrator, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(photo.FieldId))
+        {
+            return false;
+        }
+
+        return await _fieldAccess.CanUserModifyFieldAsync(photo.FieldId, userId, cancellationToken);
+    }
+
+    private async Task<PhotoDto> ToDtoAsync(
+        MediaAttachment entity,
+        string userId,
+        string userRole,
+        IReadOnlyDictionary<string, string>? fieldNames,
+        CancellationToken cancellationToken)
+    {
+        if (entity.OwnerType.IsLinkedRecord())
+        {
+            await RefreshLinkedSnapshotAsync(entity, cancellationToken);
+        }
+
+        string? fieldName = null;
+        if (!string.IsNullOrWhiteSpace(entity.FieldId))
+        {
+            if (fieldNames != null && fieldNames.TryGetValue(entity.FieldId, out var cached))
+            {
+                fieldName = cached;
+            }
+            else
+            {
+                var field = await _fields.GetByIdAsync(entity.FieldId, cancellationToken);
+                fieldName = field?.Name;
+            }
+        }
+
+        var linkBroken = await IsLinkBrokenAsync(entity, cancellationToken);
+        var canTrash = await CanTrashAsync(entity, userId, userRole, cancellationToken);
+
+        return new PhotoDto
+        {
+            Id = entity.Id,
+            OwnerType = entity.OwnerType.ToApiString(),
+            OwnerId = entity.OwnerId,
+            FieldId = entity.FieldId,
+            FieldName = fieldName,
+            MediaType = entity.MediaType,
+            Url = _urlSigner.CreateUrl(entity.Id, PhotoContentVariants.Original, userId),
+            ThumbnailUrl = _urlSigner.CreateUrl(entity.Id, PhotoContentVariants.Thumb, userId),
+            FileName = entity.FileName,
+            ContentType = entity.ContentType,
+            UploadedByUserId = entity.UploadedByUserId,
+            CapturedAt = entity.CapturedAt,
+            EffectiveCapturedAt = entity.EffectiveCapturedAt,
+            Latitude = entity.Latitude,
+            Longitude = entity.Longitude,
+            FieldAssignment = entity.FieldAssignment.ToApiString(),
+            FieldMatchScore = entity.FieldMatchScore,
+            AssignmentReason = entity.AssignmentReason,
+            Kind = entity.Kind.ToApiString(),
+            ContentHash = entity.ContentHash,
+            Width = entity.Width,
+            Height = entity.Height,
+            ByteSize = entity.ByteSize,
+            IsLinked = entity.OwnerType.IsLinkedRecord(),
+            LinkedTitle = entity.LinkedTitle,
+            LinkedOccurredAt = entity.LinkedOccurredAt,
+            LinkedStatus = entity.LinkedStatus,
+            LinkBroken = linkBroken,
+            CanTrash = canTrash,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt
+        };
+    }
+
+    private async Task PurgeExpiredTrashAsync(CancellationToken cancellationToken)
+    {
+        var cutoff = DateTime.UtcNow - TrashRetention;
+        var purged = await _media.PurgeTrashedOlderThanAsync(cutoff, cancellationToken);
+        // Files for purged rows are left for a follow-up storage sweep; metadata is gone.
+        _ = purged;
+    }
+
+    private static string NormalizeVariant(string variant) =>
+        string.Equals(variant, PhotoContentVariants.Thumb, StringComparison.OrdinalIgnoreCase)
+            ? PhotoContentVariants.Thumb
+            : PhotoContentVariants.Original;
+
+    private sealed record LinkedSnapshot(
+        string FieldId,
+        string Title,
+        DateTime? OccurredAt,
+        string? Status);
 }

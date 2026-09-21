@@ -55,12 +55,11 @@ const MoreMenuPanel: React.FC = () => {
   const rowHeight = Math.max(tapMin, 52);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
-  const hasFamilyModules = Boolean(familyModules && familyModules.size > 0);
-  const showPartners = !hasFamilyModules;
-  const showMoney = canMoney && (!hasFamilyModules || Boolean(familyModules?.has('money')));
+  const showPartners = familyModules === null;
+  const showMoney = canMoney && (familyModules === null || Boolean(familyModules.has('money')));
   const showHarvest =
-    isFieldOwner() && (!hasFamilyModules || Boolean(familyModules?.has('harvest')));
-  const showPhotos = canMoney && (!hasFamilyModules || Boolean(familyModules?.has('fields')));
+    isFieldOwner() && (familyModules === null || Boolean(familyModules.has('harvest')));
+  const showPhotos = familyModules === null || Boolean(familyModules.has('photos'));
   const collaboratorBadge = collaboratorOwnerLabel
     ? t('common:familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
     : null;

@@ -60,7 +60,12 @@ export const yearFixedMetrics = (
   return [
     {
       label: t('living.metricTasks'),
-      value: s.taskCount > 0 ? String(s.taskCount) : dash,
+      value:
+        s.taskCount > 0
+          ? String(s.taskCount)
+          : t('living.noRecordedTasks', {
+              defaultValue: 'No recorded tasks',
+            }),
     },
     {
       label: t('living.metricExpenses'),

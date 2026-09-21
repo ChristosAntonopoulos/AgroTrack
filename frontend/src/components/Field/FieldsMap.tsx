@@ -362,7 +362,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         zoom={13}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
-        scrollWheelZoom
+        scrollWheelZoom={false}
         className="fields-map-leaflet"
       >
         {mapLayer === 'satellite' ? (
@@ -376,16 +376,18 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
             <TileLayer
               attribution=""
               url={SATELLITE_PLACES_TILE}
-              opacity={0.92}
+              opacity={0.85}
               maxZoom={MAP_MAX_ZOOM}
-              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              maxNativeZoom={15}
+              className="fields-map-ref-tiles"
             />
             <TileLayer
               attribution=""
               url={SATELLITE_LABELS_TILE}
-              opacity={0.65}
+              opacity={0.55}
               maxZoom={MAP_MAX_ZOOM}
-              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              maxNativeZoom={15}
+              className="fields-map-ref-tiles"
             />
           </>
         ) : (

@@ -34,6 +34,7 @@ const FamilyAccessFields: React.FC<Props> = ({
         <p className="family-form-label" id={modulesLabelId}>
           {t('family.partsTitle')}
         </p>
+        <p className="family-form-hint">{t('family.modulesHint')}</p>
         <div className="family-module-grid" role="group" aria-labelledby={modulesLabelId}>
           {FAMILY_MODULES.map((module) => {
             const on = modules.includes(module);
@@ -74,6 +75,18 @@ const FamilyAccessFields: React.FC<Props> = ({
             );
           })}
         </div>
+      </div>
+
+      <div className="family-form-section family-calculated-access">
+        <p className="family-form-label">{t('family.calculatedTitle')}</p>
+        <p>
+          {t(`family.levels.${accessLevel}`)} — {t(`family.calculated.${accessLevel}`)}
+        </p>
+        <ul className="family-calculated-modules">
+          {modules.filter((module) => module !== 'documents').map((module) => (
+            <li key={module}>{t(`family.modules.${module}`)}</li>
+          ))}
+        </ul>
       </div>
     </>
   );

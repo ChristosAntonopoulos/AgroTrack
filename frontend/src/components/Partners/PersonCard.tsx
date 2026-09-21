@@ -15,6 +15,7 @@ type Props = {
   fields?: Field[];
   canManage?: boolean;
   onEditContact?: (person: GrovePerson) => void;
+  onInviteContact?: (person: GrovePerson) => void;
   onRemoved?: () => void;
 };
 
@@ -31,6 +32,7 @@ const PersonCard: React.FC<Props> = ({
   fields = [],
   canManage,
   onEditContact,
+  onInviteContact,
   onRemoved,
 }) => {
   const { t } = useTranslation(['partners', 'common']);
@@ -73,25 +75,31 @@ const PersonCard: React.FC<Props> = ({
       <div className="partner-actions-stack">
         <PhoneActions phone={person.phone} email={person.email} />
         <div className="partner-actions">
-          {person.savedContact && onEditContact ? (
-            <Button variant="outline" size="sm" onClick={() => onEditContact(person)}>
-              {t('partners:editContact')}
-            </Button>
-          ) : null}
           {person.userId || person.savedContact ? (
-            <Button as={Link} to={assignTo} variant="outline" size="sm">
+            <Button as={Link} to={assignTo} size="sm">
               {t('partners:assignTask')}
             </Button>
           ) : null}
+          {person.savedContact && onInviteContact && !person.userId ? (
+            <Button variant="outline" size="sm" onClick={() => onInviteContact(person)}>
+              {t('partners:inviteToOleachron')}
+            </Button>
+          ) : null}
           {profileTo ? (
-            <Button as={Link} to={profileTo} size="sm">
+            <Button as={Link} to={profileTo} variant="ghost" size="sm">
               {t('partners:contact')}
+            </Button>
+          ) : null}
+          {person.savedContact && onEditContact ? (
+            <Button variant="ghost" size="sm" onClick={() => onEditContact(person)}>
+              {t('partners:editContact')}
             </Button>
           ) : null}
           {canManage && person.membership && !person.connections.includes('owner') && person.userId ? (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
+              className="partner-remove-action"
               onClick={async () => {
                 const confirmMsg = fieldName
                   ? t('partners:removeMemberConfirm', { name: person.displayName, field: fieldName })

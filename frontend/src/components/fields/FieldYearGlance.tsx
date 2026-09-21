@@ -17,6 +17,9 @@ type Props = {
   costSummary: YearFinancialSummary | null;
   yearRollup: FieldYearSummary | null;
   plannedRemaining: number;
+  /** Daily harvest progress (e.g. sacks) that is not yet a finalized year result. */
+  harvestDaySacks?: number | null;
+  canViewMoney?: boolean;
 };
 
 const formatKg = (value: number | null | undefined, locale: string, unknown: string): string => {
@@ -30,6 +33,8 @@ const FieldYearGlance: React.FC<Props> = ({
   costSummary,
   yearRollup,
   plannedRemaining,
+  harvestDaySacks,
+  canViewMoney = true,
 }) => {
   const { t, i18n } = useTranslation(['fields', 'money']);
   const currency = costSummary?.currency || yearRollup?.currency || 'EUR';
@@ -49,6 +54,16 @@ const FieldYearGlance: React.FC<Props> = ({
   const showPerHa = hasPosted && costPerArea != null && !availability?.areaIsMissing;
   const showPerLitre = hasPosted && costPerLitre != null && oilLitres != null;
 
+  const harvestLabel = (() => {
+    if (oliveKg != null) return formatKg(oliveKg, i18n.language, unknown);
+    if (harvestDaySacks != null && harvestDaySacks > 0) {
+      return `${t('overview.yearGlance.harvestInProgress')} · ${t('overview.yearGlance.harvestSacksSoFar', {
+        count: harvestDaySacks,
+      })}`;
+    }
+    return t('overview.yearGlance.noHarvest', { year });
+  })();
+
   return (
     <section className="field-year-glance" aria-labelledby="field-year-glance-title">
       <h2 id="field-year-glance-title">{t('overview.yearGlance.title')}</h2>
@@ -65,11 +80,7 @@ const FieldYearGlance: React.FC<Props> = ({
         </div>
         <div>
           <dt>{t('overview.yearGlance.harvest')}</dt>
-          <dd>
-            {oliveKg == null
-              ? t('overview.yearGlance.noHarvest', { year })
-              : formatKg(oliveKg, i18n.language, unknown)}
-          </dd>
+          <dd>{harvestLabel}</dd>
         </div>
         <div>
           <dt>{t('overview.yearGlance.oil')}</dt>
@@ -77,7 +88,7 @@ const FieldYearGlance: React.FC<Props> = ({
         </div>
       </dl>
 
-      {hasPosted ? (
+      {canViewMoney && hasPosted ? (
         <>
           <MoneyTriadFacts
             className="field-year-glance-money"
@@ -108,13 +119,15 @@ const FieldYearGlance: React.FC<Props> = ({
             </dl>
           ) : null}
         </>
-      ) : (
+      ) : canViewMoney ? (
         <p className="field-year-glance-empty">{t('overview.yearGlance.noMoney', { year })}</p>
-      )}
+      ) : null}
 
-      <Link className="fd-text-link" to={moneyPath({ year, fieldId })}>
-        {t('overview.seeFinance')}
-      </Link>
+      {canViewMoney ? (
+        <Link className="fd-text-link" to={moneyPath({ year, fieldId })}>
+          {t('overview.seeFinance')}
+        </Link>
+      ) : null}
     </section>
   );
 };

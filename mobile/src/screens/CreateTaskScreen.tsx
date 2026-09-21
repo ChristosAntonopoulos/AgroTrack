@@ -122,16 +122,13 @@ const CreateTaskScreen = () => {
   }, [fieldId, mode, proposal?.templateCode, user?.id]);
 
   const capacityHint = (
-    capacities: FieldMembership['capacities']
+    person: FieldMembership
   ): { group: AssigneeOption['group']; hint: string } => {
-    if (capacities.includes('work')) {
+    if (person.role === 'Partner' || person.accessLevel === 'work') {
       return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
     }
-    if (capacities.includes('help')) {
+    if (person.accessLevel === 'help') {
       return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
-    }
-    if (capacities.includes('advise')) {
-      return { group: 'partner', hint: t('fieldWork.form.assigneeHintAdvisor') };
     }
     return { group: 'partner', hint: t('fieldWork.form.collaborator') };
   };
@@ -146,7 +143,7 @@ const CreateTaskScreen = () => {
     ];
     people.forEach((person) => {
       if (person.userId && person.userId === user?.id) return;
-      const meta = capacityHint(person.capacities || []);
+      const meta = capacityHint(person);
       options.push({
         key: `user:${person.userId}`,
         label: person.displayName || person.email || t('fieldWork.form.collaborator'),

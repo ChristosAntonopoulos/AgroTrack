@@ -65,6 +65,15 @@ export interface FrostRisk {
   confidence: string;
 }
 
+export interface DailyForecast {
+  date: string;
+  minTemperatureC?: number | null;
+  maxTemperatureC?: number | null;
+  weatherCode: number;
+  rainMm: number;
+  maxWindKmh?: number | null;
+}
+
 export interface FieldWeather {
   fieldId: string;
   stale: boolean;
@@ -75,6 +84,8 @@ export interface FieldWeather {
   frost: FrostRisk;
   evapotranspiration: { todayMm: number; last7DaysMm: number };
   waterBalance: { rainMm: number; et0Mm: number; irrigationMm: number; balanceMm: number; label: string };
+  /** Today through the next six days, when the forecast window covers them. */
+  days?: DailyForecast[];
   metadata: DataSourceMetadata;
 }
 

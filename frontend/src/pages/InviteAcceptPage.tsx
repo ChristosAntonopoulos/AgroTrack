@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { fieldPeopleService, FieldInvite } from '../services/fieldPeopleService';
+import { fieldPeopleService, FieldInvite, FieldModule } from '../services/fieldPeopleService';
 import { useAuth } from '../context/AuthContext';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import Button from '../components/Common/Button';
@@ -31,17 +31,22 @@ const InviteAcceptPage: React.FC = () => {
     })();
   }, [token, t]);
 
+  const expired = useMemo(() => {
+    if (!invite?.expiresAt) return false;
+    return Date.parse(invite.expiresAt) < Date.now();
+  }, [invite]);
+
   const accept = async () => {
     if (!token) return;
     if (!isAuthenticated) {
-      navigate(`/login?redirect=/invite/${token}`);
+      navigate(`/register?redirect=${encodeURIComponent(`/invite/${token}`)}&code=${encodeURIComponent(invite?.code || '')}`);
       return;
     }
     setAccepting(true);
     try {
       await fieldPeopleService.acceptInvite(token);
       invalidateAccessContext();
-      navigate(invite ? `/partners?fieldId=${invite.fieldId}` : '/partners');
+      navigate(invite ? `/chronologio?fieldId=${invite.fieldId}` : '/chronologio');
     } catch (e: unknown) {
       setError(getApiErrorMessage(e, t) || t('fields:people.inviteAcceptFailed'));
     } finally {
@@ -57,6 +62,12 @@ const InviteAcceptPage: React.FC = () => {
         : invite.role
     : '';
 
+  const moduleLabels = (invite?.modules || [])
+    .filter((module: FieldModule) => module !== 'documents')
+    .map((module: FieldModule) =>
+      t(`partners:family.modules.${module}`, { defaultValue: module })
+    );
+
   return (
     <InviteAcceptShell
       title={t('fields:people.inviteAcceptTitle')}
@@ -66,15 +77,60 @@ const InviteAcceptPage: React.FC = () => {
     >
       {invite ? (
         <>
-          <p>
-            {t('fields:people.inviteAcceptBody', {
-              field: invite.fieldName,
-              role: roleLabel,
-            })}
-          </p>
-          <Button onClick={accept} loading={accepting} variant="primary" className="btn-full-width">
-            {t('fields:people.acceptInvite')}
-          </Button>
+          <dl className="invite-preview">
+            <div>
+              <dt>{t('fields:people.inviteFrom')}</dt>
+              <dd>{invite.invitedByName || invite.invitedBy}</dd>
+            </div>
+            <div>
+              <dt>{t('fields:people.inviteField')}</dt>
+              <dd>{invite.fieldName}</dd>
+            </div>
+            <div>
+              <dt>{t('fields:people.inviteRole')}</dt>
+              <dd>{roleLabel}</dd>
+            </div>
+            <div>
+              <dt>{t('partners:family.partsTitle')}</dt>
+              <dd>{moduleLabels.join(', ') || '—'}</dd>
+            </div>
+            <div>
+              <dt>{t('partners:family.levelTitle')}</dt>
+              <dd>
+                {t(`partners:family.levels.${invite.accessLevel}`)} — {t(`partners:family.calculated.${invite.accessLevel}`)}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('fields:people.inviteExpires')}</dt>
+              <dd>
+                {new Date(invite.expiresAt).toLocaleString()}
+                {expired ? ` (${t('fields:people.inviteExpired')})` : ''}
+              </dd>
+            </div>
+          </dl>
+          <div className="invite-preview-actions">
+            <Button
+              onClick={accept}
+              loading={accepting}
+              variant="primary"
+              className="btn-full-width"
+              disabled={expired}
+            >
+              {isAuthenticated ? t('fields:people.acceptInvite') : t('fields:people.inviteCreateAccount')}
+            </Button>
+            {isAuthenticated ? (
+              <Button variant="ghost" className="btn-full-width" onClick={() => navigate('/')}>
+                {t('fields:people.declineInvite')}
+              </Button>
+            ) : (
+              <p>
+                {t('auth:register.hasAccount')}{' '}
+                <Link to={`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`}>
+                  {t('auth:register.loginLink')}
+                </Link>
+              </p>
+            )}
+          </div>
         </>
       ) : undefined}
     </InviteAcceptShell>

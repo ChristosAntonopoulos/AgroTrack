@@ -282,7 +282,22 @@ public class FieldPeopleService : IFieldPeopleService
     public async Task<FieldInviteDto?> GetInviteAsync(string tokenOrCode, CancellationToken cancellationToken = default)
     {
         var invite = await ResolveInviteAsync(tokenOrCode, cancellationToken);
-        return invite == null ? null : ToInviteDto(invite, null);
+        if (invite == null)
+        {
+            return null;
+        }
+
+        string? invitedByName = null;
+        if (!string.IsNullOrWhiteSpace(invite.InvitedBy))
+        {
+            var inviter = await _userRepository.GetByIdAsync(invite.InvitedBy, cancellationToken);
+            if (inviter != null)
+            {
+                invitedByName = DisplayName(inviter);
+            }
+        }
+
+        return ToInviteDto(invite, null, invitedByName);
     }
 
     public async Task<FieldMembershipDto> AcceptInviteAsync(
@@ -486,7 +501,8 @@ public class FieldPeopleService : IFieldPeopleService
                     ? FamilyModules.All.ToList()
                     : seat.Modules.ToList(),
                 AccessLevel = seat.AccessLevel,
-                AdminUserId = admin?.UserId ?? field.OwnerId
+                AdminUserId = admin?.UserId ?? field.OwnerId,
+                Capabilities = FieldCapabilitiesResolver.Resolve(field, userId)
             });
         }
 
@@ -598,7 +614,7 @@ public class FieldPeopleService : IFieldPeopleService
         return string.IsNullOrWhiteSpace(name) ? user.Email : name;
     }
 
-    private static FieldInviteDto ToInviteDto(FieldInvite invite, string? publicAppBaseUrl)
+    private static FieldInviteDto ToInviteDto(FieldInvite invite, string? publicAppBaseUrl, string? invitedByName = null)
     {
         var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.oleachron.local" : publicAppBaseUrl.TrimEnd('/');
         var shareUrl = $"{baseUrl}/invite/{invite.Token}";
@@ -612,8 +628,13 @@ public class FieldPeopleService : IFieldPeopleService
             FieldId = invite.FieldId,
             FieldName = invite.FieldName,
             InvitedBy = invite.InvitedBy,
+            InvitedByName = invitedByName,
             Role = invite.Role.ToString(),
-            Modules = invite.Modules.ToList(),
+            Modules = invite.Modules
+                .Select(FamilyModules.Normalize)
+                .Where(FamilyModules.IsKnown)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
             AccessLevel = invite.AccessLevel,
             Phone = invite.Phone,
             Email = invite.Email,

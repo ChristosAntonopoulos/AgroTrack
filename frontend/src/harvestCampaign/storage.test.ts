@@ -4,9 +4,11 @@ import {
   addMillWeight,
   addPeople,
   addSack,
+  closeHarvestDay,
   linkSacksToMill,
   moveField,
   parseCampaign,
+  reopenHarvestDay,
   startCampaign,
   stopCampaign,
   toggleGroveDone,
@@ -46,6 +48,15 @@ describe('harvest campaign storage', () => {
   it('ignores corrupt stored JSON', () => {
     expect(parseCampaign({ status: 'nope', fieldOrder: 'x' }, 2026).status).toBe('idle');
     expect(parseCampaign(null, 2026).fieldOrder).toEqual([]);
+  });
+
+  it('reopens a closed harvest day so records can change', () => {
+    let campaign = startCampaign(emptyCampaign(2026), { fieldOrder: ['f1'] });
+    campaign = closeHarvestDay(campaign, '2026-09-21');
+    expect(campaign.closedDays).toContain('2026-09-21');
+    campaign = reopenHarvestDay(campaign, '2026-09-21');
+    expect(campaign.closedDays).not.toContain('2026-09-21');
+    expect(daySummary(campaign, '2026-09-21').closed).toBe(false);
   });
 
   it('migrates older day logs into mill weights and people', () => {

@@ -19,9 +19,9 @@ namespace OliveLifecycle.Application.Services;
 public class FieldService : IFieldService
 {
     private readonly IFieldRepository _fieldRepository;
-    private readonly IFieldTaskRepository _fieldTasks;
     private readonly IUserRepository _userRepository;
     private readonly IFieldAccessService _fieldAccessService;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IActivityService _activityService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IFieldAreaCalculator _fieldAreaCalculator;
@@ -36,9 +36,9 @@ public class FieldService : IFieldService
 
     public FieldService(
         IFieldRepository fieldRepository,
-        IFieldTaskRepository fieldTasks,
         IUserRepository userRepository,
         IFieldAccessService fieldAccessService,
+        IFieldAccessScopeService fieldAccessScope,
         IActivityService activityService,
         IDateTimeProvider dateTimeProvider,
         IFieldAreaCalculator fieldAreaCalculator,
@@ -52,9 +52,9 @@ public class FieldService : IFieldService
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
-        _fieldTasks = fieldTasks;
         _userRepository = userRepository;
         _fieldAccessService = fieldAccessService;
+        _fieldAccessScope = fieldAccessScope;
         _activityService = activityService;
         _dateTimeProvider = dateTimeProvider;
         _fieldAreaCalculator = fieldAreaCalculator;
@@ -185,12 +185,13 @@ public class FieldService : IFieldService
         {
             await QueueFieldIntelligenceAsync(createdField.Id, cancellationToken);
         }
-        return FieldMapper.ToDto(createdField);
+        return ToDtoForUser(createdField, ownerId);
     }
 
     public async Task<FieldDto?> GetFieldByIdAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(id, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                id, userId, userRole, FamilyModules.Fields, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
@@ -201,46 +202,20 @@ public class FieldService : IFieldService
             return null;
         }
 
-        var includeDocuments = await _fieldAccessService.CanUserAccessFieldDocumentsAsync(id, userId, userRole, cancellationToken);
-        return FieldMapper.ToDto(field, includeDocuments);
+        return ToDtoForUser(field, userId, userRole);
     }
 
     public async Task<IEnumerable<FieldDto>> GetFieldsByOwnerAsync(string ownerId, CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetByOwnerIdAsync(ownerId, cancellationToken);
-        return fields.Select(f => FieldMapper.ToDto(f));
+        return fields.Select(f => ToDtoForUser(f, ownerId));
     }
 
     public async Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(string userId, string userRole, CancellationToken cancellationToken = default)
     {
-        var fields = new List<FieldEntity>();
-
-        // Seat-based list only — no owner-wide family/partner expansion.
-        fields.AddRange(await _fieldRepository.GetByMemberUserIdAsync(userId, cancellationToken));
-
-        // Dual-read: fields where user is still only OwnerId without People seats.
-        fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken));
-
-        if (userRole == Roles.Producer)
-        {
-            var tasks = await _fieldTasks.QueryAsync(
-                new FieldTaskQuery { AssignedUserId = userId },
-                cancellationToken);
-            var fieldIds = tasks.Select(t => t.FieldId).Distinct().ToList();
-            if (fieldIds.Count > 0)
-            {
-                fields.AddRange(await _fieldRepository.GetByIdsAsync(fieldIds, cancellationToken));
-            }
-        }
-
-        return fields.DistinctBy(f => f.Id).Select(f =>
-        {
-            FieldPeopleRules.EnsureNormalized(f);
-            var includeDocuments = FieldPeopleRules.IsAdmin(f, userId)
-                || FieldPeopleRules.HasModule(f, userId, FamilyModules.Documents)
-                || userRole == Roles.Administrator;
-            return FieldMapper.ToDto(f, includeDocuments);
-        });
+        var fields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, FamilyModules.Fields, cancellationToken);
+        return fields.Select(f => ToDtoForUser(f, userId, userRole));
     }
 
     public async Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default)
@@ -257,7 +232,7 @@ public class FieldService : IFieldService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
 
         var updatedField = await _fieldRepository.UpdateAsync(field, cancellationToken);
-        return FieldMapper.ToDto(updatedField);
+        return ToDtoForUser(updatedField, userId);
     }
 
     public async Task<bool> DeleteFieldAsync(string id, string userId, CancellationToken cancellationToken = default)
@@ -428,7 +403,7 @@ public class FieldService : IFieldService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         await QueueFieldIntelligenceAsync(updated.Id, cancellationToken);
-        return FieldMapper.ToDto(updated);
+        return ToDtoForUser(updated, userId);
     }
 
     public async Task<FieldAreaValidationResponse> ValidateAreaAsync(
@@ -437,7 +412,8 @@ public class FieldService : IFieldService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(id, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                id, userId, userRole, FamilyModules.Fields, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
@@ -472,7 +448,9 @@ public class FieldService : IFieldService
             throw new ForbiddenException("You do not have permission to activate this field.");
         }
 
-        if (!request.BoundaryConfirmed)
+        // Boundary is optional for activation (location/point is enough).
+        // When a polygon exists, the user must confirm it.
+        if (field.Boundary != null && !request.BoundaryConfirmed)
         {
             throw new ValidationException("Boundary confirmation is required before activation.");
         }
@@ -490,11 +468,6 @@ public class FieldService : IFieldService
         if (string.IsNullOrWhiteSpace(field.CropType))
         {
             throw new ValidationException("Crop type is required.");
-        }
-
-        if (field.Boundary == null)
-        {
-            throw new ValidationException("Boundary polygon is required before activation.");
         }
 
         field.Status = FieldStatus.Active;
@@ -519,7 +492,7 @@ public class FieldService : IFieldService
 
         return new ActivateFieldResponse
         {
-            Field = FieldMapper.ToDto(updated),
+            Field = ToDtoForUser(updated, userId, userRole),
             LifecycleInitialized = lifecycleInitialized,
             SuggestLifecyclePlan = suggestLifecyclePlan
         };
@@ -561,7 +534,7 @@ public class FieldService : IFieldService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
-        return FieldMapper.ToDto(updated);
+        return ToDtoForUser(updated, userId, userRole);
     }
 
     private void ApplyBoundary(FieldEntity field, GeoJsonPolygon polygon)
@@ -575,6 +548,29 @@ public class FieldService : IFieldService
             Latitude = areaResult.CenterPoint.Coordinates[1],
             Longitude = areaResult.CenterPoint.Coordinates[0]
         };
+    }
+
+    private static FieldDto ToDtoForUser(FieldEntity field, string userId, string? userRole = null)
+    {
+        var capabilities = FieldCapabilitiesResolver.Resolve(field, userId, userRole);
+        var dto = FieldMapper.ToDto(field, includeDocuments: false);
+        dto.Capabilities = capabilities;
+
+        if (!capabilities.CanViewSensitiveIdentity)
+        {
+            dto.Latitude = null;
+            dto.Longitude = null;
+            dto.CenterPoint = null;
+            dto.AccessNotes = null;
+            dto.GreekCadastre = null;
+        }
+
+        if (!capabilities.CanViewBoundary)
+        {
+            dto.Boundary = null;
+        }
+
+        return dto;
     }
 
     private void ApplyUpdate(FieldEntity field, UpdateFieldDto updateFieldDto)

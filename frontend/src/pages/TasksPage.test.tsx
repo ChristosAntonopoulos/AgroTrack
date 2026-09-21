@@ -169,7 +169,7 @@ describe('TasksPage Phase 1 shell', () => {
         userId: 'u-kostas',
         displayName: 'Κώστας',
         role: 'Partner',
-        modules: ['fields', 'tasks', 'calendar'],
+        modules: ['fields', 'tasks', 'photos', 'chronologio'],
         accessLevel: 'work',
         status: 'active',
         createdAt: '2026-01-01T00:00:00Z',

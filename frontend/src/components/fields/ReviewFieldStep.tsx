@@ -18,6 +18,8 @@ interface Props {
   boundaryConfirmed: boolean;
   onBoundaryConfirmedChange: (v: boolean) => void;
   onWorksMyselfChange: (v: boolean) => void;
+  isActiveEdit?: boolean;
+  requireBoundaryConfirm?: boolean;
 }
 
 const ReviewFieldStep: React.FC<Props> = ({
@@ -27,6 +29,8 @@ const ReviewFieldStep: React.FC<Props> = ({
   boundaryConfirmed,
   onBoundaryConfirmedChange,
   onWorksMyselfChange,
+  isActiveEdit = false,
+  requireBoundaryConfirm = true,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = normalizeLocale(i18n.language);
@@ -43,6 +47,8 @@ const ReviewFieldStep: React.FC<Props> = ({
     name: formData.name,
     color: formData.color,
     boundary,
+    latitude: formData.latitude,
+    longitude: formData.longitude,
   } as Field;
 
   const facts = [
@@ -77,11 +83,15 @@ const ReviewFieldStep: React.FC<Props> = ({
     tone?: 'ok' | 'muted';
   }>;
 
+  const showBoundaryConfirm = Boolean(boundary) && requireBoundaryConfirm;
+
   return (
     <div className="field-form-panel field-review">
       <header className="field-review-header">
-        <h2>{t('addField.steps.review')}</h2>
-        <p className="field-form-panel-desc">{t('addField.reviewDesc')}</p>
+        <h2>{isActiveEdit ? t('form.editReviewTitle') : t('addField.steps.review')}</h2>
+        <p className="field-form-panel-desc">
+          {isActiveEdit ? t('form.editReviewDesc') : t('addField.reviewDesc')}
+        </p>
       </header>
 
       <section className="field-review-hero" aria-label={t('form.name')}>
@@ -113,9 +123,15 @@ const ReviewFieldStep: React.FC<Props> = ({
         })}
       </dl>
 
+      {!boundary ? (
+        <p className="field-review-no-boundary" role="status">
+          {t('addField.reviewNoBoundaryNote')}
+        </p>
+      ) : null}
+
       <AreaComparisonCard
         validation={areaValidation}
-        measuredAreaSqm={formData.area}
+        measuredAreaSqm={formData.area > 0 ? formData.area : undefined}
       />
 
       <div className="review-checkboxes">
@@ -130,17 +146,19 @@ const ReviewFieldStep: React.FC<Props> = ({
             <em>{t('addField.worksThisFieldMyselfHint')}</em>
           </span>
         </label>
-        <label className={`review-checkbox${boundaryConfirmed ? ' is-checked' : ''}`}>
-          <input
-            type="checkbox"
-            checked={boundaryConfirmed}
-            onChange={(e) => onBoundaryConfirmedChange(e.target.checked)}
-          />
-          <span>
-            <strong>{t('addField.confirmBoundary')}</strong>
-          </span>
-          {boundaryConfirmed ? <Check className="review-checkbox-mark" size={18} strokeWidth={2.4} aria-hidden /> : null}
-        </label>
+        {showBoundaryConfirm ? (
+          <label className={`review-checkbox${boundaryConfirmed ? ' is-checked' : ''}`}>
+            <input
+              type="checkbox"
+              checked={boundaryConfirmed}
+              onChange={(e) => onBoundaryConfirmedChange(e.target.checked)}
+            />
+            <span>
+              <strong>{t('addField.confirmBoundary')}</strong>
+            </span>
+            {boundaryConfirmed ? <Check className="review-checkbox-mark" size={18} strokeWidth={2.4} aria-hidden /> : null}
+          </label>
+        ) : null}
       </div>
     </div>
   );

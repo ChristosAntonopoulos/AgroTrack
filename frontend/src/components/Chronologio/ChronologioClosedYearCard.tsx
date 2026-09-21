@@ -9,6 +9,7 @@ import { formatGroveMassKg } from '../../utils/groveTotals';
 import {
   harvestYearCopyKey,
   yearComparison,
+  yearComparisonCopyKey,
   yearHeadline,
   type AgriculturalYearState,
 } from '../../chronologio/yearPresentation';
@@ -89,8 +90,9 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
 
         {comparison ? (
           <p className="chrono-year-comparison">
-            {t(`yearView.compare.${comparison.kind}${comparison.percent >= 0 ? 'Up' : 'Down'}`, {
-              pct: Math.abs(comparison.percent),
+            {t(yearComparisonCopyKey(comparison), {
+              context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+              pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
               year: comparison.previousYear,
             })}
           </p>

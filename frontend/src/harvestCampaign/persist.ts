@@ -104,7 +104,14 @@ export async function persistMillRecord(
         harvestDate: atNoon(entry.date),
         harvestMethod: HARVEST_METHOD_MILL,
         oliveKg: Math.round(oliveKg * 1000) / 1000,
-        notes: shareNote(entry.note, share.weight, totalWeight, effectiveShares.length),
+        notes: shareNote(
+          [entry.receiptRef ? `receipt: ${entry.receiptRef}` : '', entry.note]
+            .filter(Boolean)
+            .join(' · ') || undefined,
+          share.weight,
+          totalWeight,
+          effectiveShares.length
+        ),
         batchId,
         allocationWeight: share.weight,
       });

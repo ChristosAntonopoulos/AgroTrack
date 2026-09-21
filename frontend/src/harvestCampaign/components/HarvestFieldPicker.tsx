@@ -13,6 +13,8 @@ type SingleProps = {
   noneLabel?: string;
   recommendation?: FieldLocationGuess | null;
   sectionLabel?: string;
+  /** When true, show a fixed field label (single participant) — no chip picker. */
+  locked?: boolean;
 };
 
 type MultiProps = {
@@ -24,6 +26,7 @@ type MultiProps = {
   noneLabel?: never;
   recommendation?: never;
   sectionLabel?: string;
+  locked?: never;
 };
 
 export type HarvestFieldPickerProps = SingleProps | MultiProps;
@@ -46,29 +49,47 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
     return (
       <>
         {section}
-        <div className="money-chips">
-          {props.fields.map((field) => (
-            <button
-              key={field.id}
-              type="button"
-              className={`money-chip${props.value.includes(field.id) ? ' is-active' : ''}`}
-              onClick={() =>
-                props.onChange(
-                  props.value.includes(field.id)
-                    ? props.value.filter((id) => id !== field.id)
-                    : [...props.value, field.id]
-                )
-              }
-            >
-              {friendlyFieldLabel(field.name)}
-            </button>
-          ))}
+        <div className="money-chips" role="group" aria-label={props.sectionLabel}>
+          {props.fields.map((field) => {
+            const pressed = props.value.includes(field.id);
+            return (
+              <button
+                key={field.id}
+                type="button"
+                className={`money-chip${pressed ? ' is-active' : ''}`}
+                aria-pressed={pressed}
+                onClick={() =>
+                  props.onChange(
+                    pressed
+                      ? props.value.filter((id) => id !== field.id)
+                      : [...props.value, field.id]
+                  )
+                }
+              >
+                {friendlyFieldLabel(field.name)}
+              </button>
+            );
+          })}
         </div>
       </>
     );
   }
 
-  const { fields, value, onChange, allowNone, noneLabel, recommendation } = props;
+  const { fields, value, onChange, allowNone, noneLabel, recommendation, locked } = props;
+
+  if (locked && value) {
+    const field = fields.find((f) => f.id === value);
+    return (
+      <>
+        {section}
+        <p className="hc-field-locked" aria-live="polite">
+          <span className="hc-kicker">{t('harvestCampaign.fieldLockedLabel')}</span>
+          <strong>{friendlyFieldLabel(field?.name || value)}</strong>
+        </p>
+      </>
+    );
+  }
+
   const guessed = recommendation?.confident ? recommendation.field : null;
   const showGuessPrompt = Boolean(guessed) && !userChoseField && !acceptedGuess && !dismissedGuess;
   const showLockedGuess = Boolean(guessed) && acceptedGuess && !userChoseField && !dismissedGuess;
@@ -143,21 +164,26 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
   return (
     <>
       {section}
-      <div className="money-chips">
-        {fields.map((field) => (
-          <button
-            key={field.id}
-            type="button"
-            className={`money-chip${value === field.id ? ' is-active' : ''}`}
-            onClick={() => pickManual(field.id)}
-          >
-            {friendlyFieldLabel(field.name)}
-          </button>
-        ))}
+      <div className="money-chips" role="group" aria-label={props.sectionLabel}>
+        {fields.map((field) => {
+          const pressed = value === field.id;
+          return (
+            <button
+              key={field.id}
+              type="button"
+              className={`money-chip${pressed ? ' is-active' : ''}`}
+              aria-pressed={pressed}
+              onClick={() => pickManual(field.id)}
+            >
+              {friendlyFieldLabel(field.name)}
+            </button>
+          );
+        })}
         {allowNone ? (
           <button
             type="button"
             className={`money-chip${!value ? ' is-active' : ''}`}
+            aria-pressed={!value}
             onClick={() => pickManual('')}
           >
             {noneLabel || t('harvestCampaign.millKg.split.none')}

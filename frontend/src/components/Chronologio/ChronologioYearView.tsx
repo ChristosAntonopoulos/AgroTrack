@@ -39,6 +39,8 @@ type Props = {
   weatherByMonth?: Record<string, ChronologioWeatherDetails>;
   fieldId?: string;
   showField?: boolean;
+  /** All in-scope grove names (for missing-weather callouts). */
+  groveNames?: { id: string; name: string }[];
   selectedEntryId?: string | null;
   onPeekMonth: (year: number, month: number) => void;
   onOpenMonthDays: (year: number, month: number) => void;
@@ -86,6 +88,7 @@ const ChronologioYearView: React.FC<Props> = ({
   weatherByMonth,
   fieldId,
   showField = false,
+  groveNames = [],
   selectedEntryId,
   onPeekMonth,
   onOpenMonthDays,
@@ -149,10 +152,10 @@ const ChronologioYearView: React.FC<Props> = ({
       if (!row) return 168;
       if (row.kind === 'season') return 44;
       const picks = showField ? row.reviews.length : 0;
-      const cards = row.entries.length || 2;
       const empty = !monthHasActivity(row.month) && row.entries.length === 0 && row.reviews.length === 0;
       if (empty) return 88;
-      return 118 + (picks > 1 ? 176 : 0) + Math.ceil(Math.max(1, cards) / 2) * 156;
+      // Summary chips + optional spotlight + CTA (not a full journal grid).
+      return 168 + (picks > 1 ? 176 : 0) + 72;
     },
     overscan: 6,
     paddingEnd: 32,
@@ -216,6 +219,18 @@ const ChronologioYearView: React.FC<Props> = ({
                     locale={locale}
                     fieldId={fieldId}
                     showField={showField}
+                    missingWeatherFields={
+                      showField && groveNames.length > 0
+                        ? groveNames
+                            .filter(
+                              (g) =>
+                                !row.reviews.some(
+                                  (r) => r.fieldId === g.id || r.field?.id === g.id
+                                )
+                            )
+                            .map((g) => g.name)
+                        : []
+                    }
                     selectedEntryId={selectedEntryId}
                     active={row.month.month === focusMonth && row.month.year === focusMonthYear}
                     isCurrent={row.month.month === nowMonth && row.month.year === nowYear}

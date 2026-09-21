@@ -20,7 +20,7 @@ import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/phot
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOfflineMode } from '../../context/OfflineContext';
-import { useFamilyMembershipModules } from '../../hooks/useFamilyMembershipModules';
+import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../../hooks/useFamilyMembershipModules';
 import Button from '../ui/Button';
 import Sheet from '../ui/Sheet';
 import MoneyCaptureForm from './MoneyCaptureForm';
@@ -67,6 +67,7 @@ const CaptureSheet: React.FC<Props> = ({
   const { colors, tapMin } = useTheme();
   const { user, isFieldOwner } = useAuth();
   const familyModules = useFamilyMembershipModules();
+  const accessLevel = useActiveFieldAccessLevel();
   const { isOnline } = useOfflineMode();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -98,8 +99,9 @@ const CaptureSheet: React.FC<Props> = ({
         canOwn: isFieldOwner() || fields.some((f) => f.ownerId === user?.id),
         canWork: true,
         familyModules,
+        accessLevel,
       }),
-    [fields, isFieldOwner, user?.id, familyModules]
+    [fields, isFieldOwner, user?.id, familyModules, accessLevel]
   );
 
   const workOptions = useMemo(

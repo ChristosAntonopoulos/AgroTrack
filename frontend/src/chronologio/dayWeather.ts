@@ -1,5 +1,6 @@
 import { weatherFromMeasured, type WeatherValue } from './weatherValue';
 import { kmhToBeaufort } from '../today/buildDailyBrief';
+import { athensCalendarDateKey } from '../utils/athensDate';
 
 export type DayWeatherInput = {
   minC?: number | null;
@@ -10,10 +11,12 @@ export type DayWeatherInput = {
   gustKmh?: number | null;
   humidityPercent?: number | null;
   et0Mm?: number | null;
+  waterBalanceMm?: number | null;
   source?: string | null;
   updatedAt?: string | null;
   frost?: boolean;
   heat?: boolean;
+  fieldId?: string | null;
 };
 
 export type DayWeatherView = {
@@ -52,11 +55,49 @@ export const buildDayWeatherView = (
   return { missing, tempLabel, rain, windBft };
 };
 
+/** Athens calendar day — matches harvest/Chronologio business dates. */
 export const dayWeatherDateKey = (value: string | Date): string => {
-  const d = typeof value === 'string' ? new Date(value.length <= 10 ? `${value}T12:00:00` : value) : value;
-  if (Number.isNaN(d.getTime())) return '';
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  try {
+    return athensCalendarDateKey(value);
+  } catch {
+    return '';
+  }
+};
+
+/** Matches backend WeatherIntelligenceService.ComputeGridKey (2 decimal places). */
+export const weatherGridKey = (latitude: number, longitude: number): string =>
+  `${latitude.toFixed(2)},${longitude.toFixed(2)}`;
+
+export type FieldPlace = {
+  id: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+/**
+ * Fields that share the same weather grid cell as `fieldId`.
+ * Returns only `fieldId` when coordinates are missing.
+ */
+export const fieldsSharingWeatherGrid = (
+  fieldId: string,
+  fields: FieldPlace[]
+): string[] => {
+  const anchor = fields.find((f) => f.id === fieldId);
+  if (!anchor || anchor.latitude == null || anchor.longitude == null) return [fieldId];
+  const key = weatherGridKey(anchor.latitude, anchor.longitude);
+  const shared = fields
+    .filter((f) => f.latitude != null && f.longitude != null)
+    .filter((f) => weatherGridKey(f.latitude!, f.longitude!) === key)
+    .map((f) => f.id);
+  return shared.length ? shared : [fieldId];
+};
+
+/** Same-conditions association: field (or shared grid) + Athens date. */
+export const entryMatchesDayWeather = (
+  entry: { fieldId?: string | null; occurredAt: string },
+  opts: { dateKey: string; fieldIds: string[] }
+): boolean => {
+  if (dayWeatherDateKey(entry.occurredAt) !== opts.dateKey) return false;
+  if (!entry.fieldId) return false;
+  return opts.fieldIds.includes(entry.fieldId);
 };

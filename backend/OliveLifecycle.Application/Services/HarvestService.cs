@@ -53,9 +53,10 @@ public class HarvestService : IHarvestService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(dto.FieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                dto.FieldId, userId, userRole, FamilyModules.Harvest, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
         await EnsureHarvestModuleAsync(dto.FieldId, userId, userRole, write: true, cancellationToken);
@@ -140,9 +141,10 @@ public class HarvestService : IHarvestService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                fieldId, userId, userRole, FamilyModules.Harvest, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
         await EnsureHarvestModuleAsync(fieldId, userId, userRole, write: false, cancellationToken);
@@ -163,9 +165,10 @@ public class HarvestService : IHarvestService
         var record = await _harvestRecordRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Harvest record not found.");
 
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(record.FieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                record.FieldId, userId, userRole, FamilyModules.Harvest, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
         if (!await _fieldAccessService.CanUserModifyFieldAsync(record.FieldId, userId, cancellationToken)

@@ -1,7 +1,7 @@
 import { emptyCampaign, type HarvestCampaign } from './types';
 import { unconfirmedSacks } from './storage';
 import { campaignTotals, oilAmountToKg } from './totals';
-import { pendingSacksByDay, suggestMillIncludes } from './chain';
+import { pendingSacksByDay, suggestMillIncludes, harvestChainStatus } from './chain';
 
 describe('harvest chain helpers', () => {
   const base: HarvestCampaign = {
@@ -74,5 +74,34 @@ describe('harvest chain helpers', () => {
         createdAt: '',
       })
     ).toBe(10);
+  });
+
+  it('does not advertise an implausible latest yield', () => {
+    const campaign: HarvestCampaign = {
+      ...emptyCampaign(2026),
+      status: 'active',
+      millWeights: [
+        {
+          id: 'm1',
+          date: '2026-09-21',
+          kg: 10,
+          fieldIds: ['f1'],
+          sackIds: [],
+          createdAt: '2026-09-21T18:00:00Z',
+        },
+      ],
+      oils: [
+        {
+          id: 'o1',
+          date: '2026-09-21',
+          amount: 65,
+          unit: 'kg',
+          millWeightIds: ['m1'],
+          fieldIds: ['f1'],
+          createdAt: '2026-09-21T19:00:00Z',
+        },
+      ],
+    };
+    expect(harvestChainStatus(campaign).latestCompleteYield).toBeNull();
   });
 });

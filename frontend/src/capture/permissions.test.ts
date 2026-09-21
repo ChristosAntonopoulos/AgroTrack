@@ -38,9 +38,9 @@ describe('capture money permissions', () => {
       hasAnyFieldAccess: true,
       canOwn: true,
       canWork: true,
-      familyModules: new Set(['fields', 'tasks']),
+      familyModules: new Set(['fields', 'tasks', 'chronologio']),
     });
-    expect(perms.canRecordExpense).toBe(true);
+    expect(perms.canRecordExpense).toBe(false);
     expect(perms.canRecordObservation).toBe(true);
     expect(perms.canRecordWork).toBe(true);
     expect(perms.canRecordIncome).toBe(false);
@@ -70,7 +70,7 @@ describe('capture money permissions', () => {
       canOwn: false,
       canWork: true,
       accessLevel: 'help',
-      familyModules: new Set(['fields', 'tasks', 'money', 'harvest']),
+      familyModules: new Set(['fields', 'tasks', 'chronologio', 'documents', 'money', 'harvest']),
     });
     expect(perms.canRecordObservation).toBe(true);
     expect(perms.canRecordWork).toBe(true);
@@ -93,5 +93,18 @@ describe('capture money permissions', () => {
     expect(perms.canRecordExpense).toBe(true);
     expect(perms.canRecordMoney).toBe(true);
     expect(perms.canRecordIncome).toBe(false);
+  });
+
+  it('empty collaborator modules deny feature capture', () => {
+    const perms = getAvailableCaptureActions({
+      hasAnyFieldAccess: true,
+      canOwn: false,
+      canWork: true,
+      familyModules: new Set(),
+    });
+    expect(perms.canRecordObservation).toBe(false);
+    expect(perms.canRecordWork).toBe(false);
+    expect(perms.canRecordMoney).toBe(false);
+    expect(perms.canRecordDocument).toBe(false);
   });
 });

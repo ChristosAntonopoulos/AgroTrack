@@ -10,6 +10,23 @@ export const FIELD_COLOR_PRESETS = [
   '#8B5A32',
 ] as const;
 
+/** Human-readable names for accessibility (not hex). */
+export const FIELD_COLOR_NAMES: Record<(typeof FIELD_COLOR_PRESETS)[number], string> = {
+  '#E8C547': 'Yellow',
+  '#B54422': 'Terracotta',
+  '#F0D48A': 'Sand',
+  '#6F3D1E': 'Brown',
+  '#E08A1F': 'Amber',
+  '#C45C48': 'Clay',
+  '#C9A07A': 'Tan',
+  '#8B5A32': 'Olive brown',
+};
+
+export const fieldColorNameKey = (hex: string): string => {
+  const upper = hex.trim().toUpperCase() as (typeof FIELD_COLOR_PRESETS)[number];
+  return FIELD_COLOR_NAMES[upper] ? `form.colorNames.${upper.replace('#', '')}` : hex;
+};
+
 export const DEFAULT_FIELD_COLOR = FIELD_COLOR_PRESETS[0];
 
 /** Previous presets — remap so existing groves pick up the wider earth cycle. */

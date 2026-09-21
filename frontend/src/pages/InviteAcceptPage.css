@@ -19,6 +19,32 @@
   color: var(--color-error);
 }
 
+.invite-preview {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+}
+
+.invite-preview div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.invite-preview dt {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.invite-preview dd {
+  margin: 0;
+  font-weight: 650;
+}
+
+.invite-preview-actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
 /* md = 768 */
 @media (max-width: 768px) {
   .invite-accept-page {

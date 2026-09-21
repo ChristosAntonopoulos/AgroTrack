@@ -39,10 +39,11 @@
   "primaryCategories": {
     "all": "Όλα",
     "work": "Εργασίες",
-    "observation": "Σημειώσεις",
+    "observation": "Παρατηρήσεις",
     "money": "Χρήματα",
     "harvest": "Συγκομιδή",
-    "weather": "Καιρός"
+    "weather": "Καιρός",
+    "field_change": "Αλλαγές χωραφιού"
   },
   "today": "Σήμερα",
   "yesterday": "Χθες",
@@ -105,6 +106,7 @@
     "allFields": "Όλα τα χωράφια",
     "statTasks": "{{count}} εργασίες",
     "metricTasks": "Εργασίες",
+    "noRecordedTasks": "Δεν υπάρχουν καταγεγραμμένες εργασίες",
     "metricExpenses": "Έξοδα",
     "metricOlives": "Ελιές",
     "metricOil": "Λάδι",
@@ -276,8 +278,10 @@
     "currentMonth": "Τρέχων μήνας",
     "addRecord": "Νέα καταγραφή",
     "noRecords": "Δεν υπάρχουν καταγραφές",
-    "workShort": "{{count}} εργασίες",
-    "notesShort": "{{count}} παρατηρήσεις",
+    "workShort_one": "{{count}} εργασία",
+    "workShort_other": "{{count}} εργασίες",
+    "notesShort_one": "{{count}} παρατήρηση",
+    "notesShort_other": "{{count}} παρατηρήσεις",
     "expensesShort": "{{amount}} έξοδα",
     "observationShortLabel": "Παρατηρήσεις",
     "harvestNotStarted": "Η συγκομιδή δεν έχει ξεκινήσει",
@@ -285,6 +289,7 @@
     "records": "{{count}} καταγραφές",
     "recordOne": "1 καταγραφή",
     "openDays": "Δες τις ημέρες",
+    "openMonth": "Άνοιγμα μήνα",
     "dominantWork": "Κύρια εργασία"
   },
   "yearView": {
@@ -304,14 +309,21 @@
     "stageOf": "{{stage}} · {{current}} από {{total}}",
     "mainResult": "Κύριο αποτέλεσμα συγκομιδής",
     "harvestNotStarted": "Η συγκομιδή δεν έχει ξεκινήσει",
-    "recordsFact": "{{count}} καταγραφές",
+    "recordsFact_one": "{{count}} καταγραφή",
+    "recordsFact_other": "{{count}} καταγραφές",
     "compare": {
       "oilUp": "+{{pct}}% λάδι έναντι {{year}}",
+      "oilUp_ytd": "Μέχρι σήμερα · +{{pct}}% λάδι σε σχέση με την ίδια ημερομηνία το {{year}}",
       "oilDown": "{{pct}}% λιγότερο λάδι από {{year}}",
+      "oilDown_ytd": "Μέχρι σήμερα · {{pct}}% λιγότερο λάδι σε σχέση με την ίδια ημερομηνία το {{year}}",
       "olivesUp": "+{{pct}}% ελιές έναντι {{year}}",
+      "olivesUp_ytd": "Μέχρι σήμερα · +{{pct}}% ελιές σε σχέση με την ίδια ημερομηνία το {{year}}",
       "olivesDown": "{{pct}}% λιγότερες ελιές από {{year}}",
+      "olivesDown_ytd": "Μέχρι σήμερα · {{pct}}% λιγότερες ελιές σε σχέση με την ίδια ημερομηνία το {{year}}",
       "expensesUp": "+{{pct}}% έξοδα έναντι {{year}}",
-      "expensesDown": "{{pct}}% χαμηλότερα έξοδα από {{year}}"
+      "expensesUp_ytd": "Μέχρι σήμερα · +{{pct}}% έξοδα σε σχέση με την ίδια ημερομηνία το {{year}}",
+      "expensesDown": "{{pct}}% χαμηλότερα έξοδα από {{year}}",
+      "expensesDown_ytd": "Μέχρι σήμερα · {{pct}}% χαμηλότερα έξοδα σε σχέση με την ίδια ημερομηνία το {{year}}"
     },
     "stages": {
       "afterHarvest": "Μετά τη συγκομιδή",

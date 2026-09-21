@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   FieldAccessLevel,
   FieldAccessSnapshot,
+  FieldCapabilities,
   FieldModule,
 } from '../services/fieldPeopleService';
 import {
@@ -21,6 +22,7 @@ export type ActiveFieldAccess = {
   modules: ReadonlySet<FieldModule> | null;
   /** Seat access level on the active field — null when Admin / unrestricted. */
   accessLevel: FieldAccessLevel | null;
+  capabilities: FieldCapabilities | null;
   isAdminOnActive: boolean;
   isCollaboratorOnActive: boolean;
   ownsAnyField: boolean;
@@ -70,6 +72,7 @@ export const useActiveFieldAccess = (): ActiveFieldAccess => {
         snapshot: null,
         modules: null,
         accessLevel: null,
+        capabilities: null,
         isAdminOnActive: ownsAnyField,
         isCollaboratorOnActive: false,
         ownsAnyField,
@@ -91,6 +94,7 @@ export const useActiveFieldAccess = (): ActiveFieldAccess => {
       snapshot,
       modules: isCollaboratorOnActive ? new Set(snapshot!.modules) : null,
       accessLevel: isCollaboratorOnActive ? snapshot!.accessLevel : null,
+      capabilities: snapshot?.capabilities || null,
       isAdminOnActive,
       isCollaboratorOnActive,
       ownsAnyField,

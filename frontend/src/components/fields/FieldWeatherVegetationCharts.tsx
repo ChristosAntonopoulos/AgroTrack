@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, parseISO, subDays, subYears } from 'date-fns';
+import { el, enUS, it } from 'date-fns/locale';
 import {
   DailyWeatherSnapshot,
   FieldSatelliteObservation,
@@ -29,6 +30,12 @@ type VegetationPoint = {
   ndmi?: number;
 };
 
+const dateFnsLocale = (language: string) => {
+  if (language.startsWith('el')) return el;
+  if (language.startsWith('it')) return it;
+  return enUS;
+};
+
 const rangeStart = (range: HistoryRange): Date => {
   const now = new Date();
   if (range === '90d') return subDays(now, 90);
@@ -44,11 +51,16 @@ const toDate = (value: string): Date => {
 const round = (value: number | undefined, digits = 1): number | undefined =>
   value == null || Number.isNaN(value) ? undefined : Number(value.toFixed(digits));
 
-const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange): WeatherPoint[] => {
+const aggregateWeather = (
+  snapshots: DailyWeatherSnapshot[],
+  range: HistoryRange,
+  language: string
+): WeatherPoint[] => {
+  const locale = dateFnsLocale(language);
   const sorted = [...snapshots].sort((a, b) => toDate(a.date).getTime() - toDate(b.date).getTime());
   if (range === '90d') {
     return sorted.map((day) => ({
-      label: format(toDate(day.date), 'd MMM'),
+      label: format(toDate(day.date), 'd MMM', { locale }),
       min: round(day.minTemperatureC),
       max: round(day.maxTemperatureC),
       rain: round(day.rainTotalMm),
@@ -69,7 +81,7 @@ const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange
   }
 
   return [...months.values()].map((month) => ({
-    label: format(month.date, 'MMM yyyy'),
+    label: format(month.date, 'MMM yyyy', { locale }),
     min: month.min.length ? round(month.min.reduce((a, b) => a + b, 0) / month.min.length) : undefined,
     max: month.max.length ? round(month.max.reduce((a, b) => a + b, 0) / month.max.length) : undefined,
     rain: round(month.rain),
@@ -87,7 +99,7 @@ type Props = {
  * Multi-year weather + vegetation charts (relocated from Field History).
  */
 const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName, compact = false }) => {
-  const { t } = useTranslation(['chronologio']);
+  const { t, i18n } = useTranslation(['chronologio']);
   const [snapshots, setSnapshots] = useState<DailyWeatherSnapshot[]>([]);
   const [observations, setObservations] = useState<FieldSatelliteObservation[]>([]);
   const [range, setRange] = useState<HistoryRange>('1y');
@@ -145,18 +157,22 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName, com
     return () => window.clearInterval(timer);
   }, [fieldId, range, loading, gathering]);
 
-  const weatherPoints = useMemo(() => aggregateWeather(snapshots, range), [snapshots, range]);
+  const weatherPoints = useMemo(
+    () => aggregateWeather(snapshots, range, i18n.language),
+    [snapshots, range, i18n.language]
+  );
   const vegetationPoints = useMemo<VegetationPoint[]>(() => {
     const start = rangeStart(range).getTime();
+    const locale = dateFnsLocale(i18n.language);
     return observations
       .filter((item) => item.isUsable && item.ndvi && toDate(item.observationDate).getTime() >= start)
       .sort((a, b) => toDate(a.observationDate).getTime() - toDate(b.observationDate).getTime())
       .map((item) => ({
-        label: format(toDate(item.observationDate), range === '90d' ? 'd MMM' : 'MMM yyyy'),
+        label: format(toDate(item.observationDate), range === '90d' ? 'd MMM' : 'MMM yyyy', { locale }),
         ndvi: round(item.ndvi?.mean, 2),
         ndmi: round(item.ndmi?.mean, 2),
       }));
-  }, [observations, range]);
+  }, [observations, range, i18n.language]);
 
   const ranges: { id: HistoryRange; label: string }[] = [
     { id: '90d', label: t('chronologio:weatherVegetation.range90d') },

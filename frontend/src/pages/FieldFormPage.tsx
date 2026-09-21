@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useBlocker } from 'react-router-dom';
 import { getFieldService } from '../services/serviceFactory';
 import {
   CreateFieldDto,
@@ -27,6 +27,7 @@ import {
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
 import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
+import { validateBoundaryPolygon } from '../utils/boundaryValidation';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
@@ -41,6 +42,8 @@ const FieldFormPage: React.FC = () => {
 
   const [step, setStep] = useState<WizardStep | 'basics-edit'>('basics');
   const [draftFieldId, setDraftFieldId] = useState<string | null>(null);
+  const [fieldStatus, setFieldStatus] = useState<string | undefined>();
+  const [initialBoundary, setInitialBoundary] = useState<GeoJsonPolygon | undefined>();
   const [formData, setFormData] = useState<CreateFieldDto>({
     name: '',
     cropType: 'Olive',
@@ -56,10 +59,43 @@ const FieldFormPage: React.FC = () => {
   const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const allowLeaveRef = useRef(false);
+
+  const isActiveEdit = isEdit && fieldStatus === 'Active';
 
   useEffect(() => {
-    if (isEdit && id) loadField();
+    if (isEdit && id) void loadField();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty || allowLeaveRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty &&
+      !allowLeaveRef.current &&
+      currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    const leave = window.confirm(t('fields:form.unsavedLeave'));
+    if (leave) {
+      allowLeaveRef.current = true;
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [blocker, t]);
 
   const loadField = async () => {
     try {
@@ -85,8 +121,16 @@ const FieldFormPage: React.FC = () => {
         status: field.status,
       });
       setBoundary(field.boundary);
+      setInitialBoundary(field.boundary);
       setDraftFieldId(field.id);
-      setStep(getFieldSetupResumeStep(field) as WizardStep);
+      setFieldStatus(field.status);
+      if (field.status === 'Active') {
+        setBoundaryConfirmed(true);
+        setStep('basics-edit');
+      } else {
+        setStep(getFieldSetupResumeStep(field) as WizardStep);
+      }
+      setDirty(false);
     } catch {
       setError(t('fields:form.failedLoad'));
     } finally {
@@ -102,11 +146,14 @@ const FieldFormPage: React.FC = () => {
   const isFirst = stepIndex <= 0;
   const isLast = stepIndex === activeSteps.length - 1;
 
+  const markDirty = useCallback(() => setDirty(true), []);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    markDirty();
     setFormData((prev) => ({
       ...prev,
       [name]:
@@ -133,9 +180,15 @@ const FieldFormPage: React.FC = () => {
   };
 
   const handleBoundaryChange = async (geo?: GeoJsonPolygon, areaSqm?: number) => {
+    markDirty();
     setBoundary(geo);
     if (areaSqm != null) setFormData((prev) => ({ ...prev, area: areaSqm }));
-    if (geo && draftFieldId) {
+    if (!geo) {
+      setBoundaryConfirmed(false);
+      return;
+    }
+    // Only persist boundary when a draft already exists (explicit save/edit).
+    if (draftFieldId) {
       try {
         await getFieldService().updateBoundary(draftFieldId, geo);
         const validation = await getFieldService().validateArea(draftFieldId);
@@ -146,13 +199,19 @@ const FieldFormPage: React.FC = () => {
     }
   };
 
+  const boundaryChanged =
+    JSON.stringify(boundary?.coordinates ?? null) !==
+    JSON.stringify(initialBoundary?.coordinates ?? null);
+
   const validateStep = (): string | null => {
     if (step === 'basics' || step === ('basics-edit' as WizardStep)) {
       if (!formData.name.trim() || formData.name.length < 2) return t('fields:form.errors.nameRequired');
     }
-    if (step === 'boundary' && !boundary) return t('fields:addField.errors.boundaryRequired');
+    // Boundary is optional — unfinished drawing is cleared when skipping / continuing.
     if (step === 'review') {
-      if (boundary && !boundaryConfirmed) return t('fields:addField.errors.confirmBoundary');
+      if (boundary && !boundaryConfirmed && (!isActiveEdit || boundaryChanged)) {
+        return t('fields:addField.errors.confirmBoundary');
+      }
     }
     return null;
   };
@@ -164,12 +223,16 @@ const FieldFormPage: React.FC = () => {
       return;
     }
     setError(null);
-
-    if (step === 'basics') {
-      await ensureDraftField();
-    }
-
+    // Do not create a backend draft when leaving Basics — only on Save draft / Activate.
     if (!isLast) setStep(activeSteps[stepIndex + 1] as WizardStep);
+  };
+
+  const skipBoundary = () => {
+    setBoundary(undefined);
+    setFormData((prev) => ({ ...prev, area: 0 }));
+    setBoundaryConfirmed(false);
+    setError(null);
+    setStep('crop');
   };
 
   const goBack = () => {
@@ -189,6 +252,12 @@ const FieldFormPage: React.FC = () => {
       color: formData.color,
     }) as UpdateFieldDto;
 
+  const leaveClean = (path: string) => {
+    allowLeaveRef.current = true;
+    setDirty(false);
+    navigate(path);
+  };
+
   const handleSaveDraft = async () => {
     setLoading(true);
     setError(null);
@@ -197,10 +266,16 @@ const FieldFormPage: React.FC = () => {
       await getFieldService().updateField(fieldId, fieldPayload());
 
       if (boundary) {
+        const validation = validateBoundaryPolygon(boundary);
+        if (!validation.ok) {
+          setError(t(`fields:addField.boundaryValidation.${validation.code}`));
+          setLoading(false);
+          return;
+        }
         await getFieldService().updateBoundary(fieldId, boundary);
       }
 
-      navigate(`/fields/${fieldId}`);
+      leaveClean(`/fields/${fieldId}`);
     } catch {
       setError(t('fields:form.failedSave'));
     } finally {
@@ -208,26 +283,48 @@ const FieldFormPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!id) return;
-    if (!window.confirm(t('fields:deleteConfirm'))) return;
+  const handleSaveActiveChanges = async () => {
+    const err = validateStep();
+    if (err) {
+      setError(err);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await getFieldService().deleteField(id);
-      navigate('/fields');
+      const fieldId = draftFieldId || id!;
+      await getFieldService().updateField(fieldId, fieldPayload());
+
+      if (boundary && boundaryChanged) {
+        const validation = validateBoundaryPolygon(boundary);
+        if (!validation.ok) {
+          setError(t(`fields:addField.boundaryValidation.${validation.code}`));
+          setLoading(false);
+          return;
+        }
+        await getFieldService().updateBoundary(fieldId, boundary);
+      }
+
+      leaveClean(`/fields/${fieldId}`);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fields:failedDelete'));
+      setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleActivate = async () => {
+  const handleActivateWithState = async () => {
     const err = validateStep();
     if (err) {
       setError(err);
       return;
+    }
+    if (boundary) {
+      const validation = validateBoundaryPolygon(boundary);
+      if (!validation.ok) {
+        setError(t(`fields:addField.boundaryValidation.${validation.code}`));
+        return;
+      }
     }
     setLoading(true);
     setError(null);
@@ -240,10 +337,12 @@ const FieldFormPage: React.FC = () => {
       }
 
       const result = await getFieldService().activateField(fieldId, {
-        boundaryConfirmed,
+        boundaryConfirmed: boundary ? boundaryConfirmed : true,
         cadastreReferenceAcknowledged: true,
       });
 
+      allowLeaveRef.current = true;
+      setDirty(false);
       navigate(`/fields/${result.field.id}/work-setup`, {
         state: result.suggestLifecyclePlan ? { suggestLifecyclePlan: true } : undefined,
       });
@@ -274,6 +373,11 @@ const FieldFormPage: React.FC = () => {
     return <LoadingSpinner fullScreen />;
   }
 
+  const primaryLastAction = isActiveEdit ? handleSaveActiveChanges : handleActivateWithState;
+  const primaryLastLabel = isActiveEdit
+    ? t('fields:form.saveChanges')
+    : t('fields:addField.activate');
+
   return (
     <PageContainer>
       <div className="field-form-page">
@@ -283,8 +387,16 @@ const FieldFormPage: React.FC = () => {
             {t('fields:controlRoom.backToFields')}
           </Button>
           <div>
-            <h1>{isEdit ? t('fields:form.editTitle') : t('fields:addField.title')}</h1>
-            <p className="field-form-subtitle">{t('fields:addField.subtitle')}</p>
+            <h1>
+              {isActiveEdit
+                ? t('fields:form.editTitle')
+                : isEdit
+                  ? t('fields:form.editTitle')
+                  : t('fields:addField.title')}
+            </h1>
+            <p className="field-form-subtitle">
+              {isActiveEdit ? t('fields:form.editSubtitle') : t('fields:addField.subtitle')}
+            </p>
           </div>
         </header>
 
@@ -322,15 +434,19 @@ const FieldFormPage: React.FC = () => {
               formData={formData}
               fieldId={draftFieldId || id}
               onChange={handleChange}
-              onLocationChange={(next) =>
+              onLocationChange={(next) => {
+                markDirty();
                 setFormData((prev) => ({
                   ...prev,
                   locationText: next.locationText,
                   latitude: next.latitude,
                   longitude: next.longitude,
-                }))
-              }
-              onColorChange={(color) => setFormData((prev) => ({ ...prev, color }))}
+                }));
+              }}
+              onColorChange={(color) => {
+                markDirty();
+                setFormData((prev) => ({ ...prev, color }));
+              }}
             />
           )}
 
@@ -342,6 +458,7 @@ const FieldFormPage: React.FC = () => {
               latitude={formData.latitude}
               longitude={formData.longitude}
               onBoundaryChange={handleBoundaryChange}
+              onSkipBoundary={skipBoundary}
             />
           )}
 
@@ -353,10 +470,16 @@ const FieldFormPage: React.FC = () => {
               boundary={boundary}
               areaValidation={areaValidation}
               boundaryConfirmed={boundaryConfirmed}
-              onBoundaryConfirmedChange={setBoundaryConfirmed}
-              onWorksMyselfChange={(v) =>
-                setFormData((prev) => ({ ...prev, worksThisFieldMyself: v }))
-              }
+              onBoundaryConfirmedChange={(v) => {
+                markDirty();
+                setBoundaryConfirmed(v);
+              }}
+              onWorksMyselfChange={(v) => {
+                markDirty();
+                setFormData((prev) => ({ ...prev, worksThisFieldMyself: v }));
+              }}
+              isActiveEdit={isActiveEdit}
+              requireBoundaryConfirm={!isActiveEdit || boundaryChanged}
             />
           )}
 
@@ -369,7 +492,16 @@ const FieldFormPage: React.FC = () => {
               <span />
             )}
             <div className="field-form-nav-actions">
-              {!isLast ? (
+              {isActiveEdit && isLast ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => leaveClean(`/fields/${id}`)}
+                >
+                  {t('fields:form.cancelChanges')}
+                </Button>
+              ) : null}
+              {!isLast && !isActiveEdit ? (
                 <Button
                   type="button"
                   variant="secondary"
@@ -385,26 +517,19 @@ const FieldFormPage: React.FC = () => {
                   {t('fields:form.next')}
                 </Button>
               ) : (
-                <Button type="button" variant="primary" onClick={handleActivate} loading={loading} icon={<Check />}>
-                  {t('fields:addField.activate')}
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={primaryLastAction}
+                  loading={loading}
+                  icon={<Check />}
+                >
+                  {primaryLastLabel}
                 </Button>
               )}
             </div>
           </div>
         </Card>
-
-        {isEdit && id ? (
-          <Button
-            type="button"
-            variant="error"
-            fullWidth
-            onClick={handleDelete}
-            loading={loading}
-            className="field-form-delete-btn"
-          >
-            {t('fields:deleteField')}
-          </Button>
-        ) : null}
       </div>
     </PageContainer>
   );

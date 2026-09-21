@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import {
   MapLayerType,
+  MAP_FIT_MAX_ZOOM,
   MAP_MAX_ZOOM,
   MAP_MAX_NATIVE_ZOOM,
   MAP_MIN_ZOOM,
@@ -11,8 +12,6 @@ import {
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
   STREET_TILE,
-  TERRAIN_LABELS_TILE,
-  TERRAIN_TILE,
   fieldPolygonStyle,
 } from '../../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon } from '../../utils/fieldGeo';
@@ -60,9 +59,9 @@ const FitFieldBounds: React.FC<{ polygon?: [number, number][]; center: [number, 
   const map = useMap();
   useEffect(() => {
     if (polygon?.length) {
-      map.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_MAX_ZOOM, animate: false });
+      map.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_FIT_MAX_ZOOM, animate: false });
     } else {
-      map.setView(center, Math.min(16, MAP_MAX_ZOOM));
+      map.setView(center, Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM));
     }
   }, [map, polygon, center]);
   return null;
@@ -119,7 +118,6 @@ const FieldDetailMap: React.FC<Props> = ({
   const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
   const [opacity, setOpacity] = useState(0.75);
   const [layerInfo, setLayerInfo] = useState<DataSourceInfo>();
-  const autoLookApplied = useRef(false);
   const [leafletMap, setLeafletMap] = useState<{
     fitBounds: (b: [number, number][], o: object) => void;
     setView: (c: [number, number], z: number) => void;
@@ -149,13 +147,6 @@ const FieldDetailMap: React.FC<Props> = ({
   const activeDefinition = definitions.find((d) => d.id === activeLayerId);
   const showDateDock = isFull && dates.length > 0;
 
-  useEffect(() => {
-    if (!isFull || autoLookApplied.current) return;
-    if (!definitions.some((layer) => layer.id === 'ndvi')) return;
-    if (!dates.some((pass) => pass.isUsable)) return;
-    autoLookApplied.current = true;
-    setOverlayIds(['ndvi']);
-  }, [isFull, definitions, dates, setOverlayIds]);
   const frostLevel = String(weather?.frost?.level || '').toLowerCase();
   const showFrostNote = isFull && frostLevel && frostLevel !== 'none';
 
@@ -165,6 +156,7 @@ const FieldDetailMap: React.FC<Props> = ({
     return new Date(pass.observationDate).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'short',
+      year: 'numeric',
     });
   };
 
@@ -187,9 +179,6 @@ const FieldDetailMap: React.FC<Props> = ({
 
   const pickDate = (observationId: string) => {
     selectDate(observationId);
-    if (!activeLayerId && definitions.some((layer) => layer.id === 'ndvi')) {
-      setOverlayIds(['ndvi']);
-    }
   };
 
   if (!center) {
@@ -210,7 +199,7 @@ const FieldDetailMap: React.FC<Props> = ({
           <div className="field-detail-map-canvas">
           <MapContainer
             center={center}
-            zoom={Math.min(16, MAP_MAX_ZOOM)}
+            zoom={Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM)}
             minZoom={MAP_MIN_ZOOM}
             maxZoom={MAP_MAX_ZOOM}
             scrollWheelZoom={false}
@@ -246,22 +235,6 @@ const FieldDetailMap: React.FC<Props> = ({
                 maxZoom={MAP_MAX_ZOOM}
                 maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
               />
-            ) : null}
-            {baseLayer === 'terrain' ? (
-              <>
-                <TileLayer
-                  attribution="Tiles &copy; Esri"
-                  url={TERRAIN_TILE}
-                  maxZoom={MAP_MAX_ZOOM}
-                  maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
-                />
-                <TileLayer
-                  url={TERRAIN_LABELS_TILE}
-                  opacity={0.7}
-                  maxZoom={MAP_MAX_ZOOM}
-                  maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
-                />
-              </>
             ) : null}
 
             {activeLayers.map((layer) =>
@@ -324,8 +297,8 @@ const FieldDetailMap: React.FC<Props> = ({
             type="button"
             className="field-map-recenter"
             onClick={() => {
-              if (polygon?.length) leafletMap?.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_MAX_ZOOM });
-              else leafletMap?.setView(center, Math.min(16, MAP_MAX_ZOOM));
+              if (polygon?.length) leafletMap?.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_FIT_MAX_ZOOM });
+              else leafletMap?.setView(center, Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM));
             }}
           >
             {t('fields:mapWorkspace.recenter')}

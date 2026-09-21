@@ -51,8 +51,39 @@
   text-decoration: underline;
 }
 
-@media (max-width: 480px) {
-  .register-name-row {
-    grid-template-columns: 1fr;
+.register-legal {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--login-text-muted);
+}
+
+.register-legal a {
+  color: var(--login-link);
+}
+
+.login-field-error {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: #b42318;
+}
+
+.login-field.has-error .login-input-wrap {
+  border-color: #b42318;
+}
+
+@media (max-height: 900px) {
+  .register-page .login-page-hero-steps,
+  .register-page .register-hero-panel,
+  .register-page .register-hero-steps {
+    display: none;
+  }
+
+  .register-page .login-page-hero {
+    min-height: 0;
+  }
+
+  .register-page .login-page-layout {
+    grid-template-columns: minmax(0, 0.85fr) minmax(22rem, 1.15fr);
   }
 }

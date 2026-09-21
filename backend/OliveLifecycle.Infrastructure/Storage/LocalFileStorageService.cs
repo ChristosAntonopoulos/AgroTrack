@@ -124,17 +124,9 @@ public class LocalFileStorageService : IFileStorageService
             return Task.CompletedTask;
         }
 
-        var relativePath = NormalizeRelativePath(relativeUrl);
-        if (relativePath == null)
+        var fullPath = ResolveSafeFullPath(relativeUrl);
+        if (fullPath == null)
         {
-            return Task.CompletedTask;
-        }
-
-        var fullPath = Path.GetFullPath(Path.Combine(_rootPath, relativePath));
-        var rootFull = Path.GetFullPath(_rootPath);
-        if (!fullPath.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Refused to delete path outside storage root: {Url}", relativeUrl);
             return Task.CompletedTask;
         }
 
@@ -145,6 +137,42 @@ public class LocalFileStorageService : IFileStorageService
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task<Stream?> OpenReadAsync(string relativeUrl, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl))
+        {
+            return Task.FromResult<Stream?>(null);
+        }
+
+        var fullPath = ResolveSafeFullPath(relativeUrl);
+        if (fullPath == null || !File.Exists(fullPath))
+        {
+            return Task.FromResult<Stream?>(null);
+        }
+
+        Stream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Task.FromResult<Stream?>(stream);
+    }
+
+    private string? ResolveSafeFullPath(string relativeUrl)
+    {
+        var relativePath = NormalizeRelativePath(relativeUrl);
+        if (relativePath == null)
+        {
+            return null;
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(_rootPath, relativePath));
+        var rootFull = Path.GetFullPath(_rootPath);
+        if (!fullPath.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Refused path outside storage root: {Url}", relativeUrl);
+            return null;
+        }
+
+        return fullPath;
     }
 
     private string? NormalizeRelativePath(string relativeUrl)

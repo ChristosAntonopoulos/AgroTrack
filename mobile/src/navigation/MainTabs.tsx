@@ -71,9 +71,8 @@ const MainTabs = () => {
     [safeTasks]
   );
 
-  const hasFamilyModules = Boolean(familyModules && familyModules.size > 0);
-  const showFields = !hasFamilyModules || Boolean(familyModules?.has('fields'));
-  const showTasks = !hasFamilyModules || Boolean(familyModules?.has('tasks'));
+  const showFields = familyModules === null || Boolean(familyModules.has('fields'));
+  const showTasks = familyModules === null || Boolean(familyModules.has('tasks'));
 
   const labelSize = Math.max(9, Math.round(10 * fontScaleMultiplier));
   const metrics = getDockMetrics(tapMin, insets.bottom);

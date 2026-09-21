@@ -27,9 +27,6 @@ public static class FieldPeopleRules
         SyncDerivedIds(field);
     }
 
-    /// <summary>Compatibility alias used by older call sites during the cutover.</summary>
-    public static void EnsureBackfilled(Field field) => EnsureNormalized(field);
-
     public static FieldPerson CreateAdminSeat(string userId, string? displayName = null, string? email = null)
     {
         return new FieldPerson
@@ -287,8 +284,9 @@ public static class FieldPeopleRules
             return true;
         }
 
-        var normalized = FamilyModules.Normalize(module);
-        return seat.Modules.Any(m => string.Equals(m, normalized, StringComparison.OrdinalIgnoreCase));
+        var wanted = FamilyModules.Normalize(module);
+        return seat.Modules.Any(m =>
+            string.Equals(FamilyModules.Normalize(m), wanted, StringComparison.OrdinalIgnoreCase));
     }
 
     public static bool CanWriteModule(Field field, string userId, string module, bool requireCreateLevel = false)

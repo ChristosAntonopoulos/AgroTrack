@@ -11,6 +11,9 @@ public interface IFileStorageService
         string contentType,
         CancellationToken cancellationToken = default);
     Task DeleteAsync(string relativeUrl, CancellationToken cancellationToken = default);
+
+    /// <summary>Open a stored file by its public relative URL (e.g. /uploads/photos/...).</summary>
+    Task<Stream?> OpenReadAsync(string relativeUrl, CancellationToken cancellationToken = default);
 }
 
 public sealed record StoredPhotoResult(string Url, string ThumbnailUrl, long ByteSize);

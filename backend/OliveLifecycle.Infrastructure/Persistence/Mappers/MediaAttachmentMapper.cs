@@ -45,6 +45,12 @@ public static class MediaAttachmentMapper
             Height = document.Height,
             Orientation = document.Orientation,
             ByteSize = document.ByteSize,
+            AssignmentReason = document.AssignmentReason,
+            LinkedTitle = document.LinkedTitle,
+            LinkedOccurredAt = document.LinkedOccurredAt,
+            LinkedStatus = document.LinkedStatus,
+            DeletedAt = document.DeletedAt,
+            DeletedByUserId = document.DeletedByUserId,
             CreatedAt = document.CreatedAt,
             UpdatedAt = document.UpdatedAt
         };
@@ -73,6 +79,12 @@ public static class MediaAttachmentMapper
         Height = entity.Height,
         Orientation = entity.Orientation,
         ByteSize = entity.ByteSize,
+        AssignmentReason = entity.AssignmentReason,
+        LinkedTitle = entity.LinkedTitle,
+        LinkedOccurredAt = entity.LinkedOccurredAt,
+        LinkedStatus = entity.LinkedStatus,
+        DeletedAt = entity.DeletedAt,
+        DeletedByUserId = entity.DeletedByUserId,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

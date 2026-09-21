@@ -23,9 +23,15 @@
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-.auth-social-btn:hover {
+.auth-social-btn:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--login-link) 45%, var(--login-input-border));
   background: color-mix(in srgb, var(--login-link) 8%, var(--login-input-bg));
+}
+
+.auth-social-btn.is-disabled,
+.auth-social-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .auth-social-note {

@@ -183,7 +183,7 @@ public static class DemoFarmDataSeeder
         {
             UserId = OwnerId,
             Role = "Admin",
-            Modules = ["fields", "tasks", "documents", "money", "calendar", "harvest"],
+            Modules = ["fields", "tasks", "photos", "documents", "money", "chronologio", "harvest"],
             AccessLevel = "work",
             Status = "active",
             DisplayName = "Γιώργος Παπαδόπουλος",
@@ -194,7 +194,7 @@ public static class DemoFarmDataSeeder
         {
             UserId = ProducerId,
             Role = "Partner",
-            Modules = ["fields", "tasks", "calendar"],
+            Modules = ["fields", "tasks", "photos", "chronologio"],
             AccessLevel = "work",
             Status = "active",
             InvitedBy = OwnerId,
@@ -206,7 +206,7 @@ public static class DemoFarmDataSeeder
         {
             UserId = FamilyUserId,
             Role = "Family",
-            Modules = ["fields", "money", "harvest", "documents", "calendar"],
+            Modules = ["fields", "photos", "money", "harvest", "documents", "chronologio"],
             AccessLevel = "help",
             Status = "active",
             InvitedBy = OwnerId,

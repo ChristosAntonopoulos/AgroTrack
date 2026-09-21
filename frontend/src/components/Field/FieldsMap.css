@@ -13,6 +13,12 @@
   z-index: 0;
 }
 
+/* Hide failed Esri reference tiles instead of blank/pink rectangles. */
+.fields-map-ref-tiles img.leaflet-tile-loaded[src=''],
+.fields-map-leaflet .leaflet-tile-container img[src*='data:image'] {
+  opacity: 0;
+}
+
 .fields-map-layer-toggle {
   position: absolute;
   top: 12px;

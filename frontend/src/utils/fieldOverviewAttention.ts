@@ -152,16 +152,24 @@ export function resolveFieldAttention(input: {
 
   const overdue = openTasks.find((task) => isOverdueTask(task, now) && !dismissed.has(task.id));
   if (overdue) {
+    const overdueDays = Math.max(
+      1,
+      Math.round(
+        (startOfLocalDay(now).getTime() - new Date(overdue.plannedEnd!).getTime()) / 86_400_000
+      )
+    );
     return {
       kind: 'overdue',
       severity: 'warning',
       id: overdue.id,
       title: overdue.title,
-      explanationKey: 'overview.attention.overdueBody',
+      explanationKey: 'overview.attention.overdueDaysBody',
+      explanationParams: { days: String(overdueDays) },
       window: windowForTask(overdue),
       primaryKey: 'overview.attention.openTask',
       primaryTo: taskPeekPath(overdue.id),
       taskId: overdue.id,
+      reason: `overdue:${overdueDays}`,
     };
   }
 

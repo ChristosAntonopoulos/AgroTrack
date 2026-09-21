@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Pin } from 'lucide-react';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
-import { formatChronologioMoney } from '../../utils/chronologioGrouping';
+import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import { taskStatusI18nKey } from '../../utils/categoryNormalize';
 import {
@@ -214,12 +214,22 @@ const ChronologioEntryCard: React.FC<Props> = ({
           {isHarvestDay && presented.description ? (
             <p className="chronologio-harvest-day-summary">{presented.description}</p>
           ) : null}
+          {presented.description && category === 'note' ? (
+            <p className="chronologio-card-summary">{presented.description}</p>
+          ) : null}
 
           {category === 'expense' || category === 'income' || (category === 'task' && entry.amount) ? (
             <div className="chronologio-expense-row">
               {entry.amount ? (
                 <span className="chronologio-card-amount">
-                  {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
+                  {category === 'expense' || category === 'income'
+                    ? formatChronologioMoneySigned(
+                        entry.amount.value,
+                        entry.amount.currency,
+                        numberLocale,
+                        category
+                      )
+                    : formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
                 </span>
               ) : null}
               {presentExpenseChip(entry, i18n.language) &&

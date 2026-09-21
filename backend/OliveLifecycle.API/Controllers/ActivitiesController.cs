@@ -31,9 +31,10 @@ public class ActivitiesController : BaseApiController
         [FromQuery] int limit = 50,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, UserContext.UserId, UserContext.Role, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                fieldId, UserContext.UserId, UserContext.Role, FamilyModules.Chronologio, cancellationToken))
         {
-            throw new OliveLifecycle.Core.Exceptions.ForbiddenException("You do not have access to this field.");
+            throw new OliveLifecycle.Core.Exceptions.ForbiddenException("You do not have access to Chronologio for this field.");
         }
 
         var activities = (await _activityService.GetByFieldIdAsync(fieldId, limit, cancellationToken)).ToList();

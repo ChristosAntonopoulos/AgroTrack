@@ -112,13 +112,6 @@ const MapLayerPanel: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          className={baseLayer === 'terrain' ? 'is-active' : ''}
-          onClick={() => onBaseLayerChange('terrain')}
-        >
-          {t('fields:mapWorkspace.terrain')}
-        </button>
-        <button
-          type="button"
           className={baseLayer === 'street' ? 'is-active' : ''}
           onClick={() => onBaseLayerChange('street')}
         >

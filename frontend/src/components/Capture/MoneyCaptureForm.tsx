@@ -70,7 +70,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   canRecordExpense,
   onSaved,
 }) => {
-  const { t, i18n } = useTranslation(['capture']);
+  const { t, i18n } = useTranslation(['capture', 'chronologio']);
   const language = i18n.language || 'el';
   const amountRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -395,6 +395,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
         )}
         <TransactionFieldSelector value={fieldId} fields={usableFields} onChange={setFieldId} />
         <TransactionDateSelector value={occurredOn} onChange={onDateChange} />
+        {context.dateDefaultedToToday ? (
+          <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
+        ) : null}
         <label className="money-form-label">
           {t('capture:money.shortDescription')}
           <input

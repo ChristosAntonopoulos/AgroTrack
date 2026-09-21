@@ -70,8 +70,15 @@ import {
   campaignStartDay,
   clampHarvestWorkingDay,
   harvestDayStripRows,
+  isAthensDateKey,
   shiftHarvestWorkingDay,
 } from '../harvestCampaign/workingDay';
+import {
+  findPostedHarvestRecord,
+  harvestRecordsForDay,
+  resolveHistoricalHarvestLink,
+  summarizeHistoricalDay,
+} from '../harvestCampaign/historicalDay';
 import type {
   HarvestCaptureKind,
   HarvestFieldShare,
@@ -103,6 +110,7 @@ import {
 import { formatFieldArea } from '../utils/fieldGeo';
 import { spacing, radii, typography } from '../theme';
 import type { FieldsStackParamList } from '../navigation/types';
+import { openChronologioHome } from '../navigation/intents';
 
 const HarvestCampaignScreen = () => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
@@ -124,6 +132,9 @@ const HarvestCampaignScreen = () => {
   const [sackSavedHint, setSackSavedHint] = useState<string | null>(null);
   const [reviewDate, setReviewDate] = useState<string | null>(null);
   const [deepLinkRecord, setDeepLinkRecord] = useState<HarvestRecord | null>(null);
+  const [deepLinkRecordMissing, setDeepLinkRecordMissing] = useState(false);
+  const [historicalDayRecords, setHistoricalDayRecords] = useState<HarvestRecord[]>([]);
+  const [historicalDayLoading, setHistoricalDayLoading] = useState(false);
   const [setupStep, setSetupStep] = useState<0 | 1 | 2>(0);
   const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [view, setView] = useState<HarvestModeView>('today');
@@ -135,7 +146,22 @@ const HarvestCampaignScreen = () => {
   const [editTarget, setEditTarget] = useState<DayActivityEditTarget | null>(null);
 
   const today = athensCalendarDateKey(new Date());
-  const workingDay = clampHarvestWorkingDay(selectedDay, campaign, today);
+  const historicalLink = useMemo(
+    () =>
+      resolveHistoricalHarvestLink({
+        day: route.params?.day,
+        fieldId: route.params?.fieldId,
+        harvestId: route.params?.harvestId,
+      }),
+    [route.params?.day, route.params?.fieldId, route.params?.harvestId]
+  );
+  const showHistoricalDay =
+    !isLive && (historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing');
+  const workingDay = showHistoricalDay
+    ? historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
+      ? historicalLink.day
+      : today
+    : clampHarvestWorkingDay(selectedDay, campaign, today);
   const startDay = campaignStartDay(campaign, today);
   const harvestable = useMemo(
     () => fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived'),
@@ -151,7 +177,7 @@ const HarvestCampaignScreen = () => {
 
   useEffect(() => {
     const day = route.params?.day;
-    if (day) setSelectedDay(day);
+    if (day && isAthensDateKey(day)) setSelectedDay(day);
   }, [route.params?.day]);
 
   // Do not mirror workingDay → params in a loop; selectWorkingDay writes params explicitly.
@@ -220,6 +246,7 @@ const HarvestCampaignScreen = () => {
     const fieldId = route.params?.fieldId;
     if (!harvestId || !fieldId) {
       setDeepLinkRecord(null);
+      setDeepLinkRecordMissing(false);
       return;
     }
     let cancelled = false;
@@ -227,15 +254,46 @@ const HarvestCampaignScreen = () => {
       .listByField(fieldId)
       .then((rows) => {
         if (cancelled) return;
-        setDeepLinkRecord(rows.find((row) => row.id === harvestId) || null);
+        const hit = findPostedHarvestRecord(rows, harvestId);
+        setDeepLinkRecord(hit);
+        setDeepLinkRecordMissing(!hit);
       })
       .catch(() => {
-        if (!cancelled) setDeepLinkRecord(null);
+        if (!cancelled) {
+          setDeepLinkRecord(null);
+          setDeepLinkRecordMissing(true);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [route.params?.harvestId, route.params?.fieldId]);
+
+  useEffect(() => {
+    if (historicalLink.kind !== 'day') {
+      setHistoricalDayRecords([]);
+      setHistoricalDayLoading(false);
+      return;
+    }
+    const { day, fieldId } = historicalLink;
+    let cancelled = false;
+    setHistoricalDayLoading(true);
+    void getHarvestService()
+      .listByField(fieldId)
+      .then((rows) => {
+        if (cancelled) return;
+        setHistoricalDayRecords(harvestRecordsForDay(rows, day, fieldId));
+      })
+      .catch(() => {
+        if (!cancelled) setHistoricalDayRecords([]);
+      })
+      .finally(() => {
+        if (!cancelled) setHistoricalDayLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [historicalLink]);
 
   const closeSheet = () => {
     setSheet(null);
@@ -682,7 +740,129 @@ const HarvestCampaignScreen = () => {
           ) : undefined
         }
       />
-      {!isLive && setupStep === 0 ? (
+      {!isLive && showHistoricalDay ? (
+        <View style={styles.block}>
+          <Text style={[styles.overline, { color: colors.textTertiary }]}>
+            {t('fields:harvestCampaign.historical.kicker', { defaultValue: 'From Chronologio' })}
+          </Text>
+          <Text style={[styles.h2, { color: colors.textPrimary }]}>
+            {t('fields:harvestCampaign.historical.title', { defaultValue: 'Harvest day' })}
+          </Text>
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>
+            {labelOf(
+              historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
+                ? historicalLink.fieldId || route.params?.fieldId || ''
+                : route.params?.fieldId || ''
+            )}{' '}
+            ·{' '}
+            {new Date(
+              `${
+                historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
+                  ? historicalLink.day
+                  : workingDay
+              }T12:00:00`
+            ).toLocaleDateString(locale, {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </Text>
+          <Button
+            title={t('fields:thisHarvest.openChronologio', { defaultValue: 'Chronologio' })}
+            variant="ghost"
+            onPress={() => openChronologioHome(navigation)}
+            fullWidth
+          />
+          {historicalDayLoading ? <LoadingSpinner /> : null}
+          {!historicalDayLoading && historicalDayRecords.length === 0 ? (
+            <HarvestCard>
+              <Text style={[styles.lead, { color: colors.textSecondary }]}>
+                {t('fields:harvestCampaign.historical.missing', {
+                  defaultValue: 'No harvest records were found for this day.',
+                })}
+              </Text>
+            </HarvestCard>
+          ) : null}
+          {!historicalDayLoading && historicalDayRecords.length > 0 ? (
+            <>
+              {(() => {
+                const totals = summarizeHistoricalDay(historicalDayRecords);
+                return (
+                  <View style={styles.dayMetrics}>
+                    {totals.sacks > 0 ? (
+                      <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
+                        <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
+                          {t('fields:harvestCampaign.sacks.unit')}
+                        </Text>
+                        <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
+                          {totals.sacks}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {totals.oliveKg > 0 ? (
+                      <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
+                        <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
+                          {t('fields:harvestCampaign.record.olives')}
+                        </Text>
+                        <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
+                          {formatKg(totals.oliveKg, locale)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })()}
+              {historicalDayRecords.map((record) => (
+                <Pressable
+                  key={record.id}
+                  onPress={() => {
+                    setDeepLinkRecord(record);
+                    setDeepLinkRecordMissing(false);
+                    navigation.setParams({
+                      fieldId: record.fieldId,
+                      harvestId: record.id,
+                      day: athensCalendarDateKey(record.harvestDate),
+                    });
+                  }}
+                  style={[styles.historicalRow, { backgroundColor: colors.surface }]}
+                >
+                  <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
+                    {record.sackCount && record.sackCount > 0
+                      ? t('fields:harvestCampaign.historical.sacksRow', {
+                          count: record.sackCount,
+                          defaultValue: `${record.sackCount} sacks`,
+                        })
+                      : formatKg(record.oliveKg, locale)}
+                  </Text>
+                  {record.millName ? (
+                    <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
+                      {record.millName}
+                    </Text>
+                  ) : null}
+                </Pressable>
+              ))}
+            </>
+          ) : null}
+        </View>
+      ) : null}
+
+      {!isLive && !showHistoricalDay && deepLinkRecordMissing ? (
+        <View style={styles.block}>
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>
+            {t('fields:harvestCampaign.historical.missing', {
+              defaultValue: 'No harvest records were found for this day.',
+            })}
+          </Text>
+          <Button
+            title={t('fields:thisHarvest.openChronologio', { defaultValue: 'Chronologio' })}
+            onPress={() => openChronologioHome(navigation)}
+            fullWidth
+          />
+        </View>
+      ) : null}
+
+      {!isLive && !showHistoricalDay && setupStep === 0 ? (
         <View style={styles.block}>
           {doneBanner || campaign.status === 'closed' ? (
             <HarvestCard tone="nudge">
@@ -725,7 +905,7 @@ const HarvestCampaignScreen = () => {
         </View>
       ) : null}
 
-      {!isLive && setupStep === 1 ? (
+      {!isLive && !showHistoricalDay && setupStep === 1 ? (
         <View style={styles.block}>
           <Text style={[styles.overline, { color: colors.textTertiary }]}>
             {t('fields:harvestCampaign.setup.step', { step: 1 })}
@@ -799,7 +979,7 @@ const HarvestCampaignScreen = () => {
         </View>
       ) : null}
 
-      {!isLive && setupStep === 2 ? (
+      {!isLive && !showHistoricalDay && setupStep === 2 ? (
         <View style={styles.block}>
           <Text style={[styles.overline, { color: colors.textTertiary }]}>
             {t('fields:harvestCampaign.setup.step', { step: 2 })}
@@ -1601,6 +1781,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  historicalRow: {
+    borderRadius: radii.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 4,
   },
   dayMetric: {
     width: '47%',

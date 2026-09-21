@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { FieldModule } from '../services/fieldPeopleService';
 import { useAccessContext } from './useAccessContext';
 import { useActiveFieldAccess } from './useActiveFieldAccess';
@@ -20,17 +21,31 @@ export type ModulePageGuardResult = {
  */
 export const useModulePageGuard = (opts: ModulePageGuardOptions): ModulePageGuardResult => {
   const { loading } = useAccessContext();
-  const { modules, isAdminOnActive, isCollaboratorOnActive } = useActiveFieldAccess();
+  const { modules, capabilities, isAdminOnActive, isCollaboratorOnActive } = useActiveFieldAccess();
+  const navigate = useNavigate();
   const adminOnly = opts.adminOnly === true;
   const requiredModule = adminOnly ? null : opts.module;
 
-  return useMemo(() => {
+  const result = useMemo(() => {
     if (loading) {
       return { allowed: true, loading: true };
     }
 
     if (adminOnly) {
-      return { allowed: isAdminOnActive, loading: false };
+      return { allowed: capabilities?.canManageAccess ?? isAdminOnActive, loading: false };
+    }
+
+    if (capabilities && requiredModule) {
+      const allowedByCapability = {
+        fields: capabilities.canViewField,
+        tasks: capabilities.canViewTasks,
+        photos: capabilities.canViewPhotos,
+        documents: capabilities.canViewDocuments,
+        money: capabilities.canViewMoney,
+        chronologio: capabilities.canViewChronologio,
+        harvest: capabilities.canViewHarvest,
+      }[requiredModule];
+      return { allowed: allowedByCapability, loading: false };
     }
 
     if (isAdminOnActive || modules === null) {
@@ -42,5 +57,14 @@ export const useModulePageGuard = (opts: ModulePageGuardOptions): ModulePageGuar
     }
 
     return { allowed: true, loading: false };
-  }, [loading, adminOnly, requiredModule, modules, isAdminOnActive, isCollaboratorOnActive]);
+  }, [loading, adminOnly, requiredModule, modules, capabilities, isAdminOnActive, isCollaboratorOnActive]);
+
+  useEffect(() => {
+    if (!result.loading && !result.allowed) {
+      const module = adminOnly ? 'access' : requiredModule;
+      navigate(`/access-denied?module=${encodeURIComponent(module || 'field')}`, { replace: true });
+    }
+  }, [result.loading, result.allowed, adminOnly, requiredModule, navigate]);
+
+  return result;
 };

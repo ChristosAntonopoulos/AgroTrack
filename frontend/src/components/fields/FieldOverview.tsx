@@ -6,6 +6,7 @@ import type { FieldEnvironmentalAlert, FieldWeather } from '../../services/geosp
 import type { FieldYearSummary, YearFinancialSummary } from '../../services/financialSummaryService';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { countPlannedRemaining, resolveFieldAttention } from '../../utils/fieldOverviewAttention';
+import GroveWeatherCard from '../weather/GroveWeatherCard';
 import FieldStatusStrip from './FieldStatusStrip';
 import FieldWeatherCard from './FieldWeatherCard';
 import FieldYearGlance from './FieldYearGlance';
@@ -30,6 +31,7 @@ type Props = {
   recentEntries: ChronologioEntry[];
   onOpenChronologio: (entry?: ChronologioEntry) => void;
   onOpenMap: () => void;
+  canViewMoney?: boolean;
 };
 
 const FieldOverview: React.FC<Props> = ({
@@ -49,8 +51,9 @@ const FieldOverview: React.FC<Props> = ({
   recentEntries,
   onOpenChronologio,
   onOpenMap,
+  canViewMoney = true,
 }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('fields');
   const isDraft = field.status === 'Draft';
   const isHistoricalYear = year < currentYear;
   const latestEntry = useMemo(
@@ -74,6 +77,21 @@ const FieldOverview: React.FC<Props> = ({
     [isDraft, isHistoricalYear, alerts, tasks, proposals, i18n.language]
   );
 
+  const harvestDaySacks = useMemo(() => {
+    const harvestEntries = recentEntries.filter((e) => e.category === 'harvest');
+    if (harvestEntries.length === 0) return null;
+    let sacks = 0;
+    let found = false;
+    for (const entry of harvestEntries) {
+      const raw = entry.details?.harvest?.sackCount;
+      if (raw != null && Number.isFinite(Number(raw))) {
+        sacks += Number(raw);
+        found = true;
+      }
+    }
+    return found ? sacks : null;
+  }, [recentEntries]);
+
   return (
     <div className="field-overview">
       <FieldStatusStrip
@@ -84,6 +102,7 @@ const FieldOverview: React.FC<Props> = ({
         latestEntry={latestEntry}
       />
 
+      {field.capabilities?.canViewEnvironmentalData !== false ? (
       <div className="field-overview-grid">
         <div className="field-overview-map">
           <FieldDetailMap
@@ -95,20 +114,35 @@ const FieldOverview: React.FC<Props> = ({
           />
         </div>
         <aside className="field-overview-side">
-          <FieldWeatherCard
-            weather={weather}
-            loading={weatherLoading}
-            error={weatherError}
-            year={year}
-            isHistoricalYear={isHistoricalYear}
-            allowRecommendation={!isDraft}
-            attention={attention}
-            nextTaskTitle={attention.kind === 'nextTask' || attention.kind === 'weatherReschedule' ? attention.title : undefined}
-            onRetry={onRetryWeather}
-            onSeeMore={onOpenMap}
-          />
+          {weather && !weatherLoading && !weatherError ? (
+            <div className="field-overview-weather">
+              {isHistoricalYear ? (
+                <p className="field-weather-year-note">{t('weather.notThatYear', { year })}</p>
+              ) : null}
+              <GroveWeatherCard fieldWeather={weather} fieldName={field.name} />
+              <button type="button" className="field-weather-more" onClick={onOpenMap}>
+                {t('weather.seeCharts')}
+              </button>
+            </div>
+          ) : (
+            <FieldWeatherCard
+              weather={weather}
+              loading={weatherLoading}
+              error={weatherError}
+              year={year}
+              isHistoricalYear={isHistoricalYear}
+              allowRecommendation={!isDraft}
+              attention={attention}
+              nextTaskTitle={
+                attention.kind === 'weatherReschedule' ? attention.title : undefined
+              }
+              onRetry={onRetryWeather}
+              onSeeMore={onOpenMap}
+            />
+          )}
         </aside>
       </div>
+      ) : null}
 
       <div className="field-overview-lower">
         <FieldYearGlance
@@ -117,15 +151,19 @@ const FieldOverview: React.FC<Props> = ({
           costSummary={costSummary}
           yearRollup={yearRollup}
           plannedRemaining={countPlannedRemaining(tasks)}
+          harvestDaySacks={harvestDaySacks}
+          canViewMoney={canViewMoney}
         />
-        <FieldRecentChronologio
-          fieldId={field.id}
-          entries={recentEntries}
-          onSelect={onOpenChronologio}
-        />
+        {field.capabilities?.canViewChronologio !== false ? (
+          <FieldRecentChronologio
+            fieldId={field.id}
+            entries={recentEntries}
+            onSelect={onOpenChronologio}
+          />
+        ) : null}
       </div>
 
-      <FieldPhotosStrip fieldId={field.id} />
+      {field.capabilities?.canViewPhotos !== false ? <FieldPhotosStrip fieldId={field.id} /> : null}
     </div>
   );
 };

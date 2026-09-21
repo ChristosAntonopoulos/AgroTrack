@@ -31,6 +31,7 @@ export function HarvestSegmentedControl<T extends string>({
         <button
           key={option.value}
           type="button"
+          className={value === option.value ? 'is-active' : undefined}
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
         >

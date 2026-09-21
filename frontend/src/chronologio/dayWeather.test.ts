@@ -1,4 +1,4 @@
-import { buildDayWeatherView, dayWeatherDateKey } from './dayWeather';
+import { buildDayWeatherView, dayWeatherDateKey, weatherGridKey } from './dayWeather';
 
 describe('dayWeather', () => {
   it('treats a fully empty reading as missing, not zero', () => {
@@ -21,7 +21,11 @@ describe('dayWeather', () => {
     expect(view.rain.kind).toBe('missing');
   });
 
-  it('builds a local date key for history lookups', () => {
+  it('builds an Athens date key for history lookups', () => {
     expect(dayWeatherDateKey('2026-09-08')).toBe('2026-09-08');
+  });
+
+  it('rounds weather grid keys like the backend', () => {
+    expect(weatherGridKey(37.98376, 23.72751)).toBe('37.98,23.73');
   });
 });

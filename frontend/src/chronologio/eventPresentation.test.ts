@@ -21,11 +21,21 @@ const entry = (overrides: Partial<ChronologioEntry>): ChronologioEntry =>
   }) as ChronologioEntry;
 
 describe('eventPresentation', () => {
-  it('never returns Observation as a raw English title in Greek', () => {
+  it('uses the observation body as the card title, not a raw English system word', () => {
     const presented = presentChronologioEvent(entry({ title: 'Observation' }), 'el');
-    expect(presented.label).toBe('Παρατήρηση');
+    expect(presented.label).toBe('Δάκος');
     expect(presented.shortLabel).toBe('Παρατήρηση');
     expect(presented.icon).toBe('note');
+  });
+
+  it('truncates long observation bodies for the title', () => {
+    const long = 'Α'.repeat(100);
+    const presented = presentChronologioEvent(
+      entry({ details: { note: { noteId: 'n1', bodyPreview: long, pinned: false } } }),
+      'el'
+    );
+    expect(presented.label.length).toBeLessThanOrEqual(72);
+    expect(presented.description).toBe(long);
   });
 
   it('maps expense category codes to Greek labels', () => {
@@ -47,7 +57,7 @@ describe('eventPresentation', () => {
     expect(presentActorName('Giorgos Papadakis', 'el')).toBe('Γιώργος Παπαδάκης');
   });
 
-  it('labels merged harvest days with date, not generic Harvest', () => {
+  it('labels merged harvest days as Harvest without duplicating sack summary', () => {
     const presented = presentChronologioEvent(
       entry({
         id: 'Harvest:day:2025-11-12',
@@ -69,10 +79,9 @@ describe('eventPresentation', () => {
       }),
       'en'
     );
-    expect(presented.shortLabel).toBe('Harvest day');
-    expect(presented.label).toMatch(/Harvest day/);
-    expect(presented.label).not.toBe('Harvest');
-    expect(presented.description).toContain('120 kg');
+    expect(presented.shortLabel).toBe('Harvest');
+    expect(presented.label).toBe('Harvest');
+    expect(presented.description).toBeUndefined();
   });
 
   it('uses API expense labels when they are already human', () => {
@@ -90,7 +99,7 @@ describe('eventPresentation', () => {
       }),
       'el'
     );
-    expect(presented.description).toBe('Καύσιμα και ενέργεια');
+    expect(presented.label).toBe('Καύσιμα και ενέργεια');
     expect(presented.label).not.toMatch(/fuel_and_energy/);
   });
 });

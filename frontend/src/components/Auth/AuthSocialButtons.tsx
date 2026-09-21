@@ -34,7 +34,7 @@ const AuthSocialButtons: React.FC = () => {
         <GoogleMark />
         {t('register.continueGoogle')}
       </button>
-      <button type="button" className="auth-social-btn" onClick={() => handleSocial('Apple')}>
+      <button type="button" className="auth-social-btn is-disabled" disabled aria-disabled="true">
         <AppleMark />
         {t('register.continueApple')}
       </button>

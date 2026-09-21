@@ -24,6 +24,42 @@ export const isListedGrove = (field: Pick<Field, 'status' | 'name'>): boolean =>
   return !leftover;
 };
 
+/** Fields list: show active and recoverable drafts; hide archived and nameless leftovers. */
+export const isVisibleOnFieldsList = (field: Pick<Field, 'status' | 'name'>): boolean => {
+  if (field.status === 'Archived') return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  return true;
+};
+
+export const isOwnedField = (
+  field: Pick<Field, 'ownerId'>,
+  userId: string | undefined | null
+): boolean => Boolean(userId && field.ownerId === userId);
+
+export type FieldListCounts = {
+  active: number;
+  draft: number;
+  shared: number;
+  total: number;
+};
+
+export const countFieldListBuckets = (
+  fields: Array<Pick<Field, 'status' | 'name' | 'ownerId'>>,
+  userId: string | undefined | null
+): FieldListCounts => {
+  const visible = fields.filter(isVisibleOnFieldsList);
+  let active = 0;
+  let draft = 0;
+  let shared = 0;
+  for (const field of visible) {
+    if (isFieldSetupIncomplete(field.status)) draft += 1;
+    else active += 1;
+    if (!isOwnedField(field, userId)) shared += 1;
+  }
+  return { active, draft, shared, total: visible.length };
+};
+
 /** Route when tapping a field from the list or map. */
 export const getFieldOpenPath = (field: Pick<Field, 'id' | 'status'>): string =>
   isFieldSetupIncomplete(field.status) ? `/fields/${field.id}/edit` : `/fields/${field.id}`;
@@ -33,10 +69,12 @@ export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   return Boolean(ring && ring.length >= 4);
 };
 
-/** Best wizard step when resuming an incomplete field. */
+/** Best wizard step when resuming an incomplete field. Active fields start at basics. */
 export const getFieldSetupResumeStep = (
   field: Pick<Field, 'name' | 'status' | 'boundary'>
 ): 'basics-edit' | 'boundary' | 'review' => {
+  if (field.status === 'Active') return 'basics-edit';
+
   const hasName = Boolean(field.name?.trim());
   const hasBoundary = fieldHasBoundary(field);
 

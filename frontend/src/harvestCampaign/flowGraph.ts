@@ -5,9 +5,11 @@ import {
   millFieldShares,
   oilFieldShares,
 } from './allocation';
-import { extractionYieldPercent } from './utils/harvestCalculations';
+import { extractionYieldPercent, plausibleOilYield } from './utils/harvestCalculations';
 import { isSackWeighed, linkedSackIds, oilAmountToKg } from './totals';
 import type { HarvestCampaign } from './types';
+
+export { plausibleOilYield } from './utils/harvestCalculations';
 
 /** Layered material-genealogy stages (land → oil). */
 export type HarvestFlowNodeKind = 'field' | 'harvest' | 'mill' | 'oil';
@@ -61,13 +63,6 @@ export type HarvestFlowGraph = {
   nodes: HarvestFlowNode[];
   links: HarvestFlowLink[];
   byKind: Record<HarvestFlowNodeKind, HarvestFlowNode[]>;
-};
-
-/** Typical olive oil extraction; hide absurd % (e.g. oil kg > olives). */
-export const plausibleOilYield = (pct: number | null | undefined): number | null => {
-  if (pct == null || !Number.isFinite(pct)) return null;
-  if (pct < 5 || pct > 40) return null;
-  return pct;
 };
 
 const labelOf = (fields: Field[], id: string) =>

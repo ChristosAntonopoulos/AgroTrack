@@ -105,7 +105,7 @@ export const mockFieldService = {
           userId,
           displayName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Owner' : 'Owner',
           role: 'Admin',
-          modules: ['fields', 'tasks', 'documents', 'money', 'calendar', 'harvest'],
+          modules: ['fields', 'tasks', 'photos', 'documents', 'money', 'chronologio', 'harvest'],
           accessLevel: 'work',
           status: 'active',
           createdAt: new Date().toISOString(),

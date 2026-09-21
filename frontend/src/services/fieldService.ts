@@ -2,6 +2,7 @@ import api from './api';
 import { OfflineQueue } from '../utils/offlineQueue';
 import { EntityCache } from '../utils/entityCache';
 import { createTempFieldId, isDeviceOnline, isNetworkError } from '../utils/networkStatus';
+import type { FieldCapabilities } from './fieldPeopleService';
 
 const getCurrentUserId = () => {
   try {
@@ -99,6 +100,7 @@ export interface Field {
   color?: string;
   greekCadastre?: GreekCadastreInfo;
   documents?: FieldDocumentAttachment[];
+  capabilities?: FieldCapabilities;
 }
 
 export interface CreateFieldDto {

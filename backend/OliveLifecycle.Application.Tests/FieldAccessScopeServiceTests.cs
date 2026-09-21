@@ -4,7 +4,6 @@ using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
-using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
 using Xunit;
 
@@ -13,14 +12,11 @@ namespace OliveLifecycle.Application.Tests;
 public class FieldAccessScopeServiceTests
 {
     private readonly Mock<IFieldRepository> _fields = new();
-    private readonly Mock<IFieldTaskRepository> _tasks = new();
     private readonly FieldAccessScopeService _service;
 
     public FieldAccessScopeServiceTests()
     {
-        _tasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<FieldTask>());
-        _service = new FieldAccessScopeService(_fields.Object, _tasks.Object);
+        _service = new FieldAccessScopeService(_fields.Object);
     }
 
     [Fact]
@@ -45,7 +41,7 @@ public class FieldAccessScopeServiceTests
             fieldA,
             FieldPersonRole.Partner,
             "user-1",
-            [FamilyModules.Fields, FamilyModules.Tasks, FamilyModules.Calendar],
+            [FamilyModules.Fields, FamilyModules.Tasks, FamilyModules.Chronologio],
             FamilyAccessLevels.Work,
             "owner-a",
             status: FamilyMemberStatuses.Active);

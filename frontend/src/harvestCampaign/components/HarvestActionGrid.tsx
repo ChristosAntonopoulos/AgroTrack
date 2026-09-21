@@ -6,7 +6,6 @@ import type { HarvestCampaign, HarvestCaptureKind } from '../types';
 import { HarvestSheetShell } from './HarvestSheetShell';
 
 const PRODUCTION: HarvestCaptureKind[] = ['sacks', 'mill', 'oil'];
-const OTHER: HarvestCaptureKind[] = HARVEST_HOME_ACTIONS.filter((k) => !PRODUCTION.includes(k));
 
 export const HarvestActionGrid: React.FC<{
   kinds?: HarvestCaptureKind[];
@@ -33,11 +32,16 @@ export const HarvestActionGrid: React.FC<{
 
 export const HarvestAddMenu: React.FC<{
   campaign: HarvestCampaign;
+  /** When set, only these kinds are listed (capability-gated). */
+  allowedKinds?: HarvestCaptureKind[];
   onPick: (kind: HarvestCaptureKind) => void;
-}> = ({ campaign, onPick }) => {
+}> = ({ campaign, allowedKinds, onPick }) => {
   const { t } = useTranslation('fields');
   const openSacks = pendingSackTotal(campaign);
   const openMillKg = millKgNeedingOil(campaign);
+  const allowed = new Set(allowedKinds ?? HARVEST_HOME_ACTIONS);
+  const production = PRODUCTION.filter((k) => allowed.has(k));
+  const other = HARVEST_HOME_ACTIONS.filter((k) => !PRODUCTION.includes(k) && allowed.has(k));
 
   const row = (kind: HarvestCaptureKind, badge?: string | null) => {
     const Icon = HARVEST_ACTION_ICONS[kind];
@@ -57,26 +61,36 @@ export const HarvestAddMenu: React.FC<{
 
   return (
     <HarvestSheetShell>
-      <p className="hc-form-section">{t('harvestCampaign.chain.production')}</p>
-      <div className="capture-type-list hc-add-chain">
-        {row('sacks')}
-        {row(
-          'mill',
-          openSacks > 0
-            ? t('harvestCampaign.chain.openSacksBadge', { count: openSacks })
-            : null
-        )}
-        {row(
-          'oil',
-          openMillKg > 0
-            ? t('harvestCampaign.chain.openMillBadge', { kg: Math.round(openMillKg) })
-            : null
-        )}
-      </div>
-      <p className="hc-form-section">{t('harvestCampaign.chain.other')}</p>
-      <div className="capture-type-list">
-        {OTHER.map((kind) => row(kind))}
-      </div>
+      {production.length > 0 ? (
+        <>
+          <p className="hc-form-section">{t('harvestCampaign.chain.production')}</p>
+          <div className="capture-type-list hc-add-chain">
+            {production.includes('sacks') ? row('sacks') : null}
+            {production.includes('mill')
+              ? row(
+                  'mill',
+                  openSacks > 0
+                    ? t('harvestCampaign.chain.openSacksBadge', { count: openSacks })
+                    : null
+                )
+              : null}
+            {production.includes('oil')
+              ? row(
+                  'oil',
+                  openMillKg > 0
+                    ? t('harvestCampaign.chain.openMillBadge', { kg: Math.round(openMillKg) })
+                    : null
+                )
+              : null}
+          </div>
+        </>
+      ) : null}
+      {other.length > 0 ? (
+        <>
+          <p className="hc-form-section">{t('harvestCampaign.chain.other')}</p>
+          <div className="capture-type-list">{other.map((kind) => row(kind))}</div>
+        </>
+      ) : null}
     </HarvestSheetShell>
   );
 };

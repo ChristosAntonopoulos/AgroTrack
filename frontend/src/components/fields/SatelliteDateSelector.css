@@ -3,6 +3,23 @@
   gap: 0.22rem;
 }
 
+.satellite-dates-year {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.satellite-dates-year-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.satellite-date-cloud {
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+}
+
 .satellite-dates--empty {
   font-size: 0.75rem;
   color: var(--color-text-muted);

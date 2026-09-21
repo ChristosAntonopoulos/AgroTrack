@@ -42,7 +42,7 @@ export type GroveWeatherView = {
   updatedAt?: Date;
 };
 
-const CODE_TO_CONDITION = (code?: number): string => {
+export const weatherCodeToCondition = (code?: number): string => {
   if (code == null) return 'cloud';
   if (code === 0) return 'clear';
   if (code <= 3) return 'partly';
@@ -104,7 +104,7 @@ export const presentGroveWeather = (input: {
   const high = current ? Math.round(current.highC) : snap?.high ?? null;
   const low = current ? Math.round(current.lowC) : snap?.low ?? null;
   const conditionKey = current
-    ? CODE_TO_CONDITION(current.weatherCode)
+    ? weatherCodeToCondition(current.weatherCode)
     : SNAP_CONDITION[snap?.condition || ''] || 'cloud';
   const rainNow = current?.precipitationMm ?? snap?.precipitation ?? 0;
   const rain24 = field?.rain?.forecast24hMm ?? snap?.rainForecast24hMm ?? 0;

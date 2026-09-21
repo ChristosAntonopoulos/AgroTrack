@@ -56,18 +56,19 @@ import { athensParts } from '../utils/athensDate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Zoom = 'years' | 'year' | 'month';
-type FilterCategory = ChronologioCategory | 'all';
+type FilterCategory = ChronologioCategory | 'all' | 'work' | 'observation' | 'money';
 
 const ZOOM_DISPLAY_ORDER: Zoom[] = ['month', 'year', 'years'];
 const FILTER_CATEGORIES: FilterCategory[] = [
   'all',
-  'task',
-  'expense',
+  'work',
+  'observation',
+  'money',
   'harvest',
-  'note',
   'weather',
-  'intelligence',
+  'photo',
   'lifecycle',
+  'collaborator',
 ];
 
 const monthBounds = (year: number, month: number) => {
@@ -630,7 +631,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
 
       <ChronologioCategoryRail
         value={filterCategory}
-        onChange={(v) => setFilterCategory(v)}
+        onChange={(v) => setFilterCategory(v as FilterCategory)}
       />
 
       <View style={styles.toolsRow}>
@@ -987,7 +988,16 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
           contentStyle={{ marginBottom: 8 }}
           options={FILTER_CATEGORIES.map((c) => ({
             value: c,
-            label: t(`chronologio:categories.${c}`),
+            label:
+              c === 'work' || c === 'observation' || c === 'money' || c === 'all' || c === 'harvest'
+                ? t(`chronologio:primaryCategories.${c}`, {
+                    defaultValue: t(`chronologio:categories.${c}`),
+                  })
+                : c === 'lifecycle'
+                  ? t('chronologio:primaryCategories.field_change', {
+                      defaultValue: t('chronologio:categories.lifecycle'),
+                    })
+                  : t(`chronologio:categories.${c}`),
           }))}
         />
       </Sheet>

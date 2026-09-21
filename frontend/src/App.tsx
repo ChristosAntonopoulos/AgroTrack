@@ -11,6 +11,7 @@ import { OfflineProvider } from './context/OfflineContext';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import LandingPage from './pages/LandingPage';
+import { PrivacyPage, TermsPage } from './pages/LegalPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -45,6 +46,7 @@ import PhotoHubPage from './pages/PhotoHubPage';
 import HarvestCampaignPage from './pages/HarvestCampaignPage';
 import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 import './App.css';
 
 const FieldPeopleRedirect: React.FC = () => {
@@ -84,6 +86,8 @@ function App() {
               <Router>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
                   <Route element={<AuthLayout />}>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
@@ -117,6 +121,7 @@ function App() {
                       element={<FieldPeopleRedirect />}
                     />
                     <Route path="fields/:id" element={<FieldDetailPage />} />
+                    <Route path="access-denied" element={<AccessDeniedPage />} />
                     <Route path="chronologio" element={<ChronologioPage />} />
                     <Route path="tasks" element={<TasksPage />} />
                     <Route path="tasks/new" element={<TaskFormPage />} />

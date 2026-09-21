@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { isMockMode } from '../../services/serviceFactory';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import {
   navItems,
   filterNavItemsForUser,
@@ -27,10 +28,34 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
+  const canViewHarvest = useMemo(() => {
+    const caps = getHarvestCapabilities({
+      hasAnyFieldAccess: activeField.ownsAnyField || activeField.isCollaboratorOnActive || Boolean(activeField.fieldId),
+      canOwn:
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        activeField.ownsAnyField,
+      canWork:
+        user?.role === 'Producer' ||
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        activeField.isCollaboratorOnActive,
+      familyModules: activeField.modules,
+      accessLevel: activeField.accessLevel,
+      harvestModuleGranted:
+        !activeField.modules ||
+        activeField.modules.size === 0 ||
+        activeField.modules.has('harvest') ||
+        activeField.isAdminOnActive,
+    });
+    return caps.canView;
+  }, [user, activeField]);
+
   const primaryItems = useMemo(() => {
     const visible = filterNavItemsForUser(navItems, userRole, isMockMode(), {
       modules: activeField.modules,
       isAdminOnActive: activeField.isAdminOnActive,
+      canViewHarvest,
     });
     const harvestItem = visible.find((item) => item.path === '/harvest');
     let items = visible.filter((item) => item.mobilePrimary);
@@ -38,7 +63,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
       items = [harvestItem, ...items.filter((item) => item.path !== '/chronologio' && item.path !== '/harvest')];
     }
     return items.slice(0, 3);
-  }, [userRole, activeField.modules, activeField.isAdminOnActive, harvest?.isLive]);
+  }, [userRole, activeField.modules, activeField.isAdminOnActive, canViewHarvest, harvest?.isLive]);
 
   const harvestPage = location.pathname === '/harvest' || location.pathname.startsWith('/harvest/');
   if (harvest?.isLive && harvestPage) return null;

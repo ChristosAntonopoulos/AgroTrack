@@ -119,8 +119,10 @@
   },
   "page": {
     "tabsAria": "Sezioni del campo",
-    "mapData": "Mappa e dati",
+    "mapData": "Mappa",
+    "mapDataFull": "Mappa e dati",
     "details": "Dettagli",
+    "tabDetails": "Scheda",
     "yearAria": "Anno di risultato",
     "prevYear": "Anno precedente",
     "nextYear": "Anno successivo",
@@ -589,6 +591,7 @@
     "upcomingTitle": "Prossimi lavori di raccolta",
     "upcomingEmpty": "Nessuna attività di raccolta aperta.",
     "openMoney": "Vedi costi",
+    "openChronologio": "Apri Cronologio",
     "olives": "Olive",
     "oil": "Olio",
     "net": "Saldo",
@@ -602,8 +605,8 @@
     "title": "Bilancio annuale",
     "subtitle": "Cosa ha lasciato la stagione chiusa — olio, lavoro e note.",
     "pickYear": "Stagione",
-    "emptyYears": "Nessuna stagione chiusa ancora.",
-    "emptyYearsHint": "Quando finisce la raccolta, il bilancio appare qui.",
+    "emptyYears": "Nessuna stagione di raccolta chiusa da rivedere.",
+    "emptyYearsHint": "Quando termini una raccolta su /harvest, qui compare il bilancio con olio, costi e note.",
     "resultTitle": "Risultato",
     "numbersTitle": "L'annata in numeri",
     "olives": "Olive",
@@ -646,11 +649,30 @@
     "setupHint": "Scegli i campi. Puoi aggiungerne altri dopo.",
     "setup": {
       "step": "Passo {{step}}",
+      "stepOf": "Passo {{step}} di {{total}}",
       "selectAll": "Seleziona tutti",
+      "clearSelection": "Cancella",
+      "selectedCount_one": "{{count}} campo selezionato",
+      "selectedCount_other": "{{count}} campi selezionati",
+      "selectedCount": "{{count}} campi selezionati",
       "later": "Aggiungerò i campi più tardi",
       "startTitle": "Pronto a iniziare?",
       "startHint": "Durante la raccolta puoi annotare sacchi, chili, persone, spese e olio.",
-      "confirmStart": "Iniziamo oggi"
+      "confirmStart": "Iniziamo oggi",
+      "seasonLabel": "Stagione",
+      "fieldsLabel": "Campi",
+      "seasonLine": "{{season}} · {{range}}",
+      "fieldsLine": "Campi: {{fields}}",
+      "noFieldsWarn": "Nessun campo selezionato — puoi aggiungerli dopo, ma i totali per campo resteranno vuoti."
+    },
+    "fieldLockedLabel": "Campo",
+    "serverActivityHint": "Esistono già registrazioni di raccolta sui tuoi campi (ad es. in Cronologio), ma questo dispositivo non ha ancora una raccolta condivisa attiva. Avviare qui crea una stagione locale finché non c’è la sincronizzazione.",
+    "historical": {
+      "kicker": "Da Chronologio",
+      "title": "Giorno di raccolta",
+      "summary": "Totali del giorno",
+      "missing": "Nessuna registrazione di raccolta trovata per questo giorno. Potrebbe essere stata annullata o rimossa.",
+      "sacksRow": "{{count}} sacchi"
     },
     "dayNav": {
       "label": "Giorno di raccolta",
@@ -659,7 +681,10 @@
       "today": "Oggi",
       "yesterday": "Ieri",
       "closed": "Chiuso",
-      "openDay": "Apri questo giorno"
+      "openDay": "Apri questo giorno",
+      "reopen": "Riapri la giornata",
+      "lockedTitle": "Giornata chiusa",
+      "lockedBody": "Riapri questa giornata per aggiungere o modificare le registrazioni."
     },
     "needGrove": "Scegli almeno un campo, oppure aggiungili dopo.",
     "noFields": "Aggiungi prima un campo.",
@@ -679,8 +704,9 @@
     "actions": {
       "sacks": "Sacchi",
       "mill": "Chili dal frantoio",
+      "millShort": "Frantoio",
       "oil": "Olio",
-      "expense": "Spesa",
+      "expense": "Spese",
       "people": "Persone",
       "note": "Nota o foto"
     },
@@ -695,10 +721,10 @@
     "sheetTitle": {
       "add": "Cosa vuoi aggiungere?",
       "sacks": "Sacchi",
-      "mill": "Chili dal frantoio",
+      "mill": "Chili di olive dal frantoio",
       "oil": "Olio",
       "people": "Persone",
-      "expense": "Spesa",
+      "expense": "Spese",
       "note": "Nota",
       "evening": "Chiudi la giornata",
       "complete": "Termina raccolta"
@@ -714,10 +740,12 @@
       "otherField": "Altro campo",
       "kgPerSack": "Circa quanti chili pesa ogni sacco?",
       "estimateLine": "{{sacks}} sacchi · circa {{kg}} kg",
-      "save": "Registra {{count}} sacchi"
+      "estimateLabel": "Stima ≈ {{kg}} kg (non peso ufficiale)",
+      "save": "Registra {{count}} sacchi",
+      "saveWithField": "Registra {{count}} sacchi · {{field}}"
     },
     "millKg": {
-      "prompt": "Quanti chili ha mostrato il frantoio?",
+      "prompt": "Quanti chili di olive ha mostrato il frantoio?",
       "whichField": "Da quale campo erano le olive?",
       "split": {
         "one": "Un campo",
@@ -731,17 +759,48 @@
       "linkConfirm": "Collega",
       "linkFound": "Collega {{count}} sacchi",
       "changeSelection": "Cambia selezione",
+      "receiptRef": "Numero scontrino / pesata (facoltativo)",
+      "tareHint": "Inserisci i chili netti di olive dopo la tara.",
       "save": "Registra {{kg}} kg"
     },
     "oil": {
       "prompt": "Quanto olio avete preso?",
+      "howPrompt": "Come vuoi registrarlo?",
       "kg": "Chili",
       "litres": "Litri",
+      "unitLabel": "Unità",
+      "tin16": "Latte da 16 L",
+      "tin17": "Latte da 17 L",
+      "tinSuffix": "latte",
+      "tinCount": "Numero di latte",
+      "millTitle": "Quanto ha tenuto il frantoio",
+      "millHint": "Scrivi 0 se il frantoio non ha tenuto olio.",
+      "millModeLabel": "Come inserire la quota del frantoio",
+      "millAmount": "Quantità",
+      "millPercent": "%",
+      "storedTitle": "Cosa è stato conservato",
+      "storedAll": "Tutto insieme",
+      "storedTins": "Latte",
+      "storedAllHint": "Tutta la quantità rimasta, senza latte.",
+      "bulkLine": "Resto sfuso {{amount}}",
+      "overTins": "Le latte superano l'olio rimasto di {{amount}}.",
+      "overMill": "Il frantoio non può tenere più del totale.",
+      "tinBit": "{{count}} × {{size}} L",
+      "millBit": "frantoio {{amount}}",
+      "part": {
+        "stored": "Conservato",
+        "tin16": "Latte da 16 L",
+        "tin17": "Latte da 17 L",
+        "bulk": "Sfuso",
+        "mill": "Frantoio"
+      },
+      "extraLitres": "Litri extra",
+      "tinTotal": "{{tins}} × {{size}} L + {{extra}} L = {{total}} L",
       "relatedKg": "Pesata collegata",
       "noRelated": "Senza collegamento",
       "acidity": "Acidità (facoltativa)",
       "yieldLine": "{{olives}} kg olive → {{oil}} kg olio · Resa {{yield}}%",
-      "estimatedKg": "Circa {{kg}} kg",
+      "estimatedKg": "Circa {{kg}} kg (stima densità)",
       "save": "Registra {{amount}} {{unit}} di olio"
     },
     "people": {
@@ -763,21 +822,25 @@
     "expense": {
       "prompt": "Quanto è costato?",
       "save": "Registra {{amount}} €",
-      "moneyDescription": "Spesa di raccolta"
+      "moneyDescription": "Spese di raccolta"
     },
     "note": {
       "prompt": "Nota o foto",
+      "chronologioHint": "Le note compaiono anche in Cronologio per questo campo.",
       "save": "Salva"
     },
     "today": {
       "label": "Questo giorno",
       "empty": "Non è stato ancora registrato nulla per questo giorno.",
+      "fieldsLine": "Campi: {{fields}}",
       "official": "{{kg}} kg peso ufficiale",
       "sacksAlso": "{{count}} sacchi registrati",
       "approxFromSacks": "circa {{kg}} kg · Da {{count}} sacchi",
       "people": "{{count}} persone",
       "expense": "{{amount}} € spese",
       "oil": "{{kg}} kg olio",
+      "photos_one": "{{count}} foto",
+      "photos_other": "{{count}} foto",
       "photos": "{{count}} foto",
       "add": "Aggiungi",
       "close": "Chiudi la giornata",
@@ -790,7 +853,11 @@
       "expense": "{{amount}} € spese",
       "missing": "Manca qualcosa?",
       "laterHint": "Puoi aggiungere i chili o l'olio più tardi.",
-      "done": "No, chiudi la giornata"
+      "done": "No, chiudi la giornata",
+      "emptyTitle": "Nessuna registrazione per questo giorno",
+      "emptyHint": "Vuoi tornare a registrare, o chiudere come «nessuna raccolta»?",
+      "emptyReturn": "Torna a registrare",
+      "emptyClose": "Chiudi senza raccolta"
     },
     "nudge": {
       "todayTitle": "Ora di chiudere la giornata",
@@ -808,11 +875,17 @@
       "oil": "{{kg}} kg olio",
       "yield": "{{yield}}%",
       "yieldLabel": "Resa",
+      "days_one": "{{count}} giorno di raccolta",
+      "days_other": "{{count}} giorni di raccolta",
       "days": "{{count}} giorni di raccolta",
       "personDays": "{{count}} giornate-persona",
+      "people": "{{count}} persone",
+      "sacks": "{{count}} sacchi",
+      "costPerKg": "{{amount}} € / kg olive",
+      "costPerKgLabel": "Costo / kg olive",
       "expense": "{{amount}} € spese",
       "needs": "Da completare",
-      "needOil": "{{kg}} kg senza olio registrato."
+      "needOil": "{{kg}} kg senza olio"
     },
     "fieldStatus": {
       "not_started": "Non iniziato",
@@ -837,22 +910,33 @@
     },
     "complete": {
       "includes": "La raccolta comprende:",
+      "readyTitle": "Pronto a terminare questa raccolta?",
       "finishedTitle": "Raccolta terminata",
+      "openConfirm": "Aprire la checklist di fine raccolta?",
       "olives": "{{kg}} kg olive",
       "oil": "{{kg}} kg olio",
       "yield": "{{yield}}% di resa",
+      "days_one": "{{count}} giorno",
+      "days_other": "{{count}} giorni",
       "days": "{{count}} giorni",
       "personDays": "{{count}} giornate-persona",
       "expense": "{{amount}} € spese",
       "unweighed": "{{count}} sacchi non collegati al peso ufficiale.",
+      "missingTitle": "Manca prima di terminare:",
+      "missingMill": "Ancora nessun peso ufficiale del frantoio.",
+      "missingOil": "Ancora nessun risultato olio.",
+      "missingOpenDays": "{{count}} giorni di raccolta sono ancora aperti.",
+      "missingEmpty": "Nessuna produzione registrata ancora.",
       "fill": "Completa",
       "without": "Termina senza questo",
       "confirm": "Termina",
+      "confirmAnyway": "Termina comunque",
       "done": "La raccolta è terminata.",
       "review": "Vedi il riepilogo",
       "addNote": "Aggiungi una nota"
     },
     "record": {
+      "title": "Registrazione raccolta",
       "olives": "Olive",
       "oil": "Olio",
       "people": "Persone",
@@ -880,6 +964,7 @@
       "mill": "Kg frantoio",
       "oil": "Olio",
       "empty": "Aggiungi sacchi, chili o olio per vedere come si collegano.",
+      "emptyHint": "Inizia con + Registra nella scheda Giorno. I campi della raccolta sono elencati sotto.",
       "needsMill": "Serve pesata",
       "needsOil": "Serve olio",
       "linked": "Collegato",
@@ -928,6 +1013,7 @@
     "dayActivity": {
       "kicker": "Questo giorno",
       "title": "Cosa hai registrato",
+      "closedHint": "Riapri la giornata per modificare o aggiungere registrazioni.",
       "empty": "Nessuna registrazione per questo giorno. Aggiungi sacchi, chili al frantoio, olio o persone.",
       "edit": "Modifica",
       "remove": "Elimina",
@@ -940,7 +1026,10 @@
       "saveChanges": "Salva modifiche",
       "weighed": "pesati",
       "open": "non ancora pesati",
-      "fromMills": "da {{count}} pesate"
+      "fromMills": "da {{count}} pesate",
+      "fromSacksShort": "{{count}} sacchi collegati",
+      "kgPerSackShort": "≈ {{kg}} kg/sacco",
+      "acidityShort": "Acidità {{value}}"
     }
   }
 }

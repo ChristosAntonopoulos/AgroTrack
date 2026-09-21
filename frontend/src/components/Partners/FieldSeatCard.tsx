@@ -106,7 +106,7 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
             {person.status === 'pending' || person.status === 'invited' ? (
               <span className="partner-chip">{t('partners:connection.invited')}</span>
             ) : null}
-            {person.modules.map((module) => (
+            {person.modules.filter((module) => module !== 'documents').map((module) => (
               <span key={module} className="partner-chip partner-chip-job">
                 {t(`partners:family.modules.${module}`)}
               </span>

@@ -16,14 +16,11 @@ namespace OliveLifecycle.Application.Tests;
 public class FieldAccessServiceTests
 {
     private readonly Mock<IFieldRepository> _fieldRepository = new();
-    private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly FieldAccessService _service;
 
     public FieldAccessServiceTests()
     {
-        _service = new FieldAccessService(
-            _fieldRepository.Object,
-            _fieldTasks.Object);
+        _service = new FieldAccessService(_fieldRepository.Object);
     }
 
     [Fact]
@@ -64,6 +61,34 @@ public class FieldAccessServiceTests
         var result = await _service.CanUserAccessFieldAsync("field-1", "producer-1", Roles.Producer);
 
         Assert.True(result);
+    }
+
+    [Fact]
+    public async Task CanUserAccessFieldAsync_ReturnsFalse_ForAssignedProducerWithoutSeat()
+    {
+        _fieldRepository.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Field { Id = "field-1", OwnerId = "owner-1" });
+
+        var result = await _service.CanUserAccessFieldAsync("field-1", "producer-1", Roles.Producer);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task CanUserAccessFieldModuleAsync_RequiresPhotosSeat()
+    {
+        var field = new Field { Id = "field-1", OwnerId = "owner-1" };
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Admin, "owner-1", FamilyModules.All, FamilyAccessLevels.Work, "owner-1",
+            status: FamilyMemberStatuses.Active);
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Partner, "producer-1", [FamilyModules.Fields, FamilyModules.Tasks], FamilyAccessLevels.Work, "owner-1",
+            status: FamilyMemberStatuses.Active);
+        _fieldRepository.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(field);
+
+        Assert.False(await _service.CanUserAccessFieldPhotosAsync("field-1", "producer-1", Roles.Producer));
+        Assert.True(await _service.CanUserAccessFieldModuleAsync("field-1", "producer-1", Roles.Producer, FamilyModules.Tasks));
     }
 
     [Fact]

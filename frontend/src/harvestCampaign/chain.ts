@@ -1,5 +1,6 @@
 import { unconfirmedSacks } from './storage';
 import { oilAmountToKg } from './totals';
+import { plausibleOilYield } from './utils/harvestCalculations';
 import type {
   HarvestCampaign,
   HarvestMillWeightEntry,
@@ -109,10 +110,10 @@ export const harvestChainStatus = (campaign: HarvestCampaign): HarvestChainStatu
             .reduce((sum, m) => sum + m.kg, 0)
         : campaign.millWeights.reduce((sum, m) => sum + m.kg, 0);
     if (millKg > 0 && oilKg > 0) {
-      latestCompleteYield = (oilKg / millKg) * 100;
+      latestCompleteYield = plausibleOilYield((oilKg / millKg) * 100);
       latestCompleteMillKg = millKg;
       latestCompleteOilKg = oilKg;
-      break;
+      if (latestCompleteYield != null) break;
     }
   }
 
@@ -128,7 +129,7 @@ export const harvestChainStatus = (campaign: HarvestCampaign): HarvestChainStatu
     if (oil) {
       const oilKg = oilAmountToKg(oil);
       if (mill.kg > 0 && oilKg > 0) {
-        latestCompleteYield = (oilKg / mill.kg) * 100;
+        latestCompleteYield = plausibleOilYield((oilKg / mill.kg) * 100);
         latestCompleteMillKg = mill.kg;
         latestCompleteOilKg = oilKg;
       }

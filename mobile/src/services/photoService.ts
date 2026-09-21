@@ -10,6 +10,7 @@ export interface Photo {
   ownerType: PhotoOwnerType | string;
   ownerId: string;
   fieldId: string;
+  fieldName?: string | null;
   mediaType: string;
   url: string;
   thumbnailUrl?: string | null;
@@ -22,12 +23,18 @@ export interface Photo {
   longitude?: number | null;
   fieldAssignment: FieldAssignment | string;
   fieldMatchScore?: number | null;
+  assignmentReason?: string | null;
   kind: string;
   contentHash?: string | null;
   width?: number | null;
   height?: number | null;
   byteSize?: number | null;
   isLinked: boolean;
+  linkedTitle?: string | null;
+  linkedOccurredAt?: string | null;
+  linkedStatus?: string | null;
+  linkBroken?: boolean;
+  canTrash?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -43,6 +50,9 @@ export interface PhotoFieldCandidate {
 export interface PhotoUploadResult {
   photo: Photo;
   duplicateWarning: boolean;
+  duplicateSkipped?: boolean;
+  failed?: boolean;
+  error?: string | null;
   candidates: PhotoFieldCandidate[];
 }
 

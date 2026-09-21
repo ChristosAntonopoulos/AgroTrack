@@ -550,7 +550,7 @@ const TasksPage: React.FC = () => {
     );
   }
   if (!pageGuard.allowed) {
-    return <Navigate to="/chronologio" replace />;
+    return <Navigate to="/access-denied?module=tasks" replace />;
   }
 
   if (loading) {

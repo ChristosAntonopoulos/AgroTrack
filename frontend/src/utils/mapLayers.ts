@@ -20,11 +20,20 @@ export const SATELLITE_LABELS_TILE =
 
 export const STREET_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-export const TERRAIN_TILE =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}';
+/**
+ * Ανάγλυφο: OSM for roads/context + Esri hillshade for relief.
+ * Pure topo/terrain caches look blank at grove zoom in rural Greece.
+ */
+export const TERRAIN_TILE = STREET_TILE;
 
-export const TERRAIN_LABELS_TILE =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}';
+export const TERRAIN_HILLSHADE_TILE =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}';
+
+/** Hillshade LODs thin out past ~15; overscale from here instead of blank tiles. */
+export const TERRAIN_MAX_NATIVE_ZOOM = 15;
+
+/** Keep field fit from punching past useful basemap detail on small groves. */
+export const MAP_FIT_MAX_ZOOM = 17;
 
 export type FieldPolygonMode = 'default' | 'hover' | 'selected' | 'outline' | 'warning';
 

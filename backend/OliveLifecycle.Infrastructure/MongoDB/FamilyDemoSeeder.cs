@@ -53,7 +53,7 @@ public static class FamilyDemoSeeder
                         FamilyModules.Money,
                         FamilyModules.Harvest,
                         FamilyModules.Documents,
-                        FamilyModules.Calendar,
+                        FamilyModules.Chronologio,
                     ],
                     AccessLevel = FamilyAccessLevels.Help,
                     Status = FamilyMemberStatuses.Active,
@@ -74,7 +74,7 @@ public static class FamilyDemoSeeder
                     FamilyModules.Money,
                     FamilyModules.Harvest,
                     FamilyModules.Documents,
-                    FamilyModules.Calendar,
+                    FamilyModules.Chronologio,
                 ];
                 existing.AccessLevel = FamilyAccessLevels.Help;
                 existing.Status = FamilyMemberStatuses.Active;

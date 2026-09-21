@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { MoreHorizontal } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
 import PhotoLocationMap from './PhotoLocationMap';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
+import {
+  chronologioPath,
+  harvestPath,
+  taskPeekPath,
+} from '../../navigation/intents';
 import {
   getFieldWorkService,
   getHarvestService,
@@ -25,8 +33,29 @@ export type PhotoDetailDrawerProps = {
   onLink: (photoId: string, ownerType: string, ownerId: string) => Promise<void>;
   onUnlink: (photoId: string) => Promise<void>;
   onDelete: (photoId: string) => Promise<void>;
-  /** Opens fullscreen among the current filtered gallery set. */
   onExpandFullscreen?: (photo: Photo) => void;
+};
+
+const linkedRecordPath = (photo: Photo): string | null => {
+  if (!photo.isLinked || !photo.ownerId) return null;
+  switch (photo.ownerType) {
+    case 'task':
+      return taskPeekPath(photo.ownerId);
+    case 'harvest':
+      return harvestPath({ fieldId: photo.fieldId || undefined, harvestId: photo.ownerId });
+    case 'note':
+      return chronologioPath({
+        fieldId: photo.fieldId || undefined,
+        entry: `Note:${photo.ownerId}`,
+      });
+    case 'phenology':
+      return chronologioPath({
+        fieldId: photo.fieldId || undefined,
+        entry: `Phenology:${photo.ownerId}`,
+      });
+    default:
+      return null;
+  }
 };
 
 const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
@@ -41,17 +70,22 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   onExpandFullscreen,
 }) => {
   const { t } = useTranslation('photos');
+  const { formatDateTime, formatDate } = useLocaleFormatters();
   const [ownerType, setOwnerType] = useState('task');
   const [ownerId, setOwnerId] = useState('');
   const [targets, setTargets] = useState<LinkTarget[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
+  const [targetsError, setTargetsError] = useState(false);
+  const [targetsRetry, setTargetsRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const [confirmFieldId, setConfirmFieldId] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fieldId = photo?.fieldId || '';
 
   useEffect(() => {
     setOwnerId('');
+    setMenuOpen(false);
   }, [ownerType, photo?.id]);
 
   useEffect(() => {
@@ -61,12 +95,14 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   useEffect(() => {
     if (!open || !fieldId || !photo) {
       setTargets([]);
+      setTargetsError(false);
       return;
     }
 
     let cancelled = false;
     const load = async () => {
       setLoadingTargets(true);
+      setTargetsError(false);
       try {
         let next: LinkTarget[] = [];
         const fieldWork = getFieldWorkService();
@@ -86,19 +122,22 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
           const harvests = await getHarvestService().listByField(fieldId);
           next = harvests.map((h) => ({
             id: h.id,
-            label: `${new Date(h.harvestDate).toLocaleDateString()} · ${h.oliveKg} kg`,
+            label: `${formatDate(h.harvestDate)} · ${h.oliveKg} kg`,
           }));
         } else if (ownerType === 'phenology') {
           const observations: FieldPhenologyObservation[] =
             await fieldWork.listPhenologyObservations(fieldId);
           next = observations.map((o) => ({
             id: o.id,
-            label: `${o.stageLabel || o.stageCode} · ${new Date(o.observedOn).toLocaleDateString()}`,
+            label: `${o.stageLabel || o.stageCode} · ${formatDate(o.observedOn)}`,
           }));
         }
         if (!cancelled) setTargets(next);
       } catch {
-        if (!cancelled) setTargets([]);
+        if (!cancelled) {
+          setTargets([]);
+          setTargetsError(true);
+        }
       } finally {
         if (!cancelled) setLoadingTargets(false);
       }
@@ -108,23 +147,32 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [fieldId, open, ownerType, photo]);
+  }, [fieldId, formatDate, open, ownerType, photo, targetsRetry]);
 
-  const linkedLabel = useMemo(() => {
-    if (!photo?.isLinked) return null;
-    return t(`badges.${photo.ownerType === 'field' ? 'standalone' : photo.ownerType}`, {
-      defaultValue: photo.ownerType,
-    });
-  }, [photo, t]);
+  const drawerTitle = useMemo(() => {
+    if (!photo) return t('detail.title');
+    const field =
+      photo.fieldName || fields.find((f) => f.id === photo.fieldId)?.name || photo.fieldId;
+    if (field) return field;
+    return t('detail.title');
+  }, [fields, photo, t]);
 
   if (!photo) return null;
 
   const src = resolvePublicAssetUrl(photo.url) || photo.url;
-  const fieldName = fields.find((f) => f.id === photo.fieldId)?.name || photo.fieldId || '—';
+  const fieldName =
+    photo.fieldName || fields.find((f) => f.id === photo.fieldId)?.name || photo.fieldId || '—';
   const needsField = !photo.fieldId;
+  const recordHref = linkedRecordPath(photo);
+  const reasonKey = photo.assignmentReason
+    ? `detail.reasons.${photo.assignmentReason}`
+    : null;
+  const reasonLabel = reasonKey
+    ? t(reasonKey, { defaultValue: photo.assignmentReason || '' })
+    : null;
 
   return (
-    <RightDrawer open={open} onClose={onClose} title={t('detail.title')} size="md">
+    <RightDrawer open={open} onClose={onClose} title={drawerTitle} size="md">
       <div className="photo-detail-body">
         {onExpandFullscreen ? (
           <button
@@ -133,36 +181,100 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
             onClick={() => onExpandFullscreen(photo)}
             aria-label={t('viewer.expand')}
           >
-            <img src={src} alt={photo.fileName || t('detail.title')} />
+            <img src={src} alt={drawerTitle} />
             <span className="photo-detail-hero-hint">{t('viewer.expand')}</span>
           </button>
         ) : (
-          <img src={src} alt={photo.fileName || t('detail.title')} />
+          <img src={src} alt={drawerTitle} />
         )}
 
         <section className="photo-detail-section" aria-label={t('detail.metaSection')}>
-          <h3 className="photo-detail-section-title">{t('detail.metaSection')}</h3>
+          <div className="photo-detail-section-head">
+            <h3 className="photo-detail-section-title">{t('detail.metaSection')}</h3>
+            {photo.canTrash !== false ? (
+              <div className="photo-detail-overflow">
+                <button
+                  type="button"
+                  className="photo-detail-overflow-btn"
+                  aria-label={t('detail.moreActions')}
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((v) => !v)}
+                >
+                  <MoreHorizontal size={18} aria-hidden />
+                </button>
+                {menuOpen ? (
+                  <div className="photo-detail-overflow-menu" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="photo-detail-overflow-item is-danger"
+                      disabled={busy}
+                      onClick={async () => {
+                        if (!window.confirm(t('detail.deleteConfirm'))) return;
+                        setBusy(true);
+                        setMenuOpen(false);
+                        try {
+                          await onDelete(photo.id);
+                          onClose();
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      {t('detail.delete')}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <dl className="photo-detail-meta">
             <dt>{t('detail.field')}</dt>
             <dd>{fieldName}</dd>
             <dt>{t('detail.captured')}</dt>
-            <dd>{new Date(photo.effectiveCapturedAt).toLocaleString()}</dd>
+            <dd>{formatDateTime(photo.effectiveCapturedAt)}</dd>
             <dt>{t('detail.uploaded')}</dt>
-            <dd>{new Date(photo.createdAt).toLocaleString()}</dd>
+            <dd>{formatDateTime(photo.createdAt)}</dd>
             <dt>{t('detail.location')}</dt>
             <dd>
               {photo.latitude != null && photo.longitude != null
                 ? `${photo.latitude.toFixed(5)}, ${photo.longitude.toFixed(5)}`
                 : t('detail.noGps')}
             </dd>
-            {linkedLabel ? (
+            {reasonLabel ? (
               <>
-                <dt>{t('detail.linkedAs')}</dt>
-                <dd>{linkedLabel}</dd>
+                <dt>{t('detail.assignmentReason')}</dt>
+                <dd>{reasonLabel}</dd>
               </>
             ) : null}
           </dl>
         </section>
+
+        {photo.isLinked ? (
+          <section className="photo-detail-section" aria-label={t('detail.linkedRecord')}>
+            <h3 className="photo-detail-section-title">{t('detail.linkedRecord')}</h3>
+            <div className={`photo-linked-card${photo.linkBroken ? ' is-broken' : ''}`}>
+              <div className="photo-linked-card-type">
+                {t(`badges.${photo.ownerType}`, { defaultValue: photo.ownerType })}
+              </div>
+              <strong className="photo-linked-card-title">
+                {photo.linkedTitle || t('detail.linkedAs')}
+              </strong>
+              <div className="photo-linked-card-meta">
+                {photo.linkedOccurredAt ? formatDate(photo.linkedOccurredAt) : null}
+                {photo.linkedStatus ? ` · ${photo.linkedStatus}` : null}
+              </div>
+              {photo.linkBroken ? (
+                <p className="photo-linked-card-warn">{t('detail.linkBroken')}</p>
+              ) : null}
+              {recordHref && !photo.linkBroken ? (
+                <Link className="photo-linked-card-open" to={recordHref} onClick={onClose}>
+                  {t('detail.openRecord')}
+                </Link>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {photo.latitude != null && photo.longitude != null ? (
           <section className="photo-detail-section" aria-label={t('detail.mapSection')}>
@@ -212,6 +324,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
 
         <section className="photo-detail-section" aria-label={t('detail.link')}>
           <h3 className="photo-detail-section-title">{t('detail.link')}</h3>
+          <p className="photo-link-hint">{t('detail.linkMoves')}</p>
           <div className="photo-link-form">
             <label>
               {t('detail.ownerType')}
@@ -227,7 +340,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
               <select
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                disabled={loadingTargets || !photo.fieldId}
+                disabled={loadingTargets || !photo.fieldId || targetsError}
               >
                 <option value="">
                   {loadingTargets ? t('detail.loadingRecords') : t('detail.pickRecord')}
@@ -239,7 +352,20 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
                 ))}
               </select>
             </label>
-            {!loadingTargets && photo.fieldId && targets.length === 0 ? (
+            {targetsError ? (
+              <div className="photo-link-error">
+                <p>{t('detail.recordsError')}</p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={loadingTargets}
+                  onClick={() => setTargetsRetry((n) => n + 1)}
+                >
+                  {t('detail.retryRecords')}
+                </Button>
+              </div>
+            ) : null}
+            {!loadingTargets && !targetsError && photo.fieldId && targets.length === 0 ? (
               <p className="photo-link-empty">{t('detail.noRecords')}</p>
             ) : null}
             <div className="photo-detail-actions">
@@ -275,25 +401,6 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
             </div>
           </div>
         </section>
-
-        <div className="photo-detail-danger">
-          <Button
-            variant="error"
-            disabled={busy}
-            onClick={async () => {
-              if (!window.confirm(t('detail.deleteConfirm'))) return;
-              setBusy(true);
-              try {
-                await onDelete(photo.id);
-                onClose();
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {t('detail.delete')}
-          </Button>
-        </div>
       </div>
     </RightDrawer>
   );

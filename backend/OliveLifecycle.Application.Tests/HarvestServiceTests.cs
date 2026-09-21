@@ -6,6 +6,7 @@ using OliveLifecycle.Application.DTOs.Financial;
 using OliveLifecycle.Application.DTOs.Harvest;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -90,6 +91,9 @@ public class HarvestServiceTests
     public async Task CreateAsync_AssignedProducerCanRecordHarvest()
     {
         AllowAccess("field-1", "producer-1", Roles.Producer, canModify: false);
+        _access.Setup(a => a.CanFamilyWriteModuleAsync(
+                "field-1", "producer-1", FamilyModules.Harvest, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Field { Id = "field-1", OwnerId = "owner-1" });
         _harvests.Setup(r => r.CreateAsync(It.IsAny<HarvestRecord>(), It.IsAny<CancellationToken>()))
@@ -204,8 +208,12 @@ public class HarvestServiceTests
 
     private void AllowAccess(string fieldId, string userId, string role, bool canModify)
     {
-        _access.Setup(a => a.CanUserAccessFieldAsync(fieldId, userId, role, It.IsAny<CancellationToken>()))
+        _access.Setup(a => a.CanUserAccessFieldModuleAsync(fieldId, userId, role, FamilyModules.Harvest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        _access.Setup(a => a.CanFamilyAccessModuleAsync(fieldId, userId, FamilyModules.Harvest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _access.Setup(a => a.CanFamilyWriteModuleAsync(fieldId, userId, FamilyModules.Harvest, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(canModify);
         _access.Setup(a => a.CanUserModifyFieldAsync(fieldId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(canModify);
     }

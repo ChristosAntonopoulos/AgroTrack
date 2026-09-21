@@ -29,7 +29,8 @@ public class MediaAttachmentRepository
         string ownerId,
         CancellationToken cancellationToken = default)
     {
-        var filter = Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerType, ownerType.ToApiString())
+        var filter = NotDeletedFilter()
+            & Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerType, ownerType.ToApiString())
             & Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerId, ownerId);
 
         var documents = await Collection
@@ -51,7 +52,8 @@ public class MediaAttachmentRepository
             return Array.Empty<MediaAttachment>();
         }
 
-        var filter = Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerType, ownerType.ToApiString())
+        var filter = NotDeletedFilter()
+            & Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerType, ownerType.ToApiString())
             & Builders<MediaAttachmentDocument>.Filter.In(m => m.OwnerId, ids);
 
         var documents = await Collection
@@ -67,7 +69,8 @@ public class MediaAttachmentRepository
         string ownerId,
         CancellationToken cancellationToken = default)
     {
-        var filter = Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerType, ownerType.ToApiString())
+        var filter = NotDeletedFilter()
+            & Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerType, ownerType.ToApiString())
             & Builders<MediaAttachmentDocument>.Filter.Eq(m => m.OwnerId, ownerId);
         return (int)await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
     }
@@ -105,7 +108,8 @@ public class MediaAttachmentRepository
             return Array.Empty<MediaAttachment>();
         }
 
-        var filter = Builders<MediaAttachmentDocument>.Filter.Eq(m => m.ContentHash, contentHash);
+        var filter = NotDeletedFilter()
+            & Builders<MediaAttachmentDocument>.Filter.Eq(m => m.ContentHash, contentHash);
         if (!string.IsNullOrWhiteSpace(fieldId))
         {
             filter &= Builders<MediaAttachmentDocument>.Filter.Eq(m => m.FieldId, fieldId);
@@ -128,7 +132,8 @@ public class MediaAttachmentRepository
         }
 
         var builder = Builders<MediaAttachmentDocument>.Filter;
-        var filter = builder.In(m => m.FieldId, ids)
+        var filter = NotDeletedFilter()
+            & builder.In(m => m.FieldId, ids)
             & builder.Eq(m => m.OwnerType, MediaOwnerType.Field.ToApiString());
 
         if (from.HasValue)
@@ -160,9 +165,23 @@ public class MediaAttachmentRepository
         return documents.Select(ToEntity).ToList();
     }
 
+    public async Task<int> PurgeTrashedOlderThanAsync(
+        DateTime cutoffUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<MediaAttachmentDocument>.Filter.Ne(m => m.DeletedAt, (DateTime?)null)
+            & Builders<MediaAttachmentDocument>.Filter.Lt(m => m.DeletedAt, cutoffUtc);
+        var result = await Collection.DeleteManyAsync(filter, cancellationToken);
+        return (int)result.DeletedCount;
+    }
+
+    private static FilterDefinition<MediaAttachmentDocument> NotDeletedFilter() =>
+        Builders<MediaAttachmentDocument>.Filter.Eq(m => m.DeletedAt, (DateTime?)null)
+        | Builders<MediaAttachmentDocument>.Filter.Exists(m => m.DeletedAt, false);
+
     private static FilterDefinition<MediaAttachmentDocument> BuildQueryFilter(MediaAttachmentQuery query)
     {
-        var filters = new List<FilterDefinition<MediaAttachmentDocument>>();
+        var filters = new List<FilterDefinition<MediaAttachmentDocument>> { NotDeletedFilter() };
         var builder = Builders<MediaAttachmentDocument>.Filter;
 
         if (!string.IsNullOrWhiteSpace(query.FieldId))

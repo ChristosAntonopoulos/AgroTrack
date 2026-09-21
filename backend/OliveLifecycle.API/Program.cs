@@ -161,6 +161,21 @@ var uploadPath = Path.IsPathRooted(uploadPathSetting)
     ? uploadPathSetting
     : Path.Combine(app.Environment.ContentRootPath, uploadPathSetting);
 Directory.CreateDirectory(uploadPath);
+
+// Photo Hub originals/thumbs must use signed /api/v1/photos/{id}/content URLs — block anonymous static access.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    if (path.Contains("/uploads/photos/", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("/uploads/photos", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadPath),

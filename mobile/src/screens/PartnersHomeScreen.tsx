@@ -14,21 +14,13 @@ import { usePreferences } from '../context/PreferencesContext';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { fieldPeopleService, FieldInvite } from '../services/fieldPeopleService';
+import { fieldPeopleService, FieldInvite, FieldMembership } from '../services/fieldPeopleService';
 import {
   DEFAULT_FAMILY_MODULES,
   FamilyAccessLevel,
-  FamilyCircle,
-  FamilyInviteShare,
   FamilyModule,
-  familyService,
 } from '../services/familyService';
-import {
-  DEFAULT_PARTNER_MODULES,
-  OwnerPartnerInviteShare,
-  OwnerPartnerSeat,
-  ownerPartnerService,
-} from '../services/ownerPartnerService';
+import { DEFAULT_PARTNER_MODULES } from '../services/ownerPartnerService';
 import {
   SavedContact,
   ServiceCategory,
@@ -69,10 +61,8 @@ const PartnersHomeScreen = () => {
   const [people, setPeople] = useState<GrovePerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [peopleTick, setPeopleTick] = useState(0);
-  const [family, setFamily] = useState<FamilyCircle | null>(null);
-  const [familyTick, setFamilyTick] = useState(0);
-  const [partnerSeat, setPartnerSeat] = useState<OwnerPartnerSeat | null>(null);
-  const [partnerTick, setPartnerTick] = useState(0);
+  const [fieldPeople, setFieldPeople] = useState<FieldMembership[]>([]);
+  const [seatsTick, setSeatsTick] = useState(0);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<GrovePerson | null>(null);
 
@@ -99,7 +89,7 @@ const PartnersHomeScreen = () => {
   const [familyEmail, setFamilyEmail] = useState('');
   const [familyModules, setFamilyModules] = useState<FamilyModule[]>([...DEFAULT_FAMILY_MODULES]);
   const [familyLevel, setFamilyLevel] = useState<FamilyAccessLevel>('view');
-  const [familyInvite, setFamilyInvite] = useState<FamilyInviteShare | null>(null);
+  const [familyInvite, setFamilyInvite] = useState<FieldInvite | null>(null);
   const [savingFamily, setSavingFamily] = useState(false);
 
   const [addingPartner, setAddingPartner] = useState(false);
@@ -107,7 +97,7 @@ const PartnersHomeScreen = () => {
   const [partnerEmail, setPartnerEmail] = useState('');
   const [partnerModules, setPartnerModules] = useState<FamilyModule[]>([...DEFAULT_PARTNER_MODULES]);
   const [partnerLevel, setPartnerLevel] = useState<FamilyAccessLevel>('work');
-  const [partnerInvite, setPartnerInvite] = useState<OwnerPartnerInviteShare | null>(null);
+  const [partnerInvite, setPartnerInvite] = useState<FieldInvite | null>(null);
   const [savingPartner, setSavingPartner] = useState(false);
 
   const openedAddContact = useRef(false);
@@ -168,32 +158,18 @@ const PartnersHomeScreen = () => {
   }, [peopleTick, i18n.language, categories]);
 
   useEffect(() => {
-    if (!user) {
-      setFamily(null);
+    if (!fieldId) {
+      setFieldPeople([]);
       return;
     }
     void (async () => {
       try {
-        setFamily(await familyService.getMine());
+        setFieldPeople(await fieldPeopleService.getPeople(fieldId));
       } catch {
-        setFamily(null);
+        setFieldPeople([]);
       }
     })();
-  }, [user, familyTick]);
-
-  useEffect(() => {
-    if (!user) {
-      setPartnerSeat(null);
-      return;
-    }
-    void (async () => {
-      try {
-        setPartnerSeat(await ownerPartnerService.getMine());
-      } catch {
-        setPartnerSeat(null);
-      }
-    })();
-  }, [user, partnerTick]);
+  }, [fieldId, seatsTick]);
 
   const openSave = (existing?: SavedContact) => {
     setEditing(existing || null);
@@ -305,12 +281,10 @@ const PartnersHomeScreen = () => {
 
   const createInvite = async () => {
     if (!fieldId) return;
-    const capacities: Array<'work' | 'view'> = [];
-    if (inviteWorksHere) capacities.push('work');
-    if (inviteCanSee && !inviteWorksHere) capacities.push('view');
-    if (capacities.length === 0) capacities.push('work');
     const created = await fieldPeopleService.createInvite(fieldId, {
-      capacities,
+      role: inviteWorksHere ? 'Partner' : 'Family',
+      modules: [...DEFAULT_FAMILY_MODULES],
+      accessLevel: inviteWorksHere ? 'work' : 'view',
       displayName: inviteName.trim() || undefined,
       phone: invitePhone.trim() || undefined,
       email: inviteEmail.trim() || undefined,
@@ -320,19 +294,20 @@ const PartnersHomeScreen = () => {
   };
 
   const createFamilyInvite = async () => {
-    if (!familyName.trim() || !familyEmail.trim() || familyModules.length === 0) {
+    if (!fieldId || !familyName.trim() || familyModules.length === 0) {
       return;
     }
     setSavingFamily(true);
     try {
-      const created = await familyService.createInvite({
+      const created = await fieldPeopleService.createInvite(fieldId, {
+        role: 'Family',
         displayName: familyName.trim(),
-        email: familyEmail.trim(),
+        email: familyEmail.trim() || undefined,
         modules: familyModules,
         accessLevel: familyLevel,
       });
       setFamilyInvite(created);
-      setFamilyTick((n) => n + 1);
+      setSeatsTick((n) => n + 1);
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -344,19 +319,20 @@ const PartnersHomeScreen = () => {
   };
 
   const createPartnerInvite = async () => {
-    if (!partnerName.trim() || !partnerEmail.trim() || partnerModules.length === 0) {
+    if (!fieldId || !partnerName.trim() || partnerModules.length === 0) {
       return;
     }
     setSavingPartner(true);
     try {
-      const created = await ownerPartnerService.createInvite({
+      const created = await fieldPeopleService.createInvite(fieldId, {
+        role: 'Partner',
         displayName: partnerName.trim(),
-        email: partnerEmail.trim(),
+        email: partnerEmail.trim() || undefined,
         modules: partnerModules,
         accessLevel: partnerLevel,
       });
       setPartnerInvite(created);
-      setPartnerTick((n) => n + 1);
+      setSeatsTick((n) => n + 1);
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -368,33 +344,33 @@ const PartnersHomeScreen = () => {
   };
 
   const canManageTeam = Boolean(isFieldOwner() || fields.some((f) => f.ownerId === user?.id));
-  const seatsUsed = family?.seatsUsed ?? 0;
-  const seatsMax = family?.seatsMax ?? 2;
-  const partner = partnerSeat?.partner ?? null;
-  const partnerUsed = partnerSeat?.seatsUsed ?? (partner ? 1 : 0);
-  const partnerMax = partnerSeat?.seatsMax ?? 1;
+  const teamSeats = fieldPeople.filter((p) => p.role !== 'Admin' && p.status !== 'revoked');
+  const familySeats = teamSeats.filter((p) => p.role === 'Family');
+  const partnerSeats = teamSeats.filter((p) => p.role === 'Partner');
+  const seatsUsed = familySeats.length;
+  const seatsMax = 2;
+  const partnerUsed = partnerSeats.length;
+  const partnerMax = 1;
   const canAddFamily = Boolean(canManageTeam && seatsUsed < seatsMax);
-  const canAddPartner = Boolean(canManageTeam && partnerUsed < partnerMax && !partner);
-  const hasTeamAnyone = (family?.members || []).length > 0 || Boolean(partner);
+  const canAddPartner = Boolean(canManageTeam && partnerUsed < partnerMax);
+  const hasTeamAnyone = teamSeats.length > 0;
   const canPickPhone = canPickDeviceContact();
 
   const accessUserIds = useMemo(() => {
     const ids = new Set<string>();
-    family?.members?.forEach((member) => {
-      if (member.linkedUserId) ids.add(member.linkedUserId);
+    fieldPeople.forEach((member) => {
+      if (member.userId) ids.add(member.userId);
     });
-    if (partnerSeat?.partner?.linkedUserId) ids.add(partnerSeat.partner.linkedUserId);
     return ids;
-  }, [family, partnerSeat]);
+  }, [fieldPeople]);
 
   const accessEmails = useMemo(() => {
     const emails = new Set<string>();
-    family?.members?.forEach((member) => {
+    fieldPeople.forEach((member) => {
       if (member.email) emails.add(member.email.trim().toLowerCase());
     });
-    if (partnerSeat?.partner?.email) emails.add(partnerSeat.partner.email.trim().toLowerCase());
     return emails;
-  }, [family, partnerSeat]);
+  }, [fieldPeople]);
 
   const contactPeople = useMemo(
     () =>
@@ -490,48 +466,53 @@ const PartnersHomeScreen = () => {
             ) : null}
           </View>
 
-          {(family?.members || []).map((member) => (
+          {familySeats.map((member) => (
             <TeamMemberCard
-              key={member.id}
+              key={member.userId || member.inviteId || member.email}
               kind="family"
-              displayName={member.displayName}
+              displayName={member.displayName || member.email || member.userId}
               phone={member.phone}
               email={member.email}
               modules={member.modules}
               accessLevel={member.accessLevel}
               status={member.status}
-              pendingInvite={member.pendingInvite}
+              pendingInvite={null}
               canManage={canManageTeam}
-              onChanged={() => setFamilyTick((n) => n + 1)}
+              onChanged={() => setSeatsTick((n) => n + 1)}
               onUpdate={async (payload) => {
-                await familyService.updateMember(member.id, payload);
+                if (!member.userId) return;
+                await fieldPeopleService.updatePerson(fieldId, member.userId, payload);
               }}
               onRevoke={async () => {
-                await familyService.revokeMember(member.id);
+                if (!member.userId) return;
+                await fieldPeopleService.removeMembership(fieldId, member.userId);
               }}
             />
           ))}
 
-          {partner ? (
+          {partnerSeats.map((member) => (
             <TeamMemberCard
+              key={member.userId || member.inviteId || member.email}
               kind="partner"
-              displayName={partner.displayName}
-              phone={partner.phone}
-              email={partner.email}
-              modules={partner.modules}
-              accessLevel={partner.accessLevel}
-              status={partner.status}
-              pendingInvite={partner.pendingInvite}
+              displayName={member.displayName || member.email || member.userId}
+              phone={member.phone}
+              email={member.email}
+              modules={member.modules}
+              accessLevel={member.accessLevel}
+              status={member.status}
+              pendingInvite={null}
               canManage={canManageTeam}
-              onChanged={() => setPartnerTick((n) => n + 1)}
+              onChanged={() => setSeatsTick((n) => n + 1)}
               onUpdate={async (payload) => {
-                await ownerPartnerService.updateLink(partner.id, payload);
+                if (!member.userId) return;
+                await fieldPeopleService.updatePerson(fieldId, member.userId, payload);
               }}
               onRevoke={async () => {
-                await ownerPartnerService.revokeLink(partner.id);
+                if (!member.userId) return;
+                await fieldPeopleService.removeMembership(fieldId, member.userId);
               }}
             />
-          ) : null}
+          ))}
         </View>
       ) : null}
 

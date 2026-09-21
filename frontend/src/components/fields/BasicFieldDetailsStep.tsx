@@ -36,6 +36,8 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
           onChange={onChange}
           placeholder={t('form.namePlaceholder')}
           required
+          aria-invalid={formData.name.trim().length > 0 && formData.name.trim().length < 2}
+          aria-required="true"
         />
       </div>
 

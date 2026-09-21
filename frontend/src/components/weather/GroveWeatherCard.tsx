@@ -13,6 +13,7 @@ import type { FieldWeather } from '../../services/geospatialService';
 import type { WeatherData } from '../../services/weatherService';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { presentGroveWeather, type GroveWeatherMood } from '../../weather/presentGroveWeather';
+import GroveWeekForecast from './GroveWeekForecast';
 import './GroveWeatherCard.css';
 
 type Props = {
@@ -94,6 +95,8 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
         <p className="grove-weather-reading">{t(`weatherCard.${view.readingKey}`)}</p>
       ) : null}
 
+      {!embedded && view.mood !== 'missing' ? <GroveWeekForecast fieldWeather={fieldWeather} /> : null}
+
       {fieldName || updated ? (
         <p className="grove-weather-meta">
           {[
@@ -111,16 +114,23 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
     </>
   );
 
-  if (onOpen) {
-    return (
-      <button type="button" className={className} onClick={onOpen} aria-label={t('weatherCard.label')}>
-        {inner}
-      </button>
-    );
-  }
-
   return (
-    <article className={className} aria-label={t('weatherCard.label')}>
+    <article
+      className={className}
+      aria-label={t('weatherCard.label')}
+      onClick={onOpen}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onOpen();
+              }
+            }
+          : undefined
+      }
+      tabIndex={onOpen ? 0 : undefined}
+    >
       {inner}
     </article>
   );

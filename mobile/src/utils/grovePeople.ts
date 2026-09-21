@@ -37,11 +37,11 @@ const union = (current: GroveConnection[], extra: GroveConnection[]) => {
 const connectionsFromMembership = (member: FieldMembership): GroveConnection[] => {
   const connections: GroveConnection[] = [];
   if (member.status === 'invited' || member.status === 'pending') connections.push('invited');
-  if (member.capacities.includes('own')) connections.push('owner');
-  if (member.capacities.includes('work')) connections.push('works');
-  if (member.capacities.includes('advise')) connections.push('advises');
-  if (member.capacities.includes('help')) connections.push('helps');
-  if (member.capacities.includes('view') && connections.length === 0) connections.push('sees');
+  if (member.role === 'Admin') connections.push('owner');
+  if (member.role === 'Partner') connections.push('works');
+  if (member.role === 'Family' && member.accessLevel === 'help') connections.push('helps');
+  if (member.role === 'Family' && member.accessLevel === 'view') connections.push('sees');
+  if (member.role === 'Family' && member.accessLevel === 'work') connections.push('helps');
   return connections.length ? connections : ['works'];
 };
 

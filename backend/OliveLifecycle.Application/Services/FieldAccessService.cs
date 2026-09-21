@@ -3,22 +3,16 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
-using OliveLifecycle.Core.Entities.FieldWork;
-using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.Application.Services;
 
 public class FieldAccessService : IFieldAccessService
 {
     private readonly IFieldRepository _fieldRepository;
-    private readonly IFieldTaskRepository _fieldTasks;
 
-    public FieldAccessService(
-        IFieldRepository fieldRepository,
-        IFieldTaskRepository fieldTasks)
+    public FieldAccessService(IFieldRepository fieldRepository)
     {
         _fieldRepository = fieldRepository;
-        _fieldTasks = fieldTasks;
     }
 
     public async Task<bool> CanUserAccessFieldAsync(
@@ -44,20 +38,7 @@ public class FieldAccessService : IFieldAccessService
             return true;
         }
 
-        if (string.Equals(field.OwnerId, userId, StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        if (userRole == Roles.Producer)
-        {
-            var tasks = await _fieldTasks.QueryAsync(
-                new FieldTaskQuery { AssignedUserId = userId },
-                cancellationToken) ?? Array.Empty<FieldTask>();
-            return tasks.Any(t => t.FieldId == fieldId);
-        }
-
-        return false;
+        return string.Equals(field.OwnerId, userId, StringComparison.Ordinal);
     }
 
     public async Task<bool> CanUserModifyFieldAsync(
@@ -75,10 +56,25 @@ public class FieldAccessService : IFieldAccessService
         return FieldPeopleRules.IsAdmin(field, userId);
     }
 
-    public async Task<bool> CanUserAccessFieldDocumentsAsync(
+    public Task<bool> CanUserAccessFieldDocumentsAsync(
         string fieldId,
         string userId,
         string userRole,
+        CancellationToken cancellationToken = default) =>
+        CanUserAccessFieldModuleAsync(fieldId, userId, userRole, FamilyModules.Documents, cancellationToken);
+
+    public Task<bool> CanUserAccessFieldPhotosAsync(
+        string fieldId,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default) =>
+        CanUserAccessFieldModuleAsync(fieldId, userId, userRole, FamilyModules.Photos, cancellationToken);
+
+    public async Task<bool> CanUserAccessFieldModuleAsync(
+        string fieldId,
+        string userId,
+        string userRole,
+        string module,
         CancellationToken cancellationToken = default)
     {
         if (userRole == Roles.Administrator)
@@ -98,29 +94,15 @@ public class FieldAccessService : IFieldAccessService
             return true;
         }
 
-        return FieldPeopleRules.HasModule(field, userId, FamilyModules.Documents);
+        return FieldPeopleRules.HasModule(field, userId, module);
     }
 
-    public async Task<bool> CanFamilyAccessModuleAsync(
+    public Task<bool> CanFamilyAccessModuleAsync(
         string fieldId,
         string userId,
         string module,
-        CancellationToken cancellationToken = default)
-    {
-        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
-        if (field == null)
-        {
-            return false;
-        }
-
-        FieldPeopleRules.EnsureNormalized(field);
-        if (FieldPeopleRules.IsAdmin(field, userId))
-        {
-            return true;
-        }
-
-        return FieldPeopleRules.HasModule(field, userId, module);
-    }
+        CancellationToken cancellationToken = default) =>
+        CanUserAccessFieldModuleAsync(fieldId, userId, string.Empty, module, cancellationToken);
 
     public async Task<bool> CanFamilyWriteModuleAsync(
         string fieldId,

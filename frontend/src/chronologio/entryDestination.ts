@@ -113,14 +113,20 @@ export const chronologioEntryCapabilities = (
   }
 
   if (kind === 'harvest') {
+    // Merged day cards open a historical day board; Edit requires a concrete posted record.
     if (isMergedHarvestDay(entry)) {
-      return { canEdit: true, removeAction: null };
+      return { canEdit: false, removeAction: null };
     }
     return { canEdit: true, removeAction: owner ? 'void' : null };
   }
 
   if (kind === 'task') {
-    return { canEdit: true, removeAction: own || owner ? 'cancel' : null };
+    const status = (entry.details.task?.status || '').toLowerCase();
+    const completed = status === 'completed' || status === 'done';
+    return {
+      canEdit: true,
+      removeAction: completed ? null : own || owner ? 'cancel' : null,
+    };
   }
 
   return { canEdit: false, removeAction: null };

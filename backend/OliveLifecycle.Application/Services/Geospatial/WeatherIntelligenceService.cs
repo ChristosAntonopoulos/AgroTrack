@@ -156,6 +156,7 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
             Frost = frost,
             Evapotranspiration = new EvapotranspirationDto { TodayMm = et0Today, Last7DaysMm = et07d },
             WaterBalance = BuildWaterBalance(rain.Previous7dMm, et07d, irrigationMm),
+            Days = ComputeDailyForecast(hourly, now),
             Metadata = BuildMetadata(cache.Provider, cache.FetchedAt)
         };
     }
@@ -408,6 +409,53 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
         if (field.Location != null)
             return (field.Location.Latitude, field.Location.Longitude);
         throw new InvalidOperationException("Field has no coordinates");
+    }
+
+    /// <summary>
+    /// Seven calendar days starting today. The icon follows the harshest daytime
+    /// precipitation, otherwise the hour nearest noon.
+    /// </summary>
+    private static List<DailyForecastDto> ComputeDailyForecast(List<HourlyForecastEntry> hourly, DateTime now)
+    {
+        var today = DateOnly.FromDateTime(now);
+        var last = today.AddDays(6);
+        return hourly
+            .Select(entry => (entry, date: DateOnly.FromDateTime(entry.Time)))
+            .Where(row => row.date >= today && row.date <= last)
+            .GroupBy(row => row.date)
+            .OrderBy(group => group.Key)
+            .Select(group =>
+            {
+                var hours = group.Select(row => row.entry).ToList();
+                var temps = hours.Where(h => h.TemperatureC.HasValue).Select(h => h.TemperatureC!.Value).ToList();
+                return new DailyForecastDto
+                {
+                    Date = group.Key,
+                    MinTemperatureC = temps.Count > 0 ? temps.Min() : null,
+                    MaxTemperatureC = temps.Count > 0 ? temps.Max() : null,
+                    WeatherCode = RepresentativeWeatherCode(hours),
+                    RainMm = hours.Sum(h => h.RainMm ?? h.PrecipitationMm ?? 0),
+                    MaxWindKmh = hours.Max(h => h.WindSpeedKmh)
+                };
+            })
+            .Where(day => day.MinTemperatureC.HasValue || day.MaxTemperatureC.HasValue)
+            .ToList();
+    }
+
+    private static int RepresentativeWeatherCode(IReadOnlyList<HourlyForecastEntry> hours)
+    {
+        static bool Storm(int code) => code >= 95;
+        static bool Snow(int code) => (code >= 71 && code <= 77) || (code >= 85 && code <= 86);
+        static bool Rain(int code) => (code >= 51 && code <= 67) || (code >= 80 && code <= 82);
+
+        var daytime = hours.Where(h => h.Time.Hour is >= 8 and <= 17).Select(h => h.WeatherCode ?? 0).ToList();
+        var sample = daytime.Count > 0 ? daytime : hours.Select(h => h.WeatherCode ?? 0).ToList();
+        if (sample.Any(Storm)) return sample.Where(Storm).Max();
+        if (sample.Any(Snow)) return sample.Where(Snow).Max();
+        if (sample.Any(Rain)) return sample.Where(Rain).Max();
+
+        var noon = hours.OrderBy(h => Math.Abs(h.Time.Hour - 12)).FirstOrDefault();
+        return noon?.WeatherCode ?? sample.FirstOrDefault();
     }
 
     private static string WeatherCodeToDescription(int code) => code switch

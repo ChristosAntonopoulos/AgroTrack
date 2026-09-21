@@ -3,6 +3,7 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using Xunit;
@@ -68,11 +69,11 @@ public class MediaAttachmentServiceTests
                 }
             });
 
-        _fieldAccess.Setup(a => a.CanUserAccessFieldAsync(
-                "field-allowed", "user-1", Roles.Producer, It.IsAny<CancellationToken>()))
+        _fieldAccess.Setup(a => a.CanUserAccessFieldModuleAsync(
+                "field-allowed", "user-1", Roles.Producer, FamilyModules.Photos, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        _fieldAccess.Setup(a => a.CanUserAccessFieldAsync(
-                "field-denied", "user-1", Roles.Producer, It.IsAny<CancellationToken>()))
+        _fieldAccess.Setup(a => a.CanUserAccessFieldModuleAsync(
+                "field-denied", "user-1", Roles.Producer, FamilyModules.Photos, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var result = await _service.GetByOwnerAsync("note", "note-1", "user-1", Roles.Producer);

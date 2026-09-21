@@ -1,13 +1,18 @@
 # Oleachron — host Caddy site (NodePorts on this VPS).
 # Install: sudo bash deploy/caddy/install.sh
+# Public: oleachron.com  |  aliases: oleachron.conceptatlas.eu
 
-oleachron.conceptatlas.eu {
+oleachron.com, oleachron.conceptatlas.eu {
 	handle /uploads* {
 		reverse_proxy 127.0.0.1:31847
 	}
 	reverse_proxy 127.0.0.1:31848
 }
 
-api.oleachron.conceptatlas.eu {
+www.oleachron.com {
+	redir https://oleachron.com{uri} permanent
+}
+
+api.oleachron.com, api.oleachron.conceptatlas.eu {
 	reverse_proxy 127.0.0.1:31847
 }

@@ -2,20 +2,21 @@ import type { FieldAccessLevel } from '../services/fieldPeopleService';
 import type { CapturePermissions } from './types';
 
 /**
- * Centralize Capture availability from existing capacity signals.
- * Backend remains authoritative; this only shapes UI choices.
+ * Capture choices follow the active-field seat: modules + access level.
+ * Null modules means admin / unrestricted (do not treat empty Set as unrestricted).
  */
 export const getAvailableCaptureActions = (opts: {
   hasAnyFieldAccess: boolean;
   canOwn?: boolean;
   canWork?: boolean;
-  /** When set, module grants further restrict income / harvest for collaborators. */
   familyModules?: ReadonlySet<string> | null;
-  /** Seat access level on the active field — view/help further restrict creates. */
   accessLevel?: FieldAccessLevel | null;
 }): CapturePermissions => {
   const access = opts.hasAnyFieldAccess;
   const accessLevel = opts.accessLevel ?? null;
+  const modules = opts.familyModules;
+  const restrictByModules = modules != null;
+  const has = (module: string) => !restrictByModules || modules.has(module);
 
   if (accessLevel === 'view') {
     return {
@@ -32,33 +33,28 @@ export const getAvailableCaptureActions = (opts: {
 
   const canOwn = Boolean(opts.canOwn);
   const canWork = Boolean(opts.canWork) || canOwn;
-  const modules = opts.familyModules;
-  const hasFamilyModules = Boolean(modules && modules.size > 0);
-  const hasMoneyModule = !hasFamilyModules || Boolean(modules?.has('money'));
-  const hasHarvestModule = !hasFamilyModules || Boolean(modules?.has('harvest'));
 
-  // Help: status / observation / work only — not money or harvest create (matches BE help).
   if (accessLevel === 'help') {
     return {
-      canRecordObservation: access,
-      canRecordWork: canWork || access,
+      canRecordObservation: access && has('chronologio'),
+      canRecordWork: (canWork || access) && has('tasks'),
       canRecordExpense: false,
       canRecordIncome: false,
       canRecordHarvest: false,
       canRecordMoney: false,
-      canRecordVoice: access,
-      canRecordDocument: access,
+      canRecordVoice: access && has('chronologio'),
+      canRecordDocument: access && has('documents'),
     };
   }
 
   return {
-    canRecordObservation: access,
-    canRecordWork: canWork,
-    canRecordExpense: canOwn || canWork,
-    canRecordIncome: canOwn && hasMoneyModule,
-    canRecordHarvest: canOwn && hasHarvestModule,
-    canRecordMoney: canOwn || canWork,
-    canRecordVoice: access,
-    canRecordDocument: access,
+    canRecordObservation: access && has('chronologio'),
+    canRecordWork: canWork && has('tasks'),
+    canRecordExpense: (canOwn || canWork) && has('money'),
+    canRecordIncome: canOwn && has('money'),
+    canRecordHarvest: canOwn && has('harvest'),
+    canRecordMoney: (canOwn || canWork) && has('money'),
+    canRecordVoice: access && has('chronologio'),
+    canRecordDocument: access && has('documents'),
   };
 };

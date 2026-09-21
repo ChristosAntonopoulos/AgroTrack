@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
 import { isMockMode } from '../../services/serviceFactory';
+import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import {
   navItems,
   navSections,
@@ -27,13 +28,37 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
+  const canViewHarvest = useMemo(() => {
+    const caps = getHarvestCapabilities({
+      hasAnyFieldAccess: activeField.ownsAnyField || activeField.isCollaboratorOnActive || Boolean(activeField.fieldId),
+      canOwn:
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        activeField.ownsAnyField,
+      canWork:
+        user?.role === 'Producer' ||
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        activeField.isCollaboratorOnActive,
+      familyModules: activeField.modules,
+      accessLevel: activeField.accessLevel,
+      harvestModuleGranted:
+        !activeField.modules ||
+        activeField.modules.size === 0 ||
+        activeField.modules.has('harvest') ||
+        activeField.isAdminOnActive,
+    });
+    return caps.canView;
+  }, [user, activeField]);
+
   const filteredItems = useMemo(
     () =>
       filterNavItemsForUser(navItems, userRole, isMockMode(), {
         modules: activeField.modules,
         isAdminOnActive: activeField.isAdminOnActive,
+        canViewHarvest,
       }),
-    [userRole, activeField.modules, activeField.isAdminOnActive]
+    [userRole, activeField.modules, activeField.isAdminOnActive, canViewHarvest]
   );
 
   const visibleSections = navSections.filter((s) => filteredItems.some((i) => i.section === s.id));

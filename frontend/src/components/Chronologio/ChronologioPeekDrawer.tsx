@@ -6,7 +6,6 @@ import {
   ChevronRight,
   CloudRain,
   ExternalLink,
-  MoreHorizontal,
   Pencil,
   Pin,
   Trash2,
@@ -61,7 +60,11 @@ import {
 } from '../../chronologio/entryDestination';
 import { harvestHasResult } from '../../chronologio/monthPresentation';
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
-import { harvestYearCopyKey, yearComparison } from '../../chronologio/yearPresentation';
+import {
+  harvestYearCopyKey,
+  yearComparison,
+  yearComparisonCopyKey,
+} from '../../chronologio/yearPresentation';
 import { isMeaningfulHighlight } from '../../chronologio/monthPresentation';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import type { EventAccentToken } from '../../chronologio/eventCardLayout';
@@ -79,6 +82,7 @@ export type ChronologioPeekTarget =
       summary: ChronologioPeriodSummary;
       previous?: ChronologioPeriodSummary;
       months: ChronologioMonthSummary[];
+      previousMonths?: ChronologioMonthSummary[];
     }
   | {
       mode: 'monthWeather';
@@ -97,6 +101,8 @@ export type ChronologioPeekTarget =
       fieldName?: string;
       fieldColor?: string | null;
       events: ChronologioEntry[];
+      sharedWeatherGrid?: boolean;
+      relatedFieldNames?: string[];
     }
   | {
       mode: 'todayWeather';
@@ -372,25 +378,31 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     caps.removeAction === 'cancel'
       ? t('drawer.cancelTask', { defaultValue: t('common:cancel') })
       : caps.removeAction === 'void'
-        ? t('drawer.void', { defaultValue: 'Void' })
+        ? t('drawer.voidEntry', { defaultValue: t('drawer.void', { defaultValue: 'Void entry' }) })
         : t('common:delete');
+
+  const taskCompleted =
+    kind === 'task' &&
+    (entry?.details.task?.status === 'Completed' ||
+      entry?.details.task?.status === 'completed' ||
+      entry?.details.task?.status === 'Done');
 
   const mutateButtons =
     entry && (caps.canEdit || caps.removeAction) ? (
       <>
-        {caps.canEdit ? (
+        {caps.canEdit && kind !== 'task' && kind !== 'observation' ? (
           <Button
-            variant={kind === 'task' ? 'ghost' : 'outline'}
-            icon={kind === 'task' ? <MoreHorizontal size={14} /> : <Pencil size={14} />}
+            variant="outline"
+            icon={<Pencil size={14} />}
             disabled={mutateBusy}
             onClick={openDestination}
           >
             {t('common:edit')}
           </Button>
         ) : null}
-        {caps.removeAction ? (
+        {caps.removeAction && kind !== 'observation' && !(kind === 'task' && taskCompleted) ? (
           <Button
-            variant="outline"
+            variant="ghost"
             icon={<Trash2 size={14} />}
             disabled={mutateBusy}
             onClick={() => void removeEntry()}
@@ -406,14 +418,28 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
       return (
         <>
           <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openDestination}>
-            {t('living.openTask')}
+            {t('drawer.viewFullTask', { defaultValue: t('living.openTask') })}
           </Button>
+          {caps.canEdit ? (
+            <Button variant="outline" icon={<Pencil size={14} />} disabled={mutateBusy} onClick={openDestination}>
+              {t('drawer.correctRecord', { defaultValue: t('common:edit') })}
+            </Button>
+          ) : null}
           {capture ? (
             <Button variant="outline" onClick={addNote}>
               {t('drawer.addNote')}
             </Button>
           ) : null}
-          {mutateButtons}
+          {caps.removeAction && !taskCompleted ? (
+            <Button
+              variant="ghost"
+              icon={<Trash2 size={14} />}
+              disabled={mutateBusy}
+              onClick={() => void removeEntry()}
+            >
+              {removeLabel}
+            </Button>
+          ) : null}
         </>
       );
     }
@@ -430,34 +456,31 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     if (peek?.mode === 'event' && kind === 'observation') {
       return (
         <>
+          <Button variant="primary" onClick={createTaskFromNote}>
+            {t('drawer.createTask')}
+          </Button>
           {caps.canEdit ? (
-            <Button variant="primary" icon={<Pencil size={14} />} disabled={mutateBusy} onClick={openDestination}>
+            <Button variant="outline" icon={<Pencil size={14} />} disabled={mutateBusy} onClick={openDestination}>
               {t('common:edit')}
             </Button>
-          ) : (
-            <Button variant="primary" onClick={createTaskFromNote}>
-              {t('drawer.createTask')}
-            </Button>
-          )}
+          ) : null}
           {caps.canEdit ? (
             <Button variant="outline" icon={<Pin size={14} />} onClick={() => void togglePin()} disabled={pinBusy}>
               {notePinned ? t('drawer.unpin') : t('drawer.pin')}
             </Button>
           ) : null}
           {caps.removeAction ? (
-            <Button
-              variant="outline"
-              icon={<Trash2 size={14} />}
-              disabled={mutateBusy}
-              onClick={() => void removeEntry()}
-            >
-              {removeLabel}
-            </Button>
-          ) : null}
-          {caps.canEdit ? (
-            <Button variant="outline" onClick={createTaskFromNote}>
-              {t('drawer.createTask')}
-            </Button>
+            <details className="chrono-drawer-advanced">
+              <summary>{t('drawer.advanced', { defaultValue: 'Advanced' })}</summary>
+              <Button
+                variant="ghost"
+                icon={<Trash2 size={14} />}
+                disabled={mutateBusy}
+                onClick={() => void removeEntry()}
+              >
+                {removeLabel}
+              </Button>
+            </details>
           ) : null}
         </>
       );
@@ -587,6 +610,8 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
           weather={peek.weather}
           events={peek.events}
           numberLocale={numberLocale}
+          sharedWeatherGrid={peek.sharedWeatherGrid}
+          relatedFieldNames={peek.relatedFieldNames}
           onSelectEvent={onSelectRecent}
         />
       ) : null}
@@ -694,14 +719,18 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
       {peek?.mode === 'year' ? (
         <>
           {(() => {
-            const comparison = yearComparison(peek.summary, peek.previous);
+            const comparison = yearComparison(peek.summary, peek.previous, {
+              currentMonths: peek.months,
+              previousMonths: peek.previousMonths,
+            });
             const harvestKey = harvestYearCopyKey(peek.summary);
             return (
               <section className="chrono-drawer-hero">
                 <h3>
                   {comparison
-                    ? t(`yearView.compare.${comparison.kind}${comparison.percent >= 0 ? 'Up' : 'Down'}`, {
-                        pct: Math.abs(comparison.percent),
+                    ? t(yearComparisonCopyKey(comparison), {
+                        context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+                        pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
                         year: comparison.previousYear,
                       })
                     : harvestKey === 'result'

@@ -24,6 +24,14 @@ import {
   SATELLITE_TILE,
   STREET_TILE,
 } from '../../utils/mapLayers';
+import {
+  estimateGeodesicAreaSqm,
+  MIN_DRAW_ZOOM,
+  validateBoundaryPolygon,
+  type BoundaryValidationCode,
+} from '../../utils/boundaryValidation';
+import { formatAreaFromSqm } from '../../utils/area';
+import { normalizeLocale } from '../../i18n/config';
 
 interface Props {
   boundary?: GeoJsonPolygon;
@@ -33,6 +41,7 @@ interface Props {
   latitude?: number;
   longitude?: number;
   onBoundaryChange: (boundary: GeoJsonPolygon | undefined, areaSqm?: number) => void;
+  onSkipBoundary?: () => void;
 }
 
 type DrawPhase = 'locate' | 'drawing' | 'done';
@@ -47,7 +56,6 @@ const cornerIcon = (index: number) =>
     iconAnchor: [16, 16],
   });
 
-
 const polygonToGeoJson = (corners: Corner[]): GeoJsonPolygon => {
   const ring = corners.map((c) => [c.lng, c.lat]);
   if (ring.length > 0) {
@@ -56,17 +64,6 @@ const polygonToGeoJson = (corners: Corner[]): GeoJsonPolygon => {
     if (first[0] !== last[0] || first[1] !== last[1]) ring.push([...first]);
   }
   return { type: 'Polygon', coordinates: [ring] };
-};
-
-const estimateAreaSqm = (ring: number[][]): number => {
-  const rad = Math.PI / 180;
-  let total = 0;
-  for (let i = 0; i < ring.length - 1; i++) {
-    const [lon1, lat1] = ring[i];
-    const [lon2, lat2] = ring[i + 1];
-    total += (lon2 * rad - lon1 * rad) * (2 + Math.sin(lat1 * rad) + Math.sin(lat2 * rad));
-  }
-  return Math.abs((total * 6378137 * 6378137) / 2);
 };
 
 const boundaryToCorners = (boundary?: GeoJsonPolygon): Corner[] => {
@@ -87,6 +84,19 @@ const MapViewUpdater: React.FC<{ center: [number, number]; zoom?: number }> = ({
     map.invalidateSize();
     map.setView(center, zoom);
   }, [map, center, zoom]);
+  return null;
+};
+
+const MapZoomWatcher: React.FC<{ onZoom: (zoom: number) => void }> = ({ onZoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    onZoom(map.getZoom());
+    const handler = () => onZoom(map.getZoom());
+    map.on('zoomend', handler);
+    return () => {
+      map.off('zoomend', handler);
+    };
+  }, [map, onZoom]);
   return null;
 };
 
@@ -120,8 +130,10 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   latitude,
   longitude,
   onBoundaryChange,
+  onSkipBoundary,
 }) => {
-  const { t } = useTranslation('fields');
+  const { t, i18n } = useTranslation('fields');
+  const locale = normalizeLocale(i18n.language);
   const cadastreSearch = buildCadastreSearchQuery(cadastre);
   const initialQuery = cadastreSearch || locationQuery || '';
   const initialCorners = useMemo(() => boundaryToCorners(boundary), [boundary]);
@@ -130,12 +142,22 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     hasCoords(latitude, longitude) ? [latitude as number, longitude as number] : GREECE_CENTER
   );
   const [mapZoom, setMapZoom] = useState(hasCoords(latitude, longitude) ? PLACE_ZOOM : GREECE_OVERVIEW_ZOOM);
+  const [liveZoom, setLiveZoom] = useState(mapZoom);
   const [mapLayer, setMapLayer] = useState<MapLayerType>('satellite');
   const [corners, setCorners] = useState<Corner[]>(initialCorners);
   const [phase, setPhase] = useState<DrawPhase>(initialCorners.length >= 3 ? 'done' : 'locate');
   const [localMeasured, setLocalMeasured] = useState<number | undefined>(measuredAreaSqm);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'found' | 'missing'>('idle');
   const [placeSuggestions, setPlaceSuggestions] = useState<{ label: string; lat: number; lng: number }[]>([]);
+  const [drawError, setDrawError] = useState<string | null>(null);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+
+  const zoomTooLow = liveZoom < MIN_DRAW_ZOOM;
+
+  const validationMessage = useCallback(
+    (code: BoundaryValidationCode): string => t(`addField.boundaryValidation.${code}`),
+    [t]
+  );
 
   const showGreece = useCallback(() => {
     setCenter(GREECE_CENTER);
@@ -189,21 +211,31 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
       if (nextCorners.length < 3) {
         setLocalMeasured(undefined);
         onBoundaryChange(undefined);
+        setDrawError(null);
         return;
       }
       const geo = polygonToGeoJson(nextCorners);
-      const area = estimateAreaSqm(geo.coordinates[0]);
-      setLocalMeasured(area);
-      onBoundaryChange(geo, area);
+      const result = validateBoundaryPolygon(geo);
+      if (!result.ok) {
+        setDrawError(validationMessage(result.code));
+        setLocalMeasured(result.areaSqm);
+        onBoundaryChange(undefined);
+        return;
+      }
+      setLocalMeasured(result.areaSqm);
+      setDrawError(result.warnLarge ? t('addField.boundaryValidation.warnLarge') : null);
+      onBoundaryChange(geo, result.areaSqm);
     },
-    [onBoundaryChange]
+    [onBoundaryChange, t, validationMessage]
   );
 
   const addCorner = (corner: Corner) => {
-    setCorners((prev) => {
-      const next = [...prev, corner];
-      return next;
-    });
+    if (zoomTooLow) {
+      setDrawError(t('addField.boundaryValidation.zoomTooLow'));
+      return;
+    }
+    setDrawError(null);
+    setCorners((prev) => [...prev, corner]);
   };
 
   const moveCorner = (index: number, corner: Corner) => {
@@ -213,7 +245,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         publishPolygon(next);
       } else if (next.length >= 3) {
         const geo = polygonToGeoJson(next);
-        setLocalMeasured(estimateAreaSqm(geo.coordinates[0]));
+        setLocalMeasured(estimateGeodesicAreaSqm(geo.coordinates[0]));
       }
       return next;
     });
@@ -235,15 +267,31 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     setLocalMeasured(undefined);
     onBoundaryChange(undefined);
     setPhase('drawing');
+    setDrawError(null);
   };
 
   const finishShape = () => {
     if (corners.length < 3) return;
+    if (zoomTooLow) {
+      setDrawError(t('addField.boundaryValidation.zoomTooLow'));
+      return;
+    }
+    const geo = polygonToGeoJson(corners);
+    const result = validateBoundaryPolygon(geo, { mapZoom: liveZoom });
+    if (!result.ok) {
+      setDrawError(validationMessage(result.code));
+      return;
+    }
     setPhase('done');
     publishPolygon(corners);
   };
 
   const startDrawing = () => {
+    if (zoomTooLow) {
+      setDrawError(t('addField.boundaryValidation.zoomTooLow'));
+      return;
+    }
+    setDrawError(null);
     setPhase('drawing');
   };
 
@@ -261,6 +309,14 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
       /* ignore */
     }
   };
+
+  const liveAreaLabel =
+    corners.length >= 3
+      ? formatAreaFromSqm(
+          localMeasured ?? estimateGeodesicAreaSqm(polygonToGeoJson(corners).coordinates[0]),
+          { locale }
+        )
+      : null;
 
   const previewPath = corners.length >= 2 ? corners.map((c) => [c.lat, c.lng] as [number, number]) : [];
   const closedPath =
@@ -285,6 +341,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     <div className="field-form-panel field-boundary-step">
       <h2>{t('addField.steps.boundary')}</h2>
       <p className="field-form-panel-desc">{t('addField.boundaryDescFriendly')}</p>
+      <p className="field-form-panel-desc field-boundary-optional-hint">{t('addField.boundaryOptionalHint')}</p>
 
       <ol className="boundary-steps-guide" aria-hidden={false}>
         <li className={phase === 'locate' ? 'is-current' : 'is-done'}>{t('addField.boundaryGuide1')}</li>
@@ -298,6 +355,17 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         <MapPin size={20} aria-hidden />
         <p>{coachText}</p>
       </div>
+
+      {zoomTooLow && phase !== 'done' ? (
+        <p className="boundary-location-status" role="status">
+          {t('addField.boundaryValidation.zoomTooLow')}
+        </p>
+      ) : null}
+      {drawError ? (
+        <p className="boundary-location-status field-boundary-error" role="alert">
+          {drawError}
+        </p>
+      ) : null}
 
       <div className="boundary-toolbar">
         <input
@@ -322,7 +390,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
           {t('addField.useCurrentLocation')}
         </button>
       </div>
-      {locationStatus === 'missing' ? (
+      {locationStatus === 'missing' && search.trim() ? (
         <p className="boundary-location-status" role="status">
           {t('addField.locationNotFound')}
         </p>
@@ -387,7 +455,8 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
             />
           )}
           <MapViewUpdater center={center} zoom={mapZoom} />
-          <TapCorners enabled={phase === 'drawing'} onAdd={addCorner} />
+          <MapZoomWatcher onZoom={setLiveZoom} />
+          <TapCorners enabled={phase === 'drawing' && !zoomTooLow} onAdd={addCorner} />
           {previewPath.length >= 2 && !closedPath ? (
             <Polygon
               positions={previewPath}
@@ -408,9 +477,6 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
               eventHandlers={{
                 click(e) {
                   L.DomEvent.stopPropagation(e.originalEvent);
-                },
-                dragstart() {
-                  /* prevent map click-to-add while dragging a pin */
                 },
                 dragend(e) {
                   const { lat, lng } = e.target.getLatLng();
@@ -472,7 +538,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
                   type="button"
                   className="btn btn-primary boundary-primary-action"
                   onClick={finishShape}
-                  disabled={corners.length < 3}
+                  disabled={corners.length < 3 || zoomTooLow}
                 >
                   <Check size={20} aria-hidden />
                   {t('addField.boundaryFinish')}
@@ -495,11 +561,43 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
 
       {corners.length > 0 ? (
         <p className="boundary-corner-count">
-          {t('addField.boundaryCornerCount', { count: corners.length })}
+          {liveAreaLabel
+            ? t('addField.boundaryCornerArea', { count: corners.length, area: liveAreaLabel })
+            : t('addField.boundaryCornerCount', { count: corners.length })}
         </p>
       ) : null}
 
       <AreaComparisonCard measuredAreaSqm={localMeasured} />
+
+      {onSkipBoundary ? (
+        <div className="field-boundary-skip">
+          {!showSkipConfirm ? (
+            <button type="button" className="btn btn-outline boundary-skip-btn" onClick={() => setShowSkipConfirm(true)}>
+              {t('addField.skipBoundary')}
+            </button>
+          ) : (
+            <div className="field-boundary-skip-confirm" role="region" aria-label={t('addField.skipBoundary')}>
+              <p>{t('addField.skipBoundaryConsequence')}</p>
+              <div className="field-boundary-skip-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowSkipConfirm(false)}>
+                  {t('form.back')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    clearCorners();
+                    setPhase('locate');
+                    onSkipBoundary();
+                  }}
+                >
+                  {t('addField.skipBoundaryConfirm')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 };

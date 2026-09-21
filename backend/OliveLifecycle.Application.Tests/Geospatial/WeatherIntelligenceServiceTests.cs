@@ -123,6 +123,46 @@ public class WeatherIntelligenceServiceTests
     }
 
     [Fact]
+    public async Task GetFieldWeatherAsync_BuildsSevenDayForecastFromHourlyCache()
+    {
+        var start = new DateTime(2026, 3, 15, 0, 0, 0, DateTimeKind.Utc);
+        var hourly = new List<HourlyForecastEntry>
+        {
+            new() { Time = start.AddDays(-1).AddHours(12), TemperatureC = 5, WeatherCode = 61, RainMm = 9 }
+        };
+        for (var day = 0; day < 7; day++)
+        {
+            for (var hour = 0; hour < 24; hour++)
+            {
+                var storm = day == 3 && hour == 14;
+                hourly.Add(new HourlyForecastEntry
+                {
+                    Time = start.AddDays(day).AddHours(hour),
+                    TemperatureC = 10 + (hour * 0.4) + day,
+                    WeatherCode = storm ? 95 : hour == 12 ? (day == 6 ? 3 : 1) : 0,
+                    RainMm = storm ? 6 : 0,
+                    WindSpeedKmh = 8 + day
+                });
+            }
+        }
+
+        _cacheRepository.Setup(r => r.GetByGridKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateCache(hourly));
+
+        var result = await CreateService().GetFieldWeatherAsync(CreateField());
+
+        Assert.Equal(7, result.Days.Count);
+        Assert.Equal(new DateOnly(2026, 3, 15), result.Days[0].Date);
+        Assert.Equal(new DateOnly(2026, 3, 21), result.Days[6].Date);
+        Assert.Equal(1, result.Days[0].WeatherCode);
+        Assert.True(result.Days[0].MaxTemperatureC > result.Days[0].MinTemperatureC);
+        Assert.Equal(95, result.Days[3].WeatherCode);
+        Assert.Equal(6, result.Days[3].RainMm);
+        Assert.Equal(3, result.Days[6].WeatherCode);
+        Assert.Equal(14, result.Days[6].MaxWindKmh);
+    }
+
+    [Fact]
     public async Task GetFieldWeatherAsync_ReturnsStaleCache_WhenProviderFails()
     {
         var hourly = BuildSeries(offset => new HourlyForecastEntry { Time = Now.AddHours(offset), TemperatureC = 12 });

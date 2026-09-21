@@ -149,23 +149,6 @@ const isItalian = (language?: string) => (language || 'el').toLowerCase().starts
 const pick = (el: Record<string, string>, en: Record<string, string>, key: string, language?: string) =>
   (isEnglish(language) ? en[key] : el[key]) || el[key];
 
-const harvestDayLabel = (occurredAt: string, language: string): string => {
-  const base = isEnglish(language)
-    ? 'Harvest day'
-    : isItalian(language)
-      ? 'Giorno di raccolta'
-      : 'Ημέρα συγκομιδής';
-  const d = new Date(occurredAt);
-  if (Number.isNaN(d.getTime())) return base;
-  const locale = isEnglish(language) ? 'en-GB' : isItalian(language) ? 'it-IT' : 'el-GR';
-  const datePart = d.toLocaleDateString(locale, {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'Europe/Athens',
-  });
-  return `${base} · ${datePart}`;
-};
-
 const isMergedHarvestDayEntry = (entry: ChronologioEntry): boolean =>
   entry.sourceType === 'Harvest' && /^Harvest:day:/i.test(entry.id);
 
@@ -275,35 +258,50 @@ const weatherLabel = (entry: ChronologioEntry, language: string): string => {
   return humanTitle(entry.title, language, presentCategory('weather', language));
 };
 
+const truncateLabel = (text: string, max = 72): { title: string; body?: string } => {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return { title: trimmed };
+  const cut = trimmed.slice(0, max).replace(/\s+\S*$/, '').trim();
+  return { title: cut || trimmed.slice(0, max), body: trimmed };
+};
+
 export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'): EventPresentation => {
   const category = entry.category || 'activity';
   const shortLabel = presentCategory(category, language);
   const icon = iconFor(category);
   const accent = accentFor(category, String(entry.importance || ''));
 
-  if (category === 'note') {
-    const preview = (entry.details.note?.bodyPreview || entry.summary || '').trim();
+  if (category === 'note' || category === 'photo') {
+    const preview = (entry.details.note?.bodyPreview || entry.summary || entry.title || '').trim();
+    if (category === 'photo' && (!preview || preview.toLowerCase() === 'photo' || preview === 'Φωτογραφία')) {
+      const field = entry.field?.name;
+      const auto = field
+        ? isEnglish(language)
+          ? `Photo from ${field}`
+          : `Φωτογραφία από ${field}`
+        : presentCategory('photo', language);
+      return { label: auto, shortLabel, icon: 'photo', accent, description: undefined };
+    }
+    const { title, body } = truncateLabel(preview || presentCategory('note', language));
     return {
-      label: preview || presentCategory('note', language),
+      label: title,
       shortLabel,
-      icon,
+      icon: category === 'photo' ? 'photo' : icon,
       accent,
-      description: undefined,
+      description: body,
     };
   }
 
   if (category === 'harvest') {
     if (isMergedHarvestDayEntry(entry)) {
       return {
-        label: harvestDayLabel(entry.occurredAt, language),
-        shortLabel: isEnglish(language)
-          ? 'Harvest day'
-          : isItalian(language)
-            ? 'Giorno di raccolta'
-            : 'Ημέρα συγκομιδής',
+        // Category as title — date lives in the card meta; avoid "Ημέρα συγκομιδής · 21 Σεπ" twice.
+        label: presentCategory('harvest', language),
+        shortLabel: presentCategory('harvest', language),
         icon,
         accent,
-        description: entry.summary || undefined,
+        // Sack totals render as stats; keep summary only when it adds non-sack facts.
+        description: undefined,
       };
     }
     return {

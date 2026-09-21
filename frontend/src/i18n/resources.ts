@@ -14,6 +14,7 @@ import enReports from '../locales/en/reports.json';
 import enMinistry from '../locales/en/ministry.json';
 import enToday from '../locales/en/today.json';
 import enLanding from '../locales/en/landing.json';
+import enLegal from '../locales/en/legal.json';
 import enAdmin from '../locales/en/admin.json';
 import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
@@ -36,6 +37,7 @@ import elReports from '../locales/el/reports.json';
 import elMinistry from '../locales/el/ministry.json';
 import elToday from '../locales/el/today.json';
 import elLanding from '../locales/el/landing.json';
+import elLegal from '../locales/el/legal.json';
 import elAdmin from '../locales/el/admin.json';
 import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
@@ -58,6 +60,7 @@ import itReports from '../locales/it/reports.json';
 import itMinistry from '../locales/it/ministry.json';
 import itToday from '../locales/it/today.json';
 import itPartners from '../locales/it/partners.json';
+import itLegal from '../locales/it/legal.json';
 import itChronologio from '../locales/it/chronologio.json';
 import itCapture from '../locales/it/capture.json';
 import itMoney from '../locales/it/money.json';
@@ -132,6 +135,7 @@ export const resources: Record<
     money: enMoney,
     feedback: enFeedback,
     photos: enPhotos,
+    legal: enLegal,
   },
   el: {
     ...bundle(
@@ -157,6 +161,7 @@ export const resources: Record<
     money: elMoney,
     feedback: elFeedback,
     photos: elPhotos,
+    legal: elLegal,
   },
   it: {
     ...bundle(
@@ -182,5 +187,6 @@ export const resources: Record<
     money: itMoney,
     feedback: itFeedback,
     photos: itPhotos,
+    legal: itLegal,
   },
 };

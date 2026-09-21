@@ -99,20 +99,28 @@
     "modules": {
       "fields": "Campi",
       "tasks": "Attività",
+      "photos": "Foto",
       "documents": "Documenti",
       "money": "Denaro",
-      "calendar": "Calendario",
+      "chronologio": "Chronologio",
       "harvest": "Raccolta"
     },
+    "modulesHint": "Le foto sono visibili solo per i campi a cui la persona ha accesso.",
+    "calculatedTitle": "Accesso calcolato",
+    "calculated": {
+      "view": "Non può modificare i dati.",
+      "help": "Può aggiornare lavori esistenti e assegnati.",
+      "work": "Può creare lavori e registrazioni."
+    },
     "levels": {
-      "view": "Vede",
-      "help": "Aiuta",
-      "work": "Lavora"
+      "view": "Solo visualizzazione",
+      "help": "Aggiornamento lavori",
+      "work": "Registrazioni e lavori"
     },
     "levelHints": {
-      "view": "Solo lettura.",
-      "help": "Aiuta nel lavoro già esistente.",
-      "work": "Aggiunge lavori e registrazioni."
+      "view": "Non può modificare i dati.",
+      "help": "Può aggiornare lavori esistenti e assegnati.",
+      "work": "Può creare lavori e registrazioni."
     },
     "acceptTitle": "Invito famiglia",
     "acceptBody": "Sei invitato a {{field}} come famiglia. Avrai accesso per: {{modules}}.",

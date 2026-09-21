@@ -1,10 +1,11 @@
 import { roleHomePath, type AppRole } from '../navigation/navConfig';
 import { getFieldService } from '../services/serviceFactory';
+import { fieldPeopleService } from '../services/fieldPeopleService';
 import { isFieldSetupIncomplete } from './fieldDisplay';
 
 const GROVE_ROLES: AppRole[] = ['FieldOwner', ''];
 
-/** First-time growers land on new field; drafts resume; everyone else goes home. */
+/** First-time growers land on new field; drafts resume; invited members skip owner onboarding. */
 export async function resolvePostAuthPath(
   role: AppRole,
   redirectTo?: string | null
@@ -13,6 +14,12 @@ export async function resolvePostAuthPath(
   if (!GROVE_ROLES.includes(role)) return roleHomePath(role);
 
   try {
+    const access = await fieldPeopleService.getAccessContext();
+    if (access.fields.length > 0 && !access.ownsAnyField) {
+      const fieldId = access.fields[0]?.fieldId;
+      return fieldId ? `/chronologio?fieldId=${encodeURIComponent(fieldId)}` : roleHomePath(role);
+    }
+
     const fields = await getFieldService().getFields();
     if (fields.length === 0) return '/fields/new';
 

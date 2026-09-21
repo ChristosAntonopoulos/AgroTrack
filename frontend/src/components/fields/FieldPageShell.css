@@ -95,21 +95,30 @@
 
 .field-local-nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 2px;
+  width: 100%;
+  min-width: 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .field-local-nav button {
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 40px;
-  padding: 0 12px;
+  padding: 6px 4px;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 
@@ -188,13 +197,14 @@
   }
 
   .field-local-nav {
-    overflow-x: auto;
     flex-wrap: nowrap;
   }
 
   .field-local-nav button {
-    flex: 0 0 auto;
-    white-space: nowrap;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 2px;
+    font-size: 12px;
   }
 
   .field-sticky-capture {
@@ -234,6 +244,12 @@
 .field-photos-strip-head h2 {
   margin: 0;
   font-size: 1.05rem;
+}
+
+.field-photos-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .field-photos-strip-head a {
@@ -291,6 +307,19 @@
   border-radius: 999px;
   background: rgba(90, 122, 78, 0.92);
   color: #f4f7f2;
+}
+
+.field-photo-date {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+  text-align: left;
 }
 
 .field-status-strip {
@@ -391,6 +420,17 @@
 
 .field-overview-side .field-weather-card {
   flex: 1 1 auto;
+}
+
+.field-overview-weather {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field-overview-weather .field-weather-year-note {
+  margin: 0;
 }
 
 .field-attention,

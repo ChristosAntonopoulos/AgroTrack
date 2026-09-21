@@ -10,14 +10,18 @@ import {
 } from '../allocation';
 import { millsNeedingOil } from '../chain';
 import { HarvestFieldPicker } from '../components/HarvestFieldPicker';
-import { HarvestNumberInput } from '../components/HarvestNumberInput';
+import { HarvestNumberInput, HarvestNumberStepper } from '../components/HarvestNumberInput';
 import { HarvestSegmentedControl } from '../components/HarvestSegmentedControl';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import {
   extractionYieldPercent,
+  formatHarvestOilAmountLabel,
   formatHarvestYieldPercent,
   oilKgFromAmount,
+  readOilTinCounts,
+  settleOil,
   type HarvestOilUnit,
+  type OilSplitPartKey,
 } from '../utils/harvestCalculations';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestFieldShare, HarvestOilEntry } from '../types';
@@ -30,6 +34,12 @@ export const HarvestOilSheet: React.FC<
     onSave: (input: {
       amount: number;
       unit: HarvestOilUnit;
+      millKept?: number;
+      tin16Count?: number;
+      tin17Count?: number;
+      tinSizeLitres?: 16 | 17;
+      tinCount?: number;
+      extraLitres?: number;
       millWeightIds: string[];
       fieldIds: string[];
       fieldShares?: HarvestFieldShare[];
@@ -52,10 +62,24 @@ export const HarvestOilSheet: React.FC<
     return latest ? [latest] : [];
   }, [initial, prefillMillIds, uncovered, campaign.millWeights]);
 
+  const initialTins = readOilTinCounts(initial ?? {});
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
   const [unit, setUnit] = useState<HarvestOilUnit>(initial?.unit ?? 'kg');
+  const [millKept, setMillKept] = useState(
+    initial?.millKept != null ? String(initial.millKept) : '0'
+  );
+  const [millMode, setMillMode] = useState<'amount' | 'percent'>('amount');
+  const [storageMode, setStorageMode] = useState<'all' | 'tins'>(
+    initialTins.tin16 > 0 || initialTins.tin17 > 0 ? 'tins' : 'all'
+  );
+  const [tin16, setTin16] = useState(initialTins.tin16);
+  const [tin17, setTin17] = useState(initialTins.tin17);
   const [millWeightIds, setMillWeightIds] = useState<string[]>(defaultMillIds);
-  const [fieldIds, setFieldIds] = useState<string[]>(initial?.fieldIds || []);
+  const [fieldIds, setFieldIds] = useState<string[]>(() => {
+    if (initial?.fieldIds?.length) return initial.fieldIds;
+    if (campaign.fieldOrder.length === 1) return [campaign.fieldOrder[0]];
+    return [];
+  });
   const [note, setNote] = useState(initial?.note || '');
   const [more, setMore] = useState(Boolean(initial?.acidity != null || initial?.note));
   const [adjustShares, setAdjustShares] = useState(false);
@@ -65,7 +89,23 @@ export const HarvestOilSheet: React.FC<
   const [acidity, setAcidity] = useState(
     initial?.acidity != null ? String(initial.acidity) : ''
   );
+
   const value = parseHarvestDecimal(amount);
+  const millRaw = parseHarvestDecimal(millKept) ?? 0;
+  const settlement =
+    value != null && value > 0
+      ? settleOil({
+          total: value,
+          unit,
+          millKept: millRaw,
+          millMode,
+          tin16Count: tin16,
+          tin17Count: tin17,
+          splitTins: storageMode === 'tins',
+        })
+      : null;
+  const splitBlocked = Boolean(settlement && (settlement.millOver || settlement.overAmount > 0));
+  const unitSuffix = unit === 'kg' ? 'kg' : 'L';
 
   const millChipOrder = useMemo(() => {
     const uncoveredIds = new Set(uncovered.map((m) => m.id));
@@ -76,7 +116,8 @@ export const HarvestOilSheet: React.FC<
     return [...uncovered, ...rest];
   }, [campaign.millWeights, uncovered]);
 
-  const selectedMills = campaign.millWeights.filter((row) => millWeightIds.includes(row.id));  const relatedOliveKg = selectedMills.reduce((sum, row) => sum + row.kg, 0);
+  const selectedMills = campaign.millWeights.filter((row) => millWeightIds.includes(row.id));
+  const relatedOliveKg = selectedMills.reduce((sum, row) => sum + row.kg, 0);
   const oilKg = isPositiveAmount(value) ? oilKgFromAmount(value, unit) : 0;
   const yieldPct =
     relatedOliveKg > 0 && oilKg > 0 ? extractionYieldPercent(relatedOliveKg, oilKg) : null;
@@ -122,7 +163,7 @@ export const HarvestOilSheet: React.FC<
           <button
             type="button"
             className="money-primary-action"
-            disabled={!isPositiveAmount(value)}
+            disabled={!isPositiveAmount(value) || splitBlocked}
             onClick={() => {
               const shares = activeShares.length > 0 ? activeShares : oilFieldShares(campaign, {
                 id: 'draft',
@@ -133,9 +174,22 @@ export const HarvestOilSheet: React.FC<
                 fieldIds: showFieldPicker ? fieldIds : fieldIdsFromShares(inferredShares),
                 createdAt: '',
               });
+              const useTins = storageMode === 'tins';
+              const only16 = useTins && tin16 > 0 && tin17 === 0;
+              const only17 = useTins && tin17 > 0 && tin16 === 0;
+              const bulkLitres =
+                unit === 'litres' && settlement && settlement.bulkAmount > 0
+                  ? settlement.bulkAmount
+                  : undefined;
               onSave({
                 amount: value!,
                 unit,
+                millKept: settlement?.millAmount ?? 0,
+                tin16Count: useTins && tin16 > 0 ? tin16 : undefined,
+                tin17Count: useTins && tin17 > 0 ? tin17 : undefined,
+                tinSizeLitres: only16 ? 16 : only17 ? 17 : undefined,
+                tinCount: only16 ? tin16 : only17 ? tin17 : undefined,
+                extraLitres: (only16 || only17) && bulkLitres ? bulkLitres : undefined,
                 millWeightIds,
                 fieldIds: fieldIdsFromShares(shares).length
                   ? fieldIdsFromShares(shares)
@@ -164,20 +218,21 @@ export const HarvestOilSheet: React.FC<
       <p className="capture-prompt">
         {editing ? t('harvestCampaign.dayActivity.editOil') : t('harvestCampaign.oil.prompt')}
       </p>
+      <HarvestNumberInput
+        label={t('harvestCampaign.oil.prompt')}
+        value={amount}
+        onChange={setAmount}
+        suffix={unitSuffix}
+        autoFocus
+      />
       <HarvestSegmentedControl
         value={unit}
-        ariaLabel={t('harvestCampaign.oil.prompt')}
+        ariaLabel={t('harvestCampaign.oil.unitLabel')}
         onChange={setUnit}
         options={[
           { value: 'kg', label: t('harvestCampaign.oil.kg') },
           { value: 'litres', label: t('harvestCampaign.oil.litres') },
         ]}
-      />
-      <HarvestNumberInput
-        label={unit === 'kg' ? t('harvestCampaign.oil.kg') : t('harvestCampaign.oil.litres')}
-        value={amount}
-        onChange={setAmount}
-        suffix={unit === 'kg' ? 'kg' : 'L'}
       />
       {unit === 'litres' && isPositiveAmount(value) ? (
         <p className="capture-hint">
@@ -186,14 +241,92 @@ export const HarvestOilSheet: React.FC<
           })}
         </p>
       ) : null}
-      {yieldPct != null ? (
-        <p className="capture-yield">
-          {t('harvestCampaign.oil.yieldLine', {
-            olives: formatGroveMassKg(relatedOliveKg, locale),
-            oil: formatGroveMassKg(oilKg, locale),
-            yield: formatHarvestYieldPercent(yieldPct, locale),
-          })}
-        </p>
+
+      {isPositiveAmount(value) ? (
+        <>
+          <p className="hc-form-section">{t('harvestCampaign.oil.millTitle')}</p>
+          <p className="capture-hint">{t('harvestCampaign.oil.millHint')}</p>
+          <div className="hc-mill-kept">
+            <HarvestNumberInput
+              label={t('harvestCampaign.oil.millTitle')}
+              value={millKept}
+              onChange={setMillKept}
+              suffix={millMode === 'percent' ? '%' : unitSuffix}
+              min={0}
+            />
+            <HarvestSegmentedControl
+              value={millMode}
+              ariaLabel={t('harvestCampaign.oil.millModeLabel')}
+              onChange={setMillMode}
+              options={[
+                { value: 'amount', label: t('harvestCampaign.oil.millAmount') },
+                { value: 'percent', label: t('harvestCampaign.oil.millPercent') },
+              ]}
+            />
+          </div>
+
+          <p className="hc-form-section">{t('harvestCampaign.oil.storedTitle')}</p>
+          <HarvestSegmentedControl
+            value={storageMode}
+            ariaLabel={t('harvestCampaign.oil.storedTitle')}
+            onChange={setStorageMode}
+            options={[
+              { value: 'all', label: t('harvestCampaign.oil.storedAll') },
+              { value: 'tins', label: t('harvestCampaign.oil.storedTins') },
+            ]}
+          />
+          {storageMode === 'all' ? (
+            <p className="capture-hint">{t('harvestCampaign.oil.storedAllHint')}</p>
+          ) : (
+            <>
+              <HarvestNumberStepper
+                label={t('harvestCampaign.oil.tin16')}
+                value={tin16}
+                onChange={(next) => setTin16(Math.max(0, Math.round(next)))}
+                min={0}
+                suffix={t('harvestCampaign.oil.tinSuffix')}
+              />
+              <HarvestNumberStepper
+                label={t('harvestCampaign.oil.tin17')}
+                value={tin17}
+                onChange={(next) => setTin17(Math.max(0, Math.round(next)))}
+                min={0}
+                suffix={t('harvestCampaign.oil.tinSuffix')}
+              />
+              {settlement && !settlement.millOver && settlement.overAmount <= 0 ? (
+                <p className="capture-hint">
+                  {t('harvestCampaign.oil.bulkLine', {
+                    amount: formatHarvestOilAmountLabel(settlement.bulkAmount, unit, locale),
+                  })}
+                </p>
+              ) : null}
+            </>
+          )}
+
+          {settlement ? (
+            <OilSplitSummary
+              parts={settlement.parts}
+              unit={unit}
+              locale={locale}
+              millOver={settlement.millOver}
+              overAmount={settlement.overAmount}
+              labelFor={(key) => t(`harvestCampaign.oil.part.${key}`)}
+              overLabel={t('harvestCampaign.oil.overTins', {
+                amount: formatHarvestOilAmountLabel(settlement.overAmount, unit, locale),
+              })}
+              millOverLabel={t('harvestCampaign.oil.overMill')}
+              yieldLabel={
+                yieldPct != null
+                  ? t('harvestCampaign.oil.yieldLine', {
+                      olives: formatGroveMassKg(relatedOliveKg, locale),
+                      oil: formatGroveMassKg(oilKg, locale),
+                      yield: formatHarvestYieldPercent(yieldPct, locale),
+                    })
+                  : null
+              }
+            />
+          ) : null}
+        </>
       ) : null}
       {millChipOrder.length > 0 ? (
         <>
@@ -295,5 +428,62 @@ export const HarvestOilSheet: React.FC<
         </>
       ) : null}
     </HarvestSheetShell>
+  );
+};
+
+const OilSplitSummary: React.FC<{
+  parts: { key: OilSplitPartKey; amount: number; percent: number }[];
+  unit: HarvestOilUnit;
+  locale: string;
+  millOver: boolean;
+  overAmount: number;
+  yieldLabel: string | null;
+  overLabel: string;
+  millOverLabel: string;
+  labelFor: (key: OilSplitPartKey) => string;
+}> = ({
+  parts,
+  unit,
+  locale,
+  millOver,
+  overAmount,
+  yieldLabel,
+  overLabel,
+  millOverLabel,
+  labelFor,
+}) => {
+  const blocked = millOver || overAmount > 0;
+  const barParts = parts.filter((part) => part.amount > 0);
+  return (
+    <section className="hc-oil-split" aria-live="polite">
+      {blocked ? (
+        <p className="capture-hint money-warn">{millOver ? millOverLabel : overLabel}</p>
+      ) : (
+        <>
+          <div className="hc-oil-split-bar" aria-hidden>
+            {barParts.map((part) => (
+              <span
+                key={part.key}
+                data-part={part.key}
+                style={{ width: `${Math.max(part.percent, 0)}%` }}
+              />
+            ))}
+          </div>
+          <ul className="hc-oil-split-list">
+            {parts.map((part) => (
+              <li key={part.key}>
+                <span className="hc-oil-split-swatch" data-part={part.key} aria-hidden />
+                <span>{labelFor(part.key)}</span>
+                <strong>{formatHarvestOilAmountLabel(part.amount, unit, locale)}</strong>
+                <span className="hc-oil-split-pct">
+                  {formatHarvestYieldPercent(part.percent, locale)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+          {yieldLabel ? <p className="capture-yield">{yieldLabel}</p> : null}
+        </>
+      )}
+    </section>
   );
 };

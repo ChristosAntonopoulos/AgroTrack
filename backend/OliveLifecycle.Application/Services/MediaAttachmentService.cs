@@ -1,6 +1,7 @@
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Media;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -43,11 +44,6 @@ public class MediaAttachmentService : IMediaAttachmentService
             throw new ValidationException("Field id is required.");
         }
 
-        if (!await _fieldAccess.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
-        {
-            throw new ForbiddenException("You do not have access to this field.");
-        }
-
         var cleanUrls = urls
             .Where(u => !string.IsNullOrWhiteSpace(u))
             .Select(u => u.Trim())
@@ -57,6 +53,15 @@ public class MediaAttachmentService : IMediaAttachmentService
         if (cleanUrls.Count == 0)
         {
             return Array.Empty<MediaAttachmentDto>();
+        }
+
+        var attachModule = cleanUrls.Any(u => InferMediaType(u) == "document")
+            ? FamilyModules.Documents
+            : FamilyModules.Photos;
+        if (!await _fieldAccess.CanUserAccessFieldModuleAsync(
+                fieldId, userId, userRole, attachModule, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have access to this media on the field.");
         }
 
         var existing = await _media.CountByOwnerAsync(type, ownerId, cancellationToken);
@@ -158,7 +163,11 @@ public class MediaAttachmentService : IMediaAttachmentService
                 continue;
             }
 
-            if (await _fieldAccess.CanUserAccessFieldAsync(item.FieldId, userId, userRole, cancellationToken))
+            var module = string.Equals(item.MediaType, "document", StringComparison.OrdinalIgnoreCase)
+                ? FamilyModules.Documents
+                : FamilyModules.Photos;
+            if (await _fieldAccess.CanUserAccessFieldModuleAsync(
+                    item.FieldId, userId, userRole, module, cancellationToken))
             {
                 allowed.Add(ToDto(item));
             }

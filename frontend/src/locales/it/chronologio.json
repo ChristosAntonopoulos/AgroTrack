@@ -11,6 +11,8 @@
   "filters": "Filtri",
   "filtersCount": "Filtri · {{count}}",
   "filtersTitle": "Filtra per tipo",
+  "moreFilters": "Altri filtri",
+  "captureDateUsesToday": "Data impostata a oggi — stai visualizzando un periodo precedente.",
   "primaryCategories": {
     "all": "Tutto",
     "work": "Lavori",
@@ -378,6 +380,9 @@
     "kicker": "Meteo degli oliveti",
     "title": "Meteo di oggi",
     "problems": "Cosa arriva",
+    "week": "La settimana",
+    "dayLabel": "{{day}}, {{range}}, {{condition}}{{rain}}",
+    "dayRain": ", {{mm}} mm",
     "calm": "Nessuna condizione critica nelle prossime 72 ore.",
     "loading": "Caricamento meteo…",
     "empty": "Non c’è un oliveto per il meteo.",

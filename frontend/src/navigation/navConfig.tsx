@@ -161,6 +161,11 @@ export type ActiveFieldNavGate = {
   modules?: ReadonlySet<string> | null;
   /** True when the user is Admin on the active field (or unrestricted owner). */
   isAdminOnActive?: boolean;
+  /**
+   * When set, overrides module-only harvest visibility (help/view seats, etc.).
+   * Computed via getHarvestCapabilities.canView.
+   */
+  canViewHarvest?: boolean;
 };
 
 /** Shared visibility filter for sidebar and mobile bottom nav. */
@@ -193,10 +198,16 @@ export const filterNavItemsForUser = (
         return false;
       }
       if (item.path === '/money' && !modules!.has('money')) return false;
-      if (item.path === '/harvest' && !modules!.has('harvest')) return false;
+      if (item.path === '/harvest') {
+        if (gate?.canViewHarvest === false) return false;
+        if (!modules!.has('harvest')) return false;
+      }
       if (item.path === '/tasks' && !modules!.has('tasks')) return false;
       if (item.path === '/fields' && !modules!.has('fields')) return false;
-      if (item.path === '/photos' && !modules!.has('fields')) return false;
+      if (item.path === '/photos' && !modules!.has('photos')) return false;
+      if (item.path === '/chronologio' && !modules!.has('chronologio')) return false;
+    } else if (item.path === '/harvest' && gate?.canViewHarvest === false) {
+      return false;
     }
 
     return true;
