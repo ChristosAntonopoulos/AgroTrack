@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen } from 'lucide-react';
 import type { HarvestRecord } from '../../services/harvestService';
 import { formatGroveMassKg } from '../../utils/groveTotals';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { summarizeHistoricalDay } from '../historicalDay';
 
 type Props = {
@@ -26,12 +27,9 @@ export const HistoricalHarvestDayBoard: React.FC<Props> = ({
   onOpenRecord,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const dayLabel = new Date(`${day}T12:00:00`).toLocaleDateString(locale, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const { formatDate } = useLocaleFormatters();
+  const when = new Date(`${day}T12:00:00`);
+  const dayLabel = `${when.toLocaleDateString(locale, { weekday: 'long' })}, ${formatDate(when)}`;
   const totals = summarizeHistoricalDay(records);
 
   return (

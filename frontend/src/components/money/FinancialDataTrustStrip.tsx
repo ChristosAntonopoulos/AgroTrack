@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { YearFinancialSummary } from '../../services/financialSummaryService';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import './Money.css';
 
 type Props = {
@@ -10,8 +11,9 @@ type Props = {
   onOpenDrafts: () => void;
 };
 
-const FinancialDataTrustStrip: React.FC<Props> = ({ summary, locale, fieldCount, onOpenDrafts }) => {
+const FinancialDataTrustStrip: React.FC<Props> = ({ summary, fieldCount, onOpenDrafts }) => {
   const { t } = useTranslation('money');
+  const { formatDate } = useLocaleFormatters();
   const computed = !summary.dataAvailability.hasPostedRecords
     ? null
     : fieldCount > 1
@@ -21,11 +23,7 @@ const FinancialDataTrustStrip: React.FC<Props> = ({ summary, locale, fieldCount,
         : t('computedFromUnassigned', { count: summary.transactionCount });
   const lastUpdate = summary.lastPostedAt
     ? t('lastUpdate', {
-        date: new Date(summary.lastPostedAt).toLocaleString(locale, {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        }),
+        date: formatDate(summary.lastPostedAt),
       })
     : null;
 

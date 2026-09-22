@@ -77,13 +77,16 @@ export const formatAreaFromSqm = (
   }
 
   const stremmataDigits = parts.stremmata >= 10 ? 1 : 2;
+  // Product UI is stremmata-first (Greece); hectares only appear as a conversion.
   const primary =
     options.locale === 'el'
       ? `${fmt(parts.stremmata, stremmataDigits)} στρ.`
-      : `${fmt(parts.hectares, parts.hectares >= 10 ? 2 : 3)} ha`;
+      : options.locale === 'it'
+        ? `${fmt(parts.stremmata, stremmataDigits)} stremmi`
+        : `${fmt(parts.stremmata, stremmataDigits)} stremmata`;
 
   if (style === 'withConversions') {
-    return `${primary} (${fmt(parts.sqm, 0)} m² · ${fmt(parts.hectares, 3)} ha)`;
+    return `${primary} (${fmt(parts.sqm, 0)} m²)`;
   }
   return primary;
 };

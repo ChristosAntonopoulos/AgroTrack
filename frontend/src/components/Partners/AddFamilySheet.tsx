@@ -16,14 +16,23 @@ import { getApiErrorMessage } from '../../utils/translateApiError';
 type Props = {
   open?: boolean;
   fieldId: string;
+  initialName?: string;
+  initialEmail?: string;
   onClose: () => void;
-  onCreated?: () => void;
+  onCreated?: (invite: FieldInvite) => void;
 };
 
-const AddFamilySheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCreated }) => {
+const AddFamilySheet: React.FC<Props> = ({
+  open = true,
+  fieldId,
+  initialName = '',
+  initialEmail = '',
+  onClose,
+  onCreated,
+}) => {
   const { t } = useTranslation(['partners', 'common']);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState(initialName);
+  const [email, setEmail] = useState(initialEmail);
   const [modules, setModules] = useState<FieldModule[]>([...DEFAULT_FIELD_MODULES]);
   const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>('view');
   const [saving, setSaving] = useState(false);
@@ -52,7 +61,7 @@ const AddFamilySheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCrea
         accessLevel,
       });
       setInvite(created);
-      onCreated?.();
+      onCreated?.(created);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t));
     } finally {
@@ -92,6 +101,8 @@ const AddFamilySheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCrea
                 autoComplete="name"
                 autoFocus
                 required
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'add-family-error' : undefined}
               />
             </label>
             <label>
@@ -102,6 +113,8 @@ const AddFamilySheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCrea
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 required
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'add-family-error' : undefined}
               />
             </label>
             <p className="family-form-hint">{t('partners:family.contactHint')}</p>
@@ -110,11 +123,16 @@ const AddFamilySheet: React.FC<Props> = ({ open = true, fieldId, onClose, onCrea
           <FamilyAccessFields
             modules={modules}
             accessLevel={accessLevel}
+            role="Family"
             onToggleModule={toggleModule}
             onSetLevel={setAccessLevel}
           />
 
-          {error ? <div className="error-message">{error}</div> : null}
+          {error ? (
+            <div id="add-family-error" className="error-message" role="alert">
+              {error}
+            </div>
+          ) : null}
         </form>
       )}
     </PartnersSheet>

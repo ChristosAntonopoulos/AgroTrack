@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import Button from '../Common/Button';
 import { FieldInvite } from '../../services/fieldPeopleService';
 import { canNativeShare, copyText, nativeShare, qrImageUrl } from '../../utils/shareHelpers';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
+import { mapInviteLifecycle } from './inviteLifecycle';
 
 type Props = {
   invite: FieldInvite;
@@ -13,9 +15,14 @@ type Props = {
 
 const FamilySharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }) => {
   const { t } = useTranslation(['partners', 'common']);
+  const { formatDate } = useLocaleFormatters();
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
   const code = invite.code?.trim();
   const ns = `partners:${copyNs}`;
+  const lifecycle = mapInviteLifecycle(invite.status);
+  const expired =
+    lifecycle === 'expired' ||
+    (Boolean(invite.expiresAt) && Date.parse(invite.expiresAt) < Date.now());
 
   const handleCopyCode = async () => {
     if (!code) return;
@@ -38,6 +45,16 @@ const FamilySharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }
   return (
     <div className="family-share-panel">
       <p className="partners-inline-hint">{t(`${ns}.inviteReady`)}</p>
+      <div className="partner-chips family-invite-status-row">
+        <span className="partner-chip">
+          {t(`partners:inviteLifecycle.${expired && lifecycle === 'pending' ? 'expired' : lifecycle}`)}
+        </span>
+        {invite.expiresAt ? (
+          <span className="partner-chip partner-chip-job">
+            {t('partners:inviteExpiresOn', { date: formatDate(invite.expiresAt) })}
+          </span>
+        ) : null}
+      </div>
       {code ? (
         <div className="family-invite-code">
           <span className="family-invite-code-label">{t(`${ns}.inviteCode`)}</span>
@@ -48,15 +65,17 @@ const FamilySharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }
           </Button>
         </div>
       ) : null}
-      <div className="family-qr-wrap">
-        <img
-          className="family-qr"
-          src={qrImageUrl(invite.shareUrl, 220)}
-          alt={t(`${ns}.qrAlt`)}
-          width={220}
-          height={220}
-        />
-      </div>
+      {invite.shareUrl ? (
+        <div className="family-qr-wrap">
+          <img
+            className="family-qr"
+            src={qrImageUrl(invite.shareUrl, 220)}
+            alt={t(`${ns}.qrAlt`)}
+            width={220}
+            height={220}
+          />
+        </div>
+      ) : null}
       <a className="partner-invite-link" href={invite.shareUrl} target="_blank" rel="noreferrer">
         {invite.shareUrl}
       </a>

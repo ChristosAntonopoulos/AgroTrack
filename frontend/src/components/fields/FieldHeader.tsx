@@ -17,7 +17,6 @@ type Props = {
   showYearControl?: boolean;
   onYearChange: (year: number) => void;
   onCapture?: () => void;
-  onDelete?: () => void;
   phenology?: FieldPhenology | null;
 };
 
@@ -29,7 +28,6 @@ const FieldHeader: React.FC<Props> = ({
   showYearControl = true,
   onYearChange,
   onCapture,
-  onDelete,
   phenology,
 }) => {
   const { t } = useTranslation('fields');
@@ -60,7 +58,6 @@ const FieldHeader: React.FC<Props> = ({
           field={field}
           canOwn={canOwn}
           canManageAccess={canManageAccess}
-          onDelete={onDelete}
         />
       </div>
     </header>

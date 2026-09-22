@@ -24,6 +24,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { readLastMoneyFieldId } from '../../finance/lastField';
 import MoneyCaptureForm from './MoneyCaptureForm';
+import PhotoCaptureForm from './PhotoCaptureForm';
 import './Capture.css';
 
 const MAX_PHOTOS = 5;
@@ -58,7 +59,7 @@ const CaptureDrawer: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t } = useTranslation(['capture', 'fields', 'common', 'chronologio']);
+  const { t } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'money']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const navigate = useNavigate();
@@ -141,7 +142,7 @@ const CaptureDrawer: React.FC<Props> = ({
     setDirty(false);
     setError(null);
     setMoreOpen(false);
-    setBody('');
+    setBody(context.description || '');
     setPhotos([]);
     setRecording(false);
     setRecordingSeconds(0);
@@ -185,7 +186,11 @@ const CaptureDrawer: React.FC<Props> = ({
 
   const requestClose = () => {
     if (dirty) {
-      const ok = window.confirm(t('capture:discardTitle'));
+      const moneyOpen = step === 'money' || step === 'expense' || step === 'income';
+      const message = moneyOpen
+        ? t('money:leaveUnsavedTitle', { defaultValue: t('capture:discardTitle') })
+        : t('capture:discardTitle');
+      const ok = window.confirm(message);
       if (!ok) return;
     }
     onClose();
@@ -447,19 +452,21 @@ const CaptureDrawer: React.FC<Props> = ({
   };
 
   const typeCards: Array<{ type: CaptureType; icon: React.ReactNode; enabled: boolean }> = [
+    { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
+    { type: 'money', icon: <Wallet size={22} />, enabled: permissions.canRecordMoney },
+    { type: 'harvest', icon: <Wheat size={22} />, enabled: permissions.canRecordHarvest },
+    { type: 'photo', icon: <Camera size={22} />, enabled: permissions.canRecordPhoto },
     {
       type: 'observation',
       icon: <StickyNote size={22} />,
       enabled: permissions.canRecordObservation,
     },
-    { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
-    { type: 'money', icon: <Wallet size={22} />, enabled: permissions.canRecordMoney },
-    { type: 'harvest', icon: <Wheat size={22} />, enabled: permissions.canRecordHarvest },
     { type: 'voice', icon: <Mic size={22} />, enabled: permissions.canRecordVoice },
     { type: 'document', icon: <FileText size={22} />, enabled: permissions.canRecordDocument },
   ];
 
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
+  const isPhotoStep = step === 'photo';
   const fieldLocked = Boolean(context.fieldId);
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
 
@@ -476,8 +483,8 @@ const CaptureDrawer: React.FC<Props> = ({
             ? t('capture:title')
             : t(`capture:types.${step}.title`)
       }
-      subtitle={!isMoneyStep && step !== 'choose' ? selectedFieldName : undefined}
-      hideClose={!isMoneyStep}
+      subtitle={!isMoneyStep && !isPhotoStep && step !== 'choose' ? selectedFieldName : undefined}
+      hideClose={!isMoneyStep && !isPhotoStep}
       leading={
         isMoneyStep ? undefined : (
           <button
@@ -492,7 +499,7 @@ const CaptureDrawer: React.FC<Props> = ({
       }
       bodyClassName={isMoneyStep ? 'oa-drawer-body--flush' : undefined}
       footer={
-        step !== 'choose' && !isMoneyStep ? (
+        step !== 'choose' && !isMoneyStep && !isPhotoStep ? (
           <button
             type="button"
             className="capture-save-btn"
@@ -515,6 +522,20 @@ const CaptureDrawer: React.FC<Props> = ({
                 canRecordIncome={permissions.canRecordIncome}
                 canRecordExpense={permissions.canRecordExpense}
                 onSaved={onSaved}
+                onDirtyChange={(next) => {
+                  if (next) markDirty();
+                  else setDirty(false);
+                }}
+              />
+            ) : isPhotoStep ? (
+              <PhotoCaptureForm
+                context={context}
+                fields={fields}
+                fieldId={fieldId}
+                fieldLocked={fieldLocked}
+                onFieldChange={onFieldChange}
+                onSaved={onSaved}
+                onDirty={markDirty}
               />
             ) : (
               <>

@@ -13,22 +13,34 @@ import {
   PhotoHubGallery,
   PhotoLightbox,
   PhotoReviewQueue,
-  PhotoUploadDropzone,
   usePhotoLightbox,
 } from '../components/photos';
+import type { PhotoBatchItem } from '../components/photos/PhotoReviewQueue';
 import { resolvePublicAssetUrl } from '../config/apiConfig';
 import { getFieldService, getPhotoService } from '../services/serviceFactory';
 import { readFieldId } from '../navigation/intents';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
-import { formatPhotoCardDate } from '../utils/localeFormatters';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import type { Field } from '../services/fieldService';
-import type { Photo, PhotoLinkStatus, PhotoUploadResult } from '../services/photoService';
+import type { Photo, PhotoLinkStatus } from '../services/photoService';
 import '../components/photos/PhotoHub.css';
 
 const PAGE_SIZE = 96;
 
+const newLocalId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const takeImageFiles = (list: FileList | null | File[]): File[] => {
+  if (!list) return [];
+  const arr = Array.isArray(list) ? list : Array.from(list);
+  return arr.filter((f) => f.type.startsWith('image/'));
+};
+
 const PhotoHubPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['photos', 'common']);
+  const { t } = useTranslation(['photos', 'common']);
+  const { formatDate } = useLocaleFormatters();
   const [searchParams, setSearchParams] = useSearchParams();
   const pageGuard = useModulePageGuard({ module: 'photos' });
   const fieldId = readFieldId(searchParams);
@@ -44,25 +56,40 @@ const PhotoHubPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
-  const [reviewItems, setReviewItems] = useState<PhotoUploadResult[]>([]);
+  const [batchItems, setBatchItems] = useState<PhotoBatchItem[]>([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
-  const [failedFiles, setFailedFiles] = useState<File[]>([]);
   const [selected, setSelected] = useState<Photo | null>(null);
   const [toolbarStuck, setToolbarStuck] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const lightbox = usePhotoLightbox();
-  const dropzoneRef = useRef<HTMLDivElement>(null);
   const stickySentinelRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const hasPhotosRef = useRef(false);
+  const uploadQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const batchItemsRef = useRef<PhotoBatchItem[]>([]);
+  const dragDepthRef = useRef(0);
+
+  const setBatchItemsSync = useCallback(
+    (updater: PhotoBatchItem[] | ((prev: PhotoBatchItem[]) => PhotoBatchItem[])) => {
+      const prev = batchItemsRef.current;
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      batchItemsRef.current = next;
+      setBatchItems(next);
+    },
+    []
+  );
 
   const galleryItems = useMemo(
     () =>
       photos.map((photo) => {
         const fieldLabel =
           photo.fieldName || fields.find((f) => f.id === photo.fieldId)?.name || photo.fieldId;
-        const dateLabel = formatPhotoCardDate(photo.effectiveCapturedAt, i18n.language);
+        const dateLabel = formatDate(photo.effectiveCapturedAt);
         return {
           id: photo.id,
           src: resolvePublicAssetUrl(photo.url) || photo.url,
@@ -70,7 +97,7 @@ const PhotoHubPage: React.FC = () => {
           alt: [dateLabel, fieldLabel].filter(Boolean).join(' · ') || undefined,
         };
       }),
-    [fields, i18n.language, photos]
+    [fields, formatDate, photos]
   );
 
   const openLightboxAt = useCallback(
@@ -209,6 +236,13 @@ const PhotoHubPage: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      batchItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- revoke remaining previews on unmount only
+  }, []);
+
   const openPhotoDetails = (photo: Photo) => {
     setSelected(photo);
     patch({ photoId: photo.id });
@@ -222,63 +256,157 @@ const PhotoHubPage: React.FC = () => {
   const refreshSelected = (photo: Photo) => {
     setSelected(photo);
     setPhotos((prev) => prev.map((p) => (p.id === photo.id ? photo : p)));
-    setReviewItems((prev) =>
-      prev.map((item) => (item.photo.id === photo.id ? { ...item, photo } : item))
+    setBatchItemsSync((prev) =>
+      prev.map((item) =>
+        item.result?.photo.id === photo.id
+          ? { ...item, result: item.result ? { ...item.result, photo } : item.result }
+          : item
+      )
     );
   };
 
-  const takeFiles = (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    const images = Array.from(list).filter((f) => f.type.startsWith('image/'));
-    if (images.length) void uploadFiles(images);
-  };
-
-  const uploadFiles = async (files: File[]) => {
-    setUploading(true);
-    setError(null);
-    setUploadNotice(null);
-    setFailedFiles([]);
-    try {
-      const results = await getPhotoService().upload(files);
-      const added = results.filter((r) => !r.failed && !r.duplicateSkipped).length;
-      const duplicates = results.filter((r) => r.duplicateSkipped).length;
-      const failed = results.filter((r) => r.failed).length;
-      const needsReview = results.filter(
-        (r) =>
-          !r.failed &&
-          !r.duplicateSkipped &&
-          (r.photo.fieldAssignment === 'needsReview' ||
-            r.photo.fieldAssignment === 'unassigned' ||
-            r.duplicateWarning)
-      );
-      setReviewItems((prev) => [...needsReview, ...prev]);
-      if (failed > 0 || duplicates > 0 || needsReview.length > 0) {
-        setUploadNotice(
-          t('photos:uploadSummary', {
-            added,
-            review: needsReview.length,
-            duplicates,
-            failed,
-          })
-        );
-      } else {
-        setUploadNotice(t('photos:uploadSuccess', { count: added }));
-      }
-      if (failed > 0) {
-        setFailedFiles(files);
-      }
-      await load(1, false);
-    } catch {
-      setError(t('photos:errors.upload'));
-      setFailedFiles(files);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const scrollToUpload = () => {
-    dropzoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const openFilePicker = () => {
     uploadInputRef.current?.click();
+  };
+
+  const runUploadQueue = useCallback(() => {
+    uploadQueueRef.current = uploadQueueRef.current.then(async () => {
+      setUploading(true);
+      setError(null);
+      try {
+        for (;;) {
+          const current = batchItemsRef.current.find((i) => i.status === 'queued');
+          if (!current) break;
+
+          setBatchItemsSync((prev) =>
+            prev.map((i) =>
+              i.localId === current.localId ? { ...i, status: 'uploading' as const } : i
+            )
+          );
+
+          try {
+            const results = await getPhotoService().upload([current.file]);
+            const result = results[0];
+            setBatchItemsSync((prev) =>
+              prev.map((i) => {
+                if (i.localId !== current.localId) return i;
+                if (!result) {
+                  return { ...i, status: 'failed', error: t('photos:errors.upload') };
+                }
+                if (result.failed) {
+                  return {
+                    ...i,
+                    status: 'failed',
+                    error: result.error || t('photos:errors.upload'),
+                    result,
+                  };
+                }
+                if (result.duplicateSkipped) {
+                  return { ...i, status: 'duplicate', result };
+                }
+                return { ...i, status: 'uploaded', result };
+              })
+            );
+          } catch {
+            setBatchItemsSync((prev) =>
+              prev.map((i) =>
+                i.localId === current.localId
+                  ? { ...i, status: 'failed', error: t('photos:errors.upload') }
+                  : i
+              )
+            );
+          }
+
+          setUploadProgress((p) => {
+            const total = Math.max(p?.total ?? 1, 1);
+            const done = Math.min(total, (p?.done ?? 0) + 1);
+            return { done, total };
+          });
+        }
+
+        await load(1, false);
+
+        const snapshot = batchItemsRef.current;
+        const uploaded = snapshot.filter((i) => i.status === 'uploaded').length;
+        const duplicates = snapshot.filter((i) => i.status === 'duplicate').length;
+        const failed = snapshot.filter((i) => i.status === 'failed').length;
+        const review = snapshot.filter(
+          (i) =>
+            i.status === 'uploaded' &&
+            i.result &&
+            (i.result.photo.fieldAssignment === 'needsReview' ||
+              i.result.photo.fieldAssignment === 'unassigned' ||
+              i.result.duplicateWarning)
+        ).length;
+        if (failed > 0 || duplicates > 0 || review > 0) {
+          setUploadNotice(
+            t('photos:uploadSummary', {
+              added: uploaded,
+              review,
+              duplicates,
+              failed,
+            })
+          );
+        } else if (uploaded > 0) {
+          setUploadNotice(t('photos:uploadSuccess', { count: uploaded }));
+        }
+      } finally {
+        setUploading(false);
+        setUploadProgress(null);
+      }
+    });
+  }, [load, setBatchItemsSync, t]);
+
+  const stageFiles = useCallback(
+    (files: File[]) => {
+      if (files.length === 0) return;
+      const nextItems: PhotoBatchItem[] = files.map((file) => ({
+        localId: newLocalId(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: 'queued',
+      }));
+      setBatchItemsSync((prev) => [...prev, ...nextItems]);
+      setUploadNotice(null);
+      setUploadProgress((p) => ({
+        done: p?.done ?? 0,
+        total: (p?.total ?? 0) + nextItems.length,
+      }));
+      runUploadQueue();
+    },
+    [runUploadQueue, setBatchItemsSync]
+  );
+
+  const removeBatchItem = (localId: string) => {
+    setBatchItemsSync((prev) => {
+      const target = prev.find((i) => i.localId === localId);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((i) => i.localId !== localId);
+    });
+    setUploadProgress((p) => (p ? { done: p.done, total: Math.max(0, p.total - 1) } : p));
+  };
+
+  const retryBatchItem = (localId: string) => {
+    setBatchItemsSync((prev) =>
+      prev.map((i) =>
+        i.localId === localId
+          ? { ...i, status: 'queued', error: null, result: undefined }
+          : i
+      )
+    );
+    setUploadProgress((p) => ({
+      done: p?.done ?? 0,
+      total: (p?.total ?? 0) + 1,
+    }));
+    runUploadQueue();
+  };
+
+  const clearBatch = () => {
+    setBatchItemsSync((prev) => {
+      prev.forEach((i) => URL.revokeObjectURL(i.previewUrl));
+      return [];
+    });
+    setUploadProgress(null);
   };
 
   const hasMore = photos.length < total;
@@ -310,8 +438,7 @@ const PhotoHubPage: React.FC = () => {
             <button
               type="button"
               className="photo-hub-cta"
-              disabled={uploading}
-              onClick={scrollToUpload}
+              onClick={openFilePicker}
             >
               <Upload size={18} aria-hidden />
               {uploading ? t('photos:uploading') : t('photos:upload')}
@@ -321,10 +448,9 @@ const PhotoHubPage: React.FC = () => {
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
               multiple
-              disabled={uploading}
               className="photo-hidden-input"
               onChange={(e) => {
-                takeFiles(e.target.files);
+                stageFiles(takeImageFiles(e.target.files));
                 e.target.value = '';
               }}
             />
@@ -332,10 +458,30 @@ const PhotoHubPage: React.FC = () => {
         }
       />
 
-      <div className="photo-hub">
-        <div ref={dropzoneRef} className="photo-hub-drop-wrap">
-          <PhotoUploadDropzone disabled={uploading} onFiles={uploadFiles} />
-        </div>
+      <div
+        className={`photo-hub${dragging ? ' is-dragging' : ''}`}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          dragDepthRef.current += 1;
+          if (!uploading) setDragging(true);
+        }}
+        onDragOver={(e) => e.preventDefault()}
+        onDragLeave={() => {
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) setDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          dragDepthRef.current = 0;
+          setDragging(false);
+          if (!uploading) stageFiles(takeImageFiles(e.dataTransfer.files));
+        }}
+      >
+        {dragging ? (
+          <div className="photo-hub-drop-overlay" aria-hidden>
+            <span>{t('photos:dropActive')}</span>
+          </div>
+        ) : null}
 
         <div ref={stickySentinelRef} className="photo-hub-sticky-sentinel" aria-hidden />
         <div className={`photo-hub-sticky${toolbarStuck ? ' is-stuck' : ''}`}>
@@ -458,15 +604,6 @@ const PhotoHubPage: React.FC = () => {
         {uploadNotice ? (
           <div className="photo-hub-success" role="status">
             <span>{uploadNotice}</span>
-            {failedFiles.length > 0 ? (
-              <button
-                type="button"
-                className="photo-hub-success-dismiss"
-                onClick={() => void uploadFiles(failedFiles)}
-              >
-                {t('photos:retryUpload')}
-              </button>
-            ) : null}
             <button
               type="button"
               className="photo-hub-success-dismiss"
@@ -478,15 +615,19 @@ const PhotoHubPage: React.FC = () => {
         ) : null}
 
         <PhotoReviewQueue
-          items={reviewItems}
+          items={batchItems}
           fields={fields}
+          uploading={uploading}
+          progress={uploadProgress}
+          onRemove={removeBatchItem}
+          onRetry={retryBatchItem}
           onConfirmField={async (id, nextFieldId) => {
             const updated = await getPhotoService().confirmField(id, nextFieldId);
             refreshSelected(updated);
-            setReviewItems((prev) =>
+            setBatchItemsSync((prev) =>
               prev.filter(
                 (item) =>
-                  item.photo.id !== id ||
+                  item.result?.photo.id !== id ||
                   updated.fieldAssignment === 'needsReview' ||
                   updated.fieldAssignment === 'unassigned'
               )
@@ -497,7 +638,7 @@ const PhotoHubPage: React.FC = () => {
             const updated = await getPhotoService().update(id, { capturedAt });
             refreshSelected(updated);
           }}
-          onDone={() => setReviewItems([])}
+          onDone={clearBatch}
         />
 
         {error ? (
@@ -510,9 +651,11 @@ const PhotoHubPage: React.FC = () => {
         ) : null}
 
         {showInitialLoading ? (
-          <div className="photo-hub-loading">
-            <LoadingSpinner />
-            <span>{t('photos:loading')}</span>
+          <div className="photo-hub-skeleton" aria-busy="true" aria-label={t('photos:loading')}>
+            <span className="photo-hub-skeleton-card" />
+            <span className="photo-hub-skeleton-card" />
+            <span className="photo-hub-skeleton-card" />
+            <span className="photo-hub-skeleton-card" />
           </div>
         ) : null}
 
@@ -531,7 +674,7 @@ const PhotoHubPage: React.FC = () => {
                     {t('photos:clearFilters')}
                   </Button>
                 ) : (
-                  <Button onClick={scrollToUpload}>{t('photos:upload')}</Button>
+                  <Button onClick={openFilePicker}>{t('photos:upload')}</Button>
                 )
               }
             />
@@ -540,7 +683,11 @@ const PhotoHubPage: React.FC = () => {
 
         {showGallery ? (
           <div className={`photo-hub-gallery-wrap${refreshing ? ' is-refreshing' : ''}`}>
-            <PhotoHubGallery photos={photos} onOpenViewer={openLightboxAt} />
+            <PhotoHubGallery
+              photos={photos}
+              onOpenViewer={openLightboxAt}
+              onOpenDetails={openPhotoDetails}
+            />
             <div className="photo-hub-footer">
               <span className="photo-hub-count">
                 {t('photos:showingCount', { shown: photos.length, total })}

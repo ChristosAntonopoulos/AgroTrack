@@ -75,7 +75,7 @@
       "plannedRemaining": "Planned work remaining",
       "harvest": "Harvest",
       "oil": "Oil litres",
-      "perHectare": "€ / hectare",
+      "perHectare": "€ / stremma",
       "perLitre": "€ / litre",
       "noHarvest": "There is no completed harvest result for {{year}}.",
       "harvestInProgress": "Harvest in progress",
@@ -187,6 +187,9 @@
     "skipBoundaryConsequence": "Without a boundary, satellite data, soil, slope and calculated area stay unavailable. A location/point is enough to place the field on the map.",
     "reviewNoBoundaryNote": "No boundary yet: satellite, soil, slope and calculated area stay unavailable until you add one.",
     "boundaryValidation": {
+      "invalidCoordinates": "Those corners are not valid map coordinates. Redraw the boundary.",
+      "nullIsland": "The shape landed near 0°,0° — that is not a real grove. Search for the place and redraw.",
+      "swappedLatLng": "Latitude and longitude look swapped. Redraw the corners on the map.",
       "tooFewPoints": "Mark at least 3 corners to finish the shape.",
       "selfIntersect": "The boundary crosses itself. Adjust the corners.",
       "tooSmall": "This area is too small for a field. Zoom in and draw again.",
@@ -253,7 +256,7 @@
     "errors": {
       "methodRequired": "Please choose how to add this field.",
       "kaekInvalid": "KAEK format is invalid.",
-      "boundaryRequired": "Boundary is optional — draw it now or tap Skip for now.",
+      "boundaryRequired": "Boundary is optional. Draw it now, or continue with Next / Skip for now.",
       "confirmBoundary": "Please confirm the boundary checkbox.",
       "confirmCadastre": "Please acknowledge the cadastre reference disclaimer."
     },
@@ -317,7 +320,18 @@
     "archiveUnavailable": "Archiving will be connected when the server action is ready.",
     "draftField": "Draft field",
     "mapPlaceholder": "The map and data for this field will appear here.",
-    "detailsPlaceholder": "Grove identity, water, soil, people and documents will be organised here."
+    "detailsPlaceholder": "Grove identity, water, soil, people and documents will be organised here.",
+    "tabLoading": "Loading this section…",
+    "tabEmpty": "Nothing here yet",
+    "tabEmptyHint": "There is no data for this section yet.",
+    "tabUnavailable": "Unavailable",
+    "tabUnavailableHint": "This section is turned off for your access, or the field is not set up for it.",
+    "tabError": "Could not load this section",
+    "tabErrorHint": "Something went wrong while loading. Try again.",
+    "mapNoPlace": "No map location yet",
+    "mapNoPlaceHint": "Add a boundary or GPS point so the map can show this grove.",
+    "chronologioUnavailable": "Chronologio is not available for your access on this field.",
+    "mapUnavailable": "Map and environment data are not available for your access on this field."
   },
   "mapWorkspace": {
     "lead": "Choose what to look at on the field — boundary, photo, greenness or moisture.",
@@ -420,15 +434,20 @@
     "danger": {
       "kicker": "Danger zone",
       "title": "Archive and delete",
-      "body": "Permanent deletion removes this field from the list. Before you proceed, understand what happens to related data:",
-      "tasks": "Tasks — will be removed or unlinked from the field",
-      "photos": "Photos — will be removed or unlinked",
-      "money": "Money — entries linked to the field",
-      "harvest": "Harvest — daily and annual records",
-      "notes": "Access notes and field record",
-      "chronologio": "Chronologio — field history",
-      "collaborators": "Collaborator access — will be revoked",
-      "confirmDelete": "Permanently delete this field? This affects tasks, photos, money, harvest, notes, Chronologio and collaborator access."
+      "body": "Permanent deletion removes this field from the list. Related records (tasks, photos, money, harvest, notes, Chronologio) stay in the system but lose this field link; collaborator access to this field is revoked.",
+      "tasks": "Tasks — unlinked from this field",
+      "photos": "Photos — unlinked from this field",
+      "money": "Money — entries keep their amounts but lose the field link",
+      "harvest": "Harvest — daily and annual records lose the field link",
+      "notes": "Access notes and the field record itself",
+      "chronologio": "Chronologio — field history loses this field context",
+      "collaborators": "Collaborator access — revoked for this field",
+      "confirmDelete": "Permanently delete this field?",
+      "typeNamePrompt": "Type the field name \"{{name}}\" to confirm deletion.",
+      "typeNameLabel": "Field name",
+      "typeNameMismatch": "The name does not match. Deletion is blocked until it matches exactly.",
+      "confirmAction": "Delete field permanently",
+      "cancel": "Cancel"
     },
     "land": "The land",
     "soilTitle": "The soil",
@@ -517,7 +536,7 @@
     "namePlaceholder": "e.g. North Grove",
     "color": "Field color",
     "colorHint": "Used on Chronologio cards so you can spot this grove quickly.",
-    "area": "Area (hectares)",
+    "area": "Area (stremmata)",
     "variety": "Olive variety",
     "varietyCustom": "Enter variety name",
     "treeAge": "Tree age (years)",
@@ -805,7 +824,7 @@
     "reviewApprovals": "Review approvals",
     "startNextTask": "Start next task",
     "reportIssue": "Report issue",
-    "viewTimeline": "View timeline",
+    "viewTimeline": "View Chronologio",
     "viewEvidence": "View evidence",
     "tabsAria": "Field control room",
     "tabs": {
@@ -1290,7 +1309,8 @@
       "openDay": "Open this day",
       "reopen": "Reopen day",
       "lockedTitle": "Day closed",
-      "lockedBody": "Reopen this day to add or change records."
+      "lockedBody": "Adding and editing records is paused. Reopen the day anytime — closing is reversible.",
+      "closeExplain": "Closing pauses new records and edits for this day. You can reopen it later. Linked money and Chronologio notes stay editable in their own screens."
     },
     "needGrove": "Pick at least one field, or add them later.",
     "noFields": "Add a field first.",
@@ -1620,9 +1640,10 @@
       "kicker": "This day",
       "title": "What you recorded",
       "closedHint": "Reopen the day to edit or add records.",
-      "empty": "Nothing recorded for this day yet. Add sacks, mill kilograms, oil, or people.",
+      "empty": "Nothing recorded for this day yet. Use Add to this day for sacks, mill kilograms, oil, or people.",
       "edit": "Edit",
       "remove": "Remove",
+      "rowMenu": "Entry actions",
       "removeConfirm": "Remove this entry from the day?",
       "editTitle": "Edit entry",
       "editSacks": "Edit sacks",
@@ -1635,7 +1656,15 @@
       "fromMills": "from {{count}} mill weighings",
       "fromSacksShort": "{{count}} linked sacks",
       "kgPerSackShort": "≈ {{kg}} kg/sack",
-      "acidityShort": "Acidity {{value}}"
+      "acidityShort": "Acidity {{value}}",
+      "sourceSynced": "Synced harvest record",
+      "sourceChronologio": "In Chronologio",
+      "linkedExpense": "Linked expense"
+    },
+    "permissions": {
+      "viewOnly": "You can view this harvest. Editing is limited to the field owner.",
+      "helpOnly": "You can view this harvest. Recording production is limited to field workers and owners.",
+      "noProduce": "You can view this harvest. Editing is limited to the field owner."
     }
   }
 }

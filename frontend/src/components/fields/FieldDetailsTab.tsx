@@ -29,6 +29,7 @@ import {
 } from '../../utils/sentinelStatus';
 import DataSourceInfoModal, { type DataSourceInfo } from '../Common/DataSourceInfoModal';
 import type { SupportedLocale } from '../../i18n/config';
+import FieldTabStatus from './FieldTabStatus';
 import './FieldDetailsTab.css';
 
 type Props = {
@@ -37,7 +38,7 @@ type Props = {
   canOwn: boolean;
   workProfile?: FieldWorkProfile | null;
   phenology?: FieldPhenology | null;
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
 };
 
 type SourceEntry = {
@@ -131,8 +132,8 @@ const sameUtcDay = (a?: string, b?: string): boolean => {
   return a.slice(0, 10) === b.slice(0, 10);
 };
 
-const formatPassDay = (iso: string, locale: string): string =>
-  new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+const formatPassDay = (iso: string, formatDate: (d: Date | string | number) => string): string =>
+  formatDate(iso);
 
 const Row: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => {
   if (value == null || value === '') return null;
@@ -152,7 +153,7 @@ const InfoButton: React.FC<{ label: string; onClick: () => void }> = ({ label, o
 
 const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, phenology, onDelete }) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
-  const { formatDateTime, formatRelativeTime, formatNumber } = useLocaleFormatters();
+  const { formatDateTime, formatRelativeTime, formatNumber, formatDate } = useLocaleFormatters();
   const locale = (i18n.language?.startsWith('el')
     ? 'el'
     : i18n.language?.startsWith('it')
@@ -165,7 +166,14 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
   const [satelliteDates, setSatelliteDates] = useState<SatelliteDate[]>([]);
   const [greenObs, setGreenObs] = useState<FieldSatelliteObservation | null>(null);
   const [collecting, setCollecting] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(true);
+  const [detailsError, setDetailsError] = useState(false);
+  const [detailsTick, setDetailsTick] = useState(0);
   const [sourceInfo, setSourceInfo] = useState<DataSourceInfo | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmName, setConfirmName] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,53 +184,63 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
     const landMissing = (profile: FieldSpatialProfile | null, summary: FieldIntelligenceSummary | null) =>
       !profile?.terrain && !summary?.terrain && !profile?.soil && !summary?.soil;
 
-    const load = async () => {
-      const [profile, summary, dates] = await Promise.all([
-        geospatialService.getSpatialProfile(field.id).catch(() => null),
-        geospatialService.getIntelligence(field.id).catch(() => null),
-        geospatialService.getSatelliteDates(field.id).catch(() => [] as SatelliteDate[]),
-      ]);
-      if (cancelled) return;
-      setSpatial(profile);
-      setIntel(summary);
-      setSatelliteDates(dates);
-      const pass = pickLatestUsableSatellite(dates);
-      if (pass?.observationId) {
-        const obs = await geospatialService
-          .getSatelliteObservation(field.id, pass.observationId)
-          .catch(() => null);
-        if (!cancelled) setGreenObs(obs);
-      } else {
-        setGreenObs(null);
-      }
-      if (cancelled) return;
-      const pending =
-        profile?.processingStatus === 'pending' ||
-        profile?.processingStatus === 'processing' ||
-        summary?.processingStatus === 'pending' ||
-        summary?.processingStatus === 'processing';
-      const waiting = landMissing(profile, summary) || pending;
-      setCollecting(waiting);
-      if (waiting && !didRefresh) {
-        didRefresh = true;
-        await geospatialService.refreshIntelligence(field.id).catch(() => undefined);
-      }
-      if (waiting && polls < 8) {
-        polls += 1;
-        timer = window.setTimeout(() => {
-          void load();
-        }, 4000);
-      } else if (!waiting) {
-        setCollecting(false);
+    const load = async (isFirst: boolean) => {
+      try {
+        if (isFirst) {
+          setDetailsLoading(true);
+          setDetailsError(false);
+        }
+        const [profile, summary, dates] = await Promise.all([
+          geospatialService.getSpatialProfile(field.id).catch(() => null),
+          geospatialService.getIntelligence(field.id).catch(() => null),
+          geospatialService.getSatelliteDates(field.id).catch(() => [] as SatelliteDate[]),
+        ]);
+        if (cancelled) return;
+        setSpatial(profile);
+        setIntel(summary);
+        setSatelliteDates(dates);
+        const pass = pickLatestUsableSatellite(dates);
+        if (pass?.observationId) {
+          const obs = await geospatialService
+            .getSatelliteObservation(field.id, pass.observationId)
+            .catch(() => null);
+          if (!cancelled) setGreenObs(obs);
+        } else {
+          setGreenObs(null);
+        }
+        if (cancelled) return;
+        const pending =
+          profile?.processingStatus === 'pending' ||
+          profile?.processingStatus === 'processing' ||
+          summary?.processingStatus === 'pending' ||
+          summary?.processingStatus === 'processing';
+        const waiting = landMissing(profile, summary) || pending;
+        setCollecting(waiting);
+        if (waiting && !didRefresh) {
+          didRefresh = true;
+          await geospatialService.refreshIntelligence(field.id).catch(() => undefined);
+        }
+        if (waiting && polls < 8) {
+          polls += 1;
+          timer = window.setTimeout(() => {
+            void load(false);
+          }, 4000);
+        } else if (!waiting) {
+          setCollecting(false);
+        }
+      } catch {
+        if (!cancelled) setDetailsError(true);
+      } finally {
+        if (!cancelled && isFirst) setDetailsLoading(false);
       }
     };
 
-    void load();
+    void load(true);
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [field.id]);
+  }, [field.id, detailsTick]);
 
   const terrain: TerrainSummary | undefined = spatial?.terrain ?? intel?.terrain;
   const soil: SoilSummary | undefined = spatial?.soil ?? intel?.soil;
@@ -460,6 +478,27 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
 
   const elevationHero = formatM(terrain?.averageElevationM, numberLocale);
   const slopeHero = formatPct(terrain?.averageSlopePercent, numberLocale);
+  const nameMatches = confirmName.trim() === field.name.trim();
+
+  const runDelete = async () => {
+    if (!onDelete || !nameMatches) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete();
+    } catch {
+      setDeleteError(t('fields:failedDelete'));
+      setDeleting(false);
+    }
+  };
+
+  if (detailsLoading) {
+    return <FieldTabStatus kind="loading" />;
+  }
+
+  if (detailsError) {
+    return <FieldTabStatus kind="error" onRetry={() => setDetailsTick((n) => n + 1)} />;
+  }
 
   return (
     <div className="fd">
@@ -760,7 +799,7 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
               {sentinelStatus.isStale && greenDate ? (
                 <p className="fd-banner fd-banner--stale">
                   {t('fields:details.greenStale', {
-                    when: formatPassDay(greenDate, numberLocale),
+                    when: formatPassDay(greenDate, formatDate),
                     days: greenAgeDays ?? '—',
                   })}
                 </p>
@@ -777,14 +816,14 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
                     <strong>{formatNumber(greenNdmi, 2)}</strong>
                     <small>
                       {greenDate
-                        ? t('fields:details.greenPass', { when: formatPassDay(greenDate, numberLocale) })
+                        ? t('fields:details.greenPass', { when: formatPassDay(greenDate, formatDate) })
                         : null}
                     </small>
                   </div>
                 ) : (
                   <div className="fd-stat">
                     <span>{t('fields:details.lastClearPass')}</span>
-                    <strong>{greenDate ? formatPassDay(greenDate, numberLocale) : '—'}</strong>
+                    <strong>{greenDate ? formatPassDay(greenDate, formatDate) : '—'}</strong>
                     {greenAgeDays != null ? (
                       <small>{formatRelativeTime(greenDate as string)}</small>
                     ) : null}
@@ -817,7 +856,7 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
           <div className="fd-foot">
             <span>
               {greenMeta?.source || greenObs?.source || t('fields:details.kickers.sentinel')}
-              {greenDate ? ` · ${formatPassDay(greenDate, numberLocale)}` : ''}
+              {greenDate ? ` · ${formatPassDay(greenDate, formatDate)}` : ''}
             </span>
             <Link className="fd-link" to={`/fields/${field.id}?tab=map&year=${year}`}>
               {t('fields:details.openMap')}
@@ -969,11 +1008,70 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
                 {t('fields:page.archive')}
               </button>
               {onDelete ? (
-                <button type="button" className="btn btn-error" onClick={onDelete}>
-                  {t('fields:deleteField')}
-                </button>
+                !confirmOpen ? (
+                  <button
+                    type="button"
+                    className="btn btn-error"
+                    onClick={() => {
+                      setConfirmOpen(true);
+                      setConfirmName('');
+                      setDeleteError(null);
+                    }}
+                  >
+                    {t('fields:deleteField')}
+                  </button>
+                ) : null}
               ) : null}
             </div>
+            {onDelete && confirmOpen ? (
+              <div className="fd-danger-confirm" role="group" aria-label={t('fields:details.danger.confirmDelete')}>
+                <p>{t('fields:details.danger.typeNamePrompt', { name: field.name })}</p>
+                <label className="fd-danger-confirm-label" htmlFor="fd-delete-name">
+                  {t('fields:details.danger.typeNameLabel')}
+                </label>
+                <input
+                  id="fd-delete-name"
+                  type="text"
+                  className="fd-danger-confirm-input"
+                  value={confirmName}
+                  autoComplete="off"
+                  onChange={(event) => setConfirmName(event.target.value)}
+                  aria-invalid={confirmName.length > 0 && !nameMatches}
+                />
+                {confirmName.length > 0 && !nameMatches ? (
+                  <p className="fd-danger-confirm-error" role="alert">
+                    {t('fields:details.danger.typeNameMismatch')}
+                  </p>
+                ) : null}
+                {deleteError ? (
+                  <p className="fd-danger-confirm-error" role="alert">
+                    {deleteError}
+                  </p>
+                ) : null}
+                <div className="fd-danger-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={deleting}
+                    onClick={() => {
+                      setConfirmOpen(false);
+                      setConfirmName('');
+                      setDeleteError(null);
+                    }}
+                  >
+                    {t('fields:details.danger.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-error"
+                    disabled={!nameMatches || deleting}
+                    onClick={() => void runDelete()}
+                  >
+                    {t('fields:details.danger.confirmAction')}
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </section>
         ) : null}
       </div>

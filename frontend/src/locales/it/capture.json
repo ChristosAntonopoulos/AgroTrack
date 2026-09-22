@@ -5,8 +5,12 @@
   "whatToRecord": "Cosa vuoi registrare?",
   "types": {
     "observation": {
-      "title": "Osservazione",
-      "description": "Nota o foto dall’oliveto"
+      "title": "Nota",
+      "description": "Una nota di testo dall’oliveto"
+    },
+    "photo": {
+      "title": "Foto",
+      "description": "Carica una o più foto dall’oliveto"
     },
     "work": {
       "title": "Lavoro",
@@ -37,8 +41,8 @@
       "description": "Carica un file con un nome"
     }
   },
-  "fieldLabel": "Oliveto",
-  "fieldPrompt": "In quale oliveto?",
+  "fieldLabel": "Field",
+  "fieldPrompt": "Which field?",
   "dateLabel": "Quando",
   "today": "Oggi",
   "more": "Altri dettagli",
@@ -54,7 +58,11 @@
   "observation": {
     "placeholder": "Cosa hai notato?",
     "addPhoto": "Aggiungi foto",
-    "saved": "Osservazione registrata."
+    "saved": "Nota registrata."
+  },
+  "photo": {
+    "saved": "{{count}} foto caricate.",
+    "harvestHint": "Le foto vengono salvate nell’hub Foto di questo campo."
   },
   "voice": {
     "hint": "Tocca registra e parla. Il messaggio appare nella timeline.",
@@ -108,6 +116,7 @@
   "errors": {
     "fieldRequired": "Scegli un oliveto.",
     "observationEmpty": "Aggiungi una nota o una foto.",
+    "photoRequired": "Scegli almeno una foto.",
     "voiceEmpty": "Registra prima un messaggio vocale.",
     "documentNameRequired": "Inserisci un nome per il documento.",
     "documentFileRequired": "Scegli un file.",
@@ -163,7 +172,7 @@
     "linkLater": "Lo collegherò più tardi",
     "recordedAvailable": "Disponibile registrato: {{quantity}}",
     "saleExceedsHarvest": "La vendita supera i litri registrati di questa raccolta.",
-    "whichField": "In quale uliveto?",
+    "whichField": "Which field?",
     "whenDidItHappen": "Quando è successo?",
     "yesterday": "Ieri",
     "pickDate": "Scegli la data",

@@ -16,6 +16,9 @@ export const MAX_VERTEX_SPAN_METERS = 50_000;
 /** Zoom must be at least this to place corners (grove scale, not country). */
 export const MIN_DRAW_ZOOM = 14;
 
+/** Reject vertices within this distance of (0,0) — common geocode / swap failure. */
+export const NULL_ISLAND_EPSILON_DEG = 0.05;
+
 const EARTH_RADIUS_M = 6_378_137;
 
 export type BoundaryValidationCode =
@@ -24,7 +27,10 @@ export type BoundaryValidationCode =
   | 'tooSmall'
   | 'tooLarge'
   | 'excessiveSpan'
-  | 'zoomTooLow';
+  | 'zoomTooLow'
+  | 'invalidCoordinates'
+  | 'nullIsland'
+  | 'swappedLatLng';
 
 export type BoundaryValidationResult =
   | { ok: true; areaSqm: number; warnLarge?: boolean }
@@ -125,6 +131,37 @@ export const maxVertexSpanMeters = (openRing: number[][]): number => {
   return max;
 };
 
+/** Geographic sanity for GeoJSON [lng, lat] vertices. */
+export const validateRingCoordinates = (
+  openRing: number[][]
+): BoundaryValidationCode | null => {
+  let nearNullIsland = 0;
+  let suggestiveSwap = 0;
+
+  for (const pair of openRing) {
+    if (!pair || pair.length < 2) return 'invalidCoordinates';
+    const [lng, lat] = pair;
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return 'invalidCoordinates';
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      // Classic swap: "lat" stored in lng slot beyond ±90.
+      if (Math.abs(lng) <= 90 && Math.abs(lat) <= 180) return 'swappedLatLng';
+      return 'invalidCoordinates';
+    }
+    if (Math.abs(lat) < NULL_ISLAND_EPSILON_DEG && Math.abs(lng) < NULL_ISLAND_EPSILON_DEG) {
+      nearNullIsland += 1;
+    }
+    // Greece-first olive product: latitudes are ~34–42, longitudes ~19–29.
+    // If the "latitude" looks like a Greek longitude and vice versa, flag swap.
+    if (lat >= 19 && lat <= 30 && Math.abs(lng) >= 34 && Math.abs(lng) <= 43) {
+      suggestiveSwap += 1;
+    }
+  }
+
+  if (nearNullIsland === openRing.length) return 'nullIsland';
+  if (suggestiveSwap === openRing.length) return 'swappedLatLng';
+  return null;
+};
+
 export const validateBoundaryPolygon = (
   boundary: GeoJsonPolygon | undefined,
   options?: { mapZoom?: number }
@@ -136,6 +173,11 @@ export const validateBoundaryPolygon = (
   const open = boundary ? openRingFromPolygon(boundary) : null;
   if (!open || open.length < 3) {
     return { ok: false, code: 'tooFewPoints' };
+  }
+
+  const coordIssue = validateRingCoordinates(open);
+  if (coordIssue) {
+    return { ok: false, code: coordIssue };
   }
 
   if (ringSelfIntersects(open)) {

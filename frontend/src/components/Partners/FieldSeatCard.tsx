@@ -15,6 +15,7 @@ import {
 } from '../../services/fieldPeopleService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import { useDrawerPresence } from '../../hooks/useDrawerPresence';
+import { seatLifecycleLabelKey } from './inviteLifecycle';
 import '../../pages/PartnersPage.css';
 
 type Props = {
@@ -22,7 +23,7 @@ type Props = {
   person: FieldMembership;
   canManage?: boolean;
   onChanged?: () => void;
-  /** Optional pending invite share (shown after create). */
+  /** Optional pending invite share (shown after create in this session). */
   pendingInvite?: FieldInvite | null;
 };
 
@@ -45,7 +46,13 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const displayName = person.displayName || person.email || person.userId;
+  const displayName = person.displayName || person.email || person.userId || person.inviteId || '—';
+  const lifecycle = seatLifecycleLabelKey(person.status);
+  const isPending = lifecycle === 'pending';
+  const canRemove =
+    Boolean(canManage && person.role !== 'Admin' && person.userId);
+  const invite = pendingInvite;
+
   const roleChip =
     person.role === 'Partner'
       ? t('partners:connection.partnerSeat')
@@ -62,10 +69,12 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    const targetId = person.userId || person.inviteId;
+    if (!targetId) return;
     try {
       setSaving(true);
       setError(null);
-      await fieldPeopleService.updatePerson(fieldId, person.userId, {
+      await fieldPeopleService.updatePerson(fieldId, targetId, {
         modules,
         accessLevel,
       });
@@ -79,12 +88,14 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
   };
 
   const revoke = async () => {
-    if (!window.confirm(t(`partners:${copyNs}.revokeConfirm`, { name: displayName }))) return;
+    if (!person.userId) return;
+    const confirmKey = isPending
+      ? `partners:${copyNs}.cancelInviteConfirm`
+      : `partners:${copyNs}.revokeConfirm`;
+    if (!window.confirm(t(confirmKey, { name: displayName }))) return;
     await fieldPeopleService.removeMembership(fieldId, person.userId);
     onChanged?.();
   };
-
-  const invite = pendingInvite;
 
   return (
     <>
@@ -102,21 +113,25 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
           </div>
           <div className="partner-chips">
             <span className="partner-chip partner-chip-family">{roleChip}</span>
-            <span className="partner-chip">{t(`partners:family.levels.${person.accessLevel}`)}</span>
-            {person.status === 'pending' || person.status === 'invited' ? (
-              <span className="partner-chip">{t('partners:connection.invited')}</span>
+            {person.role !== 'Admin' ? (
+              <span className="partner-chip">{t(`partners:inviteLifecycle.${lifecycle}`)}</span>
             ) : null}
-            {person.modules.filter((module) => module !== 'documents').map((module) => (
-              <span key={module} className="partner-chip partner-chip-job">
-                {t(`partners:family.modules.${module}`)}
-              </span>
-            ))}
+            {person.role !== 'Admin' ? (
+              <span className="partner-chip">{t(`partners:family.levels.${person.accessLevel}`)}</span>
+            ) : null}
+            {person.modules
+              .filter((module) => module !== 'documents')
+              .map((module) => (
+                <span key={module} className="partner-chip partner-chip-job">
+                  {t(`partners:family.modules.${module}`)}
+                </span>
+              ))}
           </div>
         </div>
         <div className="partner-actions-stack">
           <PhoneActions phone={person.phone} email={person.email} />
           <div className="partner-actions">
-            {canManage && person.role !== 'Admin' ? (
+            {canManage && person.role !== 'Admin' && (person.userId || person.inviteId) ? (
               <Button variant="outline" size="sm" onClick={openEdit}>
                 {t(`partners:${copyNs}.editAccess`)}
               </Button>
@@ -126,9 +141,9 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
                 {t(`partners:${copyNs}.reshare`)}
               </Button>
             ) : null}
-            {canManage && person.role !== 'Admin' ? (
+            {canRemove ? (
               <Button variant="outline" size="sm" onClick={() => void revoke()}>
-                {t(`partners:${copyNs}.revoke`)}
+                {isPending ? t(`partners:${copyNs}.cancelInvite`) : t(`partners:${copyNs}.revoke`)}
               </Button>
             ) : null}
           </div>
@@ -146,7 +161,8 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
             <FamilyAccessFields
               modules={modules}
               accessLevel={accessLevel}
-              radioName={`field-seat-${person.userId}`}
+              role={person.role === 'Partner' ? 'Partner' : 'Family'}
+              radioName={`field-seat-${person.userId || person.inviteId}`}
               onToggleModule={(module) =>
                 setModules((prev) =>
                   prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]

@@ -18,6 +18,16 @@ export type HarvestCapabilities = {
   canPause: boolean;
   /** Chronologio harvest category / deep-links into /harvest */
   canUseChronologioHarvest: boolean;
+  /**
+   * True when the seat can see the harvest but cannot change production
+   * (view-only, help-only without produce, or harvest module without work rights).
+   */
+  isViewOnly: boolean;
+  /**
+   * Short reason shown inline when the user can view but not edit production.
+   * Null when full edit is available or harvest is not viewable.
+   */
+  editRestrictionReasonKey: 'viewOnly' | 'helpOnly' | 'noProduce' | null;
   captureKinds: HarvestCaptureKind[];
 };
 
@@ -54,17 +64,18 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
   const helpOnly = opts.accessLevel === 'help';
   const viewOnly = opts.accessLevel === 'view';
 
-  const canView = opts.hasAnyFieldAccess && harvestModule && !viewOnly;
+  // View-only seats can still open harvest; they just cannot mutate.
+  const canView = opts.hasAnyFieldAccess && harvestModule;
   // Production captures: owners always; workers with harvest module (not help/view).
   const canProduce =
-    canView && !helpOnly && (canOwn || (canWork && harvestModule) || capture.canRecordHarvest);
-  const canStart = canView && canOwn;
-  const canCompleteSeason = canOwn && canView;
-  const canReopenSeason = canOwn && canView;
-  const canPause = canOwn && canView;
-  const canCloseDay = canProduce || canOwn;
-  const canAddExpense = canView && capture.canRecordExpense;
-  const canAddNote = canView && capture.canRecordObservation;
+    canView && !viewOnly && !helpOnly && (canOwn || (canWork && harvestModule) || capture.canRecordHarvest);
+  const canStart = canView && canOwn && !viewOnly;
+  const canCompleteSeason = canOwn && canView && !viewOnly;
+  const canReopenSeason = canOwn && canView && !viewOnly;
+  const canPause = canOwn && canView && !viewOnly;
+  const canCloseDay = canProduce || (canOwn && !viewOnly);
+  const canAddExpense = canView && !viewOnly && capture.canRecordExpense;
+  const canAddNote = canView && !viewOnly && capture.canRecordObservation;
 
   const captureKinds: HarvestCaptureKind[] = [];
   if (canProduce) {
@@ -72,6 +83,14 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
   }
   if (canAddExpense) captureKinds.push('expense');
   if (canAddNote) captureKinds.push('note');
+
+  const isViewOnly = canView && !canProduce && captureKinds.length === 0;
+  let editRestrictionReasonKey: HarvestCapabilities['editRestrictionReasonKey'] = null;
+  if (canView && !canProduce) {
+    if (viewOnly) editRestrictionReasonKey = 'viewOnly';
+    else if (helpOnly) editRestrictionReasonKey = 'helpOnly';
+    else editRestrictionReasonKey = 'noProduce';
+  }
 
   return {
     canView,
@@ -88,6 +107,8 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
     canReopenSeason,
     canPause,
     canUseChronologioHarvest: canView,
+    isViewOnly,
+    editRestrictionReasonKey,
     captureKinds,
   };
 };

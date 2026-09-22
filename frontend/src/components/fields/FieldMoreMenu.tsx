@@ -9,14 +9,12 @@ type Props = {
   field: Field;
   canOwn: boolean;
   canManageAccess?: boolean;
-  onDelete?: () => void;
 };
 
 const FieldMoreMenu: React.FC<Props> = ({
   field,
   canOwn,
   canManageAccess = false,
-  onDelete,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
   const navigate = useNavigate();
@@ -43,8 +41,7 @@ const FieldMoreMenu: React.FC<Props> = ({
   const canEdit = capabilities?.canEditField ?? canOwn;
   const canManage = capabilities?.canManageAccess ?? canManageAccess;
   const canArchive = capabilities?.canArchiveField ?? false;
-  const canDelete = capabilities?.canDeleteField ?? canOwn;
-  const hasItems = canEdit || canManage || canArchive || (canDelete && onDelete);
+  const hasItems = canEdit || canManage || canArchive;
 
   if (!hasItems) return null;
 
@@ -89,18 +86,6 @@ const FieldMoreMenu: React.FC<Props> = ({
           {canArchive ? (
             <button type="button" role="menuitem" disabled title={t('fields:page.archiveUnavailable')}>
               {t('fields:page.archive')}
-            </button>
-          ) : null}
-          {canDelete && onDelete ? (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-            >
-              {t('fields:deleteField')}
             </button>
           ) : null}
         </div>

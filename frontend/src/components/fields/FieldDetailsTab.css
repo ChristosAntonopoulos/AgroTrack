@@ -432,6 +432,35 @@
   gap: 0.75rem;
 }
 
+.fd-danger-confirm {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-error, #b42318) 25%, var(--border-subtle, #e5e2dc));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fd-danger-confirm-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.fd-danger-confirm-input {
+  max-width: 22rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.fd-danger-confirm-error {
+  margin: 0;
+  color: var(--color-error, #b42318);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 900px) {
   .fd-hero,
   .fd-grid,

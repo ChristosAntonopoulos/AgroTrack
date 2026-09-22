@@ -49,10 +49,23 @@ const MonthlyFinancialTrend: React.FC<Props> = ({
   const gap = 14;
   const chartWidth = 12 * (barWidth * 2 + gap);
   const height = 240;
+  const totalIncome = recorded.reduce((sum, month) => sum + (month.income || 0), 0);
+  const totalExpenses = recorded.reduce((sum, month) => sum + (month.expenses || 0), 0);
+  const peak = recorded.reduce((best, month) => {
+    const activity = (month.income || 0) + (month.expenses || 0);
+    const bestActivity = (best.income || 0) + (best.expenses || 0);
+    return activity > bestActivity ? month : best;
+  }, recorded[0]);
+  const trendSummary = t('trendSummary', {
+    income: formatOfficialAmount(totalIncome, currency, locale, '—'),
+    expenses: formatOfficialAmount(totalExpenses, currency, locale, '—'),
+    peakMonth: monthNames[peak.month - 1],
+  });
 
   return (
     <section className="money-card">
       <h2>{t('trendTitle')}</h2>
+      <p className="money-summary-note">{trendSummary}</p>
       <p className="money-legend">
         <span>
           <i className="is-in" />
@@ -64,7 +77,7 @@ const MonthlyFinancialTrend: React.FC<Props> = ({
         </span>
       </p>
       <div className="money-trend">
-        <svg viewBox={`0 0 ${chartWidth} ${height + 28}`} role="img" aria-label={t('monthlyAria')}>
+        <svg viewBox={`0 0 ${chartWidth} ${height + 28}`} role="img" aria-label={trendSummary}>
           {months.map((month, index) => {
             const x = index * (barWidth * 2 + gap);
             const inH = ((month.income || 0) / max) * height;
@@ -113,6 +126,7 @@ const MonthlyFinancialTrend: React.FC<Props> = ({
             key={month.month}
             type="button"
             className={selectedMonth === month.month ? 'is-active' : ''}
+            aria-pressed={selectedMonth === month.month}
             onClick={() => onSelectMonth(selectedMonth === month.month ? null : month.month)}
           >
             <strong>{monthNames[month.month - 1]}</strong>

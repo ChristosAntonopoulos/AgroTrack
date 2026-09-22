@@ -92,9 +92,11 @@
     "emptyHint": "New announcements and questionnaires will appear here.",
     "markAllRead": "Mark all as read",
     "clearAll": "Clear all",
+    "clearAllConfirm": "Remove all {{count}} notifications from this list? This cannot be undone.",
     "tapToRespond": "Tap to respond",
     "badge": {
-      "inbox": "Inbox"
+      "update": "Update",
+      "inbox": "Update"
     }
   },
   "inApp": {

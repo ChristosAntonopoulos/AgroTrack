@@ -2,9 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  PenLine,
-  CalendarClock,
-  Share2,
   ClipboardList,
   Camera,
   CloudSun,
@@ -20,9 +17,11 @@ import {
   X,
   Menu,
   AlertCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleProvider';
 import { SupportedLocale } from '../i18n/config';
+import { showDemoLogin } from '../config/apiConfig';
 import BrandLogo from '../components/Common/BrandLogo';
 import ThemeModeToggle from '../components/Common/ThemeModeToggle';
 import {
@@ -54,12 +53,6 @@ const SHOTS_EN: Record<ShotKey, string> = {
 const shotsFor = (locale: SupportedLocale): Record<ShotKey, string> =>
   locale === 'el' ? SHOTS_EL : SHOTS_EN;
 
-const PROMISES = [
-  { key: 'record', icon: PenLine },
-  { key: 'data', icon: CalendarClock },
-  { key: 'pass', icon: Share2 },
-] as const;
-
 const CHRONO_PILLARS = [
   { key: 'tasks', icon: ClipboardList },
   { key: 'notes', icon: Camera },
@@ -79,9 +72,11 @@ const LandingPage: React.FC = () => {
   const shots = shotsFor(locale);
   const [scrolled, setScrolled] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
+  const [apkOpen, setApkOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoForm, setDemoForm] = useState({ name: '', email: '', org: '', message: '' });
+  const canTryDemo = showDemoLogin();
 
   const lines = useCallback(
     (key: string) => {
@@ -243,10 +238,10 @@ const LandingPage: React.FC = () => {
       </header>
 
       <main id="top">
-        {/* 1. HERO — mood: deep olive */}
+        {/* Hero — product proof in the first viewport */}
         <section className="landing-hero landing-mood-hero">
           <div className="landing-mood-layer" aria-hidden data-mood="hero" />
-          <div className="landing-container landing-hero-grid landing-hero-grid--solo">
+          <div className="landing-container landing-hero-grid">
             <div className="landing-hero-copy">
               <p className="landing-eyebrow">{t('hero.eyebrow')}</p>
               <h1>{t('hero.title')}</h1>
@@ -261,36 +256,31 @@ const LandingPage: React.FC = () => {
                 <Link to="/register" className="landing-btn landing-btn--hero-primary">
                   {t('hero.ctaPrimary')}
                 </Link>
-                <button
-                  type="button"
-                  className="landing-btn landing-btn--hero-secondary"
-                  onClick={() => setDemoOpen(true)}
-                >
-                  {t('cta.secondary')}
-                </button>
+                {canTryDemo ? (
+                  <Link to="/login" className="landing-btn landing-btn--hero-secondary">
+                    {t('hero.ctaPreview')}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="landing-btn landing-btn--hero-secondary"
+                    onClick={() => scrollTo('chronologio')}
+                  >
+                    {t('hero.ctaSecondary')}
+                  </button>
+                )}
               </div>
               <p className="landing-trust">{t('hero.trust')}</p>
+            </div>
+            <div className="landing-hero-visual">
+              <figure className="landing-device landing-device--phone landing-device--hero">
+                <img src={shots.phoneField} alt={t('chronologio.shotAlt')} />
+              </figure>
             </div>
           </div>
         </section>
 
-        {/* 2. Three practical cards */}
-        <section id="features" className="landing-section landing-mood-grove">
-          <div className="landing-mood-layer" aria-hidden data-mood="grove" />
-          <div className="landing-container landing-shift-grid">
-            {PROMISES.map(({ key, icon: Icon }) => (
-              <article key={key} className="landing-shift-card">
-                <div className="landing-card-icon">
-                  <Icon size={22} strokeWidth={1.75} />
-                </div>
-                <h3>{t(`promises.${key}Title`)}</h3>
-                <p>{t(`promises.${key}Text`)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Chronologio product */}
+        {/* Chronologio — early product proof */}
         <section id="chronologio" className="landing-section landing-section--clean landing-mood-clean">
           <div className="landing-container landing-chrono">
             <div className="landing-section-head landing-section-head--left">
@@ -310,18 +300,47 @@ const LandingPage: React.FC = () => {
                 ))}
               </div>
               <figure className="landing-device landing-device--phone">
-                <img src={shots.phoneField} alt={t('chronologio.shotAlt')} />
+                <img src={shots.phoneTask} alt={t('simpleUse.shotAlt')} />
               </figure>
             </div>
             <p className="landing-chrono-foot">{t('chronologio.foot')}</p>
-            <Link to="/register" className="landing-btn landing-btn--primary">
-              {t('chronologio.cta')}
-            </Link>
+            <div className="landing-hero-ctas">
+              <Link to="/register" className="landing-btn landing-btn--primary">
+                {t('chronologio.cta')}
+              </Link>
+              {canTryDemo ? (
+                <Link to="/login" className="landing-btn landing-btn--outline">
+                  {t('chronologio.ctaPreview')}
+                </Link>
+              ) : null}
+            </div>
           </div>
         </section>
 
-        {/* One grove / one memory */}
-        <section className="landing-section landing-section--cream landing-mood-clean">
+        {/* Roles — relevance early */}
+        <section id="partners" className="landing-section landing-mood-share">
+          <div className="landing-mood-layer" aria-hidden data-mood="share" />
+          <div className="landing-container landing-share-body">
+            <div className="landing-section-head landing-section-head--left">
+              <h2>{t('sharing.title')}</h2>
+              <p>{t('sharing.text')}</p>
+            </div>
+            <div className="landing-shift-grid">
+              {SHARE_ROLES.map(({ key, icon: Icon }) => (
+                <article key={key} className="landing-shift-card">
+                  <div className="landing-card-icon">
+                    <Icon size={22} strokeWidth={1.75} />
+                  </div>
+                  <h3>{t(`sharing.${key}Title`)}</h3>
+                  <p>{t(`sharing.${key}Text`)}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Proof + start — combined, shorter */}
+        <section id="how-it-works" className="landing-section landing-section--cream landing-mood-clean">
           <div className="landing-container">
             <div className="landing-section-head">
               <h2>{t('beforeAfter.title')}</h2>
@@ -344,56 +363,28 @@ const LandingPage: React.FC = () => {
                 </ul>
               </article>
             </div>
-            <p className="landing-section-close">{t('beforeAfter.close')}</p>
-          </div>
-        </section>
-
-        {/* 8. Transfer / heritage — sharing */}
-        <section id="partners" className="landing-section landing-mood-share">
-          <div className="landing-mood-layer" aria-hidden data-mood="share" />
-          <div className="landing-container landing-share-body">
-            <div className="landing-section-head landing-section-head--left">
-              <h2>{t('sharing.title')}</h2>
-              <p>{t('sharing.text')}</p>
+            <div className="landing-section-head landing-section-head--steps">
+              <h2>{t('steps.title')}</h2>
+              <p>{t('steps.lead')}</p>
             </div>
-            <div className="landing-shift-grid">
-              {SHARE_ROLES.map(({ key, icon: Icon }) => (
-                <article key={key} className="landing-shift-card">
-                  <div className="landing-card-icon">
-                    <Icon size={22} strokeWidth={1.75} />
-                  </div>
-                  <h3>{t(`sharing.${key}Title`)}</h3>
-                  <p>{t(`sharing.${key}Text`)}</p>
+            <div className="landing-steps">
+              {[1, 2, 3].map((n) => (
+                <article key={n} className="landing-step">
+                  <span className="landing-step-num">{n}</span>
+                  <h3>{t(`steps.step${n}Title`)}</h3>
+                  <p>{t(`steps.step${n}Text`)}</p>
                 </article>
               ))}
             </div>
-            <p className="landing-section-close">{t('sharing.close')}</p>
+            <div className="landing-section-cta">
+              <Link to="/register" className="landing-btn landing-btn--primary">
+                {t('steps.cta')}
+              </Link>
+            </div>
           </div>
         </section>
 
-        {/* Onboarding */}
-        <section id="how-it-works" className="landing-section landing-section--cream landing-mood-clean">
-          <div className="landing-container landing-section-head">
-            <h2>{t('steps.title')}</h2>
-            <p>{t('steps.lead')}</p>
-          </div>
-          <div className="landing-container landing-steps">
-            {[1, 2, 3].map((n) => (
-              <article key={n} className="landing-step">
-                <span className="landing-step-num">{n}</span>
-                <h3>{t(`steps.step${n}Title`)}</h3>
-                <p>{t(`steps.step${n}Text`)}</p>
-              </article>
-            ))}
-          </div>
-          <div className="landing-container landing-section-cta">
-            <Link to="/register" className="landing-btn landing-btn--primary">
-              {t('steps.cta')}
-            </Link>
-          </div>
-        </section>
-
-        {/* Free plan */}
+        {/* Free plan — web first; APK secondary */}
         <section id="pricing" className="landing-section landing-section--clean landing-mood-clean">
           <div className="landing-container landing-alpha-grid">
             <div className="landing-section-head">
@@ -423,49 +414,63 @@ const LandingPage: React.FC = () => {
                 {t('alpha.webCta')}
               </Link>
             </article>
-            <article className="landing-apk-card landing-apk-card--sideload">
-              <h3>{t('alpha.androidTestTitle')}</h3>
-              <p className="landing-apk-hint">{t('alpha.downloadHint')}</p>
-              <p className="landing-apk-meta">
-                {t('alpha.version')}: {t('alpha.versionValue')} · {t('alpha.released')}: {t('alpha.releasedValue')} · {t('alpha.size')}: {t('alpha.sizeValue')}
-              </p>
-              <a
-                href={ALPHA_APK_URL}
-                download={ALPHA_APK_FILENAME}
-                className="landing-btn landing-btn--outline landing-btn--block"
-              >
-                <Download size={18} aria-hidden />
-                {t('alpha.download')}
-              </a>
-              <p className="landing-apk-hint">{t('alpha.downloadHint')}</p>
-              <button
-                type="button"
-                className="landing-apk-guide-toggle"
-                onClick={() => setInstallOpen((v) => !v)}
-                aria-expanded={installOpen}
-              >
-                {t('alpha.installGuide')}
-                <ChevronDown size={16} className={installOpen ? 'open' : ''} aria-hidden />
-              </button>
-              {installOpen ? (
-                <div className="landing-apk-guide">
-                  <h4>{t('alpha.installTitle')}</h4>
-                  <ol>
-                    {lines('alpha.installSteps').map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-              ) : null}
-              <p className="landing-apk-warning">
-                <AlertCircle size={14} aria-hidden />
-                {t('alpha.safety')}
-              </p>
-            </article>
+
+            <details
+              className="landing-apk-secondary"
+              open={apkOpen}
+              onToggle={(e) => setApkOpen((e.target as HTMLDetailsElement).open)}
+            >
+              <summary className="landing-apk-secondary-summary">
+                <Download size={16} aria-hidden />
+                {t('alpha.androidTestTitle')}
+                <ChevronDown size={16} className={apkOpen ? 'open' : ''} aria-hidden />
+              </summary>
+              <article className="landing-apk-card landing-apk-card--sideload">
+                <p className="landing-apk-hint">{t('alpha.downloadHint')}</p>
+                <p className="landing-apk-safety-why">
+                  <ShieldCheck size={16} aria-hidden />
+                  {t('alpha.safetyWhy')}
+                </p>
+                <p className="landing-apk-meta">
+                  {t('alpha.version')}: {t('alpha.versionValue')} · {t('alpha.released')}:{' '}
+                  {t('alpha.releasedValue')} · {t('alpha.size')}: {t('alpha.sizeValue')}
+                </p>
+                <a
+                  href={ALPHA_APK_URL}
+                  download={ALPHA_APK_FILENAME}
+                  className="landing-btn landing-btn--outline landing-btn--block"
+                >
+                  <Download size={18} aria-hidden />
+                  {t('alpha.download')}
+                </a>
+                <button
+                  type="button"
+                  className="landing-apk-guide-toggle"
+                  onClick={() => setInstallOpen((v) => !v)}
+                  aria-expanded={installOpen}
+                >
+                  {t('alpha.installGuide')}
+                  <ChevronDown size={16} className={installOpen ? 'open' : ''} aria-hidden />
+                </button>
+                {installOpen ? (
+                  <div className="landing-apk-guide">
+                    <h4>{t('alpha.installTitle')}</h4>
+                    <ol>
+                      {lines('alpha.installSteps').map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+                <p className="landing-apk-warning">
+                  <AlertCircle size={14} aria-hidden />
+                  {t('alpha.safety')}
+                </p>
+              </article>
+            </details>
           </div>
         </section>
 
-        {/* 14. Final CTA — mood: earth */}
         <section className="landing-cta landing-mood-earth">
           <div className="landing-mood-layer" aria-hidden data-mood="cta" />
           <div className="landing-container landing-cta-inner">

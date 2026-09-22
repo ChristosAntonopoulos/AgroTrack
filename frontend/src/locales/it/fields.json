@@ -75,7 +75,7 @@
       "plannedRemaining": "Lavori previsti rimasti",
       "harvest": "Raccolta",
       "oil": "Litri di olio",
-      "perHectare": "€ / ettaro",
+      "perHectare": "€ / stremma",
       "perLitre": "€ / litro",
       "noHarvest": "Non c’è raccolta per il {{year}}.",
       "noMoney": "Non ci sono registrazioni economiche per il {{year}}."
@@ -346,7 +346,7 @@
     "newTitle": "New Field",
     "editTitle": "Edit Field",
     "name": "Field Name",
-    "area": "Area (hectares)",
+    "area": "Area (stremmi)",
     "location": "Location",
     "save": "Save Field"
   },
@@ -684,7 +684,8 @@
       "openDay": "Apri questo giorno",
       "reopen": "Riapri la giornata",
       "lockedTitle": "Giornata chiusa",
-      "lockedBody": "Riapri questa giornata per aggiungere o modificare le registrazioni."
+      "lockedBody": "Aggiungere e modificare le registrazioni è in pausa. Puoi riaprire la giornata in qualsiasi momento — la chiusura è reversibile.",
+      "closeExplain": "La chiusura mette in pausa nuove registrazioni e modifiche per questo giorno. Puoi riaprirlo dopo. Denaro e note Chronologio collegati restano modificabili nelle loro schermate."
     },
     "needGrove": "Scegli almeno un campo, oppure aggiungili dopo.",
     "noFields": "Aggiungi prima un campo.",
@@ -1014,9 +1015,10 @@
       "kicker": "Questo giorno",
       "title": "Cosa hai registrato",
       "closedHint": "Riapri la giornata per modificare o aggiungere registrazioni.",
-      "empty": "Nessuna registrazione per questo giorno. Aggiungi sacchi, chili al frantoio, olio o persone.",
+      "empty": "Nessuna registrazione per questo giorno. Usa «Aggiungi a questo giorno» per sacchi, chili al frantoio, olio o persone.",
       "edit": "Modifica",
       "remove": "Elimina",
+      "rowMenu": "Azioni registrazione",
       "removeConfirm": "Eliminare questa registrazione dal giorno?",
       "editTitle": "Modifica registrazione",
       "editSacks": "Modifica sacchi",
@@ -1029,7 +1031,15 @@
       "fromMills": "da {{count}} pesate",
       "fromSacksShort": "{{count}} sacchi collegati",
       "kgPerSackShort": "≈ {{kg}} kg/sacco",
-      "acidityShort": "Acidità {{value}}"
+      "acidityShort": "Acidità {{value}}",
+      "sourceSynced": "Registrazione raccolta sincronizzata",
+      "sourceChronologio": "In Chronologio",
+      "linkedExpense": "Spesa collegata"
+    },
+    "permissions": {
+      "viewOnly": "Puoi vedere questa raccolta. La modifica è riservata al proprietario del campo.",
+      "helpOnly": "Puoi vedere questa raccolta. La registrazione della produzione è riservata a lavoratori e proprietari.",
+      "noProduce": "Puoi vedere questa raccolta. La modifica è riservata al proprietario del campo."
     }
   }
 }

@@ -25,6 +25,7 @@ const ChronologioYearsView: React.FC<Props> = ({ summaries, numberLocale, allFie
 
   return (
     <div className="chrono-years chrono-years-feed">
+      <p className="chrono-control-hint chrono-years-axis-hint">{t('dateControl.agriYearOpens')}</p>
       {years.map((row) => {
         const isLive = row.periodYear === currentAgri;
         const state = agriculturalYearState(row.periodYear, row);

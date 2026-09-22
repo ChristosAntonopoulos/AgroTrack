@@ -70,7 +70,7 @@ describe('harvest money capture', () => {
     ).toBe(false);
   });
 
-  it('opens observation capture for a harvest note', () => {
+  it('opens observation capture for a harvest note with session context', () => {
     let campaign = emptyCampaign(2026);
     campaign = { ...campaign, fieldOrder: ['north'] };
     expect(
@@ -102,5 +102,29 @@ describe('harvest money capture', () => {
         sourceId: 'note-1',
       })
     ).toBe(false);
+  });
+
+  it('prefills expense harvestId from the latest mill record', () => {
+    let campaign = emptyCampaign(2026);
+    campaign = { ...campaign, fieldOrder: ['north', 'south'] };
+    campaign = addMillWeight(campaign, {
+      id: 'm1',
+      date: '2026-11-12',
+      kg: 100,
+      fieldIds: ['north'],
+      sackIds: [],
+      harvestRecordId: 'hr-latest',
+      createdAt: '2026-11-12T18:00:00.000Z',
+    });
+    const ctx = harvestExpenseCaptureContext({
+      campaign,
+      fieldId: 'south',
+      today: '2026-11-13',
+      description: 'Harvest expenses',
+    });
+    expect(ctx.fieldId).toBe('south');
+    expect(ctx.harvestId).toBe('hr-latest');
+    expect(ctx.occurredAt).toBe('2026-11-13T12:00:00');
+    expect(ctx.harvestCampaignLink).toBe(true);
   });
 });

@@ -10,6 +10,10 @@
     "appearance": "Appearance",
     "locale": "Language & region",
     "startup": "Startup",
+    "notifications": "Notifications",
+    "privacy": "Privacy & data",
+    "sessions": "Signed-in devices",
+    "danger": "Danger zone",
     "technical": "Technical details",
     "demo": "Demo"
   },
@@ -17,7 +21,16 @@
     "editProfile": "Edit profile",
     "myServices": "My services",
     "userId": "User ID",
-    "appVersion": "App version"
+    "appVersion": "App version",
+    "profileTitle": "Profile",
+    "profileUnavailable": "Name editing is not available in this build. Your current profile is shown below.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "emailTitle": "Email",
+    "emailChangeUnavailable": "Changing or verifying email is not available yet.",
+    "passwordTitle": "Password",
+    "passwordHelp": "There is no in-app password change yet. Use the reset flow to set a new password.",
+    "passwordResetLink": "Reset password by email"
   },
   "appearance": {
     "theme": "Theme",
@@ -82,7 +95,7 @@
       "dashboard": "Dashboard",
       "fields": "Fields",
       "tasks": "Tasks",
-      "calendar": "Calendar",
+      "calendar": "Chronologio",
       "today": "Today",
       "chronologio": "Chronologio"
     },
@@ -97,11 +110,42 @@
   },
   "notifications": {
     "title": "Notifications",
+    "deviceOnlyHint": "These choices are saved on this device. They control what you want to see here; they do not change email from the server.",
     "email": "Email Notifications",
     "taskAssignment": "Task Assignment Notifications",
     "deadline": "Deadline Reminders",
     "lifecycle": "Lifecycle Progression Alerts",
-    "report": "Report Generation Notifications"
+    "report": "Report Generation Notifications",
+    "prefs": {
+      "taskAssignment": "Task assignment",
+      "approval": "Approvals",
+      "harvest": "Harvest",
+      "financial": "Financial",
+      "satelliteWeather": "Satellite & weather",
+      "marketingSystem": "Marketing & system messages"
+    },
+    "prefsHints": {
+      "taskAssignment": "When someone assigns you field work.",
+      "approval": "When a task needs or receives approval.",
+      "harvest": "Harvest campaign and recording updates.",
+      "financial": "Money and cost-related notices.",
+      "satelliteWeather": "Field weather and satellite alerts.",
+      "marketingSystem": "Product announcements and system messages."
+    }
+  },
+  "privacy": {
+    "exportUnavailable": "Your account holds profile details, fields, tasks, photos, money records, and messages. A downloadable data export is not available yet."
+  },
+  "sessions": {
+    "thisDevice": "This device",
+    "thisDeviceHint": "OLEACHRON only tracks the session on this browser. Sign out to end it."
+  },
+  "danger": {
+    "deleteUnavailable": "Account deletion is not available in this build."
+  },
+  "technical": {
+    "purpose": "Share the app version with support if something goes wrong.",
+    "supportHint": "Mention this version when you contact OLEACHRON support."
   },
   "demo": {
     "title": "Demo",

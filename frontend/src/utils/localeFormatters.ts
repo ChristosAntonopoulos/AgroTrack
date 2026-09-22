@@ -74,19 +74,11 @@ export const formatDate = (
   );
 };
 
-/** Compact card label: "16 Σεπ" / "16 Sep". */
+/** Photo hub card date — honors the workspace date-format preference. */
 export const formatPhotoCardDate = (
   date: Date | string | number,
-  locale: SupportedLocale | string
-): string => {
-  const d = date instanceof Date ? date : new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(localeTagFor(locale), {
-    timeZone: ATHENS_TIME_ZONE,
-    day: 'numeric',
-    month: 'short',
-  });
-};
+  options: FormatOptions
+): string => formatDate(date, options);
 
 export const formatDateTime = (
   date: Date | string | number,

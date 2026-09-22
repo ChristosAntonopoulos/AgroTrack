@@ -9,8 +9,6 @@ type Props = {
   progress?: { done: number; total: number } | null;
   className?: string;
   id?: string;
-  /** When false, hide drop chrome (pointer-coarse / empty CTA uses header only). */
-  showDropChrome?: boolean;
 };
 
 const takeFiles = (list: FileList | null, onFiles: (files: File[]) => void) => {
@@ -19,17 +17,19 @@ const takeFiles = (list: FileList | null, onFiles: (files: File[]) => void) => {
   if (images.length) onFiles(images);
 };
 
+/**
+ * Compact gallery picker used outside the Photos hub (e.g. field strips).
+ * The hub itself uses a single header CTA + page-level drop target.
+ */
 const PhotoUploadDropzone: React.FC<Props> = ({
   disabled,
   onFiles,
   progress,
   className = '',
   id,
-  showDropChrome = true,
 }) => {
   const { t } = useTranslation('photos');
   const galleryRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
 
   const openPicker = () => {
@@ -40,53 +40,6 @@ const PhotoUploadDropzone: React.FC<Props> = ({
     progress && progress.total > 0
       ? Math.min(100, Math.round((progress.done / progress.total) * 100))
       : null;
-
-  if (!showDropChrome) {
-    return (
-      <div className={`photo-upload-compact ${className}`.trim()}>
-        <input
-          ref={cameraRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={disabled}
-          className="photo-hidden-input"
-          onChange={(e) => {
-            takeFiles(e.target.files, onFiles);
-            e.target.value = '';
-          }}
-        />
-        <input
-          ref={galleryRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          multiple
-          disabled={disabled}
-          className="photo-hidden-input"
-          onChange={(e) => {
-            takeFiles(e.target.files, onFiles);
-            e.target.value = '';
-          }}
-        />
-        <button
-          type="button"
-          className="photo-hub-cta photo-upload-compact-camera"
-          disabled={disabled}
-          onClick={() => cameraRef.current?.click()}
-        >
-          {t('takePhoto')}
-        </button>
-        <button
-          type="button"
-          className="photo-hub-cta is-secondary"
-          disabled={disabled}
-          onClick={openPicker}
-        >
-          {t('choosePhotos')}
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div

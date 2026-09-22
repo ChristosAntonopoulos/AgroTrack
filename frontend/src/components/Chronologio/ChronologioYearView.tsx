@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type {
@@ -22,6 +22,12 @@ import {
   seasonStageIndex,
   type SeasonStage,
 } from '../../chronologio/yearPresentation';
+import {
+  chronologioScrollKey,
+  readChronologioJournalScroll,
+  saveChronologioJournalScroll,
+} from '../../chronologio/chronologioViewState';
+import type { ChronologioZoom } from '../../chronologio/livingTypes';
 import type { SupportedLocale } from '../../i18n/config';
 import ChronologioSeasonTrack from './ChronologioSeasonTrack';
 import ChronologioMonthSection from './ChronologioMonthSection';
@@ -42,6 +48,8 @@ type Props = {
   /** All in-scope grove names (for missing-weather callouts). */
   groveNames?: { id: string; name: string }[];
   selectedEntryId?: string | null;
+  focusDate?: string;
+  zoom?: ChronologioZoom;
   onPeekMonth: (year: number, month: number) => void;
   onOpenMonthDays: (year: number, month: number) => void;
   onPeekMonthWeather: (year: number, month: number) => void;
@@ -90,6 +98,8 @@ const ChronologioYearView: React.FC<Props> = ({
   showField = false,
   groveNames = [],
   selectedEntryId,
+  focusDate = '',
+  zoom = 'year',
   onPeekMonth,
   onOpenMonthDays,
   onPeekMonthWeather,
@@ -98,6 +108,8 @@ const ChronologioYearView: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation('chronologio');
   const parentRef = useRef<HTMLDivElement>(null);
+  const restoredScrollKey = useRef<string | null>(null);
+  const scrollStorageKey = chronologioScrollKey({ zoom, focusDate, fieldId });
   const now = new Date();
   const nowMonth = now.getMonth() + 1;
   const nowYear = now.getFullYear();
@@ -167,12 +179,37 @@ const ChronologioYearView: React.FC<Props> = ({
   const range = axis === 'agricultural' ? agriculturalYearRangeLabel(periodYear, i18n.language) : '';
   const virtualItems = virtualizer.getVirtualItems();
 
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return undefined;
+
+    if (restoredScrollKey.current !== scrollStorageKey && rows.length > 0) {
+      const saved = readChronologioJournalScroll(scrollStorageKey);
+      if (saved != null) {
+        requestAnimationFrame(() => {
+          el.scrollTop = saved;
+        });
+      }
+      restoredScrollKey.current = scrollStorageKey;
+    }
+
+    const onScroll = () => saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, [rows.length, scrollStorageKey]);
+
   return (
     <div className="chrono-year-view chrono-year-feed chrono-journal-view chrono-day-timeline">
       <header className="chrono-year-hero">
         <p className="chrono-year-hero-kicker">
           {live ? t('yearView.liveYearSoFar') : t('yearView.closedYear')}
         </p>
+        {axis === 'agricultural' ? (
+          <p className="chrono-control-hint">{t('dateControl.agriYearOpens')}</p>
+        ) : null}
         <h2 className="chrono-year-view-title">{periodYear}</h2>
         {range ? <p className="chrono-year-range">{range}</p> : null}
         {live ? (

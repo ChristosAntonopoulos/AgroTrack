@@ -17,6 +17,8 @@ export const useLocaleFormatters = () => {
         formatters.formatDateTime(date, { locale, dateFormat }),
       formatTime: (date: Date | string | number) =>
         formatters.formatTime(date, { locale, dateFormat }),
+      formatPhotoCardDate: (date: Date | string | number) =>
+        formatters.formatPhotoCardDate(date, { locale, dateFormat }),
       formatNumber: (value: number, maximumFractionDigits?: number) =>
         formatters.formatNumber(value, { locale, maximumFractionDigits }),
       formatRelativeTime: (date: Date | string | number) =>

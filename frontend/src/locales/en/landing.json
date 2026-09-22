@@ -21,7 +21,8 @@
       "Pass the knowledge on."
     ],
     "ctaPrimary": "Start free",
-    "ctaSecondary": "See how it works",
+    "ctaSecondary": "See the Chronologio",
+    "ctaPreview": "Try an interactive demo",
     "trust": "1 field free · No complicated setup · No card required"
   },
   "promises": {
@@ -69,7 +70,8 @@
     "harvestTitle": "Money",
     "harvestText": "What it cost, and what it returned.",
     "foot": "And everything connects to the same field.",
-    "cta": "Start free",
+    "cta": "Create an account",
+    "ctaPreview": "Open interactive preview",
     "shotAlt": "Grove Chronologio on a phone"
   },
   "knowledge": {
@@ -180,10 +182,11 @@
       "Weather history"
     ],
     "trust": "No card · Your data stays yours",
-    "download": "Android app in trial version",
-    "downloadHint": "Optional phone trial — not a Play Store substitute.",
+    "download": "Download Android trial APK",
+    "downloadHint": "Optional sideload for early testers. Most people should start on the web.",
+    "safetyWhy": "This build is signed and hosted only on oleachron.com. Android will warn about unknown sources — that is normal for apps not yet on Play Store, not a sign of malware.",
     "webCta": "Create your first grove",
-    "androidTestTitle": "Android testing",
+    "androidTestTitle": "Android trial (advanced)",
     "released": "Released",
     "releasedValue": "2026-09",
     "size": "Size",
@@ -203,7 +206,7 @@
       "Open Oleachron.",
       "Create an account or sign in."
     ],
-    "safety": "Install only from the official Oleachron site. Trial build."
+    "safety": "Install only from oleachron.com. Never from forwarded files or third-party sites."
   },
   "demo": {
     "title": "See an example",
@@ -226,7 +229,7 @@
     "description": "Your grove has knowledge. Oleachron makes sure it isn’t lost.",
     "product": "Product",
     "contact": "Contact",
-    "contactEmail": "hello@oleachron.app",
+    "contactEmail": "hello@oleachron.com",
     "privacy": "Privacy",
     "terms": "Terms",
     "version": "Alpha"

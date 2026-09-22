@@ -21,6 +21,7 @@ interface ButtonProps {
   /** Associates a submit button outside a form with that form's id. */
   form?: string;
   'aria-describedby'?: string;
+  'aria-pressed'?: boolean | 'true' | 'false';
 }
 
 const Button: React.FC<ButtonProps> = ({

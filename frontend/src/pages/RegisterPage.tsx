@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
+import { fieldPeopleService } from '../services/fieldPeopleService';
+import { invalidateAccessContext } from '../hooks/useAccessContext';
 import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolvePostAuthPath } from '../utils/firstGroveDestination';
@@ -13,7 +15,16 @@ import './RegisterPage.css';
 
 const MIN_PASSWORD_LENGTH = 8;
 
-type FieldKey = 'displayName' | 'email' | 'password' | 'confirmPassword' | 'inviteCode';
+type FieldKey = 'firstName' | 'lastName' | 'email' | 'password' | 'confirmPassword' | 'inviteCode';
+
+const FIELD_ORDER: FieldKey[] = [
+  'firstName',
+  'lastName',
+  'email',
+  'password',
+  'confirmPassword',
+  'inviteCode',
+];
 
 const safeNextPath = (value: string | null) =>
   value && value.startsWith('/') && !value.startsWith('//') ? value : null;
@@ -25,13 +36,16 @@ const RegisterPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const inviteFromQuery = searchParams.get('code') || '';
   const redirectTo = safeNextPath(searchParams.get('redirect'));
-  const [displayName, setDisplayName] = useState('');
+  const hasInviteIntent = Boolean(inviteFromQuery || (redirectTo && redirectTo.startsWith('/invite/')));
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState(inviteFromQuery);
-  const [showInvite, setShowInvite] = useState(Boolean(inviteFromQuery));
-  const [showEmailForm, setShowEmailForm] = useState(Boolean(inviteFromQuery || redirectTo));
+  const [showInvite, setShowInvite] = useState(hasInviteIntent);
+  const [showEmailForm, setShowEmailForm] = useState(hasInviteIntent || Boolean(redirectTo));
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
@@ -39,7 +53,10 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
-  const nameRef = useRef<HTMLInputElement>(null);
+
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const confirmRef = useRef<HTMLInputElement>(null);
@@ -49,22 +66,25 @@ const RegisterPage: React.FC = () => {
     if (inviteFromQuery) setInviteCode(inviteFromQuery);
   }, [inviteFromQuery]);
 
-  const focusFirst = (errors: Partial<Record<FieldKey, string>>) => {
-    const order: FieldKey[] = ['displayName', 'email', 'password', 'confirmPassword', 'inviteCode'];
-    const first = order.find((key) => errors[key]);
-    const map: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = {
-      displayName: nameRef,
-      email: emailRef,
-      password: passwordRef,
-      confirmPassword: confirmRef,
-      inviteCode: inviteRef,
-    };
-    if (first) map[first].current?.focus();
+  const fieldRefs: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = {
+    firstName: firstNameRef,
+    lastName: lastNameRef,
+    email: emailRef,
+    password: passwordRef,
+    confirmPassword: confirmRef,
+    inviteCode: inviteRef,
+  };
+
+  const focusErrors = (errors: Partial<Record<FieldKey, string>>) => {
+    void errors;
+    requestAnimationFrame(() => {
+      summaryRef.current?.focus();
+    });
   };
 
   const validate = (): Partial<Record<FieldKey, string>> => {
     const next: Partial<Record<FieldKey, string>> = {};
-    if (!displayName.trim()) next.displayName = t('auth:register.nameRequired');
+    if (!firstName.trim()) next.firstName = t('auth:register.firstNameRequired');
     if (!email.trim()) next.email = t('auth:register.emailRequired');
     else if (!isValidEmail(email)) next.email = t('auth:register.emailInvalid');
     if (!password) next.password = t('auth:register.passwordRequired');
@@ -74,17 +94,35 @@ const RegisterPage: React.FC = () => {
     return next;
   };
 
-  const navigateAfterRegister = async (userRole: string, joinedInvite: boolean) => {
+  /** Invite joiners go to the shared grove; new owners start grove setup. */
+  const navigateAfterRegister = async (userRole: string, joinedInvite: boolean, code: string) => {
+    invalidateAccessContext();
+
     if (joinedInvite) {
-      const next = await resolvePostAuthPath((userRole || 'FieldOwner') as AppRole);
-      navigate(next);
+      try {
+        const invite = await fieldPeopleService.getInvite(code);
+        if (invite?.fieldId) {
+          navigate(`/chronologio?fieldId=${encodeURIComponent(invite.fieldId)}`);
+          return;
+        }
+      } catch {
+        /* fall through to chronologio home */
+      }
+      navigate('/chronologio');
       return;
     }
+
     if (redirectTo) {
       navigate(redirectTo);
       return;
     }
-    const next = await resolvePostAuthPath((userRole || 'FieldOwner') as AppRole);
+
+    const role = (userRole || 'FieldOwner') as AppRole;
+    if (role === 'FieldOwner' || role === '') {
+      navigate('/fields/new');
+      return;
+    }
+    const next = await resolvePostAuthPath(role);
     navigate(next);
   };
 
@@ -94,15 +132,16 @@ const RegisterPage: React.FC = () => {
     const errors = validate();
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      focusFirst(errors);
+      focusErrors(errors);
       return;
     }
 
     setLoading(true);
+    const code = inviteCode.trim();
     try {
-      await register(email, password, displayName.trim(), '', inviteCode.trim() || undefined);
+      await register(email, password, firstName.trim(), lastName.trim() || undefined, code || undefined);
       const stored = authService.getStoredUser();
-      await navigateAfterRegister(stored?.role || 'FieldOwner', Boolean(inviteCode.trim()));
+      await navigateAfterRegister(stored?.role || 'FieldOwner', Boolean(code), code);
     } catch (err: unknown) {
       const message = getApiErrorMessage(err, t) || t('auth:register.failed');
       const lower = message.toLowerCase();
@@ -118,29 +157,77 @@ const RegisterPage: React.FC = () => {
         setFormError(message);
       }
       setFieldErrors(next);
-      focusFirst(next.email || next.inviteCode ? next : { email: message });
+      if (Object.keys(next).length > 0) focusErrors(next);
+      else requestAnimationFrame(() => summaryRef.current?.focus());
     } finally {
       setLoading(false);
     }
   };
 
   const fieldClass = (key: FieldKey) => `login-field${fieldErrors[key] ? ' has-error' : ''}`;
+  const errorEntries = FIELD_ORDER.filter((key) => fieldErrors[key]).map((key) => ({
+    key,
+    message: fieldErrors[key] as string,
+  }));
+  const summaryMessage =
+    formError ||
+    (errorEntries.length > 1
+      ? t('auth:register.errorSummary', { count: errorEntries.length })
+      : errorEntries[0]?.message || null);
+
+  const legalLinks = (
+    <p className="register-legal">
+      {t('auth:register.legalPrefix')}{' '}
+      <Link to="/terms">{t('auth:login.terms')}</Link> {t('auth:register.legalAnd')}{' '}
+      <Link to="/privacy">{t('auth:login.privacy')}</Link>.
+    </p>
+  );
 
   return (
     <>
       <div className="login-card-heading">
-        <h1>{t('auth:register.title')}</h1>
-        <p className="login-card-subtitle">{t('auth:register.subtitle')}</p>
+        <h1>{t(hasInviteIntent ? 'auth:register.inviteTitle' : 'auth:register.title')}</h1>
+        <p className="login-card-subtitle">
+          {t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.subtitle')}
+        </p>
         <p className="login-card-motto">{t('auth:login.motto')}</p>
       </div>
 
-      {formError ? (
-        <div className="login-error" role="alert">
-          {formError}
+      {summaryMessage ? (
+        <div
+          ref={summaryRef}
+          className="login-error"
+          role="alert"
+          tabIndex={-1}
+          aria-live="assertive"
+        >
+          {formError ? (
+            formError
+          ) : errorEntries.length > 1 ? (
+            <>
+              <p className="login-error-summary-title">{summaryMessage}</p>
+              <ul className="login-error-summary-list">
+                {errorEntries.map(({ key, message }) => (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      className="login-error-summary-link"
+                      onClick={() => fieldRefs[key].current?.focus()}
+                    >
+                      {message}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            summaryMessage
+          )}
         </div>
       ) : null}
 
       <AuthSocialButtons />
+      {!showEmailForm ? legalLinks : null}
 
       {!showEmailForm ? (
         <button
@@ -158,32 +245,77 @@ const RegisterPage: React.FC = () => {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
-            <div className={fieldClass('displayName')}>
-              <label htmlFor="displayName">{t('auth:register.firstName')}</label>
-              <div className="login-input-wrap">
-                <User size={18} className="login-input-icon" aria-hidden />
-                <input
-                  ref={nameRef}
-                  type="text"
-                  id="displayName"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder={t('auth:register.firstNamePlaceholder')}
-                  autoComplete="name"
-                  disabled={loading}
-                  aria-invalid={Boolean(fieldErrors.displayName)}
-                  aria-describedby={fieldErrors.displayName ? 'displayName-error' : undefined}
-                />
+            <div className="register-name-row">
+              <div className={fieldClass('firstName')}>
+                <label htmlFor="firstName">
+                  {t('auth:register.firstName')}
+                  <span className="register-required" aria-hidden>
+                    *
+                  </span>
+                  <span className="sr-only">{t('auth:register.required')}</span>
+                </label>
+                <div className="login-input-wrap">
+                  <User size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    ref={firstNameRef}
+                    type="text"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder={t('auth:register.firstNamePlaceholder')}
+                    autoComplete="given-name"
+                    required
+                    disabled={loading}
+                    aria-required="true"
+                    aria-invalid={Boolean(fieldErrors.firstName)}
+                    aria-describedby={fieldErrors.firstName ? 'firstName-error' : undefined}
+                  />
+                </div>
+                {fieldErrors.firstName ? (
+                  <p id="firstName-error" className="login-field-error" role="alert">
+                    {fieldErrors.firstName}
+                  </p>
+                ) : null}
               </div>
-              {fieldErrors.displayName ? (
-                <p id="displayName-error" className="login-field-error" role="alert">
-                  {fieldErrors.displayName}
+
+              <div className={fieldClass('lastName')}>
+                <label htmlFor="lastName">
+                  {t('auth:register.lastName')}
+                  <span className="register-optional">{t('auth:register.optional')}</span>
+                </label>
+                <div className="login-input-wrap">
+                  <User size={18} className="login-input-icon" aria-hidden />
+                  <input
+                    ref={lastNameRef}
+                    type="text"
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder={t('auth:register.lastNamePlaceholder')}
+                    autoComplete="family-name"
+                    disabled={loading}
+                    aria-invalid={Boolean(fieldErrors.lastName)}
+                    aria-describedby={fieldErrors.lastName ? 'lastName-error' : 'lastName-hint'}
+                  />
+                </div>
+                <p id="lastName-hint" className="register-hint">
+                  {t('auth:register.lastNameHint')}
                 </p>
-              ) : null}
+                {fieldErrors.lastName ? (
+                  <p id="lastName-error" className="login-field-error" role="alert">
+                    {fieldErrors.lastName}
+                  </p>
+                ) : null}
+              </div>
             </div>
 
             <div className={fieldClass('email')}>
-              <label htmlFor="email">{t('common:email')}</label>
+              <label htmlFor="email">
+                {t('common:email')}
+                <span className="register-required" aria-hidden>
+                  *
+                </span>
+              </label>
               <div className="login-input-wrap">
                 <Mail size={18} className="login-input-icon" aria-hidden />
                 <input
@@ -194,7 +326,9 @@ const RegisterPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t('auth:login.emailPlaceholder')}
                   autoComplete="email"
+                  required
                   disabled={loading}
+                  aria-required="true"
                   aria-invalid={Boolean(fieldErrors.email)}
                   aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                 />
@@ -207,7 +341,12 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className={fieldClass('password')}>
-              <label htmlFor="password">{t('common:password')}</label>
+              <label htmlFor="password">
+                {t('common:password')}
+                <span className="register-required" aria-hidden>
+                  *
+                </span>
+              </label>
               <div className="login-input-wrap">
                 <Lock size={18} className="login-input-icon" aria-hidden />
                 <input
@@ -219,7 +358,9 @@ const RegisterPage: React.FC = () => {
                   onKeyUp={(e) => setCapsLock(e.getModifierState('CapsLock'))}
                   placeholder={t('auth:register.passwordPlaceholder')}
                   autoComplete="new-password"
+                  required
                   disabled={loading}
+                  aria-required="true"
                   aria-invalid={Boolean(fieldErrors.password)}
                   aria-describedby={fieldErrors.password ? 'password-error' : 'password-hint'}
                 />
@@ -232,7 +373,9 @@ const RegisterPage: React.FC = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <p id="password-hint" className="register-hint">{t('auth:register.passwordHint')}</p>
+              <p id="password-hint" className="register-hint">
+                {t('auth:register.passwordHint')}
+              </p>
               {capsLock ? <p className="register-hint">{t('auth:register.capsLock')}</p> : null}
               {fieldErrors.password ? (
                 <p id="password-error" className="login-field-error" role="alert">
@@ -242,7 +385,12 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className={fieldClass('confirmPassword')}>
-              <label htmlFor="confirmPassword">{t('auth:register.confirmPassword')}</label>
+              <label htmlFor="confirmPassword">
+                {t('auth:register.confirmPassword')}
+                <span className="register-required" aria-hidden>
+                  *
+                </span>
+              </label>
               <div className="login-input-wrap">
                 <Lock size={18} className="login-input-icon" aria-hidden />
                 <input
@@ -253,7 +401,9 @@ const RegisterPage: React.FC = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder={t('auth:register.confirmPasswordPlaceholder')}
                   autoComplete="new-password"
+                  required
                   disabled={loading}
+                  aria-required="true"
                   aria-invalid={Boolean(fieldErrors.confirmPassword)}
                   aria-describedby={fieldErrors.confirmPassword ? 'confirm-error' : undefined}
                 />
@@ -267,7 +417,10 @@ const RegisterPage: React.FC = () => {
 
             {showInvite ? (
               <div className={fieldClass('inviteCode')}>
-                <label htmlFor="inviteCode">{t('auth:register.inviteCode')}</label>
+                <label htmlFor="inviteCode">
+                  {t('auth:register.inviteCode')}
+                  <span className="register-optional">{t('auth:register.optional')}</span>
+                </label>
                 <div className="login-input-wrap">
                   <Ticket size={18} className="login-input-icon" aria-hidden />
                   <input
@@ -281,10 +434,12 @@ const RegisterPage: React.FC = () => {
                     spellCheck={false}
                     disabled={loading}
                     aria-invalid={Boolean(fieldErrors.inviteCode)}
-                    aria-describedby={fieldErrors.inviteCode ? 'invite-error' : undefined}
+                    aria-describedby={fieldErrors.inviteCode ? 'invite-error' : 'invite-hint'}
                   />
                 </div>
-                <p className="register-hint">{t('auth:register.inviteCodeHint')}</p>
+                <p id="invite-hint" className="register-hint">
+                  {t('auth:register.inviteCodeHint')}
+                </p>
                 {fieldErrors.inviteCode ? (
                   <p id="invite-error" className="login-field-error" role="alert">
                     {fieldErrors.inviteCode}
@@ -301,15 +456,10 @@ const RegisterPage: React.FC = () => {
               </button>
             )}
 
-            <p className="register-legal">
-              {t('auth:register.legalPrefix')}{' '}
-              <Link to="/terms">{t('auth:login.terms')}</Link>
-              {' '}{t('auth:register.legalAnd')}{' '}
-              <Link to="/privacy">{t('auth:login.privacy')}</Link>.
-            </p>
+            {legalLinks}
 
             <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
-              {t('auth:register.button')}
+              {t(hasInviteIntent ? 'auth:register.inviteButton' : 'auth:register.button')}
             </Button>
           </form>
         </>

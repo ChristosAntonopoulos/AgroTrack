@@ -1,10 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, GitCompare, Plus } from 'lucide-react';
+import { ArrowLeft, GitCompare, Plus, SlidersHorizontal, X } from 'lucide-react';
 import Button from '../Common/Button';
 import ChronologioViewTabs from './ChronologioViewTabs';
-import CategoryFilterRail, { type RailCategory } from './CategoryFilterRail';
-import FieldScopeSelector from './FieldScopeSelector';
+import ChronologioFilterDrawer from './ChronologioFilterDrawer';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
@@ -14,7 +13,6 @@ import {
   preferredCaptureTypeFromCategory,
   resolveChronologioCaptureDate,
 } from '../../chronologio/captureContext';
-import { isMoreFilterCategory, isPrimaryRailCategory } from '../../chronologio/primaryCategories';
 import {
   viewFromZoom,
   VIEW_TO_ZOOM,
@@ -22,6 +20,8 @@ import {
   type ChronologioZoom,
   type LivingFilters,
 } from '../../chronologio/livingTypes';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { isListedGrove } from '../../utils/fieldDisplay';
 
 type Props = {
   fieldMode: boolean;
@@ -40,20 +40,29 @@ type Props = {
   onJumpToDate?: (isoDate: string) => void;
 };
 
-const railFromFilter = (category: LivingFilters['category']): RailCategory => {
-  if (category === 'task') return 'work';
-  if (category === 'note') return 'observation';
-  if (category === 'expense' || category === 'income') return 'money';
-  if (category === 'lifecycle') return 'field_change';
-  if (category === 'photo' || category === 'collaborator') return category;
-  if (isMoreFilterCategory(category) || isPrimaryRailCategory(category) || category === 'all') {
-    return category;
+type ActiveChip = {
+  id: string;
+  label: string;
+  onRemove: () => void;
+};
+
+const typeLabelKey = (category: LivingFilters['category']): string => {
+  if (category === 'all') return 'primaryCategories.all';
+  if (category === 'task' || category === 'work') return 'primaryCategories.work';
+  if (category === 'note' || category === 'observation') return 'primaryCategories.observation';
+  if (category === 'expense' || category === 'income' || category === 'money') {
+    return 'primaryCategories.money';
   }
-  return 'all';
+  if (category === 'lifecycle' || category === 'field_change') return 'primaryCategories.field_change';
+  if (category === 'photo') return 'categories.photo';
+  if (category === 'collaborator') return 'categories.collaborator';
+  if (category === 'harvest') return 'primaryCategories.harvest';
+  if (category === 'weather') return 'primaryCategories.weather';
+  return `categories.${category}`;
 };
 
 /**
- * Chronologio page chrome: title, field scope, capture, view tabs, category rail.
+ * Chronologio page chrome: title, capture, view tabs, jump-to-date, filter drawer.
  */
 const ChronologioChrome: React.FC<Props> = ({
   fieldMode,
@@ -75,8 +84,9 @@ const ChronologioChrome: React.FC<Props> = ({
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const capture = useCaptureOptional();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const view = viewFromZoom(zoom);
-  const railCategory = railFromFilter(filters.category);
+
   const hideHarvest = useMemo(() => {
     const caps = getHarvestCapabilities({
       hasAnyFieldAccess: fields.length > 0 || Boolean(activeField.fieldId),
@@ -100,8 +110,44 @@ const ChronologioChrome: React.FC<Props> = ({
     return !caps.canUseChronologioHarvest;
   }, [fields.length, user, activeField]);
 
+  const activeChips = useMemo((): ActiveChip[] => {
+    const chips: ActiveChip[] = [];
+    if (filters.category && filters.category !== 'all') {
+      chips.push({
+        id: `type:${filters.category}`,
+        label: t(`chronologio:${typeLabelKey(filters.category)}`),
+        onRemove: () => onSetFilters({ category: 'all' }),
+      });
+    }
+    if (!fieldMode && filters.fieldId) {
+      const field = fields.find((f) => f.id === filters.fieldId);
+      chips.push({
+        id: `field:${filters.fieldId}`,
+        label: field ? friendlyFieldLabel(field.name) : t('chronologio:living.field'),
+        onRemove: () => onSetFilters({ fieldId: '' }),
+      });
+    }
+    if (filters.lifecycleYear === 'low' || filters.lifecycleYear === 'high') {
+      chips.push({
+        id: `lifecycle:${filters.lifecycleYear}`,
+        label:
+          filters.lifecycleYear === 'low'
+            ? t('chronologio:seasonLow')
+            : t('chronologio:seasonHigh'),
+        onRemove: () => onSetFilters({ lifecycleYear: '' }),
+      });
+    }
+    return chips;
+  }, [fieldMode, fields, filters, onSetFilters, t]);
+
+  const activeFilterCount = activeChips.length;
+
   const setView = (next: ChronologioView) => {
     onSetZoom(VIEW_TO_ZOOM[next]);
+  };
+
+  const clearAllFilters = () => {
+    onSetFilters({ category: 'all', fieldId: '', lifecycleYear: '' });
   };
 
   const openCapture = () => {
@@ -119,6 +165,7 @@ const ChronologioChrome: React.FC<Props> = ({
   };
 
   const TitleTag = embedded ? 'h2' : 'h1';
+  const listedFields = fields.filter(isListedGrove);
 
   return (
     <>
@@ -137,19 +184,12 @@ const ChronologioChrome: React.FC<Props> = ({
             <p className="chronologio-tagline">
               {fieldMode ? t('chronologio:taglineField') : t('chronologio:taglineGlobal')}
             </p>
+            {fieldMode && !embedded && fieldName ? (
+              <p className="chrono-field-locked">{fieldName}</p>
+            ) : null}
           </div>
 
           <div className="chrono-header-actions">
-            {!fieldMode ? (
-              <FieldScopeSelector
-                fields={fields}
-                value={filters.fieldId}
-                onChange={(next) => onSetFilters({ fieldId: next })}
-              />
-            ) : embedded ? null : (
-              <p className="chrono-field-locked">{fieldName}</p>
-            )}
-
             {capture ? (
               <button type="button" className="chrono-capture-cta" onClick={openCapture}>
                 <Plus size={18} aria-hidden />
@@ -159,9 +199,10 @@ const ChronologioChrome: React.FC<Props> = ({
 
             {zoom === 'years' ? (
               <Button
-                variant={compareOpen ? 'primary' : 'outline'}
+                variant="outline"
                 size="sm"
                 icon={<GitCompare size={15} />}
+                aria-pressed={compareOpen}
                 onClick={onCompareToggle}
               >
                 {t('chronologio:living.compare')}
@@ -172,27 +213,82 @@ const ChronologioChrome: React.FC<Props> = ({
       </header>
 
       <div className="chronologio-sticky chrono-locked-toolbar">
-        <ChronologioViewTabs view={view} onChange={setView} />
-        {onJumpToDate ? (
-          <label className="chrono-jump-date">
-            <span className="sr-only">{t('chronologio:living.jumpToDate')}</span>
-            <input
-              type="date"
-              value={focusDate.slice(0, 10)}
-              aria-label={t('chronologio:living.jumpToDate')}
-              onChange={(e) => {
-                const next = e.target.value;
-                if (next) onJumpToDate(next);
-              }}
-            />
-          </label>
+        <div className="chrono-toolbar-row">
+          <ChronologioViewTabs view={view} onChange={setView} />
+          <div className="chrono-toolbar-tools">
+            {onJumpToDate ? (
+              <label className="chrono-jump-date">
+                <span className="chrono-control-label">{t('chronologio:living.jumpToDate')}</span>
+                <span className="chrono-control-hint">{t('chronologio:dateControl.jumpNavigates')}</span>
+                <input
+                  type="date"
+                  value={focusDate.slice(0, 10)}
+                  aria-label={t('chronologio:living.jumpToDate')}
+                  aria-describedby="chrono-jump-date-hint"
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (next) onJumpToDate(next);
+                  }}
+                />
+                <span id="chrono-jump-date-hint" className="sr-only">
+                  {t('chronologio:dateControl.jumpNavigates')}
+                </span>
+              </label>
+            ) : null}
+
+            <button
+              type="button"
+              className={`chrono-filters-trigger${activeFilterCount > 0 ? ' is-active' : ''}`}
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen(true)}
+            >
+              <SlidersHorizontal size={18} aria-hidden />
+              <span>
+                {activeFilterCount > 0
+                  ? t('chronologio:filtersCount', { count: activeFilterCount })
+                  : t('chronologio:filters')}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {activeChips.length > 0 ? (
+          <div className="chrono-active-filters" role="group" aria-label={t('chronologio:activeFilters')}>
+            <ul className="chrono-active-filter-list">
+              {activeChips.map((chip) => (
+                <li key={chip.id}>
+                  <button
+                    type="button"
+                    className="chrono-active-filter-chip"
+                    onClick={chip.onRemove}
+                    aria-label={t('chronologio:removeFilter', { label: chip.label })}
+                  >
+                    <span>{chip.label}</span>
+                    <X size={14} aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="chrono-clear-all-filters" onClick={clearAllFilters}>
+              {t('chronologio:clearAllFilters')}
+            </button>
+          </div>
         ) : null}
-        <CategoryFilterRail
-          value={railCategory}
-          hideHarvest={hideHarvest}
-          onChange={(category) => onSetFilters({ category: category === 'all' ? 'all' : category })}
-        />
       </div>
+
+      <ChronologioFilterDrawer
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        fieldMode={fieldMode}
+        fields={listedFields}
+        filters={filters}
+        hideHarvest={hideHarvest}
+        onSetFilters={onSetFilters}
+        onClearAll={() => {
+          clearAllFilters();
+        }}
+      />
     </>
   );
 };

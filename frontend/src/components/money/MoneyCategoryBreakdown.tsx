@@ -10,6 +10,7 @@ type Props = {
   currency: string;
   locale: string;
   onSelectCategory: (category: string) => void;
+  embedded?: boolean;
 };
 
 const RankedList: React.FC<{
@@ -54,11 +55,18 @@ const RankedList: React.FC<{
   );
 };
 
-const MoneyCategoryBreakdown: React.FC<Props> = ({ expenses, income, currency, locale, onSelectCategory }) => {
+const MoneyCategoryBreakdown: React.FC<Props> = ({
+  expenses,
+  income,
+  currency,
+  locale,
+  onSelectCategory,
+  embedded = false,
+}) => {
   const { t } = useTranslation('money');
   if (!expenses.length && !income.length) return null;
-  return (
-    <section className="money-card">
+  const body = (
+    <>
       <RankedList
         title={t('moneyWent')}
         rows={expenses}
@@ -73,8 +81,10 @@ const MoneyCategoryBreakdown: React.FC<Props> = ({ expenses, income, currency, l
         locale={locale}
         onSelectCategory={onSelectCategory}
       />
-    </section>
+    </>
   );
+  if (embedded) return <div className="money-embedded-block">{body}</div>;
+  return <section className="money-card">{body}</section>;
 };
 
 export default MoneyCategoryBreakdown;

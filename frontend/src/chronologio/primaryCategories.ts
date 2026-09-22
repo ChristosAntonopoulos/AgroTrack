@@ -41,7 +41,7 @@ const PRIMARY_EN: Record<ChronologioPrimaryCategory, { singular: string; plural:
   money: { singular: 'Money', plural: 'Money' },
   harvest: { singular: 'Harvest', plural: 'Harvest' },
   weather: { singular: 'Weather', plural: 'Weather & warnings' },
-  field_change: { singular: 'Field change', plural: 'Field changes' },
+  field_change: { singular: 'Grove change', plural: 'Grove changes' },
 };
 
 /** Primary sticky rail (Όλα + these). Weather lives under "more filters". */

@@ -16,6 +16,8 @@ interface Props {
   onOpacityChange: (opacity: number) => void;
   onShowInfo: (definition: MapLayerDefinition, data?: MapLayerData) => void;
   loading?: boolean;
+  error?: string;
+  onRetryError?: () => void;
 }
 
 const PRIMARY_LAYER_IDS = ['truecolor', 'ndvi', 'ndvi-change', 'ndmi'];
@@ -54,6 +56,8 @@ const MapLayerPanel: React.FC<Props> = ({
   onOpacityChange,
   onShowInfo,
   loading,
+  error,
+  onRetryError,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
   const activeLayerId = activeLayerIds[0];
@@ -106,15 +110,27 @@ const MapLayerPanel: React.FC<Props> = ({
         <button
           type="button"
           className={baseLayer === 'satellite' ? 'is-active' : ''}
+          aria-pressed={baseLayer === 'satellite'}
           onClick={() => onBaseLayerChange('satellite')}
         >
+          {baseLayer === 'satellite' ? (
+            <span className="map-look-base-mark" aria-hidden>
+              ✓
+            </span>
+          ) : null}
           {t('fields:mapLayerSatellite')}
         </button>
         <button
           type="button"
           className={baseLayer === 'street' ? 'is-active' : ''}
+          aria-pressed={baseLayer === 'street'}
           onClick={() => onBaseLayerChange('street')}
         >
+          {baseLayer === 'street' ? (
+            <span className="map-look-base-mark" aria-hidden>
+              ✓
+            </span>
+          ) : null}
           {t('fields:mapLayerStreet')}
         </button>
       </div>
@@ -148,6 +164,17 @@ const MapLayerPanel: React.FC<Props> = ({
       ) : null}
 
       {loading ? <p className="map-look-note">{t('common:loading')}</p> : null}
+
+      {error ? (
+        <div className="map-look-note map-look-note--warn" role="alert">
+          <p>{error}</p>
+          {onRetryError ? (
+            <button type="button" className="map-look-about" onClick={onRetryError}>
+              {t('common:retry', { defaultValue: 'Retry' })}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {overlayUnavailable ? (
         <p className="map-look-note map-look-note--warn">

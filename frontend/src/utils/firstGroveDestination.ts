@@ -15,12 +15,14 @@ export async function resolvePostAuthPath(
 
   try {
     const access = await fieldPeopleService.getAccessContext();
+    // Invite / collaborator seats: open the shared grove — never owner field setup.
     if (access.fields.length > 0 && !access.ownsAnyField) {
       const fieldId = access.fields[0]?.fieldId;
       return fieldId ? `/chronologio?fieldId=${encodeURIComponent(fieldId)}` : roleHomePath(role);
     }
 
     const fields = await getFieldService().getFields();
+    // Brand-new owner: create the first grove immediately.
     if (fields.length === 0) return '/fields/new';
 
     const hasLiveGrove = fields.some((field) => field.status === 'Active');

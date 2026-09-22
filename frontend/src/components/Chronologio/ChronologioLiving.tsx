@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { BookOpen, ArrowUp } from 'lucide-react';
 import Button from '../Common/Button';
 import EmptyState from '../Common/EmptyState';
 import Breadcrumbs from '../Layout/Breadcrumbs';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import ChronologioSkeleton from './ChronologioSkeleton';
 import ChronologioChrome from './ChronologioChrome';
 import ChronologioYearsView from './ChronologioYearsView';
@@ -39,6 +40,12 @@ import {
 } from '../../chronologio/livingTypes';
 import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
 import {
+  chronologioScrollKey,
+  isChronologioReturnState,
+  saveChronologioFocus,
+  saveChronologioJournalScroll,
+} from '../../chronologio/chronologioViewState';
+import {
   ensureCurrentAgriculturalYear,
   previousYearSummary,
 } from '../../chronologio/yearPresentation';
@@ -62,7 +69,9 @@ type Props = {
 const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const fieldMode = Boolean(fieldId);
   const { t, i18n } = useTranslation(['chronologio', 'common', 'capture']);
+  const { formatDate } = useLocaleFormatters();
   const navigate = useNavigate();
+  const location = useLocation();
   const reduceMotion = useReducedMotion();
   const capture = useCaptureOptional();
   const locale = (i18n.language?.slice(0, 2) || 'el') as SupportedLocale;
@@ -107,11 +116,41 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const [weatherEventPeek, setWeatherEventPeek] = useState<ChronologioEntry | null>(null);
   const [yearWeatherReviews, setYearWeatherReviews] = useState<ChronologioEntry[]>([]);
   const journalLoadLock = useRef(false);
+  const restoredFocusRef = useRef(false);
 
   const scopedFieldId = fieldMode ? fieldId : living.filters.fieldId;
   const todayIso = toIsoDate(new Date());
   const nowYear = new Date().getFullYear();
   const nowMonth = new Date().getMonth() + 1;
+
+  useEffect(() => {
+    saveChronologioFocus({
+      focusDate: living.focusDate,
+      zoom: living.zoom,
+      fieldId: scopedFieldId,
+    });
+  }, [living.focusDate, living.zoom, scopedFieldId]);
+
+  useEffect(() => {
+    if (restoredFocusRef.current) return;
+    restoredFocusRef.current = true;
+    const fromState = (location.state as { chronologioReturn?: unknown } | null)?.chronologioReturn;
+    if (!isChronologioReturnState(fromState)) return;
+    if (fromState.focusDate) living.setFocusDate(fromState.focusDate);
+    if (fromState.zoom) living.setZoom(fromState.zoom);
+    if (typeof fromState.scrollTop === 'number') {
+      saveChronologioJournalScroll(
+        chronologioScrollKey({
+          zoom: fromState.zoom || living.zoom,
+          focusDate: fromState.focusDate || living.focusDate,
+          fieldId: scopedFieldId,
+        }),
+        fromState.scrollTop
+      );
+    }
+    // Intentionally once on mount — URL + sessionStorage own ongoing focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     void getFieldService()
@@ -946,6 +985,8 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                       .filter((f) => f.status !== 'Draft' && f.status !== 'Archived')
                       .map((f) => ({ id: f.id, name: f.name }))}
                     selectedEntryId={living.selectedEntryId}
+                    focusDate={living.focusDate}
+                    zoom={living.zoom}
                     onPeekMonth={(year, month) => {
                       living.setSelectedEntry(null);
                       setWeatherEventPeek(null);
@@ -982,10 +1023,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                                   onClick={() => living.setSelectedEntry(entry.id)}
                                 >
                                   <time dateTime={entry.occurredAt}>
-                                    {new Date(entry.occurredAt).toLocaleDateString(i18n.language, {
-                                      day: 'numeric',
-                                      month: 'short',
-                                    })}
+                                    {formatDate(entry.occurredAt)}
                                   </time>
                                   <span>
                                     {presentChronologioEvent(entry, i18n.language).label}
@@ -1027,6 +1065,9 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         loadingMore={journalLoadingMore}
                         weatherByDate={weatherByDate}
                         todayWeather={todayWeather}
+                        focusDate={living.focusDate}
+                        zoom={living.zoom}
+                        fieldId={scopedFieldId}
                         onLoadMore={loadMoreJournal}
                         onSelect={(e) => living.setSelectedEntry(e.id)}
                         onClearSelection={closePeek}

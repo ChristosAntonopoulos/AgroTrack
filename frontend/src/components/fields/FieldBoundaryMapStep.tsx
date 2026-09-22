@@ -539,10 +539,22 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
                   className="btn btn-primary boundary-primary-action"
                   onClick={finishShape}
                   disabled={corners.length < 3 || zoomTooLow}
+                  title={
+                    corners.length < 3
+                      ? t('addField.boundaryValidation.tooFewPoints')
+                      : zoomTooLow
+                        ? t('addField.boundaryValidation.zoomTooLow')
+                        : undefined
+                  }
                 >
                   <Check size={20} aria-hidden />
                   {t('addField.boundaryFinish')}
                 </button>
+                {corners.length > 0 && corners.length < 3 ? (
+                  <p className="boundary-location-status" role="status">
+                    {t('addField.boundaryValidation.tooFewPoints')}
+                  </p>
+                ) : null}
               </>
             ) : null}
 

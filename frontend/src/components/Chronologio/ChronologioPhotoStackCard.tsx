@@ -4,7 +4,10 @@ import { Camera } from 'lucide-react';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { collectChronologioImages } from '../../utils/chronologioPhotoGroups';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { presentActorName } from '../../chronologio/eventPresentation';
 import ChronologioThumbnail from './ChronologioThumbnail';
+import ChronologioCategoryIcon from './ChronologioCategoryIcon';
 
 type Props = {
   entries: ChronologioEntry[];
@@ -13,7 +16,10 @@ type Props = {
   onOpen: () => void;
 };
 
-/** Same-day Photo Hub collage card for the Chronologio journal grid. */
+/**
+ * Same-day Photo Hub collage — shares Chronologio entry card slot anatomy:
+ * type → title → field → date/time → owner → (linked/media) → primary action.
+ */
 const ChronologioPhotoStackCard: React.FC<Props> = ({
   entries,
   selected = false,
@@ -30,6 +36,7 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
   const fieldNames = showField
     ? [...new Set(entries.map((e) => e.field?.name).filter(Boolean))]
     : [];
+  const actorName = presentActorName(entries[0]?.actor?.displayName, i18n.language);
   const time = (() => {
     const d = new Date(entries[0]?.occurredAt || '');
     if (Number.isNaN(d.getTime())) return '';
@@ -52,31 +59,55 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
   return (
     <button
       type="button"
-      className={`chrono-photo-stack${selected ? ' is-selected' : ''}`}
+      className={`chronologio-event-card chronologio-event-card--observation is-featured chrono-cat-photo chrono-photo-stack${selected ? ' is-selected' : ''}`}
       onClick={onOpen}
       aria-label={t('photos:dayStack.openSheet', { defaultValue: 'Open photos' })}
     >
-      <div className={`chrono-photo-stack-collage ${collageClass}`} aria-hidden>
-        {thumbs.length ? (
-          thumbs.map((src, i) => (
-            <ChronologioThumbnail key={`${src}-${i}`} src={src} className="chrono-photo-stack-cell" />
-          ))
-        ) : (
-          <span className="chrono-photo-stack-fallback">
-            <Camera size={28} />
-          </span>
-        )}
-        {count > 4 ? <span className="chrono-photo-stack-more">+{count - 4}</span> : null}
-      </div>
-      <div className="chrono-photo-stack-meta">
-        <span className="chrono-photo-stack-kicker">
-          <Camera size={14} aria-hidden />
-          {t('photos:dayStack.title')}
-        </span>
-        <span className="chrono-photo-stack-title">{t('photos:dayStack.count', { count })}</span>
-        <span className="chrono-photo-stack-sub">
-          {[time, fieldNames.join(' · ')].filter(Boolean).join(' · ')}
-        </span>
+      <div className="chronologio-card-top">
+        <div className="chronologio-card-icon is-note">
+          <ChronologioCategoryIcon category="photo" />
+        </div>
+        <div className="chronologio-card-body">
+          <div className="chronologio-card-type chronologio-card-meta">
+            <span>
+              <Camera size={12} aria-hidden /> {t('photos:dayStack.title')}
+            </span>
+          </div>
+          <h3 className="chronologio-card-title">{t('photos:dayStack.count', { count })}</h3>
+
+          <div className={`chrono-photo-stack-collage ${collageClass}`} aria-hidden>
+            {thumbs.length ? (
+              thumbs.map((src, i) => (
+                <ChronologioThumbnail key={`${src}-${i}`} src={src} className="chrono-photo-stack-cell" />
+              ))
+            ) : (
+              <span className="chrono-photo-stack-fallback">
+                <Camera size={28} />
+              </span>
+            )}
+            {count > 4 ? <span className="chrono-photo-stack-more">+{count - 4}</span> : null}
+          </div>
+
+          {(fieldNames.length > 0 || time || actorName) ? (
+            <div className="chronologio-card-foot">
+              {fieldNames.length > 0 ? (
+                <div className="chronologio-card-field">
+                  <span>{fieldNames.map((n) => friendlyFieldLabel(String(n))).join(' · ')}</span>
+                </div>
+              ) : null}
+              {time ? (
+                <time className="chronologio-card-when" dateTime={entries[0]?.occurredAt}>
+                  {time}
+                </time>
+              ) : null}
+              {actorName ? (
+                <div className="chronologio-card-owner chronologio-card-actor">
+                  {t('chronologio:fromActor', { name: actorName })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </button>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Monitor, Sun, Moon, Check, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +11,7 @@ import {
   UserPreferences,
   Theme,
   DefaultView,
+  NotificationDevicePreferences,
 } from '../services/settingsService';
 import { isMockMode } from '../services/serviceFactory';
 import { demoStore } from '../services/demo/demoStore';
@@ -29,9 +31,20 @@ const START_VIEWS: DefaultView[] = ['chronologio', 'fields'];
 const THEME_OPTIONS: Theme[] = ['system', 'light', 'dark'];
 const SAMPLE_DATE = new Date(2026, 8, 9);
 
+const NOTIFICATION_PREF_KEYS: Array<keyof NotificationDevicePreferences> = [
+  'taskAssignment',
+  'approval',
+  'harvest',
+  'financial',
+  'satelliteWeather',
+  'marketingSystem',
+];
+
+const APP_VERSION = '0.1.0';
+
 const SettingsPage: React.FC = () => {
-  const { t } = useTranslation(['settings']);
-  const { user } = useAuth();
+  const { t } = useTranslation(['settings', 'nav', 'common']);
+  const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
@@ -82,7 +95,13 @@ const SettingsPage: React.FC = () => {
         setLastFailed(() => retryFn ?? (() => persist(patch, apply, retryFn)));
         return;
       }
-      setPreferences((prev) => ({ ...prev, ...patch }));
+      setPreferences((prev) => ({
+        ...prev,
+        ...patch,
+        notificationPrefs: patch.notificationPrefs
+          ? { ...prev.notificationPrefs, ...patch.notificationPrefs }
+          : prev.notificationPrefs,
+      }));
       setLastFailed(null);
       flashSaved();
     },
@@ -103,6 +122,11 @@ const SettingsPage: React.FC = () => {
 
   const onDefaultView = (value: DefaultView) => {
     persist({ defaultView: value }, undefined, () => onDefaultView(value));
+  };
+
+  const onNotificationPref = (key: keyof NotificationDevicePreferences, enabled: boolean) => {
+    const next = { ...preferences.notificationPrefs, [key]: enabled };
+    persist({ notificationPrefs: next }, undefined, () => onNotificationPref(key, enabled));
   };
 
   const onFontScale = (scale: FontScale) => {
@@ -178,6 +202,8 @@ const SettingsPage: React.FC = () => {
     ? preferences.defaultView
     : 'chronologio') as DefaultView;
 
+  const fieldsLabel = t('nav:items.fields');
+
   return (
     <PageContainer>
       <div className="settings-page">
@@ -216,6 +242,62 @@ const SettingsPage: React.FC = () => {
               <p className="settings-account-name">{displayName}</p>
               <p className="settings-account-email">{user?.email}</p>
             </div>
+
+            <div className="settings-subblock">
+              <h3 className="settings-subtitle">{t('account.profileTitle')}</h3>
+              <p className="settings-help">{t('account.profileUnavailable')}</p>
+              <div className="settings-readonly-grid">
+                <div>
+                  <span className="settings-readonly-label">{t('account.firstName')}</span>
+                  <p className="settings-readonly-value">{user?.firstName || '—'}</p>
+                </div>
+                <div>
+                  <span className="settings-readonly-label">{t('account.lastName')}</span>
+                  <p className="settings-readonly-value">{user?.lastName || '—'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-subblock">
+              <h3 className="settings-subtitle">{t('account.emailTitle')}</h3>
+              <p className="settings-readonly-value">{user?.email || '—'}</p>
+              <p className="settings-help">{t('account.emailChangeUnavailable')}</p>
+            </div>
+
+            <div className="settings-subblock">
+              <h3 className="settings-subtitle">{t('account.passwordTitle')}</h3>
+              <p className="settings-help">{t('account.passwordHelp')}</p>
+              <Link className="settings-text-link" to="/forgot-password">
+                {t('account.passwordResetLink')}
+              </Link>
+            </div>
+          </section>
+
+          <section className="settings-block" aria-labelledby="settings-notifications">
+            <h2 id="settings-notifications" className="settings-block-title">
+              {t('sections.notifications')}
+            </h2>
+            <p className="settings-help settings-help--block">{t('notifications.deviceOnlyHint')}</p>
+            {NOTIFICATION_PREF_KEYS.map((key) => (
+              <div key={key} className="settings-row settings-row-toggle">
+                <div className="settings-row-text">
+                  <label className="settings-label" htmlFor={`settings-notif-${key}`}>
+                    {t(`notifications.prefs.${key}`)}
+                  </label>
+                  <p className="settings-help">{t(`notifications.prefsHints.${key}`)}</p>
+                </div>
+                <button
+                  id={`settings-notif-${key}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={preferences.notificationPrefs[key]}
+                  className={`settings-switch ${preferences.notificationPrefs[key] ? 'is-on' : ''}`}
+                  onClick={() => onNotificationPref(key, !preferences.notificationPrefs[key])}
+                >
+                  <span className="settings-switch-knob" />
+                </button>
+              </div>
+            ))}
           </section>
 
           <section className="settings-block" aria-labelledby="settings-appearance">
@@ -365,12 +447,41 @@ const SettingsPage: React.FC = () => {
               >
                 {START_VIEWS.map((view) => (
                   <option key={view} value={view}>
-                    {t(`startup.options.${view}`)}
+                    {view === 'fields' ? fieldsLabel : t(`startup.options.${view}`)}
                   </option>
                 ))}
               </select>
             </div>
             <p className="settings-autosave-hint">{t('autosaveHint')}</p>
+          </section>
+
+          <section className="settings-block" aria-labelledby="settings-privacy">
+            <h2 id="settings-privacy" className="settings-block-title">
+              {t('sections.privacy')}
+            </h2>
+            <p className="settings-help">{t('privacy.exportUnavailable')}</p>
+          </section>
+
+          <section className="settings-block" aria-labelledby="settings-sessions">
+            <h2 id="settings-sessions" className="settings-block-title">
+              {t('sections.sessions')}
+            </h2>
+            <div className="settings-session-card">
+              <div>
+                <p className="settings-label">{t('sessions.thisDevice')}</p>
+                <p className="settings-help">{t('sessions.thisDeviceHint')}</p>
+              </div>
+              <Button type="button" variant="outline" size="md" onClick={logout}>
+                {t('common:logout')}
+              </Button>
+            </div>
+          </section>
+
+          <section className="settings-block settings-danger" aria-labelledby="settings-danger">
+            <h2 id="settings-danger" className="settings-block-title">
+              {t('sections.danger')}
+            </h2>
+            <p className="settings-help">{t('danger.deleteUnavailable')}</p>
           </section>
 
           {isMockMode() ? (
@@ -397,14 +508,12 @@ const SettingsPage: React.FC = () => {
             </button>
             {techOpen ? (
               <div className="settings-tech-body">
-                <div className="settings-tech-row">
-                  <span>{t('account.userId')}</span>
-                  <code>{user?.userId || '—'}</code>
-                </div>
+                <p className="settings-help">{t('technical.purpose')}</p>
                 <div className="settings-tech-row">
                   <span>{t('account.appVersion')}</span>
-                  <code>0.1.0</code>
+                  <code>{APP_VERSION}</code>
                 </div>
+                <p className="settings-help">{t('technical.supportHint')}</p>
               </div>
             ) : null}
           </section>

@@ -77,9 +77,22 @@
   },
   "notifications": {
     "title": "Notifiche",
-    "empty": "Nessuna notifica",
+    "subtitle": "Avvisi, domande e aggiornamenti per il tuo oliveto",
+    "empty": "Sei in pari",
+    "emptyHint": "Qui appariranno nuovi annunci e questionari.",
     "markAllRead": "Segna tutte come lette",
-    "clearAll": "Cancella tutte"
+    "clearAll": "Cancella tutte",
+    "clearAllConfirm": "Rimuovere tutte le {{count}} notifiche da questo elenco? L'azione non può essere annullata.",
+    "tapToRespond": "Tocca per rispondere",
+    "badge": {
+      "update": "Aggiornamento",
+      "inbox": "Aggiornamento"
+    }
+  },
+  "inApp": {
+    "announcement": "Annuncio",
+    "questionnaire": "Questionario",
+    "poll": "Sondaggio"
   },
   "retry": "Riprova",
   "language": "Lingua",

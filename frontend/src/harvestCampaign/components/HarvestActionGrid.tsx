@@ -34,8 +34,10 @@ export const HarvestAddMenu: React.FC<{
   campaign: HarvestCampaign;
   /** When set, only these kinds are listed (capability-gated). */
   allowedKinds?: HarvestCaptureKind[];
+  /** Kind suggested by chain / evening / fields prompts. */
+  preferredKind?: HarvestCaptureKind;
   onPick: (kind: HarvestCaptureKind) => void;
-}> = ({ campaign, allowedKinds, onPick }) => {
+}> = ({ campaign, allowedKinds, preferredKind, onPick }) => {
   const { t } = useTranslation('fields');
   const openSacks = pendingSackTotal(campaign);
   const openMillKg = millKgNeedingOil(campaign);
@@ -45,8 +47,14 @@ export const HarvestAddMenu: React.FC<{
 
   const row = (kind: HarvestCaptureKind, badge?: string | null) => {
     const Icon = HARVEST_ACTION_ICONS[kind];
+    const preferred = preferredKind === kind;
     return (
-      <button key={kind} type="button" className="capture-type-card" onClick={() => onPick(kind)}>
+      <button
+        key={kind}
+        type="button"
+        className={`capture-type-card${preferred ? ' is-preferred' : ''}`}
+        onClick={() => onPick(kind)}
+      >
         <span className="capture-type-icon" aria-hidden>
           <Icon size={22} />
         </span>

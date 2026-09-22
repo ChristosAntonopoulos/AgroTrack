@@ -55,6 +55,7 @@ describe('capture money permissions', () => {
       accessLevel: 'view',
     });
     expect(perms.canRecordObservation).toBe(false);
+    expect(perms.canRecordPhoto).toBe(false);
     expect(perms.canRecordWork).toBe(false);
     expect(perms.canRecordExpense).toBe(false);
     expect(perms.canRecordIncome).toBe(false);
@@ -73,6 +74,7 @@ describe('capture money permissions', () => {
       familyModules: new Set(['fields', 'tasks', 'chronologio', 'documents', 'money', 'harvest']),
     });
     expect(perms.canRecordObservation).toBe(true);
+    expect(perms.canRecordPhoto).toBe(false);
     expect(perms.canRecordWork).toBe(true);
     expect(perms.canRecordVoice).toBe(true);
     expect(perms.canRecordDocument).toBe(true);
@@ -88,11 +90,13 @@ describe('capture money permissions', () => {
       canOwn: false,
       canWork: true,
       accessLevel: 'work',
+      familyModules: new Set(['fields', 'tasks', 'chronologio', 'money', 'photos', 'harvest']),
     });
     expect(perms.canRecordWork).toBe(true);
     expect(perms.canRecordExpense).toBe(true);
     expect(perms.canRecordMoney).toBe(true);
     expect(perms.canRecordIncome).toBe(false);
+    expect(perms.canRecordPhoto).toBe(true);
   });
 
   it('empty collaborator modules deny feature capture', () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatGroveMassKg } from '../../utils/groveTotals';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { formatHarvestOilAmount } from '../utils/harvestCalculations';
 
@@ -34,11 +35,8 @@ export const HarvestRecordSheet: React.FC<HarvestRecordSheetProps> = ({
   onVoid,
 }) => {
   const { t } = useTranslation(['fields', 'common', 'chronologio']);
-  const dateLabel = new Date(record.harvestDate).toLocaleDateString(locale, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const { formatDate } = useLocaleFormatters();
+  const dateLabel = formatDate(record.harvestDate);
 
   const hasLitres = record.oilLitres != null && record.oilLitres > 0;
   const hasKg = record.oilKg != null && record.oilKg > 0;

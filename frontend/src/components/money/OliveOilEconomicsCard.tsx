@@ -8,15 +8,17 @@ type Props = {
   year: number;
   oil: OliveOilEconomics;
   locale: string;
+  /** When true, omit outer card chrome (used inside expandable). */
+  embedded?: boolean;
 };
 
-const OliveOilEconomicsCard: React.FC<Props> = ({ year, oil, locale }) => {
+const OliveOilEconomicsCard: React.FC<Props> = ({ year, oil, locale, embedded = false }) => {
   const { t } = useTranslation('money');
   if (!oil.hasProductionOrSales) return null;
   const dash = '—';
-  return (
-    <section className="money-card">
-      <h2>{t('oliveOilYear', { year })}</h2>
+  const body = (
+    <>
+      {!embedded ? <h2>{t('oliveOilYear', { year })}</h2> : null}
       <dl className="money-oil-grid">
         <div>
           <dt>{t('produced')}</dt>
@@ -48,8 +50,10 @@ const OliveOilEconomicsCard: React.FC<Props> = ({ year, oil, locale }) => {
       {oil.productionCostMessage ? <p className="money-summary-note">{oil.productionCostMessage}</p> : null}
       {oil.averagePriceMessage ? <p className="money-summary-note">{oil.averagePriceMessage}</p> : null}
       {oil.remainingMessage ? <p className="money-warn">{oil.remainingMessage}</p> : null}
-    </section>
+    </>
   );
+  if (embedded) return <div className="money-embedded-block">{body}</div>;
+  return <section className="money-card">{body}</section>;
 };
 
 export default OliveOilEconomicsCard;

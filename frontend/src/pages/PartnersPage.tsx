@@ -19,6 +19,7 @@ import { fromSavedContacts, GrovePerson, occupiesAccessSeat } from '../component
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import {
+  FieldInvite,
   FieldMembership,
   MAX_FAMILY_SEATS,
   MAX_PARTNER_SEATS,
@@ -42,6 +43,8 @@ import './PartnersPage.css';
 /** Marketplace browse / offer / requests — hidden until we ship it. */
 const SHOW_PARTNER_MARKETPLACE = false;
 
+type InvitePrefill = { name?: string; email?: string };
+
 const PartnersPage: React.FC = () => {
   const { t, i18n } = useTranslation(['partners', 'common']);
   const { user } = useAuth();
@@ -63,6 +66,8 @@ const PartnersPage: React.FC = () => {
   const [adding, setAdding] = useState(addParam);
   const [addingFamily, setAddingFamily] = useState(false);
   const [addingPartner, setAddingPartner] = useState(false);
+  const [invitePrefill, setInvitePrefill] = useState<InvitePrefill>({});
+  const [pendingInvitesById, setPendingInvitesById] = useState<Record<string, FieldInvite>>({});
   const [importingPhone, setImportingPhone] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
   const addPersonDrawer = useDrawerPresence(adding);
@@ -225,9 +230,22 @@ const PartnersPage: React.FC = () => {
   const familyUsed = countSeats(fieldPeople, 'Family');
   const partnerUsed = countSeats(fieldPeople, 'Partner');
 
-  const onSeatsChanged = () => {
+  const onSeatsChanged = (invite?: FieldInvite) => {
+    if (invite?.id) {
+      setPendingInvitesById((prev) => ({ ...prev, [invite.id]: invite }));
+    }
     setSeatsTick((n) => n + 1);
     invalidateAccessContext();
+  };
+
+  const openInviteFamily = (prefill: InvitePrefill = {}) => {
+    setInvitePrefill(prefill);
+    setAddingFamily(true);
+  };
+
+  const openInvitePartner = (prefill: InvitePrefill = {}) => {
+    setInvitePrefill(prefill);
+    setAddingPartner(true);
   };
 
   if (pageGuard.loading) {
@@ -287,11 +305,13 @@ const PartnersPage: React.FC = () => {
                 ) : null}
               </h2>
               <p className="partners-lead">{t('partners:contactsSectionHint')}</p>
+              <p className="partners-inline-hint">{t('partners:contactsVsUsers')}</p>
             </div>
             {user ? (
               <div className="partners-hero-actions">
                 {canPickPhone ? (
                   <Button
+                    variant="outline"
                     onClick={() => setImportingPhone(true)}
                     icon={<Smartphone size={18} aria-hidden />}
                   >
@@ -299,11 +319,11 @@ const PartnersPage: React.FC = () => {
                   </Button>
                 ) : null}
                 <Button
-                  variant={canPickPhone ? 'outline' : 'primary'}
+                  variant="primary"
                   onClick={() => setAdding(true)}
                   icon={<Plus size={18} aria-hidden />}
                 >
-                  {t('partners:newContact')}
+                  {t('partners:addContact')}
                 </Button>
               </div>
             ) : null}
@@ -317,21 +337,22 @@ const PartnersPage: React.FC = () => {
               description={t('partners:emptyPeopleHint')}
               action={
                 <div className="partner-actions">
+                  {user ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => setAdding(true)}
+                      icon={<Plus size={18} aria-hidden />}
+                    >
+                      {t('partners:addContact')}
+                    </Button>
+                  ) : null}
                   {user && canPickPhone ? (
                     <Button
+                      variant="outline"
                       onClick={() => setImportingPhone(true)}
                       icon={<Smartphone size={18} aria-hidden />}
                     >
                       {t('partners:importPhone.openPhone')}
-                    </Button>
-                  ) : null}
-                  {user ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => setAdding(true)}
-                      icon={<Plus size={18} aria-hidden />}
-                    >
-                      {t('partners:newContact')}
                     </Button>
                   ) : null}
                   {SHOW_PARTNER_MARKETPLACE ? (
@@ -353,8 +374,11 @@ const PartnersPage: React.FC = () => {
                 fields={fields}
                 canManage={canManage}
                 onEditContact={(row) => setEditing(row.savedContact || null)}
-                onInviteContact={() => {
-                  setAddingFamily(true);
+                onInviteContact={(person) => {
+                  openInviteFamily({
+                    name: person.displayName,
+                    email: person.email || person.savedContact?.email || '',
+                  });
                 }}
                 onRemoved={() => setPeopleTick((n) => n + 1)}
               />
@@ -368,9 +392,10 @@ const PartnersPage: React.FC = () => {
             people={fieldPeople}
             loading={seatsLoading}
             canManage={canManage}
-            onAddFamily={() => setAddingFamily(true)}
-            onAddPartner={() => setAddingPartner(true)}
-            onChanged={onSeatsChanged}
+            pendingInvitesById={pendingInvitesById}
+            onAddFamily={() => openInviteFamily()}
+            onAddPartner={() => openInvitePartner()}
+            onChanged={() => onSeatsChanged()}
           />
         ) : null}
 
@@ -398,8 +423,8 @@ const PartnersPage: React.FC = () => {
             partnerMax={MAX_PARTNER_SEATS}
             onClose={() => setAdding(false)}
             onSaved={() => setPeopleTick((n) => n + 1)}
-            onInviteFamily={() => setAddingFamily(true)}
-            onInvitePartner={() => setAddingPartner(true)}
+            onInviteFamily={() => openInviteFamily()}
+            onInvitePartner={() => openInvitePartner()}
             onImportPhone={() => setImportingPhone(true)}
           />
         ) : null}
@@ -419,7 +444,12 @@ const PartnersPage: React.FC = () => {
           <AddFamilySheet
             open={addFamilyDrawer.open}
             fieldId={fieldId}
-            onClose={() => setAddingFamily(false)}
+            initialName={invitePrefill.name}
+            initialEmail={invitePrefill.email}
+            onClose={() => {
+              setAddingFamily(false);
+              setInvitePrefill({});
+            }}
             onCreated={onSeatsChanged}
           />
         ) : null}
@@ -428,7 +458,12 @@ const PartnersPage: React.FC = () => {
           <AddPartnerSheet
             open={addPartnerDrawer.open}
             fieldId={fieldId}
-            onClose={() => setAddingPartner(false)}
+            initialName={invitePrefill.name}
+            initialEmail={invitePrefill.email}
+            onClose={() => {
+              setAddingPartner(false);
+              setInvitePrefill({});
+            }}
             onCreated={onSeatsChanged}
           />
         ) : null}

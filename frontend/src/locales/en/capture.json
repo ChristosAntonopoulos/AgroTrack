@@ -5,8 +5,12 @@
   "whatToRecord": "What do you want to record?",
   "types": {
     "observation": {
-      "title": "Observation",
-      "description": "A note or photos from the grove"
+      "title": "Note",
+      "description": "A text note from the grove"
+    },
+    "photo": {
+      "title": "Photo",
+      "description": "Upload one or more grove photos"
     },
     "work": {
       "title": "Work",
@@ -37,8 +41,8 @@
       "description": "Upload a file with a name"
     }
   },
-  "fieldLabel": "Grove",
-  "fieldPrompt": "Which grove?",
+  "fieldLabel": "Field",
+  "fieldPrompt": "Which field?",
   "dateLabel": "When",
   "today": "Today",
   "more": "More details",
@@ -54,7 +58,11 @@
   "observation": {
     "placeholder": "What did you notice?",
     "addPhoto": "Add photo",
-    "saved": "Observation recorded."
+    "saved": "Note recorded."
+  },
+  "photo": {
+    "saved": "{{count}} photo(s) uploaded.",
+    "harvestHint": "Photos are saved to the Photos hub for this field."
   },
   "voice": {
     "hint": "Tap record and speak. The message appears on the timeline.",
@@ -110,6 +118,7 @@
   "errors": {
     "fieldRequired": "Choose a grove.",
     "observationEmpty": "Add a note or a photo.",
+    "photoRequired": "Choose at least one photo.",
     "voiceEmpty": "Record a voice message first.",
     "documentNameRequired": "Enter a document name.",
     "documentFileRequired": "Choose a file.",
@@ -165,7 +174,7 @@
     "linkLater": "I will link it later",
     "recordedAvailable": "Recorded available: {{quantity}}",
     "saleExceedsHarvest": "This sale is more than the recorded litres of that harvest.",
-    "whichField": "Which grove?",
+    "whichField": "Which field?",
     "whenDidItHappen": "When did it happen?",
     "yesterday": "Yesterday",
     "pickDate": "Pick a date",

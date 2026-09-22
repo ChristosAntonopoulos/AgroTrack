@@ -223,7 +223,8 @@ const FieldFormPage: React.FC = () => {
       return;
     }
     setError(null);
-    // Do not create a backend draft when leaving Basics — only on Save draft / Activate.
+    // Boundary is optional: leaving the step without a finished polygon is fine.
+    // Unfinished local corners live only in the map step and are discarded on unmount.
     if (!isLast) setStep(activeSteps[stepIndex + 1] as WizardStep);
   };
 

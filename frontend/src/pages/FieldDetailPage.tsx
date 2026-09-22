@@ -28,12 +28,12 @@ import { writeFieldViewPreferences } from '../utils/fieldViewPreferences';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
 import FieldHeader from '../components/fields/FieldHeader';
 import FieldLocalNavigation from '../components/fields/FieldLocalNavigation';
 import FieldOverview from '../components/fields/FieldOverview';
 import FieldMapDataTab from '../components/fields/FieldMapDataTab';
 import FieldDetailsTab from '../components/fields/FieldDetailsTab';
+import FieldTabStatus from '../components/fields/FieldTabStatus';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import { readWorkProfileDraft } from '../utils/fieldWorkProfileDraft';
 import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
@@ -67,10 +67,13 @@ const FieldDetailPage: React.FC = () => {
   const [costSummary, setCostSummary] = useState<YearFinancialSummary | null>(null);
   const [yearRollup, setYearRollup] = useState<FieldYearSummary | null>(null);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fieldLoading, setFieldLoading] = useState(true);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [weatherTick, setWeatherTick] = useState(0);
+  const [overviewTick, setOverviewTick] = useState(0);
 
   const suggestFromNav = Boolean(
     (location.state as { suggestLifecyclePlan?: boolean } | null)?.suggestLifecyclePlan
@@ -81,17 +84,49 @@ const FieldDetailPage: React.FC = () => {
     setBannerDismissed(localStorage.getItem(DISMISS_KEY(id)) === '1');
   }, [id]);
 
+  // Field record — required before any tab can render.
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
 
-    const load = async () => {
+    const loadField = async () => {
       try {
-        if (!field) setLoading(true);
+        if (!field) setFieldLoading(true);
+        setError(null);
+        const fieldData = await getFieldService().getField(id);
+        if (cancelled) return;
+        if (isFieldSetupIncomplete(fieldData.status)) {
+          navigate(`/fields/${fieldData.id}/edit`, { replace: true });
+          return;
+        }
+        setField(fieldData);
+        setShowingCachedData(!isDeviceOnline());
+      } catch (err: unknown) {
+        if (!cancelled) setError(getApiErrorMessage(err, t) || t('fields:controlRoom.failedLoad'));
+      } finally {
+        if (!cancelled) setFieldLoading(false);
+      }
+    };
+
+    void loadField();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, refreshGeneration]);
+
+  // Overview / weather / money / work — tab-local loading, does not blank the whole page.
+  useEffect(() => {
+    if (!id || !field) return;
+    let cancelled = false;
+
+    const loadSecondary = async () => {
+      try {
+        setOverviewLoading(true);
+        setOverviewError(false);
         setWeatherLoading(true);
-        const [fieldData, plan, summary, chrono, fieldYear, profile, stage, weatherData, alertData] =
+        const [plan, summary, chrono, fieldYear, profile, stage, weatherData, alertData] =
           await Promise.all([
-            getFieldService().getField(id),
             getFieldWorkService().getTaskPlan(id, year).catch(() => null),
             getFinancialSummaryService().getYear(year, id, i18n.language).catch(() => null),
             getChronologioService()
@@ -108,11 +143,6 @@ const FieldDetailPage: React.FC = () => {
             geospatialService.getAlerts(id).catch(() => [] as FieldEnvironmentalAlert[]),
           ]);
         if (cancelled) return;
-        if (isFieldSetupIncomplete(fieldData.status)) {
-          navigate(`/fields/${fieldData.id}/edit`, { replace: true });
-          return;
-        }
-        setField(fieldData);
         setTasks(plan?.tasks ?? []);
         setProposals(plan?.proposals ?? []);
         setCostSummary(summary);
@@ -123,23 +153,21 @@ const FieldDetailPage: React.FC = () => {
         setWeather(weatherData);
         setWeatherError(!weatherData);
         setAlerts(alertData ?? []);
-        setShowingCachedData(!isDeviceOnline());
-      } catch (err: unknown) {
-        if (!cancelled) setError(getApiErrorMessage(err, t) || t('fields:controlRoom.failedLoad'));
+      } catch {
+        if (!cancelled) setOverviewError(true);
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          setOverviewLoading(false);
           setWeatherLoading(false);
         }
       }
     };
 
-    void load();
+    void loadSecondary();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, year, refreshGeneration, i18n.language, weatherTick]);
+  }, [id, field, year, refreshGeneration, i18n.language, weatherTick, overviewTick]);
 
   const capacity = useFieldCapacity(field);
   const grantedAccess = useGrantedFieldAccess(field);
@@ -152,6 +180,8 @@ const FieldDetailPage: React.FC = () => {
   const canViewMoney =
     capabilities == null ? Boolean(canOwn) : Boolean(capabilities.canViewMoney);
   const canCapture = capabilities?.canCreateRecords !== false;
+  const canViewChronologio = capabilities?.canViewChronologio !== false;
+  const canViewMap = capabilities?.canViewBoundary !== false;
 
   const showWorkSetupBanner =
     Boolean(canOwn) &&
@@ -199,21 +229,22 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!id || !window.confirm(t('fields:details.danger.confirmDelete'))) return;
+    if (!id) return;
     try {
       await getFieldService().deleteField(id);
       navigate('/fields');
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:failedDelete'));
+      throw err;
     }
   };
 
-  if (loading) {
+  if (fieldLoading && !field) {
     return (
       <PageContainer maxWidth="full" padding="none">
         <div className="field-page">
           <Breadcrumbs />
-          <LoadingSpinner className="page-inline-loading" />
+          <FieldTabStatus kind="loading" />
         </div>
       </PageContainer>
     );
@@ -245,7 +276,6 @@ const FieldDetailPage: React.FC = () => {
           showYearControl={tab === 'overview'}
           onYearChange={setYear}
           onCapture={canCapture ? openCapture : undefined}
-          onDelete={canDelete ? handleDelete : undefined}
           phenology={phenology}
         />
 
@@ -315,14 +345,21 @@ const FieldDetailPage: React.FC = () => {
           capabilities={capabilities}
         />
 
-        {tab === 'chronologio' && capabilities?.canViewChronologio !== false ? (
+        {tab === 'chronologio' ? (
           <div
             className="field-tab-panel"
             id="field-panel-chronologio"
             role="tabpanel"
             aria-labelledby="field-tab-chronologio"
           >
-            <ChronologioLiving fieldId={field.id} embedded />
+            {canViewChronologio ? (
+              <ChronologioLiving fieldId={field.id} embedded />
+            ) : (
+              <FieldTabStatus
+                kind="unavailable"
+                description={t('fields:page.chronologioUnavailable')}
+              />
+            )}
           </div>
         ) : null}
 
@@ -333,44 +370,54 @@ const FieldDetailPage: React.FC = () => {
             role="tabpanel"
             aria-labelledby="field-tab-overview"
           >
-            <FieldOverview
-              field={field}
-              year={year}
-              currentYear={currentYear}
-              phenology={phenology}
-              tasks={tasks}
-              proposals={proposals}
-              alerts={alerts}
-              weather={weather}
-              weatherLoading={weatherLoading}
-              weatherError={weatherError}
-              onRetryWeather={() => setWeatherTick((n) => n + 1)}
-              costSummary={costSummary}
-              yearRollup={yearRollup}
-              recentEntries={recentEntries}
-              canViewMoney={Boolean(canViewMoney)}
-              onOpenChronologio={(entry) => {
-                writeFieldViewPreferences({ lastTab: 'chronologio' });
-                replaceParams((params) => {
-                  params.delete('mode');
-                  params.set('tab', 'chronologio');
-                  if (entry) params.set('entry', entry.id);
-                  else params.delete('entry');
-                });
-              }}
-              onOpenMap={() => setTab('map')}
-            />
+            {overviewLoading && !weather && tasks.length === 0 ? (
+              <FieldTabStatus kind="loading" />
+            ) : overviewError ? (
+              <FieldTabStatus kind="error" onRetry={() => setOverviewTick((n) => n + 1)} />
+            ) : (
+              <FieldOverview
+                field={field}
+                year={year}
+                currentYear={currentYear}
+                phenology={phenology}
+                tasks={tasks}
+                proposals={proposals}
+                alerts={alerts}
+                weather={weather}
+                weatherLoading={weatherLoading}
+                weatherError={weatherError}
+                onRetryWeather={() => setWeatherTick((n) => n + 1)}
+                costSummary={costSummary}
+                yearRollup={yearRollup}
+                recentEntries={recentEntries}
+                canViewMoney={Boolean(canViewMoney)}
+                onOpenChronologio={(entry) => {
+                  writeFieldViewPreferences({ lastTab: 'chronologio' });
+                  replaceParams((params) => {
+                    params.delete('mode');
+                    params.set('tab', 'chronologio');
+                    if (entry) params.set('entry', entry.id);
+                    else params.delete('entry');
+                  });
+                }}
+                onOpenMap={() => setTab('map')}
+              />
+            )}
           </div>
         ) : null}
 
-        {tab === 'map' && capabilities?.canViewBoundary !== false ? (
+        {tab === 'map' ? (
           <div
             className="field-tab-panel"
             id="field-panel-map"
             role="tabpanel"
             aria-labelledby="field-tab-map"
           >
-            <FieldMapDataTab field={field} year={year} weather={weather} />
+            {canViewMap ? (
+              <FieldMapDataTab field={field} year={year} weather={weather} />
+            ) : (
+              <FieldTabStatus kind="unavailable" description={t('fields:page.mapUnavailable')} />
+            )}
           </div>
         ) : null}
 

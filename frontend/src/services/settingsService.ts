@@ -8,19 +8,43 @@ export type { FontScale };
 
 export type DefaultView = 'fields' | 'chronologio';
 
+export interface NotificationDevicePreferences {
+  taskAssignment: boolean;
+  approval: boolean;
+  harvest: boolean;
+  financial: boolean;
+  satelliteWeather: boolean;
+  marketingSystem: boolean;
+}
+
 export interface UserPreferences {
   theme: Theme;
   dateFormat: string;
   language: string;
   defaultView: DefaultView | 'tasks';
+  /** @deprecated Prefer notificationPrefs.taskAssignment */
   emailNotifications: boolean;
+  /** @deprecated Prefer notificationPrefs.taskAssignment */
   taskAssignmentNotifications: boolean;
+  /** @deprecated Prefer notificationPrefs.approval */
   deadlineReminders: boolean;
+  /** @deprecated Prefer notificationPrefs.harvest */
   lifecycleAlerts: boolean;
+  /** @deprecated Prefer notificationPrefs.marketingSystem */
   reportNotifications: boolean;
+  notificationPrefs: NotificationDevicePreferences;
   fontScale: FontScale;
   largeControls: boolean;
 }
+
+const DEFAULT_NOTIFICATION_PREFS: NotificationDevicePreferences = {
+  taskAssignment: true,
+  approval: true,
+  harvest: true,
+  financial: true,
+  satelliteWeather: true,
+  marketingSystem: false,
+};
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
@@ -32,6 +56,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   deadlineReminders: true,
   lifecycleAlerts: true,
   reportNotifications: false,
+  notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS },
   fontScale: 'default',
   largeControls: false,
 };
@@ -50,6 +75,36 @@ const normalizeDefaultView = (raw: unknown): UserPreferences['defaultView'] => {
     return raw;
   }
   return DEFAULT_PREFERENCES.defaultView;
+};
+
+const normalizeNotificationPrefs = (
+  parsed: Partial<UserPreferences> & Record<string, unknown>
+): NotificationDevicePreferences => {
+  const raw = (parsed.notificationPrefs || {}) as Partial<NotificationDevicePreferences>;
+  return {
+    taskAssignment:
+      raw.taskAssignment ??
+      (typeof parsed.taskAssignmentNotifications === 'boolean'
+        ? parsed.taskAssignmentNotifications
+        : DEFAULT_NOTIFICATION_PREFS.taskAssignment),
+    approval:
+      raw.approval ??
+      (typeof parsed.deadlineReminders === 'boolean'
+        ? parsed.deadlineReminders
+        : DEFAULT_NOTIFICATION_PREFS.approval),
+    harvest:
+      raw.harvest ??
+      (typeof parsed.lifecycleAlerts === 'boolean'
+        ? parsed.lifecycleAlerts
+        : DEFAULT_NOTIFICATION_PREFS.harvest),
+    financial: raw.financial ?? DEFAULT_NOTIFICATION_PREFS.financial,
+    satelliteWeather: raw.satelliteWeather ?? DEFAULT_NOTIFICATION_PREFS.satelliteWeather,
+    marketingSystem:
+      raw.marketingSystem ??
+      (typeof parsed.reportNotifications === 'boolean'
+        ? parsed.reportNotifications
+        : DEFAULT_NOTIFICATION_PREFS.marketingSystem),
+  };
 };
 
 export const resolveSystemTheme = (): ResolvedTheme => {
@@ -98,6 +153,7 @@ export const settingsService = {
           parsed.dateFormat = DEFAULT_PREFERENCES.dateFormat;
         }
         parsed.largeControls = Boolean(parsed.largeControls);
+        parsed.notificationPrefs = normalizeNotificationPrefs(parsed);
         // Drop retired experience-mode keys from the in-memory shape.
         const {
           experienceMode: _em,
@@ -116,7 +172,7 @@ export const settingsService = {
     } catch (error) {
       console.error('Error loading preferences:', error);
     }
-    return { ...DEFAULT_PREFERENCES };
+    return { ...DEFAULT_PREFERENCES, notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS } };
   },
 
   savePreferences: (preferences: Partial<UserPreferences>): boolean => {
@@ -125,6 +181,12 @@ export const settingsService = {
       const updated = { ...current, ...preferences };
       if (preferences.theme !== undefined) {
         updated.theme = normalizeTheme(preferences.theme);
+      }
+      if (preferences.notificationPrefs) {
+        updated.notificationPrefs = {
+          ...current.notificationPrefs,
+          ...preferences.notificationPrefs,
+        };
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return true;

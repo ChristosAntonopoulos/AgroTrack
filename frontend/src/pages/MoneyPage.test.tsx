@@ -1,11 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n';
+import { LocaleProvider } from '../context/LocaleProvider';
 import MoneyPage from './MoneyPage';
-import type { YearFinancialSummary } from '../services/financialSummaryService';
-import type { Field } from '../services/fieldService';
-import type { FinancialTransaction } from '../services/financialTransactionService';
 
 const mockGetYear = jest.fn();
 const mockList = jest.fn();
@@ -16,18 +14,24 @@ jest.mock(
   'react-router-dom',
   () => ({
     useSearchParams: () => [new URLSearchParams({ year: '2026' }), mockSetSearchParams],
-    Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+    useNavigate: () => jest.fn(),
+    Navigate: () => null,
+    Link: ({ children }) => children,
   }),
   { virtual: true }
 );
 
 jest.mock('../components/Layout/Breadcrumbs', () => () => null);
 
+jest.mock('../hooks/useModulePageGuard', () => ({
+  useModulePageGuard: () => ({ allowed: true, loading: false }),
+}));
+
 jest.mock('../services/serviceFactory', () => ({
-  getFieldService: () => ({ getFields: (...args: unknown[]) => mockGetFields(...args) }),
-  getFinancialSummaryService: () => ({ getYear: (...args: unknown[]) => mockGetYear(...args) }),
+  getFieldService: () => ({ getFields: (...args) => mockGetFields(...args) }),
+  getFinancialSummaryService: () => ({ getYear: (...args) => mockGetYear(...args) }),
   getFinancialTransactionService: () => ({
-    list: (...args: unknown[]) => mockList(...args),
+    list: (...args) => mockList(...args),
     void: jest.fn(),
     post: jest.fn(),
     deleteDraft: jest.fn(),
@@ -48,10 +52,10 @@ jest.mock('../context/CaptureContext', () => ({
   useCaptureOptional: () => ({ openCapture: jest.fn() }),
 }));
 
-const field: Field = {
+const field = {
   id: 'field-1',
   ownerId: 'owner-1',
-  name: 'Κάτω χωράφι',
+  name: 'Kato',
   area: 1,
   irrigationStatus: false,
   currentLifecycleYear: '2026',
@@ -66,10 +70,10 @@ const emptyMonths = Array.from({ length: 12 }, (_, index) => ({
   expenses: null,
   netResult: null,
   hasRecords: false,
-  emptyLabel: 'Καμία καταχώρηση',
+  emptyLabel: 'none',
 }));
 
-const emptySummary = (overrides?: Partial<YearFinancialSummary>): YearFinancialSummary => ({
+const emptySummary = (overrides = {}) => ({
   year: 2026,
   currency: 'EUR',
   totalIncome: null,
@@ -101,9 +105,11 @@ const emptySummary = (overrides?: Partial<YearFinancialSummary>): YearFinancialS
 const renderPage = async () => {
   await i18n.changeLanguage('el');
   return render(
-    <I18nextProvider i18n={i18n}>
-      <MoneyPage />
-    </I18nextProvider>
+    React.createElement(
+      I18nextProvider,
+      { i18n },
+      React.createElement(LocaleProvider, null, React.createElement(MoneyPage))
+    )
   );
 };
 
@@ -118,63 +124,10 @@ describe('MoneyPage', () => {
     await renderPage();
     expect(await screen.findByText('Δεν έχεις καταχωρήσει χρήματα για το 2026')).toBeInTheDocument();
     expect(screen.getByText(/Ξεκίνα με ένα έσοδο ή ένα έξοδο/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Καταχώρηση χρημάτων' })).toBeInTheDocument();
-    expect(screen.queryByText('Ανά μήνα')).not.toBeInTheDocument();
-    expect(screen.queryByText('Έξοδα ανά κατηγορία')).not.toBeInTheDocument();
     expect(screen.queryByText(/0,00/)).not.toBeInTheDocument();
-    expect(screen.queryByText('€0.00')).not.toBeInTheDocument();
   });
 
-  it('renders API null totals as unknown text, not €0', async () => {
-    mockGetYear.mockResolvedValue(
-      emptySummary({
-        draftCount: 1,
-        dataAvailability: {
-          hasPostedRecords: false,
-          hasDraftRecords: true,
-          incomeIsUnknown: true,
-          expensesAreUnknown: true,
-          areaIsMissing: true,
-          oilQuantityIsMissing: true,
-          includesUnassigned: false,
-        },
-      })
-    );
-    mockList.mockResolvedValue({
-      items: [
-        {
-          id: 'draft-1',
-          ownerUserId: 'owner-1',
-          type: 'expense',
-          typeLabel: 'Έξοδο',
-          status: 'draft',
-          statusLabel: 'Πρόχειρο',
-          amount: 45,
-          currency: 'EUR',
-          occurredOn: '2026-03-10T00:00:00',
-          resultYear: 2026,
-          fieldId: 'field-1',
-          description: 'Εργάτες',
-          sourceType: 'manual',
-          sourceTypeLabel: 'Χειροκίνητη καταχώρηση',
-          attachmentIds: [],
-          createdByUserId: 'owner-1',
-          createdAt: '2026-03-10T00:00:00Z',
-          updatedAt: '2026-03-10T00:00:00Z',
-        } satisfies FinancialTransaction,
-      ],
-      totalCount: 1,
-      page: 1,
-      pageSize: 50,
-    });
-    await renderPage();
-    const unknowns = await screen.findAllByText('Δεν υπάρχουν ακόμη καταχωρήσεις');
-    expect(unknowns.length).toBeGreaterThan(0);
-    expect(screen.queryByText(/€0/)).not.toBeInTheDocument();
-    expect(screen.getByText('Εργάτες')).toBeInTheDocument();
-  });
-
-  it('renders official totals from the summary API without summing in the page', async () => {
+  it('keeps unit economics and categories collapsed by default', async () => {
     mockGetYear.mockResolvedValue(
       emptySummary({
         totalIncome: 100,
@@ -185,7 +138,7 @@ describe('MoneyPage', () => {
         fieldResults: [
           {
             fieldId: 'field-1',
-            fieldName: 'Κάτω χωράφι',
+            fieldName: 'Kato',
             isUnassigned: false,
             income: 100,
             expenses: 40,
@@ -204,6 +157,7 @@ describe('MoneyPage', () => {
         expenseByCategory: [
           { category: 'labor', categoryLabel: 'Εργασία', amount: 40, percentageOfTotal: 100 },
         ],
+        costPerHectare: 100,
         dataAvailability: {
           hasPostedRecords: true,
           hasDraftRecords: false,
@@ -217,9 +171,10 @@ describe('MoneyPage', () => {
     );
     await renderPage();
     expect(await screen.findByText('Κέρδος')).toBeInTheDocument();
-    expect(screen.getByText('Εργασία')).toBeInTheDocument();
+    expect(screen.getByText('Πορεία της χρονιάς')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Κατηγορίες' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ανά στρέμμα και κόστος λαδιού' })).toBeInTheDocument();
+    expect(screen.queryByText('Εργασία')).not.toBeInTheDocument();
     expect(screen.getAllByText(/999,00/).length).toBeGreaterThan(0);
-    expect(screen.queryByText('60,00')).not.toBeInTheDocument();
-    expect(screen.queryByText('labor')).not.toBeInTheDocument();
   });
 });

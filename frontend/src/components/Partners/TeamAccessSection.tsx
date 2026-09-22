@@ -4,6 +4,7 @@ import { Handshake, Plus, Users } from 'lucide-react';
 import Button from '../Common/Button';
 import FieldSeatCard from './FieldSeatCard';
 import {
+  FieldInvite,
   FieldMembership,
   MAX_FAMILY_SEATS,
   MAX_PARTNER_SEATS,
@@ -15,6 +16,8 @@ type Props = {
   people: FieldMembership[];
   loading?: boolean;
   canManage?: boolean;
+  /** Session invites keyed by invite id — enables share-again with QR. */
+  pendingInvitesById?: Record<string, FieldInvite>;
   onAddFamily: () => void;
   onAddPartner: () => void;
   onChanged: () => void;
@@ -25,6 +28,7 @@ const TeamAccessSection: React.FC<Props> = ({
   people,
   loading,
   canManage,
+  pendingInvitesById = {},
   onAddFamily,
   onAddPartner,
   onChanged,
@@ -59,6 +63,7 @@ const TeamAccessSection: React.FC<Props> = ({
         <div>
           <h2 id="team-access-title">{t('partners:team.title')}</h2>
           <p className="partners-lead">{t('partners:team.lead')}</p>
+          <p className="partners-inline-hint">{t('partners:contactsVsUsers')}</p>
         </div>
       </div>
 
@@ -132,6 +137,7 @@ const TeamAccessSection: React.FC<Props> = ({
               fieldId={fieldId}
               person={member}
               canManage={canManage}
+              pendingInvite={member.inviteId ? pendingInvitesById[member.inviteId] : null}
               onChanged={onChanged}
             />
           ))}
@@ -141,6 +147,7 @@ const TeamAccessSection: React.FC<Props> = ({
               fieldId={fieldId}
               person={partner}
               canManage={canManage}
+              pendingInvite={partner.inviteId ? pendingInvitesById[partner.inviteId] : null}
               onChanged={onChanged}
             />
           ))}

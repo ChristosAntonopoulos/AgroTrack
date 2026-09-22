@@ -17,6 +17,7 @@ import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { taskPeekPath } from '../../navigation/intents';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import './Money.css';
 
 type Props = {
@@ -46,6 +47,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
   onDeleteDraft,
 }) => {
   const { t, i18n } = useTranslation(['money', 'common']);
+  const { formatDate, formatDateTime } = useLocaleFormatters();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmVoid, setConfirmVoid] = useState(false);
@@ -179,11 +181,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
             </div>
             <div>
               <dt>{t('money:date')}</dt>
-              <dd>
-                {new Date(transaction.occurredOn).toLocaleDateString(i18n.language, {
-                  dateStyle: 'long',
-                })}
-              </dd>
+              <dd>{formatDate(transaction.occurredOn)}</dd>
             </div>
             <div>
               <dt>{t('money:field')}</dt>
@@ -247,7 +245,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
               <dt>{t('money:createdAt', { date: '' }).trim()}</dt>
               <dd>
                 {t('money:createdAt', {
-                  date: new Date(transaction.createdAt).toLocaleString(i18n.language),
+                  date: formatDateTime(transaction.createdAt),
                 })}
               </dd>
             </div>
@@ -256,7 +254,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 <dt>{t('money:postedAt', { date: '' }).trim()}</dt>
                 <dd>
                   {t('money:postedAt', {
-                    date: new Date(transaction.postedAt).toLocaleString(i18n.language),
+                    date: formatDateTime(transaction.postedAt),
                   })}
                 </dd>
               </div>

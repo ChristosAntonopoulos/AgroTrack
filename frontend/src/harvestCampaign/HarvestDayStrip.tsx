@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { shiftAthensDateKey } from '../utils/athensDate';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import type { HarvestDaySummary } from './totals';
 import { harvestWorkingDayHasActivity } from './workingDay';
 
@@ -31,13 +32,11 @@ const HarvestDayStrip: React.FC<Props> = ({
   onShift,
 }) => {
   const { t } = useTranslation('fields');
+  const { formatDate } = useLocaleFormatters();
   const yesterday = shiftAthensDateKey(today, -1);
 
-  const title = new Date(`${selectedDay}T12:00:00`).toLocaleDateString(locale, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  const when = new Date(`${selectedDay}T12:00:00`);
+  const title = `${when.toLocaleDateString(locale, { weekday: 'long' })}, ${formatDate(when)}`;
 
   const relative =
     selectedDay === today

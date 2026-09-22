@@ -24,12 +24,19 @@ import {
   defaultModeForCategory,
   formatQuantityLine,
   newIdempotencyKey,
-  shiftIsoDate,
   suggestedDescription,
   suggestedUnitsForCategory,
   todayIsoDate,
   yearFromIsoDate,
 } from '../../finance/moneyUi';
+import {
+  clearMoneyEntryDraft,
+  isMoneyEntryPartial,
+  readMoneyEntryDraft,
+  writeMoneyEntryDraft,
+} from '../../finance/moneyEntryDraft';
+import { formatRelatedHarvestLabel, uniqueRelatedHarvestLabels } from '../../finance/relatedHarvestLabel';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import MoneyTypeToggle from '../money/MoneyTypeToggle';
 import MoneyCategorySelector from '../money/MoneyCategorySelector';
 import TransactionAmountInput from '../money/TransactionAmountInput';
@@ -55,6 +62,8 @@ type Props = {
     message: string,
     options?: { transactionId: string; status: 'draft' | 'posted'; reopen?: CaptureContext }
   ) => void;
+  /** Notify the capture shell that the form has unsaved partial input. */
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 const formatMoney = (value: number, locale: string) =>
@@ -69,11 +78,15 @@ const MoneyCaptureForm: React.FC<Props> = ({
   canRecordIncome,
   canRecordExpense,
   onSaved,
+  onDirtyChange,
 }) => {
-  const { t, i18n } = useTranslation(['capture', 'chronologio']);
+  const { t, i18n } = useTranslation(['capture', 'chronologio', 'money']);
   const language = i18n.language || 'el';
+  const { dateFormat } = useLocaleFormatters();
   const amountRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const draftAppliedRef = useRef(false);
+  const skipContextHydrationRef = useRef(false);
 
   const preferredKind: FinancialTransactionType | null =
     context.preferredType === 'income' && canRecordIncome
@@ -86,28 +99,58 @@ const MoneyCaptureForm: React.FC<Props> = ({
             ? 'income'
             : null;
 
-  const [kind, setKind] = useState<FinancialTransactionType | null>(preferredKind);
-  const [category, setCategory] = useState<FinancialCategory>(
-    context.category || defaultCategoryForType(preferredKind || 'expense')
+  const [kind, setKind] = useState<FinancialTransactionType | null>(() => {
+    const draft = readMoneyEntryDraft();
+    return draft?.kind ?? preferredKind;
+  });
+  const [category, setCategory] = useState<FinancialCategory>(() => {
+    const draft = readMoneyEntryDraft();
+    return draft?.category ?? context.category ?? defaultCategoryForType(preferredKind || 'expense');
+  });
+  const [mode, setMode] = useState<FinancialCalculationMode>(() => {
+    const draft = readMoneyEntryDraft();
+    return draft?.mode ?? defaultModeForCategory(category);
+  });
+  const [quantity, setQuantity] = useState(() => readMoneyEntryDraft()?.quantity ?? '');
+  const [unit, setUnit] = useState<FinancialQuantityUnit>(() => {
+    const draft = readMoneyEntryDraft();
+    return draft?.unit ?? ((suggestedUnitsForCategory(category)[0] || 'litre') as FinancialQuantityUnit);
+  });
+  const [unitPrice, setUnitPrice] = useState(() => readMoneyEntryDraft()?.unitPrice ?? '');
+  const [amount, setAmount] = useState(() => readMoneyEntryDraft()?.amount ?? '');
+  const [fieldId, setFieldId] = useState(() => readMoneyEntryDraft()?.fieldId || context.fieldId || '');
+  const [occurredOn, setOccurredOn] = useState(
+    () => readMoneyEntryDraft()?.occurredOn || todayIsoDate(context.occurredAt)
   );
-  const [mode, setMode] = useState<FinancialCalculationMode>(defaultModeForCategory(category));
-  const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState<FinancialQuantityUnit>(
-    (suggestedUnitsForCategory(category)[0] || 'litre') as FinancialQuantityUnit
+  const [description, setDescription] = useState(
+    () => readMoneyEntryDraft()?.description || context.description || ''
   );
-  const [unitPrice, setUnitPrice] = useState('');
-  const [amount, setAmount] = useState('');
-  const [fieldId, setFieldId] = useState(context.fieldId || '');
-  const [occurredOn, setOccurredOn] = useState(todayIsoDate(context.occurredAt));
-  const [description, setDescription] = useState(context.description || '');
-  const [moreOpen, setMoreOpen] = useState(Boolean(context.taskId || context.harvestId));
-  const [relatedTaskId, setRelatedTaskId] = useState(context.taskId || '');
-  const [relatedHarvestId, setRelatedHarvestId] = useState(context.harvestId || '');
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [counterpartyName, setCounterpartyName] = useState('');
-  const [notes, setNotes] = useState('');
-  const [resultYear, setResultYear] = useState(yearFromIsoDate(todayIsoDate(context.occurredAt)));
-  const [resultYearTouched, setResultYearTouched] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(() => {
+    const draft = readMoneyEntryDraft();
+    return Boolean(
+      draft?.moreOpen ||
+        draft?.relatedTaskId ||
+        draft?.relatedHarvestId ||
+        context.taskId ||
+        context.harvestId
+    );
+  });
+  const [relatedTaskId, setRelatedTaskId] = useState(
+    () => readMoneyEntryDraft()?.relatedTaskId || context.taskId || ''
+  );
+  const [relatedHarvestId, setRelatedHarvestId] = useState(
+    () => readMoneyEntryDraft()?.relatedHarvestId || context.harvestId || ''
+  );
+  const [paymentMethod, setPaymentMethod] = useState(() => readMoneyEntryDraft()?.paymentMethod ?? '');
+  const [counterpartyName, setCounterpartyName] = useState(
+    () => readMoneyEntryDraft()?.counterpartyName ?? ''
+  );
+  const [notes, setNotes] = useState(() => readMoneyEntryDraft()?.notes ?? '');
+  const [resultYear, setResultYear] = useState(() => {
+    const draft = readMoneyEntryDraft();
+    return draft?.resultYear ?? yearFromIsoDate(todayIsoDate(context.occurredAt));
+  });
+  const [resultYearTouched, setResultYearTouched] = useState(() => Boolean(readMoneyEntryDraft()));
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
@@ -118,8 +161,18 @@ const MoneyCaptureForm: React.FC<Props> = ({
     () => fields.filter((field) => (field.status || 'Active') !== 'Draft'),
     [fields]
   );
+  const selectedFieldName = usableFields.find((field) => field.id === fieldId)?.name;
 
   useEffect(() => {
+    if (draftAppliedRef.current) return;
+    draftAppliedRef.current = true;
+    if (readMoneyEntryDraft()) {
+      skipContextHydrationRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (skipContextHydrationRef.current) return;
     if (preferredKind) {
       setKind(preferredKind);
       if (!context.category) setCategory(defaultCategoryForType(preferredKind));
@@ -127,12 +180,14 @@ const MoneyCaptureForm: React.FC<Props> = ({
   }, [preferredKind, context.category]);
 
   useEffect(() => {
+    if (skipContextHydrationRef.current) return;
     if (context.fieldId) setFieldId(context.fieldId);
     if (context.taskId) setRelatedTaskId(context.taskId);
     if (context.harvestId) setRelatedHarvestId(context.harvestId);
   }, [context.fieldId, context.taskId, context.harvestId]);
 
   useEffect(() => {
+    if (skipContextHydrationRef.current) return;
     if (!context.category) return;
     setCategory(context.category);
     const units = suggestedUnitsForCategory(context.category);
@@ -141,10 +196,12 @@ const MoneyCaptureForm: React.FC<Props> = ({
   }, [context.category]);
 
   useEffect(() => {
+    if (skipContextHydrationRef.current) return;
     if (context.description) setDescription(context.description);
   }, [context.description]);
 
   useEffect(() => {
+    if (skipContextHydrationRef.current) return;
     if (context.occurredAt) {
       const date = todayIsoDate(context.occurredAt);
       setOccurredOn(date);
@@ -227,8 +284,69 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const availableLitres = selectedHarvest?.oilLitres ?? null;
   const exceedsAvailable =
     isOil && availableLitres != null && qtyValue != null && qtyValue > availableLitres;
-  const canSubmit = Boolean(resolvedAmount && resolvedAmount > 0);
+
+  const hasMeaningfulAmount = Boolean(resolvedAmount && resolvedAmount > 0);
+  const canSubmit = hasMeaningfulAmount;
+  const canDraft = Boolean(kind) && hasMeaningfulAmount;
   const quantityLine = formatQuantityLine(qtyValue, unit, resolvedUnitPrice, language);
+
+  const partial = isMoneyEntryPartial({
+    amount,
+    quantity,
+    unitPrice,
+    description,
+    relatedTaskId,
+    relatedHarvestId,
+    paymentMethod,
+    counterpartyName,
+    notes,
+  });
+
+  useEffect(() => {
+    onDirtyChange?.(partial);
+  }, [partial, onDirtyChange]);
+
+  useEffect(() => {
+    if (!kind || !partial) return;
+    writeMoneyEntryDraft({
+      kind,
+      category,
+      mode,
+      quantity,
+      unit,
+      unitPrice,
+      amount,
+      fieldId,
+      occurredOn,
+      description,
+      relatedTaskId,
+      relatedHarvestId,
+      paymentMethod,
+      counterpartyName,
+      notes,
+      resultYear,
+      moreOpen,
+    });
+  }, [
+    kind,
+    category,
+    mode,
+    quantity,
+    unit,
+    unitPrice,
+    amount,
+    fieldId,
+    occurredOn,
+    description,
+    relatedTaskId,
+    relatedHarvestId,
+    paymentMethod,
+    counterpartyName,
+    notes,
+    resultYear,
+    moreOpen,
+    partial,
+  ]);
 
   const addPhotos = (files: FileList | null) => {
     if (!files?.length) return;
@@ -247,6 +365,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   const save = async (saveAsDraft: boolean) => {
     if (!kind) return;
+    if (saveAsDraft && !canDraft) {
+      setError(t('money:draftNeedsAmount'));
+      amountRef.current?.focus();
+      return;
+    }
     if (!resolvedAmount || resolvedAmount <= 0) {
       setError(t('capture:money.needPositiveAmount'));
       amountRef.current?.focus();
@@ -292,6 +415,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
         productKind: isOil ? 'olive_oil' : undefined,
       });
       rememberLastMoneyFieldId(fieldId || undefined);
+      clearMoneyEntryDraft();
+      onDirtyChange?.(false);
       const message = saveAsDraft
         ? t('capture:money.draftSaved')
         : kind === 'income'
@@ -330,6 +455,19 @@ const MoneyCaptureForm: React.FC<Props> = ({
     }
   };
 
+  const harvestOptionLabels = useMemo(
+    () =>
+      uniqueRelatedHarvestLabels(harvests, {
+        fieldName: selectedFieldName,
+        locale: language,
+        dateFormat,
+        statusLabel: (status) =>
+          status === 'voided' ? t('money:harvestStatusVoided') : t('money:harvestStatusPosted'),
+      }),
+    [harvests, selectedFieldName, language, dateFormat, t]
+  );
+  const draftReason = !canDraft ? t('money:draftNeedsAmount') : null;
+
   if (!kind) {
     return (
       <div className="money-drawer">
@@ -342,9 +480,15 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   const linkedLabel = relatedTaskId
     ? tasks.find((task) => task.id === relatedTaskId)?.title || relatedTaskId
-    : relatedHarvestId
-      ? `${shiftIsoDate(selectedHarvest?.harvestDate.slice(0, 10) || occurredOn, 0)}`
-      : undefined;
+    : relatedHarvestId && selectedHarvest
+      ? formatRelatedHarvestLabel(selectedHarvest, {
+          fieldName: selectedFieldName,
+          locale: language,
+          dateFormat,
+          statusLabel: (status) =>
+            status === 'voided' ? t('money:harvestStatusVoided') : t('money:harvestStatusPosted'),
+        })
+      : relatedHarvestId || undefined;
 
   return (
     <div className="money-drawer">
@@ -355,7 +499,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
           canRecordIncome={canRecordIncome}
           canRecordExpense={canRecordExpense}
         />
-        <MoneyCategorySelector type={kind} value={category} onChange={applyCategory} />
         {isOil ? (
           <OliveOilSaleFields
             mode={mode === 'total_only' ? 'total' : 'litres'}
@@ -370,8 +513,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
             harvests={harvests}
             harvestId={relatedHarvestId}
             onHarvestChange={setRelatedHarvestId}
+            fieldName={selectedFieldName}
             availableLitres={availableLitres}
             exceedsAvailable={exceedsAvailable}
+            showHarvestLink={false}
           />
         ) : supportsQty ? (
           <QuantityPriceCalculator
@@ -391,7 +536,13 @@ const MoneyCaptureForm: React.FC<Props> = ({
             amountRef={amountRef}
           />
         ) : (
-          <TransactionAmountInput value={amount} onChange={setAmount} inputRef={amountRef} />
+          <TransactionAmountInput
+            value={amount}
+            onChange={setAmount}
+            inputRef={amountRef}
+            invalid={Boolean(error)}
+            describedBy={error ? 'money-capture-error' : undefined}
+          />
         )}
         <TransactionFieldSelector value={fieldId} fields={usableFields} onChange={setFieldId} />
         <TransactionDateSelector value={occurredOn} onChange={onDateChange} />
@@ -408,18 +559,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
             aria-label={t('capture:money.shortDescription')}
           />
         </label>
-        {!isOil ? (
-          <RelatedRecordSelector
-            fieldId={fieldId}
-            tasks={tasks}
-            harvests={harvests}
-            taskId={relatedTaskId}
-            harvestId={relatedHarvestId}
-            onTaskChange={setRelatedTaskId}
-            onHarvestChange={setRelatedHarvestId}
-            preselectedLabel={linkedLabel}
-          />
-        ) : null}
         <TransactionAdvancedDetails
           open={moreOpen}
           onToggle={() => setMoreOpen((open) => !open)}
@@ -442,15 +581,58 @@ const MoneyCaptureForm: React.FC<Props> = ({
             setPhotos((prev) => prev.filter((item) => item.id !== id));
           }}
           fileRef={fileRef}
-        />
-        {error ? <p className="capture-error" role="alert">{error}</p> : null}
+        >
+          <MoneyCategorySelector type={kind} value={category} onChange={applyCategory} />
+          {isOil ? (
+            <label className="money-form-label">
+              {t('capture:money.fromWhichHarvest')}
+              <select
+                value={relatedHarvestId}
+                onChange={(e) => setRelatedHarvestId(e.target.value)}
+                aria-label={t('capture:money.relatedHarvest')}
+              >
+                <option value="">{t('capture:money.noLink')}</option>
+                <option value="later">{t('capture:money.linkLater')}</option>
+                {harvests.map((harvest) => (
+                  <option key={harvest.id} value={harvest.id}>
+                    {harvestOptionLabels.get(harvest.id) ||
+                      formatRelatedHarvestLabel(harvest, {
+                        fieldName: selectedFieldName,
+                        locale: language,
+                        dateFormat,
+                      })}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <RelatedRecordSelector
+              fieldId={fieldId}
+              fieldName={selectedFieldName}
+              tasks={tasks}
+              harvests={harvests}
+              taskId={relatedTaskId}
+              harvestId={relatedHarvestId}
+              onTaskChange={setRelatedTaskId}
+              onHarvestChange={setRelatedHarvestId}
+              preselectedLabel={linkedLabel}
+            />
+          )}
+        </TransactionAdvancedDetails>
+        {error ? (
+          <p id="money-capture-error" className="capture-error" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
       <AddMoneyFooter
         type={kind}
         amountLabel={resolvedAmount ? `${formatMoney(resolvedAmount, language)} €` : '—'}
         quantityLine={quantityLine}
         canSubmit={canSubmit}
+        canDraft={canDraft}
         disabledReason={canSubmit ? null : t('capture:money.needPositiveAmount')}
+        draftDisabledReason={draftReason}
         submitting={submitting}
         onSubmit={() => void save(false)}
         onDraft={() => void save(true)}

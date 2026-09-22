@@ -12,6 +12,8 @@ export interface Notification {
   timestamp: Date;
   read: boolean;
   actionUrl?: string;
+  relatedEntityId?: string;
+  relatedEntityType?: string;
   source?: 'transactional' | 'campaign' | 'local';
   campaignId?: string;
   campaignKind?: string;
@@ -47,21 +49,44 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const loadInbox = useCallback(async () => {
     try {
       const items = await inAppMessageService.getInbox();
+      // Merged inbox omits related-entity fields; enrich from the transactional API when available.
+      const relatedById = new Map<
+        string,
+        { relatedEntityId?: string; relatedEntityType?: string; actionUrl?: string }
+      >();
+      try {
+        const legacy = await getPartnerService().getNotifications();
+        legacy.forEach((n) => {
+          relatedById.set(n.id, {
+            relatedEntityId: n.relatedEntityId,
+            relatedEntityType: n.relatedEntityType,
+            actionUrl: n.actionUrl,
+          });
+        });
+      } catch {
+        // Related-entity enrichment is optional.
+      }
+
       setNotifications((prev) => {
         const localOnly = prev.filter((n) => n.id.startsWith('notif-'));
-        const fromApi: Notification[] = items.map((item) => ({
-          id: item.id,
-          type: mapInboxType(item.type, item.source),
-          title: item.title,
-          message: item.message,
-          timestamp: new Date(item.createdAt),
-          read: item.isRead,
-          actionUrl: item.actionUrl ?? undefined,
-          source: item.source === 'campaign' ? 'campaign' : 'transactional',
-          campaignId: item.campaignId ?? undefined,
-          campaignKind: item.campaignKind ?? undefined,
-          isCompleted: item.isCompleted,
-        }));
+        const fromApi: Notification[] = items.map((item) => {
+          const related = relatedById.get(item.id);
+          return {
+            id: item.id,
+            type: mapInboxType(item.type, item.source),
+            title: item.title,
+            message: item.message,
+            timestamp: new Date(item.createdAt),
+            read: item.isRead,
+            actionUrl: item.actionUrl ?? related?.actionUrl,
+            relatedEntityId: related?.relatedEntityId,
+            relatedEntityType: related?.relatedEntityType,
+            source: item.source === 'campaign' ? 'campaign' : 'transactional',
+            campaignId: item.campaignId ?? undefined,
+            campaignKind: item.campaignKind ?? undefined,
+            isCompleted: item.isCompleted,
+          };
+        });
         return [...fromApi, ...localOnly];
       });
     } catch {
@@ -78,6 +103,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             timestamp: new Date(item.createdAt),
             read: item.isRead,
             actionUrl: item.actionUrl,
+            relatedEntityId: item.relatedEntityId,
+            relatedEntityType: item.relatedEntityType,
             source: 'transactional',
           }));
           return [...fromApi, ...localOnly];
@@ -154,7 +181,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const clearAll = () => {
-    setNotifications([]);
+    setNotifications((prev) => {
+      prev.forEach((n) => {
+        if (n.id.startsWith('campaign:') && n.campaignId) {
+          void inAppMessageService.dismiss(n.campaignId).catch(() => undefined);
+        }
+      });
+      return [];
+    });
   };
 
   const openNotification = (notification: Notification) => {

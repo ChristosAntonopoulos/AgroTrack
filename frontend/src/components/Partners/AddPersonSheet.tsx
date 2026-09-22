@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookUser, Handshake, Smartphone, Users } from 'lucide-react';
+import { BookUser, Handshake, Smartphone, UserPlus, Users } from 'lucide-react';
 import Button from '../Common/Button';
 import { Field } from '../../services/fieldService';
 import { ServiceCategory } from '../../services/partnerService';
@@ -8,7 +8,7 @@ import SavedContactSheet from './SavedContactSheet';
 import PartnersSheet from './PartnersSheet';
 import { canPickDeviceContact } from '../../utils/pickDeviceContact';
 
-type Step = 'choose' | 'save';
+type Step = 'choose' | 'inviteRole' | 'save';
 
 type Props = {
   open?: boolean;
@@ -27,8 +27,6 @@ type Props = {
   onInvitePartner?: () => void;
   onImportPhone?: () => void;
 };
-
-
 
 const AddPersonSheet: React.FC<Props> = ({
   open = true,
@@ -50,6 +48,7 @@ const AddPersonSheet: React.FC<Props> = ({
   const { t } = useTranslation(['partners', 'common']);
   const [step, setStep] = useState<Step>('choose');
   const canPickPhone = useMemo(() => canPickDeviceContact(), []);
+  const canInviteAnyone = canInviteFamily || canInvitePartner;
 
   if (step === 'save') {
     return (
@@ -64,11 +63,73 @@ const AddPersonSheet: React.FC<Props> = ({
     );
   }
 
+  if (step === 'inviteRole') {
+    return (
+      <PartnersSheet
+        open={open}
+        title={t('partners:inviteOleachronUser')}
+        subtitle={t('partners:inviteOleachronUserHint')}
+        onClose={onClose}
+      >
+        <div className="partners-choice-grid">
+          <button
+            type="button"
+            className="partners-choice-card"
+            disabled={!canInviteFamily}
+            onClick={() => {
+              if (!canInviteFamily) return;
+              onClose();
+              onInviteFamily?.();
+            }}
+          >
+            <span className="partners-choice-icon" aria-hidden>
+              <Users size={22} />
+            </span>
+            <span className="partners-choice-title">{t('partners:inviteMember')}</span>
+            <span className="partners-choice-desc">
+              {canInviteFamily
+                ? t('partners:inviteFamilySeatHint')
+                : t('partners:inviteFamilySeatFull', { used: familyUsed, max: familyMax })}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="partners-choice-card"
+            disabled={!canInvitePartner}
+            onClick={() => {
+              if (!canInvitePartner) return;
+              onClose();
+              onInvitePartner?.();
+            }}
+          >
+            <span className="partners-choice-icon" aria-hidden>
+              <Handshake size={22} />
+            </span>
+            <span className="partners-choice-title">{t('partners:inviteCollaborator')}</span>
+            <span className="partners-choice-desc">
+              {canInvitePartner
+                ? t('partners:invitePartnerSeatHint')
+                : t('partners:invitePartnerSeatFull', { used: partnerUsed, max: partnerMax })}
+            </span>
+          </button>
+        </div>
+        <div className="partners-sheet-actions">
+          <Button type="button" variant="ghost" onClick={() => setStep('choose')}>
+            {t('common:back')}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {t('common:close')}
+          </Button>
+        </div>
+      </PartnersSheet>
+    );
+  }
+
   return (
     <PartnersSheet
       open={open}
       title={t('partners:addPerson')}
-      subtitle={t('partners:addPersonChoicesHint')}
+      subtitle={t('partners:contactsVsUsers')}
       onClose={onClose}
     >
       <div className="partners-choice-grid">
@@ -92,47 +153,24 @@ const AddPersonSheet: React.FC<Props> = ({
           <span className="partners-choice-icon" aria-hidden>
             <BookUser size={22} />
           </span>
-          <span className="partners-choice-title">{t('partners:newContact')}</span>
+          <span className="partners-choice-title">{t('partners:addContact')}</span>
           <span className="partners-choice-desc">{t('partners:saveContactHint')}</span>
         </button>
         <button
           type="button"
           className="partners-choice-card"
-          disabled={!canInviteFamily}
+          disabled={!canInviteAnyone}
           onClick={() => {
-            if (!canInviteFamily) return;
-            onClose();
-            onInviteFamily?.();
+            if (!canInviteAnyone) return;
+            setStep('inviteRole');
           }}
         >
           <span className="partners-choice-icon" aria-hidden>
-            <Users size={22} />
+            <UserPlus size={22} />
           </span>
-          <span className="partners-choice-title">{t('partners:inviteMember')}</span>
+          <span className="partners-choice-title">{t('partners:inviteOleachronUser')}</span>
           <span className="partners-choice-desc">
-            {canInviteFamily
-              ? t('partners:inviteFamilySeatHint')
-              : t('partners:inviteFamilySeatFull', { used: familyUsed, max: familyMax })}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="partners-choice-card"
-          disabled={!canInvitePartner}
-          onClick={() => {
-            if (!canInvitePartner) return;
-            onClose();
-            onInvitePartner?.();
-          }}
-        >
-          <span className="partners-choice-icon" aria-hidden>
-            <Handshake size={22} />
-          </span>
-          <span className="partners-choice-title">{t('partners:inviteCollaborator')}</span>
-          <span className="partners-choice-desc">
-            {canInvitePartner
-              ? t('partners:invitePartnerSeatHint')
-              : t('partners:invitePartnerSeatFull', { used: partnerUsed, max: partnerMax })}
+            {canInviteAnyone ? t('partners:inviteOleachronUserHint') : t('partners:seatsFullHint')}
           </span>
         </button>
       </div>

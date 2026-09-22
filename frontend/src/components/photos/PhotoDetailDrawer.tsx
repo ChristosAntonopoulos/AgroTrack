@@ -5,13 +5,10 @@ import { MoreHorizontal } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
 import PhotoLocationMap from './PhotoLocationMap';
+import { linkedRecordLabel, linkedRecordPath } from './photoLinks';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
+import { useAuth } from '../../context/AuthContext';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
-import {
-  chronologioPath,
-  harvestPath,
-  taskPeekPath,
-} from '../../navigation/intents';
 import {
   getFieldWorkService,
   getHarvestService,
@@ -36,28 +33,6 @@ export type PhotoDetailDrawerProps = {
   onExpandFullscreen?: (photo: Photo) => void;
 };
 
-const linkedRecordPath = (photo: Photo): string | null => {
-  if (!photo.isLinked || !photo.ownerId) return null;
-  switch (photo.ownerType) {
-    case 'task':
-      return taskPeekPath(photo.ownerId);
-    case 'harvest':
-      return harvestPath({ fieldId: photo.fieldId || undefined, harvestId: photo.ownerId });
-    case 'note':
-      return chronologioPath({
-        fieldId: photo.fieldId || undefined,
-        entry: `Note:${photo.ownerId}`,
-      });
-    case 'phenology':
-      return chronologioPath({
-        fieldId: photo.fieldId || undefined,
-        entry: `Phenology:${photo.ownerId}`,
-      });
-    default:
-      return null;
-  }
-};
-
 const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   photo,
   fields,
@@ -71,6 +46,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
 }) => {
   const { t } = useTranslation('photos');
   const { formatDateTime, formatDate } = useLocaleFormatters();
+  const { user } = useAuth();
   const [ownerType, setOwnerType] = useState('task');
   const [ownerId, setOwnerId] = useState('');
   const [targets, setTargets] = useState<LinkTarget[]>([]);
@@ -164,6 +140,19 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
     photo.fieldName || fields.find((f) => f.id === photo.fieldId)?.name || photo.fieldId || '—';
   const needsField = !photo.fieldId;
   const recordHref = linkedRecordPath(photo);
+  const linkedLabel = linkedRecordLabel(photo, (ownerType) =>
+    t(`badges.${ownerType}`, { defaultValue: ownerType })
+  );
+  const uploaderName =
+    photo.uploadedByUserId && user?.userId === photo.uploadedByUserId
+      ? t('badges.you')
+      : photo.uploadedByUserId
+        ? photo.uploadedByUserId.slice(0, 8)
+        : null;
+  const kindLabel =
+    photo.kind && photo.kind !== 'general'
+      ? t(`kinds.${photo.kind}`, { defaultValue: photo.kind })
+      : null;
   const reasonKey = photo.assignmentReason
     ? `detail.reasons.${photo.assignmentReason}`
     : null;
@@ -235,6 +224,18 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
             <dd>{formatDateTime(photo.effectiveCapturedAt)}</dd>
             <dt>{t('detail.uploaded')}</dt>
             <dd>{formatDateTime(photo.createdAt)}</dd>
+            {uploaderName ? (
+              <>
+                <dt>{t('detail.uploader')}</dt>
+                <dd>{uploaderName}</dd>
+              </>
+            ) : null}
+            {kindLabel ? (
+              <>
+                <dt>{t('detail.kind')}</dt>
+                <dd>{kindLabel}</dd>
+              </>
+            ) : null}
             <dt>{t('detail.location')}</dt>
             <dd>
               {photo.latitude != null && photo.longitude != null
@@ -245,6 +246,12 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
               <>
                 <dt>{t('detail.assignmentReason')}</dt>
                 <dd>{reasonLabel}</dd>
+              </>
+            ) : null}
+            {photo.fileName ? (
+              <>
+                <dt>{t('detail.fileName')}</dt>
+                <dd className="photo-detail-filename">{photo.fileName}</dd>
               </>
             ) : null}
           </dl>
@@ -258,7 +265,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
                 {t(`badges.${photo.ownerType}`, { defaultValue: photo.ownerType })}
               </div>
               <strong className="photo-linked-card-title">
-                {photo.linkedTitle || t('detail.linkedAs')}
+                {photo.linkedTitle || linkedLabel}
               </strong>
               <div className="photo-linked-card-meta">
                 {photo.linkedOccurredAt ? formatDate(photo.linkedOccurredAt) : null}

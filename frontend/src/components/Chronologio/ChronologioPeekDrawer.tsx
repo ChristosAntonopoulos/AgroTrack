@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   ChevronRight,
@@ -22,6 +22,7 @@ import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import NoteSheet from '../Dashboard/NoteSheet';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { taskFormPath, taskPeekPath } from '../../navigation/intents';
 import {
   getFieldWorkService,
@@ -58,6 +59,12 @@ import {
   chronologioTaskId,
   chronologioWebDestination,
 } from '../../chronologio/entryDestination';
+import {
+  chronologioScrollKey,
+  readChronologioFocus,
+  readChronologioJournalScroll,
+  type ChronologioReturnState,
+} from '../../chronologio/chronologioViewState';
 import { harvestHasResult } from '../../chronologio/monthPresentation';
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
 import {
@@ -137,7 +144,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
   onSelectRecent,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'common', 'money', 'fields']);
+  const { formatDate, formatTime } = useLocaleFormatters();
   const navigate = useNavigate();
+  const location = useLocation();
   const capture = useCaptureOptional();
   const { user } = useAuth();
   const tt = (key: string, opts?: Record<string, string | number>) =>
@@ -190,19 +199,16 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
 
   const eventPresentation = entry ? presentChronologioEvent(entry, i18n.language) : null;
   const eventWhen = entry
-    ? `${new Date(entry.occurredAt).toLocaleDateString(i18n.language, { dateStyle: 'long' })} · ${new Date(
-        entry.occurredAt
-      ).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', hour12: false })}`
+    ? `${formatDate(entry.occurredAt)} · ${formatTime(entry.occurredAt)}`
     : '';
 
   const dayTitle =
     peek?.mode === 'dayWeather'
-      ? new Date(`${peek.dateKey}T12:00:00`).toLocaleDateString(i18n.language, {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
+      ? (() => {
+          const when = new Date(`${peek.dateKey}T12:00:00`);
+          const weekday = when.toLocaleDateString(i18n.language, { weekday: 'long' });
+          return `${weekday}, ${formatDate(when)}`;
+        })()
       : '';
 
   const headerTitle =
@@ -275,7 +281,21 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     if (!entry) return;
     const dest = chronologioWebDestination(entry);
     if (dest.kind === 'path') {
-      navigate(dest.path);
+      const focus = readChronologioFocus();
+      const scrollKey = focus
+        ? chronologioScrollKey({
+            zoom: focus.zoom,
+            focusDate: focus.focusDate,
+            fieldId: focus.fieldId,
+          })
+        : null;
+      const returnState: ChronologioReturnState = {
+        search: location.search,
+        scrollTop: scrollKey ? readChronologioJournalScroll(scrollKey) ?? undefined : undefined,
+        focusDate: focus?.focusDate,
+        zoom: focus?.zoom,
+      };
+      navigate(dest.path, { state: { chronologioReturn: returnState } });
       return;
     }
     if (dest.kind === 'noteEdit') {
@@ -585,11 +605,11 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
                 : peek?.mode === 'dayWeather'
                   ? dayTitle
                   : peek?.mode === 'todayWeather'
-                    ? new Date().toLocaleDateString(i18n.language, {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                      })
+                    ? (() => {
+                        const when = new Date();
+                        const weekday = when.toLocaleDateString(i18n.language, { weekday: 'long' });
+                        return `${weekday}, ${formatDate(when)}`;
+                      })()
                     : undefined
       }
       fieldName={fieldName}
@@ -702,10 +722,7 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
                     >
                       <span className="chrono-peek-recent-title">{e.title}</span>
                       <span className="chrono-peek-recent-when">
-                        {new Date(e.occurredAt).toLocaleDateString(i18n.language, {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
+                        {formatDate(e.occurredAt)}
                       </span>
                     </button>
                   </li>

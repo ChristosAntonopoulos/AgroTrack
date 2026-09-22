@@ -2,6 +2,7 @@ import type { FinancialCategory } from '../finance/display';
 
 export type CaptureType =
   | 'observation'
+  | 'photo'
   | 'work'
   | 'expense'
   | 'income'
@@ -25,6 +26,7 @@ export type CaptureContext = {
 
 export type CapturePermissions = {
   canRecordObservation: boolean;
+  canRecordPhoto: boolean;
   canRecordWork: boolean;
   canRecordExpense: boolean;
   canRecordIncome: boolean;

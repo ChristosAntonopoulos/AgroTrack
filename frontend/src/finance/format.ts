@@ -49,13 +49,16 @@ export function formatEuroPerLitre(
   }).format(value)} €/L`;
 }
 
-/** Greek UI shows €/στρέμμα; API stores €/ha (1 ha = 10 στρ.). */
+/**
+ * UI shows €/stremma everywhere. API stores €/ha (1 ha = 10 στρέμματα).
+ * `locale` is kept for call-site compatibility; conversion no longer varies by language.
+ */
 export function perAreaForDisplay(
   perHectare: number | null | undefined,
-  locale: string
+  _locale?: string
 ): number | null {
   if (perHectare == null) return null;
-  return locale.toLowerCase().startsWith('el') ? perHectare / 10 : perHectare;
+  return perHectare / 10;
 }
 
 export function isForbiddenError(error: unknown): boolean {

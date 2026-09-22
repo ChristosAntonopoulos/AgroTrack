@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
@@ -15,6 +15,12 @@ import {
   fieldPolygonStyle,
 } from '../../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon } from '../../utils/fieldGeo';
+import {
+  persistBaseLayer,
+  persistOverlayIds,
+  readPersistedBaseLayer,
+  readPersistedOverlayIds,
+} from '../../utils/fieldMapPreferences';
 import { MapLayerData, MapLayerDefinition } from '../../services/geospatialService';
 import { useFieldMapLayers } from '../../hooks/useFieldMapLayers';
 import DataSourceInfoModal, { DataSourceInfo } from '../Common/DataSourceInfoModal';
@@ -24,6 +30,7 @@ import MapLayerLegend from './MapLayerLegend';
 import SatelliteDateSelector from './SatelliteDateSelector';
 import type { FieldWeather } from '../../services/geospatialService';
 import { nextOverlayIds } from '../../utils/fieldMapPresets';
+import FieldTabStatus from './FieldTabStatus';
 import './FieldDetailMap.css';
 
 export type FieldMapVariant = 'peek' | 'full';
@@ -52,18 +59,24 @@ const EnsureMapPanes: React.FC = () => {
   return null;
 };
 
-const FitFieldBounds: React.FC<{ polygon?: [number, number][]; center: [number, number] }> = ({
-  polygon,
-  center,
-}) => {
+const FitFieldBounds: React.FC<{
+  polygon?: [number, number][];
+  center: [number, number];
+  fitKey: string;
+}> = ({ polygon, center, fitKey }) => {
   const map = useMap();
+  const lastKey = useRef('');
   useEffect(() => {
+    // Only auto-fit when the field geometry identity changes — not when weather
+    // or overlay catalogue finishes loading (those remount props with new refs).
+    if (lastKey.current === fitKey) return;
+    lastKey.current = fitKey;
     if (polygon?.length) {
       map.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_FIT_MAX_ZOOM, animate: false });
     } else {
       map.setView(center, Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM));
     }
-  }, [map, polygon, center]);
+  }, [map, polygon, center, fitKey]);
   return null;
 };
 
@@ -115,7 +128,9 @@ const FieldDetailMap: React.FC<Props> = ({
   const { t, i18n } = useTranslation(['fields', 'common', 'settings']);
   const isPeek = mode === 'peek';
   const isFull = mode === 'full';
-  const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
+  const [baseLayer, setBaseLayerState] = useState<MapLayerType>(
+    () => readPersistedBaseLayer(field.id) ?? 'satellite'
+  );
   const [opacity, setOpacity] = useState(0.75);
   const [layerInfo, setLayerInfo] = useState<DataSourceInfo>();
   const [leafletMap, setLeafletMap] = useState<{
@@ -124,6 +139,11 @@ const FieldDetailMap: React.FC<Props> = ({
   } | null>(null);
   const center = useMemo(() => resolveFieldCenter(field), [field]);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
+
+  const setBaseLayer = (layer: MapLayerType) => {
+    setBaseLayerState(layer);
+    persistBaseLayer(field.id, layer);
+  };
 
   const mapLayers = useFieldMapLayers(isPeek ? undefined : field.id);
   const {
@@ -137,10 +157,31 @@ const FieldDetailMap: React.FC<Props> = ({
     dates,
     selectedDateId,
     loading,
+    error: mapLayersError,
     setOverlayIds,
     selectDate,
     selectCompareDate,
+    refresh: refreshMapLayers,
   } = mapLayers;
+
+  // Restore overlay choice once per field; never overwrite a live user selection.
+  const restoredOverlayRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPeek) return;
+    if (restoredOverlayRef.current === field.id) return;
+    restoredOverlayRef.current = field.id;
+    const saved = readPersistedOverlayIds(field.id);
+    if (saved && saved.length > 0 && activeLayerIds.length === 0) {
+      setOverlayIds(saved);
+    }
+  }, [field.id, isPeek, activeLayerIds.length, setOverlayIds]);
+
+  const fitKey = useMemo(() => {
+    if (polygon?.length) {
+      return `${field.id}:poly:${polygon.length}:${polygon[0]?.[0]}:${polygon[0]?.[1]}`;
+    }
+    return `${field.id}:pt:${center?.[0]}:${center?.[1]}`;
+  }, [field.id, polygon, center]);
 
   const overlayBounds = toLeafletBounds(activeLayer?.bounds);
   const compareBounds = toLeafletBounds(compareLayer?.bounds);
@@ -174,7 +215,9 @@ const FieldDetailMap: React.FC<Props> = ({
   };
 
   const selectOverlay = (layerId: string | undefined) => {
-    setOverlayIds(nextOverlayIds(activeLayerIds, layerId).ids);
+    const next = nextOverlayIds(activeLayerIds, layerId).ids;
+    setOverlayIds(next);
+    persistOverlayIds(field.id, next);
   };
 
   const pickDate = (observationId: string) => {
@@ -183,9 +226,12 @@ const FieldDetailMap: React.FC<Props> = ({
 
   if (!center) {
     return (
-      <div className="field-detail-map field-detail-map--empty" style={{ height: heightPx }}>
-        <p>{t('fields:controlRoom.noGpsDescription')}</p>
-      </div>
+      <FieldTabStatus
+        kind="empty"
+        title={t('fields:page.mapNoPlace')}
+        description={t('fields:page.mapNoPlaceHint')}
+        className="field-detail-map-status"
+      />
     );
   }
 
@@ -265,7 +311,7 @@ const FieldDetailMap: React.FC<Props> = ({
             ) : null}
 
             <CaptureMap onReady={setLeafletMap} />
-            <FitFieldBounds polygon={polygon} center={center} />
+            <FitFieldBounds polygon={polygon} center={center} fitKey={fitKey} />
             <InvalidateOnResize />
             {polygon?.length ? (
               <Polygon
@@ -337,6 +383,8 @@ const FieldDetailMap: React.FC<Props> = ({
             onOpacityChange={setOpacity}
             onShowInfo={showInfo}
             loading={loading}
+            error={mapLayersError ? t('fields:page.tabErrorHint') : undefined}
+            onRetryError={mapLayersError ? refreshMapLayers : undefined}
           />
         ) : null}
       </div>

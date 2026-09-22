@@ -43,6 +43,8 @@
   border-color: transparent;
   background: color-mix(in srgb, var(--color-primary) 16%, var(--bg-elevated));
   color: var(--color-text-primary);
+  font-weight: 750;
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .map-look-option-row {
@@ -70,6 +72,11 @@
 
 .map-look-base button {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 44px;
   padding: 0.28rem 0.35rem;
   border: none;
   background: transparent;
@@ -86,6 +93,12 @@
 .map-look-base button.is-active {
   background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-elevated));
   color: var(--color-primary-light);
+  font-weight: 750;
+}
+
+.map-look-base-mark {
+  font-weight: 800;
+  margin-inline-end: 0.15rem;
 }
 
 .map-look-tools {

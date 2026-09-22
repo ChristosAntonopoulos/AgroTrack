@@ -39,10 +39,12 @@
 
 .notification-actions {
   display: flex;
+  align-items: center;
   gap: var(--spacing-xs);
 }
 
-.notification-actions button {
+.notification-actions > button,
+.notification-more-btn {
   background: none;
   border: none;
   color: var(--color-text-secondary);
@@ -53,11 +55,57 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
-.notification-actions button:hover {
+.notification-actions > button:hover,
+.notification-more-btn:hover {
   background: var(--color-background);
   color: var(--color-text-primary);
+}
+
+.mark-all-read-btn {
+  color: var(--color-text-primary);
+}
+
+.notification-more {
+  position: relative;
+}
+
+.notification-overflow-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  padding: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-popover, var(--color-surface));
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  z-index: 2;
+}
+
+.notification-overflow-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-overflow-menu button:hover {
+  background: var(--bg-hover, var(--color-background));
+}
+
+.notification-overflow-menu button.is-danger {
+  color: var(--color-error, #b54a3c);
 }
 
 .notification-list {
@@ -185,15 +233,22 @@
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  padding: var(--spacing-xs);
+  padding: 0.2rem;
   border-radius: var(--radius-sm);
-  transition: all var(--transition-base);
+  transition: opacity var(--transition-base), background var(--transition-base), color var(--transition-base);
   flex-shrink: 0;
+  opacity: 0.45;
+}
+
+.notification-item:hover .remove-notification-btn,
+.notification-item:focus-within .remove-notification-btn {
+  opacity: 0.85;
 }
 
 .remove-notification-btn:hover {
   background: var(--color-error-light);
   color: var(--color-error);
+  opacity: 1;
 }
 
 .no-notifications {

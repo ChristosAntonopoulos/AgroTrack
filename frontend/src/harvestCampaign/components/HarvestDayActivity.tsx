@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { oilAmountToKg } from '../totals';
 import { formatHarvestOilAmountLabel, readOilTinCounts } from '../utils/harvestCalculations';
 import type {
@@ -50,20 +51,149 @@ type Props = {
   locale: string;
   labelOf: (fieldId: string) => string;
   closed?: boolean;
-  allowedAddKinds?: DayActivityKind[];
+  /** When false, hide edit/delete (view-only or locked seat). */
+  canMutateEntries?: boolean;
   onEdit: (target: DayActivityEditTarget) => void;
   onRemove: (target: DayActivityEditTarget) => void;
-  onAdd: (kind: DayActivityKind) => void;
-  onReopen?: () => void;
 };
 
 type RowModel = {
   id: string;
   target: DayActivityEditTarget;
   title: string;
-  meta: string[];
+  context: string[];
   status?: { label: string; tone: 'ok' | 'warn' | 'muted' };
   canEdit: boolean;
+};
+
+const useIsNarrow = (breakpoint = 768) => {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${breakpoint - 1}px)`).matches : true
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const onChange = () => setNarrow(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [breakpoint]);
+  return narrow;
+};
+
+const RowActions: React.FC<{
+  row: RowModel;
+  narrow: boolean;
+  onEdit: (target: DayActivityEditTarget) => void;
+  onRemove: (target: DayActivityEditTarget) => void;
+  editLabel: string;
+  removeLabel: string;
+  menuLabel: string;
+}> = ({ row, narrow, onEdit, onRemove, editLabel, removeLabel, menuLabel }) => {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (event: MouseEvent) => {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  if (narrow) {
+    return (
+      <div className="hc-day-row-menu" ref={wrapRef}>
+        <button
+          type="button"
+          className="hc-icon-btn"
+          aria-label={menuLabel}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <MoreHorizontal size={16} aria-hidden />
+        </button>
+        {open ? (
+          <div className="hc-day-row-menu-panel" role="menu">
+            {row.canEdit ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  onEdit(row.target);
+                }}
+              >
+                {editLabel}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              role="menuitem"
+              className="is-danger"
+              onClick={() => {
+                setOpen(false);
+                onRemove(row.target);
+              }}
+            >
+              {removeLabel}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="hc-day-activity-actions">
+      {row.canEdit ? (
+        <button
+          type="button"
+          className="hc-icon-btn"
+          onClick={() => onEdit(row.target)}
+          aria-label={editLabel}
+          title={editLabel}
+        >
+          <Pencil size={16} aria-hidden />
+        </button>
+      ) : null}
+      <div className="hc-day-row-menu" ref={wrapRef}>
+        <button
+          type="button"
+          className="hc-icon-btn"
+          aria-label={menuLabel}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <MoreHorizontal size={16} aria-hidden />
+        </button>
+        {open ? (
+          <div className="hc-day-row-menu-panel" role="menu">
+            <button
+              type="button"
+              role="menuitem"
+              className="is-danger"
+              onClick={() => {
+                setOpen(false);
+                onRemove(row.target);
+              }}
+            >
+              {removeLabel}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
 };
 
 export const HarvestDayActivity: React.FC<Props> = ({
@@ -72,15 +202,13 @@ export const HarvestDayActivity: React.FC<Props> = ({
   locale,
   labelOf,
   closed,
-  allowedAddKinds,
+  canMutateEntries = true,
   onEdit,
   onRemove,
-  onAdd,
-  onReopen,
 }) => {
   const { t } = useTranslation('fields');
-  const allow = (kind: DayActivityKind) =>
-    !allowedAddKinds || allowedAddKinds.includes(kind);
+  const { formatDateTime } = useLocaleFormatters();
+  const narrow = useIsNarrow(768);
 
   const day = useMemo(() => {
     const sacks = campaign.sacks.filter((row) => row.date === date);
@@ -96,16 +224,28 @@ export const HarvestDayActivity: React.FC<Props> = ({
     const fieldNames = (ids: string[]) =>
       ids.map((id) => friendlyFieldLabel(labelOf(id))).filter(Boolean);
 
+    const pushTime = (bits: string[], createdAt?: string) => {
+      if (!createdAt) return;
+      const formatted = formatDateTime(createdAt);
+      if (formatted) bits.push(formatted);
+    };
+
     const sackRows: RowModel[] = day.sacks.map((entry) => {
-      const meta = [friendlyFieldLabel(labelOf(entry.fieldId))];
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      const field = friendlyFieldLabel(labelOf(entry.fieldId));
+      if (field) context.push(field);
       if (entry.kgPerSack) {
-        meta.push(t('harvestCampaign.dayActivity.kgPerSackShort', { kg: entry.kgPerSack }));
+        context.push(t('harvestCampaign.dayActivity.kgPerSackShort', { kg: entry.kgPerSack }));
+      }
+      if (entry.harvestRecordId) {
+        context.push(t('harvestCampaign.dayActivity.sourceSynced'));
       }
       return {
         id: entry.id,
         target: { kind: 'sack', entry },
         title: `${entry.sacks} ${t('harvestCampaign.sacks.unit')}`,
-        meta,
+        context,
         status: entry.millWeightId
           ? { label: t('harvestCampaign.dayActivity.weighed'), tone: 'ok' as const }
           : { label: t('harvestCampaign.dayActivity.open'), tone: 'warn' as const },
@@ -114,34 +254,48 @@ export const HarvestDayActivity: React.FC<Props> = ({
     });
 
     const millRows: RowModel[] = day.mills.map((entry) => {
-      const meta = [
-        fieldNames(entry.fieldIds).join(' · ') || t('harvestCampaign.shared.badge'),
-      ];
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      const fields = fieldNames(entry.fieldIds).join(' · ');
+      if (fields) context.push(fields);
+      else context.push(t('harvestCampaign.shared.badge'));
       if (entry.sackIds.length > 0) {
-        meta.push(t('harvestCampaign.dayActivity.fromSacksShort', { count: entry.sackIds.length }));
+        context.push(t('harvestCampaign.dayActivity.fromSacksShort', { count: entry.sackIds.length }));
       }
-      if (entry.receiptRef) meta.push(entry.receiptRef);
-      if (entry.note) meta.push(entry.note);
+      if (entry.receiptRef) context.push(entry.receiptRef);
+      if (entry.photoCount && entry.photoCount > 0) {
+        context.push(t('harvestCampaign.today.photos', { count: entry.photoCount }));
+      }
+      if (entry.harvestRecordId || (entry.harvestRecordIds && entry.harvestRecordIds.length > 0)) {
+        context.push(t('harvestCampaign.dayActivity.sourceSynced'));
+      }
+      if (entry.note) context.push(entry.note);
       return {
         id: entry.id,
         target: { kind: 'mill', entry },
         title: `${formatGroveMassKg(entry.kg, locale)} kg`,
-        meta,
+        context,
         canEdit: true,
       };
     });
 
     const oilRows: RowModel[] = day.oils.map((entry) => {
-      const meta = [
-        entry.fieldIds.length
-          ? fieldNames(entry.fieldIds).join(' · ')
-          : t('harvestCampaign.dayActivity.fromMills', { count: entry.millWeightIds.length }),
-        ...oilStorageBits(entry, locale, t),
-      ];
-      if (entry.acidity != null) {
-        meta.push(t('harvestCampaign.dayActivity.acidityShort', { value: entry.acidity }));
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      if (entry.fieldIds.length) {
+        const fields = fieldNames(entry.fieldIds).join(' · ');
+        if (fields) context.push(fields);
+      } else if (entry.millWeightIds.length > 0) {
+        context.push(t('harvestCampaign.dayActivity.fromMills', { count: entry.millWeightIds.length }));
       }
-      if (entry.note) meta.push(entry.note);
+      context.push(...oilStorageBits(entry, locale, t));
+      if (entry.acidity != null) {
+        context.push(t('harvestCampaign.dayActivity.acidityShort', { value: entry.acidity }));
+      }
+      if (entry.harvestRecordId || (entry.harvestRecordIds && entry.harvestRecordIds.length > 0)) {
+        context.push(t('harvestCampaign.dayActivity.sourceSynced'));
+      }
+      if (entry.note) context.push(entry.note);
       return {
         id: entry.id,
         target: { kind: 'oil', entry },
@@ -149,7 +303,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
           entry.unit === 'litres'
             ? `${Math.round(entry.amount)} L`
             : `${formatGroveMassKg(oilAmountToKg(entry), locale)} kg`,
-        meta,
+        context,
         canEdit: true,
       };
     });
@@ -163,43 +317,64 @@ export const HarvestDayActivity: React.FC<Props> = ({
             : entry.hours === 'other'
               ? `${entry.otherHours ?? '—'} h`
               : t('harvestCampaign.people.hours.skip');
-      const meta = [hours];
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      context.push(hours);
       if (entry.costEur != null && entry.costEur > 0) {
-        meta.push(`${entry.costEur} €`);
+        context.push(`${entry.costEur} €`);
+        if (entry.addedToMoney) {
+          context.push(t('harvestCampaign.dayActivity.linkedExpense'));
+        }
+      }
+      if (entry.harvestRecordId) {
+        context.push(t('harvestCampaign.dayActivity.sourceSynced'));
       }
       return {
         id: entry.id,
         target: { kind: 'people', entry },
         title: t('harvestCampaign.today.people', { count: entry.people }),
-        meta,
+        context,
         canEdit: true,
       };
     });
 
-    const expenseRows: RowModel[] = day.expenses.map((entry) => ({
-      id: entry.id,
-      target: { kind: 'expense' as const, entry },
-      title: `${entry.amountEur} €`,
-      meta: [entry.note || t('harvestCampaign.expense.moneyDescription')],
-      canEdit: false,
-    }));
+    const expenseRows: RowModel[] = day.expenses.map((entry) => {
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      if (entry.note) context.push(entry.note);
+      else context.push(t('harvestCampaign.expense.moneyDescription'));
+      if (entry.transactionId) {
+        context.push(t('harvestCampaign.dayActivity.linkedExpense'));
+      }
+      return {
+        id: entry.id,
+        target: { kind: 'expense' as const, entry },
+        title: `${entry.amountEur} €`,
+        context,
+        canEdit: false,
+      };
+    });
 
-    const noteRows: RowModel[] = day.notes.map((entry) => ({
-      id: entry.id,
-      target: { kind: 'note' as const, entry },
-      title: entry.body || t('harvestCampaign.actions.note'),
-      meta: entry.photoCount
-        ? [t('harvestCampaign.today.photos', { count: entry.photoCount })]
-        : [],
-      canEdit: false,
-    }));
+    const noteRows: RowModel[] = day.notes.map((entry) => {
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      if (entry.photoCount && entry.photoCount > 0) {
+        context.push(t('harvestCampaign.today.photos', { count: entry.photoCount }));
+      }
+      if (entry.noteId) {
+        context.push(t('harvestCampaign.dayActivity.sourceChronologio'));
+      }
+      return {
+        id: entry.id,
+        target: { kind: 'note' as const, entry },
+        title: entry.body || t('harvestCampaign.actions.note'),
+        context,
+        canEdit: false,
+      };
+    });
 
     return [
-      {
-        key: 'sacks',
-        label: t('harvestCampaign.actions.sacks'),
-        rows: sackRows,
-      },
+      { key: 'sacks', label: t('harvestCampaign.actions.sacks'), rows: sackRows },
       {
         key: 'mill',
         label: t('harvestCampaign.actions.millShort', {
@@ -207,45 +382,20 @@ export const HarvestDayActivity: React.FC<Props> = ({
         }),
         rows: millRows,
       },
-      {
-        key: 'oil',
-        label: t('harvestCampaign.actions.oil'),
-        rows: oilRows,
-      },
-      {
-        key: 'people',
-        label: t('harvestCampaign.actions.people'),
-        rows: peopleRows,
-      },
-      {
-        key: 'expense',
-        label: t('harvestCampaign.actions.expense'),
-        rows: expenseRows,
-      },
-      {
-        key: 'note',
-        label: t('harvestCampaign.actions.note'),
-        rows: noteRows,
-      },
+      { key: 'oil', label: t('harvestCampaign.actions.oil'), rows: oilRows },
+      { key: 'people', label: t('harvestCampaign.actions.people'), rows: peopleRows },
+      { key: 'expense', label: t('harvestCampaign.actions.expense'), rows: expenseRows },
+      { key: 'note', label: t('harvestCampaign.actions.note'), rows: noteRows },
     ].filter((group) => group.rows.length > 0);
-  }, [day, labelOf, locale, t]);
+  }, [day, formatDateTime, labelOf, locale, t]);
 
   const empty = groups.length === 0;
+  const showActions = !closed && canMutateEntries;
 
   const confirmRemove = (target: DayActivityEditTarget) => {
     const ok = window.confirm(t('harvestCampaign.dayActivity.removeConfirm'));
     if (ok) onRemove(target);
   };
-
-  const candidateAddKinds: { kind: DayActivityKind; label: string }[] = [
-    { kind: 'sack', label: t('harvestCampaign.actions.sacks') },
-    { kind: 'mill', label: t('harvestCampaign.actions.millShort', { defaultValue: t('harvestCampaign.actions.mill') }) },
-    { kind: 'oil', label: t('harvestCampaign.actions.oil') },
-    { kind: 'people', label: t('harvestCampaign.actions.people') },
-    { kind: 'expense', label: t('harvestCampaign.actions.expense') },
-    { kind: 'note', label: t('harvestCampaign.actions.note') },
-  ];
-  const addKinds = candidateAddKinds.filter((item) => allow(item.kind));
 
   return (
     <section
@@ -258,35 +408,9 @@ export const HarvestDayActivity: React.FC<Props> = ({
           <h3>{t('harvestCampaign.dayActivity.title')}</h3>
         </div>
         {closed ? (
-          <div className="hc-day-activity-closed">
-            <p className="hc-help">{t('harvestCampaign.dayActivity.closedHint')}</p>
-            {onReopen ? (
-              <button type="button" className="hc-ghost" onClick={onReopen}>
-                {t('harvestCampaign.dayNav.reopen')}
-              </button>
-            ) : null}
-          </div>
+          <p className="hc-help hc-day-activity-closed-hint">{t('harvestCampaign.dayActivity.closedHint')}</p>
         ) : null}
       </header>
-
-      {!closed && addKinds.length > 0 ? (
-        <div
-          className="hc-day-activity-add"
-          role="group"
-          aria-label={t('harvestCampaign.home.whatAdd')}
-        >
-          {addKinds.map((item) => (
-            <button
-              key={item.kind}
-              type="button"
-              className="hc-day-add-chip"
-              onClick={() => onAdd(item.kind)}
-            >
-              <span aria-hidden>+</span> {item.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {empty ? (
         <p className="hc-day-activity-empty">{t('harvestCampaign.dayActivity.empty')}</p>
@@ -303,9 +427,9 @@ export const HarvestDayActivity: React.FC<Props> = ({
                   <li key={row.id} className="hc-day-activity-item">
                     <div className="hc-day-activity-main">
                       <strong>{row.title}</strong>
-                      {row.meta.length > 0 || row.status ? (
+                      {row.context.length > 0 || row.status ? (
                         <div className="hc-day-row-meta">
-                          {row.meta.map((bit) => (
+                          {row.context.map((bit) => (
                             <span key={`${row.id}-${bit}`} className="hc-day-meta-bit">
                               {bit}
                             </span>
@@ -318,29 +442,16 @@ export const HarvestDayActivity: React.FC<Props> = ({
                         </div>
                       ) : null}
                     </div>
-                    {!closed ? (
-                      <div className="hc-day-activity-actions">
-                        {row.canEdit ? (
-                          <button
-                            type="button"
-                            className="hc-icon-btn"
-                            onClick={() => onEdit(row.target)}
-                            aria-label={t('harvestCampaign.dayActivity.edit')}
-                            title={t('harvestCampaign.dayActivity.edit')}
-                          >
-                            <Pencil size={16} aria-hidden />
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="hc-icon-btn is-danger"
-                          onClick={() => confirmRemove(row.target)}
-                          aria-label={t('harvestCampaign.dayActivity.remove')}
-                          title={t('harvestCampaign.dayActivity.remove')}
-                        >
-                          <Trash2 size={16} aria-hidden />
-                        </button>
-                      </div>
+                    {showActions ? (
+                      <RowActions
+                        row={row}
+                        narrow={narrow}
+                        onEdit={onEdit}
+                        onRemove={confirmRemove}
+                        editLabel={t('harvestCampaign.dayActivity.edit')}
+                        removeLabel={t('harvestCampaign.dayActivity.remove')}
+                        menuLabel={t('harvestCampaign.dayActivity.rowMenu')}
+                      />
                     ) : null}
                   </li>
                 ))}

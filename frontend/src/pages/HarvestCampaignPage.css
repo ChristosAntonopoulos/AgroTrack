@@ -1245,35 +1245,123 @@
 }
 
 .hc-day-activity-add {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: none;
 }
 
 .hc-day-add-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-height: 2.15rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--harvest-gold) 32%, var(--color-border));
-  background: var(--surface-1, var(--bg-card));
-  color: var(--harvest-ink, var(--color-text-primary));
+  display: none;
+}
+
+.hc-primary-add {
+  margin-top: 1rem;
+}
+
+.hc-add-primary {
+  width: 100%;
+  justify-content: center;
+}
+
+.hc-view-only-banner {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-2, var(--color-bg-secondary)) 88%, transparent);
+  color: var(--color-text-secondary);
+  font-size: calc(0.92rem * var(--font-scale, 1));
+  line-height: 1.4;
+}
+
+.hc-secondary-slot {
+  margin-top: 1.15rem;
+}
+
+.hc-secondary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.hc-close-day {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+  background: transparent;
+  color: var(--color-danger);
   font: inherit;
-  font-size: calc(0.86rem * var(--font-scale, 1));
-  font-weight: 650;
+  font-weight: 600;
+  font-size: calc(0.9rem * var(--font-scale, 1));
   cursor: pointer;
 }
 
-.hc-day-add-chip:hover {
-  border-color: color-mix(in srgb, var(--harvest-gold) 55%, var(--color-border));
-  background: color-mix(in srgb, var(--harvest-gold-soft) 45%, var(--surface-1));
+.hc-close-day:hover {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
-.hc-day-add-chip span {
-  color: var(--harvest-gold-deep, var(--harvest-gold));
-  font-weight: 800;
+.hc-close-day-hint,
+.hc-nudge-copy {
+  margin: 0;
+  max-width: 36rem;
+}
+
+.hc-mode-nav-secondary {
+  margin-top: 1.35rem;
+  opacity: 0.92;
+}
+
+.hc-day-row-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hc-day-row-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  min-width: 9.5rem;
+  padding: 0.35rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  background: var(--surface-1, #fff);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 12%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hc-day-row-menu-panel button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+.hc-day-row-menu-panel button:hover {
+  background: color-mix(in srgb, var(--harvest-gold-soft, #f5e6c8) 55%, transparent);
+}
+
+.hc-day-row-menu-panel button.is-danger {
+  color: var(--color-danger);
+}
+
+.capture-type-card.is-preferred {
+  border-color: color-mix(in srgb, var(--harvest-gold, #c4a35a) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--harvest-gold-soft, #f5e6c8) 40%, transparent);
+}
+
+.hc-day-activity-closed-hint {
+  margin: 0;
+  text-align: right;
+  max-width: min(100%, 16rem);
 }
 
 .hc-day-activity-empty {
@@ -1392,8 +1480,10 @@
 .hc-icon-btn {
   display: grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  min-width: var(--tap-min, 44px);
+  min-height: var(--tap-min, 44px);
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
   border-radius: 10px;
   border: 1px solid var(--border-subtle, var(--color-border));
   background: transparent;

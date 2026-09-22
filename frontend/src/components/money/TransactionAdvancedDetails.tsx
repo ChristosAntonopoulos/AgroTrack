@@ -20,6 +20,8 @@ type Props = {
   onAddPhotos: (files: FileList | null) => void;
   onRemovePhoto: (id: string) => void;
   fileRef: React.RefObject<HTMLInputElement | null>;
+  /** Links / category / other fields that belong under More details. */
+  children?: React.ReactNode;
 };
 
 const TransactionAdvancedDetails: React.FC<Props> = ({
@@ -37,15 +39,17 @@ const TransactionAdvancedDetails: React.FC<Props> = ({
   onAddPhotos,
   onRemovePhoto,
   fileRef,
+  children,
 }) => {
-  const { t, i18n } = useTranslation('capture');
+  const { t, i18n } = useTranslation(['capture', 'money']);
   return (
     <div>
       <button type="button" className="money-text-link" onClick={onToggle}>
-        {open ? t('less') : t('money.moreDetails')}
+        {open ? t('less') : t('money:moreDetails', { defaultValue: t('money.moreDetails') })}
       </button>
       {open ? (
         <div className="money-more" style={{ display: 'grid', gap: 18, marginTop: 12 }}>
+          {children}
           <label className="money-form-label">
             {t('money.paymentMethod')}
             <select value={paymentMethod} onChange={(e) => onPaymentMethod(e.target.value)}>

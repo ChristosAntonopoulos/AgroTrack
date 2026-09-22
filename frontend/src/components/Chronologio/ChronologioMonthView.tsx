@@ -11,6 +11,12 @@ import {
   type DayWeatherInput,
 } from '../../chronologio/dayWeather';
 import { eventCardSpan } from '../../chronologio/eventCardLayout';
+import {
+  chronologioScrollKey,
+  readChronologioJournalScroll,
+  saveChronologioJournalScroll,
+} from '../../chronologio/chronologioViewState';
+import type { ChronologioZoom } from '../../chronologio/livingTypes';
 import ChronologioEvent from './ChronologioEvent';
 import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
 import ChronologioPhotoDaySheet from './ChronologioPhotoDaySheet';
@@ -27,6 +33,9 @@ type Props = {
   hiddenEntryIds?: ReadonlySet<string>;
   weatherByDate?: Record<string, DayWeatherInput>;
   todayWeather?: DayWeatherInput | null;
+  focusDate?: string;
+  zoom?: ChronologioZoom;
+  fieldId?: string;
   onLoadMore: () => void;
   onSelect: (entry: ChronologioEntry) => void;
   /** Clear the Chronologio side peek so photo day can own the same drawer. */
@@ -68,6 +77,9 @@ const ChronologioMonthView: React.FC<Props> = ({
   hiddenEntryIds,
   weatherByDate,
   todayWeather,
+  focusDate = '',
+  zoom = 'month',
+  fieldId,
   onLoadMore,
   onSelect,
   onClearSelection,
@@ -75,7 +87,9 @@ const ChronologioMonthView: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'today']);
   const parentRef = useRef<HTMLDivElement>(null);
+  const restoredScrollKey = useRef<string | null>(null);
   const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
+  const scrollStorageKey = chronologioScrollKey({ zoom, focusDate, fieldId });
   const todayKey = dayWeatherDateKey(new Date());
   const numberLocale = i18n.language?.startsWith('el')
     ? 'el-GR'
@@ -219,6 +233,28 @@ const ChronologioMonthView: React.FC<Props> = ({
     if (!hasMore || loadingMore || rows.length === 0) return;
     if (lastIndex >= rows.length - 3) onLoadMore();
   }, [hasMore, lastIndex, loadingMore, onLoadMore, rows.length]);
+
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return undefined;
+
+    if (restoredScrollKey.current !== scrollStorageKey && rows.length > 0) {
+      const saved = readChronologioJournalScroll(scrollStorageKey);
+      if (saved != null) {
+        requestAnimationFrame(() => {
+          el.scrollTop = saved;
+        });
+      }
+      restoredScrollKey.current = scrollStorageKey;
+    }
+
+    const onScroll = () => saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, [rows.length, scrollStorageKey]);
 
   return (
     <div className="chrono-month-view chrono-journal-view chrono-day-timeline">

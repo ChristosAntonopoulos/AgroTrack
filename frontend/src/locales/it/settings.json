@@ -10,6 +10,10 @@
     "appearance": "Aspetto",
     "locale": "Lingua e area",
     "startup": "Avvio",
+    "notifications": "Notifiche",
+    "privacy": "Privacy e dati",
+    "sessions": "Dispositivi connessi",
+    "danger": "Zona pericolosa",
     "technical": "Informazioni tecniche",
     "demo": "Demo"
   },
@@ -17,7 +21,16 @@
     "editProfile": "Modifica profilo",
     "myServices": "I miei servizi",
     "userId": "ID utente",
-    "appVersion": "Versione app"
+    "appVersion": "Versione app",
+    "profileTitle": "Profilo",
+    "profileUnavailable": "La modifica del nome non è disponibile in questa versione. Di seguito vedi il profilo attuale.",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "emailTitle": "Email",
+    "emailChangeUnavailable": "La modifica o verifica dell'email non è ancora disponibile.",
+    "passwordTitle": "Password",
+    "passwordHelp": "Non c'è ancora cambio password in-app. Usa il ripristino per impostarne una nuova.",
+    "passwordResetLink": "Reimposta password via email"
   },
   "appearance": {
     "theme": "Tema",
@@ -82,7 +95,7 @@
       "dashboard": "Dashboard",
       "fields": "Campi",
       "tasks": "Attività",
-      "calendar": "Calendario",
+      "calendar": "Cronologio",
       "today": "Oggi",
       "chronologio": "Cronologio"
     },
@@ -97,11 +110,42 @@
   },
   "notifications": {
     "title": "Notifiche",
+    "deviceOnlyHint": "Queste scelte sono salvate su questo dispositivo. Controllano cosa vuoi vedere qui; non modificano le email dal server.",
     "email": "Notifiche email",
     "taskAssignment": "Notifiche assegnazione attività",
     "deadline": "Promemoria scadenze",
     "lifecycle": "Avvisi ciclo di vita",
-    "report": "Notifiche generazione report"
+    "report": "Notifiche generazione report",
+    "prefs": {
+      "taskAssignment": "Assegnazione attività",
+      "approval": "Approvazioni",
+      "harvest": "Raccolta",
+      "financial": "Finanziario",
+      "satelliteWeather": "Satellite e meteo",
+      "marketingSystem": "Marketing e messaggi di sistema"
+    },
+    "prefsHints": {
+      "taskAssignment": "Quando ti viene assegnato lavoro sul campo.",
+      "approval": "Quando un'attività richiede o riceve approvazione.",
+      "harvest": "Aggiornamenti campagna e registrazione raccolta.",
+      "financial": "Avvisi su soldi e costi.",
+      "satelliteWeather": "Avvisi meteo e satellitari.",
+      "marketingSystem": "Annunci prodotto e messaggi di sistema."
+    }
+  },
+  "privacy": {
+    "exportUnavailable": "L'account contiene profilo, campi, attività, foto, registrazioni finanziarie e messaggi. Un export scaricabile non è ancora disponibile."
+  },
+  "sessions": {
+    "thisDevice": "Questo dispositivo",
+    "thisDeviceHint": "OLEACHRON traccia solo la sessione in questo browser. Esci per terminarla."
+  },
+  "danger": {
+    "deleteUnavailable": "L'eliminazione dell'account non è disponibile in questa versione."
+  },
+  "technical": {
+    "purpose": "Condividi la versione dell'app con l'assistenza se qualcosa non va.",
+    "supportHint": "Indica questa versione quando contatti l'assistenza OLEACHRON."
   },
   "demo": {
     "title": "Demo",

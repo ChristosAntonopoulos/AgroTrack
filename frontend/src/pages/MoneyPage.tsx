@@ -35,8 +35,11 @@ import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
 import MonthlyFinancialTrend from '../components/money/MonthlyFinancialTrend';
 import MoneyFieldRows from '../components/money/MoneyFieldRows';
 import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
+import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
 import TransactionSection from '../components/money/TransactionSection';
 import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
+import { formatRelatedHarvestLabel } from '../finance/relatedHarvestLabel';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import '../components/money/Money.css';
 
 type KindFilter = 'all' | 'income' | 'expense' | 'draft';
@@ -51,6 +54,7 @@ const MoneyPage: React.FC = () => {
   const capture = useCaptureOptional();
   const [searchParams, setSearchParams] = useSearchParams();
   const pageGuard = useModulePageGuard({ module: 'money' });
+  const { dateFormat } = useLocaleFormatters();
 
   const currentYear = agriculturalYearFor(new Date());
   const year = Number(searchParams.get('year')) || currentYear;
@@ -246,7 +250,15 @@ const MoneyPage: React.FC = () => {
           .catch(() => []);
         const hit = harvests.find((h) => h.id === selected.relatedHarvestId);
         harvestTitle = hit
-          ? `${hit.harvestDate.slice(0, 10)}${hit.millName ? ` · ${hit.millName}` : ''}`
+          ? formatRelatedHarvestLabel(hit, {
+              fieldName: fieldNames[selected.fieldId] || undefined,
+              locale: i18n.language,
+              dateFormat,
+              statusLabel: (status) =>
+                status === 'voided'
+                  ? t('money:harvestStatusVoided')
+                  : t('money:harvestStatusPosted'),
+            })
           : undefined;
       }
       if (!cancelled) setRelatedTitles({ task: taskTitle, harvest: harvestTitle });
@@ -254,7 +266,7 @@ const MoneyPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, fieldNames, dateFormat, i18n.language, t]);
 
   const visibleFields = fields.filter((field) => field.status !== 'Draft');
   const canManage =
@@ -368,15 +380,22 @@ const MoneyPage: React.FC = () => {
               fieldCount={summary.fieldResults.length || (fieldId ? 1 : 0)}
               onOpenDrafts={() => patch({ kind: 'draft' })}
             />
-            {summary.oliveOil ? (
-              <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} />
+            {summary.dataAvailability.hasPostedRecords ? (
+              <MonthlyFinancialTrend
+                year={year}
+                months={summary.monthlyResults}
+                currency={summary.currency}
+                locale={i18n.language}
+                selectedMonth={month || undefined}
+                onSelectMonth={(next) => patch({ month: next ? String(next) : null })}
+              />
             ) : null}
             {(summary.costPerHectare != null ||
               summary.incomePerHectare != null ||
               summary.netPerHectare != null ||
               summary.costPerKilogramOfOil != null ||
               summary.costPerKilogramMessage) ? (
-              <section className="money-card">
+              <MoneyExpandableSection title={t('money:unitEconomicsTitle')}>
                 {summary.costPerHectare != null ? (
                   <p>
                     {t('money:costPerHectare')}:{' '}
@@ -423,28 +442,25 @@ const MoneyPage: React.FC = () => {
                 ) : summary.costPerKilogramMessage ? (
                   <p className="money-summary-note">{summary.costPerKilogramMessage}</p>
                 ) : null}
-              </section>
+              </MoneyExpandableSection>
             ) : null}
-            {summary.dataAvailability.hasPostedRecords ? (
-              <div className="money-analysis-grid">
-                <MonthlyFinancialTrend
-                  year={year}
-                  months={summary.monthlyResults}
+            {summary.oliveOil?.hasProductionOrSales ? (
+              <MoneyExpandableSection title={t('money:oliveOilYear', { year })}>
+                <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} embedded />
+              </MoneyExpandableSection>
+            ) : null}
+            {summary.dataAvailability.hasPostedRecords &&
+            (summary.expenseByCategory.length > 0 || summary.incomeByCategory.length > 0) ? (
+              <MoneyExpandableSection title={t('money:categories')}>
+                <MoneyCategoryBreakdown
+                  expenses={summary.expenseByCategory}
+                  income={summary.incomeByCategory}
                   currency={summary.currency}
                   locale={i18n.language}
-                  selectedMonth={month || undefined}
-                  onSelectMonth={(next) => patch({ month: next ? String(next) : null })}
+                  onSelectCategory={(value) => patch({ category: value, kind: 'all' })}
+                  embedded
                 />
-                {summary.expenseByCategory.length > 0 || summary.incomeByCategory.length > 0 ? (
-                  <MoneyCategoryBreakdown
-                    expenses={summary.expenseByCategory}
-                    income={summary.incomeByCategory}
-                    currency={summary.currency}
-                    locale={i18n.language}
-                    onSelectCategory={(value) => patch({ category: value, kind: 'all' })}
-                  />
-                ) : null}
-              </div>
+              </MoneyExpandableSection>
             ) : null}
             {!fieldId ? (
               <MoneyFieldRows

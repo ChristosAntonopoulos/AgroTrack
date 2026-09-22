@@ -817,6 +817,67 @@
   margin-bottom: 0;
 }
 
+.landing-section-head--steps {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.landing-apk-secondary {
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius-lg);
+  background: color-mix(in srgb, var(--lp-cream) 70%, transparent);
+  overflow: hidden;
+}
+
+.landing-apk-secondary-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.95rem 1.15rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 650;
+  font-size: 0.95rem;
+  color: var(--lp-text-muted);
+}
+
+.landing-apk-secondary-summary::-webkit-details-marker {
+  display: none;
+}
+
+.landing-apk-secondary-summary svg:last-child {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.landing-apk-secondary-summary svg:last-child.open {
+  transform: rotate(180deg);
+}
+
+.landing-apk-secondary .landing-apk-card--sideload {
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--lp-border);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.landing-apk-safety-why {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--lp-text);
+}
+
+.landing-apk-safety-why svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--lp-primary);
+}
+
 .landing-apk-card {
   background: var(--lp-cream);
   border: 1px solid var(--lp-border);

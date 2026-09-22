@@ -107,6 +107,7 @@ export const HarvestEveningSheet: React.FC<{
         })}
       </div>
       <p className="capture-hint">{t('harvestCampaign.evening.laterHint')}</p>
+      <p className="capture-hint">{t('harvestCampaign.dayNav.closeExplain')}</p>
     </HarvestSheetShell>
   );
 };
