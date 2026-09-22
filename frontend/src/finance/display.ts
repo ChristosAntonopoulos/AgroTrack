@@ -94,8 +94,8 @@ export const UNASSIGNED_FIELD_LABEL = {
 };
 
 export const RESULT_YEAR_HELP = {
-  el: 'Η καλλιεργητική χρονιά στην οποία μετράει αυτή η καταχώρηση (1 Φεβ – 31 Ιαν).',
-  en: 'The agricultural year this entry should count toward (1 Feb – 31 Jan).',
+  el: 'Η χρονιά συγκομιδής στην οποία μετράει η καταχώρηση (1 Φεβ – 31 Ιαν). Ο Ιανουάριος μένει στη συγκομιδή που άρχισε τον προηγούμενο Φεβρουάριο.',
+  en: 'The harvest year this entry counts toward (1 Feb – 31 Jan). January stays with the harvest that started the previous February.',
 };
 
 export function financialCategoryLabel(category: string, language = 'el'): string {

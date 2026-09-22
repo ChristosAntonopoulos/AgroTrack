@@ -23,6 +23,24 @@
   box-shadow: none;
 }
 
+.grove-weather.is-compact {
+  min-height: 0;
+  gap: 0.2rem;
+  padding: 10px 12px 8px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.grove-weather.is-compact .grove-weather-temp {
+  font-size: 28px;
+  line-height: 30px;
+}
+
+.grove-weather.is-compact .grove-weather-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
 .grove-weather.is-button {
   appearance: none;
   -webkit-appearance: none;

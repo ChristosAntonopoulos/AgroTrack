@@ -26,6 +26,7 @@ export interface Photo {
   fieldMatchScore?: number | null;
   assignmentReason?: string | null;
   kind: string;
+  caption?: string | null;
   contentHash?: string | null;
   width?: number | null;
   height?: number | null;
@@ -36,6 +37,7 @@ export interface Photo {
   linkedStatus?: string | null;
   linkBroken?: boolean;
   canTrash?: boolean;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,13 +73,18 @@ export interface PhotoQuery {
   fieldAssignment?: string;
   ownerType?: string;
   linkStatus?: PhotoLinkStatus;
+  sort?: 'newest' | 'oldest';
   page?: number;
   pageSize?: number;
 }
 
-const uploadPhotos = async (files: File[]): Promise<PhotoUploadResult[]> => {
+const uploadPhotos = async (
+  files: File[],
+  options?: { allowDuplicates?: boolean }
+): Promise<PhotoUploadResult[]> => {
   const formData = new FormData();
   files.forEach((file) => formData.append('files', file));
+  if (options?.allowDuplicates) formData.append('allowDuplicates', 'true');
 
   const baseUrl = getApiBaseUrl() || window.location.origin;
   const token = localStorage.getItem('token');
@@ -114,7 +121,10 @@ export const photoService = {
     return data;
   },
 
-  update: async (id: string, body: { kind?: string; capturedAt?: string }): Promise<Photo> => {
+  update: async (
+    id: string,
+    body: { kind?: string; capturedAt?: string; caption?: string }
+  ): Promise<Photo> => {
     const { data } = await api.patch<Photo>(`/api/v1/photos/${id}`, body);
     return data;
   },
@@ -131,5 +141,21 @@ export const photoService = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/v1/photos/${id}`);
+  },
+
+  trash: async (page = 1, pageSize = 48): Promise<PhotoList> => {
+    const { data } = await api.get<PhotoList>('/api/v1/photos/trash', {
+      params: { page, pageSize },
+    });
+    return data;
+  },
+
+  restore: async (id: string): Promise<Photo> => {
+    const { data } = await api.post<Photo>(`/api/v1/photos/${id}/restore`);
+    return data;
+  },
+
+  purge: async (id: string): Promise<void> => {
+    await api.delete(`/api/v1/photos/${id}/permanent`);
   },
 };

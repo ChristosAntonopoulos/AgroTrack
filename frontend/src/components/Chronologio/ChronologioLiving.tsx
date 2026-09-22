@@ -17,6 +17,9 @@ import type { ChronologioPeekTarget } from './ChronologioPeekDrawer';
 import ChronologioDateRail from './ChronologioDateRail';
 import ChronologioCompare from './ChronologioCompare';
 import TodaySummary from './TodaySummary';
+import HarvestDayLedger from './HarvestDayLedger';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { allDaySummaries } from '../../harvestCampaign/totals';
 import { getChronologioService, getFieldService } from '../../services/serviceFactory';
 import { geospatialService } from '../../services/geospatialService';
 import { useTodaySummary } from '../../chronologio/useTodaySummary';
@@ -218,7 +221,9 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   );
 
   const isLiveJournalMonth = living.monthYear === nowYear && living.month === nowMonth;
-  const showTodaySummary = living.zoom === 'month' && isLiveJournalMonth && !living.compareOpen;
+  const harvestTab = living.filters.category === 'harvest';
+  const showTodaySummary =
+    living.zoom === 'month' && isLiveJournalMonth && !living.compareOpen && !harvestTab;
 
   const fetchJournalPage = useCallback(
     async (offset: number) => {
@@ -696,6 +701,24 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     </Button>
   );
 
+  const harvestCampaign = useHarvestCampaignOptional();
+  const harvestDays = useMemo(() => {
+    if (!harvestTab || !harvestCampaign) return [];
+    return allDaySummaries(harvestCampaign.campaign).filter(
+      (day) =>
+        day.sacks > 0 ||
+        day.officialKg > 0 ||
+        day.estimatedKg > 0 ||
+        day.oilKg > 0 ||
+        day.people > 0 ||
+        day.expenseEur > 0
+    );
+  }, [harvestCampaign, harvestTab]);
+  const timelineEntries = useMemo(
+    () => (harvestTab ? monthEntries.filter((entry) => !/^Harvest:day:/i.test(entry.id)) : monthEntries),
+    [harvestTab, monthEntries]
+  );
+
   const today = useTodaySummary({
     enabled: showTodaySummary && booted && !error,
     fieldId: scopedFieldId,
@@ -1035,6 +1058,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         </details>
                       );
                     })()}
+                    {harvestTab ? <HarvestDayLedger days={harvestDays} fields={fields} /> : null}
                     {showTodaySummary ? (
                       <TodaySummary
                         today={today}
@@ -1046,8 +1070,8 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         }}
                       />
                     ) : null}
-                    {monthEntries.length === 0 ? (
-                      showTodaySummary ? null : (
+                    {timelineEntries.length === 0 ? (
+                      showTodaySummary || harvestDays.length > 0 ? null : (
                         <EmptyState
                           icon={<BookOpen size={28} />}
                           title={t('chronologio:living.emptyMonthTitle')}
@@ -1057,7 +1081,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                       )
                     ) : (
                       <ChronologioMonthView
-                        entries={monthEntries}
+                        entries={timelineEntries}
                         showField={!fieldMode}
                         locale={locale}
                         selectedEntryId={living.selectedEntryId}

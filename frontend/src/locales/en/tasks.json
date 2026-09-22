@@ -362,6 +362,8 @@
       "assigneeHintFamily": "Family",
       "assigneeHintAdvisor": "Advisor",
       "assigneeHintContact": "Contact",
+      "assignOutcomeContact": "The task will be recorded with this person as responsible. The app will not send them a notification.",
+      "assignOutcomeCollaborator": "This collaborator will see the assignment in the app.",
       "decideLater": "I’ll decide later",
       "collaborator": "Collaborator",
       "more": "More",

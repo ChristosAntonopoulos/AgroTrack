@@ -35,13 +35,17 @@ const AddMoneyFooter: React.FC<Props> = ({
         ? disabledReason
         : null;
 
+  const hasAmount = amountLabel !== '—';
+
   return (
-    <footer className="money-drawer__footer">
-      <p className="money-footer-summary">
-        {quantityLine ? <span>{quantityLine}</span> : null}
-        {type === 'income' ? t('money.incomeTotal') : t('money.expenseTotal')}
-        <strong>{amountLabel}</strong>
-      </p>
+    <footer className={`money-drawer__footer is-${type}`}>
+      {hasAmount ? (
+        <p className="money-footer-summary">
+          {quantityLine ? <span className="money-footer-qty">{quantityLine}</span> : null}
+          <span>{type === 'income' ? t('money.incomeTotal') : t('money.expenseTotal')}</span>
+          <strong>{amountLabel}</strong>
+        </p>
+      ) : null}
       <div className="money-footer-actions">
         <button type="button" className="money-primary-action" disabled={submitting || !canSubmit} onClick={onSubmit}>
           {submitting
@@ -52,15 +56,14 @@ const AddMoneyFooter: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          className="money-text-link"
+          className="money-quiet-link"
           disabled={submitting || !canDraft}
           onClick={onDraft}
-          title={!canDraft && draftDisabledReason ? draftDisabledReason : undefined}
         >
           {t('money.saveDraft')}
         </button>
       </div>
-      {reason ? <p className="money-disabled-reason">{reason}</p> : null}
+      {reason ? <p className="money-sr-only">{reason}</p> : null}
     </footer>
   );
 };

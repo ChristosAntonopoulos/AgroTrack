@@ -58,8 +58,11 @@
 }
 
 .landing-container {
-  width: min(100% - 1.5rem, var(--lp-max));
+  box-sizing: border-box;
+  width: min(100%, var(--lp-max));
   margin-inline: auto;
+  /* Keep gutters even when mood sections force width: 100% */
+  padding-inline: clamp(1.25rem, 5vw, 2.25rem);
 }
 
 /* Header */
@@ -130,13 +133,15 @@
 }
 
 .landing-header-inner {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   height: 100%;
-  width: min(100% - 1.5rem, 1320px);
+  width: min(100%, 1320px);
   margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 2.25rem);
 }
 
 .landing-brand {
@@ -474,6 +479,7 @@
 
 .landing-mood-hero > .landing-container {
   width: 100%;
+  padding-inline: clamp(1.25rem, 5vw, 2.25rem);
 }
 
 .landing-hero-grid {

@@ -1,6 +1,14 @@
 import './i18n';
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Route,
+  Navigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LocaleProvider } from './context/LocaleProvider';
@@ -76,6 +84,82 @@ const FieldChronologioRedirect: React.FC = () => {
   return <Navigate to={id ? `/fields/${id}${qs ? `?${qs}` : ''}` : '/chronologio'} replace />;
 };
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+      </Route>
+      <Route path="/invite/:token" element={<InviteAcceptPage />} />
+      <Route path="/family-invite/:token" element={<LegacyInviteRedirect />} />
+      <Route path="/partner-invite/:token" element={<LegacyInviteRedirect />} />
+      <Route
+        element={
+          <ProtectedRoute>
+            <InAppMessageProvider>
+              <NotificationProvider>
+                <MainLayout />
+              </NotificationProvider>
+            </InAppMessageProvider>
+          </ProtectedRoute>
+        }
+      >
+        <Route path="dashboard" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
+        <Route path="fields" element={<FieldsPage />} />
+        <Route path="fields/new" element={<FieldFormPage />} />
+        <Route path="fields/:id/chronologio" element={<FieldChronologioRedirect />} />
+        <Route path="fields/:id/weather" element={<FieldWeatherVegetationPage />} />
+        <Route path="fields/:id/work-setup" element={<FieldWorkSetupPage />} />
+        <Route path="fields/:id/work-profile" element={<FieldWorkProfilePage />} />
+        <Route path="fields/:id/edit" element={<FieldFormPage />} />
+        <Route
+          path="fields/:id/people"
+          element={<FieldPeopleRedirect />}
+        />
+        <Route path="fields/:id" element={<FieldDetailPage />} />
+        <Route path="access-denied" element={<AccessDeniedPage />} />
+        <Route path="chronologio" element={<ChronologioPage />} />
+        <Route path="tasks" element={<TasksPage />} />
+        <Route path="tasks/new" element={<TaskFormPage />} />
+        <Route path="tasks/:id/complete" element={<TaskCompletionPage />} />
+        <Route path="tasks/:id" element={<TaskDetailPage />} />
+        <Route path="people" element={<Navigate to="/partners" replace />} />
+        <Route path="partners" element={<PartnersPage />} />
+        <Route path="partners/search" element={<PartnerSearchPage />} />
+        <Route path="partners/me" element={<MyServiceProfilePage />} />
+        <Route path="partners/requests" element={<ServiceRequestsPage />} />
+        <Route path="partners/:userId" element={<PartnerProfilePage />} />
+        <Route path="money" element={<MoneyPage />} />
+        <Route path="photos" element={<PhotoHubPage />} />
+        <Route path="harvest" element={<HarvestCampaignPage />} />
+        <Route path="this-harvest" element={<Navigate to="/harvest" replace />} />
+        <Route path="this-harvest/review" element={<ThisHarvestReviewPage />} />
+        <Route path="calendar" element={<Navigate to="/tasks?view=upcoming" replace />} />
+        <Route
+          path="analytics"
+          element={<Navigate to="/reports" replace />}
+        />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="today" element={<TodayRedirect />} />
+        <Route path="notes" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
+        <Route path="ministry" element={<MinistryNotificationsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="data-sources" element={<DataSourcesPage />} />
+        <Route path="admin/campaigns" element={<CampaignsPage />} />
+        <Route path="admin/campaigns/new" element={<CampaignEditorPage />} />
+        <Route path="admin/campaigns/:id" element={<CampaignEditorPage />} />
+        <Route path="admin/feedback" element={<FeedbackInboxPage />} />
+      </Route>
+    </>
+  )
+);
+
 function App() {
   return (
     <ThemeProvider>
@@ -83,79 +167,7 @@ function App() {
         <AuthProvider>
           <ExperienceModeProvider>
             <OfflineProvider>
-              <Router>
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/privacy" element={<PrivacyPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route element={<AuthLayout />}>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  </Route>
-                  <Route path="/invite/:token" element={<InviteAcceptPage />} />
-                  <Route path="/family-invite/:token" element={<LegacyInviteRedirect />} />
-                  <Route path="/partner-invite/:token" element={<LegacyInviteRedirect />} />
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <InAppMessageProvider>
-                          <NotificationProvider>
-                            <MainLayout />
-                          </NotificationProvider>
-                        </InAppMessageProvider>
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="dashboard" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
-                    <Route path="fields" element={<FieldsPage />} />
-                    <Route path="fields/new" element={<FieldFormPage />} />
-                    <Route path="fields/:id/chronologio" element={<FieldChronologioRedirect />} />
-                    <Route path="fields/:id/weather" element={<FieldWeatherVegetationPage />} />
-                    <Route path="fields/:id/work-setup" element={<FieldWorkSetupPage />} />
-                    <Route path="fields/:id/work-profile" element={<FieldWorkProfilePage />} />
-                    <Route path="fields/:id/edit" element={<FieldFormPage />} />
-                    <Route
-                      path="fields/:id/people"
-                      element={<FieldPeopleRedirect />}
-                    />
-                    <Route path="fields/:id" element={<FieldDetailPage />} />
-                    <Route path="access-denied" element={<AccessDeniedPage />} />
-                    <Route path="chronologio" element={<ChronologioPage />} />
-                    <Route path="tasks" element={<TasksPage />} />
-                    <Route path="tasks/new" element={<TaskFormPage />} />
-                    <Route path="tasks/:id/complete" element={<TaskCompletionPage />} />
-                    <Route path="tasks/:id" element={<TaskDetailPage />} />
-                    <Route path="people" element={<Navigate to="/partners" replace />} />
-                    <Route path="partners" element={<PartnersPage />} />
-                    <Route path="partners/search" element={<PartnerSearchPage />} />
-                    <Route path="partners/me" element={<MyServiceProfilePage />} />
-                    <Route path="partners/requests" element={<ServiceRequestsPage />} />
-                    <Route path="partners/:userId" element={<PartnerProfilePage />} />
-                    <Route path="money" element={<MoneyPage />} />
-                    <Route path="photos" element={<PhotoHubPage />} />
-                    <Route path="harvest" element={<HarvestCampaignPage />} />
-                    <Route path="this-harvest" element={<Navigate to="/harvest" replace />} />
-                    <Route path="this-harvest/review" element={<ThisHarvestReviewPage />} />
-                    <Route path="calendar" element={<Navigate to="/tasks?view=upcoming" replace />} />
-                    <Route
-                      path="analytics"
-                      element={<Navigate to="/reports" replace />}
-                    />
-                    <Route path="reports" element={<ReportsPage />} />
-                    <Route path="today" element={<TodayRedirect />} />
-                    <Route path="notes" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
-                    <Route path="ministry" element={<MinistryNotificationsPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="data-sources" element={<DataSourcesPage />} />
-                    <Route path="admin/campaigns" element={<CampaignsPage />} />
-                    <Route path="admin/campaigns/new" element={<CampaignEditorPage />} />
-                    <Route path="admin/campaigns/:id" element={<CampaignEditorPage />} />
-                    <Route path="admin/feedback" element={<FeedbackInboxPage />} />
-                  </Route>
-                </Routes>
-              </Router>
+              <RouterProvider router={router} />
             </OfflineProvider>
           </ExperienceModeProvider>
         </AuthProvider>

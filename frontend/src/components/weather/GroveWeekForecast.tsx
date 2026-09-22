@@ -60,8 +60,14 @@ const GroveWeekForecast: React.FC<Props> = ({ fieldWeather, variant = 'compact' 
                 : '';
         const condition = t(`weatherCard.condition.${day.conditionKey}`);
         const today = day.date === new Date().toISOString().slice(0, 10);
+        const label = t('weatherPeek.dayLabel', {
+          day: longDay,
+          range,
+          condition,
+          rain: rain ? t('weatherPeek.dayRain', { mm: rain }) : '',
+        });
         return (
-          <li key={day.date} className={today ? 'is-today' : undefined} title={`${longDay}, ${range}`}>
+          <li key={day.date} className={today ? 'is-today' : undefined} title={`${longDay}, ${range}`} aria-label={label}>
             <span className="grove-week-dow">{weekday.replace(/\.$/, '')}</span>
             <span className="grove-week-icon" aria-hidden>
               {iconFor(day.conditionKey, iconSize)}
@@ -82,14 +88,6 @@ const GroveWeekForecast: React.FC<Props> = ({ fieldWeather, variant = 'compact' 
                 )}
               </span>
             ) : null}
-            <span className="grove-week-sr">
-              {t('weatherPeek.dayLabel', {
-                day: longDay,
-                range,
-                condition,
-                rain: rain ? t('weatherPeek.dayRain', { mm: rain }) : '',
-              })}
-            </span>
           </li>
         );
       })}

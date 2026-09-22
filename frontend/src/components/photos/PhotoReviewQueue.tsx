@@ -7,7 +7,7 @@ import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import type { Field } from '../../services/fieldService';
 import type { PhotoUploadResult } from '../../services/photoService';
 
-export type PhotoBatchStatus = 'queued' | 'uploading' | 'uploaded' | 'failed' | 'duplicate';
+export type PhotoBatchStatus = 'staged' | 'queued' | 'uploading' | 'uploaded' | 'failed' | 'duplicate';
 
 export type PhotoBatchItem = {
   localId: string;
@@ -16,6 +16,7 @@ export type PhotoBatchItem = {
   status: PhotoBatchStatus;
   error?: string | null;
   result?: PhotoUploadResult;
+  allowDuplicate?: boolean;
 };
 
 type Props = {
@@ -28,6 +29,8 @@ type Props = {
   onConfirmField: (photoId: string, fieldId: string) => Promise<void>;
   onUpdateCapturedAt: (photoId: string, capturedAt: string) => Promise<void>;
   onDone: () => void;
+  onUploadStaged?: () => void;
+  onKeepDuplicate?: (localId: string) => void;
 };
 
 const PhotoReviewQueue: React.FC<Props> = ({
@@ -40,6 +43,8 @@ const PhotoReviewQueue: React.FC<Props> = ({
   onConfirmField,
   onUpdateCapturedAt,
   onDone,
+  onUploadStaged,
+  onKeepDuplicate,
 }) => {
   const { t } = useTranslation('photos');
   const { formatDateTime } = useLocaleFormatters();
@@ -70,8 +75,9 @@ const PhotoReviewQueue: React.FC<Props> = ({
     progress && progress.total > 0
       ? Math.min(100, Math.round((progress.done / progress.total) * 100))
       : null;
+  const stagedCount = items.filter((i) => i.status === 'staged').length;
   const canDismiss =
-    !uploading && items.every((i) => i.status !== 'queued' && i.status !== 'uploading');
+    !uploading && items.every((i) => i.status !== 'queued' && i.status !== 'uploading' && i.status !== 'staged');
 
   return (
     <section className="photo-review" aria-label={t('review.title')}>
@@ -82,14 +88,22 @@ const PhotoReviewQueue: React.FC<Props> = ({
             {uploading ? t('review.uploadingLead') : t('review.lead')}
           </p>
         </div>
-        <Button variant="secondary" size="sm" disabled={!canDismiss} onClick={onDone}>
-          {t('review.done')}
-        </Button>
+        <div className="photo-review-header-actions">
+          {stagedCount > 0 ? (
+            <Button size="sm" disabled={uploading} onClick={onUploadStaged}>
+              {t('review.start')}
+            </Button>
+          ) : null}
+          <Button variant="secondary" size="sm" disabled={!canDismiss} onClick={onDone}>
+            {t('review.done')}
+          </Button>
+        </div>
       </div>
 
       {uploading || determinate != null ? (
         <div
           className={`photo-review-progress${determinate != null ? ' is-determinate' : ''}`}
+          aria-live="polite"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -137,7 +151,9 @@ const PhotoReviewQueue: React.FC<Props> = ({
             fields.find((f) => f.id === (photo?.fieldId || selected))?.name ||
             null;
           const statusLabel =
-            item.status === 'queued'
+            item.status === 'staged'
+              ? t('review.statusQueued')
+              : item.status === 'queued'
               ? t('review.statusQueued')
               : item.status === 'uploading'
                 ? t('review.statusUploading')
@@ -146,7 +162,8 @@ const PhotoReviewQueue: React.FC<Props> = ({
                   : item.status === 'duplicate'
                     ? t('review.duplicateSkipped')
                     : t('review.statusUploaded');
-          const canRemove = item.status === 'queued' || item.status === 'failed';
+          const canRemove = item.status === 'staged' || item.status === 'queued' || item.status === 'failed' || item.status === 'duplicate';
+          const reason = photo?.assignmentReason;
 
           return (
             <article
@@ -155,7 +172,7 @@ const PhotoReviewQueue: React.FC<Props> = ({
             >
               <div className="photo-review-card-top">
                 <div className="photo-review-thumb-wrap">
-                  <img src={src} alt="" />
+                  {src ? <img src={src} alt="" /> : <span className="photo-review-thumb-missing" />}
                   {canRemove ? (
                     <button
                       type="button"
@@ -177,10 +194,19 @@ const PhotoReviewQueue: React.FC<Props> = ({
                       {item.error}
                     </p>
                   ) : null}
-                  {item.result?.duplicateWarning && item.status === 'uploaded' ? (
+                  {item.status === 'duplicate' ? (
                     <p className="photo-review-warning" role="status">
-                      {t('review.duplicate')}
+                      {t('review.duplicateChoice')}
                     </p>
+                  ) : null}
+                  {photo && item.status === 'uploaded' && (reason === 'noGps' || !photo.latitude) ? (
+                    <p className="photo-review-meta">{t('review.sourceNone')}</p>
+                  ) : null}
+                  {photo && item.status === 'uploaded' && reason && reason !== 'noGps' && reason !== 'manual' ? (
+                    <p className="photo-review-meta">{t('review.sourceGps')}</p>
+                  ) : null}
+                  {photo && item.status === 'uploaded' && !photo.capturedAt ? (
+                    <p className="photo-review-meta">{t('review.dateFallback')}</p>
                   ) : null}
                   {fieldName ? (
                     <p className="photo-review-meta">
@@ -204,6 +230,16 @@ const PhotoReviewQueue: React.FC<Props> = ({
                     <Button size="sm" variant="secondary" onClick={() => onRetry(item.localId)}>
                       {t('retryUpload')}
                     </Button>
+                  ) : null}
+                  {item.status === 'duplicate' ? (
+                    <div className="photo-detail-actions">
+                      <Button size="sm" variant="secondary" onClick={() => onRemove(item.localId)}>
+                        {t('review.skipDuplicate')}
+                      </Button>
+                      <Button size="sm" onClick={() => onKeepDuplicate?.(item.localId)}>
+                        {t('review.keepDuplicate')}
+                      </Button>
+                    </div>
                   ) : null}
 
                   {photo && item.status === 'uploaded' ? (

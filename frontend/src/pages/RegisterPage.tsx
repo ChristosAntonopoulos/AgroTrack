@@ -8,6 +8,13 @@ import { invalidateAccessContext } from '../hooks/useAccessContext';
 import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolvePostAuthPath } from '../utils/firstGroveDestination';
+import {
+  authPathWithIntent,
+  intentFromSearch,
+  mergeInviteIntent,
+  readInviteIntent,
+  rememberInviteIntent,
+} from '../utils/inviteIntent';
 import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
 import Button from '../components/Common/Button';
 import { Mail, Lock, User, Eye, EyeOff, Ticket } from 'lucide-react';
@@ -26,17 +33,14 @@ const FIELD_ORDER: FieldKey[] = [
   'inviteCode',
 ];
 
-const safeNextPath = (value: string | null) =>
-  value && value.startsWith('/') && !value.startsWith('//') ? value : null;
-
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const [searchParams] = useSearchParams();
-  const inviteFromQuery = searchParams.get('code') || '';
-  const redirectTo = safeNextPath(searchParams.get('redirect'));
-  const hasInviteIntent = Boolean(inviteFromQuery || (redirectTo && redirectTo.startsWith('/invite/')));
+  const storedIntent = mergeInviteIntent(readInviteIntent(), intentFromSearch(searchParams));
+  const inviteFromQuery = storedIntent.code || searchParams.get('code') || '';
+  const hasInviteIntent = Boolean(storedIntent.token || storedIntent.code || storedIntent.redirect?.startsWith('/invite/'));
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -45,7 +49,7 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState(inviteFromQuery);
   const [showInvite, setShowInvite] = useState(hasInviteIntent);
-  const [showEmailForm, setShowEmailForm] = useState(hasInviteIntent || Boolean(redirectTo));
+  const [showEmailForm, setShowEmailForm] = useState(hasInviteIntent);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
@@ -63,8 +67,13 @@ const RegisterPage: React.FC = () => {
   const inviteRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (inviteFromQuery) setInviteCode(inviteFromQuery);
-  }, [inviteFromQuery]);
+    const next = rememberInviteIntent(intentFromSearch(searchParams));
+    if (next.code) setInviteCode(next.code);
+    if (next.token || next.code || next.redirect?.startsWith('/invite/')) {
+      setShowInvite(true);
+      setShowEmailForm(true);
+    }
+  }, [searchParams]);
 
   const fieldRefs: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = {
     firstName: firstNameRef,
@@ -73,6 +82,17 @@ const RegisterPage: React.FC = () => {
     password: passwordRef,
     confirmPassword: confirmRef,
     inviteCode: inviteRef,
+  };
+
+  const loginHref = authPathWithIntent(
+    '/login',
+    mergeInviteIntent(storedIntent, { code: inviteCode.trim() || undefined })
+  );
+
+  const persistInvite = () => {
+    rememberInviteIntent(intentFromSearch(searchParams), {
+      code: inviteCode.trim() || undefined,
+    });
   };
 
   const focusErrors = (errors: Partial<Record<FieldKey, string>>) => {
@@ -94,26 +114,36 @@ const RegisterPage: React.FC = () => {
     return next;
   };
 
-  /** Invite joiners go to the shared grove; new owners start grove setup. */
+  /** Invite joiners return to the invitation; new owners start grove setup. */
   const navigateAfterRegister = async (userRole: string, joinedInvite: boolean, code: string) => {
     invalidateAccessContext();
+    const intent = rememberInviteIntent(intentFromSearch(searchParams), { code: code || undefined });
 
-    if (joinedInvite) {
-      try {
-        const invite = await fieldPeopleService.getInvite(code);
-        if (invite?.fieldId) {
-          navigate(`/chronologio?fieldId=${encodeURIComponent(invite.fieldId)}`);
-          return;
+    if (joinedInvite || intent.token || intent.redirect?.startsWith('/invite/')) {
+      if (intent.token) {
+        navigate(`/invite/${intent.token}`);
+        return;
+      }
+      if (intent.redirect) {
+        navigate(intent.redirect);
+        return;
+      }
+      if (code) {
+        try {
+          const invite = await fieldPeopleService.getInvite(code);
+          if (invite?.token) {
+            navigate(`/invite/${invite.token}`);
+            return;
+          }
+          if (invite?.fieldId) {
+            navigate(`/chronologio?fieldId=${encodeURIComponent(invite.fieldId)}`);
+            return;
+          }
+        } catch {
+          /* fall through */
         }
-      } catch {
-        /* fall through to chronologio home */
       }
       navigate('/chronologio');
-      return;
-    }
-
-    if (redirectTo) {
-      navigate(redirectTo);
       return;
     }
 
@@ -138,6 +168,7 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true);
     const code = inviteCode.trim();
+    persistInvite();
     try {
       await register(email, password, firstName.trim(), lastName.trim() || undefined, code || undefined);
       const stored = authService.getStoredUser();
@@ -190,7 +221,6 @@ const RegisterPage: React.FC = () => {
         <p className="login-card-subtitle">
           {t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.subtitle')}
         </p>
-        <p className="login-card-motto">{t('auth:login.motto')}</p>
       </div>
 
       {summaryMessage ? (
@@ -226,8 +256,14 @@ const RegisterPage: React.FC = () => {
         </div>
       ) : null}
 
-      <AuthSocialButtons />
-      {!showEmailForm ? legalLinks : null}
+      {fieldErrors.email === t('auth:register.emailTaken') ? (
+        <p className="register-existing-account">
+          <Link to={loginHref}>{t('auth:register.loginLink')}</Link>
+        </p>
+      ) : null}
+
+      <AuthSocialButtons onBeforeContinue={persistInvite} />
+      {legalLinks}
 
       {!showEmailForm ? (
         <button
@@ -295,12 +331,9 @@ const RegisterPage: React.FC = () => {
                     autoComplete="family-name"
                     disabled={loading}
                     aria-invalid={Boolean(fieldErrors.lastName)}
-                    aria-describedby={fieldErrors.lastName ? 'lastName-error' : 'lastName-hint'}
+                    aria-describedby={fieldErrors.lastName ? 'lastName-error' : undefined}
                   />
                 </div>
-                <p id="lastName-hint" className="register-hint">
-                  {t('auth:register.lastNameHint')}
-                </p>
                 {fieldErrors.lastName ? (
                   <p id="lastName-error" className="login-field-error" role="alert">
                     {fieldErrors.lastName}
@@ -456,8 +489,6 @@ const RegisterPage: React.FC = () => {
               </button>
             )}
 
-            {legalLinks}
-
             <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
               {t(hasInviteIntent ? 'auth:register.inviteButton' : 'auth:register.button')}
             </Button>
@@ -466,10 +497,7 @@ const RegisterPage: React.FC = () => {
       )}
 
       <p className="login-register">
-        {t('auth:register.hasAccount')}{' '}
-        <Link to={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : '/login'}>
-          {t('auth:register.loginLink')}
-        </Link>
+        {t('auth:register.hasAccount')} <Link to={loginHref}>{t('auth:register.loginLink')}</Link>
       </p>
     </>
   );

@@ -351,5 +351,8 @@
     "previous": "Before",
     "next": "After",
     "posting": "Posting state"
-  }
+  },
+  "activeFilters": "Active filters",
+  "clearAllFilters": "Clear all",
+  "removeFilter": "Remove {{label}}"
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Plus, Smartphone } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
@@ -8,22 +8,19 @@ import Button from '../components/Common/Button';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import PersonCard from '../components/Partners/PersonCard';
-import AddPersonSheet from '../components/Partners/AddPersonSheet';
+import PartnersFieldPicker from '../components/Partners/PartnersFieldPicker';
 import AddFamilySheet from '../components/Partners/AddFamilySheet';
 import AddPartnerSheet from '../components/Partners/AddPartnerSheet';
 import TeamAccessSection from '../components/Partners/TeamAccessSection';
 import SavedContactSheet from '../components/Partners/SavedContactSheet';
 import ImportPhoneContactsSheet from '../components/Partners/ImportPhoneContactsSheet';
 import NeedHelpSection from '../components/Partners/NeedHelpSection';
-import { fromSavedContacts, GrovePerson, occupiesAccessSeat } from '../components/Partners/grovePeople';
+import { fromSavedContacts, GrovePerson, linkedFieldIds, occupiesAccessSeat } from '../components/Partners/grovePeople';
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import {
   FieldInvite,
   FieldMembership,
-  MAX_FAMILY_SEATS,
-  MAX_PARTNER_SEATS,
-  countSeats,
   fieldPeopleService,
 } from '../services/fieldPeopleService';
 import {
@@ -31,13 +28,13 @@ import {
   ServiceCategory,
   categorySlugForTaskType,
   rememberPartnerFieldId,
-  rememberedPartnerFieldId,
 } from '../services/partnerService';
 import { useAuth } from '../context/AuthContext';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
-import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { canPickDeviceContact } from '../utils/pickDeviceContact';
 import { invalidateAccessContext } from '../hooks/useAccessContext';
+import { isListedGrove } from '../utils/fieldDisplay';
+import { friendlyFieldLabel } from '../utils/fieldLabels';
 import './PartnersPage.css';
 
 /** Marketplace browse / offer / requests — hidden until we ship it. */
@@ -50,16 +47,15 @@ const PartnersPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params, setSearchParams] = useSearchParams();
-  const pageGuard = useModulePageGuard({ adminOnly: true });
   const fieldIdParam = params.get('fieldId') || '';
   const addParam = params.get('add') === '1';
   const fromParam = params.get('from') || '';
   const taskTypeParam = params.get('taskType') || params.get('category') || '';
   const [fields, setFields] = useState<Field[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [fieldId, setFieldId] = useState(fieldIdParam || rememberedPartnerFieldId());
+  const [fieldId, setFieldId] = useState(fieldIdParam && fieldIdParam !== 'all' ? fieldIdParam : '');
   const [people, setPeople] = useState<GrovePerson[]>([]);
-  const [fieldPeople, setFieldPeople] = useState<FieldMembership[]>([]);
+  const [peopleByField, setPeopleByField] = useState<Record<string, FieldMembership[]>>({});
   const [loading, setLoading] = useState(true);
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [seatsLoading, setSeatsLoading] = useState(false);
@@ -67,6 +63,7 @@ const PartnersPage: React.FC = () => {
   const [addingFamily, setAddingFamily] = useState(false);
   const [addingPartner, setAddingPartner] = useState(false);
   const [invitePrefill, setInvitePrefill] = useState<InvitePrefill>({});
+  const [inviteTargetFieldId, setInviteTargetFieldId] = useState('');
   const [pendingInvitesById, setPendingInvitesById] = useState<Record<string, FieldInvite>>({});
   const [importingPhone, setImportingPhone] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
@@ -79,12 +76,29 @@ const PartnersPage: React.FC = () => {
   const [seatsTick, setSeatsTick] = useState(0);
   const canPickPhone = useMemo(() => canPickDeviceContact(), []);
 
-  const selectedField = fields.find((f) => f.id === fieldId);
-  const canManage =
-    user?.role === 'FieldOwner' ||
-    user?.role === 'Administrator' ||
-    selectedField?.ownerId === user?.userId ||
-    fieldPeople.some((p) => p.userId === user?.userId && p.role === 'Admin');
+  const groveFields = useMemo(() => fields.filter(isListedGrove), [fields]);
+  const listedFields = useMemo(() => {
+    if (fieldId && !groveFields.some((field) => field.id === fieldId)) {
+      const extra = fields.find((field) => field.id === fieldId);
+      if (extra) return [extra, ...groveFields];
+    }
+    return groveFields;
+  }, [fields, fieldId, groveFields]);
+
+  const fieldPeople = useMemo(
+    () => (fieldId ? peopleByField[fieldId] || [] : Object.values(peopleByField).flat()),
+    [fieldId, peopleByField]
+  );
+
+  const canManageField = (id: string) => {
+    if (!id || !user?.userId) return false;
+    if (user.role === 'Administrator') return true;
+    const field = fields.find((row) => row.id === id);
+    if (field?.ownerId === user.userId) return true;
+    return (peopleByField[id] || []).some(
+      (person) => person.userId === user.userId && person.role === 'Admin'
+    );
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -97,17 +111,6 @@ const PartnersPage: React.FC = () => {
         if (cancelled) return;
         setFields(fieldRows);
         setCategories(Array.isArray(cats) ? cats : []);
-        const preferred = fieldIdParam || rememberedPartnerFieldId();
-        const nextField = fieldRows.some((f) => f.id === preferred) ? preferred : fieldRows[0]?.id || '';
-        if (nextField) {
-          setFieldId(nextField);
-          rememberPartnerFieldId(nextField);
-          if (fieldIdParam !== nextField) {
-            const next = new URLSearchParams(params);
-            next.set('fieldId', nextField);
-            setSearchParams(next, { replace: true });
-          }
-        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -115,8 +118,21 @@ const PartnersPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldIdParam]);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!fieldIdParam || fieldIdParam === 'all') {
+      setFieldId('');
+      return;
+    }
+    if (fields.some((field) => field.id === fieldIdParam)) {
+      setFieldId(fieldIdParam);
+      rememberPartnerFieldId(fieldIdParam);
+      return;
+    }
+    setFieldId('');
+  }, [loading, fieldIdParam, fields]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,19 +158,27 @@ const PartnersPage: React.FC = () => {
   }, [peopleTick, i18n.language, categories]);
 
   useEffect(() => {
-    if (!user || !fieldId) {
-      setFieldPeople([]);
+    if (!user || listedFields.length === 0) {
+      setPeopleByField({});
       return;
     }
     let cancelled = false;
     void (async () => {
       setSeatsLoading(true);
-      setFieldPeople([]);
       try {
-        const rows = await fieldPeopleService.getPeople(fieldId);
-        if (!cancelled) setFieldPeople(rows);
+        const entries = await Promise.all(
+          listedFields.map(async (field) => {
+            try {
+              const rows = await fieldPeopleService.getPeople(field.id);
+              return [field.id, rows.map((row) => ({ ...row, fieldId: field.id }))] as const;
+            } catch {
+              return [field.id, [] as FieldMembership[]] as const;
+            }
+          })
+        );
+        if (!cancelled) setPeopleByField(Object.fromEntries(entries));
       } catch {
-        if (!cancelled) setFieldPeople([]);
+        if (!cancelled) setPeopleByField({});
       } finally {
         if (!cancelled) setSeatsLoading(false);
       }
@@ -162,7 +186,7 @@ const PartnersPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, fieldId, seatsTick]);
+  }, [user, groveFields, seatsTick]);
 
   const onFieldChange = (nextId: string) => {
     setFieldId(nextId);
@@ -222,13 +246,38 @@ const PartnersPage: React.FC = () => {
       people.filter((person) => {
         if (!person.savedContact) return false;
         if (user?.userId && person.userId === user.userId) return false;
-        return !occupiesAccessSeat(person, accessUserIds, accessEmails);
+        if (occupiesAccessSeat(person, accessUserIds, accessEmails)) return false;
+        if (!fieldId) return true;
+        return linkedFieldIds(person).includes(fieldId);
       }),
-    [people, user?.userId, accessUserIds, accessEmails]
+    [people, user?.userId, accessUserIds, accessEmails, fieldId]
   );
   const peopleCount = visiblePeople.length;
-  const familyUsed = countSeats(fieldPeople, 'Family');
-  const partnerUsed = countSeats(fieldPeople, 'Partner');
+
+  const fieldPeopleCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    listedFields.forEach((field) => {
+      const members = (peopleByField[field.id] || []).filter(
+        (person) =>
+          person.role !== 'Admin' &&
+          !/^revoked$/i.test(person.status) &&
+          !/^removed$/i.test(person.status)
+      );
+      const memberUsers = new Set(members.map((person) => person.userId).filter(Boolean));
+      const memberEmails = new Set(
+        members.map((person) => person.email?.trim().toLowerCase()).filter(Boolean) as string[]
+      );
+      const extraContacts = people.filter((person) => {
+        if (!linkedFieldIds(person).includes(field.id)) return false;
+        if (person.userId && memberUsers.has(person.userId)) return false;
+        const email = (person.email || person.savedContact?.email || '').trim().toLowerCase();
+        if (email && memberEmails.has(email)) return false;
+        return true;
+      });
+      counts[field.id] = members.length + extraContacts.length;
+    });
+    return counts;
+  }, [listedFields, peopleByField, people]);
 
   const onSeatsChanged = (invite?: FieldInvite) => {
     if (invite?.id) {
@@ -238,29 +287,25 @@ const PartnersPage: React.FC = () => {
     invalidateAccessContext();
   };
 
-  const openInviteFamily = (prefill: InvitePrefill = {}) => {
+  const openInviteFamily = (prefill: InvitePrefill = {}, targetFieldId?: string) => {
+    const next = targetFieldId || fieldId;
+    if (!next) return;
+    setInviteTargetFieldId(next);
     setInvitePrefill(prefill);
     setAddingFamily(true);
   };
 
-  const openInvitePartner = (prefill: InvitePrefill = {}) => {
+  const openInvitePartner = (prefill: InvitePrefill = {}, targetFieldId?: string) => {
+    const next = targetFieldId || fieldId;
+    if (!next) return;
+    setInviteTargetFieldId(next);
     setInvitePrefill(prefill);
     setAddingPartner(true);
   };
 
-  if (pageGuard.loading) {
-    return (
-      <PageContainer>
-        <div className="partners-page">
-          <Breadcrumbs />
-          <LoadingSpinner className="page-inline-loading" />
-        </div>
-      </PageContainer>
-    );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=access" replace />;
-  }
+  const inviteFieldId = inviteTargetFieldId || fieldId;
+  const inviteField = fields.find((field) => field.id === inviteFieldId);
+  const accessFields = fieldId ? listedFields.filter((field) => field.id === fieldId) : listedFields;
 
   if (loading) {
     return (
@@ -280,19 +325,13 @@ const PartnersPage: React.FC = () => {
 
         <h1 className="partners-page-title">{t('partners:title')}</h1>
 
-        {fields.length > 0 ? (
-          <div className="partners-field-picker">
-            <label className="partners-field-picker-label">
-              <span>{t('partners:forWhichField')}</span>
-              <select value={fieldId} onChange={(e) => onFieldChange(e.target.value)}>
-                {fields.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        {listedFields.length > 0 ? (
+          <PartnersFieldPicker
+            fields={listedFields}
+            value={fieldId}
+            onChange={onFieldChange}
+            counts={fieldPeopleCounts}
+          />
         ) : null}
 
         <section className="partners-section partners-contacts-hero" aria-labelledby="my-people-title">
@@ -307,7 +346,7 @@ const PartnersPage: React.FC = () => {
               <p className="partners-lead">{t('partners:contactsSectionHint')}</p>
               <p className="partners-inline-hint">{t('partners:contactsVsUsers')}</p>
             </div>
-            {user ? (
+            {user && (peopleLoading || peopleCount > 0) ? (
               <div className="partners-hero-actions">
                 {canPickPhone ? (
                   <Button
@@ -334,7 +373,9 @@ const PartnersPage: React.FC = () => {
           {!peopleLoading && visiblePeople.length === 0 ? (
             <EmptyState
               title={t('partners:emptyPeople')}
-              description={t('partners:emptyPeopleHint')}
+              description={
+                fieldId ? t('partners:emptyPeopleHintField') : t('partners:emptyPeopleHint')
+              }
               action={
                 <div className="partner-actions">
                   {user ? (
@@ -366,38 +407,57 @@ const PartnersPage: React.FC = () => {
           ) : null}
 
           <div className="partners-people-list">
-            {visiblePeople.map((person) => (
+            {visiblePeople.map((person) => {
+              const inviteField = fieldId
+                ? canManageField(fieldId)
+                  ? fieldId
+                  : ''
+                : linkedFieldIds(person).find((id) => canManageField(id)) || '';
+              return (
               <PersonCard
                 key={person.id}
                 person={person}
                 fieldId={fieldId}
                 fields={fields}
-                canManage={canManage}
+                canManage={Boolean(fieldId) && canManageField(fieldId)}
                 onEditContact={(row) => setEditing(row.savedContact || null)}
-                onInviteContact={(person) => {
-                  openInviteFamily({
-                    name: person.displayName,
-                    email: person.email || person.savedContact?.email || '',
-                  });
-                }}
+                onInviteContact={
+                  inviteField
+                    ? () =>
+                        openInviteFamily(
+                          {
+                            name: person.displayName,
+                            email: person.email || person.savedContact?.email || '',
+                          },
+                          inviteField
+                        )
+                    : undefined
+                }
                 onRemoved={() => setPeopleTick((n) => n + 1)}
               />
-            ))}
+              );
+            })}
           </div>
         </section>
 
-        {user && fieldId ? (
-          <TeamAccessSection
-            fieldId={fieldId}
-            people={fieldPeople}
-            loading={seatsLoading}
-            canManage={canManage}
-            pendingInvitesById={pendingInvitesById}
-            onAddFamily={() => openInviteFamily()}
-            onAddPartner={() => openInvitePartner()}
-            onChanged={() => onSeatsChanged()}
-          />
-        ) : null}
+        {user
+          ? accessFields.map((field) => (
+              <TeamAccessSection
+                key={field.id}
+                fieldId={field.id}
+                fieldName={friendlyFieldLabel(field.name)}
+                fieldColor={field.color}
+                showFieldHeading={!fieldId}
+                people={peopleByField[field.id] || []}
+                loading={seatsLoading}
+                canManage={canManageField(field.id)}
+                pendingInvitesById={pendingInvitesById}
+                onAddFamily={() => openInviteFamily({}, field.id)}
+                onAddPartner={() => openInvitePartner({}, field.id)}
+                onChanged={() => onSeatsChanged()}
+              />
+            ))
+          : null}
 
         {SHOW_PARTNER_MARKETPLACE ? (
           <>
@@ -410,22 +470,16 @@ const PartnersPage: React.FC = () => {
         ) : null}
 
         {addPersonDrawer.mounted ? (
-          <AddPersonSheet
+          <SavedContactSheet
             open={addPersonDrawer.open}
             fieldId={fieldId || undefined}
             fields={fields}
             categories={categories}
-            canInviteFamily={Boolean(canManage && fieldId && familyUsed < MAX_FAMILY_SEATS)}
-            canInvitePartner={Boolean(canManage && fieldId && partnerUsed < MAX_PARTNER_SEATS)}
-            familyUsed={familyUsed}
-            familyMax={MAX_FAMILY_SEATS}
-            partnerUsed={partnerUsed}
-            partnerMax={MAX_PARTNER_SEATS}
             onClose={() => setAdding(false)}
-            onSaved={() => setPeopleTick((n) => n + 1)}
-            onInviteFamily={() => openInviteFamily()}
-            onInvitePartner={() => openInvitePartner()}
-            onImportPhone={() => setImportingPhone(true)}
+            onSaved={() => {
+              setAdding(false);
+              setPeopleTick((n) => n + 1);
+            }}
           />
         ) : null}
 
@@ -440,29 +494,33 @@ const PartnersPage: React.FC = () => {
           />
         ) : null}
 
-        {addFamilyDrawer.mounted && fieldId ? (
+        {addFamilyDrawer.mounted && inviteFieldId ? (
           <AddFamilySheet
             open={addFamilyDrawer.open}
-            fieldId={fieldId}
+            fieldId={inviteFieldId}
+            fieldName={inviteField?.name}
             initialName={invitePrefill.name}
             initialEmail={invitePrefill.email}
             onClose={() => {
               setAddingFamily(false);
               setInvitePrefill({});
+              setInviteTargetFieldId('');
             }}
             onCreated={onSeatsChanged}
           />
         ) : null}
 
-        {addPartnerDrawer.mounted && fieldId ? (
+        {addPartnerDrawer.mounted && inviteFieldId ? (
           <AddPartnerSheet
             open={addPartnerDrawer.open}
-            fieldId={fieldId}
+            fieldId={inviteFieldId}
+            fieldName={inviteField?.name}
             initialName={invitePrefill.name}
             initialEmail={invitePrefill.email}
             onClose={() => {
               setAddingPartner(false);
               setInvitePrefill({});
+              setInviteTargetFieldId('');
             }}
             onCreated={onSeatsChanged}
           />

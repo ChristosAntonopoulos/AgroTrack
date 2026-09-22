@@ -27,5 +27,22 @@ export function usePhotoLightbox() {
     setState((prev) => (prev.open ? { ...prev, index } : prev));
   }, []);
 
-  return { ...state, openAt, close, setIndex };
+  const syncItems = useCallback((items: PhotoLightboxItem[]) => {
+    setState((prev) => {
+      if (!prev.open) return prev;
+      const same =
+        prev.items.length === items.length &&
+        prev.items.every(
+          (item, i) =>
+            item.id === items[i]?.id &&
+            item.src === items[i]?.src &&
+            item.context === items[i]?.context
+        );
+      if (same) return prev;
+      const index = Math.min(prev.index, Math.max(0, items.length - 1));
+      return { ...prev, items, index };
+    });
+  }, []);
+
+  return { ...state, openAt, close, setIndex, syncItems };
 }

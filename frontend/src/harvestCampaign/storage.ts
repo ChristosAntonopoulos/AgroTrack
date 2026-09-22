@@ -127,6 +127,10 @@ const parseOil = (value: unknown): HarvestOilEntry | null => {
     batchId: asString(value.batchId),
     harvestRecordId: asString(value.harvestRecordId),
     harvestRecordIds: asStringArray(value.harvestRecordIds),
+    soldLitres: asNumber(value.soldLitres),
+    soldTin16: asNumber(value.soldTin16),
+    soldTin17: asNumber(value.soldTin17),
+    soldBulkLitres: asNumber(value.soldBulkLitres),
     createdAt: asString(value.createdAt) || value.date,
   };
 };
@@ -500,6 +504,10 @@ export const updateOil = (
       | 'acidity'
       | 'note'
       | 'date'
+      | 'soldLitres'
+      | 'soldTin16'
+      | 'soldTin17'
+      | 'soldBulkLitres'
     >
   >
 ): HarvestCampaign => ({

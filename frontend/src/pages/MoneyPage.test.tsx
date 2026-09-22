@@ -16,7 +16,7 @@ jest.mock(
     useSearchParams: () => [new URLSearchParams({ year: '2026' }), mockSetSearchParams],
     useNavigate: () => jest.fn(),
     Navigate: () => null,
-    Link: ({ children }) => children,
+    Link: ({ children }: { children?: React.ReactNode }) => children,
   }),
   { virtual: true }
 );
@@ -28,10 +28,10 @@ jest.mock('../hooks/useModulePageGuard', () => ({
 }));
 
 jest.mock('../services/serviceFactory', () => ({
-  getFieldService: () => ({ getFields: (...args) => mockGetFields(...args) }),
-  getFinancialSummaryService: () => ({ getYear: (...args) => mockGetYear(...args) }),
+  getFieldService: () => ({ getFields: (...args: unknown[]) => mockGetFields(...args) }),
+  getFinancialSummaryService: () => ({ getYear: (...args: unknown[]) => mockGetYear(...args) }),
   getFinancialTransactionService: () => ({
-    list: (...args) => mockList(...args),
+    list: (...args: unknown[]) => mockList(...args),
     void: jest.fn(),
     post: jest.fn(),
     deleteDraft: jest.fn(),
@@ -122,7 +122,7 @@ describe('MoneyPage', () => {
   it('shows the empty-year Greek state without charts or zero totals', async () => {
     mockGetYear.mockResolvedValue(emptySummary());
     await renderPage();
-    expect(await screen.findByText('Δεν έχεις καταχωρήσει χρήματα για το 2026')).toBeInTheDocument();
+    expect(await screen.findByText('Δεν έχεις καταχωρήσει χρήματα για τη χρονιά συγκομιδής 2026/27')).toBeInTheDocument();
     expect(screen.getByText(/Ξεκίνα με ένα έσοδο ή ένα έξοδο/)).toBeInTheDocument();
     expect(screen.queryByText(/0,00/)).not.toBeInTheDocument();
   });
@@ -171,7 +171,7 @@ describe('MoneyPage', () => {
     );
     await renderPage();
     expect(await screen.findByText('Κέρδος')).toBeInTheDocument();
-    expect(screen.getByText('Πορεία της χρονιάς')).toBeInTheDocument();
+    expect(screen.getByText('Μέσα στη χρονιά συγκομιδής')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Κατηγορίες' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ανά στρέμμα και κόστος λαδιού' })).toBeInTheDocument();
     expect(screen.queryByText('Εργασία')).not.toBeInTheDocument();

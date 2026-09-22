@@ -34,6 +34,9 @@ public class MediaAttachment : BaseEntity
     /// <summary>Why the field was assigned (e.g. gpsInside, gpsNear, noGps, manual).</summary>
     public string? AssignmentReason { get; set; }
 
+    /// <summary>Optional grower caption. Separate from the linked-record title.</summary>
+    public string? Caption { get; set; }
+
     /// <summary>Denormalized linked-record label for hub cards when the owner still exists or after soft orphaning.</summary>
     public string? LinkedTitle { get; set; }
     public DateTime? LinkedOccurredAt { get; set; }

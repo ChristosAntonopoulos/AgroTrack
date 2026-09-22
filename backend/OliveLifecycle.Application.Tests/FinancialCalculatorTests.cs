@@ -396,7 +396,9 @@ public class FinancialCalculatorTests
         Assert.Equal("Πρόχειρο", FinancialDisplayLabels.Status(FinancialTransactionStatus.Draft));
         Assert.Equal("Ακυρωμένο", FinancialDisplayLabels.Status(FinancialTransactionStatus.Void));
         Assert.Equal("Γενική εκμετάλλευση", FinancialDisplayLabels.UnassignedField());
-        Assert.Equal("Το έτος στο οποίο θέλεις να υπολογιστεί αυτή η καταχώρηση.", FinancialDisplayLabels.ResultYearHelpEl);
+        Assert.Equal(
+            "Η χρονιά συγκομιδής στην οποία μετράει η καταχώρηση (1 Φεβ – 31 Ιαν). Ο Ιανουάριος μένει στη συγκομιδή που άρχισε τον προηγούμενο Φεβρουάριο.",
+            FinancialDisplayLabels.ResultYearHelpEl);
     }
 
     private static IReadOnlyList<FinancialFieldMetrics> Fields(params string[] ids) =>

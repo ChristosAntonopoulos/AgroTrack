@@ -24,6 +24,7 @@ describe('fromSavedContacts', () => {
     expect(people[0].membership).toBeUndefined();
     expect(people[0].listed).toBe(false);
     expect(people[0].email).toBe('mill@olivefarm.com');
+    expect(people[0].fieldIds).toEqual(['f1']);
   });
 });
 

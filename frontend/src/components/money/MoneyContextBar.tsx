@@ -1,6 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, FilePenLine, LayoutGrid, TrendingDown, TrendingUp } from 'lucide-react';
+import { seasonStageIndex } from '../../chronologio/yearPresentation';
+import { HARVEST_YEAR_STAGES, harvestYearSpan, harvestYearStatus } from '../../finance/harvestYear';
 import './Money.css';
 
 type KindFilter = 'all' | 'income' | 'expense' | 'draft';
@@ -23,6 +25,16 @@ const MoneyContextBar: React.FC<Props> = ({
   onKindChange,
 }) => {
   const { t } = useTranslation('money');
+  const status = harvestYearStatus(year);
+  const statusKey =
+    status === 'current'
+      ? 'harvestYearCurrent'
+      : status === 'closed'
+        ? 'harvestYearClosed'
+        : 'harvestYearUpcoming';
+  const liveIndex = status === 'current' ? seasonStageIndex() : -1;
+  const liveStage = liveIndex >= 0 ? HARVEST_YEAR_STAGES[liveIndex] : null;
+
   const kinds: Array<{ id: KindFilter; icon: React.ReactNode; label: string }> = [
     { id: 'all', icon: <LayoutGrid size={18} aria-hidden />, label: t('kindAll') },
     ...(!hideIncome
@@ -39,8 +51,25 @@ const MoneyContextBar: React.FC<Props> = ({
           <ChevronLeft size={20} />
         </button>
         <div className="money-year-label">
-          <strong aria-live="polite">{t('agriculturalYearShort', { year })}</strong>
+          <span className="money-year-kicker">{t('harvestYearName')}</span>
+          <strong aria-live="polite">
+            {harvestYearSpan(year)}
+            <em className={`money-year-status is-${status}`}>{t(statusKey)}</em>
+          </strong>
           {yearRangeLabel ? <span className="money-year-range">{yearRangeLabel}</span> : null}
+          {liveStage ? (
+            <span className="money-season-now">
+              <span className="money-season-track" aria-hidden>
+                {HARVEST_YEAR_STAGES.map((stage, index) => (
+                  <i
+                    key={stage}
+                    className={index < liveIndex ? 'is-past' : index === liveIndex ? 'is-now' : ''}
+                  />
+                ))}
+              </span>
+              {t(`seasonLine.${liveStage}`)}
+            </span>
+          ) : null}
         </div>
         <button type="button" aria-label={t('nextYear')} onClick={() => onYearChange(year + 1)}>
           <ChevronRight size={20} />

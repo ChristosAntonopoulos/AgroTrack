@@ -11,38 +11,30 @@ const GoogleMark: React.FC = () => (
   </svg>
 );
 
-const AppleMark: React.FC = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-    <path
-      fill="currentColor"
-      d="M16.7 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 3 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-.1 3-2.2c.9-1.3 1.3-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.9zM14.6 5.8c.6-.8 1.1-1.8.9-2.8-1 .1-2.1.7-2.7 1.5-.6.7-1.1 1.8-.9 2.8 1.1.1 2.1-.6 2.7-1.5z"
-    />
-  </svg>
-);
+type Props = {
+  onBeforeContinue?: () => void;
+};
 
-const AuthSocialButtons: React.FC = () => {
+const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
   const { t } = useTranslation('auth');
   const [notice, setNotice] = useState<string | null>(null);
 
-  const handleSocial = (provider: 'Google' | 'Apple') => {
-    setNotice(t('register.socialComingSoon', { provider }));
+  const handleGoogle = () => {
+    onBeforeContinue?.();
+    setNotice(t('register.socialComingSoon', { provider: 'Google' }));
   };
 
   return (
     <div className="auth-social">
-      <button type="button" className="auth-social-btn" onClick={() => handleSocial('Google')}>
+      <button type="button" className="auth-social-btn" onClick={handleGoogle}>
         <GoogleMark />
         {t('register.continueGoogle')}
       </button>
-      <button type="button" className="auth-social-btn is-disabled" disabled aria-disabled="true">
-        <AppleMark />
-        {t('register.continueApple')}
-      </button>
-      {notice && (
+      {notice ? (
         <p className="auth-social-note" role="status">
           {notice}
         </p>
-      )}
+      ) : null}
     </div>
   );
 };

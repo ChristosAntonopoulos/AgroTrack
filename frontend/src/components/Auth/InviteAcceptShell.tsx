@@ -1,13 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '../Common/PageContainer';
-import PageHeader from '../Common/PageHeader';
 import Card from '../Common/Card';
 import LoadingSpinner from '../Common/LoadingSpinner';
+import BrandLogo from '../Common/BrandLogo';
 import '../../pages/InviteAcceptPage.css';
 
 type InviteAcceptShellProps = {
-  title: string;
   loading: boolean;
   error: string | null;
   loginFallbackLabel: string;
@@ -15,7 +14,6 @@ type InviteAcceptShellProps = {
 };
 
 const InviteAcceptShell: React.FC<InviteAcceptShellProps> = ({
-  title,
   loading,
   error,
   loginFallbackLabel,
@@ -25,8 +23,11 @@ const InviteAcceptShell: React.FC<InviteAcceptShellProps> = ({
 
   return (
     <PageContainer maxWidth="sm" className="invite-accept-page">
-      <Card>
-        <PageHeader title={title} />
+      <Card className="invite-accept-card">
+        <div className="invite-accept-brand">
+          <BrandLogo variant="mark" size="sm" alt="" />
+          <span>OLEACHRON</span>
+        </div>
         {error ? <p className="invite-accept-error">{error}</p> : null}
         {children ? (
           <div className="invite-accept-body">{children}</div>

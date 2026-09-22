@@ -98,7 +98,8 @@ const ThisHarvestReviewPage: React.FC = () => {
         getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
         Promise.all(years.map((y) => reports.getHarvestRecords(y).catch(() => [] as HarvestRecord[]))),
         Promise.all(years.map((y) => reports.getFieldSummaries(y).catch(() => [] as FieldSummaryData[]))),
-        getFinancialSummaryService().getYear(year + 1, undefined, i18n.language).catch(() => null),
+        // ResultYear S is the harvest year 1 Feb S – 31 Jan S+1, the same season the review is about.
+        getFinancialSummaryService().getYear(year, undefined, i18n.language).catch(() => null),
       ]);
 
       const harvests = harvestChunks.flat();
@@ -257,7 +258,7 @@ const ThisHarvestReviewPage: React.FC = () => {
               </div>
               <div className="ravdos-money-actions">
                 <Button
-                  to={selectedYear ? `/money?year=${selectedYear + 1}` : '/money'}
+                  to={selectedYear ? `/money?year=${selectedYear}` : '/money'}
                   variant="outline"
                   icon={<Wallet size={16} />}
                 >

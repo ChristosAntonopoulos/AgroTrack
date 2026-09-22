@@ -23,7 +23,6 @@ import ChronologioComparePanel from '../components/chronologio/ChronologioCompar
 import ChronologioDaysTimeline from '../components/chronologio/ChronologioDaysTimeline';
 import ChronologioJournalHeader from '../components/chronologio/ChronologioJournalHeader';
 import ChronologioZoomTabs from '../components/chronologio/ChronologioZoomTabs';
-import ChronologioCategoryRail from '../components/chronologio/ChronologioCategoryRail';
 import ChronologioMonthChapterCard from '../components/chronologio/ChronologioMonthChapterCard';
 import ChronologioYearChapterCard from '../components/chronologio/ChronologioYearChapterCard';
 import ChronologioZoomPager from '../components/chronologio/ChronologioZoomPager';
@@ -629,11 +628,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         onChange={(z) => setZoomAndPage(z)}
       />
 
-      <ChronologioCategoryRail
-        value={filterCategory}
-        onChange={(v) => setFilterCategory(v as FilterCategory)}
-      />
-
       <View style={styles.toolsRow}>
         <TouchableOpacity
           style={styles.toolLink}
@@ -672,14 +666,39 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         ) : null}
       </View>
 
-      {lifecycleYear ? (
-        <View style={styles.activeFilters}>
-          <DismissibleChip
-            label={
-              lifecycleYear === 'low' ? t('chronologio:seasonLow') : t('chronologio:seasonHigh')
-            }
-            onDismiss={() => setLifecycleYear('')}
-          />
+      {filtersDirty ? (
+        <View style={styles.activeFilters} accessibilityLabel={t('chronologio:activeFilters')}>
+          {filterCategory !== 'all' ? (
+            <DismissibleChip
+              label={
+                filterCategory === 'work' ||
+                filterCategory === 'observation' ||
+                filterCategory === 'money' ||
+                filterCategory === 'harvest'
+                  ? t(`chronologio:primaryCategories.${filterCategory}`)
+                  : filterCategory === 'lifecycle'
+                    ? t('chronologio:primaryCategories.field_change')
+                    : t(`chronologio:categories.${filterCategory}`)
+              }
+              onDismiss={() => setFilterCategory('all')}
+            />
+          ) : null}
+          {!fieldMode && filterFieldId ? (
+            <DismissibleChip
+              label={
+                fields.find((f) => f.id === filterFieldId)?.name || t('chronologio:living.field')
+              }
+              onDismiss={() => setFilterFieldId('')}
+            />
+          ) : null}
+          {lifecycleYear ? (
+            <DismissibleChip
+              label={
+                lifecycleYear === 'low' ? t('chronologio:seasonLow') : t('chronologio:seasonHigh')
+              }
+              onDismiss={() => setLifecycleYear('')}
+            />
+          ) : null}
           <Pressable
             onPress={() => {
               setFilterCategory('all');
@@ -688,9 +707,10 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             }}
             hitSlop={8}
             style={styles.clearLink}
+            accessibilityRole="button"
           >
             <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 13 }}>
-              {t('chronologio:clearFilters')}
+              {t('chronologio:clearAllFilters', { defaultValue: t('chronologio:clearFilters') })}
             </Text>
           </Pressable>
         </View>
@@ -903,7 +923,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
               }}
             >
               <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                {t('chronologio:clearFilters')}
+                {t('chronologio:clearAllFilters', { defaultValue: t('chronologio:clearFilters') })}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity

@@ -74,6 +74,8 @@ const PhotoUploadDropzone: React.FC<Props> = ({
         accept="image/jpeg,image/png,image/webp,image/gif"
         multiple
         disabled={disabled}
+        tabIndex={-1}
+        aria-hidden="true"
         className="photo-hidden-input"
         onChange={(e) => {
           takeFiles(e.target.files, onFiles);

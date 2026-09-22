@@ -6,7 +6,6 @@ import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import {
   buildHarvestFlowGraph,
-  fieldAllocationCaption,
   relatedGenealogyIds,
   type HarvestFlowNode,
   type HarvestFlowNodeKind,
@@ -107,52 +106,56 @@ export const HarvestFlowView: React.FC<Props> = ({
 
   const pathStory = useMemo(() => {
     if (!selectedNode) return null;
-    if (selectedNode.kind === 'field' && selectedFieldId) {
-      const cap = fieldAllocationCaption(campaign, selectedFieldId);
-      const bits = [friendlyFieldLabel(selectedNode.label)];
-      if (selectedNode.meta.sackCount)
-        bits.push(`${selectedNode.meta.sackCount} ${t('harvestCampaign.sacks.unit')}`);
-      if (cap.millKg > 0) bits.push(`${formatGroveMassKg(cap.millKg, locale)} kg`);
-      if (cap.oilKg > 0) bits.push(`${formatGroveMassKg(cap.oilKg, locale)} kg`);
-      return bits.length > 1 ? bits.join(' → ') : null;
+    const bits: string[] = [];
+    if (selectedNode.kind === 'field') {
+      bits.push(friendlyFieldLabel(selectedNode.label));
+      if (selectedNode.meta.sackCount) {
+        bits.push(
+          t('harvestCampaign.flow.sackCount', { count: selectedNode.meta.sackCount })
+        );
+      }
+      return bits.length > 1 ? bits.join(' · ') : null;
     }
     const related = graph.nodes.filter((n) => highlight.has(n.id));
     const fieldNames = related
       .filter((n) => n.kind === 'field')
       .map((n) => friendlyFieldLabel(n.label));
-    const bits: string[] = [];
-    if (fieldNames.length) bits.push(fieldNames.join(' + '));
+    if (fieldNames.length) bits.push(fieldNames.join(' · '));
     if (selectedNode.kind === 'harvest' && selectedNode.meta.sackCount) {
-      bits.push(`${selectedNode.meta.sackCount} ${t('harvestCampaign.sacks.unit')}`);
+      bits.push(t('harvestCampaign.flow.sackCount', { count: selectedNode.meta.sackCount }));
     }
-    if (selectedNode.meta.oliveKg && selectedNode.kind !== 'field') {
-      bits.push(`${formatGroveMassKg(selectedNode.meta.oliveKg, locale)} kg`);
-    }
-    if (selectedNode.meta.oilKg && selectedNode.kind === 'oil') {
+    if (selectedNode.kind === 'mill' && selectedNode.meta.oliveKg) {
       bits.push(
-        `${formatGroveMassKg(selectedNode.meta.oilKg, locale)} kg${
-          selectedNode.yieldPct != null
-            ? ` · ${formatHarvestYieldPercent(selectedNode.yieldPct, locale)}%`
-            : ''
-        }`
+        t('harvestCampaign.flow.fruitLine', {
+          kg: formatGroveMassKg(selectedNode.meta.oliveKg, locale),
+        })
       );
-    } else if (selectedNode.kind === 'mill') {
-      const oils = related.filter((n) => n.kind === 'oil');
-      if (oils.length === 1 && oils[0].meta.oilKg) {
-        bits.push(`${formatGroveMassKg(oils[0].meta.oilKg, locale)} kg`);
+    }
+    if (selectedNode.kind === 'oil' && selectedNode.meta.oilKg) {
+      bits.push(
+        t('harvestCampaign.flow.oilLine', {
+          kg: formatGroveMassKg(selectedNode.meta.oilKg, locale),
+        })
+      );
+      if (selectedNode.yieldPct != null) {
+        bits.push(
+          t('harvestCampaign.flow.yieldBadge', {
+            yield: formatHarvestYieldPercent(selectedNode.yieldPct, locale),
+          })
+        );
       }
     }
-    return bits.length > 1 ? bits.join(' → ') : null;
-  }, [selectedNode, selectedFieldId, campaign, highlight, graph.nodes, t, locale]);
+    return bits.length > 1 ? bits.join(' · ') : null;
+  }, [selectedNode, highlight, graph.nodes, t, locale]);
 
   const rowLabel = (kind: HarvestFlowNodeKind) => {
     switch (kind) {
       case 'field':
         return t('harvestCampaign.flow.fields');
       case 'harvest':
-        return t('harvestCampaign.flow.harvests');
+        return t('harvestCampaign.flow.sacks');
       case 'mill':
-        return t('harvestCampaign.flow.weighing');
+        return t('harvestCampaign.flow.fruit');
       case 'oil':
         return t('harvestCampaign.flow.oil');
       default:
@@ -185,52 +188,34 @@ export const HarvestFlowView: React.FC<Props> = ({
   };
 
   const metricDisplay = (node: HarvestFlowNode) => {
-    const unit =
-      node.meta.metricUnit === 'sacks'
-        ? t('harvestCampaign.sacks.unit')
-        : node.meta.metricUnit || '';
-    return { value: node.meta.metric, unit };
+    if (node.meta.metric === '—') return { value: '—', unit: '' };
+    if (node.kind === 'field' || node.kind === 'harvest') {
+      return { value: node.meta.metric, unit: t('harvestCampaign.flow.unitSacks') };
+    }
+    if (node.kind === 'mill') {
+      return { value: node.meta.metric, unit: t('harvestCampaign.flow.unitFruit') };
+    }
+    return {
+      value: node.meta.metric,
+      unit:
+        node.meta.metricUnit === 'L'
+          ? t('harvestCampaign.flow.unitOilLitres')
+          : t('harvestCampaign.flow.unitOil'),
+    };
   };
 
   const metaRows = (node: HarvestFlowNode): string[] => {
     const rows: string[] = [];
     const names = (node.meta.fieldNames || []).map(friendlyFieldLabel);
-    const yieldLine =
-      node.yieldPct != null
-        ? t('harvestCampaign.flow.yieldBadge', {
-            yield: formatHarvestYieldPercent(node.yieldPct, locale),
-          })
-        : null;
 
     if (node.kind === 'field') {
-      if (yieldLine) rows.push(yieldLine);
-      if (node.meta.fromSummary)
-        rows.push(t('harvestCampaign.flow.daysCount', { count: Number(node.meta.fromSummary) }));
-      if (node.meta.oliveKg && node.meta.oliveKg > 0)
-        rows.push(
-          t('harvestCampaign.flow.oliveLine', {
-            kg: formatGroveMassKg(node.meta.oliveKg, locale),
-          })
-        );
-      if (node.meta.oilKg && node.meta.oilKg > 0)
-        rows.push(
-          t('harvestCampaign.flow.oilLine', {
-            kg: formatGroveMassKg(node.meta.oilKg, locale),
-          })
-        );
-      if (node.meta.openSacks && node.meta.openSacks > 0)
-        rows.push(
-          t('harvestCampaign.flow.openSacksLine', { count: node.meta.openSacks })
-        );
+      const days = Number(node.meta.fromSummary);
+      if (Number.isFinite(days) && days > 0) {
+        rows.push(t('harvestCampaign.flow.daysCount', { count: days }));
+      }
     }
     if (node.kind === 'harvest') {
       if (names.length) rows.push(names.join(' · '));
-      if (node.meta.oliveKg && node.meta.openSacks && node.meta.openSacks > 0)
-        rows.push(
-          t('harvestCampaign.flow.approxOlives', {
-            kg: formatGroveMassKg(node.meta.oliveKg, locale),
-          })
-        );
       if (node.meta.openSacks != null && node.meta.sackCount != null) {
         const weighed = node.meta.sackCount - node.meta.openSacks;
         if (weighed > 0 && node.meta.openSacks > 0) {
@@ -242,44 +227,29 @@ export const HarvestFlowView: React.FC<Props> = ({
           );
         }
       }
-      if (node.meta.toSummary && node.meta.toSummary !== 'ok') {
-        const millKg = Number(node.meta.toSummary);
-        rows.push(
-          t('harvestCampaign.flow.intoMill', {
-            kg: Number.isFinite(millKg)
-              ? formatGroveMassKg(millKg, locale)
-              : node.meta.toSummary.replace(/\s*kg\s*$/i, ''),
-          })
-        );
-      }
     }
     if (node.kind === 'mill') {
-      if (yieldLine) rows.push(yieldLine);
       if (names.length) rows.push(names.join(' · '));
-      if (node.meta.sackCount && node.meta.sackCount > 0)
-        rows.push(
-          t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount })
-        );
-      if (node.meta.toSummary && /^\d+$/.test(node.meta.toSummary))
-        rows.push(
-          t('harvestCampaign.flow.daysCount', { count: Number(node.meta.toSummary) })
-        );
-      if (node.meta.oilKg && node.meta.oilKg > 0)
-        rows.push(
-          t('harvestCampaign.flow.oilLine', {
-            kg: formatGroveMassKg(node.meta.oilKg, locale),
-          })
-        );
+      if (node.meta.sackCount && node.meta.sackCount > 0) {
+        rows.push(t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount }));
+      }
     }
     if (node.kind === 'oil') {
-      if (yieldLine) rows.push(yieldLine);
-      if (node.meta.oliveKg && node.meta.oliveKg > 0)
+      if (names.length) rows.push(names.join(' · '));
+      if (node.meta.oliveKg && node.meta.oliveKg > 0) {
         rows.push(
           t('harvestCampaign.flow.fromOlives', {
             kg: formatGroveMassKg(node.meta.oliveKg, locale),
           })
         );
-      if (names.length) rows.push(names.join(' · '));
+      }
+      if (node.yieldPct != null) {
+        rows.push(
+          t('harvestCampaign.flow.yieldBadge', {
+            yield: formatHarvestYieldPercent(node.yieldPct, locale),
+          })
+        );
+      }
     }
     return rows.slice(0, 3);
   };
@@ -301,9 +271,11 @@ export const HarvestFlowView: React.FC<Props> = ({
     const isSelected = selectedId === node.id;
     const metric = metricDisplay(node);
     const rows = metaRows(node);
-    const chips = node.meta.chips.filter(
-      (c) => c !== 'ok' && !(c === 'yield' && node.yieldPct != null)
-    );
+    const chips = node.meta.chips.filter((c) => {
+      if (c === 'ok' || c === 'yield') return false;
+      if (c === 'shared' && node.kind === 'field') return false;
+      return true;
+    });
     const accent =
       node.fieldIds.length === 1 ? fieldColors[node.fieldIds[0]] : undefined;
 
@@ -327,7 +299,6 @@ export const HarvestFlowView: React.FC<Props> = ({
           }
           onClick={() => setSelectedId((prev) => (prev === node.id ? null : node.id))}
         >
-          <span className="hc-gene-card-kicker">{rowLabel(node.kind)}</span>
           <span className="hc-gene-card-title">{cardTitle(node)}</span>
           <span className="hc-gene-card-metric">
             <em>{metric.value}</em>
@@ -388,7 +359,7 @@ export const HarvestFlowView: React.FC<Props> = ({
   return (
     <section className="hc-gene" aria-label={t('harvestCampaign.flow.title')}>
       <header className="hc-gene-header">
-        <p className="hc-kicker">{t('harvestCampaign.nav.fields')}</p>
+        <p className="hc-kicker">{t('harvestCampaign.flow.steps')}</p>
         <h1 className="hc-page-title">{t('harvestCampaign.flow.title')}</h1>
         <p className="hc-help">{t('harvestCampaign.flow.lead')}</p>
       </header>
@@ -397,8 +368,6 @@ export const HarvestFlowView: React.FC<Props> = ({
         <p className="hc-gene-path" role="status">
           {pathStory}
         </p>
-      ) : !empty ? (
-        <p className="hc-gene-hint">{t('harvestCampaign.flow.tapHint')}</p>
       ) : null}
 
       {empty ? (

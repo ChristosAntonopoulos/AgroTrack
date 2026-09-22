@@ -4,6 +4,7 @@ export type { HarvestSheetKind } from './sheets/types';
 export { HarvestSheetFrame } from './components/HarvestSheetFrame';
 export { HarvestSheetShell } from './components/HarvestSheetShell';
 export { HarvestActionGrid, HarvestAddMenu } from './components/HarvestActionGrid';
+export { HarvestProductionWizard } from './components/HarvestProductionWizard';
 export {
   HarvestNumberInput,
   HarvestNumberStepper,

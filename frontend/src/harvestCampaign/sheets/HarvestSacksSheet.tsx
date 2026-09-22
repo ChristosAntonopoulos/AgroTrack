@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { HarvestFieldPicker } from '../components/HarvestFieldPicker';
@@ -9,7 +9,7 @@ import { useHarvestFieldGuess } from '../hooks/useHarvestFieldGuess';
 import { estimateSacksKg } from '../utils/harvestCalculations';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestSackEntry } from '../types';
-import type { HarvestSheetSharedProps } from './types';
+import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
 
 const QUICK_COUNTS = [1, 5, 10, 12] as const;
 
@@ -17,9 +17,10 @@ export const HarvestSacksSheet: React.FC<
   HarvestSheetSharedProps & {
     preferredFieldId?: string;
     initial?: HarvestSackEntry | null;
+    flow?: HarvestFlowChrome;
     onSave: (input: { sacks: number; fieldId: string; kgPerSack?: number }) => void;
   }
-> = ({ campaign, fields, preferredFieldId, initial, onSave, onClose }) => {
+> = ({ campaign, fields, preferredFieldId, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation('fields');
   const allowedIds = useMemo(
     () => (campaign.fieldOrder.length ? campaign.fieldOrder : fields.map((f) => f.id)),
@@ -48,6 +49,24 @@ export const HarvestSacksSheet: React.FC<
   const kgPerSack = parseHarvestDecimal(kgPerSackDraft) ?? 0;
   const estimate = estimateSacksKg(sacks, kgPerSack);
   const canSave = Boolean(fieldId) && sacks > 0;
+  const payload = () => ({
+    sacks,
+    fieldId,
+    kgPerSack: more && isPositiveAmount(kgPerSack) ? kgPerSack : campaign.usualSackKg || undefined,
+  });
+  const commitRef = useRef(payload);
+  commitRef.current = payload;
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  useEffect(() => {
+    flow?.bind?.(() => {
+      const next = commitRef.current();
+      if (!fieldId || next.sacks <= 0) return false;
+      onSaveRef.current(next);
+      return true;
+    });
+  }, [flow?.bind, fieldId, sacks]);
 
   return (
     <HarvestSheetShell
@@ -56,24 +75,24 @@ export const HarvestSacksSheet: React.FC<
           <button
             type="button"
             className="money-primary-action"
-            disabled={!canSave}
-            onClick={() =>
-              onSave({
-                sacks,
-                fieldId,
-                kgPerSack:
-                  more && isPositiveAmount(kgPerSack) ? kgPerSack : campaign.usualSackKg || undefined,
-              })
-            }
+            disabled={!canSave || flow?.busy}
+            onClick={() => onSave(payload())}
           >
-            {editing
-              ? t('harvestCampaign.dayActivity.saveChanges')
-              : t('harvestCampaign.sacks.saveWithField', {
-                  count: sacks,
-                  field: fieldLabel,
-                  defaultValue: t('harvestCampaign.sacks.save', { count: sacks }),
-                })}
+            {flow
+              ? flow.nextLabel
+              : editing
+                ? t('harvestCampaign.dayActivity.saveChanges')
+                : t('harvestCampaign.sacks.saveWithField', {
+                    count: sacks,
+                    field: fieldLabel,
+                    defaultValue: t('harvestCampaign.sacks.save', { count: sacks }),
+                  })}
           </button>
+          {flow?.onBack ? (
+            <button type="button" className="money-text-link" onClick={flow.onBack} disabled={flow.busy}>
+              {flow.backLabel}
+            </button>
+          ) : null}
           <button type="button" className="money-text-link" onClick={onClose}>
             {t('common:cancel', { ns: 'common' })}
           </button>

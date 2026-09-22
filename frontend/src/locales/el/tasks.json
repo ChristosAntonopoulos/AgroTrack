@@ -459,6 +459,8 @@
       "assigneeHintFamily": "Οικογένεια",
       "assigneeHintAdvisor": "Σύμβουλος",
       "assigneeHintContact": "Επαφή",
+      "assignOutcomeContact": "Η εργασία θα καταγραφεί με αυτόν τον υπεύθυνο. Δεν θα σταλεί ειδοποίηση από την εφαρμογή.",
+      "assignOutcomeCollaborator": "Ο συνεργάτης θα δει την ανάθεση στην εφαρμογή.",
       "decideLater": "Θα αποφασίσω αργότερα",
       "collaborator": "Συνεργάτης",
       "more": "Περισσότερα",

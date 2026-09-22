@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { linkedRecordLabel, linkedRecordPath } from '../components/photos/photoLinks';
 import type { Photo } from '../services/photoService';
 import { formatPhotoCardDate } from './localeFormatters';

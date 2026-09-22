@@ -55,7 +55,7 @@ public class FieldPeopleController : BaseApiController
     [HttpDelete("{userId}")]
     public async Task<IActionResult> RemoveMembership(string fieldId, string userId, CancellationToken cancellationToken)
     {
-        await _peopleService.RemoveMembershipAsync(fieldId, UserContext.UserId, userId, cancellationToken);
+        await _peopleService.RevokePersonAsync(fieldId, UserContext.UserId, userId, cancellationToken);
         return NoContent();
     }
 
@@ -67,6 +67,25 @@ public class FieldPeopleController : BaseApiController
     {
         var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
         var invite = await _peopleService.CreateInviteAsync(fieldId, UserContext.UserId, dto, baseUrl, cancellationToken);
+        return OkResult(invite);
+    }
+
+    [HttpGet("invites")]
+    public async Task<ActionResult<IReadOnlyList<FieldInviteDto>>> GetInvites(string fieldId, CancellationToken cancellationToken)
+    {
+        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var invites = await _peopleService.GetInvitesAsync(fieldId, UserContext.UserId, baseUrl, cancellationToken);
+        return OkResult(invites);
+    }
+
+    [HttpPost("invites/{inviteId}/resend")]
+    public async Task<ActionResult<FieldInviteDto>> ResendInvite(
+        string fieldId,
+        string inviteId,
+        CancellationToken cancellationToken)
+    {
+        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var invite = await _peopleService.ResendInviteAsync(fieldId, UserContext.UserId, inviteId, baseUrl, cancellationToken);
         return OkResult(invite);
     }
 

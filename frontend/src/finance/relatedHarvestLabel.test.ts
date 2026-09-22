@@ -1,9 +1,10 @@
-﻿import {
+﻿import type { HarvestRecord } from '../services/harvestService';
+import {
   formatRelatedHarvestLabel,
   uniqueRelatedHarvestLabels,
 } from './relatedHarvestLabel';
 
-const base = (overrides) => ({
+const base = (overrides: Partial<HarvestRecord> = {}): HarvestRecord => ({
   id: 'h1',
   fieldId: 'field-1',
   harvestDate: '2026-11-02T00:00:00Z',

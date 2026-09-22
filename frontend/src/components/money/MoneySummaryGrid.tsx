@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { YearFinancialSummary } from '../../services/financialSummaryService';
 import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
+import { harvestYearSpan } from '../../finance/harvestYear';
 import {
   isProvisionalActiveYearResult,
   resultLabel as computeResultLabel,
@@ -49,9 +50,7 @@ const MoneySummaryGrid: React.FC<Props> = ({ summary, locale, onAddIncome }) => 
   const expenseKicker = isActiveYear ? t('expensesToDate') : t('expenses');
   const resultKicker = provisional
     ? t('provisionalBalance')
-    : isActiveYear
-      ? t('resultYear', { year: summary.year })
-      : t('resultYear', { year: summary.year });
+    : t('resultYear', { span: harvestYearSpan(summary.year) });
   const netClass =
     !hasPosted || summary.netResult == null
       ? ''

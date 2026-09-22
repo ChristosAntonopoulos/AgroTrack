@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ShieldCheck } from 'lucide-react';
 import Card from '../Common/Card';
 import Button from '../Common/Button';
 import PhoneActions from './PhoneActions';
@@ -16,14 +17,16 @@ import {
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import { useDrawerPresence } from '../../hooks/useDrawerPresence';
 import { seatLifecycleLabelKey } from './inviteLifecycle';
+import { moduleDiff, PICKABLE_MODULES, resolvedAccessLevel } from './accessPreview';
 import '../../pages/PartnersPage.css';
 
 type Props = {
   fieldId: string;
+  fieldName?: string;
+  fieldColor?: string;
   person: FieldMembership;
   canManage?: boolean;
   onChanged?: () => void;
-  /** Optional pending invite share (shown after create in this session). */
   pendingInvite?: FieldInvite | null;
 };
 
@@ -34,11 +37,21 @@ const initials = (name: string) => {
   return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
 };
 
-const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged, pendingInvite }) => {
+const FieldSeatCard: React.FC<Props> = ({
+  fieldId,
+  fieldName,
+  fieldColor,
+  person,
+  canManage,
+  onChanged,
+  pendingInvite,
+}) => {
   const { t } = useTranslation(['partners', 'common']);
   const copyNs = person.role === 'Partner' ? 'ownerPartner' : 'family';
   const [editing, setEditing] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [workingInvite, setWorkingInvite] = useState<FieldInvite | null>(pendingInvite || null);
   const editDrawer = useDrawerPresence(editing);
   const shareDrawer = useDrawerPresence(sharing);
   const [modules, setModules] = useState<FieldModule[]>([...person.modules]);
@@ -48,10 +61,15 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
 
   const displayName = person.displayName || person.email || person.userId || person.inviteId || '—';
   const lifecycle = seatLifecycleLabelKey(person.status);
-  const isPending = lifecycle === 'pending';
-  const canRemove =
-    Boolean(canManage && person.role !== 'Admin' && person.userId);
-  const invite = pendingInvite;
+  const isPending = lifecycle === 'pending' || lifecycle === 'expired';
+  const targetId = person.userId || person.inviteId;
+  const canRevoke = Boolean(canManage && person.role !== 'Admin' && targetId);
+  const invite = workingInvite || pendingInvite || null;
+  const shownLevel = resolvedAccessLevel(person.modules, person.accessLevel);
+
+  const diff = useMemo(() => moduleDiff(person.modules, modules), [modules, person.modules]);
+  const levelChanged = accessLevel !== person.accessLevel;
+  const hasMaterialChange = diff.added.length > 0 || diff.removed.length > 0 || levelChanged;
 
   const roleChip =
     person.role === 'Partner'
@@ -69,7 +87,6 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    const targetId = person.userId || person.inviteId;
     if (!targetId) return;
     try {
       setSaving(true);
@@ -88,18 +105,37 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
   };
 
   const revoke = async () => {
-    if (!person.userId) return;
-    const confirmKey = isPending
-      ? `partners:${copyNs}.cancelInviteConfirm`
-      : `partners:${copyNs}.revokeConfirm`;
-    if (!window.confirm(t(confirmKey, { name: displayName }))) return;
-    await fieldPeopleService.removeMembership(fieldId, person.userId);
+    if (!targetId) return;
+    const confirmMsg = fieldName
+      ? t('partners:revokeAccessConfirm', { name: displayName, field: fieldName })
+      : t(`partners:${copyNs}.revokeConfirm`, { name: displayName });
+    if (!window.confirm(confirmMsg)) return;
+    await fieldPeopleService.removeMembership(fieldId, targetId);
     onChanged?.();
+  };
+
+  const resend = async () => {
+    const inviteId = invite?.id || person.inviteId;
+    if (!inviteId) return;
+    try {
+      setResending(true);
+      const next = await fieldPeopleService.resendInvite(fieldId, inviteId);
+      setWorkingInvite(next);
+      setSharing(true);
+      onChanged?.();
+    } catch (err: unknown) {
+      window.alert(getApiErrorMessage(err, t));
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
     <>
-      <Card className="partner-person-card family-member-card">
+      <Card
+        className="partner-person-card family-member-card"
+        style={fieldColor ? ({ '--field-accent': fieldColor } as React.CSSProperties) : undefined}
+      >
         <div className="partner-person-main">
           <div className="partner-person-identity">
             <span className="partner-avatar" aria-hidden>
@@ -117,10 +153,10 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
               <span className="partner-chip">{t(`partners:inviteLifecycle.${lifecycle}`)}</span>
             ) : null}
             {person.role !== 'Admin' ? (
-              <span className="partner-chip">{t(`partners:family.levels.${person.accessLevel}`)}</span>
+              <span className="partner-chip">{t(`partners:family.levels.${shownLevel}`)}</span>
             ) : null}
             {person.modules
-              .filter((module) => module !== 'documents')
+              .filter((module) => PICKABLE_MODULES.includes(module))
               .map((module) => (
                 <span key={module} className="partner-chip partner-chip-job">
                   {t(`partners:family.modules.${module}`)}
@@ -131,38 +167,89 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
         <div className="partner-actions-stack">
           <PhoneActions phone={person.phone} email={person.email} />
           <div className="partner-actions">
-            {canManage && person.role !== 'Admin' && (person.userId || person.inviteId) ? (
+            {canManage && isPending ? (
+              <Button variant="primary" size="sm" loading={resending} onClick={() => void resend()}>
+                {t('partners:resendInvite')}
+              </Button>
+            ) : canManage && person.role !== 'Admin' && targetId ? (
               <Button variant="outline" size="sm" onClick={openEdit}>
                 {t(`partners:${copyNs}.editAccess`)}
               </Button>
             ) : null}
-            {canManage && invite ? (
-              <Button variant="outline" size="sm" onClick={() => setSharing(true)}>
-                {t(`partners:${copyNs}.reshare`)}
-              </Button>
-            ) : null}
-            {canRemove ? (
+            {canRevoke ? (
               <Button variant="outline" size="sm" onClick={() => void revoke()}>
-                {isPending ? t(`partners:${copyNs}.cancelInvite`) : t(`partners:${copyNs}.revoke`)}
+                {isPending ? t(`partners:${copyNs}.cancelInvite`) : t('partners:revokeAccess')}
               </Button>
             ) : null}
           </div>
+          {canManage && !isPending && person.role !== 'Admin' && invite ? (
+            <details className="partner-more">
+              <summary>{t('partners:moreActions')}</summary>
+              <div className="partner-actions">
+                <Button variant="ghost" size="sm" onClick={() => setSharing(true)}>
+                  {t(`partners:${copyNs}.reshare`)}
+                </Button>
+              </div>
+            </details>
+          ) : null}
         </div>
       </Card>
 
       {editDrawer.mounted ? (
         <PartnersSheet
           open={editDrawer.open}
-          title={t(`partners:${copyNs}.editAccess`)}
-          subtitle={displayName}
+          kicker={t('partners:accessEditorKicker')}
+          title={t('partners:accessEditorTitle', { name: displayName })}
+          subtitle={fieldName || undefined}
+          icon={<ShieldCheck size={22} />}
           onClose={() => setEditing(false)}
+          footerClassName="oa-drawer-footer--stack"
+          footer={
+            <>
+              {hasMaterialChange ? (
+                <p className="family-access-diff">
+                  {diff.added.length > 0
+                    ? t('partners:accessDiffAdded', {
+                        list: diff.added.map((module) => t(`partners:family.modules.${module}`)).join(' · '),
+                      })
+                    : null}
+                  {diff.added.length > 0 && diff.removed.length > 0 ? ' ' : null}
+                  {diff.removed.length > 0
+                    ? t('partners:accessDiffRemoved', {
+                        list: diff.removed.map((module) => t(`partners:family.modules.${module}`)).join(' · '),
+                      })
+                    : null}
+                  {levelChanged
+                    ? ` ${t(`partners:family.levels.${shownLevel}`)} → ${t(
+                        `partners:family.levels.${resolvedAccessLevel(modules, accessLevel)}`
+                      )}`
+                    : null}
+                </p>
+              ) : null}
+              {error ? <div className="error-message">{error}</div> : null}
+              <div className="partners-sheet-actions">
+                <Button
+                  type="submit"
+                  form="field-access-form"
+                  loading={saving}
+                  disabled={modules.length === 0 || saving}
+                >
+                  {t('partners:saveAccess')}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
+                  {t('common:cancel')}
+                </Button>
+              </div>
+            </>
+          }
         >
-          <form className="partners-form family-invite-form" onSubmit={save}>
+          <form id="field-access-form" className="partners-form family-invite-form" onSubmit={save}>
             <FamilyAccessFields
               modules={modules}
               accessLevel={accessLevel}
               role={person.role === 'Partner' ? 'Partner' : 'Family'}
               radioName={`field-seat-${person.userId || person.inviteId}`}
+              previewMode="edit"
               onToggleModule={(module) =>
                 setModules((prev) =>
                   prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
@@ -170,15 +257,6 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
               }
               onSetLevel={setAccessLevel}
             />
-            {error ? <div className="error-message">{error}</div> : null}
-            <div className="partners-sheet-actions">
-              <Button type="submit" loading={saving} disabled={modules.length === 0}>
-                {t('common:save')}
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
-                {t('common:cancel')}
-              </Button>
-            </div>
           </form>
         </PartnersSheet>
       ) : null}
@@ -186,8 +264,8 @@ const FieldSeatCard: React.FC<Props> = ({ fieldId, person, canManage, onChanged,
       {shareDrawer.mounted && invite ? (
         <PartnersSheet
           open={shareDrawer.open}
-          title={t(`partners:${copyNs}.reshare`)}
-          subtitle={displayName}
+          title={t('partners:resendInvite')}
+          subtitle={fieldName ? t('partners:fieldContext', { field: fieldName }) : displayName}
           onClose={() => setSharing(false)}
         >
           <FamilySharePanel

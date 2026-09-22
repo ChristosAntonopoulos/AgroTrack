@@ -5,22 +5,23 @@ import i18n from '../../i18n';
 import { LocaleProvider } from '../../context/LocaleProvider';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import { clearMoneyEntryDraft, writeMoneyEntryDraft } from '../../finance/moneyEntryDraft';
+import type { Field } from '../../services/fieldService';
 
 const mockCreate = jest.fn();
 const mockGetTasks = jest.fn();
 const mockListByField = jest.fn();
 
 jest.mock('../../services/serviceFactory', () => ({
-  getFinancialTransactionService: () => ({ create: (...args) => mockCreate(...args) }),
-  getFieldWorkService: () => ({ listFieldTasks: (...args) => mockGetTasks(...args) }),
-  getHarvestService: () => ({ listByField: (...args) => mockListByField(...args) }),
+  getFinancialTransactionService: () => ({ create: (...args: unknown[]) => mockCreate(...args) }),
+  getFieldWorkService: () => ({ listFieldTasks: (...args: unknown[]) => mockGetTasks(...args) }),
+  getHarvestService: () => ({ listByField: (...args: unknown[]) => mockListByField(...args) }),
 }));
 
 jest.mock('../../services/fileUploadService', () => ({
   fileUploadService: { uploadFile: jest.fn() },
 }));
 
-const field = {
+const field: Field = {
   id: 'field-1',
   ownerId: 'owner-1',
   name: 'Kato',
@@ -100,25 +101,57 @@ beforeEach(async () => {
   window.confirm = jest.fn(() => true);
 });
 
-test('disables save-as-draft until a positive amount exists', async () => {
-  renderForm({ context: { preferredType: 'expense', fieldId: 'field-1' } });
-  const draft = await screen.findByRole('button', { name: /Αποθήκευση ως πρόχειρο/i });
-  expect(draft).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Ποσό'), { target: { value: '10' } });
-  expect(draft).not.toBeDisabled();
+const continueOn = () => fireEvent.click(screen.getByRole('button', { name: 'Συνέχεια' }));
+const pickCategory = async (name: RegExp) => {
+  fireEvent.click(await screen.findByRole('option', { name }));
+};
+
+test('asks income or expense, then the type, before the amount', async () => {
+  renderForm();
+  expect(await screen.findByRole('button', { name: /Έξοδο/ })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: 'Εργασία' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Έξοδο/ }));
+  expect(await screen.findByText('Τι έξοδο;')).toBeInTheDocument();
+  expect(screen.getByLabelText(/Τι ήταν/i)).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Εργασία' })).toBeInTheDocument();
+  expect(screen.queryByLabelText('Ποσό')).not.toBeInTheDocument();
+  await pickCategory(/^Εργασία$/);
+  expect(await screen.findByLabelText('Ποσό')).toBeInTheDocument();
+  expect(screen.queryByLabelText(/Τι ήταν/i)).not.toBeInTheDocument();
 });
 
-test('category chips live under More details', async () => {
+test('keeps continue disabled until a positive amount exists', async () => {
+  renderForm({ context: { preferredType: 'expense', fieldId: 'field-1' } });
+  await screen.findByRole('option', { name: 'Εργασία' });
+  await pickCategory(/^Εργασία$/);
+  const next = await screen.findByRole('button', { name: 'Συνέχεια' });
+  expect(next).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Ποσό'), { target: { value: '10' } });
+  expect(next).not.toBeDisabled();
+});
+
+test('category is chosen before the amount and is not repeated later', async () => {
   renderForm({ context: { preferredType: 'expense' } });
+  expect(await screen.findByRole('option', { name: 'Καύσιμα και ενέργεια' })).toBeInTheDocument();
+  await pickCategory(/Καύσιμα και ενέργεια/);
+  expect(await screen.findByLabelText('Ποσό')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Ποσό'), { target: { value: '10' } });
+  continueOn();
+  fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
   fireEvent.click(await screen.findByRole('button', { name: /Περισσότερα στοιχεία/i }));
-  expect(await screen.findByRole('option', { name: /Εργασία/ })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: 'Εργασία' })).not.toBeInTheDocument();
 });
 
 test('preselects a related harvest when provided', async () => {
   renderForm({
     context: { preferredType: 'income', fieldId: 'field-1', harvestId: 'harvest-1' },
   });
-  const harvestSelect = await screen.findByLabelText(/Σχετική συγκομιδή/i);
+  await pickCategory(/Πώληση ελαιολάδου/);
+  fireEvent.change(await screen.findByLabelText(/Πόσα λίτρα/i), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText(/Τιμή ανά λίτρο/i), { target: { value: '1' } });
+  continueOn();
+  fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
+  const harvestSelect = (await screen.findByLabelText(/Σχετική συγκομιδή/i)) as HTMLSelectElement;
   await waitFor(() => expect(harvestSelect.value).toBe('harvest-1'));
 });
 
@@ -144,7 +177,9 @@ test('restores a session draft into the form fields', async () => {
   });
   renderForm({ context: { preferredType: 'expense' } });
   expect(await screen.findByDisplayValue('33')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Πίσω' }));
   expect(screen.getByDisplayValue('Draft amount')).toBeInTheDocument();
+  expect(screen.getByText('Τι έξοδο;')).toBeInTheDocument();
 });
 
 test('posts a confirmed expense through the financial transaction API', async () => {
@@ -153,10 +188,13 @@ test('posts a confirmed expense through the financial transaction API', async ()
     context: { preferredType: 'expense', fieldId: 'field-1' },
     onSaved,
   });
-  fireEvent.change(await screen.findByLabelText('Ποσό'), { target: { value: '45' } });
-  fireEvent.change(screen.getByLabelText(/Σύντομη περιγραφή/i), {
+  fireEvent.change(await screen.findByLabelText(/Τι ήταν/i), {
     target: { value: 'Workers pruning' },
   });
+  await pickCategory(/^Εργασία$/);
+  fireEvent.change(await screen.findByLabelText('Ποσό'), { target: { value: '45' } });
+  continueOn();
+  fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
   fireEvent.click(screen.getByRole('button', { name: /Καταχώρηση εξόδου/i }));
   await waitFor(() => expect(mockCreate).toHaveBeenCalled());
   expect(mockCreate.mock.calls[0][0]).toEqual(
@@ -176,8 +214,11 @@ test('saves a draft from the footer without posting', async () => {
     context: { preferredType: 'income', fieldId: 'field-1' },
     onSaved,
   });
+  await pickCategory(/Πώληση ελαιολάδου/);
   fireEvent.change(await screen.findByLabelText(/Πόσα λίτρα/i), { target: { value: '10' } });
   fireEvent.change(screen.getByLabelText(/Τιμή ανά λίτρο/i), { target: { value: '12' } });
+  continueOn();
+  fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
   fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση ως πρόχειρο/i }));
   await waitFor(() => expect(mockCreate).toHaveBeenCalled());
   expect(mockCreate.mock.calls[0][0]).toEqual(

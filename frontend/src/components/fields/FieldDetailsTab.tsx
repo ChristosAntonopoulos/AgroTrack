@@ -1007,20 +1007,18 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
               <button type="button" className="btn btn-secondary" disabled title={t('fields:page.archiveUnavailable')}>
                 {t('fields:page.archive')}
               </button>
-              {onDelete ? (
-                !confirmOpen ? (
-                  <button
-                    type="button"
-                    className="btn btn-error"
-                    onClick={() => {
-                      setConfirmOpen(true);
-                      setConfirmName('');
-                      setDeleteError(null);
-                    }}
-                  >
-                    {t('fields:deleteField')}
-                  </button>
-                ) : null}
+              {onDelete && !confirmOpen ? (
+                <button
+                  type="button"
+                  className="btn btn-error"
+                  onClick={() => {
+                    setConfirmOpen(true);
+                    setConfirmName('');
+                    setDeleteError(null);
+                  }}
+                >
+                  {t('fields:deleteField')}
+                </button>
               ) : null}
             </div>
             {onDelete && confirmOpen ? (

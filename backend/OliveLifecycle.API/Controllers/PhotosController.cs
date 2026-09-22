@@ -23,7 +23,8 @@ public class PhotosController : BaseApiController
     [RequestFormLimits(MultipartBodyLengthLimit = 50 * 1024 * 1024)]
     public async Task<ActionResult<IReadOnlyList<PhotoUploadResultDto>>> Upload(
         [FromForm] List<IFormFile> files,
-        CancellationToken cancellationToken)
+        [FromForm] bool allowDuplicates = false,
+        CancellationToken cancellationToken = default)
     {
         if (files == null || files.Count == 0)
         {
@@ -51,6 +52,7 @@ public class PhotosController : BaseApiController
                 uploads,
                 UserContext.UserId,
                 UserContext.Role,
+                allowDuplicates,
                 cancellationToken);
             return OkResult(results);
         }
@@ -71,6 +73,7 @@ public class PhotosController : BaseApiController
         [FromQuery] string? fieldAssignment,
         [FromQuery] string? ownerType,
         [FromQuery] string? linkStatus,
+        [FromQuery] string? sort,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 48,
         CancellationToken cancellationToken = default)
@@ -84,6 +87,7 @@ public class PhotosController : BaseApiController
                 FieldAssignment = fieldAssignment,
                 OwnerType = ownerType,
                 LinkStatus = linkStatus,
+                Sort = sort,
                 Page = page,
                 PageSize = pageSize
             },
@@ -118,6 +122,26 @@ public class PhotosController : BaseApiController
         {
             return NotFound();
         }
+    }
+
+    [HttpGet("trash")]
+    public async Task<ActionResult<PhotoListDto>> Trash(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 48,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _photos.QueryAsync(
+            new PhotoQueryDto
+            {
+                TrashedOnly = true,
+                Sort = "newest",
+                Page = page,
+                PageSize = pageSize
+            },
+            UserContext.UserId,
+            UserContext.Role,
+            cancellationToken);
+        return OkResult(result);
     }
 
     [HttpGet("{id}")]
@@ -171,6 +195,20 @@ public class PhotosController : BaseApiController
     public async Task<ActionResult> Delete(string id, CancellationToken cancellationToken)
     {
         await _photos.DeleteAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id}/restore")]
+    public async Task<ActionResult<PhotoDto>> Restore(string id, CancellationToken cancellationToken)
+    {
+        var photo = await _photos.RestoreAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(photo);
+    }
+
+    [HttpDelete("{id}/permanent")]
+    public async Task<ActionResult> Purge(string id, CancellationToken cancellationToken)
+    {
+        await _photos.PurgeAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
         return NoContent();
     }
 }

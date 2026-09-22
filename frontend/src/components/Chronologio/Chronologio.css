@@ -1188,6 +1188,87 @@
   font-size: calc(0.85rem * var(--font-scale, 1));
 }
 
+.chrono-harvest-days {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  border-radius: 16px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-1, var(--bg-card)) 88%, transparent);
+}
+
+.chrono-harvest-day {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle, var(--color-border));
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chrono-harvest-days li:last-child .chrono-harvest-day {
+  border-bottom: 0;
+}
+
+.chrono-harvest-day:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.04));
+}
+
+.chrono-harvest-day.is-open {
+  box-shadow: inset 3px 0 0 var(--harvest-gold, var(--olive-primary));
+}
+
+.chrono-harvest-day time {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chrono-harvest-day time strong {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 750;
+}
+
+.chrono-harvest-day time span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary, var(--color-text-secondary));
+  text-transform: capitalize;
+}
+
+.chrono-harvest-day-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+}
+
+.chrono-harvest-day-line em {
+  font-style: normal;
+  font-weight: 650;
+  color: var(--harvest-gold-deep, var(--harvest-gold, var(--olive-primary)));
+}
+
+.chrono-harvest-day-fields {
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
 .chrono-pinned-strip {
   padding: 0.65rem 0.85rem;
   border-radius: 14px;
@@ -2785,10 +2866,10 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 
 .chrono-now {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 22rem);
-  gap: 20px 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 18rem);
+  gap: 10px 16px;
   align-items: start;
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.65rem;
 }
 .chrono-now-attention {
   display: flex;
@@ -2830,8 +2911,8 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 }
 .chrono-now-copy h2 {
   margin: 0;
-  font-size: 20px;
-  line-height: 26px;
+  font-size: 16px;
+  line-height: 22px;
   font-weight: 700;
 }
 .chrono-now-copy p {

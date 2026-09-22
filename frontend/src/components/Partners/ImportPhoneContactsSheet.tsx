@@ -33,7 +33,7 @@ const draftKey = (row: PickedDeviceContact, index: number) =>
 
 const ImportPhoneContactsSheet: React.FC<Props> = ({
   open = true,
-  fields,
+  fieldId,
   categories = [],
   onClose,
   onImported,
@@ -83,7 +83,6 @@ const ImportPhoneContactsSheet: React.FC<Props> = ({
 
   const save = async () => {
     if (selected.length === 0) return;
-    const linkedFields = fields.map((field) => field.id);
     try {
       setSaving(true);
       setError(null);
@@ -94,7 +93,7 @@ const ImportPhoneContactsSheet: React.FC<Props> = ({
           displayName: row.displayName.trim() || row.phone || row.email || t('partners:contact'),
           phone: row.phone?.trim() || undefined,
           email: row.email?.trim() || undefined,
-          fieldIds: linkedFields,
+          fieldIds: fieldId ? [fieldId] : [],
           serviceCategoryIds: skills,
           source: 'PhoneBook',
         });

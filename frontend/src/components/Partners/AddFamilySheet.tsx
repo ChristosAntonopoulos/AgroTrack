@@ -16,6 +16,7 @@ import { getApiErrorMessage } from '../../utils/translateApiError';
 type Props = {
   open?: boolean;
   fieldId: string;
+  fieldName?: string;
   initialName?: string;
   initialEmail?: string;
   onClose: () => void;
@@ -25,6 +26,7 @@ type Props = {
 const AddFamilySheet: React.FC<Props> = ({
   open = true,
   fieldId,
+  fieldName,
   initialName = '',
   initialEmail = '',
   onClose,
@@ -73,13 +75,19 @@ const AddFamilySheet: React.FC<Props> = ({
     <PartnersSheet
       open={open}
       title={t('partners:family.addMember')}
-      subtitle={invite ? t('partners:family.inviteReady') : t('partners:family.addHint')}
+      subtitle={
+        invite
+          ? t('partners:family.inviteReady')
+          : fieldName
+            ? t('partners:fieldContext', { field: fieldName })
+            : t('partners:family.addHint')
+      }
       onClose={onClose}
       footer={
         invite ? undefined : (
           <div className="partners-sheet-actions">
-            <Button type="submit" form="add-family-form" loading={saving} disabled={!canSubmit}>
-              {t('partners:family.sendInvite')}
+            <Button type="submit" form="add-family-form" loading={saving} disabled={!canSubmit || saving}>
+              {saving ? t('partners:inviteSending') : t('partners:family.sendInvite')}
             </Button>
             <Button type="button" variant="ghost" onClick={onClose}>
               {t('common:cancel')}
@@ -91,7 +99,7 @@ const AddFamilySheet: React.FC<Props> = ({
       {invite ? (
         <FamilySharePanel invite={invite} onDone={onClose} />
       ) : (
-        <form id="add-family-form" className="partners-form family-invite-form" onSubmit={submit}>
+          <form id="add-family-form" className="partners-form family-invite-form" onSubmit={submit}>
           <div className="family-form-section">
             <label>
               <span>{t('partners:inviteName')}</span>

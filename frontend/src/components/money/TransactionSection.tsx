@@ -12,6 +12,7 @@ type Props = {
   fieldNames: Record<string, string>;
   category: string;
   month: number;
+  monthLabel?: string;
   onClearFilters: () => void;
   onOpen: (id: string) => void;
   onLoadMore: () => void;
@@ -25,6 +26,7 @@ const TransactionSection: React.FC<Props> = ({
   fieldNames,
   category,
   month,
+  monthLabel,
   onClearFilters,
   onOpen,
   onLoadMore,
@@ -54,6 +56,7 @@ const TransactionSection: React.FC<Props> = ({
           </button>
         ) : null}
       </header>
+      {monthLabel ? <p className="money-summary-note">{t('showingMonth', { month: monthLabel })}</p> : null}
 
       {items.length === 0 ? (
         <p className="money-summary-note">{t('noMatchingEntries')}</p>

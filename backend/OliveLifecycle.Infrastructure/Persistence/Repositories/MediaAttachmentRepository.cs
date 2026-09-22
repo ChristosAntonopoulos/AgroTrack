@@ -86,11 +86,20 @@ public class MediaAttachmentRepository
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
         var skip = (page - 1) * pageSize;
 
+        var oldest = string.Equals(query.Sort, "oldest", StringComparison.OrdinalIgnoreCase);
+        var sort = query.TrashedOnly
+            ? Builders<MediaAttachmentDocument>.Sort.Descending(m => m.DeletedAt)
+            : oldest
+                ? Builders<MediaAttachmentDocument>.Sort
+                    .Ascending(m => m.CapturedAt)
+                    .Ascending(m => m.CreatedAt)
+                : Builders<MediaAttachmentDocument>.Sort
+                    .Descending(m => m.CapturedAt)
+                    .Descending(m => m.CreatedAt);
+
         var documents = await Collection
             .Find(filter)
-            .Sort(Builders<MediaAttachmentDocument>.Sort
-                .Descending(m => m.CapturedAt)
-                .Descending(m => m.CreatedAt))
+            .Sort(sort)
             .Skip(skip)
             .Limit(pageSize)
             .ToListAsync(cancellationToken);
@@ -179,9 +188,15 @@ public class MediaAttachmentRepository
         Builders<MediaAttachmentDocument>.Filter.Eq(m => m.DeletedAt, (DateTime?)null)
         | Builders<MediaAttachmentDocument>.Filter.Exists(m => m.DeletedAt, false);
 
+    private static FilterDefinition<MediaAttachmentDocument> TrashedFilter() =>
+        Builders<MediaAttachmentDocument>.Filter.Ne(m => m.DeletedAt, (DateTime?)null);
+
     private static FilterDefinition<MediaAttachmentDocument> BuildQueryFilter(MediaAttachmentQuery query)
     {
-        var filters = new List<FilterDefinition<MediaAttachmentDocument>> { NotDeletedFilter() };
+        var filters = new List<FilterDefinition<MediaAttachmentDocument>>
+        {
+            query.TrashedOnly ? TrashedFilter() : NotDeletedFilter()
+        };
         var builder = Builders<MediaAttachmentDocument>.Filter;
 
         if (!string.IsNullOrWhiteSpace(query.FieldId))

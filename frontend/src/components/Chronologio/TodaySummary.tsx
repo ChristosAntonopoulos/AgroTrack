@@ -113,6 +113,7 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, onOpenWeather }) => {
       </div>
 
       <GroveWeatherCard
+        compact
         fieldWeather={today.fieldWeather}
         snapshot={today.weather}
         fieldName={today.weatherField?.name}

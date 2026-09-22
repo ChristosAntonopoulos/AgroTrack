@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CaptureContext, CaptureSavedDetail } from '../../capture/types';
 import type { Field } from '../../services/fieldService';
 import type { HarvestRecord } from '../../services/harvestService';
@@ -8,7 +9,6 @@ import type { FieldTask } from '../../services/fieldWorkService';
 import { fileUploadService } from '../../services/fileUploadService';
 import {
   defaultCategoryForType,
-  financialCategoryLabel,
   type FinancialCategory,
   type FinancialTransactionType,
 } from '../../finance/display';
@@ -34,10 +34,27 @@ import {
   isMoneyEntryPartial,
   readMoneyEntryDraft,
   writeMoneyEntryDraft,
+  type MoneyEntryStep,
 } from '../../finance/moneyEntryDraft';
 import { formatRelatedHarvestLabel, uniqueRelatedHarvestLabels } from '../../finance/relatedHarvestLabel';
+import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import {
+  allocateSoldPack,
+  applyOilSale,
+  combineOilPacks,
+  emptyOilPack,
+  oilSaleFieldId,
+  packLitres,
+  saleableOilLots,
+  type OilPackStock,
+} from '../../harvestCampaign/oilSaleLots';
+import OilPackBars from '../money/OilPackBars';
+import { HarvestCarryPicker, carryColor } from '../../harvestCampaign/components/HarvestCarryPicker';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { formatGroveLitres } from '../../utils/groveTotals';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
-import MoneyTypeToggle from '../money/MoneyTypeToggle';
 import MoneyCategorySelector from '../money/MoneyCategorySelector';
 import TransactionAmountInput from '../money/TransactionAmountInput';
 import QuantityPriceCalculator from '../money/QuantityPriceCalculator';
@@ -46,6 +63,7 @@ import TransactionFieldSelector from '../money/TransactionFieldSelector';
 import TransactionDateSelector from '../money/TransactionDateSelector';
 import RelatedRecordSelector from '../money/RelatedRecordSelector';
 import TransactionAdvancedDetails from '../money/TransactionAdvancedDetails';
+import SaleBuyerPicker from '../money/SaleBuyerPicker';
 import AddMoneyFooter from '../money/AddMoneyFooter';
 import '../money/Money.css';
 
@@ -66,6 +84,25 @@ type Props = {
   onDirtyChange?: (dirty: boolean) => void;
 };
 
+const moneySteps = (askKind: boolean, oilPath: boolean, askField: boolean): MoneyEntryStep[] => {
+  const head: MoneyEntryStep[] = askKind ? ['kind', 'category'] : ['category'];
+  const oil: MoneyEntryStep[] = oilPath ? ['oil', 'pack'] : [];
+  const field: MoneyEntryStep[] = askField ? ['field'] : [];
+  return [...head, ...oil, 'amount', ...field, 'when'];
+};
+
+const firstMoneyStep = (askKind: boolean): MoneyEntryStep => {
+  const draft = readMoneyEntryDraft();
+  const steps = moneySteps(askKind, draft?.category === 'olive_oil_sale', draft?.category !== 'olive_oil_sale');
+  const saved = draft?.step as string | undefined;
+  // The name used to be its own step; it now lives on the type screen.
+  if (saved === 'what') return 'category';
+  if (saved && steps.includes(saved as MoneyEntryStep)) return saved as MoneyEntryStep;
+  if (draft && (draft.amount || draft.quantity || draft.unitPrice)) return 'amount';
+  if (draft?.description) return 'category';
+  return steps[0];
+};
+
 const formatMoney = (value: number, locale: string) =>
   value.toLocaleString(locale.toLowerCase().startsWith('en') ? 'en-GB' : 'el-GR', {
     minimumFractionDigits: 2,
@@ -82,7 +119,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation(['capture', 'chronologio', 'money']);
   const language = i18n.language || 'el';
-  const { dateFormat } = useLocaleFormatters();
+  const { dateFormat, formatDate } = useLocaleFormatters();
+  const harvestCampaign = useHarvestCampaignOptional();
   const amountRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const draftAppliedRef = useRef(false);
@@ -99,10 +137,19 @@ const MoneyCaptureForm: React.FC<Props> = ({
             ? 'income'
             : null;
 
+  const askKind =
+    canRecordIncome &&
+    canRecordExpense &&
+    context.preferredType !== 'income' &&
+    context.preferredType !== 'expense';
+  const [selectedOilIds, setSelectedOilIds] = useState<string[]>([]);
+  const [soldPack, setSoldPack] = useState<OilPackStock>(() => emptyOilPack());
   const [kind, setKind] = useState<FinancialTransactionType | null>(() => {
     const draft = readMoneyEntryDraft();
     return draft?.kind ?? preferredKind;
   });
+  const [step, setStep] = useState<MoneyEntryStep>(() => firstMoneyStep(askKind));
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [category, setCategory] = useState<FinancialCategory>(() => {
     const draft = readMoneyEntryDraft();
     return draft?.category ?? context.category ?? defaultCategoryForType(preferredKind || 'expense');
@@ -244,7 +291,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   const onDateChange = (value: string) => {
     setOccurredOn(value);
-    if (!resultYearTouched) setResultYear(yearFromIsoDate(value));
+    if (!resultYearTouched && category !== 'olive_oil_sale') setResultYear(yearFromIsoDate(value));
   };
 
   const qtyValue = parseDecimal(quantity);
@@ -280,8 +327,53 @@ const MoneyCaptureForm: React.FC<Props> = ({
     resolvedAmount = amountValue && amountValue > 0 ? amountValue : null;
   }
 
+  const oilLots = useMemo(
+    () => (harvestCampaign ? saleableOilLots(harvestCampaign.campaign) : []),
+    [harvestCampaign]
+  );
+  const oilPath = isOil && oilLots.length > 0;
+  const selectedLots = useMemo(
+    () => oilLots.filter((lot) => selectedOilIds.includes(lot.id) && !lot.sold),
+    [oilLots, selectedOilIds]
+  );
+  /** Oil sales take the grove from the lot — never ask which field. */
+  const askField = !oilPath;
+  const steps = useMemo(
+    () => moneySteps(askKind, oilPath, askField),
+    [askKind, oilPath, askField]
+  );
+  const oilStock = combineOilPacks(selectedLots);
+  const selectedOilLitres = Math.round(selectedLots.reduce((sum, lot) => sum + lot.litres, 0) * 10) / 10;
+  const oilSeasonYear =
+    harvestCampaign?.campaign.seasonStartYear ??
+    (selectedLots[0] ? yearFromIsoDate([...selectedLots].sort((a, b) => b.date.localeCompare(a.date))[0].date) : null);
+
+  const toggleOilLot = (id: string) => {
+    const lot = oilLots.find((row) => row.id === id);
+    if (lot?.sold) return;
+    const next = selectedOilIds.includes(id)
+      ? selectedOilIds.filter((row) => row !== id)
+      : [...selectedOilIds, id];
+    setSelectedOilIds(next);
+    setSoldPack(emptyOilPack());
+    setQuantity('');
+    const chosen = oilLots.filter((row) => next.includes(row.id) && !row.sold);
+    const harvestIds = [...new Set(chosen.flatMap((row) => row.harvestRecordIds))];
+    setRelatedHarvestId(harvestIds.length === 1 ? harvestIds[0] : '');
+    setFieldId(oilSaleFieldId(chosen));
+    setError(null);
+  };
+
+  const applySoldPack = (next: OilPackStock) => {
+    setSoldPack(next);
+    const litres = packLitres(next);
+    setQuantity(litres > 0 ? String(litres) : '');
+    setUnit('litre');
+    setMode('quantity_times_unit_price');
+  };
+
   const selectedHarvest = harvests.find((harvest) => harvest.id === relatedHarvestId);
-  const availableLitres = selectedHarvest?.oilLitres ?? null;
+  const availableLitres = oilPath && selectedLots.length > 0 ? selectedOilLitres : selectedHarvest?.oilLitres ?? null;
   const exceedsAvailable =
     isOil && availableLitres != null && qtyValue != null && qtyValue > availableLitres;
 
@@ -310,6 +402,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
     if (!kind || !partial) return;
     writeMoneyEntryDraft({
       kind,
+      step,
       category,
       mode,
       quantity,
@@ -346,7 +439,38 @@ const MoneyCaptureForm: React.FC<Props> = ({
     resultYear,
     moreOpen,
     partial,
+    step,
   ]);
+
+  useEffect(() => {
+    if (steps.includes(step)) return;
+    setStep(steps[0]);
+  }, [steps, step]);
+
+  useEffect(() => {
+    if (!oilPath || oilSeasonYear == null) return;
+    setResultYear(oilSeasonYear);
+  }, [oilPath, oilSeasonYear]);
+
+  useEffect(() => {
+    if (step === 'amount') amountRef.current?.focus();
+  }, [step]);
+
+  const stepIndex = Math.max(0, steps.indexOf(step));
+  const goTo = (next: MoneyEntryStep) => {
+    const nextIndex = steps.indexOf(next);
+    if (nextIndex < 0) return;
+    setDirection(nextIndex >= stepIndex ? 1 : -1);
+    setStep(next);
+  };
+  const goNext = () => {
+    const next = steps[stepIndex + 1];
+    if (next) goTo(next);
+  };
+  const goBack = () => {
+    const prev = steps[stepIndex - 1];
+    if (prev) goTo(prev);
+  };
 
   const addPhotos = (files: FileList | null) => {
     if (!files?.length) return;
@@ -389,13 +513,20 @@ const MoneyCaptureForm: React.FC<Props> = ({
         attachmentIds.push(url);
       }
       const harvestId = relatedHarvestId === 'later' ? undefined : relatedHarvestId || undefined;
+      const resolvedFieldId = oilPath ? oilSaleFieldId(selectedLots) : fieldId;
+      if (oilPath && !saveAsDraft && packLitres(soldPack) > 0 && harvestCampaign) {
+        const allocations = allocateSoldPack(selectedLots, soldPack);
+        if (allocations.length > 0) {
+          harvestCampaign.patch((campaign) => applyOilSale(campaign, allocations));
+        }
+      }
       const created = await getFinancialTransactionService().create({
         type: kind,
         amount: resolvedAmount,
         currency: 'EUR',
         occurredOn: `${occurredOn}T00:00:00`,
         resultYear,
-        fieldId: fieldId || undefined,
+        fieldId: resolvedFieldId || undefined,
         category,
         description: text,
         paymentMethod: paymentMethod || undefined,
@@ -414,7 +545,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
         unitPrice: activeMode === 'total_only' ? undefined : resolvedUnitPrice || undefined,
         productKind: isOil ? 'olive_oil' : undefined,
       });
-      rememberLastMoneyFieldId(fieldId || undefined);
+      rememberLastMoneyFieldId(resolvedFieldId || undefined);
       clearMoneyEntryDraft();
       onDirtyChange?.(false);
       const message = saveAsDraft
@@ -425,7 +556,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
       onSaved(
         {
           type: kind,
-          fieldId: fieldId || '',
+          fieldId: resolvedFieldId || '',
           sourceId: created.id,
           amount: resolvedAmount,
           occurredOn,
@@ -437,7 +568,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
           transactionId: created.id,
           status: created.status === 'draft' ? 'draft' : 'posted',
           reopen: {
-            fieldId: fieldId || undefined,
+            fieldId: resolvedFieldId || undefined,
             taskId: relatedTaskId || undefined,
             harvestId,
             preferredType: kind,
@@ -490,153 +621,368 @@ const MoneyCaptureForm: React.FC<Props> = ({
         })
       : relatedHarvestId || undefined;
 
+  const stepTitle =
+    step === 'kind'
+      ? t('capture:money.stepKind')
+      : step === 'category'
+        ? t(kind === 'income' ? 'capture:money.stepCategoryIncome' : 'capture:money.stepCategoryExpense')
+        : step === 'oil'
+          ? t('capture:money.fromThisOil')
+          : step === 'pack'
+            ? t('capture:money.packTitle')
+            : step === 'amount'
+              ? t('capture:money.stepAmount')
+              : step === 'field'
+                ? t('capture:money.whichField')
+                : oilPath
+                  ? t('capture:money.whenSold')
+                  : t('capture:money.whenDidItHappen');
+
+  const continueFooter = (enabled: boolean) => (
+    <footer className="money-drawer__footer">
+      <button type="button" className="money-primary-action" disabled={!enabled} onClick={goNext}>
+        {t('capture:money.continue')}
+      </button>
+    </footer>
+  );
+
   return (
-    <div className="money-drawer">
-      <div className="money-drawer__body">
-        <MoneyTypeToggle
-          value={kind}
-          onChange={selectKind}
-          canRecordIncome={canRecordIncome}
-          canRecordExpense={canRecordExpense}
-        />
-        {isOil ? (
-          <OliveOilSaleFields
-            mode={mode === 'total_only' ? 'total' : 'litres'}
-            onModeChange={(next) => setMode(next === 'total' ? 'total_only' : 'quantity_times_unit_price')}
-            litres={quantity}
-            onLitresChange={setQuantity}
-            unitPrice={unitPrice}
-            onUnitPriceChange={setUnitPrice}
-            amount={amount}
-            onAmountChange={setAmount}
-            calculatedAmount={resolvedAmount ? formatMoney(resolvedAmount, language) : null}
-            harvests={harvests}
-            harvestId={relatedHarvestId}
-            onHarvestChange={setRelatedHarvestId}
-            fieldName={selectedFieldName}
-            availableLitres={availableLitres}
-            exceedsAvailable={exceedsAvailable}
-            showHarvestLink={false}
-          />
-        ) : supportsQty ? (
-          <QuantityPriceCalculator
-            mode={mode}
-            onModeChange={setMode}
-            quantity={quantity}
-            onQuantityChange={setQuantity}
-            unit={unit}
-            units={suggestedUnitsForCategory(category)}
-            onUnitChange={setUnit}
-            unitPrice={unitPrice}
-            onUnitPriceChange={setUnitPrice}
-            amount={amount}
-            onAmountChange={setAmount}
-            calculatedAmount={resolvedAmount ? formatMoney(resolvedAmount, language) : null}
-            calculatedUnitPrice={resolvedUnitPrice ? formatMoney(resolvedUnitPrice, language) : null}
-            amountRef={amountRef}
-          />
-        ) : (
-          <TransactionAmountInput
-            value={amount}
-            onChange={setAmount}
-            inputRef={amountRef}
-            invalid={Boolean(error)}
-            describedBy={error ? 'money-capture-error' : undefined}
-          />
-        )}
-        <TransactionFieldSelector value={fieldId} fields={usableFields} onChange={setFieldId} />
-        <TransactionDateSelector value={occurredOn} onChange={onDateChange} />
-        {context.dateDefaultedToToday ? (
-          <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
-        ) : null}
-        <label className="money-form-label">
-          {t('capture:money.shortDescription')}
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={300}
-            placeholder={suggestedDescription(category, language) || financialCategoryLabel(category, language)}
-            aria-label={t('capture:money.shortDescription')}
-          />
-        </label>
-        <TransactionAdvancedDetails
-          open={moreOpen}
-          onToggle={() => setMoreOpen((open) => !open)}
-          paymentMethod={paymentMethod}
-          onPaymentMethod={setPaymentMethod}
-          counterpartyName={counterpartyName}
-          onCounterparty={setCounterpartyName}
-          notes={notes}
-          onNotes={setNotes}
-          resultYear={resultYear}
-          onResultYear={(year) => {
-            setResultYear(year);
-            setResultYearTouched(true);
-          }}
-          photos={photos}
-          onAddPhotos={addPhotos}
-          onRemovePhoto={(id) => {
-            const photo = photos.find((item) => item.id === id);
-            if (photo) URL.revokeObjectURL(photo.preview);
-            setPhotos((prev) => prev.filter((item) => item.id !== id));
-          }}
-          fileRef={fileRef}
-        >
-          <MoneyCategorySelector type={kind} value={category} onChange={applyCategory} />
-          {isOil ? (
-            <label className="money-form-label">
-              {t('capture:money.fromWhichHarvest')}
-              <select
-                value={relatedHarvestId}
-                onChange={(e) => setRelatedHarvestId(e.target.value)}
-                aria-label={t('capture:money.relatedHarvest')}
-              >
-                <option value="">{t('capture:money.noLink')}</option>
-                <option value="later">{t('capture:money.linkLater')}</option>
-                {harvests.map((harvest) => (
-                  <option key={harvest.id} value={harvest.id}>
-                    {harvestOptionLabels.get(harvest.id) ||
-                      formatRelatedHarvestLabel(harvest, {
-                        fieldName: selectedFieldName,
-                        locale: language,
-                        dateFormat,
-                      })}
-                  </option>
-                ))}
-              </select>
-            </label>
+    <div className={`money-drawer is-${kind}`}>
+      <div className="money-drawer__body money-entry">
+        <div className="money-step-bar">
+          {stepIndex > 0 ? (
+            <button type="button" className="money-step-back" onClick={goBack} aria-label={t('capture:back')}>
+              <ChevronLeft size={18} aria-hidden />
+            </button>
           ) : (
-            <RelatedRecordSelector
-              fieldId={fieldId}
-              fieldName={selectedFieldName}
-              tasks={tasks}
-              harvests={harvests}
-              taskId={relatedTaskId}
-              harvestId={relatedHarvestId}
-              onTaskChange={setRelatedTaskId}
-              onHarvestChange={setRelatedHarvestId}
-              preselectedLabel={linkedLabel}
-            />
+            <span className="money-step-back is-spacer" aria-hidden />
           )}
-        </TransactionAdvancedDetails>
-        {error ? (
-          <p id="money-capture-error" className="capture-error" role="alert">
-            {error}
+          <p className="money-sr-only">
+            {t('capture:money.stepProgress', { current: stepIndex + 1, total: steps.length })}
           </p>
-        ) : null}
+          <div className="money-step-dots" aria-hidden>
+            {steps.map((id, index) => (
+              <span
+                key={id}
+                className={index === stepIndex ? 'is-current' : index < stepIndex ? 'is-done' : ''}
+              />
+            ))}
+          </div>
+        </div>
+        <div key={step} className="money-step-panel" data-dir={direction}>
+          <p className="money-step-title" id="money-step-title">
+            {stepTitle}
+          </p>
+          {step === 'kind' ? (
+            <div className="money-push-list">
+              {canRecordIncome ? (
+                <button
+                  type="button"
+                  className="money-push is-income"
+                  onClick={() => {
+                    selectKind('income');
+                    goNext();
+                  }}
+                >
+                  <span>
+                    <strong>{t('capture:types.income.title')}</strong>
+                    <em>{t('capture:types.income.description')}</em>
+                  </span>
+                  <ChevronRight size={22} aria-hidden />
+                </button>
+              ) : null}
+              {canRecordExpense ? (
+                <button
+                  type="button"
+                  className="money-push is-expense"
+                  onClick={() => {
+                    selectKind('expense');
+                    goNext();
+                  }}
+                >
+                  <span>
+                    <strong>{t('capture:types.expense.title')}</strong>
+                    <em>{t('capture:types.expense.description')}</em>
+                  </span>
+                  <ChevronRight size={22} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {step === 'category' ? (
+            <>
+              <label className="money-entry-title">
+                <span className="money-sr-only">{t('capture:money.shortDescription')}</span>
+                <input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={300}
+                  placeholder={t('capture:money.shortDescription')}
+                  aria-label={t('capture:money.shortDescription')}
+                />
+              </label>
+              <MoneyCategorySelector
+                type={kind}
+                value={category}
+                hideLabel
+                onChange={(next) => {
+                  applyCategory(next);
+                  setDirection(1);
+                  setStep(next === 'olive_oil_sale' && oilLots.length > 0 ? 'oil' : 'amount');
+                }}
+              />
+            </>
+          ) : null}
+          {step === 'oil' ? (
+            <>
+              <HarvestCarryPicker
+                label={t('capture:money.fromThisOil')}
+                hideHeading
+                items={oilLots.map((lot) => {
+                  const names = lot.fieldIds
+                    .map((id) => friendlyFieldLabel(usableFields.find((field) => field.id === id)?.name || id))
+                    .filter(Boolean);
+                  return {
+                    id: lot.id,
+                    title: formatGroveLitres(lot.sold ? lot.farmerLitres : lot.litres, language),
+                    detail: names.join(' + ') || undefined,
+                    colors: lot.fieldIds.map((id) =>
+                      resolveFieldColor(usableFields.find((field) => field.id === id)?.color, id)
+                    ),
+                    group: formatDate(`${lot.date}T12:00:00`),
+                    badge: lot.sold ? t('capture:money.oilSold') : undefined,
+                    disabled: lot.sold,
+                  };
+                })}
+                selected={selectedOilIds}
+                onToggle={toggleOilLot}
+                hint={selectedOilIds.length ? undefined : t('capture:money.oilSaleHint')}
+                transfer={
+                  selectedLots.length
+                    ? {
+                        from: formatGroveLitres(selectedOilLitres, language),
+                        to: t('capture:money.packTitle'),
+                        color: carryColor(
+                          selectedLots.flatMap((lot) =>
+                            lot.fieldIds.map((id) =>
+                              resolveFieldColor(usableFields.find((field) => field.id === id)?.color, id)
+                            )
+                          )
+                        ),
+                      }
+                    : undefined
+                }
+              />
+            </>
+          ) : null}
+          {step === 'pack' ? (
+            <OilPackBars
+              stock={oilStock}
+              value={soldPack}
+              availableLitres={selectedOilLitres}
+              onChange={applySoldPack}
+            />
+          ) : null}
+          {step === 'amount' ? (
+            isOil ? (
+              <>
+                {oilPath && packLitres(soldPack) > 0 ? (
+                  <p className="oil-pack-sum">
+                    <span>{formatGroveLitres(packLitres(soldPack), language)}</span>
+                    <span aria-hidden>→</span>
+                    <strong>{t('capture:money.incomeTotal')}</strong>
+                  </p>
+                ) : oilLots.length === 0 ? (
+                  <p className="capture-hint">{t('capture:money.noHarvestOil')}</p>
+                ) : null}
+                <OliveOilSaleFields
+                mode={mode === 'total_only' ? 'total' : 'litres'}
+                onModeChange={(next) => setMode(next === 'total' ? 'total_only' : 'quantity_times_unit_price')}
+                litres={quantity}
+                onLitresChange={setQuantity}
+                unitPrice={unitPrice}
+                onUnitPriceChange={setUnitPrice}
+                amount={amount}
+                onAmountChange={setAmount}
+                calculatedAmount={resolvedAmount ? formatMoney(resolvedAmount, language) : null}
+                harvests={harvests}
+                harvestId={relatedHarvestId}
+                onHarvestChange={setRelatedHarvestId}
+                fieldName={selectedFieldName}
+                availableLitres={availableLitres}
+                exceedsAvailable={exceedsAvailable}
+                showHarvestLink={false}
+              />
+              </>
+            ) : supportsQty ? (
+              <QuantityPriceCalculator
+                mode={mode}
+                onModeChange={setMode}
+                quantity={quantity}
+                onQuantityChange={setQuantity}
+                unit={unit}
+                units={suggestedUnitsForCategory(category)}
+                onUnitChange={setUnit}
+                unitPrice={unitPrice}
+                onUnitPriceChange={setUnitPrice}
+                amount={amount}
+                onAmountChange={setAmount}
+                calculatedAmount={resolvedAmount ? formatMoney(resolvedAmount, language) : null}
+                calculatedUnitPrice={resolvedUnitPrice ? formatMoney(resolvedUnitPrice, language) : null}
+                amountRef={amountRef}
+                hideAmountLabel
+              />
+            ) : (
+              <div className="money-amount-stage">
+                <TransactionAmountInput
+                  value={amount}
+                  onChange={setAmount}
+                  inputRef={amountRef}
+                  invalid={Boolean(error)}
+                  describedBy={error ? 'money-capture-error' : undefined}
+                  hideLabel
+                />
+              </div>
+            )
+          ) : null}
+          {step === 'field' ? (
+            <TransactionFieldSelector
+              value={fieldId}
+              fields={usableFields}
+              hideLabel
+              allowUnassigned
+              onChange={(next) => {
+                setFieldId(next);
+                goNext();
+              }}
+            />
+          ) : null}
+          {step === 'when' ? (
+            <>
+              <TransactionDateSelector value={occurredOn} onChange={onDateChange} hideLabel />
+              {oilPath ? (
+                <div className="money-oil-year">
+                  <p className="money-oil-year__label">{t('capture:money.resultYearLabel')}</p>
+                  <p className="money-oil-year__span">{harvestYearSpan(resultYear)}</p>
+                  <p className="money-oil-year__range">
+                    {harvestYearRangeLabel(resultYear, language)}
+                  </p>
+                  <p className="capture-hint">{t('capture:money.oilHarvestYearHint')}</p>
+                  {selectedLots.length > 0 ? (
+                    <p className="money-oil-year__link">
+                      {t('capture:money.oilLinkedSummary', {
+                        amount: formatGroveLitres(selectedOilLitres, language),
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <p className="money-entry-year">
+                    {t('capture:money.yearLine', { span: harvestYearSpan(resultYear) })}
+                  </p>
+                  {resultYear !== yearFromIsoDate(occurredOn) ? (
+                    <p className="capture-hint">{t('capture:money.harvestYearOverride')}</p>
+                  ) : null}
+                </>
+              )}
+              {context.dateDefaultedToToday && !oilPath ? (
+                <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
+              ) : null}
+              {oilPath ? (
+                <SaleBuyerPicker
+                  value={counterpartyName}
+                  onChange={setCounterpartyName}
+                  fieldId={oilPath ? oilSaleFieldId(selectedLots) || undefined : fieldId || undefined}
+                />
+              ) : null}
+              <TransactionAdvancedDetails
+                open={moreOpen}
+                onToggle={() => setMoreOpen((open) => !open)}
+                paymentMethod={paymentMethod}
+                onPaymentMethod={setPaymentMethod}
+                counterpartyName={counterpartyName}
+                onCounterparty={setCounterpartyName}
+                notes={notes}
+                onNotes={setNotes}
+                resultYear={resultYear}
+                onResultYear={(year) => {
+                  setResultYear(year);
+                  setResultYearTouched(true);
+                }}
+                hideResultYear={oilPath}
+                hideCounterparty={oilPath}
+                photos={photos}
+                onAddPhotos={addPhotos}
+                onRemovePhoto={(id) => {
+                  const photo = photos.find((item) => item.id === id);
+                  if (photo) URL.revokeObjectURL(photo.preview);
+                  setPhotos((prev) => prev.filter((item) => item.id !== id));
+                }}
+                fileRef={fileRef}
+              >
+                {oilPath ? null : isOil ? (
+                  <label className="money-form-label">
+                    {t('capture:money.fromWhichHarvest')}
+                    <select
+                      value={relatedHarvestId}
+                      onChange={(e) => setRelatedHarvestId(e.target.value)}
+                      aria-label={t('capture:money.relatedHarvest')}
+                    >
+                      <option value="">{t('capture:money.noLink')}</option>
+                      <option value="later">{t('capture:money.linkLater')}</option>
+                      {harvests.map((harvest) => (
+                        <option key={harvest.id} value={harvest.id}>
+                          {harvestOptionLabels.get(harvest.id) ||
+                            formatRelatedHarvestLabel(harvest, {
+                              fieldName: selectedFieldName,
+                              locale: language,
+                              dateFormat,
+                            })}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <RelatedRecordSelector
+                    fieldId={fieldId}
+                    fieldName={selectedFieldName}
+                    tasks={tasks}
+                    harvests={harvests}
+                    taskId={relatedTaskId}
+                    harvestId={relatedHarvestId}
+                    onTaskChange={setRelatedTaskId}
+                    onHarvestChange={setRelatedHarvestId}
+                    preselectedLabel={linkedLabel}
+                  />
+                )}
+              </TransactionAdvancedDetails>
+            </>
+          ) : null}
+          {error && (step === 'amount' || step === 'when') ? (
+            <p id="money-capture-error" className="capture-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
       </div>
-      <AddMoneyFooter
-        type={kind}
-        amountLabel={resolvedAmount ? `${formatMoney(resolvedAmount, language)} €` : '—'}
-        quantityLine={quantityLine}
-        canSubmit={canSubmit}
-        canDraft={canDraft}
-        disabledReason={canSubmit ? null : t('capture:money.needPositiveAmount')}
-        draftDisabledReason={draftReason}
-        submitting={submitting}
-        onSubmit={() => void save(false)}
-        onDraft={() => void save(true)}
-      />
+      {step === 'oil' ? continueFooter(selectedOilIds.length > 0) : null}
+      {step === 'pack' ? continueFooter(packLitres(soldPack) > 0) : null}
+      {step === 'amount' ? continueFooter(canSubmit) : null}
+      {step === 'when' ? (
+        <AddMoneyFooter
+          type={kind}
+          amountLabel={resolvedAmount ? `${formatMoney(resolvedAmount, language)} €` : '—'}
+          quantityLine={quantityLine}
+          canSubmit={canSubmit}
+          canDraft={canDraft}
+          disabledReason={canSubmit ? null : t('capture:money.needPositiveAmount')}
+          draftDisabledReason={draftReason}
+          submitting={submitting}
+          onSubmit={() => void save(false)}
+          onDraft={() => void save(true)}
+        />
+      ) : null}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import type { FieldLocationGuess } from '../fieldGuess';
 
@@ -31,6 +32,15 @@ type MultiProps = {
 
 export type HarvestFieldPickerProps = SingleProps | MultiProps;
 
+const fieldChipStyle = (color: string, pressed: boolean): React.CSSProperties | undefined =>
+  pressed
+    ? {
+        borderColor: color,
+        background: `color-mix(in srgb, ${color} 30%, var(--surface-1, #fff))`,
+        color: 'var(--color-text, inherit)',
+      }
+    : undefined;
+
 /**
  * Field chips with optional GPS recommendation UX.
  * Recommendation never auto-writes the selection — accept is explicit.
@@ -52,11 +62,13 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
         <div className="money-chips" role="group" aria-label={props.sectionLabel}>
           {props.fields.map((field) => {
             const pressed = props.value.includes(field.id);
+            const color = resolveFieldColor(field.color, field.id);
             return (
               <button
                 key={field.id}
                 type="button"
-                className={`money-chip${pressed ? ' is-active' : ''}`}
+                className={`money-chip hc-field-chip${pressed ? ' is-active' : ''}`}
+                style={fieldChipStyle(color, pressed)}
                 aria-pressed={pressed}
                 onClick={() =>
                   props.onChange(
@@ -66,6 +78,7 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
                   )
                 }
               >
+                <span className="hc-field-dot" style={{ background: color }} aria-hidden />
                 {friendlyFieldLabel(field.name)}
               </button>
             );
@@ -83,6 +96,11 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
       <>
         {section}
         <p className="hc-field-locked" aria-live="polite">
+          <span
+            className="hc-field-dot"
+            style={{ background: resolveFieldColor(field?.color, value) }}
+            aria-hidden
+          />
           <span className="hc-kicker">{t('harvestCampaign.fieldLockedLabel')}</span>
           <strong>{friendlyFieldLabel(field?.name || value)}</strong>
         </p>
@@ -167,14 +185,17 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
       <div className="money-chips" role="group" aria-label={props.sectionLabel}>
         {fields.map((field) => {
           const pressed = value === field.id;
+          const color = resolveFieldColor(field.color, field.id);
           return (
             <button
               key={field.id}
               type="button"
-              className={`money-chip${pressed ? ' is-active' : ''}`}
+              className={`money-chip hc-field-chip${pressed ? ' is-active' : ''}`}
+              style={fieldChipStyle(color, pressed)}
               aria-pressed={pressed}
               onClick={() => pickManual(field.id)}
             >
+              <span className="hc-field-dot" style={{ background: color }} aria-hidden />
               {friendlyFieldLabel(field.name)}
             </button>
           );

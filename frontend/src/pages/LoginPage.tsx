@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,21 +8,25 @@ import { showDemoLogin } from '../config/apiConfig';
 import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolvePostAuthPath } from '../utils/firstGroveDestination';
+import {
+  authPathWithIntent,
+  intentFromSearch,
+  mergeInviteIntent,
+  readInviteIntent,
+  rememberInviteIntent,
+} from '../utils/inviteIntent';
 import LoginDemoPicker from '../components/Auth/LoginDemoPicker';
+import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
 import Button from '../components/Common/Button';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 type FieldKey = 'email' | 'password';
-
-const safeNextPath = (value: string | null) =>
-  value && value.startsWith('/') && !value.startsWith('//') ? value : null;
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const [searchParams] = useSearchParams();
-  const redirectTo = safeNextPath(searchParams.get('redirect'));
   const passwordReset = searchParams.get('reset') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,9 +40,17 @@ const LoginPage: React.FC = () => {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
+  const intent = mergeInviteIntent(readInviteIntent(), intentFromSearch(searchParams));
+  const registerHref = authPathWithIntent('/register', intent);
+
+  useEffect(() => {
+    rememberInviteIntent(intentFromSearch(searchParams));
+  }, [searchParams]);
+
   const navigateAfterLogin = async (role: string) => {
-    if (redirectTo) {
-      navigate(redirectTo);
+    const storedIntent = rememberInviteIntent(intentFromSearch(searchParams));
+    if (storedIntent.redirect) {
+      navigate(storedIntent.redirect);
       return;
     }
     const next = await resolvePostAuthPath((role || 'FieldOwner') as AppRole);
@@ -120,7 +132,6 @@ const LoginPage: React.FC = () => {
       <div className="login-card-heading">
         <h1>{t('auth:login.title')}</h1>
         <p className="login-card-subtitle">{t('auth:login.subtitle')}</p>
-        <p className="login-card-motto">{t('auth:login.motto')}</p>
       </div>
 
       {passwordReset && !summaryMessage && (
@@ -163,6 +174,12 @@ const LoginPage: React.FC = () => {
           )}
         </div>
       ) : null}
+
+      <AuthSocialButtons onBeforeContinue={() => rememberInviteIntent(intentFromSearch(searchParams))} />
+
+      <div className="login-divider">
+        <span>{t('auth:login.orEmail')}</span>
+      </div>
 
       <form className="login-form" onSubmit={handleSubmit} noValidate>
         <div className={fieldClass('email')}>
@@ -235,15 +252,7 @@ const LoginPage: React.FC = () => {
 
       <p className="login-register">
         {t('auth:login.noAccount')}{' '}
-        <Link
-          to={
-            redirectTo
-              ? `/register?redirect=${encodeURIComponent(redirectTo)}`
-              : '/register'
-          }
-        >
-          {t('auth:login.registerLink')}
-        </Link>
+        <Link to={registerHref}>{t('auth:login.registerLink')}</Link>
       </p>
 
       {showQuickLogin && (

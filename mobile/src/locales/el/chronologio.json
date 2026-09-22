@@ -351,5 +351,8 @@
     "previous": "Πριν",
     "next": "Μετά",
     "posting": "Κατάσταση καταχώρισης"
-  }
+  },
+  "activeFilters": "Ενεργά φίλτρα",
+  "clearAllFilters": "Καθαρισμός όλων",
+  "removeFilter": "Αφαίρεση {{label}}"
 }

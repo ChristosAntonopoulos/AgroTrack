@@ -21,6 +21,7 @@ public class FieldPeopleService : IFieldPeopleService
     private readonly IFieldAccessService _fieldAccessService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISavedContactService _savedContacts;
+    private readonly IEmailSender? _emailSender;
     private readonly ILogger<FieldPeopleService> _logger;
 
     public FieldPeopleService(
@@ -32,7 +33,8 @@ public class FieldPeopleService : IFieldPeopleService
         IFieldAccessService fieldAccessService,
         IDateTimeProvider dateTimeProvider,
         ISavedContactService savedContacts,
-        ILogger<FieldPeopleService> logger)
+        ILogger<FieldPeopleService> logger,
+        IEmailSender? emailSender = null)
     {
         _fieldRepository = fieldRepository;
         _userRepository = userRepository;
@@ -43,6 +45,7 @@ public class FieldPeopleService : IFieldPeopleService
         _dateTimeProvider = dateTimeProvider;
         _savedContacts = savedContacts;
         _logger = logger;
+        _emailSender = emailSender;
     }
 
     public async Task EnsureAdminSeatOnCreateAsync(Field field, string adminUserId, CancellationToken cancellationToken = default)
@@ -276,7 +279,89 @@ public class FieldPeopleService : IFieldPeopleService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
         await _fieldRepository.UpdateAsync(field, cancellationToken);
 
-        return ToInviteDto(invite, publicAppBaseUrl);
+        string? invitedByName = null;
+        if (!string.IsNullOrWhiteSpace(actorId))
+        {
+            var inviter = await _userRepository.GetByIdAsync(actorId, cancellationToken);
+            invitedByName = inviter == null ? null : DisplayName(inviter);
+        }
+
+        var dtoOut = ToInviteDto(invite, publicAppBaseUrl, invitedByName);
+        dtoOut.EmailSent = await TrySendInviteEmailAsync(invite, dtoOut, invitedByName, cancellationToken);
+        return dtoOut;
+    }
+
+    public async Task<IReadOnlyList<FieldInviteDto>> GetInvitesAsync(
+        string fieldId,
+        string actorId,
+        string? publicAppBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        await RequireAdminAsync(fieldId, actorId, cancellationToken);
+        var invites = (await _inviteRepository.GetByFieldIdAsync(fieldId, cancellationToken)).ToList();
+        var result = new List<FieldInviteDto>();
+        foreach (var invite in invites)
+        {
+            string? invitedByName = null;
+            if (!string.IsNullOrWhiteSpace(invite.InvitedBy))
+            {
+                var inviter = await _userRepository.GetByIdAsync(invite.InvitedBy, cancellationToken);
+                invitedByName = inviter == null ? null : DisplayName(inviter);
+            }
+
+            result.Add(ToInviteDto(invite, publicAppBaseUrl, invitedByName));
+        }
+
+        return result;
+    }
+
+    public async Task<FieldInviteDto> ResendInviteAsync(
+        string fieldId,
+        string actorId,
+        string inviteId,
+        string? publicAppBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        await RequireAdminAsync(fieldId, actorId, cancellationToken);
+        var invites = await _inviteRepository.GetByFieldIdAsync(fieldId, cancellationToken);
+        var invite = invites.FirstOrDefault(item =>
+            string.Equals(item.Id, inviteId, StringComparison.Ordinal)
+            || string.Equals(item.Token, inviteId, StringComparison.Ordinal))
+            ?? throw new NotFoundException("Invite not found.");
+
+        if (string.Equals(invite.Status, FamilyInviteStatuses.Accepted, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(invite.Status, FamilyInviteStatuses.Revoked, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ValidationException("This invitation can no longer be resent.");
+        }
+
+        invite.Status = FamilyInviteStatuses.Pending;
+        invite.ExpiresAt = _dateTimeProvider.UtcNow.AddDays(14);
+        invite.UpdatedAt = _dateTimeProvider.UtcNow;
+        await _inviteRepository.UpdateAsync(invite, cancellationToken);
+
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+        FieldPeopleRules.EnsureNormalized(field);
+        var seat = field.People.FirstOrDefault(person =>
+            string.Equals(person.InviteId, invite.Id, StringComparison.Ordinal));
+        if (seat != null && string.Equals(seat.Status, FamilyMemberStatuses.Revoked, StringComparison.OrdinalIgnoreCase))
+        {
+            seat.Status = FamilyMemberStatuses.Pending;
+            field.UpdatedAt = _dateTimeProvider.UtcNow;
+            await _fieldRepository.UpdateAsync(field, cancellationToken);
+        }
+
+        string? invitedByName = null;
+        if (!string.IsNullOrWhiteSpace(invite.InvitedBy))
+        {
+            var inviter = await _userRepository.GetByIdAsync(invite.InvitedBy, cancellationToken);
+            invitedByName = inviter == null ? null : DisplayName(inviter);
+        }
+
+        var dtoOut = ToInviteDto(invite, publicAppBaseUrl, invitedByName);
+        dtoOut.EmailSent = await TrySendInviteEmailAsync(invite, dtoOut, invitedByName, cancellationToken);
+        return dtoOut;
     }
 
     public async Task<FieldInviteDto?> GetInviteAsync(string tokenOrCode, CancellationToken cancellationToken = default)
@@ -480,27 +565,31 @@ public class FieldPeopleService : IFieldPeopleService
         string userId,
         CancellationToken cancellationToken = default)
     {
-        var fields = (await _fieldRepository.GetByMemberUserIdAsync(userId, cancellationToken)).ToList();
+        var memberFields = await _fieldRepository.GetByMemberUserIdAsync(userId, cancellationToken);
+        var ownedFields = await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken);
+        var fields = memberFields.Concat(ownedFields).DistinctBy(f => f.Id).ToList();
         var result = new List<FieldAccessSnapshotDto>();
         foreach (var field in fields)
         {
             FieldPeopleRules.EnsureNormalized(field);
             var seat = FieldPeopleRules.GetActiveByUserId(field, userId);
-            if (seat == null)
+            // OwnerId still counts as admin when the seat row was never written.
+            if (seat == null && !FieldPeopleRules.IsAdmin(field, userId))
             {
                 continue;
             }
 
+            var role = seat?.Role ?? FieldPersonRole.Admin;
             var admin = FieldPeopleRules.GetAdmin(field);
             result.Add(new FieldAccessSnapshotDto
             {
                 FieldId = field.Id,
                 FieldName = field.Name,
-                Role = seat.Role.ToString(),
-                Modules = seat.Role == FieldPersonRole.Admin
+                Role = role.ToString(),
+                Modules = role == FieldPersonRole.Admin
                     ? FamilyModules.All.ToList()
-                    : seat.Modules.ToList(),
-                AccessLevel = seat.AccessLevel,
+                    : seat!.Modules.ToList(),
+                AccessLevel = seat?.AccessLevel ?? FamilyAccessLevels.Work,
                 AdminUserId = admin?.UserId ?? field.OwnerId,
                 Capabilities = FieldCapabilitiesResolver.Resolve(field, userId)
             });
@@ -614,12 +703,55 @@ public class FieldPeopleService : IFieldPeopleService
         return string.IsNullOrWhiteSpace(name) ? user.Email : name;
     }
 
+    private async Task<bool> TrySendInviteEmailAsync(
+        FieldInvite invite,
+        FieldInviteDto dto,
+        string? invitedByName,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(invite.Email) || _emailSender == null || !_emailSender.IsConfigured)
+        {
+            return false;
+        }
+
+        try
+        {
+            var who = string.IsNullOrWhiteSpace(invitedByName) ? "OleaChron" : invitedByName;
+            var subject = $"Πρόσκληση στο {invite.FieldName} — Oleachron";
+            var body =
+                $"{who} σε προσκαλεί στο {invite.FieldName} στο Oleachron.\n\n" +
+                $"Άνοιξε: {dto.ShareUrl}\n" +
+                (string.IsNullOrWhiteSpace(invite.Code) ? "" : $"Κωδικός πρόσκλησης: {invite.Code}\n");
+            await _emailSender.SendAsync(invite.Email, subject, body.Trim(), cancellationToken);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invite email to {Email} failed for field {FieldId}", invite.Email, invite.FieldId);
+            return false;
+        }
+    }
+
     private static FieldInviteDto ToInviteDto(FieldInvite invite, string? publicAppBaseUrl, string? invitedByName = null)
     {
         var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.oleachron.local" : publicAppBaseUrl.TrimEnd('/');
         var shareUrl = $"{baseUrl}/invite/{invite.Token}";
-        var message = $"You were invited to {invite.FieldName} on Oleachron. Open: {shareUrl}";
+        var message = string.IsNullOrWhiteSpace(invitedByName)
+            ? $"Σε προσκάλεσαν στο {invite.FieldName} στο Oleachron. Άνοιξε: {shareUrl}"
+            : $"{invitedByName} σε προσκαλεί στο {invite.FieldName} στο Oleachron. Άνοιξε: {shareUrl}";
+        if (!string.IsNullOrWhiteSpace(invite.Code))
+        {
+            message += $" Κωδικός: {invite.Code}";
+        }
+
         var whatsApp = $"https://wa.me/?text={Uri.EscapeDataString(message)}";
+        string? mailto = null;
+        if (!string.IsNullOrWhiteSpace(invite.Email))
+        {
+            mailto =
+                $"mailto:{Uri.EscapeDataString(invite.Email)}?subject={Uri.EscapeDataString($"Πρόσκληση στο {invite.FieldName} — Oleachron")}&body={Uri.EscapeDataString(message)}";
+        }
+
         return new FieldInviteDto
         {
             Id = invite.Id,
@@ -641,8 +773,11 @@ public class FieldPeopleService : IFieldPeopleService
             DisplayName = invite.DisplayName,
             Status = invite.Status,
             ExpiresAt = invite.ExpiresAt,
+            CreatedAt = invite.CreatedAt,
+            AcceptedBy = invite.AcceptedBy,
             ShareUrl = shareUrl,
-            WhatsAppUrl = whatsApp
+            WhatsAppUrl = whatsApp,
+            MailtoUrl = mailto
         };
     }
 }

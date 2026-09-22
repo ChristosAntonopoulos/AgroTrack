@@ -157,6 +157,7 @@ export function mergeGrovePeople(
       linked.savedContact = contact;
       linked.phone = contact.phone || linked.phone;
       linked.email = contact.email || linked.email;
+      linked.fieldIds = [...new Set([...(linked.fieldIds || []), ...contact.fieldIds])];
       labels.forEach((label) => {
         if (!linked.serviceLabels.includes(label)) linked.serviceLabels.push(label);
       });
@@ -176,6 +177,7 @@ export function mergeGrovePeople(
       serviceLabels: labels,
       listed: false,
       savedContact: contact,
+      fieldIds: [...contact.fieldIds],
       unassigned: contact.fieldIds.length === 0,
     });
   });
@@ -194,6 +196,10 @@ export function fromSavedContacts(
   categories: ServiceCategory[] = []
 ): GrovePerson[] {
   return mergeGrovePeople([], [], savedContacts, '', language, categories);
+}
+
+export function linkedFieldIds(person: GrovePerson): string[] {
+  return [...new Set([...(person.fieldIds || []), ...(person.savedContact?.fieldIds || [])])];
 }
 
 export function occupiesAccessSeat(

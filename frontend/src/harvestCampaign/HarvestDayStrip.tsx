@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { shiftAthensDateKey } from '../utils/athensDate';
@@ -17,6 +17,7 @@ type Props = {
   locale: string;
   onSelectDay: (day: string) => void;
   onShift: (delta: -1 | 1) => void;
+  onRevealMore?: (direction: -1 | 1) => void;
 };
 
 const HarvestDayStrip: React.FC<Props> = ({
@@ -30,10 +31,45 @@ const HarvestDayStrip: React.FC<Props> = ({
   locale,
   onSelectDay,
   onShift,
+  onRevealMore,
 }) => {
   const { t } = useTranslation('fields');
   const { formatDate } = useLocaleFormatters();
   const yesterday = shiftAthensDateKey(today, -1);
+  const selectedChipRef = useRef<HTMLButtonElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const revealingRef = useRef(false);
+  const scrollMemory = useRef({ width: 0, first: '' });
+
+  useEffect(() => {
+    selectedChipRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [selectedDay]);
+
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const first = stripRows[0]?.date ?? '';
+    if (scrollMemory.current.first && first < scrollMemory.current.first) {
+      const delta = el.scrollWidth - scrollMemory.current.width;
+      if (delta > 0) el.scrollLeft += delta;
+    }
+    scrollMemory.current = { width: el.scrollWidth, first };
+    revealingRef.current = false;
+  }, [stripRows]);
+
+  const onStripScroll = () => {
+    const el = listRef.current;
+    if (!el || !onRevealMore || revealingRef.current) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    if (overflow < 12) return;
+    if (el.scrollLeft < 16) {
+      revealingRef.current = true;
+      onRevealMore(-1);
+    } else if (el.scrollLeft > overflow - 16) {
+      revealingRef.current = true;
+      onRevealMore(1);
+    }
+  };
 
   const when = new Date(`${selectedDay}T12:00:00`);
   const title = `${when.toLocaleDateString(locale, { weekday: 'long' })}, ${formatDate(when)}`;
@@ -86,29 +122,31 @@ const HarvestDayStrip: React.FC<Props> = ({
         </button>
       </div>
 
-      {stripRows.length > 1 ? (
-        <ul className="hc-day-strip" role="list">
-          {stripRows.map((row) => {
-            const selected = row.date === selectedDay;
-            const active = harvestWorkingDayHasActivity(row);
-            const dayNum = Number(row.date.slice(-2));
-            return (
-              <li key={row.date}>
-                <button
-                  type="button"
-                  className={`hc-day-chip${selected ? ' is-selected' : ''}${row.closed ? ' is-closed' : ''}${active ? ' is-active' : ''}${row.date === today ? ' is-today' : ''}`}
-                  onClick={() => onSelectDay(row.date)}
-                  aria-current={selected ? 'date' : undefined}
-                  title={row.date}
-                >
-                  <span className="hc-day-chip-num">{dayNum}</span>
-                  <span className="hc-day-chip-dot" aria-hidden />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+      <ul ref={listRef} className="hc-day-strip" role="list" onScroll={onStripScroll}>
+        {stripRows.map((row) => {
+          const selected = row.date === selectedDay;
+          const active = harvestWorkingDayHasActivity(row);
+          const when = new Date(`${row.date}T12:00:00`);
+          const dayNum = Number(row.date.slice(-2));
+          const weekday = when.toLocaleDateString(locale, { weekday: 'short' });
+          return (
+            <li key={row.date}>
+              <button
+                ref={selected ? selectedChipRef : undefined}
+                type="button"
+                className={`hc-day-chip${selected ? ' is-selected' : ''}${row.closed ? ' is-closed' : ''}${active ? ' is-active' : ''}${row.date === today ? ' is-today' : ''}`}
+                onClick={() => onSelectDay(row.date)}
+                aria-current={selected ? 'date' : undefined}
+                title={row.date}
+              >
+                <span className="hc-day-chip-wd">{weekday}</span>
+                <span className="hc-day-chip-num">{dayNum}</span>
+                <span className="hc-day-chip-dot" aria-hidden />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 };

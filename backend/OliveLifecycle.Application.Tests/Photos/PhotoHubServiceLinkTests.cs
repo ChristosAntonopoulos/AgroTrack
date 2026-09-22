@@ -214,6 +214,39 @@ public class PhotoHubServiceLinkTests
     }
 
     [Fact]
+    public async Task RestoreAsync_ClearsTrashAndReturnsPhoto()
+    {
+        var photo = StandalonePhoto();
+        photo.DeletedAt = DateTime.UtcNow.AddHours(-1);
+        photo.DeletedByUserId = "user-1";
+        MediaAttachment? updated = null;
+        _media.Setup(m => m.GetByIdAsync("photo-1", It.IsAny<CancellationToken>())).ReturnsAsync(photo);
+        _media.Setup(m => m.UpdateAsync(It.IsAny<MediaAttachment>(), It.IsAny<CancellationToken>()))
+            .Callback<MediaAttachment, CancellationToken>((e, _) => updated = e)
+            .ReturnsAsync((MediaAttachment e, CancellationToken _) => e);
+
+        var sut = CreateSut();
+        var dto = await sut.RestoreAsync("photo-1", "user-1", "Producer");
+
+        Assert.Equal("photo-1", dto.Id);
+        Assert.NotNull(updated);
+        Assert.Null(updated!.DeletedAt);
+        Assert.Null(updated.DeletedByUserId);
+    }
+
+    [Fact]
+    public async Task PurgeAsync_RejectsPhotoThatIsNotInTrash()
+    {
+        var photo = StandalonePhoto();
+        _media.Setup(m => m.GetByIdAsync("photo-1", It.IsAny<CancellationToken>())).ReturnsAsync(photo);
+        var sut = CreateSut();
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            sut.PurgeAsync("photo-1", "user-1", "Producer"));
+        _storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ForbiddenWithoutFieldAccess()
     {
         var photo = StandalonePhoto();

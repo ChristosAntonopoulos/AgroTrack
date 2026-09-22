@@ -8,6 +8,7 @@ public interface IPhotoHubService
         IReadOnlyList<PhotoUploadFile> files,
         string userId,
         string userRole,
+        bool allowDuplicates = false,
         CancellationToken cancellationToken = default);
 
     Task<PhotoListDto> QueryAsync(
@@ -51,6 +52,19 @@ public interface IPhotoHubService
 
     /// <summary>Soft-delete (trash). Requires uploader or field-admin capability.</summary>
     Task DeleteAsync(
+        string id,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default);
+
+    Task<PhotoDto> RestoreAsync(
+        string id,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Hard-delete a photo that is already in the trash.</summary>
+    Task PurgeAsync(
         string id,
         string userId,
         string userRole,

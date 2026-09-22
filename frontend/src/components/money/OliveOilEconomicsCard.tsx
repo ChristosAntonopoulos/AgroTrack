@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { OliveOilEconomics } from '../../services/financialSummaryService';
 import { formatEuroPerLitre, formatLitres } from '../../finance/format';
+import { harvestYearSpan } from '../../finance/harvestYear';
 import './Money.css';
 
 type Props = {
@@ -18,7 +19,7 @@ const OliveOilEconomicsCard: React.FC<Props> = ({ year, oil, locale, embedded = 
   const dash = '—';
   const body = (
     <>
-      {!embedded ? <h2>{t('oliveOilYear', { year })}</h2> : null}
+      {!embedded ? <h2>{t('oliveOilYear', { span: harvestYearSpan(year) })}</h2> : null}
       <dl className="money-oil-grid">
         <div>
           <dt>{t('produced')}</dt>

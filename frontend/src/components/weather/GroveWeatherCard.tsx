@@ -22,6 +22,8 @@ type Props = {
   fieldName?: string | null;
   onOpen?: () => void;
   embedded?: boolean;
+  /** Journal header: temperature and the week, without the long reading. */
+  compact?: boolean;
 };
 
 const iconFor = (mood: GroveWeatherMood, condition: string) => {
@@ -34,7 +36,7 @@ const iconFor = (mood: GroveWeatherMood, condition: string) => {
   return <Cloud size={28} strokeWidth={1.75} />;
 };
 
-const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, onOpen, embedded }) => {
+const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, onOpen, embedded, compact }) => {
   const { t, i18n } = useTranslation('chronologio');
   const view = presentGroveWeather({ field: fieldWeather, snapshot });
   const range =
@@ -48,7 +50,7 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
         })
       : null;
 
-  const className = `grove-weather grove-weather--${view.mood}${onOpen ? ' is-button' : ''}${embedded ? ' is-embedded' : ''}`;
+  const className = `grove-weather grove-weather--${view.mood}${onOpen ? ' is-button' : ''}${embedded ? ' is-embedded' : ''}${compact ? ' is-compact' : ''}`;
   const inner = (
     <>
       <div className="grove-weather-sky" aria-hidden />
@@ -62,7 +64,7 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
               <p className="grove-weather-temp">
                 {view.temperature != null ? `${view.temperature}°` : '—'}
               </p>
-              {view.feelsLike != null ? (
+              {!compact && view.feelsLike != null ? (
                 <p className="grove-weather-feels">
                   {t('weatherCard.feelsLike', { temp: view.feelsLike })}
                 </p>
@@ -81,7 +83,7 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
         </p>
       ) : null}
 
-      {view.facts.length > 0 ? (
+      {!compact && view.facts.length > 0 ? (
         <ul className="grove-weather-facts">
           {view.facts.map((fact) => (
             <li key={fact.id} className={fact.harsh ? 'is-harsh' : undefined}>
@@ -91,7 +93,7 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
         </ul>
       ) : null}
 
-      {view.mood !== 'missing' ? (
+      {!compact && view.mood !== 'missing' ? (
         <p className="grove-weather-reading">{t(`weatherCard.${view.readingKey}`)}</p>
       ) : null}
 

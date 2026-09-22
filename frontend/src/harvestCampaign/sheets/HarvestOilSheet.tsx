@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatGroveMassKg } from '../../utils/groveTotals';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { HarvestCarryPicker, carryColor } from '../components/HarvestCarryPicker';
 import {
   equalFieldShares,
   fieldIdsFromShares,
@@ -25,12 +27,13 @@ import {
 } from '../utils/harvestCalculations';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestFieldShare, HarvestOilEntry } from '../types';
-import type { HarvestSheetSharedProps } from './types';
+import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
 
 export const HarvestOilSheet: React.FC<
   HarvestSheetSharedProps & {
     prefillMillIds?: string[];
     initial?: HarvestOilEntry | null;
+    flow?: HarvestFlowChrome;
     onSave: (input: {
       amount: number;
       unit: HarvestOilUnit;
@@ -47,7 +50,7 @@ export const HarvestOilSheet: React.FC<
       note?: string;
     }) => void;
   }
-> = ({ campaign, fields, locale, prefillMillIds, initial, onSave, onClose }) => {
+> = ({ campaign, fields, locale, prefillMillIds, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation('fields');
   const editing = Boolean(initial);
   const uncovered = useMemo(() => millsNeedingOil(campaign), [campaign]);
@@ -75,6 +78,17 @@ export const HarvestOilSheet: React.FC<
   const [tin16, setTin16] = useState(initialTins.tin16);
   const [tin17, setTin17] = useState(initialTins.tin17);
   const [millWeightIds, setMillWeightIds] = useState<string[]>(defaultMillIds);
+  const seenMillPrefill = useRef<string[]>([]);
+  useEffect(() => {
+    if (editing) return;
+    const incoming = prefillMillIds ?? [];
+    const fresh = incoming.filter((id) => !seenMillPrefill.current.includes(id));
+    if (incoming.length > 0) {
+      seenMillPrefill.current = [...new Set([...seenMillPrefill.current, ...incoming])];
+    }
+    if (fresh.length === 0) return;
+    setMillWeightIds((prev) => [...new Set([...prev, ...fresh])]);
+  }, [prefillMillIds, editing]);
   const [fieldIds, setFieldIds] = useState<string[]>(() => {
     if (initial?.fieldIds?.length) return initial.fieldIds;
     if (campaign.fieldOrder.length === 1) return [campaign.fieldOrder[0]];
@@ -156,6 +170,52 @@ export const HarvestOilSheet: React.FC<
     setAdjustShares(true);
   };
 
+  const canSaveOil = isPositiveAmount(value) && !splitBlocked;
+  const commitRef = useRef<() => boolean>(() => false);
+  commitRef.current = () => {
+    if (!canSaveOil || value == null) return false;
+    const shares = activeShares.length > 0 ? activeShares : oilFieldShares(campaign, {
+      id: 'draft',
+      date: '',
+      amount: value,
+      unit,
+      millWeightIds,
+      fieldIds: showFieldPicker ? fieldIds : fieldIdsFromShares(inferredShares),
+      createdAt: '',
+    });
+    const useTins = storageMode === 'tins';
+    const only16 = useTins && tin16 > 0 && tin17 === 0;
+    const only17 = useTins && tin17 > 0 && tin16 === 0;
+    const bulkLitres =
+      unit === 'litres' && settlement && settlement.bulkAmount > 0
+        ? settlement.bulkAmount
+        : undefined;
+    onSave({
+      amount: value,
+      unit,
+      millKept: settlement?.millAmount ?? 0,
+      tin16Count: useTins && tin16 > 0 ? tin16 : undefined,
+      tin17Count: useTins && tin17 > 0 ? tin17 : undefined,
+      tinSizeLitres: only16 ? 16 : only17 ? 17 : undefined,
+      tinCount: only16 ? tin16 : only17 ? tin17 : undefined,
+      extraLitres: (only16 || only17) && bulkLitres ? bulkLitres : undefined,
+      millWeightIds,
+      fieldIds: fieldIdsFromShares(shares).length
+        ? fieldIdsFromShares(shares)
+        : showFieldPicker
+          ? fieldIds
+          : fieldIdsFromShares(inferredShares),
+      fieldShares: shares.length > 0 ? shares : undefined,
+      acidity: acidity.trim() ? parseHarvestDecimal(acidity) ?? undefined : undefined,
+      note: note.trim() || undefined,
+    });
+    return true;
+  };
+
+  useEffect(() => {
+    flow?.bind?.(() => commitRef.current());
+  }, [flow?.bind]);
+
   return (
     <HarvestSheetShell
       footer={
@@ -163,52 +223,23 @@ export const HarvestOilSheet: React.FC<
           <button
             type="button"
             className="money-primary-action"
-            disabled={!isPositiveAmount(value) || splitBlocked}
-            onClick={() => {
-              const shares = activeShares.length > 0 ? activeShares : oilFieldShares(campaign, {
-                id: 'draft',
-                date: '',
-                amount: value!,
-                unit,
-                millWeightIds,
-                fieldIds: showFieldPicker ? fieldIds : fieldIdsFromShares(inferredShares),
-                createdAt: '',
-              });
-              const useTins = storageMode === 'tins';
-              const only16 = useTins && tin16 > 0 && tin17 === 0;
-              const only17 = useTins && tin17 > 0 && tin16 === 0;
-              const bulkLitres =
-                unit === 'litres' && settlement && settlement.bulkAmount > 0
-                  ? settlement.bulkAmount
-                  : undefined;
-              onSave({
-                amount: value!,
-                unit,
-                millKept: settlement?.millAmount ?? 0,
-                tin16Count: useTins && tin16 > 0 ? tin16 : undefined,
-                tin17Count: useTins && tin17 > 0 ? tin17 : undefined,
-                tinSizeLitres: only16 ? 16 : only17 ? 17 : undefined,
-                tinCount: only16 ? tin16 : only17 ? tin17 : undefined,
-                extraLitres: (only16 || only17) && bulkLitres ? bulkLitres : undefined,
-                millWeightIds,
-                fieldIds: fieldIdsFromShares(shares).length
-                  ? fieldIdsFromShares(shares)
-                  : showFieldPicker
-                    ? fieldIds
-                    : fieldIdsFromShares(inferredShares),
-                fieldShares: shares.length > 0 ? shares : undefined,
-                acidity: acidity.trim() ? parseHarvestDecimal(acidity) ?? undefined : undefined,
-                note: note.trim() || undefined,
-              });
-            }}
+            disabled={!canSaveOil || flow?.busy}
+            onClick={() => commitRef.current()}
           >
-            {editing
-              ? t('harvestCampaign.dayActivity.saveChanges')
-              : t('harvestCampaign.oil.save', {
-              amount: amountLabel,
-              unit: unit === 'litres' ? t('harvestCampaign.oil.litres') : 'kg',
-            })}
+            {flow
+              ? flow.nextLabel
+              : editing
+                ? t('harvestCampaign.dayActivity.saveChanges')
+                : t('harvestCampaign.oil.save', {
+                    amount: amountLabel,
+                    unit: unit === 'litres' ? t('harvestCampaign.oil.litres') : 'kg',
+                  })}
           </button>
+          {flow?.onBack ? (
+            <button type="button" className="money-text-link" onClick={flow.onBack} disabled={flow.busy}>
+              {flow.backLabel}
+            </button>
+          ) : null}
           <button type="button" className="money-text-link" onClick={onClose}>
             {t('common:cancel', { ns: 'common' })}
           </button>
@@ -218,12 +249,64 @@ export const HarvestOilSheet: React.FC<
       <p className="capture-prompt">
         {editing ? t('harvestCampaign.dayActivity.editOil') : t('harvestCampaign.oil.prompt')}
       </p>
+      {millChipOrder.length > 0 ? (
+        <HarvestCarryPicker
+          label={t('harvestCampaign.oil.relatedKg')}
+          items={millChipOrder.map((row) => {
+            const fieldNames = row.fieldIds
+              .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
+              .filter(Boolean);
+            const needsOil = uncovered.some((m) => m.id === row.id);
+            return {
+              id: row.id,
+              title: `${formatGroveMassKg(row.kg, locale)} kg`,
+              detail: fieldNames.join(' + '),
+              colors: row.fieldIds.map((id) => {
+                const field = fields.find((f) => f.id === id);
+                return resolveFieldColor(field?.color, id);
+              }),
+              badge: needsOil ? t('harvestCampaign.flow.needsOil') : undefined,
+            };
+          })}
+          selected={millWeightIds}
+          onToggle={toggleMill}
+          transfer={
+            relatedOliveKg > 0
+              ? {
+                  from: t('harvestCampaign.flow.fruitLine', { kg: Math.round(relatedOliveKg) }),
+                  to: t('harvestCampaign.addMenu.title.oil'),
+                  color: carryColor(
+                    selectedMills.flatMap((row) =>
+                      row.fieldIds.map((id) => {
+                        const field = fields.find((f) => f.id === id);
+                        return resolveFieldColor(field?.color, id);
+                      })
+                    )
+                  ),
+                }
+              : null
+          }
+          hint={relatedOliveKg > 0 ? undefined : t('harvestCampaign.carry.pickFruit')}
+          trailing={
+            <button
+              type="button"
+              className={`hc-carry-clear${millWeightIds.length === 0 ? ' is-on' : ''}`}
+              onClick={() => {
+                setMillWeightIds([]);
+                setAdjustShares(false);
+              }}
+            >
+              {t('harvestCampaign.oil.noRelated')}
+            </button>
+          }
+        />
+      ) : null}
       <HarvestNumberInput
-        label={t('harvestCampaign.oil.prompt')}
+        label={t('harvestCampaign.addMenu.title.oil')}
         value={amount}
         onChange={setAmount}
         suffix={unitSuffix}
-        autoFocus
+        autoFocus={!flow || Boolean(flow.active)}
       />
       <HarvestSegmentedControl
         value={unit}
@@ -326,42 +409,6 @@ export const HarvestOilSheet: React.FC<
               }
             />
           ) : null}
-        </>
-      ) : null}
-      {millChipOrder.length > 0 ? (
-        <>
-          <p className="hc-form-section">{t('harvestCampaign.oil.relatedKg')}</p>
-          <div className="money-chips">
-            {millChipOrder.map((row) => {
-              const fieldNames = row.fieldIds
-                .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
-                .filter(Boolean);
-              const needsOil = uncovered.some((m) => m.id === row.id);
-              return (
-                <button
-                  key={row.id}
-                  type="button"
-                  className={`money-chip${millWeightIds.includes(row.id) ? ' is-active' : ''}${
-                    needsOil ? ' hc-chip-needs-oil' : ''
-                  }`}
-                  onClick={() => toggleMill(row.id)}
-                >
-                  {row.date} · {formatGroveMassKg(row.kg, locale)} kg
-                  {fieldNames.length > 0 ? ` · ${fieldNames.join(' + ')}` : ''}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              className={`money-chip${millWeightIds.length === 0 ? ' is-active' : ''}`}
-              onClick={() => {
-                setMillWeightIds([]);
-                setAdjustShares(false);
-              }}
-            >
-              {t('harvestCampaign.oil.noRelated')}
-            </button>
-          </div>
         </>
       ) : null}
       {!showFieldPicker && inferredLabels.length > 0 ? (

@@ -11,6 +11,8 @@ public interface IFieldPeopleService
     Task<FieldMembershipDto> UpdatePersonAsync(string fieldId, string actorId, string targetUserId, UpdateFieldPersonDto dto, CancellationToken cancellationToken = default);
     Task RevokePersonAsync(string fieldId, string actorId, string targetUserId, CancellationToken cancellationToken = default);
     Task<FieldInviteDto> CreateInviteAsync(string fieldId, string actorId, CreateFieldInviteDto dto, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FieldInviteDto>> GetInvitesAsync(string fieldId, string actorId, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
+    Task<FieldInviteDto> ResendInviteAsync(string fieldId, string actorId, string inviteId, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
     Task<FieldInviteDto?> GetInviteAsync(string tokenOrCode, CancellationToken cancellationToken = default);
     Task<FieldMembershipDto> AcceptInviteAsync(string tokenOrCode, string userId, CancellationToken cancellationToken = default);
     Task<AdvisorCommentDto> AddAdvisorCommentAsync(string fieldId, string userId, CreateAdvisorCommentDto dto, CancellationToken cancellationToken = default);

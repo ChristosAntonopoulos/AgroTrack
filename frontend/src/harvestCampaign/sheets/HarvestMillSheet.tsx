@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatGroveMassKg } from '../../utils/groveTotals';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { HarvestCarryPicker, carryColor } from '../components/HarvestCarryPicker';
 import { equalFieldShares, fieldIdsFromShares, sharesFromSacks } from '../allocation';
 import {
   formatDaySpan,
@@ -13,7 +15,7 @@ import { HarvestNumberInput } from '../components/HarvestNumberInput';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestFieldShare, HarvestMillWeightEntry, HarvestSackEntry } from '../types';
-import type { HarvestSheetSharedProps } from './types';
+import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
 
 function formatWeekday(date: string, locale: string): string {
   try {
@@ -27,6 +29,7 @@ export const HarvestMillSheet: React.FC<
   HarvestSheetSharedProps & {
     prefillSackIds?: string[];
     initial?: HarvestMillWeightEntry | null;
+    flow?: HarvestFlowChrome;
     onSave: (input: {
       kg: number;
       fieldIds: string[];
@@ -36,7 +39,7 @@ export const HarvestMillSheet: React.FC<
       note?: string;
     }) => void;
   }
-> = ({ campaign, fields, today, locale, prefillSackIds, initial, onSave, onClose }) => {
+> = ({ campaign, fields, today, locale, prefillSackIds, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation('fields');
   const editing = Boolean(initial);
   const suggested = useMemo(
@@ -113,7 +116,22 @@ export const HarvestMillSheet: React.FC<
   const [kg, setKg] = useState(initial ? String(initial.kg) : '');
   const [fieldIds, setFieldIds] = useState<string[]>(initialFields);
   const [sackIds, setSackIds] = useState<string[]>(initialSackIds);
-  const [expandIncludes, setExpandIncludes] = useState(false);
+  const seenSackPrefill = useRef<string[]>([]);
+  useEffect(() => {
+    if (editing) return;
+    const incoming = prefillSackIds ?? [];
+    const fresh = incoming.filter((id) => !seenSackPrefill.current.includes(id));
+    if (incoming.length > 0) {
+      seenSackPrefill.current = [...new Set([...seenSackPrefill.current, ...incoming])];
+    }
+    if (fresh.length === 0) return;
+    setSackIds((prev) => {
+      const next = [...new Set([...prev, ...fresh])];
+      const nextFields = fieldsFromSackIds(next);
+      if (nextFields.length > 0) setFieldIds(nextFields);
+      return next;
+    });
+  }, [prefillSackIds, editing]);
   const [more, setMore] = useState(Boolean(initial?.note || initial?.receiptRef));
   const [adjustShares, setAdjustShares] = useState(false);
   const [manualShares, setManualShares] = useState<HarvestFieldShare[]>(
@@ -186,6 +204,30 @@ export const HarvestMillSheet: React.FC<
     setAdjustShares(false);
   };
 
+  const millPayload = () => ({
+    kg: kgNumber!,
+    fieldIds: fieldIdsFromShares(activeShares).length
+      ? fieldIdsFromShares(activeShares)
+      : fieldIds,
+    fieldShares: activeShares.length > 0 ? activeShares : undefined,
+    sackIds,
+    receiptRef: more && receiptRef.trim() ? receiptRef.trim() : undefined,
+    note: more && note.trim() ? note.trim() : undefined,
+  });
+  const commitRef = useRef(millPayload);
+  commitRef.current = millPayload;
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+  const canSaveMill = isPositiveAmount(kgNumber);
+
+  useEffect(() => {
+    flow?.bind?.(() => {
+      if (!canSaveMill) return false;
+      onSaveRef.current(commitRef.current());
+      return true;
+    });
+  }, [flow?.bind, canSaveMill]);
+
   return (
     <HarvestSheetShell
       footer={
@@ -193,26 +235,22 @@ export const HarvestMillSheet: React.FC<
           <button
             type="button"
             className="money-primary-action"
-            disabled={!isPositiveAmount(kgNumber)}
-            onClick={() =>
-              onSave({
-                kg: kgNumber!,
-                fieldIds: fieldIdsFromShares(activeShares).length
-                  ? fieldIdsFromShares(activeShares)
-                  : fieldIds,
-                fieldShares: activeShares.length > 0 ? activeShares : undefined,
-                sackIds,
-                receiptRef: more && receiptRef.trim() ? receiptRef.trim() : undefined,
-                note: more && note.trim() ? note.trim() : undefined,
-              })
-            }
+            disabled={!canSaveMill || flow?.busy}
+            onClick={() => onSave(millPayload())}
           >
-            {editing
-              ? t('harvestCampaign.dayActivity.saveChanges')
-              : t('harvestCampaign.millKg.save', {
-              kg: formatGroveMassKg(kgNumber || 0, locale),
-            })}
+            {flow
+              ? flow.nextLabel
+              : editing
+                ? t('harvestCampaign.dayActivity.saveChanges')
+                : t('harvestCampaign.millKg.save', {
+                    kg: formatGroveMassKg(kgNumber || 0, locale),
+                  })}
           </button>
+          {flow?.onBack ? (
+            <button type="button" className="money-text-link" onClick={flow.onBack} disabled={flow.busy}>
+              {flow.backLabel}
+            </button>
+          ) : null}
           <button type="button" className="money-text-link" onClick={onClose}>
             {t('common:cancel', { ns: 'common' })}
           </button>
@@ -222,75 +260,49 @@ export const HarvestMillSheet: React.FC<
       <p className="capture-prompt">
         {editing ? t('harvestCampaign.dayActivity.editMill') : t('harvestCampaign.millKg.prompt')}
       </p>
+      {pendingPool.length > 0 ? (
+        <HarvestCarryPicker
+          label={t('harvestCampaign.chain.includesTitle')}
+          items={allPendingByDay.flatMap((group) =>
+            group.sacks.map((sack) => {
+              const field = fields.find((f) => f.id === sack.fieldId);
+              return {
+                id: sack.id,
+                group: formatWeekday(group.date, locale),
+                title: t('harvestCampaign.flow.sackCount', { count: sack.sacks }),
+                detail: friendlyFieldLabel(field?.name || sack.fieldId),
+                colors: [resolveFieldColor(field?.color, sack.fieldId)],
+              };
+            })
+          )}
+          selected={sackIds}
+          onToggle={toggleSack}
+          onSelectAll={pendingPool.length > 1 ? selectAllPending : undefined}
+          selectAllLabel={t('harvestCampaign.chain.includesAll')}
+          transfer={
+            includeSummary
+              ? {
+                  from: t('harvestCampaign.flow.sackCount', { count: includeSummary.count }),
+                  to: t('harvestCampaign.addMenu.title.mill'),
+                  color: carryColor(
+                    selectedSacks.map((sack) => {
+                      const field = fields.find((f) => f.id === sack.fieldId);
+                      return resolveFieldColor(field?.color, sack.fieldId);
+                    })
+                  ),
+                }
+              : null
+          }
+          hint={includeSummary ? undefined : t('harvestCampaign.carry.pickSacks')}
+        />
+      ) : null}
       <HarvestNumberInput
-        label={t('harvestCampaign.actions.mill')}
+        label={t('harvestCampaign.addMenu.title.mill')}
         value={kg}
         onChange={setKg}
         suffix="kg"
-        autoFocus
+        autoFocus={!flow || Boolean(flow.active)}
       />
-
-      {pendingPool.length > 0 ? (
-        <div className="hc-includes">
-          <div className="hc-includes-head">
-            <p className="hc-form-section">{t('harvestCampaign.chain.includesTitle')}</p>
-            <button
-              type="button"
-              className="money-text-link"
-              onClick={() => setExpandIncludes((v) => !v)}
-            >
-              {expandIncludes
-                ? t('harvestCampaign.chain.includesDone')
-                : t('harvestCampaign.chain.includesChange')}
-            </button>
-          </div>
-          {!expandIncludes && includeSummary ? (
-            <div className="hc-includes-summary">
-              <strong>
-                {t('harvestCampaign.chain.includesCount', {
-                  count: includeSummary.count,
-                  span: includeSummary.span,
-                })}
-              </strong>
-              {includeSummary.lines.map((line) => (
-                <span key={line}>{line}</span>
-              ))}
-            </div>
-          ) : null}
-          {!expandIncludes && !includeSummary ? (
-            <p className="capture-hint">{t('harvestCampaign.chain.includesNone')}</p>
-          ) : null}
-          {expandIncludes ? (
-            <div className="hc-includes-expand">
-              <button type="button" className="money-text-link" onClick={selectAllPending}>
-                {t('harvestCampaign.chain.includesAll')}
-              </button>
-              {allPendingByDay.map((group) => (
-                <div key={group.date} className="hc-includes-day">
-                  <p className="hc-includes-day-label">
-                    {formatWeekday(group.date, locale)} · {group.sackCount}{' '}
-                    {t('harvestCampaign.actions.sacks').toLowerCase()}
-                  </p>
-                  {group.sacks.map((sack) => {
-                    const field = fields.find((f) => f.id === sack.fieldId);
-                    const checked = sackIds.includes(sack.id);
-                    return (
-                      <label key={sack.id} className={`hc-chip ${checked ? 'is-on' : ''}`}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleSack(sack.id)}
-                        />
-                        {sack.sacks} · {friendlyFieldLabel(field?.name || sack.fieldId)}
-                      </label>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
       <HarvestFieldPicker
         mode="multiple"

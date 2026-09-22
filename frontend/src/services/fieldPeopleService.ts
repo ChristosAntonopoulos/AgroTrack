@@ -46,6 +46,7 @@ export interface FieldMembership {
   inviteId?: string;
   invitedBy?: string;
   createdAt: string;
+  fieldId?: string;
 }
 
 export interface FieldInvite {
@@ -64,10 +65,13 @@ export interface FieldInvite {
   displayName?: string;
   status: string;
   expiresAt: string;
+  createdAt?: string;
+  acceptedBy?: string;
   shareUrl: string;
   whatsAppUrl: string;
   mailtoUrl?: string;
   smsUrl?: string;
+  emailSent?: boolean;
 }
 
 export interface AdvisorComment {
@@ -217,10 +221,13 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
   displayName: row.displayName,
   status: row.status || 'pending',
   expiresAt: row.expiresAt || new Date().toISOString(),
+  createdAt: row.createdAt,
+  acceptedBy: row.acceptedBy,
   shareUrl: row.shareUrl || '',
   whatsAppUrl: row.whatsAppUrl || '',
   mailtoUrl: row.mailtoUrl,
   smsUrl: row.smsUrl,
+  emailSent: row.emailSent,
 });
 
 export const capabilitiesForAccess = (
@@ -438,6 +445,36 @@ export const fieldPeopleService = {
   acceptInvite: async (token: string): Promise<FieldMembership> => {
     const response = await api.post<FieldMembership>(`/api/v1/invites/${token}/accept`);
     return normalizeMembership(response.data);
+  },
+
+  listInvites: async (fieldId: string): Promise<FieldInvite[]> => {
+    if (isMockMode()) return [];
+    const response = await api.get<FieldInvite[]>(`/api/v1/fields/${fieldId}/people/invites`);
+    return (response.data || []).map(normalizeInvite);
+  },
+
+  resendInvite: async (fieldId: string, inviteId: string): Promise<FieldInvite> => {
+    if (isMockMode()) {
+      const token = Math.random().toString(36).slice(2, 10);
+      const shareUrl = `${window.location.origin}/invite/${token}`;
+      return {
+        id: inviteId,
+        token,
+        fieldId,
+        fieldName: 'Field',
+        invitedBy: 'demo',
+        role: 'Family',
+        modules: [...DEFAULT_FIELD_MODULES],
+        accessLevel: 'view',
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 14 * 86400000).toISOString(),
+        shareUrl,
+        whatsAppUrl: `https://wa.me/?text=${encodeURIComponent(`Join this field: ${shareUrl}`)}`,
+        emailSent: false,
+      };
+    }
+    const response = await api.post<FieldInvite>(`/api/v1/fields/${fieldId}/people/invites/${inviteId}/resend`);
+    return normalizeInvite(response.data);
   },
 
   getStats: async (fieldId: string): Promise<FieldPeopleStats> => {

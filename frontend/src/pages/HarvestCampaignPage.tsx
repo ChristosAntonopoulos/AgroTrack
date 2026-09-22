@@ -71,15 +71,21 @@ import { getHarvestCapabilities } from '../harvestCampaign/harvestCapabilities';
 import { resolveHarvestCaptureFieldId } from '../harvestCampaign/fieldSelection';
 import { resolveHarvestTotalsLifecycle } from '../harvestCampaign/lifecycleActions';
 import {
+  clampHarvestNavDay,
   clampHarvestWorkingDay,
-  campaignStartDay,
+  extendHarvestStripBounds,
   harvestDayStripRows,
+  harvestStripCeiling,
+  harvestStripFloor,
+  harvestStripWindow,
   isAthensDateKey,
   shiftHarvestWorkingDay,
+  type HarvestStripBounds,
 } from '../harvestCampaign/workingDay';
 import HarvestDayStrip from '../harvestCampaign/HarvestDayStrip';
 import {
   HarvestAddMenu,
+  HarvestProductionWizard,
   HarvestCompleteSheet,
   HarvestEveningSheet,
   HarvestMillLinkSheet,
@@ -98,6 +104,13 @@ import {
   HarvestDayActivity,
   type DayActivityEditTarget,
 } from '../harvestCampaign/components/HarvestDayActivity';
+import { HistoricalHarvestDayBoard } from '../harvestCampaign/components/HistoricalHarvestDayBoard';
+import {
+  findPostedHarvestRecord,
+  harvestRecordsForDay,
+  resolveHistoricalHarvestLink,
+} from '../harvestCampaign/historicalDay';
+import './HarvestCampaignPage.css';
 
 type HarvestAddPrefill = {
   preferredKind?: HarvestCaptureKind;
@@ -106,13 +119,6 @@ type HarvestAddPrefill = {
   /** Where the user opened Add from (chain, evening, fields, …). */
   section?: string;
 };
-import { HistoricalHarvestDayBoard } from '../harvestCampaign/components/HistoricalHarvestDayBoard';
-import {
-  findPostedHarvestRecord,
-  harvestRecordsForDay,
-  resolveHistoricalHarvestLink,
-} from '../harvestCampaign/historicalDay';
-import './HarvestCampaignPage.css';
 
 const HarvestCampaignPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
@@ -169,8 +175,10 @@ const HarvestCampaignPage: React.FC = () => {
     ? historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
       ? historicalLink.day
       : today
-    : clampHarvestWorkingDay(selectedDay, campaign, today);
-  const startDay = campaignStartDay(campaign, today);
+    : clampHarvestNavDay(selectedDay, today);
+  const [stripBounds, setStripBounds] = useState<HarvestStripBounds>(() =>
+    harvestStripWindow(workingDay, campaign, today)
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -274,13 +282,30 @@ const HarvestCampaignPage: React.FC = () => {
   const activeRow = useMemo(() => daySummary(campaign, workingDay), [campaign, workingDay]);
   const dayClosed = activeRow.closed;
   const days = harvestDayNumber(campaign, workingDay);
-  const stripRows = useMemo(() => harvestDayStripRows(campaign, today), [campaign, today]);
+  const visibleStripBounds = useMemo(() => {
+    if (workingDay < stripBounds.from || workingDay > stripBounds.to) {
+      return harvestStripWindow(workingDay, campaign, today);
+    }
+    const floor = harvestStripFloor(today);
+    const ceiling = harvestStripCeiling(today);
+    if (stripBounds.from < floor || stripBounds.to > ceiling) {
+      return {
+        from: stripBounds.from < floor ? floor : stripBounds.from,
+        to: stripBounds.to > ceiling ? ceiling : stripBounds.to,
+      };
+    }
+    return stripBounds;
+  }, [stripBounds, workingDay, campaign, today]);
+  const stripRows = useMemo(
+    () => harvestDayStripRows(campaign, today, visibleStripBounds),
+    [campaign, today, visibleStripBounds]
+  );
   const openUnclosedDays = useMemo(
     () => allDaySummaries(campaign).filter((row) => !row.closed).length,
     [campaign]
   );
-  const canPrevDay = workingDay > startDay;
-  const canNextDay = workingDay < today;
+  const canPrevDay = workingDay > harvestStripFloor(today);
+  const canNextDay = workingDay < harvestStripCeiling(today);
   const logs = useMemo(() => allDaySummaries(campaign), [campaign]);
   const eveningNudge = useMemo(() => harvestEveningNudge(campaign, today), [campaign, today]);
   const chainStatus = useMemo(() => harvestChainStatus(campaign), [campaign]);
@@ -289,9 +314,18 @@ const HarvestCampaignPage: React.FC = () => {
     [campaign, reviewDate, eveningNudge, workingDay]
   );
 
+  const revealMoreDays = useCallback(
+    (direction: -1 | 1) => {
+      setStripBounds((current) =>
+        extendHarvestStripBounds(current, direction, campaign, today)
+      );
+    },
+    [campaign, today]
+  );
+
   const setSelectedDay = useCallback(
     (next: string, syncUrl = true) => {
-      const clamped = clampHarvestWorkingDay(next, campaign, today);
+      const clamped = clampHarvestNavDay(next, today);
       setSelectedDayState(clamped);
       if (!syncUrl) return;
       setSearchParams(
@@ -307,6 +341,30 @@ const HarvestCampaignPage: React.FC = () => {
     [campaign, setSearchParams, today]
   );
 
+  const shiftVisibleDay = useCallback(
+    (delta: -1 | 1) => {
+      const next = shiftHarvestWorkingDay(workingDay, delta, campaign, today);
+      if (next === workingDay) return;
+      setStripBounds((current) => {
+        if (next >= current.from && next <= current.to) return current;
+        return extendHarvestStripBounds(current, delta, campaign, today);
+      });
+      setSelectedDay(next);
+    },
+    [campaign, setSelectedDay, today, workingDay]
+  );
+
+  useEffect(() => {
+    setStripBounds(harvestStripWindow(workingDay, campaign, today));
+    // Rebuild the first page when the season start or "today" changes, not on every day step.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign.startedAt, today]);
+
+  useEffect(() => {
+    if (workingDay >= stripBounds.from && workingDay <= stripBounds.to) return;
+    setStripBounds(harvestStripWindow(workingDay, campaign, today));
+  }, [workingDay, stripBounds.from, stripBounds.to, campaign, today]);
+
   useEffect(() => {
     const fromUrl = searchParams.get('day');
     // Historical Chronologio deep-links must keep the requested day even when the local campaign is idle.
@@ -315,10 +373,10 @@ const HarvestCampaignPage: React.FC = () => {
       return;
     }
     if (!fromUrl) {
-      setSelectedDayState((prev) => clampHarvestWorkingDay(prev, campaign, today));
+      setSelectedDayState((prev) => clampHarvestNavDay(prev, today));
       return;
     }
-    const clamped = clampHarvestWorkingDay(fromUrl, campaign, today);
+    const clamped = clampHarvestNavDay(fromUrl, today);
     setSelectedDayState(clamped);
     if (clamped !== fromUrl) {
       setSearchParams(
@@ -545,8 +603,26 @@ const HarvestCampaignPage: React.FC = () => {
   const requestAdd = (prefill?: HarvestAddPrefill) => {
     if (!ensureDayOpen()) return;
     setEditTarget(null);
+    const kind = prefill?.preferredKind;
+    if (kind === 'expense') {
+      openHarvestExpense();
+      return;
+    }
+    if (kind === 'note') {
+      openHarvestNote();
+      return;
+    }
+    if (kind === 'people') {
+      if (!harvestCaps.canAddPeople) return;
+      setAddPrefill(null);
+      setSheet('people');
+      return;
+    }
     setAddPrefill(prefill || null);
-    setSheet('add');
+    const canProduce = harvestCaps.captureKinds.some(
+      (item) => item === 'sacks' || item === 'mill' || item === 'oil'
+    );
+    setSheet(canProduce ? 'produce' : 'add');
   };
 
   const openDayEdit = (target: DayActivityEditTarget) => {
@@ -576,19 +652,23 @@ const HarvestCampaignPage: React.FC = () => {
     setSheet('evening');
   };
 
-  const saveSacks = async (input: { sacks: number; fieldId: string; kgPerSack?: number }) => {
+  const saveSacks = async (
+    input: { sacks: number; fieldId: string; kgPerSack?: number },
+    opts?: { existingId?: string; keepOpen?: boolean }
+  ) => {
     setSaving(true);
-    if (editTarget?.kind === 'sack') {
+    const sackId = opts?.existingId || (editTarget?.kind === 'sack' ? editTarget.entry.id : undefined);
+    if (sackId) {
       patch((current) =>
-        updateSack(current, editTarget.entry.id, {
+        updateSack(current, sackId, {
           sacks: input.sacks,
           fieldId: input.fieldId,
           kgPerSack: input.kgPerSack,
         })
       );
       setSaving(false);
-      closeSheet();
-      return;
+      if (!opts?.keepOpen) closeSheet();
+      return sackId;
     }
     const entry = {
       id: newHarvestEntryId(),
@@ -601,6 +681,7 @@ const HarvestCampaignPage: React.FC = () => {
     const harvestRecordId = await persistSackRecord(campaign, entry);
     patch((current) => addSack(current, { ...entry, harvestRecordId }));
     setSaving(false);
+    if (opts?.keepOpen) return entry.id;
     const otherPending = unconfirmedSacks(campaign).filter((s) => s.date < workingDay);
     const otherCount = otherPending.reduce((sum, s) => sum + s.sacks, 0);
     setSackSavedHint(
@@ -610,21 +691,29 @@ const HarvestCampaignPage: React.FC = () => {
     );
     window.setTimeout(() => setSackSavedHint(null), 4200);
     closeSheet();
+    return entry.id;
   };
 
-  const saveMill = async (input: {
-    kg: number;
-    fieldIds: string[];
-    fieldShares?: HarvestFieldShare[];
-    sackIds: string[];
-    receiptRef?: string;
-    note?: string;
-  }) => {
+  const saveMill = async (
+    input: {
+      kg: number;
+      fieldIds: string[];
+      fieldShares?: HarvestFieldShare[];
+      sackIds: string[];
+      receiptRef?: string;
+      note?: string;
+    },
+    opts?: { existingId?: string; keepOpen?: boolean }
+  ) => {
     setSaving(true);
-    if (editTarget?.kind === 'mill') {
+    const millId = opts?.existingId || (editTarget?.kind === 'mill' ? editTarget.entry.id : undefined);
+    if (millId) {
+      const previous = campaign.millWeights.find((row) => row.id === millId);
       patch((current) =>
-        updateMillWeight(current, editTarget.entry.id, {
-          date: editTarget.entry.date,
+        updateMillWeight(current, millId, {
+          date:
+            previous?.date ||
+            (editTarget?.kind === 'mill' ? editTarget.entry.date : workingDay),
           kg: input.kg,
           fieldIds: input.fieldIds,
           fieldShares: input.fieldShares,
@@ -634,8 +723,8 @@ const HarvestCampaignPage: React.FC = () => {
         })
       );
       setSaving(false);
-      closeSheet();
-      return;
+      if (!opts?.keepOpen) closeSheet();
+      return millId;
     }
     const entry = {
       id: newHarvestEntryId(),
@@ -658,9 +747,11 @@ const HarvestCampaignPage: React.FC = () => {
       })
     );
     setSaving(false);
+    if (opts?.keepOpen) return entry.id;
     setPrefillSackIds([]);
     setPostMillId(entry.id);
     setSheet('mill-next');
+    return entry.id;
   };
 
   const saveMillLink = (sackIds: string[]) => {
@@ -674,7 +765,8 @@ const HarvestCampaignPage: React.FC = () => {
     setSheet('mill-next');
   };
 
-  const saveOil = async (input: {
+  const saveOil = async (
+    input: {
     amount: number;
     unit: 'kg' | 'litres';
     millKept?: number;
@@ -688,11 +780,14 @@ const HarvestCampaignPage: React.FC = () => {
     fieldShares?: HarvestFieldShare[];
     acidity?: number;
     note?: string;
-  }) => {
+  },
+    opts?: { existingId?: string; keepOpen?: boolean }
+  ) => {
     setSaving(true);
-    if (editTarget?.kind === 'oil') {
+    const oilId = opts?.existingId || (editTarget?.kind === 'oil' ? editTarget.entry.id : undefined);
+    if (oilId) {
       patch((current) =>
-        updateOil(current, editTarget.entry.id, {
+        updateOil(current, oilId, {
           amount: input.amount,
           unit: input.unit,
           millKept: input.millKept,
@@ -709,8 +804,8 @@ const HarvestCampaignPage: React.FC = () => {
         })
       );
       setSaving(false);
-      closeSheet();
-      return;
+      if (!opts?.keepOpen) closeSheet();
+      return oilId;
     }
     const related = campaign.millWeights
       .filter((row) => input.millWeightIds.includes(row.id))
@@ -743,7 +838,9 @@ const HarvestCampaignPage: React.FC = () => {
       })
     );
     setSaving(false);
+    if (opts?.keepOpen) return entry.id;
     closeSheet();
+    return entry.id;
   };
 
   const savePeople = async (input: {
@@ -829,7 +926,7 @@ const HarvestCampaignPage: React.FC = () => {
   const sheetTitle =
     editTarget != null
       ? t('harvestCampaign.dayActivity.editTitle')
-      : sheet === 'add'
+      : sheet === 'add' || sheet === 'produce'
         ? t('harvestCampaign.home.whatAdd')
         : sheet === 'mill-link'
           ? t('harvestCampaign.millKg.linkTitle')
@@ -851,7 +948,7 @@ const HarvestCampaignPage: React.FC = () => {
         : sheetWorkingDayLabel
       : undefined;
   const sheetSubtitle =
-    sheet && sheet !== 'add' && sheet !== 'complete'
+    sheet && sheet !== 'add' && sheet !== 'produce' && sheet !== 'complete'
       ? t('harvestCampaign.home.day', { day: days })
       : undefined;
   const SheetIcon =
@@ -1108,24 +1205,56 @@ const HarvestCampaignPage: React.FC = () => {
         {isLive ? (
           <>
             <section className="hc-live-chrome">
-              <HarvestDayStrip
-                selectedDay={workingDay}
-                today={today}
-                dayNumber={days}
-                closed={activeRow.closed}
-                stripRows={stripRows}
-                canPrev={canPrevDay}
-                canNext={canNextDay}
-                locale={locale}
-                onSelectDay={(day) => {
-                  setSelectedDay(day);
-                  if (view !== 'today') setView('today');
-                }}
-                onShift={(delta) => {
-                  setSelectedDay(shiftHarvestWorkingDay(workingDay, delta, campaign, today));
-                  if (view !== 'today') setView('today');
-                }}
-              />
+              <nav className="hc-mode-nav hc-mode-nav-top" aria-label={t('harvestCampaign.nav.label')}>
+                {(['today', 'fields'] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={`hc-mode-tab${view === item ? ' is-on' : ''}`}
+                    onClick={() => setView(item)}
+                  >
+                    {t(`harvestCampaign.nav.${item}`)}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={`hc-mode-plus${
+                    dayClosed || harvestCaps.captureKinds.length === 0 ? ' is-locked' : ''
+                  }`}
+                  aria-label={t('harvestCampaign.today.add')}
+                  onClick={() => {
+                    if (harvestCaps.captureKinds.length === 0) return;
+                    requestAdd();
+                  }}
+                >
+                  <Plus size={22} aria-hidden />
+                </button>
+                {(['totals', 'log'] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={`hc-mode-tab${view === item ? ' is-on' : ''}`}
+                    onClick={() => setView(item)}
+                  >
+                    {t(`harvestCampaign.nav.${item}`)}
+                  </button>
+                ))}
+              </nav>
+              {view === 'today' ? (
+                <HarvestDayStrip
+                  selectedDay={workingDay}
+                  today={today}
+                  dayNumber={days}
+                  closed={activeRow.closed}
+                  stripRows={stripRows}
+                  canPrev={canPrevDay}
+                  canNext={canNextDay}
+                  locale={locale}
+                  onSelectDay={setSelectedDay}
+                  onShift={shiftVisibleDay}
+                  onRevealMore={revealMoreDays}
+                />
+              ) : null}
             </section>
 
             {view === 'today' ? (
@@ -1344,35 +1473,11 @@ const HarvestCampaignPage: React.FC = () => {
                   ) : null}
                 </div>
 
-                <nav className="hc-mode-nav hc-mode-nav-secondary" aria-label={t('harvestCampaign.nav.label')}>
-                  {(['today', 'fields', 'totals', 'log'] as const).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className={`hc-mode-tab${view === item ? ' is-on' : ''}`}
-                      onClick={() => setView(item)}
-                    >
-                      {t(`harvestCampaign.nav.${item}`)}
-                    </button>
-                  ))}
-                </nav>
               </section>
             ) : null}
 
             {view === 'totals' ? (
               <section className="hc-live-home">
-                <nav className="hc-mode-nav hc-mode-nav-secondary" aria-label={t('harvestCampaign.nav.label')}>
-                  {(['today', 'fields', 'totals', 'log'] as const).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className={`hc-mode-tab${view === item ? ' is-on' : ''}`}
-                      onClick={() => setView(item)}
-                    >
-                      {t(`harvestCampaign.nav.${item}`)}
-                    </button>
-                  ))}
-                </nav>
                 <header className="hc-panel-head">
                   <p className="hc-kicker">{t('harvestCampaign.nav.totals')}</p>
                   <h1 className="hc-page-title">
@@ -1551,18 +1656,6 @@ const HarvestCampaignPage: React.FC = () => {
 
             {view === 'fields' ? (
               <section className="hc-live-home">
-                <nav className="hc-mode-nav hc-mode-nav-secondary" aria-label={t('harvestCampaign.nav.label')}>
-                  {(['today', 'fields', 'totals', 'log'] as const).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className={`hc-mode-tab${view === item ? ' is-on' : ''}`}
-                      onClick={() => setView(item)}
-                    >
-                      {t(`harvestCampaign.nav.${item}`)}
-                    </button>
-                  ))}
-                </nav>
                 <HarvestFlowView
                   campaign={campaign}
                   fields={sheetFields.length > 0 ? sheetFields : fields}
@@ -1576,18 +1669,6 @@ const HarvestCampaignPage: React.FC = () => {
 
             {view === 'log' ? (
               <section className="hc-live-home">
-                <nav className="hc-mode-nav hc-mode-nav-secondary" aria-label={t('harvestCampaign.nav.label')}>
-                  {(['today', 'fields', 'totals', 'log'] as const).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className={`hc-mode-tab${view === item ? ' is-on' : ''}`}
-                      onClick={() => setView(item)}
-                    >
-                      {t(`harvestCampaign.nav.${item}`)}
-                    </button>
-                  ))}
-                </nav>
                 <header className="hc-panel-head">
                   <p className="hc-kicker">{t('harvestCampaign.nav.log')}</p>
                   <h1 className="hc-page-title">{t('harvestCampaign.log.title')}</h1>
@@ -1697,6 +1778,26 @@ const HarvestCampaignPage: React.FC = () => {
           subtitle={sheetSubtitle}
           icon={SheetIcon ? <SheetIcon size={18} aria-hidden /> : undefined}
         >
+          {sheet === 'produce' ? (
+            <HarvestProductionWizard
+              campaign={campaign}
+              fields={sheetFields}
+              today={workingDay}
+              locale={locale}
+              preferredFieldId={searchParams.get('fieldId') || undefined}
+              preferredKind={addPrefill?.preferredKind}
+              prefillSackIds={addPrefill?.sackIds}
+              prefillMillIds={addPrefill?.millIds}
+              allowedKinds={harvestCaps.captureKinds}
+              onClose={closeSheet}
+              onSaveSacks={(input, existingId) =>
+                saveSacks(input, { existingId, keepOpen: true })
+              }
+              onSaveMill={(input, existingId) => saveMill(input, { existingId, keepOpen: true })}
+              onSaveOil={(input, existingId) => saveOil(input, { existingId, keepOpen: true })}
+              onOther={(kind) => openCapture(kind)}
+            />
+          ) : null}
           {sheet === 'add' ? (
             <HarvestAddMenu
               campaign={campaign}

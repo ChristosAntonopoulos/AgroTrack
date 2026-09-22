@@ -66,6 +66,7 @@ public class PhotoHubService : IPhotoHubService
         IReadOnlyList<PhotoUploadFile> files,
         string userId,
         string userRole,
+        bool allowDuplicates = false,
         CancellationToken cancellationToken = default)
     {
         if (files.Count == 0)
@@ -81,14 +82,17 @@ public class PhotoHubService : IPhotoHubService
         {
             try
             {
-                results.Add(await IngestOneAsync(file, accessible, userId, userRole, cancellationToken));
+                results.Add(await IngestOneAsync(
+                    file, accessible, userId, userRole, allowDuplicates, cancellationToken));
             }
-            catch (Exception ex) when (ex is ValidationException or InvalidOperationException)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 results.Add(new PhotoUploadResultDto
                 {
                     Failed = true,
-                    Error = ex.Message,
+                    Error = ex is ValidationException or InvalidOperationException
+                        ? ex.Message
+                        : "This file could not be read. Use JPEG, PNG, WebP, or GIF under 10 MB.",
                     Photo = new PhotoDto { FileName = Path.GetFileName(file.FileName) }
                 });
             }
@@ -140,6 +144,8 @@ public class PhotoHubService : IPhotoHubService
             FieldAssignment = FieldAssignmentStatusExtensions.FromApiString(query.FieldAssignment),
             OwnerType = MediaOwnerTypeExtensions.FromApiString(query.OwnerType),
             LinkedOnly = linkedOnly,
+            Sort = query.Sort,
+            TrashedOnly = query.TrashedOnly,
             Page = query.Page,
             PageSize = query.PageSize
         }, cancellationToken);
@@ -214,6 +220,17 @@ public class PhotoHubService : IPhotoHubService
         if (dto.CapturedAt.HasValue)
         {
             photo.CapturedAt = DateTime.SpecifyKind(dto.CapturedAt.Value.ToUniversalTime(), DateTimeKind.Utc);
+        }
+
+        if (dto.Caption != null)
+        {
+            var caption = dto.Caption.Trim();
+            if (caption.Length > 500)
+            {
+                throw new ValidationException("Caption must be 500 characters or fewer.");
+            }
+
+            photo.Caption = caption.Length == 0 ? null : caption;
         }
 
         photo.UpdatedAt = DateTime.UtcNow;
@@ -345,6 +362,90 @@ public class PhotoHubService : IPhotoHubService
         await _media.UpdateAsync(photo, cancellationToken);
     }
 
+    public async Task<PhotoDto> RestoreAsync(
+        string id,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default)
+    {
+        var photo = await _media.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Photo not found.");
+        if (!photo.IsTrashed)
+        {
+            return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
+        }
+
+        if (!await CanTrashAsync(photo, userId, userRole, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to restore this photo.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(photo.FieldId))
+        {
+            await EnsurePhotoAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
+        }
+        else if (!string.Equals(photo.UploadedByUserId, userId, StringComparison.Ordinal))
+        {
+            throw new ForbiddenException("You do not have permission to restore this photo.");
+        }
+
+        photo.DeletedAt = null;
+        photo.DeletedByUserId = null;
+        photo.UpdatedAt = DateTime.UtcNow;
+        await _media.UpdateAsync(photo, cancellationToken);
+
+        if (photo.OwnerType.IsLinkedRecord() && !string.IsNullOrWhiteSpace(photo.OwnerId))
+        {
+            try
+            {
+                await SyncOwnerAttachmentIdsAsync(photo.OwnerType, photo.OwnerId, photo, link: true, cancellationToken);
+            }
+            catch (NotFoundException)
+            {
+                photo.OwnerType = MediaOwnerType.Field;
+                photo.OwnerId = string.Empty;
+                photo.LinkedTitle = null;
+                photo.LinkedOccurredAt = null;
+                photo.LinkedStatus = null;
+                await _media.UpdateAsync(photo, cancellationToken);
+            }
+        }
+
+        return await ToDtoAsync(photo, userId, userRole, null, cancellationToken);
+    }
+
+    public async Task PurgeAsync(
+        string id,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default)
+    {
+        var photo = await _media.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Photo not found.");
+        if (!photo.IsTrashed)
+        {
+            throw new ValidationException("Move the photo to the trash before deleting it permanently.");
+        }
+
+        if (!await CanTrashAsync(photo, userId, userRole, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to delete this photo.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(photo.Url))
+        {
+            await _storage.DeleteAsync(photo.Url, cancellationToken);
+        }
+
+        if (!string.IsNullOrWhiteSpace(photo.ThumbnailUrl)
+            && !string.Equals(photo.ThumbnailUrl, photo.Url, StringComparison.Ordinal))
+        {
+            await _storage.DeleteAsync(photo.ThumbnailUrl, cancellationToken);
+        }
+
+        await _media.DeleteAsync(id, cancellationToken);
+    }
+
     public async Task<PhotoContentResult> GetContentBySignatureAsync(
         string id,
         string variant,
@@ -361,11 +462,6 @@ public class PhotoHubService : IPhotoHubService
 
         var photo = await _media.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Photo not found.");
-
-        if (photo.IsTrashed)
-        {
-            throw new NotFoundException("Photo not found.");
-        }
 
         var user = await _users.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException("Photo not found.");
@@ -413,6 +509,7 @@ public class PhotoHubService : IPhotoHubService
         IReadOnlyList<Field> accessibleFields,
         string userId,
         string userRole,
+        bool allowDuplicates,
         CancellationToken cancellationToken)
     {
         if (file.Content.CanSeek)
@@ -444,7 +541,7 @@ public class PhotoHubService : IPhotoHubService
             string.IsNullOrWhiteSpace(fieldId) ? null : fieldId,
             cancellationToken);
 
-        if (duplicates.Count > 0 && !string.IsNullOrWhiteSpace(fieldId))
+        if (!allowDuplicates && duplicates.Count > 0 && !string.IsNullOrWhiteSpace(fieldId))
         {
             var existing = duplicates[0];
             return new PhotoUploadResultDto
@@ -789,6 +886,7 @@ public class PhotoHubService : IPhotoHubService
             FieldAssignment = entity.FieldAssignment.ToApiString(),
             FieldMatchScore = entity.FieldMatchScore,
             AssignmentReason = entity.AssignmentReason,
+            Caption = entity.Caption,
             Kind = entity.Kind.ToApiString(),
             ContentHash = entity.ContentHash,
             Width = entity.Width,
@@ -800,6 +898,7 @@ public class PhotoHubService : IPhotoHubService
             LinkedStatus = entity.LinkedStatus,
             LinkBroken = linkBroken,
             CanTrash = canTrash,
+            DeletedAt = entity.DeletedAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt
         };

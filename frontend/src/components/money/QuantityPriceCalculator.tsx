@@ -20,6 +20,7 @@ type Props = {
   calculatedAmount?: string | null;
   calculatedUnitPrice?: string | null;
   amountRef?: React.Ref<HTMLInputElement>;
+  hideAmountLabel?: boolean;
 };
 
 const QuantityPriceCalculator: React.FC<Props> = ({
@@ -38,105 +39,102 @@ const QuantityPriceCalculator: React.FC<Props> = ({
   calculatedAmount,
   calculatedUnitPrice,
   amountRef,
+  hideAmountLabel,
 }) => {
   const { t, i18n } = useTranslation('capture');
   const abbr = UNIT_ABBREVIATION[unit];
+  const byQuantity = mode !== 'total_only';
 
-  return (
-    <div>
-      <div className="money-form-label">{t('money.howToEnter')}</div>
-      <div className="money-type-toggle" role="tablist" aria-label={t('money.howToEnter')}>
+  if (!byQuantity) {
+    return (
+      <div className="money-amount-stage">
+        <TransactionAmountInput
+          value={amount}
+          onChange={onAmountChange}
+          onBlur={onAmountBlur}
+          inputRef={amountRef}
+          hideLabel={hideAmountLabel}
+        />
         <button
           type="button"
-          role="tab"
-          aria-selected={mode !== 'total_only'}
+          className="money-quiet-link"
           onClick={() => onModeChange('quantity_times_unit_price')}
         >
           {t('money.qtyTimesPrice')}
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'total_only'}
-          onClick={() => onModeChange('total_only')}
-        >
+      </div>
+    );
+  }
+
+  return (
+    <div className="money-calc-card">
+      <div className="money-calc-card__head">
+        <span>{t('money.qtyTimesPrice')}</span>
+        <button type="button" className="money-quiet-link" onClick={() => onModeChange('total_only')}>
           {t('money.totalOnly')}
         </button>
       </div>
-
-      {mode === 'total_only' ? (
-        <div style={{ marginTop: 12 }}>
+      <div className="money-qty-grid">
+        <label className="money-form-label">
+          {t('money.quantity')}
+          <input
+            inputMode="decimal"
+            value={quantity}
+            onChange={(e) => onQuantityChange(e.target.value)}
+            aria-label={t('money.quantity')}
+          />
+        </label>
+        <label className="money-form-label">
+          {t('money.unit')}
+          <select
+            value={unit}
+            onChange={(e) => onUnitChange(e.target.value as FinancialQuantityUnit)}
+            aria-label={t('money.unit')}
+          >
+            {units.map((item) => (
+              <option key={item} value={item}>
+                {quantityUnitLabel(item, i18n.language)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {mode === 'quantity_and_total' ? (
+        <>
           <TransactionAmountInput
             value={amount}
             onChange={onAmountChange}
             onBlur={onAmountBlur}
             inputRef={amountRef}
+            hideLabel={hideAmountLabel}
           />
-        </div>
+          <div className="money-form-label">
+            {t('money.unitPrice', { unit: abbr })}
+            <div className="money-calc-value" aria-live="polite">
+              {calculatedUnitPrice || '—'} €/{abbr}
+            </div>
+          </div>
+        </>
       ) : (
         <>
-          <div className="money-qty-grid" style={{ marginTop: 12 }}>
-            <label className="money-form-label">
-              {t('money.quantity')}
+          <label className="money-form-label">
+            {t('money.unitPrice', { unit: abbr })}
+            <div className="money-amount-input">
               <input
                 inputMode="decimal"
-                value={quantity}
-                onChange={(e) => onQuantityChange(e.target.value)}
-                aria-label={t('money.quantity')}
+                value={unitPrice}
+                onChange={(e) => onUnitPriceChange(e.target.value)}
+                aria-label={t('money.unitPrice', { unit: abbr })}
               />
-            </label>
-            <label className="money-form-label">
-              {t('money.unit')}
-              <select
-                value={unit}
-                onChange={(e) => onUnitChange(e.target.value as FinancialQuantityUnit)}
-                aria-label={t('money.unit')}
-              >
-                {units.map((item) => (
-                  <option key={item} value={item}>
-                    {quantityUnitLabel(item, i18n.language)} ({UNIT_ABBREVIATION[item]})
-                  </option>
-                ))}
-              </select>
-            </label>
+              <span className="money-qty-suffix">€/{abbr}</span>
+            </div>
+          </label>
+          <div className="money-form-label">
+            {t('money.total')}
+            <div className="money-calc-value" aria-live="polite">
+              {calculatedAmount || '—'} €
+            </div>
           </div>
-          {mode === 'quantity_and_total' ? (
-            <>
-              <TransactionAmountInput
-                value={amount}
-                onChange={onAmountChange}
-                onBlur={onAmountBlur}
-                inputRef={amountRef}
-              />
-              <div className="money-form-label">
-                {t('money.unitPrice', { unit: abbr })}
-                <div className="money-calc-value" aria-live="polite">
-                  {calculatedUnitPrice || '—'} €/{abbr}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <label className="money-form-label">
-                {t('money.unitPrice', { unit: abbr })}
-                <div className="money-amount-input">
-                  <input
-                    inputMode="decimal"
-                    value={unitPrice}
-                    onChange={(e) => onUnitPriceChange(e.target.value)}
-                    aria-label={t('money.unitPrice', { unit: abbr })}
-                  />
-                  <span className="money-qty-suffix">€/{abbr}</span>
-                </div>
-              </label>
-              <div className="money-form-label">
-                {t('money.total')}
-                <div className="money-calc-value" aria-live="polite">
-                  {calculatedAmount || '—'} €
-                </div>
-              </div>
-            </>
-          )}
         </>
       )}
     </div>

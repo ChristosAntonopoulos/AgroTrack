@@ -137,6 +137,12 @@ const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({ options, value, onC
       {isSelf && !showPicker ? (
         <p className="task-form-help">{t('fieldWork.form.assigneeMeHint')}</p>
       ) : null}
+      {showPicker && selectedPerson?.key.startsWith('contact:') ? (
+        <p className="task-form-help">{t('fieldWork.form.assignOutcomeContact')}</p>
+      ) : null}
+      {showPicker && selectedPerson?.key.startsWith('user:') ? (
+        <p className="task-form-help">{t('fieldWork.form.assignOutcomeCollaborator')}</p>
+      ) : null}
     </div>
   );
 };

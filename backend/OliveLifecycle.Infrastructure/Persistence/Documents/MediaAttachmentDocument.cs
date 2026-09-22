@@ -72,6 +72,9 @@ public class MediaAttachmentDocument
     [BsonElement("assignmentReason")]
     public string? AssignmentReason { get; set; }
 
+    [BsonElement("caption")]
+    public string? Caption { get; set; }
+
     [BsonElement("linkedTitle")]
     public string? LinkedTitle { get; set; }
 

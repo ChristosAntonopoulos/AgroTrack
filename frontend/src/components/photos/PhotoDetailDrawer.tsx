@@ -6,6 +6,7 @@ import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
 import PhotoLocationMap from './PhotoLocationMap';
 import { linkedRecordLabel, linkedRecordPath } from './photoLinks';
+import { capturedDateIsFallback, localizeLinkedStatus } from './photoLabels';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
@@ -30,7 +31,17 @@ export type PhotoDetailDrawerProps = {
   onLink: (photoId: string, ownerType: string, ownerId: string) => Promise<void>;
   onUnlink: (photoId: string) => Promise<void>;
   onDelete: (photoId: string) => Promise<void>;
+  onUpdate?: (
+    photoId: string,
+    body: { capturedAt?: string; caption?: string }
+  ) => Promise<void>;
   onExpandFullscreen?: (photo: Photo) => void;
+  /** Panel sits beside the open viewer. Drawer is the standalone fallback. */
+  variant?: 'drawer' | 'panel';
+  /** Open already ready to edit field, date, and description. */
+  startEditing?: boolean;
+  /** Increment to re-enter edit after the user cancelled. */
+  editPulse?: number;
 };
 
 const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
@@ -42,7 +53,11 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   onLink,
   onUnlink,
   onDelete,
+  onUpdate,
   onExpandFullscreen,
+  variant = 'drawer',
+  startEditing = false,
+  editPulse = 0,
 }) => {
   const { t } = useTranslation('photos');
   const { formatDateTime, formatDate } = useLocaleFormatters();
@@ -56,20 +71,41 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   const [busy, setBusy] = useState(false);
   const [confirmFieldId, setConfirmFieldId] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState(false);
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [captionDraft, setCaptionDraft] = useState('');
+  const [dateDraft, setDateDraft] = useState('');
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
 
   const fieldId = photo?.fieldId || '';
 
   useEffect(() => {
-    setOwnerId('');
+    setOwnerId(photo?.isLinked && photo.ownerType === ownerType ? photo.ownerId : '');
     setMenuOpen(false);
-  }, [ownerType, photo?.id]);
+  }, [ownerType, photo?.id, photo?.isLinked, photo?.ownerId, photo?.ownerType]);
+
+  useEffect(() => {
+    setLinkNotice(null);
+  }, [photo?.id]);
+
+  useEffect(() => {
+    setEditingLink(false);
+    setEditingMeta(startEditing);
+    setCaptionDraft(photo?.caption || '');
+    const source = photo?.capturedAt || photo?.effectiveCapturedAt || '';
+    setDateDraft(source ? source.slice(0, 10) : '');
+    setConfirmFieldId(photo?.fieldId || '');
+    if (photo?.isLinked && photo.ownerType) setOwnerType(photo.ownerType);
+    // Reset drafts when the photo or edit intent changes, not on every metadata refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo?.id, startEditing, editPulse]);
 
   useEffect(() => {
     setConfirmFieldId('');
   }, [photo?.id]);
 
   useEffect(() => {
-    if (!open || !fieldId || !photo) {
+    if (!open || !fieldId || !photo || (!editingLink && photo.isLinked)) {
       setTargets([]);
       setTargetsError(false);
       return;
@@ -84,10 +120,14 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
         const fieldWork = getFieldWorkService();
         if (ownerType === 'task') {
           const tasks = await fieldWork.listFieldTasks({ fieldId });
-          next = tasks.map((task) => ({
-            id: task.id,
-            label: `${task.title} · ${task.statusLabel || task.status}`,
-          }));
+          next = tasks.map((task) => {
+            const when = task.plannedStart ? formatDate(task.plannedStart) : '';
+            const status = localizeLinkedStatus(task.status, t) || '';
+            return {
+              id: task.id,
+              label: [when, task.title, status].filter(Boolean).join(' · '),
+            };
+          });
         } else if (ownerType === 'note') {
           const notes = await getNoteService().getNotes({ fieldId, limit: 40 });
           next = notes.map((note) => ({
@@ -123,7 +163,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [fieldId, formatDate, open, ownerType, photo, targetsRetry]);
+  }, [editingLink, fieldId, formatDate, open, ownerType, photo, targetsRetry]);
 
   const drawerTitle = useMemo(() => {
     if (!photo) return t('detail.title');
@@ -160,26 +200,55 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
     ? t(reasonKey, { defaultValue: photo.assignmentReason || '' })
     : null;
 
-  return (
-    <RightDrawer open={open} onClose={onClose} title={drawerTitle} size="md">
-      <div className="photo-detail-body">
-        {onExpandFullscreen ? (
+  const saveMeta = async () => {
+    setBusy(true);
+    try {
+      const nextField = confirmFieldId || photo.fieldId;
+      if (nextField && nextField !== photo.fieldId) {
+        await onConfirmField(photo.id, nextField);
+      }
+      if (onUpdate) {
+        const time =
+          (photo.capturedAt || photo.effectiveCapturedAt || '').slice(11) || '12:00:00.000Z';
+        await onUpdate(photo.id, {
+          capturedAt: dateDraft ? `${dateDraft}T${time}` : undefined,
+          caption: captionDraft,
+        });
+      }
+      setEditingMeta(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const body = (
+      <div className={`photo-detail-body${editingMeta ? ' is-editing' : ''}`}>
+        {variant === 'drawer' && onExpandFullscreen ? (
           <button
             type="button"
             className="photo-detail-hero"
-            onClick={() => onExpandFullscreen(photo)}
+            onClick={() => {
+              onExpandFullscreen(photo);
+            }}
             aria-label={t('viewer.expand')}
           >
             <img src={src} alt={drawerTitle} />
             <span className="photo-detail-hero-hint">{t('viewer.expand')}</span>
           </button>
-        ) : (
+        ) : variant === 'drawer' ? (
           <img src={src} alt={drawerTitle} />
-        )}
+        ) : null}
 
-        <section className="photo-detail-section" aria-label={t('detail.metaSection')}>
-          <div className="photo-detail-section-head">
-            <h3 className="photo-detail-section-title">{t('detail.metaSection')}</h3>
+        <section className="photo-detail-card" aria-label={t('detail.metaSection')}>
+          <div className="photo-detail-card-head">
+            <div>
+              <p className="photo-detail-kicker">{t('detail.metaSection')}</p>
+              <h3 className="photo-detail-card-title">{fieldName}</h3>
+              <p className="photo-detail-card-sub">
+                {formatDateTime(photo.effectiveCapturedAt)}
+                {uploaderName ? ` · ${t('badges.uploadedBy', { name: uploaderName })}` : null}
+              </p>
+            </div>
             {photo.canTrash !== false ? (
               <div className="photo-detail-overflow">
                 <button
@@ -217,82 +286,177 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
               </div>
             ) : null}
           </div>
-          <dl className="photo-detail-meta">
-            <dt>{t('detail.field')}</dt>
-            <dd>{fieldName}</dd>
-            <dt>{t('detail.captured')}</dt>
-            <dd>{formatDateTime(photo.effectiveCapturedAt)}</dd>
-            <dt>{t('detail.uploaded')}</dt>
-            <dd>{formatDateTime(photo.createdAt)}</dd>
-            {uploaderName ? (
-              <>
-                <dt>{t('detail.uploader')}</dt>
-                <dd>{uploaderName}</dd>
-              </>
-            ) : null}
-            {kindLabel ? (
-              <>
-                <dt>{t('detail.kind')}</dt>
-                <dd>{kindLabel}</dd>
-              </>
-            ) : null}
-            <dt>{t('detail.location')}</dt>
-            <dd>
-              {photo.latitude != null && photo.longitude != null
-                ? `${photo.latitude.toFixed(5)}, ${photo.longitude.toFixed(5)}`
-                : t('detail.noGps')}
-            </dd>
-            {reasonLabel ? (
-              <>
-                <dt>{t('detail.assignmentReason')}</dt>
-                <dd>{reasonLabel}</dd>
-              </>
-            ) : null}
-            {photo.fileName ? (
-              <>
-                <dt>{t('detail.fileName')}</dt>
-                <dd className="photo-detail-filename">{photo.fileName}</dd>
-              </>
-            ) : null}
-          </dl>
+
+          {editingMeta ? (
+            <div className="photo-detail-edit">
+              <p className="photo-detail-hint">{t('detail.audience')}</p>
+              {confirmFieldId && confirmFieldId !== photo.fieldId ? (
+                <p className="photo-detail-hint is-warn">{t('detail.audienceChange')}</p>
+              ) : null}
+              <label className="photo-detail-field">
+                <span>{t('detail.field')}</span>
+                <select
+                  value={confirmFieldId || photo.fieldId || ''}
+                  onChange={(e) => setConfirmFieldId(e.target.value)}
+                >
+                  <option value="">{t('review.chooseLater')}</option>
+                  {fields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {field.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="photo-detail-field">
+                <span>{t('detail.captured')}</span>
+                <input
+                  type="date"
+                  value={dateDraft}
+                  onChange={(e) => setDateDraft(e.target.value)}
+                />
+                {capturedDateIsFallback(photo.capturedAt) ? (
+                  <small>{t('detail.capturedFallback')}</small>
+                ) : null}
+              </label>
+              <label className="photo-detail-field">
+                <span>{t('detail.caption')}</span>
+                <textarea
+                  value={captionDraft}
+                  maxLength={500}
+                  rows={3}
+                  onChange={(e) => setCaptionDraft(e.target.value)}
+                />
+              </label>
+              <div className="photo-detail-actions">
+                <Button size="sm" disabled={busy} loading={busy} onClick={() => void saveMeta()}>
+                  {t('detail.saveMeta')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => setEditingMeta(false)}
+                >
+                  {t('detail.cancelEdit')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <dl className="photo-detail-meta">
+                <div>
+                  <dt>{t('detail.field')}</dt>
+                  <dd>{fieldName}</dd>
+                </div>
+                <div>
+                  <dt>{t('detail.captured')}</dt>
+                  <dd>
+                    {formatDateTime(photo.effectiveCapturedAt)}
+                    {capturedDateIsFallback(photo.capturedAt) ? (
+                      <span className="photo-detail-fallback">{t('detail.capturedFallback')}</span>
+                    ) : null}
+                  </dd>
+                </div>
+                {uploaderName ? (
+                  <div>
+                    <dt>{t('detail.uploader')}</dt>
+                    <dd>{uploaderName}</dd>
+                  </div>
+                ) : null}
+                {photo.caption ? (
+                  <div className="photo-detail-meta-wide">
+                    <dt>{t('detail.caption')}</dt>
+                    <dd>{photo.caption}</dd>
+                  </div>
+                ) : null}
+                {kindLabel ? (
+                  <div>
+                    <dt>{t('detail.kind')}</dt>
+                    <dd>{kindLabel}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>{t('detail.location')}</dt>
+                  <dd>
+                    {photo.latitude != null && photo.longitude != null
+                      ? `${photo.latitude.toFixed(5)}, ${photo.longitude.toFixed(5)}`
+                      : t('detail.noGps')}
+                  </dd>
+                </div>
+                {reasonLabel ? (
+                  <div className="photo-detail-meta-wide">
+                    <dt>{t('detail.assignmentReason')}</dt>
+                    <dd>{reasonLabel}</dd>
+                  </div>
+                ) : null}
+                {photo.fileName ? (
+                  <div className="photo-detail-meta-wide">
+                    <dt>{t('detail.fileName')}</dt>
+                    <dd className="photo-detail-filename">{photo.fileName}</dd>
+                  </div>
+                ) : null}
+              </dl>
+              <div className="photo-detail-actions">
+                <Button size="sm" variant="secondary" onClick={() => setEditingMeta(true)}>
+                  {t('detail.editMeta')}
+                </Button>
+              </div>
+              <p className="photo-detail-hint quiet">{t('detail.recordPrivacy')}</p>
+            </>
+          )}
         </section>
 
         {photo.isLinked ? (
-          <section className="photo-detail-section" aria-label={t('detail.linkedRecord')}>
-            <h3 className="photo-detail-section-title">{t('detail.linkedRecord')}</h3>
+          <section className="photo-detail-card" aria-label={t('detail.linkedRecord')}>
+            <p className="photo-detail-kicker">
+              {t('detail.linkedWithType', {
+                type: t(`badges.${photo.ownerType}`, { defaultValue: photo.ownerType }),
+              })}
+            </p>
             <div className={`photo-linked-card${photo.linkBroken ? ' is-broken' : ''}`}>
-              <div className="photo-linked-card-type">
-                {t(`badges.${photo.ownerType}`, { defaultValue: photo.ownerType })}
-              </div>
               <strong className="photo-linked-card-title">
                 {photo.linkedTitle || linkedLabel}
               </strong>
               <div className="photo-linked-card-meta">
-                {photo.linkedOccurredAt ? formatDate(photo.linkedOccurredAt) : null}
-                {photo.linkedStatus ? ` · ${photo.linkedStatus}` : null}
+                {[
+                  photo.linkedOccurredAt ? formatDate(photo.linkedOccurredAt) : null,
+                  localizeLinkedStatus(photo.linkedStatus, t),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </div>
               {photo.linkBroken ? (
                 <p className="photo-linked-card-warn">{t('detail.linkBroken')}</p>
               ) : null}
-              {recordHref && !photo.linkBroken ? (
-                <Link className="photo-linked-card-open" to={recordHref} onClick={onClose}>
-                  {t('detail.openRecord')}
-                </Link>
-              ) : null}
+              <div className="photo-linked-card-actions">
+                {recordHref && !photo.linkBroken ? (
+                  <Link className="photo-linked-card-open" to={recordHref} onClick={onClose}>
+                    {t('detail.openRecord')}
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  className="photo-linked-card-open is-button"
+                  onClick={() => setEditingLink(true)}
+                >
+                  {t('detail.changeLink')}
+                </button>
+              </div>
+              {linkNotice ? <p className="photo-link-notice">{linkNotice}</p> : null}
             </div>
           </section>
         ) : null}
 
         {photo.latitude != null && photo.longitude != null ? (
-          <section className="photo-detail-section" aria-label={t('detail.mapSection')}>
-            <h3 className="photo-detail-section-title">{t('detail.mapSection')}</h3>
+          <section className="photo-detail-card" aria-label={t('detail.mapSection')}>
+            <p className="photo-detail-kicker">{t('detail.mapSection')}</p>
             <PhotoLocationMap latitude={photo.latitude} longitude={photo.longitude} />
           </section>
         ) : null}
 
-        {needsField ? (
-          <section className="photo-detail-section" aria-label={t('detail.fieldSection')}>
-            <h3 className="photo-detail-section-title">{t('detail.fieldSection')}</h3>
+        {needsField && !editingMeta ? (
+          <section className="photo-detail-card" aria-label={t('detail.fieldSection')}>
+            <p className="photo-detail-kicker">{t('detail.fieldSection')}</p>
             <div className="photo-detail-field-chips" role="group">
               {fields.map((f) => (
                 <button
@@ -329,9 +493,10 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
           </section>
         ) : null}
 
-        <section className="photo-detail-section" aria-label={t('detail.link')}>
-          <h3 className="photo-detail-section-title">{t('detail.link')}</h3>
-          <p className="photo-link-hint">{t('detail.linkMoves')}</p>
+        {(!photo.isLinked || editingLink) ? (
+        <section className="photo-detail-card" aria-label={t('detail.link')}>
+          <p className="photo-detail-kicker">{t('detail.link')}</p>
+          <p className="photo-detail-hint">{t('detail.linkMoves')}</p>
           <div className="photo-link-form">
             <label>
               {t('detail.ownerType')}
@@ -341,6 +506,9 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
                 <option value="harvest">{t('badges.harvest')}</option>
                 <option value="phenology">{t('badges.phenology')}</option>
               </select>
+              {ownerType === 'phenology' ? (
+                <span className="photo-link-hint">{t('badges.phenologyHint')}</span>
+              ) : null}
             </label>
             <label>
               {t('detail.pickRecord')}
@@ -379,9 +547,20 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
               <Button
                 disabled={busy || !ownerId.trim() || !photo.fieldId}
                 onClick={async () => {
+                  const previous = photo.isLinked
+                    ? linkedRecordLabel(photo, (type) =>
+                        t(`badges.${type}`, { defaultValue: type })
+                      )
+                    : '';
+                  const nextLabel =
+                    targets.find((target) => target.id === ownerId.trim())?.label || ownerId.trim();
                   setBusy(true);
                   try {
                     await onLink(photo.id, ownerType, ownerId.trim());
+                    if (previous) {
+                      setLinkNotice(t('detail.linkChanged', { from: previous, to: nextLabel }));
+                    }
+                    setEditingLink(false);
                   } finally {
                     setBusy(false);
                   }
@@ -390,25 +569,55 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
                 {t('detail.saveLink')}
               </Button>
               {photo.isLinked ? (
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await onUnlink(photo.id);
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  {t('detail.unlink')}
-                </Button>
+                <div className="photo-unlink-block">
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        await onUnlink(photo.id);
+                        setEditingLink(false);
+                        setLinkNotice(null);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    {t('detail.unlink')}
+                  </Button>
+                  <p className="photo-link-hint">{t('detail.unlinkHint')}</p>
+                </div>
               ) : null}
             </div>
           </div>
         </section>
+        ) : null}
       </div>
+  );
+
+  if (!open) return null;
+
+  if (variant === 'panel') {
+    return (
+      <div className="photo-detail-panel">
+        <div className="photo-detail-panel-head">
+          <div>
+            <p className="photo-detail-kicker">{t('detail.title')}</p>
+            <h2>{drawerTitle}</h2>
+          </div>
+          <button type="button" className="photo-detail-panel-close" onClick={onClose}>
+            {t('viewer.closeDetails')}
+          </button>
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <RightDrawer open={open} onClose={onClose} title={drawerTitle} size="md">
+      {body}
     </RightDrawer>
   );
 };

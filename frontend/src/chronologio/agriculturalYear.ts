@@ -30,7 +30,8 @@ export const agriculturalYearTitle = (resultYear: number, language = 'el'): stri
     : `Καλλιεργητική χρονιά ${resultYear}`;
 
 export const agriculturalYearRangeLabel = (resultYear: number, language = 'el'): string => {
-  const locale = language.toLowerCase().startsWith('en') ? 'en-GB' : 'el-GR';
+  const lang = language.toLowerCase();
+  const locale = lang.startsWith('en') ? 'en-GB' : lang.startsWith('it') ? 'it-IT' : 'el-GR';
   const from = new Date(resultYear, AGRICULTURAL_YEAR_START_MONTH - 1, 1);
   const to = new Date(resultYear + 1, 0, 31);
   const fmt = (d: Date) =>

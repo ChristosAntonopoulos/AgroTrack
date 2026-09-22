@@ -10,6 +10,7 @@ interface CardProps {
   hover?: boolean;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   className?: string;
+  style?: React.CSSProperties;
   children: ReactNode;
   as?: ElementType | typeof Link;
   to?: string;
@@ -24,6 +25,7 @@ const Card: React.FC<CardProps> = ({
   hover = false,
   padding = 'md',
   className = '',
+  style,
   children,
   as,
   to,
@@ -64,6 +66,7 @@ const Card: React.FC<CardProps> = ({
       <Component
         to={to}
         className={cardClasses}
+        style={style}
         onClick={onClick}
         {...(props as any)}
       >
@@ -76,6 +79,7 @@ const Card: React.FC<CardProps> = ({
   return (
     <Component
       className={cardClasses}
+      style={style}
       onClick={onClick}
       {...props}
     >

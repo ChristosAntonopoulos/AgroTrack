@@ -190,11 +190,7 @@ export const filterNavItemsForUser = (
 
     // Partner/Family on the active field: gate by that seat’s modules only (no union).
     if (restrictCollaborator) {
-      if (
-        item.path === '/reports' ||
-        item.path === '/data-sources' ||
-        item.path === '/partners'
-      ) {
+      if (item.path === '/reports' || item.path === '/data-sources') {
         return false;
       }
       if (item.path === '/money' && !modules!.has('money')) return false;
@@ -206,8 +202,6 @@ export const filterNavItemsForUser = (
       if (item.path === '/fields' && !modules!.has('fields')) return false;
       if (item.path === '/photos' && !modules!.has('photos')) return false;
       if (item.path === '/chronologio' && !modules!.has('chronologio')) return false;
-    } else if (item.path === '/harvest' && gate?.canViewHarvest === false) {
-      return false;
     }
 
     return true;

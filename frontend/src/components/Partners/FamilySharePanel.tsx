@@ -54,7 +54,15 @@ const FamilySharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }
             {t('partners:inviteExpiresOn', { date: formatDate(invite.expiresAt) })}
           </span>
         ) : null}
+        {invite.createdAt ? (
+          <span className="partner-chip partner-chip-job">
+            {t('partners:inviteSentOn', { date: formatDate(invite.createdAt) })}
+          </span>
+        ) : null}
       </div>
+      <p className="partners-inline-hint">
+        {invite.emailSent ? t('partners:inviteEmailSent') : t('partners:inviteEmailSkipped')}
+      </p>
       {code ? (
         <div className="family-invite-code">
           <span className="family-invite-code-label">{t(`${ns}.inviteCode`)}</span>

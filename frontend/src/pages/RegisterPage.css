@@ -107,6 +107,28 @@
   color: var(--login-link);
 }
 
+.register-existing-account {
+  margin: -0.35rem 0 0.55rem;
+  font-size: 0.85rem;
+}
+
+.register-page .login-card-heading {
+  margin-bottom: 0.75rem;
+}
+
+.register-page .login-card-lockup {
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+}
+
+.register-page .login-form {
+  gap: 0.7rem;
+}
+
+.register-page .login-card {
+  padding: clamp(1.15rem, 2.5vw, 1.65rem);
+}
+
 .login-field-error {
   margin: 6px 0 0;
   font-size: 0.78rem;

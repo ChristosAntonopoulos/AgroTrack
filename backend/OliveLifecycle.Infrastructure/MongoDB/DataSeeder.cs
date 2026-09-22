@@ -58,6 +58,12 @@ public class DataSeeder : IHostedService
         ("675555555555555555555503", "family@olivefarm.com", "password123", Roles.FieldOwner, "Ελένη", "Παπαδάκη"),
     ];
 
+    /// <summary>
+    /// Private operator. Not shown on the demo login picker — type the email and password on the normal form.
+    /// </summary>
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) HiddenOperator =
+        ("675555555555555555555599", "admin@olivefarm.com", "admin123", Roles.Administrator, "Olea", "Admin");
+
     private async Task SeedDemoUsersAsync(CancellationToken cancellationToken)
     {
         if (!string.Equals(_configuration["DemoAccounts:Seed"], "true", StringComparison.OrdinalIgnoreCase))
@@ -70,45 +76,70 @@ public class DataSeeder : IHostedService
 
         foreach (var demo in DemoUsers)
         {
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(demo.Password);
-            var existing = await FindDemoUserAsync(collection, demo, cancellationToken);
+            await UpsertDemoUserAsync(collection, demo, now, operatorAccount: false, cancellationToken);
+        }
 
-            if (existing == null)
+        await UpsertDemoUserAsync(collection, HiddenOperator, now, operatorAccount: true, cancellationToken);
+    }
+
+    private async Task UpsertDemoUserAsync(
+        IMongoCollection<UserDocument> collection,
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        DateTime now,
+        bool operatorAccount,
+        CancellationToken cancellationToken)
+    {
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(demo.Password);
+        var existing = await FindDemoUserAsync(collection, demo, cancellationToken);
+
+        if (existing == null)
+        {
+            try
             {
-                try
-                {
-                    await collection.InsertOneAsync(
-                        new UserDocument
-                        {
-                            Id = demo.Id,
-                            Email = demo.Email,
-                            PasswordHash = passwordHash,
-                            Role = demo.Role,
-                            FirstName = demo.FirstName,
-                            LastName = demo.LastName,
-                            CreatedAt = now,
-                            UpdatedAt = now,
-                        },
-                        cancellationToken: cancellationToken);
+                await collection.InsertOneAsync(
+                    NewDemoUser(demo, passwordHash, now, operatorAccount),
+                    cancellationToken: cancellationToken);
 
-                    _logger.LogInformation("Seeded demo account {Email} ({Role}).", demo.Email, demo.Role);
-                }
-                catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
-                {
-                    // Document exists by _id but email lookup missed it (e.g. email changed) — sync in place.
-                    _logger.LogWarning(
-                        "Demo user {Email} insert conflict on id {Id}; syncing existing document.",
-                        demo.Email,
-                        demo.Id);
-                    await SyncDemoUserAsync(collection, demo, passwordHash, now, demo.Id, cancellationToken);
-                }
-
-                continue;
+                _logger.LogInformation("Seeded demo account {Email} ({Role}).", demo.Email, demo.Role);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                _logger.LogWarning(
+                    "Demo user {Email} insert conflict on id {Id}; syncing existing document.",
+                    demo.Email,
+                    demo.Id);
+                await SyncDemoUserAsync(collection, demo, passwordHash, now, demo.Id, operatorAccount, cancellationToken);
             }
 
-            await SyncDemoUserAsync(collection, demo, passwordHash, now, existing.Id, cancellationToken);
+            return;
         }
+
+        await SyncDemoUserAsync(collection, demo, passwordHash, now, existing.Id, operatorAccount, cancellationToken);
     }
+
+    private static UserDocument NewDemoUser(
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        string passwordHash,
+        DateTime now,
+        bool operatorAccount) =>
+        new()
+        {
+            Id = demo.Id,
+            Email = demo.Email,
+            PasswordHash = passwordHash,
+            Role = demo.Role,
+            FirstName = demo.FirstName,
+            LastName = demo.LastName,
+            Preferences = operatorAccount
+                ? new UserExperiencePreferencesDocument
+                {
+                    ExperienceMode = "full",
+                    ExperienceModeChosen = true,
+                }
+                : new UserExperiencePreferencesDocument(),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
 
     private static async Task<UserDocument?> FindDemoUserAsync(
         IMongoCollection<UserDocument> collection,
@@ -131,17 +162,27 @@ public class DataSeeder : IHostedService
         string passwordHash,
         DateTime now,
         string documentId,
+        bool operatorAccount,
         CancellationToken cancellationToken)
     {
+        var update = Builders<UserDocument>.Update
+            .Set(u => u.Email, demo.Email)
+            .Set(u => u.PasswordHash, passwordHash)
+            .Set(u => u.Role, demo.Role)
+            .Set(u => u.FirstName, demo.FirstName)
+            .Set(u => u.LastName, demo.LastName)
+            .Set(u => u.UpdatedAt, now);
+
+        if (operatorAccount)
+        {
+            update = update
+                .Set(u => u.Preferences.ExperienceMode, "full")
+                .Set(u => u.Preferences.ExperienceModeChosen, true);
+        }
+
         await collection.UpdateOneAsync(
             u => u.Id == documentId,
-            Builders<UserDocument>.Update
-                .Set(u => u.Email, demo.Email)
-                .Set(u => u.PasswordHash, passwordHash)
-                .Set(u => u.Role, demo.Role)
-                .Set(u => u.FirstName, demo.FirstName)
-                .Set(u => u.LastName, demo.LastName)
-                .Set(u => u.UpdatedAt, now),
+            update,
             cancellationToken: cancellationToken);
 
         _logger.LogInformation("Synced demo account {Email} ({Role}).", demo.Email, demo.Role);

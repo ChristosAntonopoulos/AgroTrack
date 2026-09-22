@@ -15,6 +15,7 @@ import {
 } from '../../finance/display';
 import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
+import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { taskPeekPath } from '../../navigation/intents';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
@@ -182,6 +183,16 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
             <div>
               <dt>{t('money:date')}</dt>
               <dd>{formatDate(transaction.occurredOn)}</dd>
+            </div>
+            <div>
+              <dt>{t('money:harvestYearName')}</dt>
+              <dd>
+                {harvestYearSpan(transaction.resultYear)}
+                <span className="money-summary-note">
+                  {' '}
+                  {harvestYearRangeLabel(transaction.resultYear, i18n.language)}
+                </span>
+              </dd>
             </div>
             <div>
               <dt>{t('money:field')}</dt>

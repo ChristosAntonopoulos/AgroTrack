@@ -25,6 +25,7 @@ import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap } from '../utils/fieldLabels';
 import { readFieldId } from '../navigation/intents';
 import { agriculturalYearFor, agriculturalYearRangeLabel } from '../chronologio/agriculturalYear';
+import { harvestMonthTitle, harvestYearSpan } from '../finance/harvestYear';
 import { UNASSIGNED_FIELD_QUERY, overlayUnassignedSummary } from '../finance/buildYearSummary';
 import { formatOfficialAmount, isForbiddenError, perAreaForDisplay } from '../finance/format';
 import MoneyPageHeader from '../components/money/MoneyPageHeader';
@@ -359,7 +360,7 @@ const MoneyPage: React.FC = () => {
           <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
         ) : emptyYear ? (
           <EmptyState
-            title={t('money:emptyTitle', { year })}
+            title={t('money:emptyTitle', { span: harvestYearSpan(year) })}
             description={t('money:emptyHint')}
             action={
               <Button variant="primary" onClick={() => openCapture()}>
@@ -445,7 +446,7 @@ const MoneyPage: React.FC = () => {
               </MoneyExpandableSection>
             ) : null}
             {summary.oliveOil?.hasProductionOrSales ? (
-              <MoneyExpandableSection title={t('money:oliveOilYear', { year })}>
+              <MoneyExpandableSection title={t('money:oliveOilYear', { span: harvestYearSpan(year) })}>
                 <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} embedded />
               </MoneyExpandableSection>
             ) : null}
@@ -484,6 +485,7 @@ const MoneyPage: React.FC = () => {
             fieldNames={fieldNames}
             category={category}
             month={month}
+            monthLabel={month ? harvestMonthTitle(year, month, i18n.language) : undefined}
             onClearFilters={() => patch({ category: null, month: null, task: null, harvest: null })}
             onOpen={(id) => patch({ tx: id })}
             onLoadMore={() => void loadOlder()}

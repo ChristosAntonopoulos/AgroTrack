@@ -7,22 +7,38 @@ import { getApiErrorMessage } from '../utils/translateApiError';
 import Button from '../components/Common/Button';
 import InviteAcceptShell from '../components/Auth/InviteAcceptShell';
 import { invalidateAccessContext } from '../hooks/useAccessContext';
+import { PICKABLE_MODULES } from '../components/Partners/accessPreview';
+import { authPathWithIntent, clearInviteIntent, rememberInviteIntent } from '../utils/inviteIntent';
+import { mapInviteLifecycle } from '../components/Partners/inviteLifecycle';
+
+const emailsMatch = (left?: string | null, right?: string | null) => {
+  if (!left || !right) return true;
+  return left.trim().toLowerCase() === right.trim().toLowerCase();
+};
 
 const InviteAcceptPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const { t } = useTranslation(['fields', 'partners', 'common', 'auth', 'errors']);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [invite, setInvite] = useState<FieldInvite | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [alreadyHasAccess, setAlreadyHasAccess] = useState(false);
 
   useEffect(() => {
     if (!token) return;
     void (async () => {
       try {
-        setInvite(await fieldPeopleService.getInvite(token));
+        const next = await fieldPeopleService.getInvite(token);
+        setInvite(next);
+        rememberInviteIntent({
+          token: next.token || token,
+          code: next.code,
+          redirect: `/invite/${next.token || token}`,
+        });
       } catch {
         setError(t('fields:people.inviteMissing'));
       } finally {
@@ -31,28 +47,52 @@ const InviteAcceptPage: React.FC = () => {
     })();
   }, [token, t]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !invite?.fieldId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const access = await fieldPeopleService.getAccessContext();
+        if (cancelled) return;
+        const seat = access.fields.find((field) => field.fieldId === invite.fieldId);
+        if (seat) {
+          setAlreadyHasAccess(true);
+          if (mapInviteLifecycle(invite.status) === 'accepted') setAccepted(true);
+        }
+      } catch {
+        /* keep the invitation card */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, invite?.fieldId, invite?.status]);
+
   const expired = useMemo(() => {
-    if (!invite?.expiresAt) return false;
+    if (!invite) return false;
+    if (mapInviteLifecycle(invite.status) === 'expired') return true;
+    if (!invite.expiresAt) return false;
     return Date.parse(invite.expiresAt) < Date.now();
   }, [invite]);
 
-  const accept = async () => {
-    if (!token) return;
-    if (!isAuthenticated) {
-      navigate(`/register?redirect=${encodeURIComponent(`/invite/${token}`)}&code=${encodeURIComponent(invite?.code || '')}`);
-      return;
-    }
-    setAccepting(true);
-    try {
-      await fieldPeopleService.acceptInvite(token);
-      invalidateAccessContext();
-      navigate(invite ? `/chronologio?fieldId=${invite.fieldId}` : '/chronologio');
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, t) || t('fields:people.inviteAcceptFailed'));
-    } finally {
-      setAccepting(false);
-    }
-  };
+  const lifecycle = mapInviteLifecycle(invite?.status);
+  const revoked = lifecycle === 'revoked';
+  const usedBySomeoneElse =
+    lifecycle === 'accepted' &&
+    isAuthenticated &&
+    !alreadyHasAccess &&
+    !accepted &&
+    Boolean(invite?.acceptedBy) &&
+    invite?.acceptedBy !== user?.userId;
+  const acceptedByThisUser =
+    accepted ||
+    alreadyHasAccess ||
+    (lifecycle === 'accepted' && isAuthenticated && (!invite?.acceptedBy || invite.acceptedBy === user?.userId));
+  const wrongAccount =
+    isAuthenticated &&
+    Boolean(invite?.email) &&
+    !emailsMatch(invite?.email, user?.email) &&
+    !acceptedByThisUser;
 
   const roleLabel = invite
     ? invite.role === 'Partner'
@@ -63,28 +103,84 @@ const InviteAcceptPage: React.FC = () => {
     : '';
 
   const moduleLabels = (invite?.modules || [])
-    .filter((module: FieldModule) => module !== 'documents')
-    .map((module: FieldModule) =>
-      t(`partners:family.modules.${module}`, { defaultValue: module })
-    );
+    .filter((module: FieldModule) => PICKABLE_MODULES.includes(module))
+    .map((module: FieldModule) => t(`partners:family.modules.${module}`, { defaultValue: module }));
+
+  const actionSummary = invite
+    ? invite.accessLevel === 'work'
+      ? t('fields:people.inviteActionWork')
+      : invite.accessLevel === 'help'
+        ? t('fields:people.inviteActionHelp')
+        : t('fields:people.inviteActionView')
+    : '';
+
+  const inviter = invite?.invitedByName || invite?.invitedBy;
+  const fieldName = invite?.fieldName || '';
+  const intent = invite
+    ? { token: invite.token || token, code: invite.code, redirect: `/invite/${invite.token || token}` }
+    : { token, redirect: token ? `/invite/${token}` : undefined };
+
+  const openField = () => {
+    clearInviteIntent();
+    navigate(invite ? `/chronologio?fieldId=${encodeURIComponent(invite.fieldId)}` : '/chronologio');
+  };
+
+  const accept = async () => {
+    if (!token) return;
+    setAccepting(true);
+    try {
+      await fieldPeopleService.acceptInvite(token);
+      invalidateAccessContext();
+      setAccepted(true);
+      setAlreadyHasAccess(true);
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, t) || t('fields:people.inviteAcceptFailed'));
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const switchAccount = () => {
+    rememberInviteIntent(intent);
+    logout();
+  };
+
+  const success = acceptedByThisUser;
 
   return (
     <InviteAcceptShell
-      title={t('fields:people.inviteAcceptTitle')}
       loading={loading}
       error={error}
-      loginFallbackLabel={t('auth:login.title')}
+      loginFallbackLabel={t('auth:login.button')}
     >
       {invite ? (
         <>
+          <h1 className="invite-accept-title">
+            {success
+              ? t('fields:people.inviteAcceptedTitle', { field: fieldName })
+              : inviter
+                ? t('fields:people.inviteHeadline', { name: inviter, field: fieldName })
+                : t('fields:people.inviteHeadlineFallback', { field: fieldName })}
+          </h1>
+          {!success ? (
+            <p className="invite-accept-lead">
+              {t('fields:people.inviteAccessIntro', {
+                modules: moduleLabels.join(', ') || roleLabel,
+                action: actionSummary,
+              })}
+            </p>
+          ) : (
+            <p className="invite-accept-lead">{t('fields:people.inviteAcceptedBody', { field: fieldName })}</p>
+          )}
+
           <dl className="invite-preview">
             <div>
               <dt>{t('fields:people.inviteFrom')}</dt>
-              <dd>{invite.invitedByName || invite.invitedBy}</dd>
+              <dd>{inviter || '—'}</dd>
             </div>
             <div>
               <dt>{t('fields:people.inviteField')}</dt>
-              <dd>{invite.fieldName}</dd>
+              <dd>{fieldName}</dd>
             </div>
             <div>
               <dt>{t('fields:people.inviteRole')}</dt>
@@ -97,7 +193,7 @@ const InviteAcceptPage: React.FC = () => {
             <div>
               <dt>{t('partners:family.levelTitle')}</dt>
               <dd>
-                {t(`partners:family.levels.${invite.accessLevel}`)} — {t(`partners:family.calculated.${invite.accessLevel}`)}
+                {t(`partners:family.levels.${invite.accessLevel}`)} — {actionSummary}
               </dd>
             </div>
             <div>
@@ -108,27 +204,63 @@ const InviteAcceptPage: React.FC = () => {
               </dd>
             </div>
           </dl>
+
           <div className="invite-preview-actions">
-            <Button
-              onClick={accept}
-              loading={accepting}
-              variant="primary"
-              className="btn-full-width"
-              disabled={expired}
-            >
-              {isAuthenticated ? t('fields:people.acceptInvite') : t('fields:people.inviteCreateAccount')}
-            </Button>
-            {isAuthenticated ? (
-              <Button variant="ghost" className="btn-full-width" onClick={() => navigate('/')}>
-                {t('fields:people.declineInvite')}
+            {success ? (
+              <Button onClick={openField} variant="primary" className="btn-full-width">
+                {t('fields:people.openField')}
               </Button>
+            ) : revoked ? (
+              <p className="invite-accept-note">{t('fields:people.inviteRevoked')}</p>
+            ) : expired ? (
+              <p className="invite-accept-note">{t('fields:people.inviteExpiredExplain')}</p>
+            ) : usedBySomeoneElse ? (
+              <p className="invite-accept-note">{t('fields:people.inviteUsed')}</p>
+            ) : wrongAccount ? (
+              <>
+                <p className="invite-accept-note">
+                  {t('fields:people.wrongAccount', {
+                    email: user?.email || '',
+                    inviteEmail: invite.email || '',
+                  })}
+                </p>
+                <Button variant="primary" className="btn-full-width" onClick={switchAccount}>
+                  {t('fields:people.switchAccount')}
+                </Button>
+              </>
+            ) : isAuthenticated ? (
+              <>
+                <Button
+                  onClick={() => void accept()}
+                  loading={accepting}
+                  variant="primary"
+                  className="btn-full-width"
+                >
+                  {t('fields:people.acceptInvite')}
+                </Button>
+                <Button variant="ghost" className="btn-full-width" onClick={() => navigate('/')}>
+                  {t('fields:people.declineInvite')}
+                </Button>
+              </>
             ) : (
-              <p>
-                {t('auth:register.hasAccount')}{' '}
-                <Link to={`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`}>
-                  {t('auth:register.loginLink')}
-                </Link>
-              </p>
+              <>
+                <Button
+                  as={Link}
+                  to={authPathWithIntent('/login', intent)}
+                  variant="primary"
+                  className="btn-full-width"
+                >
+                  {t('fields:people.inviteSignIn')}
+                </Button>
+                <Button
+                  as={Link}
+                  to={authPathWithIntent('/register', intent)}
+                  variant="outline"
+                  className="btn-full-width"
+                >
+                  {t('fields:people.inviteCreateAccount')}
+                </Button>
+              </>
             )}
           </div>
         </>

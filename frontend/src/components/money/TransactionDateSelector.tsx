@@ -1,27 +1,30 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatLongDate, shiftIsoDate, todayIsoDate } from '../../finance/moneyUi';
+import { shiftIsoDate, todayIsoDate } from '../../finance/moneyUi';
 
 type Props = {
   value: string;
   onChange: (isoDate: string) => void;
+  hideLabel?: boolean;
 };
 
-const TransactionDateSelector: React.FC<Props> = ({ value, onChange }) => {
-  const { t, i18n } = useTranslation('capture');
+const TransactionDateSelector: React.FC<Props> = ({ value, onChange, hideLabel }) => {
+  const { t } = useTranslation('capture');
   const today = todayIsoDate();
   const yesterday = shiftIsoDate(today, -1);
   const isCustom = value !== today && value !== yesterday;
   const [picking, setPicking] = useState(isCustom);
 
   return (
-    <div>
-      <div className="money-form-label">{t('money.whenDidItHappen')}</div>
-      <div className="money-date-quick" role="group" aria-label={t('money.whenDidItHappen')}>
+    <div className="money-when">
+      <div className="money-form-label" id="money-when-label">
+        {hideLabel ? <span className="money-sr-only">{t('money.whenDidItHappen')}</span> : t('money.whenDidItHappen')}
+      </div>
+      <div className="money-choice" role="group" aria-labelledby="money-when-label">
         <button
           type="button"
-          className={`money-chip${value === today ? ' is-active' : ''}`}
-          aria-pressed={value === today}
+          className={value === today && !picking ? 'is-active' : ''}
+          aria-pressed={value === today && !picking}
           onClick={() => {
             setPicking(false);
             onChange(today);
@@ -31,8 +34,8 @@ const TransactionDateSelector: React.FC<Props> = ({ value, onChange }) => {
         </button>
         <button
           type="button"
-          className={`money-chip${value === yesterday ? ' is-active' : ''}`}
-          aria-pressed={value === yesterday}
+          className={value === yesterday && !picking ? 'is-active' : ''}
+          aria-pressed={value === yesterday && !picking}
           onClick={() => {
             setPicking(false);
             onChange(yesterday);
@@ -42,20 +45,20 @@ const TransactionDateSelector: React.FC<Props> = ({ value, onChange }) => {
         </button>
         <button
           type="button"
-          className={`money-chip${picking || isCustom ? ' is-active' : ''}`}
+          className={picking || isCustom ? 'is-active' : ''}
           aria-pressed={picking || isCustom}
           onClick={() => setPicking(true)}
         >
           {t('money.pickDate')}
         </button>
       </div>
-      <p className="money-summary-note">{formatLongDate(value, i18n.language)}</p>
       {picking || isCustom ? (
-        <label className="money-form-label" style={{ marginTop: 8 }}>
-          {t('dateLabel')}
+        <label className="money-form-label money-when__date">
+          <span className="money-sr-only">{t('dateLabel')}</span>
           <input
             type="date"
             value={value}
+            aria-label={t('dateLabel')}
             onChange={(e) => {
               if (!e.target.value) return;
               onChange(e.target.value);

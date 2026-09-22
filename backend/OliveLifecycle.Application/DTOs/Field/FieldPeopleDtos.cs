@@ -60,8 +60,12 @@ public class FieldInviteDto
     public string? DisplayName { get; set; }
     public string Status { get; set; } = "pending";
     public DateTime ExpiresAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? AcceptedBy { get; set; }
     public string ShareUrl { get; set; } = string.Empty;
     public string WhatsAppUrl { get; set; } = string.Empty;
+    public string? MailtoUrl { get; set; }
+    public bool EmailSent { get; set; }
 }
 
 public class UpdateFieldPersonDto

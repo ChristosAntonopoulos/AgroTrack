@@ -87,6 +87,12 @@ export type HarvestOilEntry = {
   batchId?: string;
   harvestRecordId?: string;
   harvestRecordIds?: string[];
+  /** Litres already sold from this lot (farmer share). */
+  soldLitres?: number;
+  /** Pack already sold — subtracted from stored tins / bulk on the next sale. */
+  soldTin16?: number;
+  soldTin17?: number;
+  soldBulkLitres?: number;
   createdAt: string;
 };
 

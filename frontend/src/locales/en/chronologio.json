@@ -163,6 +163,7 @@
     "historyStartsHere": "This is where the recorded history of this field begins.",
     "historyStartsHereAll": "This is where the recorded history of your fields begins.",
     "pinnedSection": "Pinned · {{count}}",
+    "harvestDayOpen": "Open",
     "jumpToDate": "Go to date",
     "emptyPeriod": "No records yet",
     "emptyYear": "No records yet for {{year}}.",

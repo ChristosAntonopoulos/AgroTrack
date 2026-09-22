@@ -3,15 +3,16 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Card from '../Common/Card';
 import Button from '../Common/Button';
-import { GrovePerson } from './grovePeople';
+import { GrovePerson, linkedFieldIds } from './grovePeople';
 import PhoneActions from './PhoneActions';
+import FieldLinkPills from './FieldLinkPills';
 import { fieldPeopleService } from '../../services/fieldPeopleService';
 import type { Field } from '../../services/fieldService';
 import '../../pages/PartnersPage.css';
 
 type Props = {
   person: GrovePerson;
-  fieldId: string;
+  fieldId?: string;
   fields?: Field[];
   canManage?: boolean;
   onEditContact?: (person: GrovePerson) => void;
@@ -36,10 +37,12 @@ const PersonCard: React.FC<Props> = ({
   onRemoved,
 }) => {
   const { t } = useTranslation(['partners', 'common']);
-  const linkFieldId = person.fieldIds?.[0] || fieldId;
+  const connectedIds = linkedFieldIds(person);
+  const linkFieldId = fieldId || connectedIds[0] || '';
   const fieldName =
+    fields.find((f) => f.id === fieldId)?.name ||
     fields.find((f) => f.id === linkFieldId)?.name ||
-    fields.find((f) => person.fieldIds?.includes(f.id))?.name;
+    fields.find((f) => connectedIds.includes(f.id))?.name;
   const profileTo = person.listed && person.userId
     ? `/partners/${person.userId}${linkFieldId ? `?${new URLSearchParams({ fieldId: linkFieldId }).toString()}` : ''}`
     : '';
@@ -60,6 +63,7 @@ const PersonCard: React.FC<Props> = ({
             <h3>{person.displayName}</h3>
             {person.phone ? <p className="partner-person-phone">{person.phone}</p> : null}
             {person.email ? <p className="partner-person-phone">{person.email}</p> : null}
+            <FieldLinkPills fieldIds={connectedIds} fields={fields} />
           </div>
         </div>
         {person.serviceLabels.length > 0 ? (
@@ -85,37 +89,46 @@ const PersonCard: React.FC<Props> = ({
               {t('partners:inviteToOleachron')}
             </Button>
           ) : null}
-          {profileTo ? (
-            <Button as={Link} to={profileTo} variant="ghost" size="sm">
-              {t('partners:contact')}
-            </Button>
-          ) : null}
-          {person.savedContact && onEditContact ? (
-            <Button variant="ghost" size="sm" onClick={() => onEditContact(person)}>
-              {t('partners:editContact')}
-            </Button>
-          ) : null}
-          {canManage && person.membership && !person.connections.includes('owner') && person.userId ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="partner-remove-action"
-              onClick={async () => {
-                const confirmMsg = fieldName
-                  ? t('partners:removeMemberConfirm', { name: person.displayName, field: fieldName })
-                  : t('partners:removeMember');
-                if (!window.confirm(confirmMsg)) return;
-                const ids = person.fieldIds?.length ? person.fieldIds : fieldId ? [fieldId] : [];
-                await Promise.all(ids.map((id) => fieldPeopleService.removeMembership(id, person.userId!)));
-                onRemoved?.();
-              }}
-            >
-              {fieldName
-                ? t('partners:removeMemberFromField', { field: fieldName })
-                : t('partners:removeMember')}
-            </Button>
-          ) : null}
         </div>
+        {person.userId || person.savedContact ? (
+          <p className="partner-assign-hint">
+            {person.userId ? t('partners:assignOutcomeCollaborator') : t('partners:assignOutcomeContact')}
+          </p>
+        ) : null}
+        {(profileTo || (person.savedContact && onEditContact) || (canManage && person.membership && !person.connections.includes('owner') && person.userId)) ? (
+        <details className="partner-more">
+          <summary>{t('partners:moreActions')}</summary>
+          <div className="partner-actions">
+            {profileTo ? (
+              <Button as={Link} to={profileTo} variant="ghost" size="sm">
+                {t('partners:contact')}
+              </Button>
+            ) : null}
+            {person.savedContact && onEditContact ? (
+              <Button variant="ghost" size="sm" onClick={() => onEditContact(person)}>
+                {t('partners:editContact')}
+              </Button>
+            ) : null}
+            {canManage && person.membership && !person.connections.includes('owner') && person.userId && fieldId ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="partner-remove-action"
+                onClick={async () => {
+                  const confirmMsg = fieldName
+                    ? t('partners:revokeAccessConfirm', { name: person.displayName, field: fieldName })
+                    : t('partners:revokeAccess');
+                  if (!window.confirm(confirmMsg)) return;
+                  await fieldPeopleService.removeMembership(fieldId, person.userId!);
+                  onRemoved?.();
+                }}
+              >
+                {t('partners:revokeAccess')}
+              </Button>
+            ) : null}
+          </div>
+        </details>
+        ) : null}
       </div>
     </Card>
   );

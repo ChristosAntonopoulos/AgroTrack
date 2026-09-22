@@ -22,6 +22,7 @@ public class PhotoDto
     public string FieldAssignment { get; set; } = "unassigned";
     public double? FieldMatchScore { get; set; }
     public string? AssignmentReason { get; set; }
+    public string? Caption { get; set; }
     public string Kind { get; set; } = "general";
     public string? ContentHash { get; set; }
     public int? Width { get; set; }
@@ -33,6 +34,7 @@ public class PhotoDto
     public string? LinkedStatus { get; set; }
     public bool LinkBroken { get; set; }
     public bool CanTrash { get; set; }
+    public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -74,6 +76,8 @@ public class UpdatePhotoDto
 {
     public string? Kind { get; set; }
     public DateTime? CapturedAt { get; set; }
+    /// <summary>Null leaves the caption unchanged. Empty clears it.</summary>
+    public string? Caption { get; set; }
 }
 
 public class LinkPhotoDto
@@ -91,6 +95,9 @@ public class PhotoQueryDto
     public string? OwnerType { get; set; }
     /// <summary>standalone | linked | all</summary>
     public string? LinkStatus { get; set; }
+    /// <summary>newest (default) or oldest, by capture time.</summary>
+    public string? Sort { get; set; }
+    public bool TrashedOnly { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 48;
 }

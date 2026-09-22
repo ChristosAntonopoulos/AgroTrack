@@ -52,6 +52,9 @@ public sealed class MediaAttachmentQuery
     public FieldAssignmentStatus? FieldAssignment { get; init; }
     public MediaOwnerType? OwnerType { get; init; }
     public bool? LinkedOnly { get; init; }
+    /// <summary>newest (default) or oldest.</summary>
+    public string? Sort { get; init; }
+    public bool TrashedOnly { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 48;
 }

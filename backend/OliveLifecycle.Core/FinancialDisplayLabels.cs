@@ -9,8 +9,8 @@ public static class FinancialDisplayLabels
 {
     public const string UnassignedFieldEl = "Γενική εκμετάλλευση";
     public const string UnassignedFieldEn = "General farm";
-    public const string ResultYearHelpEl = "Το έτος στο οποίο θέλεις να υπολογιστεί αυτή η καταχώρηση.";
-    public const string ResultYearHelpEn = "The year this entry should count toward.";
+    public const string ResultYearHelpEl = "Η χρονιά συγκομιδής στην οποία μετράει η καταχώρηση (1 Φεβ – 31 Ιαν). Ο Ιανουάριος μένει στη συγκομιδή που άρχισε τον προηγούμενο Φεβρουάριο.";
+    public const string ResultYearHelpEn = "The harvest year this entry counts toward (1 Feb – 31 Jan). January stays with the harvest that started the previous February.";
     public const string NoIncomeRecordedEl = "Δεν έχει καταχωρηθεί ακόμη έσοδο";
     public const string NoIncomeRecordedEn = "No income has been recorded yet";
     public const string NoEntriesEl = "Δεν υπάρχουν ακόμη καταχωρήσεις";

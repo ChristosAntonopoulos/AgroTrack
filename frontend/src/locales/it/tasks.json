@@ -159,6 +159,8 @@
       "assigneeHintFamily": "Famiglia",
       "assigneeHintAdvisor": "Consulente",
       "assigneeHintContact": "Contatto",
+      "assignOutcomeContact": "Il lavoro verrà registrato con questa persona come responsabile. L’app non invierà una notifica.",
+      "assignOutcomeCollaborator": "Il collaboratore vedrà l’assegnazione nell’app.",
       "decideLater": "Deciderò più tardi",
       "collaborator": "Collaboratore",
       "more": "Altro",

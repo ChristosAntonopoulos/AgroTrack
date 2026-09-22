@@ -28,6 +28,7 @@ type Props = {
 
 const SavedContactSheet: React.FC<Props> = ({
   open = true,
+  fieldId,
   fields,
   categories = [],
   existing,
@@ -39,7 +40,11 @@ const SavedContactSheet: React.FC<Props> = ({
   const [phone, setPhone] = useState(existing?.phone || '');
   const [email, setEmail] = useState(existing?.email || '');
   const [notes, setNotes] = useState(existing?.notes || '');
-  const fieldIds = existing?.fieldIds?.length ? existing.fieldIds : fields.map((field) => field.id);
+  const fieldIds = existing?.fieldIds?.length
+    ? existing.fieldIds
+    : fieldId
+      ? [fieldId]
+      : [];
   const [serviceCategoryIds, setServiceCategoryIds] = useState<string[]>(existing?.serviceCategoryIds || []);
   const [source, setSource] = useState<'Manual' | 'PhoneBook'>(existing?.source || 'Manual');
   const [saving, setSaving] = useState(false);
@@ -113,13 +118,13 @@ const SavedContactSheet: React.FC<Props> = ({
   return (
     <PartnersSheet
       open={open}
-      title={existing ? t('partners:editContact') : t('partners:saveContact')}
+      title={existing ? t('partners:editContact') : t('partners:newContact')}
       subtitle={t('partners:saveContactHint')}
       onClose={onClose}
       footer={
         <div className="partners-sheet-actions">
           <Button type="button" loading={saving} disabled={!name.trim()} onClick={() => void save()}>
-            {existing ? t('common:save') : t('partners:saveContact')}
+            {existing ? t('partners:saveContactEdit') : t('partners:saveContactCreate')}
           </Button>
           {existing ? (
             <Button type="button" variant="outline" onClick={() => void remove()} loading={deleting}>
@@ -136,6 +141,17 @@ const SavedContactSheet: React.FC<Props> = ({
         <Button type="button" variant="outline" className="btn-full-width" onClick={() => void fromPhone()}>
           {t('partners:fromPhone')}
         </Button>
+      ) : null}
+
+      {fieldIds.length > 0 ? (
+        <p className="partners-field-context">
+          {t('partners:fieldContext', {
+            field: fields
+              .filter((field) => fieldIds.includes(field.id))
+              .map((field) => field.name)
+              .join(', ') || fieldId,
+          })}
+        </p>
       ) : null}
 
       <form
