@@ -47,18 +47,11 @@ public static class FamilyDemoSeeder
                 {
                     UserId = DemoFarmDataSeeder.FamilyUserId,
                     Role = "Family",
-                    Modules =
-                    [
-                        FamilyModules.Fields,
-                        FamilyModules.Money,
-                        FamilyModules.Harvest,
-                        FamilyModules.Documents,
-                        FamilyModules.Chronologio,
-                    ],
-                    AccessLevel = FamilyAccessLevels.Help,
+                    Modules = DemoFarmDataSeeder.FamilySeatModules.ToList(),
+                    AccessLevel = FamilyAccessLevels.Work,
                     Status = FamilyMemberStatuses.Active,
                     InvitedBy = DemoFarmDataSeeder.OwnerId,
-                    DisplayName = "Ελένη Παπαδοπούλου",
+                    DisplayName = DemoFarmDataSeeder.FamilyDisplayName,
                     Email = "family@olivefarm.com",
                     CreatedAt = now.AddDays(-180),
                 });
@@ -68,15 +61,9 @@ public static class FamilyDemoSeeder
             {
                 existing.Role = "Family";
                 existing.UserId = DemoFarmDataSeeder.FamilyUserId;
-                existing.Modules =
-                [
-                    FamilyModules.Fields,
-                    FamilyModules.Money,
-                    FamilyModules.Harvest,
-                    FamilyModules.Documents,
-                    FamilyModules.Chronologio,
-                ];
-                existing.AccessLevel = FamilyAccessLevels.Help;
+                existing.Modules = DemoFarmDataSeeder.FamilySeatModules.ToList();
+                existing.AccessLevel = FamilyAccessLevels.Work;
+                existing.DisplayName = DemoFarmDataSeeder.FamilyDisplayName;
                 existing.Status = FamilyMemberStatuses.Active;
             }
 
@@ -84,7 +71,7 @@ public static class FamilyDemoSeeder
         }
 
         logger.LogInformation(
-            "Seeded family seats: family@olivefarm.com Family on {Count} Filiatra fields (modules money+harvest+documents+calendar+fields, help).",
+            "Seeded family seats: family@olivefarm.com keeps money, harvest, and papers on {Count} Filiatra fields.",
             DemoFarmDataSeeder.FieldIds.Length);
     }
 }

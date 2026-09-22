@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import Button from '../Common/Button';
 import {
   formatRecommendedPeriod,
-  proposalExplanation,
   proposalTitle,
   type ProposalTemplateGroup,
 } from '../../utils/proposalPresentation';
@@ -34,7 +33,6 @@ const GroupedProposalCard: React.FC<GroupedProposalCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const title = proposalTitle(group.proposals[0], i18n.language);
   const period = formatRecommendedPeriod(group.proposals[0], i18n.language);
-  const explanation = proposalExplanation(group.proposals[0], i18n.language);
   const fieldLabels = group.fieldIds.map((id) => fieldNames[id] || unknownField);
   const visible = expanded ? fieldLabels : fieldLabels.slice(0, VISIBLE_FIELDS);
   const remaining = fieldLabels.length - visible.length;
@@ -70,7 +68,6 @@ const GroupedProposalCard: React.FC<GroupedProposalCardProps> = ({
         <button type="button" className="task-proposal-why-link" onClick={onWhy}>
           {t('fieldWork.proposal.whyRecommended')}
         </button>
-        <p className="task-proposal-explanation">{explanation}</p>
       </div>
       <div className="task-proposal-actions">
         <Button variant="primary" size="lg" onClick={onSchedule} disabled={busy}>

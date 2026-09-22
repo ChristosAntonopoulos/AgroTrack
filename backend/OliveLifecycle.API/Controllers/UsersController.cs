@@ -12,11 +12,59 @@ namespace OliveLifecycle.API.Controllers;
 public class UsersController : BaseApiController
 {
     private readonly IUserService _userService;
+    private readonly IAccountService _accountService;
 
-    public UsersController(IUserService userService, ICurrentUserContext currentUser)
+    public UsersController(IUserService userService, IAccountService accountService, ICurrentUserContext currentUser)
         : base(currentUser)
     {
         _userService = userService;
+        _accountService = accountService;
+    }
+
+    [HttpPut("me")]
+    public async Task<ActionResult<UserDto>> UpdateMe([FromBody] UpdateProfileDto dto, CancellationToken cancellationToken)
+    {
+        var user = await _accountService.UpdateProfileAsync(UserContext.UserId, dto, cancellationToken);
+        return OkResult(user);
+    }
+
+    [HttpPost("me/password")]
+    public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDto dto, CancellationToken cancellationToken)
+    {
+        await _accountService.ChangePasswordAsync(UserContext.UserId, dto, cancellationToken);
+        return Ok(new { changed = true });
+    }
+
+    [HttpPost("me/email")]
+    public async Task<ActionResult<RequestEmailChangeResponseDto>> RequestEmailChange(
+        [FromBody] RequestEmailChangeDto dto,
+        CancellationToken cancellationToken)
+    {
+        var response = await _accountService.RequestEmailChangeAsync(UserContext.UserId, dto, cancellationToken);
+        return OkResult(response);
+    }
+
+    [HttpPost("me/email/confirm")]
+    public async Task<ActionResult<UserDto>> ConfirmEmailChange(
+        [FromBody] ConfirmEmailChangeDto dto,
+        CancellationToken cancellationToken)
+    {
+        var user = await _accountService.ConfirmEmailChangeAsync(UserContext.UserId, dto, cancellationToken);
+        return OkResult(user);
+    }
+
+    [HttpGet("me/export")]
+    public async Task<ActionResult<AccountExportDto>> ExportMe(CancellationToken cancellationToken)
+    {
+        var export = await _accountService.ExportAsync(UserContext.UserId, cancellationToken);
+        return OkResult(export);
+    }
+
+    [HttpPost("me/deletion")]
+    public async Task<ActionResult> DeleteMe([FromBody] DeleteAccountDto dto, CancellationToken cancellationToken)
+    {
+        await _accountService.DeleteAsync(UserContext.UserId, dto, cancellationToken);
+        return Ok(new { deleted = true });
     }
 
     [HttpGet("me/preferences")]

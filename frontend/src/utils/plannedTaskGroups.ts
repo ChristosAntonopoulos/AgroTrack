@@ -70,12 +70,12 @@ export const groupPlannedTasks = (tasks: FieldTask[], now = new Date()): Planned
     .filter((group) => group.tasks.length > 0);
 };
 
+/** Same rows the task card and the work screen show. */
 export const checklistProgress = (task: FieldTask): { done: number; total: number } => {
   const items = task.checklist || [];
-  const scoped = items.some((item) => item.isEssential) ? items.filter((item) => item.isEssential) : items;
   return {
-    done: scoped.filter((item) => item.isAnswered).length,
-    total: scoped.length,
+    done: items.filter((item) => item.isAnswered).length,
+    total: items.length,
   };
 };
 

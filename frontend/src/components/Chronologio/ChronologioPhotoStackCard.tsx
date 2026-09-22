@@ -6,7 +6,7 @@ import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { collectChronologioImages } from '../../utils/chronologioPhotoGroups';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { presentActorName } from '../../chronologio/eventPresentation';
-import ChronologioThumbnail from './ChronologioThumbnail';
+import { ChronologioMediaImage } from './ChronologioThumbnail';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
 
 type Props = {
@@ -78,7 +78,13 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
           <div className={`chrono-photo-stack-collage ${collageClass}`} aria-hidden>
             {thumbs.length ? (
               thumbs.map((src, i) => (
-                <ChronologioThumbnail key={`${src}-${i}`} src={src} className="chrono-photo-stack-cell" />
+                <ChronologioMediaImage
+                  key={`${src}-${i}`}
+                  src={src}
+                  className="chrono-photo-stack-cell"
+                  retryLabel={t('chronologio:drawer.mediaRetry')}
+                  unavailableLabel={t('chronologio:drawer.mediaUnavailable', { index: i + 1 })}
+                />
               ))
             ) : (
               <span className="chrono-photo-stack-fallback">

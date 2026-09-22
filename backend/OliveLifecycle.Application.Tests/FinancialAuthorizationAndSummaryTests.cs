@@ -46,7 +46,7 @@ public class FinancialAuthorizationServiceTests
         var field = ActiveField();
         FieldPeopleRules.AddOrReplaceSeat(
             field,
-            FieldPersonRole.Family,
+            FieldPersonRole.Partner,
             "helper-1",
             [FamilyModules.Money, FamilyModules.Fields],
             FamilyAccessLevels.Work,
@@ -68,6 +68,37 @@ public class FinancialAuthorizationServiceTests
         Assert.True(_service.CanViewTransaction(result, PostedExpense("helper-1"), "helper-1"));
         Assert.False(_service.CanViewTransaction(result, PostedExpense("other"), "helper-1"));
         Assert.False(_service.CanViewTransaction(result, PostedIncome(), "helper-1"));
+    }
+
+    [Fact]
+    public async Task Family_WithMoney_SeesHouseholdBooks()
+    {
+        var field = ActiveField();
+        FieldPeopleRules.AddOrReplaceSeat(
+            field,
+            FieldPersonRole.Family,
+            "family-1",
+            [FamilyModules.Money, FamilyModules.Harvest, FamilyModules.Fields],
+            FamilyAccessLevels.Work,
+            "owner-1",
+            status: FamilyMemberStatuses.Active);
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
+        _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "family-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _access.Setup(a => a.CanUserModifyFieldAsync("field-1", "family-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _service.ResolveForFieldAsync("field-1", "family-1", Roles.FieldOwner);
+
+        Assert.False(result.IsOwner);
+        Assert.False(result.OwnExpensesOnly);
+        Assert.True(result.Can(FinancialCapabilities.ViewSummary));
+        Assert.True(result.Can(FinancialCapabilities.ViewIncome));
+        Assert.True(result.Can(FinancialCapabilities.AddIncome));
+        Assert.True(result.Can(FinancialCapabilities.AddExpense));
+        Assert.False(result.Can(FinancialCapabilities.Void));
+        Assert.True(_service.CanViewTransaction(result, PostedIncome(), "family-1"));
+        Assert.True(_service.CanViewTransaction(result, PostedExpense("owner-1"), "family-1"));
     }
 
     [Fact]

@@ -16,6 +16,7 @@
   "clearAllFilters": "Clear all",
   "removeFilter": "Remove {{label}}",
   "captureDateUsesToday": "Date set to today — you are viewing an older period.",
+  "captureDateChoose": "Choose a date inside {{period}}.",
   "primaryCategories": {
     "all": "All",
     "work": "Work",
@@ -182,6 +183,19 @@
     "metricYield": "Yield",
     "statRain": "{{mm}} mm",
     "statHeatDays": "{{count}} hot days",
+    "statHeatDays_one": "{{count}} hot day",
+    "statHeatDays_other": "{{count}} hot days",
+    "limitedRecords": "Limited records for this year",
+    "selectAllTypes": "All",
+    "clearTypes": "Clear",
+    "allTypesOn": "Every record type is visible.",
+    "typesOn": "{{count}} of {{total}} types",
+    "preset": {
+      "fieldWork": "Field work",
+      "harvestStory": "Harvest story",
+      "decisions": "Decisions",
+      "people": "People"
+    },
     "statFrostNights": "{{count}} frost nights",
     "peekMonth": "Month chapter",
     "peekYear": "Year chapter",
@@ -259,7 +273,19 @@
     "moneyUp": "+{{pct}}% versus last month",
     "moneyDown": "{{pct}}% less than last month",
     "harvestNotStarted": "Harvest has not started",
-    "harvestNoResult": "No harvest result has been recorded"
+    "harvestNoResult": "No harvest result has been recorded",
+    "focusTitle": {
+      "work": "Tasks · {{month}}",
+      "money": "Money · {{month}}",
+      "harvest": "Harvest · {{month}}",
+      "observation": "Observations · {{month}}"
+    },
+    "focusKicker": {
+      "work": "Tasks",
+      "money": "Transactions",
+      "harvest": "Harvest",
+      "observation": "Observations"
+    }
   },
   "yearView": {
     "inProgress": "In progress",
@@ -304,7 +330,19 @@
       "expensesUp": "+{{pct}}% more expenses than {{year}}",
       "expensesUp_ytd": "So far · +{{pct}}% more expenses than the same date in {{year}}",
       "expensesDown": "{{pct}}% fewer expenses than {{year}}",
-      "expensesDown_ytd": "So far · {{pct}}% fewer expenses than the same date in {{year}}"
+      "expensesDown_ytd": "So far · {{pct}}% fewer expenses than the same date in {{year}}",
+      "yield": "{{points}} yield points versus {{year}}",
+      "yield_ytd": "So far · {{points}} yield points versus {{year}}",
+      "inProgress": "{{year}} is still in progress. This comparison uses the same dates.",
+      "costPerKg": "Cost per kg of oil",
+      "costUp": "{{amount}} more per kg of oil than {{year}}",
+      "costUp_ytd": "So far · {{amount}} more per kg of oil than {{year}}",
+      "costDown": "{{amount}} less per kg of oil than {{year}}",
+      "costDown_ytd": "So far · {{amount}} less per kg of oil than {{year}}",
+      "fieldsOne": "Includes {{field}}",
+      "fieldsAll": "Includes {{fields}}",
+      "fieldsEvery": "Includes every field",
+      "drivers": "Months that made the difference"
     },
     "stages": {
       "afterHarvest": "After harvest",
@@ -348,7 +386,18 @@
     "weatherAfter": "Weather impact",
     "exactTime": "Time",
     "quantity": "Quantity",
-    "moneyCategory": "Type",
+    "moneyCategory": "Category",
+    "moreActions": "More",
+    "correctRecordHintLabel": "Correction",
+    "correctRecordHint": "Opens the completed task so the historical record can be corrected.",
+    "openPhotoN": "Open photo {{index}}",
+    "mediaUnavailable": "Photo {{index}} did not load",
+    "mediaRetry": "Try again",
+    "officialWeightKg": "kg official weight",
+    "sackChain": "{{count}} sacks",
+    "fruitChain": "{{kg}} kg official fruit weight",
+    "oilChain": "{{kg}} kg oil",
+    "yieldChain": "{{pct}}% yield",
     "generalOperation": "General operation",
     "date": "Date",
     "posting": "Posting state",
@@ -377,6 +426,9 @@
   },
   "weatherCard": {
     "label": "Weather",
+    "areaApplies": "Weather for the {{area}} area · applies to {{count}} nearby fields",
+    "nearbyApplies": "Same weather · applies to {{count}} nearby fields",
+    "activeField": "Weather · {{field}} · chosen because it is the active field",
     "feelsLike": "feels {{temp}}°",
     "updated": "Updated {{time}}",
     "stale": "Stale reading",
@@ -557,7 +609,9 @@
     "insightDrier": "Drier than last year",
     "insightGreener": "Trees looked greener",
     "insightBrowner": "Trees looked less green",
-    "insightMoistureUp": "Leaves held more moisture",
-    "insightMoistureDown": "Leaves held less moisture"
+    "insightMoistureUp": "Possible higher leaf moisture — from average humidity, not a direct leaf measurement",
+    "insightMoistureDown": "Possible lower leaf moisture — from average humidity, not a direct leaf measurement",
+    "historyBoundary": "Recorded through {{day}} {{month}} · anything after that is forecast",
+    "sharedFields": "Weather for {{names}}"
   }
 }

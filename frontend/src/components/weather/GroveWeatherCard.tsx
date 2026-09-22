@@ -20,6 +20,8 @@ type Props = {
   fieldWeather?: FieldWeather | null;
   snapshot?: WeatherData | null;
   fieldName?: string | null;
+  /** Area or selection note shown in place of a single field name. */
+  scopeNote?: string;
   onOpen?: () => void;
   embedded?: boolean;
   /** Journal header: temperature and the week, without the long reading. */
@@ -36,7 +38,15 @@ const iconFor = (mood: GroveWeatherMood, condition: string) => {
   return <Cloud size={28} strokeWidth={1.75} />;
 };
 
-const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, onOpen, embedded, compact }) => {
+const GroveWeatherCard: React.FC<Props> = ({
+  fieldWeather,
+  snapshot,
+  fieldName,
+  scopeNote,
+  onOpen,
+  embedded,
+  compact,
+}) => {
   const { t, i18n } = useTranslation('chronologio');
   const view = presentGroveWeather({ field: fieldWeather, snapshot });
   const range =
@@ -99,10 +109,10 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
 
       {!embedded && view.mood !== 'missing' ? <GroveWeekForecast fieldWeather={fieldWeather} /> : null}
 
-      {fieldName || updated ? (
+      {scopeNote || fieldName || updated ? (
         <p className="grove-weather-meta">
           {[
-            fieldName ? friendlyFieldLabel(fieldName) : null,
+            scopeNote || (fieldName ? friendlyFieldLabel(fieldName) : null),
             updated
               ? view.stale
                 ? t('weatherCard.stale')

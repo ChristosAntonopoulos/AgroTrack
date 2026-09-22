@@ -159,6 +159,21 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     [patch]
   );
 
+  /** Leave the comparison and open the days of the month that moved the numbers. */
+  const openComparedMonth = useCallback(
+    (year: number, month: number) => {
+      patch({
+        compareMode: null,
+        compare: null,
+        view: 'days',
+        zoom: null,
+        date: focusDateForMonth(year, month),
+        focus: null,
+      });
+    },
+    [patch]
+  );
+
   const setFilters = useCallback(
     (next: Partial<LivingFilters>) => {
       patch({
@@ -243,6 +258,7 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     openSeasonYear,
     focusSeasonYear,
     openMonth,
+    openComparedMonth,
     setFilters,
     clearFilters,
     setSelectedEntry,

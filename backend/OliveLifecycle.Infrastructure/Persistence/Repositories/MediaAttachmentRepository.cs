@@ -124,7 +124,7 @@ public class MediaAttachmentRepository
             filter &= Builders<MediaAttachmentDocument>.Filter.Eq(m => m.FieldId, fieldId);
         }
 
-        var documents = await Collection.Find(filter).Limit(5).ToListAsync(cancellationToken);
+        var documents = await Collection.Find(filter).Limit(25).ToListAsync(cancellationToken);
         return documents.Select(ToEntity).ToList();
     }
 

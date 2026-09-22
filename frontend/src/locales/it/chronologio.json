@@ -13,6 +13,7 @@
   "filtersTitle": "Filtra per tipo",
   "moreFilters": "Altri filtri",
   "captureDateUsesToday": "Data impostata a oggi — stai visualizzando un periodo precedente.",
+  "captureDateChoose": "Scegli una data dentro {{period}}.",
   "primaryCategories": {
     "all": "Tutto",
     "work": "Lavori",
@@ -175,6 +176,19 @@
     "metricYield": "Resa",
     "statRain": "{{mm}} mm",
     "statHeatDays": "{{count}} giorni di caldo",
+    "statHeatDays_one": "{{count}} giorno di caldo",
+    "statHeatDays_other": "{{count}} giorni di caldo",
+    "limitedRecords": "Poche registrazioni per quest'anno",
+    "selectAllTypes": "Tutti",
+    "clearTypes": "Pulisci",
+    "allTypesOn": "Sono visibili tutti i tipi di registrazione.",
+    "typesOn": "{{count}} di {{total}} tipi",
+    "preset": {
+      "fieldWork": "Lavori in campo",
+      "harvestStory": "Storia del raccolto",
+      "decisions": "Decisioni",
+      "people": "Persone"
+    },
     "statFrostNights": "{{count}} notti di gelo",
     "peekMonth": "Capitolo mese",
     "peekYear": "Capitolo anno",
@@ -241,7 +255,19 @@
     "moneyUp": "+{{pct}}% rispetto al mese precedente",
     "moneyDown": "{{pct}}% in meno rispetto al mese precedente",
     "harvestNotStarted": "La raccolta non è iniziata",
-    "harvestNoResult": "Nessun risultato di raccolta è stato registrato"
+    "harvestNoResult": "Nessun risultato di raccolta è stato registrato",
+    "focusTitle": {
+      "work": "Lavori · {{month}}",
+      "money": "Denaro · {{month}}",
+      "harvest": "Raccolta · {{month}}",
+      "observation": "Osservazioni · {{month}}"
+    },
+    "focusKicker": {
+      "work": "Lavori",
+      "money": "Movimenti",
+      "harvest": "Raccolta",
+      "observation": "Osservazioni"
+    }
   },
   "yearView": {
     "inProgress": "In corso",
@@ -274,7 +300,19 @@
       "olivesUp": "+{{pct}}% di olive in più rispetto al {{year}}",
       "olivesDown": "{{pct}}% di olive in meno rispetto al {{year}}",
       "expensesUp": "+{{pct}}% di spese in più rispetto al {{year}}",
-      "expensesDown": "{{pct}}% di spese in meno rispetto al {{year}}"
+      "expensesDown": "{{pct}}% di spese in meno rispetto al {{year}}",
+      "yield": "{{points}} punti di resa rispetto al {{year}}",
+      "yield_ytd": "Finora · {{points}} punti di resa rispetto al {{year}}",
+      "inProgress": "Il {{year}} è ancora in corso. Il confronto usa le stesse date.",
+      "costPerKg": "Costo per kg di olio",
+      "costUp": "{{amount}} in più per kg di olio rispetto al {{year}}",
+      "costUp_ytd": "Finora · {{amount}} in più per kg di olio rispetto al {{year}}",
+      "costDown": "{{amount}} in meno per kg di olio rispetto al {{year}}",
+      "costDown_ytd": "Finora · {{amount}} in meno per kg di olio rispetto al {{year}}",
+      "fieldsOne": "Include {{field}}",
+      "fieldsAll": "Include {{fields}}",
+      "fieldsEvery": "Include tutti i campi",
+      "drivers": "Mesi che hanno fatto la differenza"
     },
     "stages": {
       "afterHarvest": "Dopo la raccolta",
@@ -310,7 +348,18 @@
     "weatherAfter": "Effetto del meteo",
     "exactTime": "Ora",
     "quantity": "Quantità",
-    "moneyCategory": "Tipo",
+    "moneyCategory": "Categoria",
+    "moreActions": "Altro",
+    "correctRecordHintLabel": "Correzione",
+    "correctRecordHint": "Apre il lavoro completato per correggere la registrazione storica.",
+    "openPhotoN": "Apri foto {{index}}",
+    "mediaUnavailable": "La foto {{index}} non si è caricata",
+    "mediaRetry": "Riprova",
+    "officialWeightKg": "kg peso ufficiale",
+    "sackChain": "{{count}} sacchi",
+    "fruitChain": "{{kg}} kg peso ufficiale del frutto",
+    "oilChain": "{{kg}} kg di olio",
+    "yieldChain": "{{pct}}% resa",
     "generalOperation": "Operazione generale",
     "date": "Data",
     "posting": "Stato di registrazione",
@@ -337,6 +386,9 @@
   },
   "weatherCard": {
     "label": "Meteo",
+    "areaApplies": "Meteo dell'area {{area}} · vale per {{count}} campi vicini",
+    "nearbyApplies": "Stesso meteo · vale per {{count}} campi vicini",
+    "activeField": "Meteo · {{field}} · scelto perché è il campo attivo",
     "feelsLike": "percepiti {{temp}}°",
     "updated": "Aggiornato {{time}}",
     "stale": "Lettura datata",
@@ -506,8 +558,10 @@
     "insightDrier": "Più secco dell’anno scorso",
     "insightGreener": "Alberi più verdi",
     "insightBrowner": "Alberi meno verdi",
-    "insightMoistureUp": "Le foglie hanno trattenuto più umidità",
-    "insightMoistureDown": "Le foglie hanno trattenuto meno umidità"
+    "insightMoistureUp": "Possibile umidità fogliare più alta — dalla media di umidità, non da una misura diretta sulle foglie",
+    "insightMoistureDown": "Possibile umidità fogliare più bassa — dalla media di umidità, non da una misura diretta sulle foglie",
+    "historyBoundary": "Dati fino al {{day}} {{month}} · ciò che segue è previsione",
+    "sharedFields": "Meteo per {{names}}"
   },
   "activeFilters": "Filtri attivi",
   "clearAllFilters": "Cancella tutti",

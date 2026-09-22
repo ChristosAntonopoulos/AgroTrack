@@ -3,6 +3,7 @@
   "ctaPlus": "+ Registra",
   "title": "Registra",
   "whatToRecord": "Cosa vuoi registrare?",
+  "alsoRecord": "Anche",
   "types": {
     "observation": {
       "title": "Nota",
@@ -81,6 +82,7 @@
   },
   "work": {
     "whatWork": "Che lavoro è stato fatto?",
+    "chooseType": "Scegli il tipo di lavoro.",
     "optionalCost": "Costo (opzionale)",
     "optionalNote": "Nota (opzionale)",
     "saved": "Lavoro registrato."
@@ -227,6 +229,22 @@
     "buyerPhoneUnavailable": "L'importazione dal telefono non è disponibile in questo browser.",
     "buyerTypeName": "Oppure scrivi un nome",
     "buyerChange": "Cambia",
-    "buyerClear": "Cancella"
+    "buyerClear": "Cancella",
+    "entryName": "Nome (facoltativo)",
+    "splitOne": "Un campo",
+    "splitAcross": "Dividi tra i campi",
+    "splitEqual": "In parti uguali",
+    "splitByArea": "Per superficie",
+    "splitNeedTwo": "Scegli almeno due campi.",
+    "splitMissingArea": "{{name}} non ha superficie, quindi resta fuori da una divisione per superficie.",
+    "splitMissingAreaShort": "Una divisione per superficie richiede almeno due campi con superficie.",
+    "splitNote": "Divisa tra {{count}} campi",
+    "repeatOnce": "Una volta",
+    "repeatMonthly": "Ogni mese in questa annata",
+    "repeatNote": "Ripetuta {{count}} volte in questa annata",
+    "seriesPreview": "Verranno registrate {{count}} voci, {{amount}} € in totale.",
+    "seriesSaved": "{{count}} voci registrate.",
+    "seriesPartial": "Salvate {{saved}} di {{total}}. Il resto non è stato salvato.",
+    "seriesTooMany": "Sono troppe voci insieme."
   }
 }

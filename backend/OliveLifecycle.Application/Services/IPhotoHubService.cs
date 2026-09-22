@@ -86,4 +86,10 @@ public sealed class PhotoUploadFile
     public required Stream Content { get; init; }
     public required string FileName { get; init; }
     public string? ContentType { get; init; }
+    public DateTime? CapturedAt { get; init; }
+    public double? Latitude { get; init; }
+    public double? Longitude { get; init; }
+    /// <summary>SHA-256 of the original bytes when the client transcoded HEIC to JPEG.</summary>
+    public string? SourceHash { get; init; }
+    public bool Transcoded { get; init; }
 }

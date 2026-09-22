@@ -13,6 +13,7 @@ import {
   preferredCaptureTypeFromCategory,
   resolveChronologioCaptureDate,
 } from '../../chronologio/captureContext';
+import { selectedChronologioTypes } from '../../chronologio/categorySelection';
 import {
   viewFromZoom,
   VIEW_TO_ZOOM,
@@ -80,7 +81,7 @@ const ChronologioChrome: React.FC<Props> = ({
   onCompareToggle,
   onJumpToDate,
 }) => {
-  const { t } = useTranslation(['chronologio', 'capture']);
+  const { t, i18n } = useTranslation(['chronologio', 'capture']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const capture = useCaptureOptional();
@@ -112,13 +113,16 @@ const ChronologioChrome: React.FC<Props> = ({
 
   const activeChips = useMemo((): ActiveChip[] => {
     const chips: ActiveChip[] = [];
-    if (filters.category && filters.category !== 'all') {
+    selectedChronologioTypes(filters.category).forEach((typeId) => {
       chips.push({
-        id: `type:${filters.category}`,
-        label: t(`chronologio:${typeLabelKey(filters.category)}`),
-        onRemove: () => onSetFilters({ category: 'all' }),
+        id: `type:${typeId}`,
+        label: t(`chronologio:${typeLabelKey(typeId)}`),
+        onRemove: () => {
+          const next = selectedChronologioTypes(filters.category).filter((id) => id !== typeId);
+          onSetFilters({ category: next.length ? next.join(',') : 'all' });
+        },
       });
-    }
+    });
     if (!fieldMode && filters.fieldId) {
       const field = fields.find((f) => f.id === filters.fieldId);
       chips.push({
@@ -152,15 +156,18 @@ const ChronologioChrome: React.FC<Props> = ({
 
   const openCapture = () => {
     if (!capture) return;
-    const { occurredAt, dateDefaultedToToday } = resolveChronologioCaptureDate({
+    const captureDate = resolveChronologioCaptureDate({
       zoom,
       focusDate,
+      language: i18n.language,
     });
     capture.openCapture({
       fieldId: filters.fieldId || fieldId || undefined,
       preferredType: preferredCaptureTypeFromCategory(filters.category),
-      occurredAt,
-      dateDefaultedToToday,
+      occurredAt: captureDate.occurredAt,
+      dateDefaultedToToday: captureDate.dateDefaultedToToday,
+      dateNeedsChoice: captureDate.dateNeedsChoice,
+      periodLabel: captureDate.periodLabel,
     });
   };
 

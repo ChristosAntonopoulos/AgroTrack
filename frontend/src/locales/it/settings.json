@@ -23,14 +23,32 @@
     "userId": "ID utente",
     "appVersion": "Versione app",
     "profileTitle": "Profilo",
-    "profileUnavailable": "La modifica del nome non è disponibile in questa versione. Di seguito vedi il profilo attuale.",
+    "profileHelp": "È il nome che le altre persone vedono sul tuo lavoro.",
     "firstName": "Nome",
     "lastName": "Cognome",
+    "saveName": "Salva nome",
+    "nameSaved": "Nome salvato.",
+    "nameRequired": "Inserisci il nome.",
     "emailTitle": "Email",
-    "emailChangeUnavailable": "La modifica o verifica dell'email non è ancora disponibile.",
+    "emailHelp": "Inviamo un codice al nuovo indirizzo. Diventa l'email di accesso solo dopo che inserisci il codice.",
+    "verified": "Verificata",
+    "newEmail": "Nuova email",
+    "currentPassword": "Password attuale",
+    "sendCode": "Invia codice",
+    "codeSent": "Inserisci il codice di 6 cifre inviato a {{email}}.",
+    "codeLabel": "Codice di verifica",
+    "confirmEmail": "Conferma nuova email",
+    "emailUpdated": "Email aggiornata. Usala per accedere anche sugli altri dispositivi.",
+    "devCode": "In questa build l'email non viene inviata. Il codice è {{code}}.",
     "passwordTitle": "Password",
-    "passwordHelp": "Non c'è ancora cambio password in-app. Usa il ripristino per impostarne una nuova.",
-    "passwordResetLink": "Reimposta password via email"
+    "passwordHelp": "Scegli una nuova password. Resti connesso su questo dispositivo.",
+    "newPassword": "Nuova password",
+    "confirmPassword": "Conferma nuova password",
+    "changePassword": "Cambia password",
+    "passwordUpdated": "Password aggiornata.",
+    "passwordMismatch": "Le due password nuove non coincidono.",
+    "passwordTooShort": "Usa almeno 8 caratteri.",
+    "passwordResetLink": "Password dimenticata?"
   },
   "appearance": {
     "theme": "Tema",
@@ -110,7 +128,8 @@
   },
   "notifications": {
     "title": "Notifiche",
-    "deviceOnlyHint": "Queste scelte sono salvate su questo dispositivo. Controllano cosa vuoi vedere qui; non modificano le email dal server.",
+    "accountHint": "Salvate sul tuo account insieme alla casella. Le stesse scelte valgono su ogni dispositivo in cui accedi.",
+    "accountHintDemo": "Salvate su questo account demo nel browser, con esempi di assegnazioni e approvazioni. Su un account OLEACHRON reale ti seguono su ogni dispositivo.",
     "email": "Notifiche email",
     "taskAssignment": "Notifiche assegnazione attività",
     "deadline": "Promemoria scadenze",
@@ -134,14 +153,28 @@
     }
   },
   "privacy": {
-    "exportUnavailable": "L'account contiene profilo, campi, attività, foto, registrazioni finanziarie e messaggi. Un export scaricabile non è ancora disponibile."
+    "exportHelp": "Scarica una copia di profilo, preferenze di notifica, campi e notifiche. Foto e registri di denaro si chiedono al supporto.",
+    "exportButton": "Scarica i miei dati",
+    "exportWorking": "Preparazione del file…",
+    "exportDone": "Download avviato.",
+    "supportTitle": "Chiedi al supporto",
+    "supportBody": "Per una correzione, un archivio completo o la conferma scritta che i dati dell'oliveto sono stati cancellati, scrivi al supporto OLEACHRON. Includi l'email di accesso.",
+    "supportAction": "Email al supporto"
   },
   "sessions": {
     "thisDevice": "Questo dispositivo",
     "thisDeviceHint": "OLEACHRON traccia solo la sessione in questo browser. Esci per terminarla."
   },
   "danger": {
-    "deleteUnavailable": "L'eliminazione dell'account non è disponibile in questa versione."
+    "deleteHelp": "Chiudere l'account ti disconnette e toglie nome ed email dall'accesso. I dati dell'oliveto restano finché il supporto non conferma la cancellazione.",
+    "deleteButton": "Chiudi account",
+    "confirmTitle": "Chiudere questo account?",
+    "confirmBody": "Inserisci la password e digita l'email per confermare. Verrai disconnesso.",
+    "confirmEmail": "Digita la tua email",
+    "deletePassword": "Password",
+    "deleteAction": "Chiudi account in modo permanente",
+    "cancel": "Annulla",
+    "emailMismatch": "Non corrisponde alla tua email."
   },
   "technical": {
     "purpose": "Condividi la versione dell'app con l'assistenza se qualcosa non va.",

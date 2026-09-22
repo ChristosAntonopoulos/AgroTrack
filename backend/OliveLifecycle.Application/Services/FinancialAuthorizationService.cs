@@ -137,7 +137,11 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
                 return FinancialAccess.None;
             }
 
-            return CollaboratorAccess();
+            // Family keeps the household books. A partner with the money module
+            // may only add their own expenses.
+            return seat.Role == FieldPersonRole.Family
+                ? HouseholdAccess()
+                : CollaboratorAccess();
         }
 
         return FinancialAccess.None;
@@ -147,6 +151,11 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
     {
         IsOwner = true,
         Capabilities = FinancialCapabilities.OwnerAll.ToHashSet()
+    };
+
+    private static FinancialAccess HouseholdAccess() => new()
+    {
+        Capabilities = FinancialCapabilities.HouseholdBooks.ToHashSet()
     };
 
     private static FinancialAccess CollaboratorAccess() => new()

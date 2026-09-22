@@ -7,16 +7,18 @@ import {
 } from './taskViewState';
 
 describe('task view URL state', () => {
-  it('defaults to now and remaps legacy views', () => {
-    expect(parseTaskView(null)).toBe('now');
-    expect(DEFAULT_TASK_VIEW).toBe('now');
-    expect(parseTaskView('now')).toBe('now');
-    expect(parseTaskView('upcoming')).toBe('upcoming');
-    expect(parseTaskView('proposals')).toBe('proposals');
-    expect(parseTaskView('history')).toBe('history');
-    expect(parseTaskView('planned')).toBe('upcoming');
-    expect(parseTaskView('active')).toBe('now');
-    expect(parseTaskView('completed')).toBe('now');
+  it('defaults to to-do and remaps legacy views', () => {
+    expect(parseTaskView(null)).toBe('todo');
+    expect(DEFAULT_TASK_VIEW).toBe('todo');
+    expect(parseTaskView('todo')).toBe('todo');
+    expect(parseTaskView('done')).toBe('done');
+    expect(parseTaskView('now')).toBe('todo');
+    expect(parseTaskView('upcoming')).toBe('todo');
+    expect(parseTaskView('proposals')).toBe('todo');
+    expect(parseTaskView('planned')).toBe('todo');
+    expect(parseTaskView('active')).toBe('todo');
+    expect(parseTaskView('history')).toBe('done');
+    expect(parseTaskView('completed')).toBe('done');
   });
 
   it('parses a result year only when it is a plausible calendar year', () => {
@@ -32,21 +34,21 @@ describe('task view URL state', () => {
 
   it('writes view; year only when non-default; field when selected', () => {
     const params = buildTaskSearchParams({
-      view: 'upcoming',
+      view: 'todo',
       year: 2026,
       defaultYear: 2026,
       fieldId: '',
     });
-    expect(params.get('view')).toBe('upcoming');
+    expect(params.get('view')).toBe('todo');
     expect(params.get('year')).toBeNull();
     expect(params.get('fieldId')).toBeNull();
 
     const filtered = buildTaskSearchParams({
-      view: 'proposals',
+      view: 'done',
       year: 2025,
       defaultYear: 2026,
       fieldId: 'field-2',
     });
-    expect(filtered.toString()).toBe('view=proposals&year=2025&fieldId=field-2');
+    expect(filtered.toString()).toBe('view=done&year=2025&fieldId=field-2');
   });
 });

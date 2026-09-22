@@ -87,9 +87,14 @@
   },
   "notifications": {
     "title": "Notifications",
-    "subtitle": "Alerts, questions, and updates for your grove",
+    "open": "Notifications",
+    "openUnread": "Notifications, {{count}} unread",
+    "subtitle": "Assignments, approvals, and updates for your grove",
+    "loading": "Loading notifications",
     "empty": "You're all caught up",
-    "emptyHint": "New announcements and questionnaires will appear here.",
+    "emptyHint": "Assignments, approvals, and other grove updates will appear here.",
+    "hiddenBySettings": "{{count}} notification is hidden by your settings.",
+    "reviewSettings": "Review notification settings",
     "markAllRead": "Mark all as read",
     "clearAll": "Clear all",
     "clearAllConfirm": "Remove all {{count}} notifications from this list? This cannot be undone.",
@@ -97,6 +102,15 @@
     "badge": {
       "update": "Update",
       "inbox": "Update"
+    },
+    "types": {
+      "taskAssignment": "Assignment",
+      "approval": "Approval",
+      "harvest": "Harvest",
+      "financial": "Money",
+      "satelliteWeather": "Weather",
+      "marketingSystem": "Message",
+      "other": "Update"
     }
   },
   "inApp": {

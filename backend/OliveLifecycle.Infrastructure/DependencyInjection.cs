@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<ICampaignAnswerRepository, CampaignAnswerRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IPhotoUploadSessionStore, FilePhotoUploadSessionStore>();
         services.AddScoped<IImageMetadataService, ImageMetadataService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
 

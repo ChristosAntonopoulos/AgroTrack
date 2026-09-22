@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Pin } from 'lucide-react';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
+import { ChronologioMediaImage } from './ChronologioThumbnail';
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
 import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
 import { formatGroveMassKg } from '../../utils/groveTotals';
@@ -18,6 +18,7 @@ import type { SupportedLocale } from '../../i18n/config';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
+import { isDateOnlyTimestamp } from '../../chronologio/clockLabel';
 import { chronologioWebDestination, isChronologioMergedHarvestDay } from '../../chronologio/entryDestination';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
@@ -83,7 +84,6 @@ const ChronologioEntryCard: React.FC<Props> = ({
   const category = entry.category as ChronologioCategory;
   const tone = categoryTone(category, String(entry.importance));
   const harvest = entry.details.harvest;
-  const note = entry.details.note;
   const expense = entry.details.expense;
   const weather = entry.details.weather;
   const intelligence = entry.details.intelligence;
@@ -139,6 +139,8 @@ const ChronologioEntryCard: React.FC<Props> = ({
   const accent = eventAccentToken(category, String(entry.importance));
   const size = weatherTile ? 'compact' : eventCardSize(entry);
   const time = (() => {
+    const money = category === 'expense' || category === 'income';
+    if (money && isDateOnlyTimestamp(entry.occurredAt)) return '';
     const d = new Date(entry.occurredAt);
     return Number.isNaN(d.getTime())
       ? ''
@@ -210,11 +212,6 @@ const ChronologioEntryCard: React.FC<Props> = ({
             ) : (
               <span>{typeLabel}</span>
             )}
-            {note?.pinned ? (
-              <span>
-                <Pin size={11} aria-hidden /> {t('chronologio:pinned')}
-              </span>
-            ) : null}
           </div>
 
           {/* 2. title */}
@@ -275,8 +272,8 @@ const ChronologioEntryCard: React.FC<Props> = ({
           {isHarvestDay && presented.description ? (
             <p className="chronologio-harvest-day-summary">{presented.description}</p>
           ) : null}
-          {presented.description && category === 'note' ? (
-            <p className="chronologio-card-summary">{presented.description}</p>
+          {presented.description && (category === 'note' || category === 'photo') ? (
+            <p className="chronologio-card-summary is-clamped">{presented.description}</p>
           ) : null}
 
           {category === 'expense' || category === 'income' || (category === 'task' && entry.amount) ? (
@@ -304,14 +301,6 @@ const ChronologioEntryCard: React.FC<Props> = ({
 
           {category === 'task' && entry.summary ? (
             <p className="chronologio-card-summary">{entry.summary}</p>
-          ) : null}
-
-          {category === 'note' &&
-          (note?.bodyPreview || entry.summary) &&
-          (note?.bodyPreview || entry.summary) !== presented.label ? (
-            <p className="chronologio-note-body">
-              {note?.bodyPreview || entry.summary || ''}
-            </p>
           ) : null}
 
           {category === 'weather' ? (
@@ -426,14 +415,18 @@ const ChronologioEntryCard: React.FC<Props> = ({
           ) : null}
 
           {resolvedMedia.length > 0 ? (
-            <div className="chronologio-media-row">
-              {resolvedMedia.map((m) => (
-                <img
+            <div className={`chronologio-media-row${category === 'photo' ? ' is-photo' : ''}`}>
+              {resolvedMedia.map((m, index) => (
+                <ChronologioMediaImage
                   key={m.id}
                   className="chronologio-media-thumb"
-                  src={m.thumbnailUrl || m.url}
+                  src={m.thumbnailUrl || m.url || ''}
                   alt=""
-                  loading="lazy"
+                  retryLabel={t('chronologio:drawer.mediaRetry')}
+                  unavailableLabel={
+                    (m.url || m.thumbnailUrl || '').split('/').pop()?.split('?')[0] ||
+                    t('chronologio:drawer.mediaUnavailable', { index: index + 1 })
+                  }
                 />
               ))}
             </div>

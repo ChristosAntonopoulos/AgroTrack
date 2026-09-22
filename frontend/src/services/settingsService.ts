@@ -37,14 +37,16 @@ export interface UserPreferences {
   largeControls: boolean;
 }
 
-const DEFAULT_NOTIFICATION_PREFS: NotificationDevicePreferences = {
+export const DEFAULT_NOTIFICATION_PREFS: NotificationDevicePreferences = {
   taskAssignment: true,
   approval: true,
   harvest: true,
   financial: true,
   satelliteWeather: true,
-  marketingSystem: false,
+  marketingSystem: true,
 };
+
+export const PREFERENCES_CHANGED_EVENT = 'oleachron-preferences';
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
@@ -189,6 +191,7 @@ export const settingsService = {
         };
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event(PREFERENCES_CHANGED_EVENT));
       return true;
     } catch (error) {
       console.error('Error saving preferences:', error);

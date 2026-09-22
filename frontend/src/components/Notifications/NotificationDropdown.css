@@ -180,7 +180,7 @@
   color: var(--color-text-primary);
 }
 
-.notification-badge {
+.notification-source-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -195,7 +195,7 @@
   color: var(--color-text-secondary);
 }
 
-.notification-badge.source-campaign {
+.notification-source-badge.source-campaign {
   background: color-mix(in srgb, var(--olive-primary, var(--color-primary)) 14%, transparent);
   color: var(--olive-primary, var(--color-primary));
 }
@@ -265,10 +265,16 @@
   font-size: 0.95rem;
 }
 
-.no-notifications span {
+.no-notifications span,
+.no-notifications a {
   font-size: 0.82rem;
-  max-width: 240px;
+  max-width: 260px;
   line-height: 1.35;
+}
+
+.no-notifications a {
+  color: var(--color-primary);
+  font-weight: 650;
 }
 
 @media (max-width: 768px) {

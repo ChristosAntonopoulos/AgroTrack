@@ -8,6 +8,7 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Auth;
 using OliveLifecycle.Application.Extensions;
+using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
@@ -98,7 +99,7 @@ public class AuthService : IAuthService
     {
         var email = NormalizeEmail(loginDto.Email);
         var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
-        if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+        if (user == null || user.DeletedAt != null || !PasswordMatches(loginDto.Password, user.PasswordHash))
         {
             throw new ForbiddenException("Invalid email or password.");
         }
@@ -246,14 +247,24 @@ public class AuthService : IAuthService
             ExpiresAt = expiresAt,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            Preferences = new DTOs.User.UserExperiencePreferencesDto
-            {
-                ExperienceMode = user.Preferences.ExperienceMode,
-                ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
-                FontScale = user.Preferences.FontScale,
-                LargeControls = user.Preferences.LargeControls,
-                Language = user.Preferences.Language
-            }
+            Preferences = UserPreferenceMapper.ToDto(user.Preferences)
         };
+    }
+
+    private static bool PasswordMatches(string password, string hash)
+    {
+        if (string.IsNullOrEmpty(hash))
+        {
+            return false;
+        }
+
+        try
+        {
+            return BCrypt.Net.BCrypt.Verify(password, hash);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }

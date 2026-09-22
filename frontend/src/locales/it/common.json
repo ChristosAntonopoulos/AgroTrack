@@ -77,9 +77,14 @@
   },
   "notifications": {
     "title": "Notifiche",
-    "subtitle": "Avvisi, domande e aggiornamenti per il tuo oliveto",
+    "open": "Notifiche",
+    "openUnread": "Notifiche, {{count}} non lette",
+    "subtitle": "Assegnazioni, approvazioni e aggiornamenti per il tuo oliveto",
+    "loading": "Caricamento notifiche",
     "empty": "Sei in pari",
-    "emptyHint": "Qui appariranno nuovi annunci e questionari.",
+    "emptyHint": "Qui appariranno assegnazioni, approvazioni e altri aggiornamenti.",
+    "hiddenBySettings": "{{count}} notifica è nascosta dalle impostazioni.",
+    "reviewSettings": "Impostazioni notifiche",
     "markAllRead": "Segna tutte come lette",
     "clearAll": "Cancella tutte",
     "clearAllConfirm": "Rimuovere tutte le {{count}} notifiche da questo elenco? L'azione non può essere annullata.",
@@ -87,6 +92,15 @@
     "badge": {
       "update": "Aggiornamento",
       "inbox": "Aggiornamento"
+    },
+    "types": {
+      "taskAssignment": "Assegnazione",
+      "approval": "Approvazione",
+      "harvest": "Raccolta",
+      "financial": "Denaro",
+      "satelliteWeather": "Meteo",
+      "marketingSystem": "Messaggio",
+      "other": "Aggiornamento"
     }
   },
   "inApp": {

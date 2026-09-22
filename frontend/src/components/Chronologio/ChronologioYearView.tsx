@@ -15,6 +15,7 @@ import {
   harvestHasResult,
   monthHasActivity,
   monthsForOverview,
+  type MonthChapterFocus,
 } from '../../chronologio/monthPresentation';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import {
@@ -50,7 +51,7 @@ type Props = {
   selectedEntryId?: string | null;
   focusDate?: string;
   zoom?: ChronologioZoom;
-  onPeekMonth: (year: number, month: number) => void;
+  onPeekMonth: (year: number, month: number, focus?: MonthChapterFocus) => void;
   onOpenMonthDays: (year: number, month: number) => void;
   onPeekMonthWeather: (year: number, month: number) => void;
   onSelect?: (entry: ChronologioEntry) => void;
@@ -276,7 +277,7 @@ const ChronologioYearView: React.FC<Props> = ({
                       row.entries.length === 0 &&
                       row.reviews.length === 0
                     }
-                    onOpenMonth={() => onPeekMonth(row.month.year, row.month.month)}
+                    onOpenMonth={(focus) => onPeekMonth(row.month.year, row.month.month, focus)}
                     onOpenDays={() => onOpenMonthDays(row.month.year, row.month.month)}
                     onSelect={onSelect}
                     onClearSelection={onClearSelection}

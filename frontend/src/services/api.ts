@@ -1,6 +1,7 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import i18n from '../i18n';
 import { getApiBaseUrl, isAuthDisabled } from '../config/apiConfig';
+import { isRealSessionToken } from './sessionToken';
 import { extractApiErrorMessage, extractApiErrorPayload, translateApiError } from '../utils/translateApiError';
 
 declare module 'axios' {
@@ -52,9 +53,12 @@ const requestHadBearerToken = (config?: InternalAxiosRequestConfig) => {
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (isRealSessionToken(token)) {
       handlingUnauthorized = false;
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
     config.headers['Accept-Language'] = i18n.language || 'el';
     return config;

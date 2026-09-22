@@ -1,4 +1,5 @@
 import type { FinancialCategory, FinancialTransactionType } from './display';
+import type { MoneyRepeat, MoneySplitMode } from './moneySeries';
 import type { FinancialCalculationMode, FinancialQuantityUnit } from './quantityCalculator';
 
 export const MONEY_ENTRY_DRAFT_KEY = 'agrotrack.money.entryDraft.v1';
@@ -24,6 +25,9 @@ export type MoneyEntryDraftSnapshot = {
   notes: string;
   resultYear: number;
   moreOpen: boolean;
+  splitMode?: MoneySplitMode;
+  splitFieldIds?: string[];
+  repeat?: MoneyRepeat;
   savedAt: string;
 };
 

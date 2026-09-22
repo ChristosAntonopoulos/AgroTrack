@@ -3,6 +3,7 @@
   "ctaPlus": "+ Record",
   "title": "Record",
   "whatToRecord": "What do you want to record?",
+  "alsoRecord": "Also",
   "types": {
     "observation": {
       "title": "Note",
@@ -81,6 +82,7 @@
   },
   "work": {
     "whatWork": "What work was done?",
+    "chooseType": "Choose the kind of work.",
     "optionalCost": "Cost (optional)",
     "optionalNote": "Note (optional)",
     "saved": "Work recorded."
@@ -229,6 +231,22 @@
     "buyerPhoneUnavailable": "Phone import is not available in this browser.",
     "buyerTypeName": "Or type a name",
     "buyerChange": "Change",
-    "buyerClear": "Clear"
+    "buyerClear": "Clear",
+    "entryName": "Name (optional)",
+    "splitOne": "One field",
+    "splitAcross": "Split across fields",
+    "splitEqual": "Equally",
+    "splitByArea": "By area",
+    "splitNeedTwo": "Choose at least two fields.",
+    "splitMissingArea": "{{name}} has no area, so it stays out of a split by area.",
+    "splitMissingAreaShort": "A split by area needs at least two fields with area.",
+    "splitNote": "Split across {{count}} fields",
+    "repeatOnce": "Once",
+    "repeatMonthly": "Each month this harvest year",
+    "repeatNote": "Repeated {{count}} times this harvest year",
+    "seriesPreview": "This records {{count}} entries, {{amount}} € in total.",
+    "seriesSaved": "{{count}} entries recorded.",
+    "seriesPartial": "Saved {{saved}} of {{total}}. The rest did not save.",
+    "seriesTooMany": "That is too many entries at once."
   }
 }

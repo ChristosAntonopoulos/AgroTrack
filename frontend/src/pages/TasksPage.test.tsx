@@ -28,6 +28,8 @@ jest.mock(
     const ReactLib = require('react');
     return {
       useNavigate: () => mockNavigate,
+      useLocation: () => ({ pathname: '/tasks', search: '', hash: '', state: null, key: 'test' }),
+      Navigate: () => null,
       useSearchParams: () => {
         const [params, setParams] = ReactLib.useState(
           () => new URLSearchParams(mockSearchState.initial)
@@ -342,19 +344,19 @@ describe('TasksPage Phase 1 shell', () => {
     ]);
   });
 
-  it('shows only the active tab content and defaults to now', async () => {
+  it('shows only the active tab content and defaults to to do', async () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Τώρα', selected: true })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Να γίνουν', selected: true })).toBeInTheDocument();
     });
 
-    expect(document.getElementById('tasks-panel-now')).not.toBeNull();
-    expect(document.getElementById('tasks-panel-proposals')).toBeNull();
+    expect(document.getElementById('tasks-panel-todo')).not.toBeNull();
+    expect(document.getElementById('tasks-panel-done')).toBeNull();
   });
 
-  it('groups identical proposals across fields on the proposals tab', async () => {
-    renderTasks('view=proposals');
+  it('groups identical proposals across fields inside to do', async () => {
+    renderTasks('view=todo');
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Προτάσεις για τα χωράφια σου' })).toBeInTheDocument();
@@ -362,52 +364,51 @@ describe('TasksPage Phase 1 shell', () => {
     expect(screen.getByText(/Προτείνεται για/)).toBeInTheDocument();
   });
 
-  it('shows tab counts for the farmer workflow views', async () => {
+  it('shows tab counts for to do and completed', async () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Τώρα' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Να γίνουν' })).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Προτάσεις' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Ιστορικό' })).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', { name: 'Προτάσεις' })).getByText('2')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Ολοκληρωμένα' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Προτάσεις · 2' })).toBeInTheDocument();
   });
 
-  it('updates proposal count when the field filter changes', async () => {
-    renderTasks('view=proposals');
+  it('updates suggestions when the field filter changes', async () => {
+    renderTasks('view=todo');
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Φίλτρο ανά αγροτεμάχιο')).toBeInTheDocument();
+      expect(screen.getByLabelText('Φίλτρο ανά χωράφι')).toBeInTheDocument();
     });
 
-    await userEvent.selectOptions(screen.getByLabelText('Φίλτρο ανά αγροτεμάχιο'), 'field-2');
+    await userEvent.selectOptions(screen.getByLabelText('Φίλτρο ανά χωράφι'), 'field-2');
 
     await waitFor(() => {
-      expect(within(screen.getByRole('tab', { name: 'Προτάσεις' })).getByText('1')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Προτάσεις · 1/ })).toBeInTheDocument();
     });
-      expect(mockSearchState.current.get('fieldId')).toBe('field-2');
+    expect(mockSearchState.current.get('fieldId')).toBe('field-2');
   });
 
   it('persists the year filter in the URL across tab changes', async () => {
-    renderTasks('view=proposals&year=2025');
+    renderTasks('view=todo&year=2025');
 
     await waitFor(() => {
       expect(mockListProposals).toHaveBeenCalledWith({ resultYear: 2025 });
-      expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Ολοκληρωμένα' })).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Επόμενες' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Ολοκληρωμένα' }));
 
     await waitFor(() => {
-      expect(mockSearchState.current.get('view')).toBe('upcoming');
+      expect(mockSearchState.current.get('view')).toBe('done');
       expect(mockSearchState.current.get('year')).toBe('2025');
     });
   });
 
-  it('does not mix completed work into upcoming', async () => {
-    renderTasks('view=upcoming');
+  it('does not mix completed work into to do', async () => {
+    renderTasks('view=todo');
 
     await waitFor(() => {
       expect(screen.getByRole('tabpanel')).toBeInTheDocument();
@@ -415,8 +416,8 @@ describe('TasksPage Phase 1 shell', () => {
     expect(screen.queryByText('Ολοκληρωμένο κλάδεμα')).not.toBeInTheDocument();
   });
 
-  it('shows completed work in history', async () => {
-    renderTasks('view=history');
+  it('shows completed work in the completed tab', async () => {
+    renderTasks('view=done');
 
     await waitFor(() => {
       expect(screen.getByText('Ολοκληρωμένο κλάδεμα')).toBeInTheDocument();
@@ -424,8 +425,8 @@ describe('TasksPage Phase 1 shell', () => {
     expect(screen.getByText(/Δες το πλήρες Χρονολόγιο/)).toBeInTheDocument();
   });
 
-  it('puts in-progress work on now', async () => {
-    renderTasks('view=now');
+  it('puts in-progress work on to do', async () => {
+    renderTasks('view=todo');
 
     await waitFor(() => {
       expect(screen.getByText('Κράτηση συνεργείου')).toBeInTheDocument();
@@ -441,19 +442,19 @@ describe('TasksPage Phase 1 shell', () => {
     expect(await screen.findByText('Δεν χρειάζεται να κάνεις κάτι σήμερα')).toBeInTheDocument();
   });
 
-  it('uses tab semantics with four views', async () => {
+  it('uses tab semantics with two views', async () => {
     renderTasks();
 
     await waitFor(() => {
       expect(screen.getByRole('tablist', { name: 'Προβολές εργασιών' })).toBeInTheDocument();
     });
-    expect(screen.getAllByRole('tab')).toHaveLength(4);
-    expect(screen.getByRole('tab', { name: /Τώρα/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'tasks-panel-now');
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(screen.getByRole('tab', { name: /Να γίνουν/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'tasks-panel-todo');
   });
 
   it('opens schedule sheet for a grouped proposal', async () => {
-    renderTasks('view=proposals');
+    renderTasks('view=todo');
     const schedule = await screen.findAllByRole('button', { name: 'Προγραμμάτισε' });
     await userEvent.click(schedule[0]);
     expect(await screen.findByText(/Επίλεξε χωράφια/)).toBeInTheDocument();

@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IGreekCadastrePdfParser, GreekCadastrePdfParser>();
         services.AddScoped<ILifecycleService, LifecycleService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IMinistryNotificationService, MinistryNotificationService>();
         services.AddScoped<IReportsService, ReportsService>();
         services.AddScoped<IFinancialAuthorizationService, FinancialAuthorizationService>();

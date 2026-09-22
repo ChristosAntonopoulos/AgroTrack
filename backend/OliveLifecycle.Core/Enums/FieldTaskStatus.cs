@@ -7,7 +7,8 @@ public enum FieldTaskStatus
     InProgress,
     Blocked,
     Completed,
-    Cancelled
+    Cancelled,
+    Skipped
 }
 
 public static class FieldTaskStatusExtensions
@@ -19,6 +20,7 @@ public static class FieldTaskStatusExtensions
         FieldTaskStatus.Blocked => "blocked",
         FieldTaskStatus.Completed => "completed",
         FieldTaskStatus.Cancelled => "cancelled",
+        FieldTaskStatus.Skipped => "skipped",
         _ => "planned"
     };
 
@@ -30,6 +32,7 @@ public static class FieldTaskStatusExtensions
         "blocked" => FieldTaskStatus.Blocked,
         "completed" => FieldTaskStatus.Completed,
         "cancelled" => FieldTaskStatus.Cancelled,
+        "skipped" => FieldTaskStatus.Skipped,
         _ => null
     };
 }

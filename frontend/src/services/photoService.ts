@@ -78,33 +78,151 @@ export interface PhotoQuery {
   pageSize?: number;
 }
 
-const uploadPhotos = async (
-  files: File[],
-  options?: { allowDuplicates?: boolean }
-): Promise<PhotoUploadResult[]> => {
-  const formData = new FormData();
-  files.forEach((file) => formData.append('files', file));
-  if (options?.allowDuplicates) formData.append('allowDuplicates', 'true');
+export const PHOTO_UPLOAD_CHUNK_BYTES = 512 * 1024;
 
-  const baseUrl = getApiBaseUrl() || window.location.origin;
-  const token = localStorage.getItem('token');
+export class PhotoUploadRequestError extends Error {
+  status: number | null;
+  receivedBytes: number | null;
 
-  const response = await fetch(`${baseUrl}/api/v1/photos/upload`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
-  });
+  constructor(message: string, status: number | null, receivedBytes: number | null = null) {
+    super(message);
+    this.name = 'PhotoUploadRequestError';
+    this.status = status;
+    this.receivedBytes = receivedBytes;
+  }
+}
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(extractApiErrorMessage(body) || 'Upload failed');
+type PhotoUploadSessionDto = {
+  uploadId: string;
+  receivedBytes: number;
+  totalBytes: number;
+};
+
+export type ResumablePhotoUploadOptions = {
+  uploadId?: string | null;
+  receivedBytes?: number;
+  allowDuplicates?: boolean;
+  capturedAt?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  sourceHash?: string | null;
+  transcoded?: boolean;
+  onProgress?: (received: number, total: number) => void;
+};
+
+const authHeaders = (): { baseUrl: string; headers: Record<string, string> } => {
+  const baseUrl = getApiBaseUrl() || (typeof window !== 'undefined' ? window.location.origin : '');
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return { baseUrl, headers };
+};
+
+const readError = async (response: Response): Promise<PhotoUploadRequestError> => {
+  const body = await response.json().catch(() => ({}));
+  const received =
+    body && typeof body === 'object' && 'receivedBytes' in body
+      ? Number((body as { receivedBytes?: number }).receivedBytes)
+      : null;
+  return new PhotoUploadRequestError(
+    extractApiErrorMessage(body) || 'Upload failed',
+    response.status,
+    Number.isFinite(received) ? received : null
+  );
+};
+
+/**
+ * Uploads one photo in chunks so a dropped connection can continue from the
+ * last byte the server stored.
+ */
+export const uploadPhotoResumable = async (
+  file: File,
+  options: ResumablePhotoUploadOptions = {}
+): Promise<{ result: PhotoUploadResult; uploadId: string; receivedBytes: number }> => {
+  const { baseUrl, headers } = authHeaders();
+  let uploadId = options.uploadId ?? null;
+  let received = options.receivedBytes ?? 0;
+
+  const begin = async () => {
+    const response = await fetch(`${baseUrl}/api/v1/photos/uploads`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        totalBytes: file.size,
+      }),
+    });
+    if (!response.ok) throw await readError(response);
+    const session = (await response.json()) as PhotoUploadSessionDto;
+    uploadId = session.uploadId;
+    received = session.receivedBytes;
+  };
+
+  const sync = async () => {
+    const response = await fetch(`${baseUrl}/api/v1/photos/uploads/${uploadId}`, { headers });
+    if (response.status === 404) {
+      await begin();
+      return;
+    }
+    if (!response.ok) throw await readError(response);
+    const session = (await response.json()) as PhotoUploadSessionDto;
+    received = session.receivedBytes;
+  };
+
+  if (!uploadId) await begin();
+  else await sync();
+
+  while (received < file.size) {
+    const end = Math.min(file.size, received + PHOTO_UPLOAD_CHUNK_BYTES);
+    const response = await fetch(`${baseUrl}/api/v1/photos/uploads/${uploadId}?offset=${received}`, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/octet-stream',
+        'Content-Range': `bytes ${received}-${end - 1}/${file.size}`,
+      },
+      body: file.slice(received, end),
+    });
+    if (response.status === 409) {
+      const session = (await response.json().catch(() => null)) as PhotoUploadSessionDto | null;
+      if (session && session.receivedBytes > received) {
+        received = session.receivedBytes;
+        options.onProgress?.(received, file.size);
+        continue;
+      }
+      throw new PhotoUploadRequestError('Upload failed', 409, session?.receivedBytes ?? received);
+    }
+    if (response.status === 404) {
+      await begin();
+      continue;
+    }
+    if (!response.ok) throw await readError(response);
+    const session = (await response.json()) as PhotoUploadSessionDto;
+    received = session.receivedBytes;
+    uploadId = session.uploadId || uploadId;
+    options.onProgress?.(received, file.size);
   }
 
-  return (await response.json()) as PhotoUploadResult[];
+  const complete = await fetch(`${baseUrl}/api/v1/photos/uploads/${uploadId}/complete`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      allowDuplicates: !!options.allowDuplicates,
+      capturedAt: options.capturedAt ?? null,
+      latitude: options.latitude ?? null,
+      longitude: options.longitude ?? null,
+      sourceHash: options.sourceHash ?? null,
+      transcoded: !!options.transcoded,
+    }),
+  });
+  if (!complete.ok) throw await readError(complete);
+  const result = (await complete.json()) as PhotoUploadResult;
+  return { result, uploadId: uploadId || '', receivedBytes: received };
 };
 
 export const photoService = {
-  upload: uploadPhotos,
+  uploadResumable: uploadPhotoResumable,
 
   query: async (query: PhotoQuery = {}): Promise<PhotoList> => {
     const { data } = await api.get<PhotoList>('/api/v1/photos', { params: query });

@@ -1103,7 +1103,9 @@
       "acidityShort": "Acidità {{value}}",
       "sourceSynced": "Registrazione raccolta sincronizzata",
       "sourceChronologio": "In Chronologio",
-      "linkedExpense": "Spesa collegata"
+      "linkedExpense": "Spesa collegata",
+      "editInMoney": "Modifica in Denaro",
+      "expenseOnThisDay": "Solo in questa giornata di raccolta"
     },
     "permissions": {
       "viewOnly": "Puoi vedere questa raccolta. La modifica è riservata al proprietario del campo.",

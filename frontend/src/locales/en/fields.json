@@ -1721,7 +1721,9 @@
       "acidityShort": "Acidity {{value}}",
       "sourceSynced": "Synced harvest record",
       "sourceChronologio": "In Chronologio",
-      "linkedExpense": "Linked expense"
+      "linkedExpense": "Linked expense",
+      "editInMoney": "Edit in Money",
+      "expenseOnThisDay": "Only on this harvest day"
     },
     "permissions": {
       "viewOnly": "You can view this harvest. Editing is limited to the field owner.",

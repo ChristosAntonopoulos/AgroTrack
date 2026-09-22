@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImagePlus } from 'lucide-react';
+import { PHOTO_ACCEPT } from './photoUploadRules';
 
 type Props = {
   disabled?: boolean;
@@ -13,7 +14,9 @@ type Props = {
 
 const takeFiles = (list: FileList | null, onFiles: (files: File[]) => void) => {
   if (!list || list.length === 0) return;
-  const images = Array.from(list).filter((f) => f.type.startsWith('image/'));
+  const images = Array.from(list).filter(
+    (file) => file.type.startsWith('image/') || /\.(hei[cf]|jpe?g|png|webp|gif)$/i.test(file.name)
+  );
   if (images.length) onFiles(images);
 };
 
@@ -60,6 +63,7 @@ const PhotoUploadDropzone: React.FC<Props> = ({
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled || undefined}
+      aria-label={disabled ? t('uploading') : dragging ? t('dropActive') : t('upload')}
       onKeyDown={(e) => {
         if (disabled) return;
         if (e.key === 'Enter' || e.key === ' ') {
@@ -71,7 +75,7 @@ const PhotoUploadDropzone: React.FC<Props> = ({
       <input
         ref={galleryRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept={PHOTO_ACCEPT}
         multiple
         disabled={disabled}
         tabIndex={-1}

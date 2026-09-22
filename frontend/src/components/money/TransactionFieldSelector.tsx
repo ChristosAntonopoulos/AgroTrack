@@ -14,6 +14,11 @@ type Props = {
   allowUnassigned?: boolean;
   unassignedLabel?: string;
   hint?: string;
+  /** Multi-select for a split. Unassigned is hidden in this mode. */
+  selectionMode?: 'single' | 'multiple';
+  selectedIds?: string[];
+  onToggle?: (fieldId: string) => void;
+  disabledIds?: string[];
 };
 
 const TransactionFieldSelector: React.FC<Props> = ({
@@ -24,8 +29,13 @@ const TransactionFieldSelector: React.FC<Props> = ({
   allowUnassigned = true,
   unassignedLabel,
   hint,
+  selectionMode = 'single',
+  selectedIds = [],
+  onToggle,
+  disabledIds = [],
 }) => {
   const { t } = useTranslation('capture');
+  const multiple = selectionMode === 'multiple';
 
   return (
     <div className="money-field-block">
@@ -33,20 +43,26 @@ const TransactionFieldSelector: React.FC<Props> = ({
         {hideLabel ? <span className="money-sr-only">{t('money.whichField')}</span> : t('money.whichField')}
       </div>
       {hint ? <p className="capture-hint">{hint}</p> : null}
-      <div className="money-field-list" role="radiogroup" aria-labelledby={hideLabel ? 'money-step-title' : 'money-field-label'}>
+      <div
+        className="money-field-list"
+        role={multiple ? 'group' : 'radiogroup'}
+        aria-labelledby={hideLabel ? 'money-step-title' : 'money-field-label'}
+      >
         {fields.map((field) => {
           const name = friendlyFieldLabel(field.name);
           const color = resolveFieldColor(field.color, field.id);
-          const selected = value === field.id;
+          const selected = multiple ? selectedIds.includes(field.id) : value === field.id;
+          const disabled = multiple && disabledIds.includes(field.id);
           return (
             <button
               key={field.id}
               type="button"
-              role="radio"
+              role={multiple ? 'checkbox' : 'radio'}
               aria-checked={selected}
-              className={`money-field-choice${selected ? ' is-selected' : ''}`}
+              disabled={disabled}
+              className={`money-field-choice${selected ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}`}
               style={{ ['--field-accent' as string]: color }}
-              onClick={() => onChange(field.id)}
+              onClick={() => (multiple ? onToggle?.(field.id) : onChange(field.id))}
             >
               <span className="money-field-swatch" style={{ background: color }} aria-hidden />
               <span className="money-field-choice__name">{name}</span>
@@ -54,7 +70,7 @@ const TransactionFieldSelector: React.FC<Props> = ({
             </button>
           );
         })}
-        {allowUnassigned ? (
+        {!multiple && allowUnassigned ? (
           <button
             type="button"
             role="radio"

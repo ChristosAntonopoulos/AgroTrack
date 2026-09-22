@@ -41,18 +41,25 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
       : state === 'upcoming'
         ? t('yearView.upcoming')
         : t('yearView.closed');
-  const metrics = yearFixedMetrics(summary, numberLocale, t);
+  const metrics = yearFixedMetrics(summary, numberLocale, t).filter((metric) => metric.value !== '—');
   const yieldPct =
     summary.oilYieldPercent != null && summary.oilYieldPercent > 0
       ? formatGroveMassKg(summary.oilYieldPercent, numberLocale)
       : null;
 
   return (
-    <button
+    <article
       id={`chrono-year-${summary.periodYear}`}
-      type="button"
       className={`chrono-year-chapter is-closed${hero ? ' has-photo' : ''}`}
       onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
       aria-label={t('living.seeYear', { year: summary.periodYear })}
     >
       <div className="chrono-year-chapter-body">
@@ -80,13 +87,17 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
           </p>
         )}
 
-        <ul className="chrono-year-chapter-facts">
-          {metrics.map((metric) => (
-            <li key={metric.label}>
-              {metric.label}: {metric.value}
-            </li>
-          ))}
-        </ul>
+        {metrics.length > 0 ? (
+          <ul className="chrono-year-chapter-facts">
+            {metrics.map((metric) => (
+              <li key={metric.label}>
+                {metric.label}: {metric.value}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="chrono-year-limited">{t('living.limitedRecords')}</p>
+        )}
 
         {comparison ? (
           <p className="chrono-year-comparison">
@@ -99,10 +110,19 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
         ) : null}
 
         {headline ? <p className="chrono-year-headline">{headline}</p> : null}
-        <span className="chrono-year-chapter-hint">{t('yearView.openHint')}</span>
+        <button
+          type="button"
+          className="chrono-year-chapter-hint"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+        >
+          {t('yearView.openHint')}
+        </button>
       </div>
       {hero ? <ChronologioThumbnail src={hero} className="chrono-closed-year-photo" /> : null}
-    </button>
+    </article>
   );
 };
 

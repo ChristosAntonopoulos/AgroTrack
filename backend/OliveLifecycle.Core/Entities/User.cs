@@ -13,4 +13,8 @@ public class User : BaseEntity
     public UserExperiencePreferences Preferences { get; set; } = new();
     public string? PasswordResetTokenHash { get; set; }
     public DateTime? PasswordResetExpiresAt { get; set; }
+    public string? PendingEmail { get; set; }
+    public string? EmailChangeTokenHash { get; set; }
+    public DateTime? EmailChangeExpiresAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }

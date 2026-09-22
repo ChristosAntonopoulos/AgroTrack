@@ -52,7 +52,7 @@ public class PhotoUploadResultDto
 {
     public PhotoDto Photo { get; set; } = new();
     public bool DuplicateWarning { get; set; }
-    /// <summary>True when an identical hash+field photo already existed and no new row was created.</summary>
+    /// <summary>True when the same hash and capture time already existed and no new row was created.</summary>
     public bool DuplicateSkipped { get; set; }
     public bool Failed { get; set; }
     public string? Error { get; set; }
@@ -65,6 +65,30 @@ public class PhotoListDto
     public int TotalCount { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }
+}
+
+public class BeginPhotoUploadDto
+{
+    public string FileName { get; set; } = "photo.jpg";
+    public string? ContentType { get; set; }
+    public long TotalBytes { get; set; }
+}
+
+public class PhotoUploadSessionDto
+{
+    public string UploadId { get; set; } = string.Empty;
+    public long ReceivedBytes { get; set; }
+    public long TotalBytes { get; set; }
+}
+
+public class CompletePhotoUploadDto
+{
+    public bool AllowDuplicates { get; set; }
+    public DateTime? CapturedAt { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? SourceHash { get; set; }
+    public bool Transcoded { get; set; }
 }
 
 public class ConfirmPhotoFieldDto

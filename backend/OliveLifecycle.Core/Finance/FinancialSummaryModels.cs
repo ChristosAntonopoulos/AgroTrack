@@ -90,6 +90,13 @@ public sealed class FinancialDataAvailability
     public bool AreaIsMissing { get; init; }
     public bool OilQuantityIsMissing { get; init; }
     public bool IncludesUnassigned { get; init; }
+    /// <summary>Posted fields left out of per-area rates because area is missing or zero.</summary>
+    public IReadOnlyList<string> MissingAreaFieldIds { get; init; } = [];
+    public IReadOnlyList<string> MissingAreaFieldNames { get; init; } = [];
+    /// <summary>Draft fields that have money this year and are left out of the totals.</summary>
+    public IReadOnlyList<string> IncompleteFieldNames { get; init; } = [];
+    /// <summary>Unassigned entries are in the totals and left out of per-area rates.</summary>
+    public bool PerAreaExcludesUnassigned { get; init; }
 }
 
 /// <summary>

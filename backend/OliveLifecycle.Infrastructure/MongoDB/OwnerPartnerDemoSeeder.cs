@@ -2,18 +2,17 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using OliveLifecycle.Core;
-using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
 
 namespace OliveLifecycle.Infrastructure.MongoDB;
 
 /// <summary>
-/// Ensures Kostas is Partner on Giorgos's Filiatra fields, and optionally admins his own demo field.
-/// Legacy owner_partner_links are no longer written.
+/// Ensures Kostas is Partner on Giorgos's three Filiatra fields.
+/// He works the trees and does not keep the money or harvest books.
 /// </summary>
 public static class OwnerPartnerDemoSeeder
 {
-    public const string PartnerOwnedFieldId = "675555555555555555555201";
+    public const string PartnerOwnedFieldId = DemoFarmDataSeeder.PartnerOwnedFieldId;
 
     public static async Task SeedAsync(
         MongoDbContext context,
@@ -53,17 +52,11 @@ public static class OwnerPartnerDemoSeeder
                 {
                     UserId = DemoFarmDataSeeder.ProducerId,
                     Role = "Partner",
-                    Modules =
-                    [
-                        FamilyModules.Fields,
-                        FamilyModules.Tasks,
-                        FamilyModules.Photos,
-                        FamilyModules.Chronologio,
-                    ],
+                    Modules = DemoFarmDataSeeder.PartnerSeatModules.ToList(),
                     AccessLevel = FamilyAccessLevels.Work,
                     Status = FamilyMemberStatuses.Active,
                     InvitedBy = DemoFarmDataSeeder.OwnerId,
-                    DisplayName = "Κώστας Μανούσακης",
+                    DisplayName = DemoFarmDataSeeder.PartnerDisplayName,
                     Email = "producer1@olivefarm.com",
                     CreatedAt = now.AddDays(-200),
                 });
@@ -71,65 +64,17 @@ public static class OwnerPartnerDemoSeeder
             else
             {
                 seat.Role = "Partner";
-                seat.Modules =
-                [
-                    FamilyModules.Fields,
-                    FamilyModules.Tasks,
-                    FamilyModules.Photos,
-                    FamilyModules.Chronologio,
-                ];
+                seat.Modules = DemoFarmDataSeeder.PartnerSeatModules.ToList();
                 seat.AccessLevel = FamilyAccessLevels.Work;
                 seat.Status = FamilyMemberStatuses.Active;
-                seat.DisplayName = "Κώστας Μανούσακης";
+                seat.DisplayName = DemoFarmDataSeeder.PartnerDisplayName;
                 seat.Email = "producer1@olivefarm.com";
             }
 
             await fields.ReplaceOneAsync(f => f.Id == fieldId, field, cancellationToken: cancellationToken);
         }
 
-        // Kostas owns one small demo field so dual identity (Partner elsewhere, Admin here) is demonstrable.
-        var partnerField = await fields.Find(f => f.Id == PartnerOwnedFieldId).FirstOrDefaultAsync(cancellationToken);
-        if (partnerField == null)
-        {
-            await fields.InsertOneAsync(new FieldDocument
-            {
-                Id = PartnerOwnedFieldId,
-                OwnerId = DemoFarmDataSeeder.ProducerId,
-                Name = "Κτήμα Κώστα (Χώρα)",
-                Area = 0.4,
-                CropType = "Olive",
-                Status = FieldStatus.Active,
-                LocationText = "Χώρα Μεσσηνίας",
-                Color = "#5B8C5A",
-                Memberships =
-                [
-                    new FieldMembershipDocument
-                    {
-                        UserId = DemoFarmDataSeeder.ProducerId,
-                        Role = "Admin",
-                        Modules =
-                        [
-                            FamilyModules.Fields,
-                            FamilyModules.Tasks,
-                            FamilyModules.Documents,
-                            FamilyModules.Money,
-                            FamilyModules.Chronologio,
-                            FamilyModules.Harvest,
-                        ],
-                        AccessLevel = FamilyAccessLevels.Work,
-                        Status = FamilyMemberStatuses.Active,
-                        DisplayName = "Κώστας Μανούσακης",
-                        Email = "producer1@olivefarm.com",
-                        CreatedAt = now.AddDays(-30),
-                    }
-                ],
-                CreatedAt = now.AddDays(-30),
-                UpdatedAt = now,
-            }, cancellationToken: cancellationToken);
-        }
-
         logger.LogInformation(
-            "Seeded partner seats: producer1 Partner on Filiatra fields + Admin on {PartnerField}.",
-            PartnerOwnedFieldId);
+            "Seeded partner seats: producer1 works the three Filiatra fields and does not see money or harvest books.");
     }
 }

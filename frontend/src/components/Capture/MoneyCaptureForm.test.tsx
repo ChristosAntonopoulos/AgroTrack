@@ -112,12 +112,31 @@ test('asks income or expense, then the type, before the amount', async () => {
   expect(screen.queryByRole('option', { name: 'Εργασία' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Έξοδο/ }));
   expect(await screen.findByText('Τι έξοδο;')).toBeInTheDocument();
-  expect(screen.getByLabelText(/Τι ήταν/i)).toBeInTheDocument();
+  expect(screen.queryByLabelText(/Όνομα/i)).not.toBeInTheDocument();
   expect(screen.getByRole('option', { name: 'Εργασία' })).toBeInTheDocument();
   expect(screen.queryByLabelText('Ποσό')).not.toBeInTheDocument();
   await pickCategory(/^Εργασία$/);
   expect(await screen.findByLabelText('Ποσό')).toBeInTheDocument();
-  expect(screen.queryByLabelText(/Τι ήταν/i)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Όνομα/i)).not.toBeInTheDocument();
+});
+
+test('starts a task expense on the amount and keeps the known field, date, and name', async () => {
+  renderForm({
+    context: {
+      preferredType: 'expense',
+      fieldId: 'field-1',
+      taskId: 'task-1',
+      category: 'labor',
+      description: 'Κλάδεμα',
+      occurredAt: '2026-09-22T08:00:00',
+    },
+  });
+  expect(await screen.findByLabelText('Ποσό')).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: 'Εργασία' })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Ποσό'), { target: { value: '12' } });
+  continueOn();
+  expect(screen.queryByRole('radio', { name: 'Kato' })).not.toBeInTheDocument();
+  expect(await screen.findByLabelText(/Όνομα/i)).toHaveValue('Κλάδεμα');
 });
 
 test('keeps continue disabled until a positive amount exists', async () => {
@@ -177,9 +196,10 @@ test('restores a session draft into the form fields', async () => {
   });
   renderForm({ context: { preferredType: 'expense' } });
   expect(await screen.findByDisplayValue('33')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Πίσω' }));
-  expect(screen.getByDisplayValue('Draft amount')).toBeInTheDocument();
-  expect(screen.getByText('Τι έξοδο;')).toBeInTheDocument();
+  continueOn();
+  fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
+  expect(await screen.findByDisplayValue('Draft amount')).toBeInTheDocument();
+  expect(screen.getByLabelText(/Όνομα/i)).toBeInTheDocument();
 });
 
 test('posts a confirmed expense through the financial transaction API', async () => {
@@ -188,13 +208,13 @@ test('posts a confirmed expense through the financial transaction API', async ()
     context: { preferredType: 'expense', fieldId: 'field-1' },
     onSaved,
   });
-  fireEvent.change(await screen.findByLabelText(/Τι ήταν/i), {
-    target: { value: 'Workers pruning' },
-  });
   await pickCategory(/^Εργασία$/);
   fireEvent.change(await screen.findByLabelText('Ποσό'), { target: { value: '45' } });
   continueOn();
   fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
+  fireEvent.change(await screen.findByLabelText(/Όνομα/i), {
+    target: { value: 'Workers pruning' },
+  });
   fireEvent.click(screen.getByRole('button', { name: /Καταχώρηση εξόδου/i }));
   await waitFor(() => expect(mockCreate).toHaveBeenCalled());
   expect(mockCreate.mock.calls[0][0]).toEqual(

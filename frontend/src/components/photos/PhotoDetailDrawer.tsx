@@ -10,17 +10,9 @@ import { capturedDateIsFallback, localizeLinkedStatus } from './photoLabels';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
-import {
-  getFieldWorkService,
-  getHarvestService,
-  getNoteService,
-} from '../../services/serviceFactory';
-import type { FieldPhenologyObservation } from '../../services/fieldWorkService';
 import type { Field } from '../../services/fieldService';
 import type { Photo } from '../../services/photoService';
-import { notePreviewTitle } from '../../services/noteService';
-
-type LinkTarget = { id: string; label: string };
+import { loadPhotoLinkTargets, type PhotoLinkTarget } from './photoLinkTargets';
 
 export type PhotoDetailDrawerProps = {
   photo: Photo | null;
@@ -33,7 +25,7 @@ export type PhotoDetailDrawerProps = {
   onDelete: (photoId: string) => Promise<void>;
   onUpdate?: (
     photoId: string,
-    body: { capturedAt?: string; caption?: string }
+    body: { capturedAt?: string; caption?: string; kind?: string }
   ) => Promise<void>;
   onExpandFullscreen?: (photo: Photo) => void;
   /** Panel sits beside the open viewer. Drawer is the standalone fallback. */
@@ -64,7 +56,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   const { user } = useAuth();
   const [ownerType, setOwnerType] = useState('task');
   const [ownerId, setOwnerId] = useState('');
-  const [targets, setTargets] = useState<LinkTarget[]>([]);
+  const [targets, setTargets] = useState<PhotoLinkTarget[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
   const [targetsError, setTargetsError] = useState(false);
   const [targetsRetry, setTargetsRetry] = useState(0);
@@ -75,6 +67,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
   const [editingMeta, setEditingMeta] = useState(false);
   const [captionDraft, setCaptionDraft] = useState('');
   const [dateDraft, setDateDraft] = useState('');
+  const [kindDraft, setKindDraft] = useState('general');
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
 
   const fieldId = photo?.fieldId || '';
@@ -92,6 +85,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
     setEditingLink(false);
     setEditingMeta(startEditing);
     setCaptionDraft(photo?.caption || '');
+    setKindDraft(photo?.kind || 'general');
     const source = photo?.capturedAt || photo?.effectiveCapturedAt || '';
     setDateDraft(source ? source.slice(0, 10) : '');
     setConfirmFieldId(photo?.fieldId || '');
@@ -116,38 +110,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
       setLoadingTargets(true);
       setTargetsError(false);
       try {
-        let next: LinkTarget[] = [];
-        const fieldWork = getFieldWorkService();
-        if (ownerType === 'task') {
-          const tasks = await fieldWork.listFieldTasks({ fieldId });
-          next = tasks.map((task) => {
-            const when = task.plannedStart ? formatDate(task.plannedStart) : '';
-            const status = localizeLinkedStatus(task.status, t) || '';
-            return {
-              id: task.id,
-              label: [when, task.title, status].filter(Boolean).join(' · '),
-            };
-          });
-        } else if (ownerType === 'note') {
-          const notes = await getNoteService().getNotes({ fieldId, limit: 40 });
-          next = notes.map((note) => ({
-            id: note.id,
-            label: notePreviewTitle(note.body) || note.id,
-          }));
-        } else if (ownerType === 'harvest') {
-          const harvests = await getHarvestService().listByField(fieldId);
-          next = harvests.map((h) => ({
-            id: h.id,
-            label: `${formatDate(h.harvestDate)} · ${h.oliveKg} kg`,
-          }));
-        } else if (ownerType === 'phenology') {
-          const observations: FieldPhenologyObservation[] =
-            await fieldWork.listPhenologyObservations(fieldId);
-          next = observations.map((o) => ({
-            id: o.id,
-            label: `${o.stageLabel || o.stageCode} · ${formatDate(o.observedOn)}`,
-          }));
-        }
+        const next = await loadPhotoLinkTargets({ fieldId, ownerType, formatDate, t });
         if (!cancelled) setTargets(next);
       } catch {
         if (!cancelled) {
@@ -163,7 +126,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [editingLink, fieldId, formatDate, open, ownerType, photo, targetsRetry]);
+  }, [editingLink, fieldId, formatDate, open, ownerType, photo, t, targetsRetry]);
 
   const drawerTitle = useMemo(() => {
     if (!photo) return t('detail.title');
@@ -213,6 +176,7 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
         await onUpdate(photo.id, {
           capturedAt: dateDraft ? `${dateDraft}T${time}` : undefined,
           caption: captionDraft,
+          kind: kindDraft || 'general',
         });
       }
       setEditingMeta(false);
@@ -317,6 +281,14 @@ const PhotoDetailDrawer: React.FC<PhotoDetailDrawerProps> = ({
                 {capturedDateIsFallback(photo.capturedAt) ? (
                   <small>{t('detail.capturedFallback')}</small>
                 ) : null}
+              </label>
+              <label className="photo-detail-field">
+                <span>{t('detail.kind')}</span>
+                <select value={kindDraft} onChange={(e) => setKindDraft(e.target.value)}>
+                  <option value="general">{t('kinds.general')}</option>
+                  <option value="before">{t('kinds.before')}</option>
+                  <option value="after">{t('kinds.after')}</option>
+                </select>
               </label>
               <label className="photo-detail-field">
                 <span>{t('detail.caption')}</span>

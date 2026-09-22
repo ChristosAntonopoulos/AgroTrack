@@ -1,11 +1,8 @@
 import { normalizeTaskStatus } from '../../utils/categoryNormalize';
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-/** Localize a linked-record status. Raw English enums such as "completed" must not leak into the UI. */
 export const localizeLinkedStatus = (
   status: string | null | undefined,
-  t: Translate
+  t: (key: string, options?: Record<string, unknown>) => string
 ): string | null => {
   if (!status || !status.trim()) return null;
   const normalized = normalizeTaskStatus(status);

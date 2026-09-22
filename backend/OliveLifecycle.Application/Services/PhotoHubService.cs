@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using OliveLifecycle.Application.Abstractions.Imaging;
+using OliveLifecycle.Application.Photos;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Storage;
@@ -523,30 +524,47 @@ public class PhotoHubService : IPhotoHubService
             throw new ValidationException("Image exceeds the 10 MB limit.");
         }
 
-        var hash = Convert.ToHexString(SHA256.HashData(processed.OriginalBytes)).ToLowerInvariant();
+        var byteHash = Convert.ToHexString(SHA256.HashData(processed.OriginalBytes)).ToLowerInvariant();
+        var identityHash = file.Transcoded && PhotoDuplicateRules.IsContentHash(file.SourceHash)
+            ? file.SourceHash!.Trim().ToLowerInvariant()
+            : byteHash;
         var now = DateTime.UtcNow;
-        var capturedAt = processed.CapturedAtUtc ?? now;
+        var exifCaptured = processed.CapturedAtUtc ?? file.CapturedAt;
+        var capturedAt = exifCaptured ?? now;
+        var latitude = processed.Latitude ?? file.Latitude;
+        var longitude = processed.Longitude ?? file.Longitude;
 
         FieldGeoMatchResult match = new() { Assignment = FieldAssignmentStatus.Unassigned };
         string? assignmentReason = "noGps";
-        if (processed.Latitude.HasValue && processed.Longitude.HasValue)
+        if (latitude.HasValue && longitude.HasValue)
         {
-            match = _geoMatch.Match(processed.Latitude.Value, processed.Longitude.Value, accessibleFields);
+            match = _geoMatch.Match(latitude.Value, longitude.Value, accessibleFields);
             assignmentReason = ResolveAssignmentReason(match);
         }
 
         var fieldId = match.FieldId ?? string.Empty;
-        var duplicates = await _media.FindByContentHashAsync(
-            hash,
-            string.IsNullOrWhiteSpace(fieldId) ? null : fieldId,
-            cancellationToken);
-
-        if (!allowDuplicates && duplicates.Count > 0 && !string.IsNullOrWhiteSpace(fieldId))
+        var hashMatches = new List<MediaAttachment>();
+        hashMatches.AddRange(await _media.FindByContentHashAsync(identityHash, null, cancellationToken));
+        if (!string.Equals(identityHash, byteHash, StringComparison.Ordinal))
         {
-            var existing = duplicates[0];
+            hashMatches.AddRange(await _media.FindByContentHashAsync(byteHash, null, cancellationToken));
+        }
+
+        var accessibleIds = accessibleFields
+            .Select(field => field.Id)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+        var duplicate = allowDuplicates
+            ? null
+            : PhotoDuplicateRules.SelectDuplicate(hashMatches, userId, accessibleIds, exifCaptured);
+        var hashHit = hashMatches.Any(existing =>
+            PhotoDuplicateRules.IsVisibleToUploader(existing, userId, accessibleIds));
+
+        if (duplicate != null)
+        {
             return new PhotoUploadResultDto
             {
-                Photo = await ToDtoAsync(existing, userId, userRole,
+                Photo = await ToDtoAsync(duplicate, userId, userRole,
                     accessibleFields.ToDictionary(f => f.Id, f => f.Name, StringComparer.Ordinal),
                     cancellationToken),
                 DuplicateWarning = true,
@@ -576,13 +594,13 @@ public class PhotoHubService : IPhotoHubService
             ContentType = file.ContentType,
             UploadedByUserId = userId,
             CapturedAt = capturedAt,
-            Latitude = processed.Latitude,
-            Longitude = processed.Longitude,
+            Latitude = latitude,
+            Longitude = longitude,
             FieldAssignment = match.Assignment,
             FieldMatchScore = match.Score,
             AssignmentReason = assignmentReason,
             Kind = PhotoKind.General,
-            ContentHash = hash,
+            ContentHash = identityHash,
             Width = processed.Width,
             Height = processed.Height,
             Orientation = processed.Orientation,
@@ -597,7 +615,7 @@ public class PhotoHubService : IPhotoHubService
             Photo = await ToDtoAsync(saved, userId, userRole,
                 accessibleFields.ToDictionary(f => f.Id, f => f.Name, StringComparer.Ordinal),
                 cancellationToken),
-            DuplicateWarning = duplicates.Count > 0,
+            DuplicateWarning = hashHit,
             Candidates = match.Candidates.Select(MapCandidate).ToList()
         };
     }

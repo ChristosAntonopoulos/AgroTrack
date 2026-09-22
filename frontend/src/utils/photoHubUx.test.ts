@@ -24,7 +24,7 @@ describe('linkedRecordPath', () => {
   it('routes tasks, harvests, notes, and phenology', () => {
     expect(
       linkedRecordPath(basePhoto({ isLinked: true, ownerType: 'task', ownerId: 't1' }))
-    ).toContain('task=t1');
+    ).toBe('/tasks/t1');
     expect(
       linkedRecordPath(
         basePhoto({ isLinked: true, ownerType: 'harvest', ownerId: 'h1', fieldId: 'f1' })

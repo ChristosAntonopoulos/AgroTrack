@@ -131,4 +131,37 @@ export const formatMonthHeading = (year: number, month: number, locale = 'el'): 
   );
 };
 
+/** Genitive month name for “του Σεπτεμβρίου”. Nominative headings stay in formatMonthHeading. */
+export const formatMonthInPhrase = (month: number, locale = 'el'): string => {
+  if (locale.toLowerCase().startsWith('el')) return EL_MONTH_GENITIVE[month - 1] || '';
+  return new Date(2020, month - 1, 1).toLocaleDateString(
+    locale.toLowerCase().startsWith('it') ? 'it-IT' : 'en-GB',
+    { month: 'long' }
+  );
+};
+
+/** Human month span. Never an ISO timestamp. */
+export const formatMonthSpan = (
+  year: number,
+  month: number,
+  locale = 'el',
+  lastDay?: number
+): string => {
+  const end = lastDay ?? daysInMonth(year, month);
+  if (locale.toLowerCase().startsWith('el')) {
+    return `1–${end} ${EL_MONTH_GENITIVE[month - 1]} ${year}`;
+  }
+  const localeTag = locale.toLowerCase().startsWith('it') ? 'it-IT' : 'en-GB';
+  const start = new Date(year, month - 1, 1).toLocaleDateString(localeTag, {
+    day: 'numeric',
+    month: 'long',
+  });
+  const finish = new Date(year, month - 1, end).toLocaleDateString(localeTag, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  return `${start} – ${finish}`;
+};
+
 export const greekWeekdayHeaders = (): readonly string[] => EL_WEEKDAYS_SHORT;

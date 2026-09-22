@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
 using OliveLifecycle.Infrastructure.Persistence.Documents.FieldWork;
@@ -26,6 +27,46 @@ public static class DemoFarmDataSeeder
         "675555555555555555555103",
     ];
 
+    /// <summary>Retired extra grove once owned by Kostas. The household story is the three Filiatra parcels.</summary>
+    public const string PartnerOwnedFieldId = "675555555555555555555201";
+
+    /// <summary>Kostas works the trees. He does not see the family's money or harvest books.</summary>
+    public static readonly string[] PartnerSeatModules =
+    [
+        FamilyModules.Fields,
+        FamilyModules.Tasks,
+        FamilyModules.Photos,
+        FamilyModules.Chronologio,
+    ];
+
+    /// <summary>Eleni keeps papers, mill tickets, and sales. She does not run field tasks.</summary>
+    public static readonly string[] FamilySeatModules =
+    [
+        FamilyModules.Fields,
+        FamilyModules.Photos,
+        FamilyModules.Documents,
+        FamilyModules.Money,
+        FamilyModules.Harvest,
+        FamilyModules.Chronologio,
+    ];
+
+    public const string OwnerDisplayName = "Γιώργος Παπαδάκης";
+    public const string PartnerDisplayName = "Κώστας Μανούσακης";
+    public const string FamilyDisplayName = "Ελένη Παπαδάκη";
+
+    /// <summary>24-hex ids shared by tasks, harvests, and money for one grove and year.</summary>
+    public static string SeasonTaskId(int year, int fieldNumber, int sequence) =>
+        $"67555555555555555556{year % 10}{fieldNumber}{sequence:00}";
+
+    public static string SeasonExecutionId(int year, int fieldNumber, int sequence) =>
+        $"67555555555555555558{year % 10}{fieldNumber}{sequence:00}";
+
+    public static string SeasonHarvestId(int year, int fieldNumber) =>
+        $"675555555555555555557{year % 10}{fieldNumber}1";
+
+    public static string SeasonMoneyId(int year, int fieldNumber, int sequence) =>
+        $"675555555555555555559{year % 10}{fieldNumber}{sequence}";
+
     private static readonly string[] RetiredFieldIds =
     [
         "675555555555555555555104",
@@ -45,51 +86,34 @@ public static class DemoFarmDataSeeder
             return;
         }
 
-        var retiredRemoved = await RemoveFieldsAsync(context, RetiredFieldIds, cancellationToken);
-        if (retiredRemoved > 0)
-        {
-            logger.LogInformation("Removed {Count} retired demo fields.", retiredRemoved);
-        }
-
         var fieldsCol = context.GetCollection<FieldDocument>("fields");
-
-        // Always scrub leftover short draft names / junk pins for the demo owner.
         var junkIds = await FindJunkOwnerFieldIdsAsync(fieldsCol, cancellationToken);
-        if (junkIds.Count > 0)
-        {
-            var junkRemoved = await RemoveFieldsAsync(context, junkIds, cancellationToken);
-            logger.LogInformation("Removed {Count} leftover short/draft demo fields.", junkRemoved);
-        }
-
-        var existingKept = await fieldsCol
-            .Find(f => FieldIds.Contains(f.Id))
-            .ToListAsync(cancellationToken);
-
-        var reseed = string.Equals(configuration["DemoAccounts:ReseedFarmData"], "true", StringComparison.OrdinalIgnoreCase);
-        var looksCurrent = existingKept.Count == FieldIds.Length
-            && existingKept.All(f => f.Name.Contains("Φιλιατρών", StringComparison.Ordinal));
-
         var extraOwnerFields = await fieldsCol
             .Find(f => f.OwnerId == OwnerId && !FieldIds.Contains(f.Id))
             .Project(f => f.Id)
             .ToListAsync(cancellationToken);
-        if (extraOwnerFields.Count > 0)
-        {
-            var extraRemoved = await RemoveFieldsAsync(context, extraOwnerFields, cancellationToken);
-            logger.LogInformation("Removed {Count} extra fields for the demo owner.", extraRemoved);
-        }
 
-        if (looksCurrent && !reseed)
-        {
-            logger.LogInformation("Demo farm data already present; skipping field seed.");
-            return;
-        }
-
-        if (existingKept.Count > 0)
-        {
-            await RemoveFieldsAsync(context, FieldIds, cancellationToken);
-            logger.LogInformation("Cleared existing demo farm data for reseed.");
-        }
+        var wipeIds = junkIds
+            .Concat(extraOwnerFields)
+            .Concat(FieldIds)
+            .Concat(RetiredFieldIds)
+            .Append(PartnerOwnedFieldId)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        await RemoveFieldsAsync(context, wipeIds, cancellationToken);
+        await context.GetCollection<FinancialTransactionDocument>("financial_transactions")
+            .DeleteManyAsync(e => e.OwnerUserId == OwnerId, cancellationToken);
+        await context.GetCollection<HarvestRecordDocument>("harvest_records")
+            .DeleteManyAsync(h => h.OwnerId == OwnerId, cancellationToken);
+        await context.GetCollection<NoteDocument>("notes")
+            .DeleteManyAsync(
+                n => n.OwnerUserId == OwnerId || n.OwnerUserId == ProducerId || n.OwnerUserId == FamilyUserId,
+                cancellationToken);
+        await context.GetCollection<UserNotificationDocument>("user_notifications")
+            .DeleteManyAsync(
+                n => n.UserId == OwnerId || n.UserId == ProducerId || n.UserId == FamilyUserId,
+                cancellationToken);
+        logger.LogInformation("Cleared demo household data before reseeding the Filiatra story.");
 
         var now = DateTime.UtcNow;
         var planted = new DateTime(2011, 3, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -170,6 +194,8 @@ public static class DemoFarmDataSeeder
             .DeleteManyAsync(j => j.FieldId != null && fieldIds.Contains(j.FieldId), cancellationToken);
         await context.GetCollection<FieldTaskDocument>("field_tasks")
             .DeleteManyAsync(t => fieldIds.Contains(t.FieldId), cancellationToken);
+        await context.GetCollection<TaskProposalDocument>("task_proposals")
+            .DeleteManyAsync(t => fieldIds.Contains(t.FieldId), cancellationToken);
         await context.GetCollection<TaskExecutionDocument>("task_executions")
             .DeleteManyAsync(e => fieldIds.Contains(e.FieldId), cancellationToken);
         await context.GetCollection<MediaAttachmentDocument>("media_attachments")
@@ -186,7 +212,7 @@ public static class DemoFarmDataSeeder
             Modules = ["fields", "tasks", "photos", "documents", "money", "chronologio", "harvest"],
             AccessLevel = "work",
             Status = "active",
-            DisplayName = "Γιώργος Παπαδόπουλος",
+            DisplayName = OwnerDisplayName,
             Email = "owner@olivefarm.com",
             CreatedAt = created,
         },
@@ -194,11 +220,11 @@ public static class DemoFarmDataSeeder
         {
             UserId = ProducerId,
             Role = "Partner",
-            Modules = ["fields", "tasks", "photos", "chronologio"],
+            Modules = PartnerSeatModules.ToList(),
             AccessLevel = "work",
             Status = "active",
             InvitedBy = OwnerId,
-            DisplayName = "Κώστας Μανούσακης",
+            DisplayName = PartnerDisplayName,
             Email = "producer1@olivefarm.com",
             CreatedAt = created,
         },
@@ -206,11 +232,11 @@ public static class DemoFarmDataSeeder
         {
             UserId = FamilyUserId,
             Role = "Family",
-            Modules = ["fields", "photos", "money", "harvest", "documents", "chronologio"],
-            AccessLevel = "help",
+            Modules = FamilySeatModules.ToList(),
+            AccessLevel = FamilyAccessLevels.Work,
             Status = "active",
             InvitedBy = OwnerId,
-            DisplayName = "Ελένη Παπαδοπούλου",
+            DisplayName = FamilyDisplayName,
             Email = "family@olivefarm.com",
             CreatedAt = created,
         },

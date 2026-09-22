@@ -19,6 +19,7 @@ public class FieldTaskServiceTests
     private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IFieldWorkAuthorizationService> _auth = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
+    private readonly Mock<IUserNotificationService> _notifications = new();
     private readonly FieldTaskService _service;
 
     public FieldTaskServiceTests()
@@ -31,6 +32,9 @@ public class FieldTaskServiceTests
         _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<string>());
+        _notifications
+            .Setup(n => n.NotifyAsync(It.IsAny<OliveLifecycle.Core.Entities.UserNotification>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _service = new FieldTaskService(
             _tasks.Object,
             _executions.Object,
@@ -39,7 +43,8 @@ public class FieldTaskServiceTests
             _fieldAccessScope.Object,
             _clock.Object,
             weather.Object,
-            Mock.Of<ITaskProposalEngine>());
+            Mock.Of<ITaskProposalEngine>(),
+            _notifications.Object);
     }
 
     [Fact]
@@ -66,7 +71,7 @@ public class FieldTaskServiceTests
         Assert.Equal(320m, dto.EstimatedCost);
         Assert.Equal(2026, dto.ResultYear);
         Assert.Equal("planned", dto.Status);
-        Assert.Equal("Προγραμματισμένη", dto.StatusLabel);
+        Assert.Equal("Να γίνει", dto.StatusLabel);
     }
 
     [Fact]
@@ -245,6 +250,30 @@ public class FieldTaskServiceTests
 
         Assert.Equal("contact-1", updated.AssignedCollaboratorId);
         Assert.Null(updated.AssignedUserId);
+    }
+
+    [Fact]
+    public async Task Assign_NotifiesAssignedUser()
+    {
+        var task = PlannedTask();
+        _tasks.Setup(r => r.GetByIdAsync("ft-1", It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        _tasks.Setup(r => r.UpdateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FieldTask t, CancellationToken _) => t);
+
+        await _service.AssignAsync(
+            "ft-1",
+            new AssignFieldTaskDto { AssignedUserId = "worker-1" },
+            "owner-1",
+            Roles.FieldOwner);
+
+        _notifications.Verify(
+            n => n.NotifyAsync(
+                It.Is<OliveLifecycle.Core.Entities.UserNotification>(x =>
+                    x.UserId == "worker-1"
+                    && x.Type == "task_assigned"
+                    && x.RelatedEntityId == "ft-1"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

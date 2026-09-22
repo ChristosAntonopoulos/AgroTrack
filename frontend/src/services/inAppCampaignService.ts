@@ -65,6 +65,8 @@ export type InboxItem = {
   title: string;
   message: string;
   actionUrl?: string | null;
+  relatedEntityId?: string | null;
+  relatedEntityType?: string | null;
   campaignId?: string | null;
   campaignKind?: string | null;
   isRead: boolean;

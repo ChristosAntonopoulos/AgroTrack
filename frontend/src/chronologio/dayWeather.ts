@@ -101,3 +101,13 @@ export const entryMatchesDayWeather = (
   if (!entry.fieldId) return false;
   return opts.fieldIds.includes(entry.fieldId);
 };
+
+/** "Φιλιατρών 088" and "Φιλιατρών 089" share the place name Φιλιατρών. */
+export const sharedPlaceLabel = (names: string[]): string | null => {
+  const stems = names
+    .map((name) => name.replace(/\s+\d+\s*$/u, '').trim())
+    .filter(Boolean);
+  if (stems.length < 2) return null;
+  const unique = [...new Set(stems)];
+  return unique.length === 1 ? unique[0] : null;
+};

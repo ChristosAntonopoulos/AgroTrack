@@ -1,4 +1,6 @@
 import api from './api';
+import { isRealSessionToken } from './sessionToken';
+import type { NotificationDevicePreferences } from './settingsService';
 
 export interface RegisterDto {
   email: string;
@@ -23,8 +25,10 @@ export interface AuthResponse {
   firstName?: string;
   lastName?: string;
   preferences?: {
-    fontScale: string;
-    largeControls: boolean;
+    fontScale?: string;
+    largeControls?: boolean;
+    language?: string;
+    notifications?: NotificationDevicePreferences;
   };
 }
 
@@ -68,7 +72,14 @@ export const authService = {
   },
 
   getStoredToken: (): string | null => {
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    if (!isRealSessionToken(token)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+    return token;
   },
 
   getStoredUser: (): any | null => {

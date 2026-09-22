@@ -41,24 +41,47 @@ describe('resolveChronologioCaptureDate', () => {
     expect(d.getDate()).toBe(18);
   });
 
-  it('defaults to today when viewing an older month in Days', () => {
+  it('keeps the exact day when Days is showing an older date', () => {
     const result = resolveChronologioCaptureDate({
       zoom: 'month',
       focusDate: '2025-08-10',
       now,
     });
-    expect(result.dateDefaultedToToday).toBe(true);
-    expect(result.focusDayKey).toBe('2026-09-21');
+    expect(result.dateDefaultedToToday).toBe(false);
+    expect(result.dateNeedsChoice).toBe(false);
+    expect(result.focusDayKey).toBe('2025-08-10');
   });
 
-  it('defaults to today on Months / Years views', () => {
-    expect(
-      resolveChronologioCaptureDate({ zoom: 'year', focusDate: '2026-09-21', now })
-        .dateDefaultedToToday
-    ).toBe(true);
-    expect(
-      resolveChronologioCaptureDate({ zoom: 'years', focusDate: '2024-06-15', now })
-        .dateDefaultedToToday
-    ).toBe(true);
+  it('uses today on the current month without calling it an older period', () => {
+    const result = resolveChronologioCaptureDate({
+      zoom: 'year',
+      focusDate: '2026-09-21',
+      now,
+      language: 'el',
+    });
+    expect(result.dateDefaultedToToday).toBe(false);
+    expect(result.dateNeedsChoice).toBe(false);
+    expect(result.focusDayKey).toBe('2026-09-21');
+    expect(result.periodLabel).toBe('Σεπτέμβριος 2026');
+  });
+
+  it('asks for a date inside a past month or past agricultural year', () => {
+    const pastMonth = resolveChronologioCaptureDate({
+      zoom: 'year',
+      focusDate: '2026-03-15',
+      now,
+      language: 'el',
+    });
+    expect(pastMonth.dateNeedsChoice).toBe(true);
+    expect(pastMonth.dateDefaultedToToday).toBe(false);
+    expect(pastMonth.focusDayKey.startsWith('2026-03')).toBe(true);
+
+    const pastYear = resolveChronologioCaptureDate({
+      zoom: 'years',
+      focusDate: '2024-06-15',
+      now,
+    });
+    expect(pastYear.dateNeedsChoice).toBe(true);
+    expect(pastYear.periodLabel).toBe('2024');
   });
 });

@@ -117,5 +117,20 @@
   "draftNeedsAmount": "Inserisci tipo e un importo diverso da zero per salvare la bozza.",
   "harvestStatusPosted": "Registrata",
   "harvestStatusVoided": "Annullata",
-  "leaveUnsavedTitle": "Uscire da questa registrazione? La bozza resterà finché non salvi o la cancelli."
+  "leaveUnsavedTitle": "Uscire da questa registrazione? La bozza resterà finché non salvi o la cancelli.",
+  "leaveTitle": "Uscire da questa registrazione?",
+  "leaveBody": "Salvala come bozza in Denaro, oppure scarta quello che hai scritto. Senza importo, la bozza resta su questo dispositivo.",
+  "leaveSaveDraft": "Salva bozza",
+  "leaveDiscard": "Scarta",
+  "leaveKeep": "Continua",
+  "excludedMissingArea": "Il valore per stremma esclude {{names}} perché manca la superficie.",
+  "areaMissingAll": "Il valore per stremma è nascosto perché manca la superficie.",
+  "excludedIncomplete": "I totali escludono {{names}} perché il campo non è ancora completo.",
+  "excludedUnassigned": "Le registrazioni senza campo sono nei totali e restano fuori dal valore per stremma.",
+  "missingAreaRow": "Senza superficie — fuori dal valore per stremma",
+  "export": "Esporta",
+  "exporting": "Esportazione…",
+  "exportFailed": "Esportazione non riuscita. Riprova.",
+  "harvestExpenseHere": "Registrata in Raccolta. L'importo si cambia qui.",
+  "openHarvestDay": "Apri la giornata di raccolta"
 }

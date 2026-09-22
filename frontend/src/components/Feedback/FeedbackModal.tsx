@@ -13,9 +13,10 @@ type ImageSlot = { file: File; preview: string };
 type Props = {
   open: boolean;
   onClose: () => void;
+  initialComment?: string | null;
 };
 
-const FeedbackModal: React.FC<Props> = ({ open, onClose }) => {
+const FeedbackModal: React.FC<Props> = ({ open, onClose, initialComment }) => {
   const { t } = useTranslation(['feedback', 'common', 'errors']);
   const photoRef = useRef<HTMLInputElement>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -48,6 +49,7 @@ const FeedbackModal: React.FC<Props> = ({ open, onClose }) => {
     if (!open) return;
     setThanks(false);
     setError(null);
+    if (initialComment) setComment(initialComment);
     const id = window.setTimeout(() => commentRef.current?.focus(), 40);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !submittingRef.current) onClose();
@@ -57,7 +59,7 @@ const FeedbackModal: React.FC<Props> = ({ open, onClose }) => {
       window.clearTimeout(id);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open, onClose]);
+  }, [open, onClose, initialComment]);
 
   useEffect(() => {
     if (!open) return;

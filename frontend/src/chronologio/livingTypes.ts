@@ -126,7 +126,8 @@ export type LivingCategory = ChronologioCategory | 'all' | 'work' | 'observation
 
 export type LivingFilters = {
   fieldId?: string;
-  category: LivingCategory;
+  /** `all`, one type, or a comma-separated subset. */
+  category: LivingCategory | string;
   lifecycleYear: string;
 };
 

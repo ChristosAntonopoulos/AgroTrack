@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronDown, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, Camera, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import PageHeader from '../components/Common/PageHeader';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -16,9 +16,9 @@ import {
   PhotoUploadDropzone,
   usePhotoLightbox,
 } from '../components/photos';
-import type { PhotoBatchItem } from '../components/photos/PhotoReviewQueue';
-import { PHOTO_ACCEPT, classifyPhotoFile } from '../components/photos/photoUploadRules';
 import { daysUntilPurge } from '../components/photos/photoLabels';
+import { PHOTO_ACCEPT } from '../components/photos/photoUploadRules';
+import { usePhotoUploads } from '../components/photos/usePhotoUploads';
 import { resolveFieldColor } from '../utils/fieldColors';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import PhotoFrame from '../components/photos/PhotoFrame';
@@ -27,16 +27,16 @@ import { getFieldService, getPhotoService } from '../services/serviceFactory';
 import { readFieldId } from '../navigation/intents';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
+import { useFeedback } from '../context/FeedbackContext';
 import type { Field } from '../services/fieldService';
 import type { Photo, PhotoLinkStatus } from '../services/photoService';
+import {
+  loadPhotoLinkTargets,
+  type PhotoLinkTarget,
+} from '../components/photos/photoLinkTargets';
 import '../components/photos/PhotoHub.css';
 
 const PAGE_SIZE = 96;
-
-const newLocalId = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const takeFiles = (list: FileList | null | File[]): File[] => {
   if (!list) return [];
@@ -64,14 +64,8 @@ const PhotoHubPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(
-    null
-  );
   const [error, setError] = useState<string | null>(null);
-  const [batchItems, setBatchItems] = useState<PhotoBatchItem[]>([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
-  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<Photo | null>(null);
   const [toolbarStuck, setToolbarStuck] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -88,24 +82,24 @@ const PhotoHubPage: React.FC = () => {
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkFieldId, setBulkFieldId] = useState('');
+  const [bulkDate, setBulkDate] = useState('');
+  const [bulkCaption, setBulkCaption] = useState('');
+  const [bulkKind, setBulkKind] = useState('');
+  const [bulkOwnerType, setBulkOwnerType] = useState('task');
+  const [bulkOwnerId, setBulkOwnerId] = useState('');
+  const [bulkTargets, setBulkTargets] = useState<PhotoLinkTarget[]>([]);
+  const [bulkTargetsLoading, setBulkTargetsLoading] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const lightbox = usePhotoLightbox();
   const stickySentinelRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadedSeenRef = useRef(0);
   const hasPhotosRef = useRef(false);
   const openedDeepLinkRef = useRef<string | null>(null);
-  const uploadQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const batchItemsRef = useRef<PhotoBatchItem[]>([]);
   const dragDepthRef = useRef(0);
-
-  const setBatchItemsSync = useCallback(
-    (updater: PhotoBatchItem[] | ((prev: PhotoBatchItem[]) => PhotoBatchItem[])) => {
-      const prev = batchItemsRef.current;
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      batchItemsRef.current = next;
-      setBatchItems(next);
-    },
-    []
-  );
+  const uploads = usePhotoUploads(photos);
+  const feedback = useFeedback();
 
   const galleryItems = useMemo(
     () =>
@@ -315,11 +309,14 @@ const PhotoHubPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    return () => {
-      batchItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- revoke remaining previews on unmount only
-  }, []);
+    const uploadedCount = uploads.items.filter((item) => item.status === 'uploaded').length;
+    if (uploadedCount > uploadedSeenRef.current) {
+      uploadedSeenRef.current = uploadedCount;
+      void load(1, false);
+    } else {
+      uploadedSeenRef.current = uploadedCount;
+    }
+  }, [load, uploads.items]);
 
   const closePhoto = () => {
     setSelected(null);
@@ -329,193 +326,114 @@ const PhotoHubPage: React.FC = () => {
   const refreshSelected = (photo: Photo) => {
     setSelected(photo);
     setPhotos((prev) => prev.map((p) => (p.id === photo.id ? photo : p)));
-    setBatchItemsSync((prev) =>
-      prev.map((item) =>
-        item.result?.photo.id === photo.id
-          ? { ...item, result: item.result ? { ...item.result, photo } : item.result }
-          : item
-      )
-    );
+    uploads.patchPhoto(photo);
   };
 
   const openFilePicker = () => {
     uploadInputRef.current?.click();
   };
 
-  const runUploadQueue = useCallback(() => {
-    uploadQueueRef.current = uploadQueueRef.current.then(async () => {
-      setUploading(true);
-      setError(null);
-      try {
-        for (;;) {
-          const current = batchItemsRef.current.find((i) => i.status === 'queued');
-          if (!current) break;
-
-          setBatchItemsSync((prev) =>
-            prev.map((i) =>
-              i.localId === current.localId ? { ...i, status: 'uploading' as const } : i
-            )
-          );
-
-          try {
-            const results = await getPhotoService().upload([current.file], {
-              allowDuplicates: current.allowDuplicate,
-            });
-            const result = results[0];
-            setBatchItemsSync((prev) =>
-              prev.map((i) => {
-                if (i.localId !== current.localId) return i;
-                if (!result) {
-                  return { ...i, status: 'failed', error: t('photos:errors.upload') };
-                }
-                if (result.failed) {
-                  return {
-                    ...i,
-                    status: 'failed',
-                    error: result.error || t('photos:errors.upload'),
-                    result,
-                  };
-                }
-                if (result.duplicateSkipped) {
-                  return { ...i, status: 'duplicate', result };
-                }
-                return { ...i, status: 'uploaded', result };
-              })
-            );
-          } catch {
-            setBatchItemsSync((prev) =>
-              prev.map((i) =>
-                i.localId === current.localId
-                  ? { ...i, status: 'failed', error: t('photos:errors.upload') }
-                  : i
-              )
-            );
-          }
-
-          setUploadProgress((p) => {
-            const total = Math.max(p?.total ?? 1, 1);
-            const done = Math.min(total, (p?.done ?? 0) + 1);
-            return { done, total };
-          });
-        }
-
-        await load(1, false);
-
-        const snapshot = batchItemsRef.current;
-        const uploaded = snapshot.filter((i) => i.status === 'uploaded').length;
-        const duplicates = snapshot.filter((i) => i.status === 'duplicate').length;
-        const failed = snapshot.filter((i) => i.status === 'failed').length;
-        const review = snapshot.filter(
-          (i) =>
-            i.status === 'uploaded' &&
-            i.result &&
-            (i.result.photo.fieldAssignment === 'needsReview' ||
-              i.result.photo.fieldAssignment === 'unassigned' ||
-              i.result.duplicateWarning)
-        ).length;
-        if (failed > 0 || duplicates > 0 || review > 0) {
-          setUploadNotice(
-            t('photos:uploadSummary', {
-              added: uploaded,
-              review,
-              duplicates,
-              failed,
-            })
-          );
-        } else if (uploaded > 0) {
-          setUploadNotice(t('photos:uploadSuccess', { count: uploaded }));
-        }
-      } finally {
-        setUploading(false);
-        setUploadProgress(null);
-      }
-    });
-  }, [load, setBatchItemsSync, t]);
-
-  const fileIssueMessage = (issue: ReturnType<typeof classifyPhotoFile>) => {
-    if (issue === 'heic') return t('photos:errors.heic');
-    if (issue === 'oversize') return t('photos:errors.oversize');
-    if (issue === 'empty') return t('photos:errors.emptyFile');
-    return t('photos:errors.unsupported');
+  const openCamera = () => {
+    cameraInputRef.current?.click();
   };
 
-  const stageFiles = useCallback(
-    (files: File[]) => {
-      if (files.length === 0) return;
-      const nextItems: PhotoBatchItem[] = files.map((file) => {
-        const issue = classifyPhotoFile(file);
-        return {
-          localId: newLocalId(),
-          file,
-          previewUrl: file.type.startsWith('image/') && !issue ? URL.createObjectURL(file) : '',
-          status: issue ? 'failed' : 'staged',
-          error: issue ? fileIssueMessage(issue) : null,
-        };
+  const removeBrokenPhoto = async (photo: Photo) => {
+    await getPhotoService().delete(photo.id);
+    setUndo({ id: photo.id });
+    if (selected?.id === photo.id) {
+      setDetailsOpen(false);
+      lightbox.close();
+      closePhoto();
+    }
+    await load(1, false);
+    void loadTrash();
+  };
+
+  const replaceBrokenPhoto = (photo: Photo, file: File) => {
+    void (async () => {
+      const ids = await uploads.stageFiles([file], {
+        autoStart: true,
+        fieldId: photo.fieldId || undefined,
       });
-      setBatchItemsSync((prev) => [...prev, ...nextItems]);
-      setUploadNotice(null);
-    },
-    [setBatchItemsSync, t]
-  );
-
-  const startStagedUpload = () => {
-    const staged = batchItemsRef.current.filter((item) => item.status === 'staged');
-    if (staged.length === 0) return;
-    setBatchItemsSync((prev) =>
-      prev.map((item) => (item.status === 'staged' ? { ...item, status: 'queued' as const } : item))
-    );
-    setUploadProgress({ done: 0, total: staged.length });
-    runUploadQueue();
+      const localId = ids[0];
+      if (!localId) return;
+      const outcome = await uploads.waitForJob(localId);
+      if (outcome === 'uploaded') {
+        await removeBrokenPhoto(photo);
+      }
+    })();
   };
 
-  const keepDuplicate = (localId: string) => {
-    setBatchItemsSync((prev) =>
-      prev.map((item) =>
-        item.localId === localId
-          ? { ...item, status: 'queued' as const, allowDuplicate: true, error: null }
-          : item
-      )
-    );
-    setUploadProgress((p) => ({ done: p?.done ?? 0, total: (p?.total ?? 0) + 1 }));
-    runUploadQueue();
-  };
-
-  const removeBatchItem = (localId: string) => {
-    setBatchItemsSync((prev) => {
-      const target = prev.find((i) => i.localId === localId);
-      if (target) URL.revokeObjectURL(target.previewUrl);
-      return prev.filter((i) => i.localId !== localId);
+  const reportBrokenPhoto = (photo: Photo) => {
+    feedback.openFeedback({
+      comment: t('photos:errors.imageReportDraft', { id: photo.id }),
     });
-    setUploadProgress((p) => (p ? { done: p.done, total: Math.max(0, p.total - 1) } : p));
-  };
-
-  const retryBatchItem = (localId: string) => {
-    setBatchItemsSync((prev) =>
-      prev.map((i) =>
-        i.localId === localId
-          ? { ...i, status: 'queued', error: null, result: undefined }
-          : i
-      )
-    );
-    setUploadProgress((p) => ({
-      done: p?.done ?? 0,
-      total: (p?.total ?? 0) + 1,
-    }));
-    runUploadQueue();
-  };
-
-  const clearBatch = () => {
-    setBatchItemsSync((prev) => {
-      prev.forEach((i) => URL.revokeObjectURL(i.previewUrl));
-      return [];
-    });
-    setUploadProgress(null);
   };
 
   const hasMore = photos.length < total;
   const hasActiveFilters = activeFilterChips.length > 0;
   const advancedFilterCount =
     (linkStatus !== 'all' ? 1 : 0) + (assignment ? 1 : 0) + (from || to ? 1 : 0);
+
+  const selectedPhotos = useMemo(
+    () => photos.filter((photo) => selectedIds.includes(photo.id)),
+    [photos, selectedIds]
+  );
+  const bulkLinkFieldId = useMemo(() => {
+    const ids = selectedPhotos.map((photo) => photo.fieldId).filter(Boolean);
+    if (ids.length === 0 || ids.length !== selectedPhotos.length) return '';
+    const first = ids[0];
+    return ids.every((id) => id === first) ? first : '';
+  }, [selectedPhotos]);
+
+  useEffect(() => {
+    if (!selecting || !bulkLinkFieldId) {
+      setBulkTargets([]);
+      setBulkOwnerId('');
+      return;
+    }
+    let cancelled = false;
+    setBulkTargetsLoading(true);
+    void loadPhotoLinkTargets({
+      fieldId: bulkLinkFieldId,
+      ownerType: bulkOwnerType,
+      formatDate,
+      t,
+    })
+      .then((targets) => {
+        if (!cancelled) {
+          setBulkTargets(targets);
+          setBulkOwnerId('');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBulkTargets([]);
+      })
+      .finally(() => {
+        if (!cancelled) setBulkTargetsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bulkLinkFieldId, bulkOwnerType, formatDate, selecting, t]);
+
+  const runBulk = async (action: () => Promise<void>) => {
+    if (selectedIds.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      await action();
+      setSelectedIds([]);
+      setSelecting(false);
+      setBulkFieldId('');
+      setBulkDate('');
+      setBulkCaption('');
+      setBulkKind('');
+      setBulkOwnerId('');
+      await load(1, false);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!filtersOpen && !fieldMenuOpen) return;
@@ -582,14 +500,35 @@ const PhotoHubPage: React.FC = () => {
                 {trashTotal > 0 ? ` (${trashTotal})` : ''}
               </Button>
             )}
+            {!viewingTrash ? (
+              <Button
+                variant="secondary"
+                icon={<Camera size={18} aria-hidden />}
+                onClick={openCamera}
+              >
+                {t('photos:takePhoto')}
+              </Button>
+            ) : null}
             <Button
               className="photo-hub-upload-btn"
               icon={<Upload size={18} aria-hidden />}
-              loading={uploading}
               onClick={openFilePicker}
             >
-              {uploading ? t('photos:uploading') : t('photos:upload')}
+              {t('photos:upload')}
             </Button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="photo-hidden-input"
+              onChange={(e) => {
+                uploads.stageFiles(takeFiles(e.target.files), { autoStart: true });
+                e.target.value = '';
+              }}
+            />
             <input
               ref={uploadInputRef}
               type="file"
@@ -599,7 +538,7 @@ const PhotoHubPage: React.FC = () => {
               aria-hidden="true"
               className="photo-hidden-input"
               onChange={(e) => {
-                stageFiles(takeFiles(e.target.files));
+                uploads.stageFiles(takeFiles(e.target.files));
                 e.target.value = '';
               }}
             />
@@ -612,7 +551,7 @@ const PhotoHubPage: React.FC = () => {
         onDragEnter={(e) => {
           e.preventDefault();
           dragDepthRef.current += 1;
-          if (!uploading) setDragging(true);
+          setDragging(true);
         }}
         onDragOver={(e) => e.preventDefault()}
         onDragLeave={() => {
@@ -623,7 +562,7 @@ const PhotoHubPage: React.FC = () => {
           e.preventDefault();
           dragDepthRef.current = 0;
           setDragging(false);
-          if (!uploading) stageFiles(takeFiles(e.dataTransfer.files));
+          uploads.stageFiles(takeFiles(e.dataTransfer.files));
         }}
       >
         {dragging ? (
@@ -643,6 +582,13 @@ const PhotoHubPage: React.FC = () => {
                   className={`photo-hub-field-btn${fieldId ? ' has-field' : ''}${fieldMenuOpen ? ' is-open' : ''}`}
                   aria-expanded={fieldMenuOpen}
                   aria-haspopup="listbox"
+                  aria-label={
+                    fieldId
+                      ? `${t('photos:filters.field')}: ${friendlyFieldLabel(
+                          fields.find((field) => field.id === fieldId)?.name || fieldId
+                        )}`
+                      : t('photos:filters.allFields')
+                  }
                   disabled={refreshing}
                   onClick={() => {
                     setFieldMenuOpen((open) => !open);
@@ -872,6 +818,7 @@ const PhotoHubPage: React.FC = () => {
                     type="button"
                     className="photo-hub-filter-chip"
                     onClick={chip.clear}
+                    aria-label={t('photos:filters.removeChip', { label: chip.label })}
                   >
                     <span>{chip.label}</span>
                     <X size={14} aria-hidden />
@@ -891,13 +838,19 @@ const PhotoHubPage: React.FC = () => {
           </div>
         </div>
 
-        {uploadNotice ? (
+        {uploads.waitingOffline ? (
+          <p className="photo-hub-offline" role="status">
+            {t('photos:offlineQueued')}
+          </p>
+        ) : null}
+
+        {uploads.notice ? (
           <div className="photo-hub-success" role="status">
-            <span>{uploadNotice}</span>
+            <span>{uploads.notice}</span>
             <button
               type="button"
               className="photo-hub-success-dismiss"
-              onClick={() => setUploadNotice(null)}
+              onClick={uploads.dismissNotice}
             >
               {t('photos:dismissNotice')}
             </button>
@@ -905,32 +858,25 @@ const PhotoHubPage: React.FC = () => {
         ) : null}
 
         <PhotoReviewQueue
-          items={batchItems}
+          items={uploads.items}
           fields={fields}
-          uploading={uploading}
-          progress={uploadProgress}
-          onRemove={removeBatchItem}
-          onRetry={retryBatchItem}
+          uploading={uploads.uploading}
+          progress={uploads.progress}
+          onRemove={uploads.remove}
+          onRetry={uploads.retry}
           onConfirmField={async (id, nextFieldId) => {
             const updated = await getPhotoService().confirmField(id, nextFieldId);
             refreshSelected(updated);
-            setBatchItemsSync((prev) =>
-              prev.filter(
-                (item) =>
-                  item.result?.photo.id !== id ||
-                  updated.fieldAssignment === 'needsReview' ||
-                  updated.fieldAssignment === 'unassigned'
-              )
-            );
+            uploads.onConfirmed(id, updated);
             await load(1, false);
           }}
           onUpdateCapturedAt={async (id, capturedAt) => {
             const updated = await getPhotoService().update(id, { capturedAt });
             refreshSelected(updated);
           }}
-          onDone={clearBatch}
-          onUploadStaged={startStagedUpload}
-          onKeepDuplicate={keepDuplicate}
+          onDone={uploads.clear}
+          onUploadStaged={uploads.startStaged}
+          onKeepDuplicate={uploads.keepDuplicate}
         />
 
         {!viewingTrash ? <p className="photo-hub-formats">{t('photos:formats')}</p> : null}
@@ -966,7 +912,10 @@ const PhotoHubPage: React.FC = () => {
                 const src = resolvePublicAssetUrl(photo.thumbnailUrl || photo.url) || photo.url;
                 return (
                   <article key={photo.id} className="photo-trash-card">
-                    <PhotoFrame src={src} alt="" />
+                    <PhotoFrame
+                      src={src}
+                      alt={photo.fieldName || photo.fileName || t('photos:detail.title')}
+                    />
                     <div>
                       <strong>{photo.fieldName || photo.fileName || t('photos:detail.title')}</strong>
                       <p>{formatDate(photo.effectiveCapturedAt)}</p>
@@ -1032,7 +981,7 @@ const PhotoHubPage: React.FC = () => {
               }
             />
             {!hasActiveFilters ? (
-              <PhotoUploadDropzone onFiles={stageFiles} disabled={uploading} />
+              <PhotoUploadDropzone onFiles={(files) => uploads.stageFiles(files)} />
             ) : null}
           </div>
         ) : null}
@@ -1040,7 +989,7 @@ const PhotoHubPage: React.FC = () => {
         {!viewingTrash && showGallery ? (
           <div className={`photo-hub-gallery-wrap${refreshing ? ' is-refreshing' : ''}`}>
             {selecting ? (
-              <div className="photo-bulk-bar">
+              <div className="photo-bulk-bar" role="toolbar" aria-label={t('photos:select.toolbar')}>
                 <span>{t('photos:select.count', { count: selectedIds.length })}</span>
                 {bulkFieldId ? <span className="photo-hub-formats">{t('photos:detail.audienceChange')}</span> : null}
                 <select
@@ -1057,32 +1006,151 @@ const PhotoHubPage: React.FC = () => {
                 </select>
                 <Button
                   size="sm"
-                  disabled={!bulkFieldId || selectedIds.length === 0}
-                  onClick={async () => {
-                    for (const id of selectedIds) {
-                      await getPhotoService().confirmField(id, bulkFieldId);
-                    }
-                    setSelectedIds([]);
-                    setSelecting(false);
-                    await load(1, false);
-                  }}
+                  disabled={!bulkFieldId || selectedIds.length === 0 || bulkBusy}
+                  loading={bulkBusy}
+                  onClick={() =>
+                    void runBulk(async () => {
+                      for (const id of selectedIds) {
+                        await getPhotoService().confirmField(id, bulkFieldId);
+                      }
+                    })
+                  }
                 >
                   {t('photos:select.assign')}
+                </Button>
+                <label className="photo-bulk-field">
+                  <span className="photo-sr-only">{t('photos:select.date')}</span>
+                  <input
+                    type="date"
+                    value={bulkDate}
+                    onChange={(e) => setBulkDate(e.target.value)}
+                    aria-label={t('photos:select.date')}
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!bulkDate || selectedIds.length === 0 || bulkBusy}
+                  onClick={() =>
+                    void runBulk(async () => {
+                      for (const id of selectedIds) {
+                        const photo = photos.find((item) => item.id === id);
+                        const time =
+                          (photo?.capturedAt || photo?.effectiveCapturedAt || '').slice(11) ||
+                          '12:00:00.000Z';
+                        await getPhotoService().update(id, { capturedAt: `${bulkDate}T${time}` });
+                      }
+                    })
+                  }
+                >
+                  {t('photos:select.applyDate')}
+                </Button>
+                <label className="photo-bulk-field photo-bulk-caption">
+                  <span className="photo-sr-only">{t('photos:select.caption')}</span>
+                  <input
+                    type="text"
+                    value={bulkCaption}
+                    maxLength={500}
+                    placeholder={t('photos:select.caption')}
+                    onChange={(e) => setBulkCaption(e.target.value)}
+                    aria-label={t('photos:select.caption')}
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={selectedIds.length === 0 || bulkBusy}
+                  onClick={() =>
+                    void runBulk(async () => {
+                      for (const id of selectedIds) {
+                        await getPhotoService().update(id, { caption: bulkCaption });
+                      }
+                    })
+                  }
+                >
+                  {t('photos:select.applyCaption')}
+                </Button>
+                <select
+                  value={bulkKind}
+                  onChange={(e) => setBulkKind(e.target.value)}
+                  aria-label={t('photos:select.kind')}
+                >
+                  <option value="">{t('photos:select.kind')}</option>
+                  <option value="general">{t('photos:kinds.general')}</option>
+                  <option value="before">{t('photos:kinds.before')}</option>
+                  <option value="after">{t('photos:kinds.after')}</option>
+                </select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!bulkKind || selectedIds.length === 0 || bulkBusy}
+                  onClick={() =>
+                    void runBulk(async () => {
+                      for (const id of selectedIds) {
+                        await getPhotoService().update(id, { kind: bulkKind });
+                      }
+                    })
+                  }
+                >
+                  {t('photos:select.applyKind')}
+                </Button>
+                <select
+                  value={bulkOwnerType}
+                  onChange={(e) => setBulkOwnerType(e.target.value)}
+                  aria-label={t('photos:detail.ownerType')}
+                  disabled={!bulkLinkFieldId}
+                >
+                  <option value="task">{t('photos:badges.task')}</option>
+                  <option value="note">{t('photos:badges.note')}</option>
+                  <option value="harvest">{t('photos:badges.harvest')}</option>
+                  <option value="phenology">{t('photos:badges.phenology')}</option>
+                </select>
+                <select
+                  value={bulkOwnerId}
+                  onChange={(e) => setBulkOwnerId(e.target.value)}
+                  aria-label={t('photos:select.link')}
+                  disabled={!bulkLinkFieldId || bulkTargetsLoading}
+                >
+                  <option value="">
+                    {!bulkLinkFieldId
+                      ? t('photos:select.linkNeedsField')
+                      : bulkTargetsLoading
+                        ? t('photos:detail.loadingRecords')
+                        : t('photos:select.link')}
+                  </option>
+                  {bulkTargets.map((target) => (
+                    <option key={target.id} value={target.id}>
+                      {target.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!bulkOwnerId || !bulkLinkFieldId || selectedIds.length === 0 || bulkBusy}
+                  onClick={() =>
+                    void runBulk(async () => {
+                      for (const id of selectedIds) {
+                        await getPhotoService().link(id, bulkOwnerType, bulkOwnerId);
+                      }
+                    })
+                  }
+                >
+                  {t('photos:select.applyLink')}
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={selectedIds.length === 0}
-                  onClick={async () => {
-                    for (const id of selectedIds) {
-                      await getPhotoService().delete(id);
-                    }
-                    setUndo(selectedIds[0] ? { id: selectedIds[0] } : null);
-                    setSelectedIds([]);
-                    setSelecting(false);
-                    await load(1, false);
-                    void loadTrash();
-                  }}
+                  disabled={selectedIds.length === 0 || bulkBusy}
+                  onClick={() =>
+                    void runBulk(async () => {
+                      for (const id of selectedIds) {
+                        await getPhotoService().delete(id);
+                      }
+                      setUndo(selectedIds[0] ? { id: selectedIds[0] } : null);
+                      void loadTrash();
+                    })
+                  }
                 >
                   {t('photos:select.trash')}
                 </Button>
@@ -1105,6 +1173,11 @@ const PhotoHubPage: React.FC = () => {
                   prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
                 )
               }
+              onRemove={(photo) => {
+                if (photo.canTrash !== false) void removeBrokenPhoto(photo);
+              }}
+              onReplace={replaceBrokenPhoto}
+              onReport={reportBrokenPhoto}
             />
             {hasMore ? (
               <div className="photo-hub-footer">
@@ -1176,6 +1249,15 @@ const PhotoHubPage: React.FC = () => {
           setEditPulse((n) => n + 1);
           patch({ photoId: photo.id });
         }}
+        onRemoveImage={
+          viewerPhoto && viewerPhoto.canTrash !== false
+            ? () => void removeBrokenPhoto(viewerPhoto)
+            : undefined
+        }
+        onReplaceImage={
+          viewerPhoto ? (file) => replaceBrokenPhoto(viewerPhoto, file) : undefined
+        }
+        onReportImage={viewerPhoto ? () => reportBrokenPhoto(viewerPhoto) : undefined}
         sidePanel={
           detailsOpen && viewerPhoto ? (
             <PhotoDetailDrawer

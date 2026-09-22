@@ -206,6 +206,8 @@ public class InAppMessageService : IInAppMessageService
                 Title = n.Title,
                 Message = n.Message,
                 ActionUrl = n.ActionUrl,
+                RelatedEntityId = n.RelatedEntityId,
+                RelatedEntityType = n.RelatedEntityType,
                 IsRead = n.IsRead,
                 IsCompleted = n.IsRead,
                 CreatedAt = n.CreatedAt

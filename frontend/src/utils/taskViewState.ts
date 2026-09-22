@@ -1,17 +1,22 @@
-export const TASK_VIEWS = ['now', 'upcoming', 'proposals', 'history'] as const;
+export const TASK_VIEWS = ['todo', 'done'] as const;
 
 export type TaskPageView = (typeof TASK_VIEWS)[number];
 
-export const DEFAULT_TASK_VIEW: TaskPageView = 'now';
+export const DEFAULT_TASK_VIEW: TaskPageView = 'todo';
 
-/** Legacy URL values remapped for bookmarks and old links. */
+/** Older bookmarks land on the two notebook views. */
 const LEGACY_VIEW_MAP: Record<string, TaskPageView> = {
-  planned: 'upcoming',
-  active: 'now',
+  now: 'todo',
+  upcoming: 'todo',
+  proposals: 'todo',
+  planned: 'todo',
+  active: 'todo',
+  history: 'done',
+  completed: 'done',
 };
 
 export const isTaskPageView = (value: string | null | undefined): value is TaskPageView =>
-  value === 'now' || value === 'upcoming' || value === 'proposals' || value === 'history';
+  value === 'todo' || value === 'done';
 
 export const parseTaskView = (value: string | null | undefined): TaskPageView => {
   if (isTaskPageView(value)) return value;

@@ -6,7 +6,15 @@ import type {
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import { formatGroveMassKg, formatGroveMassKgLabel } from '../../utils/groveTotals';
-import { yearComparison, yearComparisonCopyKey } from '../../chronologio/yearPresentation';
+import {
+  comparisonDriverMonths,
+  costPerOilKg,
+  fairYearPair,
+  yearComparisonCopyKey,
+  yearComparisonInsights,
+} from '../../chronologio/yearPresentation';
+import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
+import { formatMonthHeading } from '../../utils/taskFormDates';
 
 type Props = {
   left: ChronologioPeriodSummary | null;
@@ -17,7 +25,9 @@ type Props = {
   rightYear: number;
   availableYears: number[];
   numberLocale: string;
+  fieldNames: string[];
   onChangeYears: (pair: [number, number]) => void;
+  onOpenMonth: (year: number, month: number) => void;
   onClose: () => void;
 };
 
@@ -30,7 +40,9 @@ const ChronologioCompare: React.FC<Props> = ({
   rightYear,
   availableYears,
   numberLocale,
+  fieldNames,
   onChangeYears,
+  onOpenMonth,
   onClose,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
@@ -40,7 +52,7 @@ const ChronologioCompare: React.FC<Props> = ({
     return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(Date.UTC(2020, i, 1))));
   }, [i18n.language]);
 
-  const comparison = yearComparison(left, right, {
+  const insights = yearComparisonInsights(left, right, {
     currentMonths:
       left && right && left.periodYear >= right.periodYear
         ? leftMonths
@@ -50,6 +62,31 @@ const ChronologioCompare: React.FC<Props> = ({
         ? rightMonths
         : leftMonths,
   });
+  const liveYear = agriculturalYearFor(new Date());
+  const comparesLive = leftYear === liveYear || rightYear === liveYear;
+  const newerIsLeft = (left?.periodYear ?? leftYear) >= (right?.periodYear ?? rightYear);
+  const newerSummary = newerIsLeft ? left : right;
+  const olderSummary = newerIsLeft ? right : left;
+  const newerMonths = newerIsLeft ? leftMonths : rightMonths;
+  const olderMonths = newerIsLeft ? rightMonths : leftMonths;
+  const newerYear = newerIsLeft ? (left?.periodYear ?? leftYear) : (right?.periodYear ?? rightYear);
+  const olderYear = newerIsLeft ? (right?.periodYear ?? rightYear) : (left?.periodYear ?? leftYear);
+  const fair = fairYearPair(newerSummary, olderSummary, {
+    currentMonths: newerMonths,
+    previousMonths: olderMonths,
+  });
+  const currency = left?.currency || right?.currency || 'EUR';
+  const currentCost = fair ? costPerOilKg(fair.current.expenseTotal, fair.current.oilKg) : null;
+  const previousCost = fair ? costPerOilKg(fair.previous.expenseTotal, fair.previous.oilKg) : null;
+  const costForYear = (year: number): number | null => {
+    if (!fair) return null;
+    if (year === fair.current.periodYear) return currentCost;
+    if (year === fair.previous.periodYear) return previousCost;
+    return null;
+  };
+  const formatCost = (value: number | null) =>
+    value == null ? '—' : formatChronologioMoney(value, currency, numberLocale);
+  const drivers = comparisonDriverMonths(newerMonths, olderMonths, newerYear, olderYear);
 
   const rows = [
     ...(left?.expenseTotal || right?.expenseTotal
@@ -82,6 +119,15 @@ const ChronologioCompare: React.FC<Props> = ({
             label: t('yearSummary.oilKg'),
             a: left?.oilKg && left.oilKg > 0 ? formatGroveMassKgLabel(left.oilKg, numberLocale) : '—',
             b: right?.oilKg && right.oilKg > 0 ? formatGroveMassKgLabel(right.oilKg, numberLocale) : '—',
+          },
+        ]
+      : []),
+    ...(currentCost != null || previousCost != null
+      ? [
+          {
+            label: t('yearView.compare.costPerKg'),
+            a: formatCost(costForYear(leftYear)),
+            b: formatCost(costForYear(rightYear)),
           },
         ]
       : []),
@@ -168,14 +214,59 @@ const ChronologioCompare: React.FC<Props> = ({
         </tbody>
       </table>
 
-      {comparison ? (
+      <p className="chrono-compare-scope">
+        {fieldNames.length === 1
+          ? t('yearView.compare.fieldsOne', { field: fieldNames[0] })
+          : fieldNames.length > 1
+            ? t('yearView.compare.fieldsAll', { fields: fieldNames.join(' · ') })
+            : t('yearView.compare.fieldsEvery')}
+      </p>
+      {comparesLive ? (
+        <p className="chrono-compare-conclusion">{t('yearView.compare.inProgress', { year: liveYear })}</p>
+      ) : null}
+      {currentCost != null && previousCost != null && fair ? (
         <p className="chrono-compare-conclusion">
-          {t(yearComparisonCopyKey(comparison), {
-            context: comparison.scope === 'ytd' ? 'ytd' : undefined,
-            pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
-            year: comparison.previousYear,
+          {t(currentCost >= previousCost ? 'yearView.compare.costUp' : 'yearView.compare.costDown', {
+            context: fair.scope === 'ytd' ? 'ytd' : undefined,
+            amount: formatChronologioMoney(Math.abs(currentCost - previousCost), currency, numberLocale),
+            year: fair.previous.periodYear,
           })}
         </p>
+      ) : null}
+      {insights.length > 0 ? (
+        <ul className="chrono-compare-insights">
+          {insights.map((comparison) => (
+            <li key={comparison.kind}>
+              {t(yearComparisonCopyKey(comparison), {
+                context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+                pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
+                points: comparison.percent.toLocaleString(numberLocale, {
+                  signDisplay: 'exceptZero',
+                  maximumFractionDigits: 1,
+                }),
+                year: comparison.previousYear,
+              })}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {drivers.length > 0 ? (
+        <div className="chrono-compare-drivers">
+          <h3>{t('yearView.compare.drivers')}</h3>
+          {drivers.map((link) => (
+            <button
+              key={`${link.year}-${link.month}`}
+              type="button"
+              onClick={() => onOpenMonth(link.year, link.month)}
+            >
+              {formatMonthHeading(link.year, link.month, i18n.language)}
+              {' · '}
+              {link.metric === 'oil'
+                ? formatGroveMassKgLabel(link.amount, numberLocale)
+                : formatChronologioMoney(link.amount, currency, numberLocale)}
+            </button>
+          ))}
+        </div>
       ) : null}
 
       <div className="chrono-compare-spines">

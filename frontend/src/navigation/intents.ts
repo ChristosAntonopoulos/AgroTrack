@@ -33,9 +33,9 @@ export const fieldStreamPath = (fieldId: string, opts?: { entry?: string }): str
     ['entry', opts?.entry],
   ])}`;
 
-/** List peek — default way to open a task from Chronologio, Today, and field glance. */
+/** Open the work screen. Older links used /tasks?task=. */
 export const taskPeekPath = (taskId: string): string =>
-  `/tasks${qs([['task', taskId]])}`;
+  `/tasks/${encodeURIComponent(taskId)}`;
 
 export const taskCompletePath = (taskId: string): string =>
   `/tasks/${encodeURIComponent(taskId)}/complete`;

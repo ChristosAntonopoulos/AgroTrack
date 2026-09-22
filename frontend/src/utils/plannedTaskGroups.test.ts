@@ -46,7 +46,7 @@ describe('planned task groups', () => {
 });
 
 describe('checklist progress', () => {
-  it('counts essential items when any exist', () => {
+  it('counts every checklist row', () => {
     expect(
       checklistProgress(
         task({
@@ -80,6 +80,6 @@ describe('checklist progress', () => {
           ],
         })
       )
-    ).toEqual({ done: 1, total: 1 });
+    ).toEqual({ done: 1, total: 2 });
   });
 });

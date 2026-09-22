@@ -209,6 +209,76 @@ public class FieldTasksController : BaseApiController
         return OkResult(task);
     }
 
+    [HttpPost("{id}/checklist/{key}")]
+    public async Task<ActionResult<FieldTaskDto>> SetChecklistItem(
+        string id,
+        string key,
+        [FromBody] SetChecklistItemDto dto,
+        CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.SetChecklistItemAsync(
+            id,
+            key,
+            dto.Completed,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/block")]
+    public async Task<ActionResult<FieldTaskDto>> Block(
+        string id,
+        [FromBody] BlockFieldTaskDto dto,
+        CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.BlockAsync(
+            id,
+            dto.Reason,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/skip")]
+    public async Task<ActionResult<FieldTaskDto>> Skip(string id, CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.SkipAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/reopen")]
+    public async Task<ActionResult<FieldTaskDto>> Reopen(string id, CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.ReopenAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpPost("{id}/resolve")]
+    public async Task<ActionResult<FieldTaskDto>> Resolve(string id, CancellationToken cancellationToken)
+    {
+        var task = await _fieldTasks.ResolveAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
     private string ResolveLanguage()
     {
         var header = Request.Headers.AcceptLanguage.FirstOrDefault();

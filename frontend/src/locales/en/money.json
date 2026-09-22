@@ -122,5 +122,20 @@
   "draftNeedsAmount": "Enter a type and a non-zero amount to save a draft.",
   "harvestStatusPosted": "Posted",
   "harvestStatusVoided": "Voided",
-  "leaveUnsavedTitle": "Leave this money entry? Your draft will be kept until you save or clear it."
+  "leaveUnsavedTitle": "Leave this money entry? Your draft will be kept until you save or clear it.",
+  "leaveTitle": "Leave this entry?",
+  "leaveBody": "Save it as a draft in Money, or discard what you entered. A draft without an amount stays on this device.",
+  "leaveSaveDraft": "Save draft",
+  "leaveDiscard": "Discard",
+  "leaveKeep": "Keep editing",
+  "excludedMissingArea": "Per stremma leaves out {{names}} because area is missing.",
+  "areaMissingAll": "Per stremma is hidden because area is missing.",
+  "excludedIncomplete": "Totals leave out {{names}} because the field is still incomplete.",
+  "excludedUnassigned": "Entries with no field are in the totals and left out of per stremma.",
+  "missingAreaRow": "No area — left out of per stremma",
+  "export": "Export",
+  "exporting": "Exporting…",
+  "exportFailed": "Could not export. Try again.",
+  "harvestExpenseHere": "Recorded in Harvest. Change the amount here.",
+  "openHarvestDay": "Open the harvest day"
 }

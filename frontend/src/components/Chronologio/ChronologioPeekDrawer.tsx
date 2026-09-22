@@ -7,7 +7,6 @@ import {
   CloudRain,
   ExternalLink,
   Pencil,
-  Pin,
   Trash2,
 } from 'lucide-react';
 import Button from '../Common/Button';
@@ -67,6 +66,9 @@ import {
 } from '../../chronologio/chronologioViewState';
 import { harvestHasResult } from '../../chronologio/monthPresentation';
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
+import { formatMonthHeading, formatMonthInPhrase, formatMonthSpan } from '../../utils/taskFormDates';
+import { isDateOnlyTimestamp } from '../../chronologio/clockLabel';
+import { athensParts } from '../../utils/athensDate';
 import {
   harvestYearCopyKey,
   yearComparison,
@@ -83,6 +85,7 @@ export type ChronologioPeekTarget =
       summary: ChronologioMonthSummary;
       recent: ChronologioEntry[];
       loadingRecent?: boolean;
+      focus?: 'work' | 'money' | 'harvest' | 'observation';
     }
   | {
       mode: 'year';
@@ -172,34 +175,21 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
   const caps = entry
     ? chronologioEntryCapabilities(entry, { userId: user?.userId, role: user?.role })
     : { canEdit: false, removeAction: null };
-  const [notePinned, setNotePinned] = useState(Boolean(entry?.details.note?.pinned));
-  const [pinBusy, setPinBusy] = useState(false);
   const [mutateBusy, setMutateBusy] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
-  useEffect(() => {
-    setNotePinned(Boolean(entry?.details.note?.pinned));
-  }, [entry?.details.note?.pinned, entry?.id]);
-
-  const monthTitle = (m: ChronologioMonthSummary) =>
-    new Date(Date.UTC(m.year, m.month - 1, 1)).toLocaleDateString(i18n.language, {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
+  const monthTitle = (m: { year: number; month: number }) =>
+    formatMonthHeading(m.year, m.month, i18n.language);
 
   const weatherMonthTitle =
-    peek?.mode === 'monthWeather'
-      ? new Date(Date.UTC(peek.year, peek.month - 1, 1)).toLocaleDateString(i18n.language, {
-          month: 'long',
-          year: 'numeric',
-          timeZone: 'UTC',
-        })
-      : '';
+    peek?.mode === 'monthWeather' ? formatMonthHeading(peek.year, peek.month, i18n.language) : '';
 
   const eventPresentation = entry ? presentChronologioEvent(entry, i18n.language) : null;
   const eventWhen = entry
-    ? `${formatDate(entry.occurredAt)} · ${formatTime(entry.occurredAt)}`
+    ? isDateOnlyTimestamp(entry.occurredAt) &&
+      (entry.category === 'expense' || entry.category === 'income')
+      ? formatDate(entry.occurredAt)
+      : `${formatDate(entry.occurredAt)} · ${formatTime(entry.occurredAt)}`
     : '';
 
   const dayTitle =
@@ -215,7 +205,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
     peek?.mode === 'event'
       ? eventPresentation?.label || peek.entry.title
       : peek?.mode === 'month'
-        ? monthTitle(peek.summary)
+        ? peek.focus
+          ? t(`monthView.focusTitle.${peek.focus}`, { month: monthTitle(peek.summary) })
+          : monthTitle(peek.summary)
         : peek?.mode === 'year'
           ? t('drawer.agriYear', { year: peek.summary.periodYear })
           : peek?.mode === 'monthWeather'
@@ -232,7 +224,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
         ? t('drawer.warning')
         : presentCategory(peek.entry.category, i18n.language)
       : peek?.mode === 'month'
-        ? t('living.peekMonth')
+        ? peek.focus
+          ? t(`monthView.focusKicker.${peek.focus}`)
+          : t('living.peekMonth')
         : peek?.mode === 'year'
           ? t('living.peekYear')
           : peek?.mode === 'monthWeather'
@@ -325,29 +319,6 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
   const createTaskFromNote = () => {
     if (!entry) return;
     navigate(taskFormPath({ fieldId: entry.fieldId }));
-  };
-
-  const togglePin = async () => {
-    if (!entry) return;
-    const id = chronologioNoteId(entry);
-    if (!id) return;
-    setPinBusy(true);
-    try {
-      const notes = await getNoteService().getNotes({ fieldId: entry.fieldId || undefined });
-      const note = notes.find((n) => n.id === id);
-      if (!note?.body) return;
-      const next = await getNoteService().updateNote(id, {
-        body: note.body,
-        fieldId: note.fieldId,
-        pinned: !notePinned,
-      });
-      setNotePinned(next.pinned);
-      notifyMutated();
-    } catch {
-      // keep current pin state
-    } finally {
-      setPinBusy(false);
-    }
   };
 
   const removeEntry = async () => {
@@ -484,11 +455,6 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
               {t('common:edit')}
             </Button>
           ) : null}
-          {caps.canEdit ? (
-            <Button variant="outline" icon={<Pin size={14} />} onClick={() => void togglePin()} disabled={pinBusy}>
-              {notePinned ? t('drawer.unpin') : t('drawer.pin')}
-            </Button>
-          ) : null}
           {caps.removeAction ? (
             <details className="chrono-drawer-advanced">
               <summary>{t('drawer.advanced', { defaultValue: 'Advanced' })}</summary>
@@ -511,7 +477,24 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
           <Button variant="primary" icon={<ExternalLink size={14} />} onClick={openDestination}>
             {t('drawer.openMoney')}
           </Button>
-          {mutateButtons}
+          {caps.canEdit ? (
+            <Button variant="outline" icon={<Pencil size={14} />} disabled={mutateBusy} onClick={openDestination}>
+              {t('common:edit')}
+            </Button>
+          ) : null}
+          {caps.removeAction ? (
+            <details className="chrono-drawer-advanced">
+              <summary>{t('drawer.moreActions')}</summary>
+              <Button
+                variant="ghost"
+                icon={<Trash2 size={14} />}
+                disabled={mutateBusy}
+                onClick={() => void removeEntry()}
+              >
+                {removeLabel}
+              </Button>
+            </details>
+          ) : null}
         </>
       );
     }
@@ -562,7 +545,9 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
           icon={<ChevronRight size={14} />}
           onClick={() => onDrillToDays?.(peek.summary.year, peek.summary.month)}
         >
-          {t('living.drillToDays', { month: monthTitle(peek.summary) })}
+          {t('living.drillToDays', {
+            month: `${formatMonthInPhrase(peek.summary.month, i18n.language)} ${peek.summary.year}`,
+          })}
         </Button>
       );
     }
@@ -597,7 +582,16 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
         peek?.mode === 'event'
           ? eventWhen
           : peek?.mode === 'month'
-            ? `${peek.summary.from} – ${peek.summary.to}`
+            ? formatMonthSpan(
+                peek.summary.year,
+                peek.summary.month,
+                i18n.language,
+                (() => {
+                  const now = athensParts(new Date());
+                  if (peek.summary.year === now.year && peek.summary.month === now.month) return now.day;
+                  return undefined;
+                })()
+              )
             : peek?.mode === 'year'
               ? agriculturalYearRangeLabel(peek.summary.periodYear, i18n.language)
               : peek?.mode === 'monthWeather'
@@ -646,6 +640,20 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
 
       {peek?.mode === 'month' ? (
         <>
+          {(() => {
+            const now = athensParts(new Date());
+            if (peek.summary.year !== now.year || peek.summary.month !== now.month) return null;
+            return (
+              <p className="chrono-peek-sub">
+                {t('weatherReview.historyBoundary', {
+                  day: now.day,
+                  month: formatMonthInPhrase(now.month, i18n.language),
+                })}
+              </p>
+            );
+          })()}
+          {!peek.focus ? (
+          <>
           <ul className="chrono-year-metrics chrono-peek-metrics">
             {yearFixedMetrics(peek.summary, numberLocale, tt).map((m) => (
               <li key={m.label}>
@@ -705,22 +713,26 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
               ) : null}
             </section>
           )}
+          </>
+          ) : null}
           <section className="chrono-peek-section">
-            <h3>{t('living.peekRecent')}</h3>
+            <h3>{peek.focus ? t(`monthView.focusKicker.${peek.focus}`) : t('living.peekRecent')}</h3>
             {peek.loadingRecent ? (
               <p className="chrono-peek-sub">{t('living.loadingOlder')}</p>
             ) : peek.recent.length === 0 ? (
               <p className="chrono-peek-sub">{t('living.emptyPeriod')}</p>
             ) : (
               <ul className="chrono-peek-recent">
-                {peek.recent.slice(0, 5).map((e) => (
+                {peek.recent.slice(0, peek.focus ? 12 : 5).map((e) => (
                   <li key={e.id}>
                     <button
                       type="button"
                       className="chrono-peek-recent-btn"
                       onClick={() => onSelectRecent?.(e)}
                     >
-                      <span className="chrono-peek-recent-title">{e.title}</span>
+                      <span className="chrono-peek-recent-title">
+                        {presentChronologioEvent(e, i18n.language).label}
+                      </span>
                       <span className="chrono-peek-recent-when">
                         {formatDate(e.occurredAt)}
                       </span>

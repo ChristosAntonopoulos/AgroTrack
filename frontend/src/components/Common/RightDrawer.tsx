@@ -80,12 +80,9 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
   return createPortal(
     <AnimatePresence onExitComplete={onExitComplete}>
       {open ? (
-        <motion.button
+        <motion.div
           key="oa-drawer-backdrop"
-          type="button"
           className="oa-drawer-backdrop"
-          tabIndex={-1}
-          aria-hidden="true"
           onClick={onClose}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}

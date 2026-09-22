@@ -66,8 +66,10 @@ public class FinancialSummaryService : IFinancialSummaryService
         var harvests = await LoadPostedHarvestsAsync(fieldIds, year, cancellationToken);
         var oilKg = SumOilKilograms(harvests);
         var oilProduction = ResolveOilProduction(harvests);
+        var incompleteNames = await IncompleteFieldNamesAsync(
+            fieldId, userId, userRole, ownerUserId, year, cancellationToken);
         var summary = FinancialCalculator.BuildYearSummary(
-            year, transactions, metrics, fieldId, oilKg, oilProduction, language);
+            year, transactions, metrics, fieldId, oilKg, oilProduction, language, incompleteNames);
         return FinancialTransactionMapper.ToDto(summary, language);
     }
 
@@ -125,6 +127,49 @@ public class FinancialSummaryService : IFinancialSummaryService
         var linked = await _transactions.GetByRelatedHarvestIdAsync(harvestId, cancellationToken);
         var summary = FinancialCalculator.BuildHarvestSummary(harvest.Id, harvest.FieldId, linked);
         return FinancialTransactionMapper.ToDto(summary, language);
+    }
+
+    private async Task<IReadOnlyList<string>> IncompleteFieldNamesAsync(
+        string? fieldId,
+        string userId,
+        string userRole,
+        string ownerUserId,
+        int year,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(fieldId) || userRole == Roles.Administrator)
+        {
+            return [];
+        }
+
+        var drafts = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+                userId, userRole, FamilyModules.Money, cancellationToken))
+            .Where(field => field.Status == FieldStatus.Draft)
+            .ToList();
+        if (drafts.Count == 0)
+        {
+            return [];
+        }
+
+        var transactions = await _transactions.GetForYearAsync(
+            ownerUserId,
+            year,
+            drafts.Select(field => field.Id).ToList(),
+            fieldId: null,
+            includeUnassigned: false,
+            cancellationToken);
+        var used = transactions
+            .Where(transaction => transaction.Status != FinancialTransactionStatus.Void)
+            .Select(transaction => transaction.FieldId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToHashSet(StringComparer.Ordinal);
+
+        return drafts
+            .Where(field => used.Contains(field.Id))
+            .Select(field => field.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
     }
 
     private async Task<List<Field>> ResolveSummaryFieldsAsync(

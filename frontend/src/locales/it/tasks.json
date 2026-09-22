@@ -210,53 +210,38 @@
       "createAnother": "Creane un altro",
       "undo": "Annulla",
       "types": {
-        "pruning": "Potatura",
+        "irrigation": "Controllo irrigazione",
+        "fly": "Controllo mosca",
         "fertilisation": "Concimazione",
+        "pruning": "Potatura",
         "weeds": "Erba",
-        "irrigation": "Irrigazione",
-        "inspection": "Controllo",
-        "protection": "Difesa",
         "harvest": "Raccolta",
-        "transport": "Trasporto",
-        "maintenance": "Manutenzione",
         "other": "Altro lavoro"
       },
       "suggestions": {
-        "pruning": [
-          "Potatura dei rami secchi",
-          "Potatura di produzione"
+        "irrigation": [
+          "Controllo della pompa",
+          "Controllo delle perdite"
+        ],
+        "fly": [
+          "Conteggio delle trappole",
+          "Controllo dei frutti"
         ],
         "fertilisation": [
           "Concimazione di base",
           "Concimazione di copertura"
         ],
+        "pruning": [
+          "Potatura dei rami secchi",
+          "Potatura di produzione"
+        ],
         "weeds": [
           "Pulizia dell’erba",
           "Taglio della copertura"
         ],
-        "irrigation": [
-          "Irrigazione",
-          "Controllo irrigazione"
-        ],
-        "inspection": [
-          "Controllo del campo",
-          "Osservazione degli alberi"
-        ],
-        "protection": [
-          "Controllo trappole",
-          "Monitoraggio mosca"
-        ],
         "harvest": [
           "Raccolta",
           "Trasporto al frantoio"
-        ],
-        "transport": [
-          "Trasporto olive",
-          "Trasporto olio"
-        ],
-        "maintenance": [
-          "Manutenzione irrigazione",
-          "Riparazione"
         ],
         "other": [
           "Lavoro in campo"

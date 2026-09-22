@@ -1103,6 +1103,41 @@
   object-fit: cover;
   border: 1px solid var(--color-border);
 }
+.chronologio-media-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-height: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+.chronologio-media-missing [role='button'] {
+  color: var(--chrono-link, var(--color-primary));
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.chronologio-event-card--observation .chronologio-card-title,
+.chronologio-card-summary.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.chronologio-event-card--observation .chronologio-card-title {
+  -webkit-line-clamp: 3;
+}
+.chronologio-card-summary.is-clamped {
+  -webkit-line-clamp: 2;
+}
+.chrono-photo-stack-collage:has(.chronologio-media-missing) {
+  min-height: 0;
+  background: transparent;
+}
 
 .chronologio-details {
   margin-top: 0.7rem;
@@ -2109,12 +2144,23 @@
   line-height: 24px;
   font-weight: 700;
 }
-.chrono-year-chapter-hint {
+.chrono-year-chapter-hint,
+button.chrono-year-chapter-hint {
   display: inline-block;
   margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-size: 14px;
   font-weight: 650;
   color: var(--chrono-link, var(--color-primary));
+  cursor: pointer;
+}
+.chrono-year-limited {
+  margin: 16px 0 0;
+  color: var(--chrono-muted, var(--color-text-secondary));
+  font-size: 0.95rem;
 }
 .chrono-season-track { margin: 18px 0 0; }
 .chrono-season-track-bar {
@@ -2729,6 +2775,72 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chrono-compare-pickers { display: inline-flex; align-items: center; gap: 0.5rem; }
 .chrono-compare-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
 .chrono-compare-table th, .chrono-compare-table td { border-bottom: 1px solid var(--color-border); padding: 0.55rem 0.4rem; text-align: left; }
+.chrono-compare-insights {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+}
+.chrono-compare-insights li { margin: 0.25rem 0; }
+.chrono-compare-scope {
+  margin: 0.65rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+.chrono-compare-drivers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+.chrono-compare-drivers h3 {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.chrono-compare-drivers button {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.chrono-compare-drivers button:hover {
+  border-color: var(--color-primary);
+}
+.chrono-harvest-chain {
+  margin: 0.65rem 0 0;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.chrono-filter-type-head,
+.chrono-filter-type-actions,
+.chrono-filter-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.chrono-filter-type-head { justify-content: space-between; }
+.chrono-filter-type-actions button,
+.chrono-filter-presets button {
+  border: 0;
+  background: transparent;
+  color: var(--chrono-link, var(--color-primary));
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 0.2rem 0.15rem;
+}
+.chrono-filter-presets { margin: 0.35rem 0 0.65rem; }
+.chrono-filter-type-note {
+  margin: 0.55rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
 .chrono-compare-spines { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .chrono-compare-spines ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }

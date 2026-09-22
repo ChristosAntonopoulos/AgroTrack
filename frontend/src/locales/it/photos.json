@@ -2,7 +2,7 @@
   "title": "Foto degli oliveti",
   "subtitle": "Le foto sono organizzate per campo e data.",
   "uploadPromise": "Proponiamo campo e data quando l'immagine contiene questi dati. Confermi tu.",
-  "formats": "JPEG, PNG, WebP o GIF, fino a 10 MB. Le foto HEIC di iPhone vanno esportate in JPEG.",
+  "formats": "JPEG, PNG, WebP, GIF o HEIC di iPhone, fino a 10 MB.",
   "upload": "Aggiungi foto",
   "takePhoto": "Scatta una foto",
   "choosePhotos": "Scegli dal dispositivo",
@@ -11,6 +11,9 @@
   "dropActive": "Rilascia per aggiungere",
   "choosePhotosHint": "Concedi accesso solo alle foto selezionate. Proponiamo campo e data quando l'immagine contiene questi dati.",
   "uploading": "Caricamento…",
+  "converting": "Conversione foto iPhone…",
+  "offlineQueued": "Salvate su questo dispositivo. Verranno caricate quando torni online.",
+  "waitingOnline": "In attesa di connessione",
   "uploadSuccess": "Aggiunte {{count}} foto.",
   "uploadSuccessReview": "Aggiunte {{count}}. {{review}} richiedono un controllo.",
   "uploadSummary": "{{added}} aggiunte · {{review}} da revisionare · {{duplicates}} duplicati saltati · {{failed}} fallite",
@@ -47,7 +50,8 @@
     "newest": "Più recenti",
     "oldest": "Più vecchie",
     "menu": "Filtri",
-    "date": "Data"
+    "date": "Data",
+    "removeChip": "Rimuovi filtro {{label}}"
   },
   "badges": {
     "standalone": "Senza collegamento",
@@ -175,7 +179,17 @@
     "trash": "Sposta nel cestino",
     "assign": "Assegna campo",
     "cancel": "Annulla selezione",
-    "done": "Fine"
+    "done": "Fine",
+    "toolbar": "Azioni di massa sulle foto",
+    "date": "Data di scatto",
+    "applyDate": "Imposta data",
+    "caption": "Descrizione",
+    "applyCaption": "Imposta descrizione",
+    "kind": "Tipo",
+    "applyKind": "Imposta tipo",
+    "link": "Collega a un record",
+    "applyLink": "Collega",
+    "linkNeedsField": "Assegna prima lo stesso campo"
   },
   "trash": {
     "title": "Cestino",
@@ -198,11 +212,16 @@
     "retry": "Riprova",
     "image": "Non è stato possibile caricare la foto",
     "imageRetry": "Riprova",
+    "imageStillBroken": "Questa foto non si carica ancora.",
+    "imageRemove": "Rimuovi",
+    "imageReplace": "Sostituisci",
+    "imageReport": "Segnala",
+    "imageReportDraft": "La foto {{id}} non si carica.",
     "imageMissing": "Questa foto non è più disponibile.",
     "imageDenied": "Non hai più accesso a questa foto.",
-    "heic": "HEIC non è supportato. Esporta la foto come JPEG dall'iPhone e aggiungila di nuovo.",
+    "heic": "Non è stato possibile leggere questa foto HEIC. Prova ad aggiungerla di nuovo.",
     "oversize": "Il file supera i 10 MB. Riduci le dimensioni e riprova.",
-    "unsupported": "Questo tipo di file non è supportato. Usa JPEG, PNG, WebP o GIF.",
+    "unsupported": "Questo tipo di file non è supportato. Usa JPEG, PNG, WebP, GIF o HEIC.",
     "emptyFile": "Il file è vuoto."
   }
 }

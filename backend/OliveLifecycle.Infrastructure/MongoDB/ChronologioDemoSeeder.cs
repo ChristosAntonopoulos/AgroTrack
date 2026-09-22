@@ -1,14 +1,15 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using OliveLifecycle.Core.Finance;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
 
 namespace OliveLifecycle.Infrastructure.MongoDB;
 
 /// <summary>
-/// Multi-year Living Timeline for the Παπαδάκης household on three Filiatra parcels.
-/// Voices: Giorgos (owner decisions/field costs), Kostas (field observations),
-/// Eleni (mill tickets / oil sales). Harvest 2026 stays unposted — the year is open.
+/// Two closed olive years (2024, 2025) plus the open 2026 season for the Παπαδάκης household.
+/// Giorgos keeps the books, Kostas does the field work, Eleni brings the mill papers.
+/// Harvest 2026 is not posted yet — picking has not started.
 /// Legacy TaskDocument ("tasks") rows are intentionally skipped; FieldWork owns tasks.
 /// </summary>
 public static class ChronologioDemoSeeder
@@ -106,52 +107,65 @@ public static class ChronologioDemoSeeder
         var written = 0;
         var today = DateTime.UtcNow;
 
-        // Scaled to ~2.5–3 stremmata. High years pay; low years teach the biennial swing.
-        // SalePerLitre is €/L for posted oil sales (quantity × unit price).
-        var years = new (int Year, string Life, double OliveScale, double Yield, double ExpenseScale, decimal SalePerLitre)[]
+        // Two closed years, then the open season. ~2.5–3 stremmata. 2025 is the lighter bearing year.
+        var years = new (int Year, double OliveFactor, double YieldPercent, decimal OilPerLitre, decimal TablePerKg)[]
         {
-            (2023, "low", 0.72 * scale, 16.8, 0.82, 6.40m),
-            (2024, "high", 1.05 * scale, 17.9, 1.05, 7.80m),
-            (2025, "low", 0.85 * scale, 17.1, 0.94, 7.10m),
-            (2026, "high", 1.18 * scale, 18.0, 1.12, 0m),
+            (2024, 1.00, 17.6, 7.80m, 1.80m),
+            (2025, 0.78, 16.2, 6.90m, 1.60m),
+            (2026, 1.05, 0, 0m, 0m),
         };
 
         foreach (var y in years)
         {
-            var baseOlives = 1450.0;
-            var oliveKg = Math.Round(baseOlives * y.OliveScale / 5) * 5;
-            var oilKg = Math.Round(oliveKg * y.Yield / 100.0, 1);
+            var baseOlives = 1200.0 * scale * y.OliveFactor;
+            var oliveKg = Math.Round(baseOlives / 5) * 5;
+            var isTableGrove = storyIndex == 3;
+            var tableKg = isTableGrove ? Math.Round(oliveKg * 0.55 / 5) * 5 : 0;
+            var milledKg = oliveKg - tableKg;
+            var oilYield = isTableGrove ? 11.0 : y.YieldPercent;
+            var oilKg = y.Year < 2026 ? Math.Round(milledKg * oilYield / 100.0, 1) : 0;
             var oilLitres = oilKg > 0
                 ? decimal.Round((decimal)oilKg / OilKgPerLitre, 1, MidpointRounding.AwayFromZero)
                 : 0m;
 
-            var fertDate = Utc(y.Year, 3, 6 + storyIndex * 3, 10, 0);
+            var fertDate = Utc(y.Year, 3, 6 + storyIndex, 10, 0);
             if (fertDate <= today)
             {
-                var fertilizerAmount = Math.Round(58m * (decimal)y.ExpenseScale, 0);
+                const decimal fertKg = 50m;
+                const decimal fertPrice = 1.16m;
                 written += await UpsertExpense(expenses, Money(
-                    NextId(), field.Id, fertilizerAmount,
-                    "Λίπασμα και μεταφορά", "fertilizers", fertDate,
-                    quantity: 50m, unit: "kilogram", unitPrice: RoundUnit(fertilizerAmount / 50m),
-                    calculationMode: "quantity_and_total", productKind: "fertilizer"), cancellationToken);
+                    DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 1), field.Id,
+                    FinancialCalculator.RoundMoney(fertKg * fertPrice),
+                    "Λίπασμα 20-10-10, 2 σακιά", "fertilizers", fertDate,
+                    quantity: fertKg, unit: "kilogram", unitPrice: fertPrice,
+                    calculationMode: "quantity_times_unit_price", productKind: "fertilizer",
+                    taskId: DemoFarmDataSeeder.SeasonTaskId(y.Year, storyIndex, 2)), cancellationToken);
             }
 
-            var sprayDate = Utc(y.Year, 5, 4 + storyIndex * 3, 7, 45);
+            var sprayDate = Utc(y.Year, 5, 4 + storyIndex, 7, 45);
             if (sprayDate <= today)
             {
+                const decimal sprayLitres = 2m;
+                const decimal sprayPrice = 21m;
                 written += await UpsertExpense(expenses, Money(
-                    NextId(), field.Id, Math.Round(42m * (decimal)y.ExpenseScale, 0),
-                    "Δολωματικός ψεκασμός δάκου", "plant_protection", sprayDate), cancellationToken);
+                    DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 2), field.Id,
+                    FinancialCalculator.RoundMoney(sprayLitres * sprayPrice),
+                    "Δολωματικός ψεκασμός δάκου", "plant_protection", sprayDate,
+                    quantity: sprayLitres, unit: "litre", unitPrice: sprayPrice,
+                    calculationMode: "quantity_times_unit_price", productKind: "plant_protection",
+                    taskId: DemoFarmDataSeeder.SeasonTaskId(y.Year, storyIndex, 3)), cancellationToken);
             }
 
-            var irrigDate = Utc(y.Year, 7, 7 + storyIndex * 3, 6, 20);
+            var irrigDate = Utc(y.Year, 7, 7 + storyIndex, 6, 20);
             if (irrigDate <= today)
             {
+                const decimal fuelLitres = 18m;
+                const decimal fuelPrice = 1.72m;
                 written += await UpsertExpense(expenses, Money(
-                    NextId(), field.Id, Math.Round(22m * (decimal)y.ExpenseScale, 0),
-                    "Πετρέλαιο για αντλία άρδευσης", "fuel_and_energy", irrigDate,
-                    quantity: 20m, unit: "litre",
-                    unitPrice: RoundUnit(Math.Round(22m * (decimal)y.ExpenseScale, 0) / 20m),
+                    DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 3), field.Id,
+                    FinancialCalculator.RoundMoney(fuelLitres * fuelPrice),
+                    "Πετρέλαιο για την αντλία", "fuel_and_energy", irrigDate,
+                    quantity: fuelLitres, unit: "litre", unitPrice: fuelPrice,
                     calculationMode: "quantity_times_unit_price", productKind: "fuel"), cancellationToken);
             }
 
@@ -200,55 +214,79 @@ public static class ChronologioDemoSeeder
 
             if (y.Year < 2026)
             {
-                var harvestDate = Utc(y.Year, 10, 5 + storyIndex * 4, 10, 30);
-                var harvestId = NextId();
+                var harvestDate = Utc(y.Year, 10, 8 + storyIndex, 8, 30);
+                var harvestId = DemoFarmDataSeeder.SeasonHarvestId(y.Year, storyIndex);
+                var harvestTaskId = DemoFarmDataSeeder.SeasonTaskId(y.Year, storyIndex, 4);
+                var workers = storyIndex == 3 ? 4 : 3;
+                const decimal dayRate = 55m;
+                var sackCount = (int)Math.Round(oliveKg / 25.0);
                 written += await UpsertHarvest(harvests, new HarvestRecordDocument
                 {
                     Id = harvestId,
                     FieldId = field.Id,
                     OwnerId = OwnerId,
                     HarvestDate = harvestDate,
-                    // Oct harvest belongs to καλλιεργητική χρονιά Y (Feb Y – Jan Y+1).
                     ResultYear = y.Year,
-                    HarvestMethod = storyIndex == 1 ? "Χειρονακτική / κτένες" : "Κτένες + δίχτυα",
-                    WorkersUsed = 3 + storyIndex,
+                    HarvestMethod = isTableGrove ? "Χειρονακτική, για επιτραπέζια" : "Χτένες και δίχτυα",
+                    WorkersUsed = workers,
+                    SackCount = sackCount,
                     OliveKg = oliveKg,
                     MillName = mill,
                     OilKg = oilKg,
                     OilLitres = oilLitres > 0 ? oilLitres : null,
                     ConversionFactor = OilKgPerLitre,
-                    ConversionSource = "demo_seed_density",
-                    ConversionRecordedAt = harvestDate,
-                    OilYieldPercent = y.Yield,
-                    QualityGrade = y.Yield >= 18 ? "Έξτρα παρθένο" : "Παρθένο",
-                    Notes = $"{variety} — συγκομιδή {y.Year}. Απόδοση {y.Yield:0.0}%. {oilLitres:0.0} L.",
+                    ConversionSource = "mill_ticket",
+                    ConversionRecordedAt = harvestDate.AddDays(1),
+                    OilYieldPercent = oilYield,
+                    QualityGrade = oilYield >= 17 ? "Έξτρα παρθένο" : "Παρθένο",
+                    Notes = isTableGrove
+                        ? $"{variety} {y.Year}: {tableKg:0} kg επιτραπέζιες και {oilLitres:0.0} L λάδι από τα υπόλοιπα."
+                        : $"{variety} {y.Year}: {sackCount} τσουβάλια, {oilLitres:0.0} L, απόδοση {oilYield:0.0}%.",
                     Status = "posted",
                     CreatedAt = harvestDate,
-                    UpdatedAt = harvestDate
+                    UpdatedAt = harvestDate.AddDays(1)
                 }, cancellationToken);
 
+                var millAmount = FinancialCalculator.RoundMoney((decimal)milledKg * 0.08m);
                 written += await UpsertExpense(expenses, Money(
-                    NextId(), field.Id, Math.Round(95m * (decimal)y.ExpenseScale, 0),
-                    "Κόστος ελαιοτριβείου", "mill", harvestDate.AddHours(5), harvestId: harvestId,
-                    createdByUserId: FamilyUserId), cancellationToken);
+                    DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 4), field.Id, millAmount,
+                    "Ελαιοτριβείο Φιλιατρών", "mill", harvestDate.AddHours(6), harvestId: harvestId,
+                    quantity: (decimal)milledKg, unit: "kilogram", unitPrice: 0.08m,
+                    calculationMode: "quantity_times_unit_price", productKind: "mill",
+                    taskId: harvestTaskId, createdByUserId: FamilyUserId,
+                    counterparty: mill), cancellationToken);
 
                 written += await UpsertExpense(expenses, Money(
-                    NextId(), field.Id, Math.Round(180m * (decimal)y.ExpenseScale, 0),
-                    "Μεροκάματα για συγκομιδή", "labor", harvestDate.AddHours(-2), harvestId: harvestId,
-                    quantity: 3m, unit: "workday",
-                    unitPrice: RoundUnit(Math.Round(180m * (decimal)y.ExpenseScale, 0) / 3m),
-                    calculationMode: "quantity_times_unit_price", productKind: "labour"), cancellationToken);
+                    DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 5), field.Id,
+                    FinancialCalculator.RoundMoney(workers * dayRate),
+                    "Μεροκάματα συγκομιδής", "labor", harvestDate.AddHours(-1), harvestId: harvestId,
+                    quantity: workers, unit: "workday", unitPrice: dayRate,
+                    calculationMode: "quantity_times_unit_price", productKind: "labour",
+                    taskId: harvestTaskId, collaboratorId: ProducerId), cancellationToken);
 
-                // Posted oil sale: litres × €/litre, ResultYear = agricultural year of sale date.
-                // Eleni keeps the mill ticket and records the sale.
-                var unitPrice = y.SalePerLitre;
-                var sale = Math.Round(oilLitres * unitPrice, 0, MidpointRounding.AwayFromZero);
-                written += await UpsertExpense(expenses, Money(
-                    NextId(), field.Id, sale, "Πώληση ελαιολάδου", "olive_oil_sale",
-                    harvestDate.AddDays(18), type: "income", harvestId: harvestId,
-                    quantity: oilLitres, unit: "litre", unitPrice: unitPrice,
-                    calculationMode: "quantity_times_unit_price", productKind: "olive_oil",
-                    createdByUserId: FamilyUserId), cancellationToken);
+                if (oilLitres > 0)
+                {
+                    written += await UpsertExpense(expenses, Money(
+                        DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 6), field.Id,
+                        FinancialCalculator.RoundMoney(oilLitres * y.OilPerLitre),
+                        "Πώληση ελαιολάδου", "olive_oil_sale",
+                        harvestDate.AddDays(12), type: "income", harvestId: harvestId,
+                        quantity: oilLitres, unit: "litre", unitPrice: y.OilPerLitre,
+                        calculationMode: "quantity_times_unit_price", productKind: "olive_oil",
+                        counterparty: "Αγοραστής Φιλιατρών"), cancellationToken);
+                }
+
+                if (tableKg > 0)
+                {
+                    written += await UpsertExpense(expenses, Money(
+                        DemoFarmDataSeeder.SeasonMoneyId(y.Year, storyIndex, 7), field.Id,
+                        FinancialCalculator.RoundMoney((decimal)tableKg * y.TablePerKg),
+                        "Πώληση επιτραπέζιας Καλαμών", "olive_sale",
+                        harvestDate.AddDays(6), type: "income", harvestId: harvestId,
+                        quantity: (decimal)tableKg, unit: "kilogram", unitPrice: y.TablePerKg,
+                        calculationMode: "quantity_times_unit_price", productKind: "olives",
+                        counterparty: "Συσκευαστήριο Καλαμάτας"), cancellationToken);
+                }
 
                 if (storyIndex == 1)
                 {
@@ -259,7 +297,7 @@ public static class ChronologioDemoSeeder
                         OwnerUserId = OwnerId,
                         Body = y.Year == 2025
                             ? $"Παραλάβαμε {oilLitres:0.0} L από το ελαιοτριβείο. Κρατάμε το ζυγολόγιο στον φάκελο {y.Year}."
-                            : $"Ζυγολόγιο {y.Year}: {oilLitres:0.0} L · απόδοση {y.Yield:0.0}%. Φάκελος με το χαρτί του μύλου.",
+                            : $"Ζυγολόγιο {y.Year}: {oilLitres:0.0} L · απόδοση {oilYield:0.0}%. Το χαρτί του μύλου είναι στον φάκελο.",
                         FieldId = field.Id,
                         Pinned = false,
                         OccurredAt = millNoteDate,
@@ -346,7 +384,7 @@ public static class ChronologioDemoSeeder
             {
                 Id = nextId(),
                 OwnerUserId = OwnerId,
-                Body = "Έλεγξα τους φακέλους 2024–2025. Λείπει ακόμη το χαρτί πώλησης Σεπτεμβρίου από τον αγοραστή — θα το ζητήσω αύριο.",
+                Body = "Οι φάκελοι 2024 και 2025 είναι κλειστοί. Περιμένουμε τον Οκτώβρη για να κλείσουμε το ελαιοτριβείο.",
                 FieldId = fieldId,
                 Pinned = false,
                 OccurredAt = Utc(2026, 9, 9, 11, 20),
@@ -382,7 +420,10 @@ public static class ChronologioDemoSeeder
         decimal? unitPrice = null,
         string calculationMode = "total_only",
         string? productKind = null,
-        string? createdByUserId = null) =>
+        string? createdByUserId = null,
+        string? taskId = null,
+        string? counterparty = null,
+        string? collaboratorId = null) =>
         new()
         {
             Id = id,
@@ -402,17 +443,17 @@ public static class ChronologioDemoSeeder
             UnitPrice = unitPrice,
             CalculationMode = calculationMode,
             Description = description,
+            CounterpartyName = counterparty,
+            RelatedTaskId = taskId,
             RelatedHarvestId = harvestId,
-            SourceType = "manual",
+            RelatedCollaboratorId = collaboratorId,
+            SourceType = taskId != null ? "task" : harvestId != null ? "harvest" : "manual",
             IdempotencyKey = id,
             CreatedByUserId = createdByUserId ?? OwnerId,
             CreatedAt = when,
             UpdatedAt = when,
             PostedAt = when
         };
-
-    private static decimal RoundUnit(decimal value) =>
-        decimal.Round(value, 4, MidpointRounding.AwayFromZero);
 
     private static DateTime Utc(int y, int m, int d, int h, int min) =>
         new(y, m, d, h, min, 0, DateTimeKind.Utc);

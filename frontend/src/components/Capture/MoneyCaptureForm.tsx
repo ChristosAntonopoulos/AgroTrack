@@ -9,6 +9,7 @@ import type { FieldTask } from '../../services/fieldWorkService';
 import { fileUploadService } from '../../services/fileUploadService';
 import {
   defaultCategoryForType,
+  financialCategoryLabel,
   type FinancialCategory,
   type FinancialTransactionType,
 } from '../../finance/display';
@@ -24,7 +25,6 @@ import {
   defaultModeForCategory,
   formatQuantityLine,
   newIdempotencyKey,
-  suggestedDescription,
   suggestedUnitsForCategory,
   todayIsoDate,
   yearFromIsoDate,
@@ -37,6 +37,11 @@ import {
   type MoneyEntryStep,
 } from '../../finance/moneyEntryDraft';
 import { formatRelatedHarvestLabel, uniqueRelatedHarvestLabels } from '../../finance/relatedHarvestLabel';
+import {
+  planMoneySeries,
+  type MoneyRepeat,
+  type MoneySplitMode,
+} from '../../finance/moneySeries';
 import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import {
@@ -82,6 +87,13 @@ type Props = {
   ) => void;
   /** Notify the capture shell that the form has unsaved partial input. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Lets the capture shell save or discard without a browser confirm. */
+  onBindLeave?: (
+    actions: {
+      saveDraft: () => Promise<'saved' | 'kept-local' | 'failed'>;
+      discardLocal: () => void;
+    } | null
+  ) => void;
 };
 
 const moneySteps = (askKind: boolean, oilPath: boolean, askField: boolean): MoneyEntryStep[] => {
@@ -116,6 +128,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   canRecordExpense,
   onSaved,
   onDirtyChange,
+  onBindLeave,
 }) => {
   const { t, i18n } = useTranslation(['capture', 'chronologio', 'money']);
   const language = i18n.language || 'el';
@@ -142,62 +155,66 @@ const MoneyCaptureForm: React.FC<Props> = ({
     canRecordExpense &&
     context.preferredType !== 'income' &&
     context.preferredType !== 'expense';
+  const storedDraft = readMoneyEntryDraft();
+  const activeDraft =
+    context.taskId && storedDraft && storedDraft.relatedTaskId !== context.taskId ? null : storedDraft;
   const [selectedOilIds, setSelectedOilIds] = useState<string[]>([]);
   const [soldPack, setSoldPack] = useState<OilPackStock>(() => emptyOilPack());
-  const [kind, setKind] = useState<FinancialTransactionType | null>(() => {
-    const draft = readMoneyEntryDraft();
-    return draft?.kind ?? preferredKind;
+  const [kind, setKind] = useState<FinancialTransactionType | null>(
+    () => activeDraft?.kind ?? preferredKind
+  );
+  const [step, setStep] = useState<MoneyEntryStep>(() => {
+    if (activeDraft) return firstMoneyStep(askKind);
+    if (context.taskId && context.category) return 'amount';
+    return askKind ? 'kind' : 'category';
   });
-  const [step, setStep] = useState<MoneyEntryStep>(() => firstMoneyStep(askKind));
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [category, setCategory] = useState<FinancialCategory>(() => {
-    const draft = readMoneyEntryDraft();
-    return draft?.category ?? context.category ?? defaultCategoryForType(preferredKind || 'expense');
-  });
-  const [mode, setMode] = useState<FinancialCalculationMode>(() => {
-    const draft = readMoneyEntryDraft();
-    return draft?.mode ?? defaultModeForCategory(category);
-  });
-  const [quantity, setQuantity] = useState(() => readMoneyEntryDraft()?.quantity ?? '');
-  const [unit, setUnit] = useState<FinancialQuantityUnit>(() => {
-    const draft = readMoneyEntryDraft();
-    return draft?.unit ?? ((suggestedUnitsForCategory(category)[0] || 'litre') as FinancialQuantityUnit);
-  });
-  const [unitPrice, setUnitPrice] = useState(() => readMoneyEntryDraft()?.unitPrice ?? '');
-  const [amount, setAmount] = useState(() => readMoneyEntryDraft()?.amount ?? '');
-  const [fieldId, setFieldId] = useState(() => readMoneyEntryDraft()?.fieldId || context.fieldId || '');
+  const [category, setCategory] = useState<FinancialCategory>(
+    () => activeDraft?.category ?? context.category ?? defaultCategoryForType(preferredKind || 'expense')
+  );
+  const [mode, setMode] = useState<FinancialCalculationMode>(
+    () => activeDraft?.mode ?? defaultModeForCategory(category)
+  );
+  const [quantity, setQuantity] = useState(() => activeDraft?.quantity ?? '');
+  const [unit, setUnit] = useState<FinancialQuantityUnit>(
+    () => activeDraft?.unit ?? ((suggestedUnitsForCategory(category)[0] || 'litre') as FinancialQuantityUnit)
+  );
+  const [unitPrice, setUnitPrice] = useState(() => activeDraft?.unitPrice ?? '');
+  const [amount, setAmount] = useState(() => activeDraft?.amount ?? '');
+  const [fieldId, setFieldId] = useState(() => activeDraft?.fieldId || context.fieldId || '');
   const [occurredOn, setOccurredOn] = useState(
-    () => readMoneyEntryDraft()?.occurredOn || todayIsoDate(context.occurredAt)
+    () => activeDraft?.occurredOn || todayIsoDate(context.occurredAt)
   );
   const [description, setDescription] = useState(
-    () => readMoneyEntryDraft()?.description || context.description || ''
+    () => activeDraft?.description || context.description || ''
   );
-  const [moreOpen, setMoreOpen] = useState(() => {
-    const draft = readMoneyEntryDraft();
-    return Boolean(
-      draft?.moreOpen ||
-        draft?.relatedTaskId ||
-        draft?.relatedHarvestId ||
+  const [moreOpen, setMoreOpen] = useState(() =>
+    Boolean(
+      activeDraft?.moreOpen ||
+        activeDraft?.relatedTaskId ||
+        activeDraft?.relatedHarvestId ||
         context.taskId ||
         context.harvestId
-    );
-  });
+    )
+  );
   const [relatedTaskId, setRelatedTaskId] = useState(
-    () => readMoneyEntryDraft()?.relatedTaskId || context.taskId || ''
+    () => activeDraft?.relatedTaskId || context.taskId || ''
   );
   const [relatedHarvestId, setRelatedHarvestId] = useState(
-    () => readMoneyEntryDraft()?.relatedHarvestId || context.harvestId || ''
+    () => activeDraft?.relatedHarvestId || context.harvestId || ''
   );
-  const [paymentMethod, setPaymentMethod] = useState(() => readMoneyEntryDraft()?.paymentMethod ?? '');
+  const [paymentMethod, setPaymentMethod] = useState(() => activeDraft?.paymentMethod ?? '');
   const [counterpartyName, setCounterpartyName] = useState(
-    () => readMoneyEntryDraft()?.counterpartyName ?? ''
+    () => activeDraft?.counterpartyName ?? ''
   );
-  const [notes, setNotes] = useState(() => readMoneyEntryDraft()?.notes ?? '');
-  const [resultYear, setResultYear] = useState(() => {
-    const draft = readMoneyEntryDraft();
-    return draft?.resultYear ?? yearFromIsoDate(todayIsoDate(context.occurredAt));
-  });
-  const [resultYearTouched, setResultYearTouched] = useState(() => Boolean(readMoneyEntryDraft()));
+  const [notes, setNotes] = useState(() => activeDraft?.notes ?? '');
+  const [splitMode, setSplitMode] = useState<MoneySplitMode>(() => activeDraft?.splitMode ?? 'single');
+  const [splitFieldIds, setSplitFieldIds] = useState<string[]>(() => activeDraft?.splitFieldIds ?? []);
+  const [repeat, setRepeat] = useState<MoneyRepeat>(() => activeDraft?.repeat ?? 'once');
+  const [resultYear, setResultYear] = useState(
+    () => activeDraft?.resultYear ?? yearFromIsoDate(todayIsoDate(context.occurredAt))
+  );
+  const [resultYearTouched, setResultYearTouched] = useState(() => Boolean(activeDraft));
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
@@ -213,7 +230,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   useEffect(() => {
     if (draftAppliedRef.current) return;
     draftAppliedRef.current = true;
-    if (readMoneyEntryDraft()) {
+    if (activeDraft) {
       skipContextHydrationRef.current = true;
     }
   }, []);
@@ -337,7 +354,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
     [oilLots, selectedOilIds]
   );
   /** Oil sales take the grove from the lot — never ask which field. */
-  const askField = !oilPath;
+  const askField = !oilPath && !(context.taskId && context.fieldId);
   const steps = useMemo(
     () => moneySteps(askKind, oilPath, askField),
     [askKind, oilPath, askField]
@@ -419,6 +436,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
       notes,
       resultYear,
       moreOpen,
+      splitMode,
+      splitFieldIds,
+      repeat,
     });
   }, [
     kind,
@@ -438,6 +458,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
     notes,
     resultYear,
     moreOpen,
+    splitMode,
+    splitFieldIds,
+    repeat,
     partial,
     step,
   ]);
@@ -487,23 +510,68 @@ const MoneyCaptureForm: React.FC<Props> = ({
     if (next.length) setPhotos((prev) => [...prev, ...next]);
   };
 
-  const save = async (saveAsDraft: boolean) => {
-    if (!kind) return;
+  const save = async (saveAsDraft: boolean): Promise<boolean> => {
+    if (!kind) return false;
     if (saveAsDraft && !canDraft) {
       setError(t('money:draftNeedsAmount'));
       amountRef.current?.focus();
-      return;
+      return false;
     }
     if (!resolvedAmount || resolvedAmount <= 0) {
       setError(t('capture:money.needPositiveAmount'));
       amountRef.current?.focus();
-      return;
+      return false;
     }
-    const text = description.trim() || suggestedDescription(category, language);
+    const text = description.trim() || financialCategoryLabel(category, language);
     if (!saveAsDraft && !text) {
       setError(t('capture:money.descriptionRequired'));
-      return;
+      return false;
     }
+    const harvestId = relatedHarvestId === 'later' ? undefined : relatedHarvestId || undefined;
+    const resolvedFieldId = oilPath ? oilSaleFieldId(selectedLots) : fieldId;
+    const allowSeries = !oilPath && !context.harvestCampaignLink;
+    const hectaresOf = (id: string) => {
+      const match = usableFields.find((item) => item.id === id);
+      return match?.areaHectares != null && match.areaHectares > 0 ? match.areaHectares : null;
+    };
+    let entries = [
+      {
+        fieldId: resolvedFieldId || '',
+        amount: resolvedAmount,
+        occurredOn,
+        resultYear,
+      },
+    ];
+    if (allowSeries && (splitMode !== 'single' || repeat === 'monthly')) {
+      const plan = planMoneySeries({
+        amount: resolvedAmount,
+        occurredOn,
+        resultYear,
+        fieldIds: splitMode === 'single' ? [fieldId] : splitFieldIds,
+        areaHectares: Object.fromEntries(usableFields.map((item) => [item.id, hectaresOf(item.id)])),
+        splitMode,
+        repeat,
+      });
+      if (!plan.ok) {
+        setError(
+          plan.reason === 'need-two'
+            ? t('capture:money.splitNeedTwo')
+            : plan.reason === 'missing-area'
+              ? t('capture:money.splitMissingAreaShort')
+              : t('capture:money.seriesTooMany')
+        );
+        return false;
+      }
+      entries = plan.entries;
+    }
+    const splitting = splitMode !== 'single' && entries.length > 1;
+    const seriesNotes = [
+      notes.trim(),
+      splitting ? t('capture:money.splitNote', { count: new Set(entries.map((entry) => entry.fieldId)).size }) : '',
+      repeat === 'monthly' && entries.length > 1 ? t('capture:money.repeatNote', { count: entries.length }) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
     setSubmitting(true);
     setError(null);
     try {
@@ -512,52 +580,66 @@ const MoneyCaptureForm: React.FC<Props> = ({
         const url = photo.url || (await fileUploadService.uploadFile(photo.file));
         attachmentIds.push(url);
       }
-      const harvestId = relatedHarvestId === 'later' ? undefined : relatedHarvestId || undefined;
-      const resolvedFieldId = oilPath ? oilSaleFieldId(selectedLots) : fieldId;
       if (oilPath && !saveAsDraft && packLitres(soldPack) > 0 && harvestCampaign) {
         const allocations = allocateSoldPack(selectedLots, soldPack);
         if (allocations.length > 0) {
           harvestCampaign.patch((campaign) => applyOilSale(campaign, allocations));
         }
       }
-      const created = await getFinancialTransactionService().create({
-        type: kind,
-        amount: resolvedAmount,
-        currency: 'EUR',
-        occurredOn: `${occurredOn}T00:00:00`,
-        resultYear,
-        fieldId: resolvedFieldId || undefined,
-        category,
-        description: text,
-        paymentMethod: paymentMethod || undefined,
-        counterpartyName: counterpartyName.trim() || undefined,
-        relatedTaskId: relatedTaskId || undefined,
-        relatedHarvestId: harvestId,
-        sourceType: harvestId ? 'harvest' : relatedTaskId ? 'task' : 'manual',
-        sourceId: harvestId || relatedTaskId || undefined,
-        attachmentIds,
-        notes: notes.trim() || undefined,
-        saveAsDraft,
-        idempotencyKey: newIdempotencyKey(),
-        calculationMode: activeMode,
-        quantity: activeMode === 'total_only' ? undefined : qtyValue || undefined,
-        quantityUnit: activeMode === 'total_only' ? undefined : unit,
-        unitPrice: activeMode === 'total_only' ? undefined : resolvedUnitPrice || undefined,
-        productKind: isOil ? 'olive_oil' : undefined,
-      });
-      rememberLastMoneyFieldId(resolvedFieldId || undefined);
+      let createdId = '';
+      let createdStatus: 'draft' | 'posted' = saveAsDraft ? 'draft' : 'posted';
+      let savedCount = 0;
+      for (const entry of entries) {
+        const entryMode = splitting ? 'total_only' : activeMode;
+        const created = await getFinancialTransactionService().create({
+          type: kind,
+          amount: entry.amount,
+          currency: 'EUR',
+          occurredOn: `${entry.occurredOn}T00:00:00`,
+          resultYear: entry.resultYear,
+          fieldId: entry.fieldId || undefined,
+          category,
+          description: text,
+          paymentMethod: paymentMethod || undefined,
+          counterpartyName: counterpartyName.trim() || undefined,
+          relatedTaskId: splitting ? undefined : relatedTaskId || undefined,
+          relatedHarvestId: splitting ? undefined : harvestId,
+          sourceType: harvestId ? 'harvest' : relatedTaskId ? 'task' : 'manual',
+          sourceId: harvestId || relatedTaskId || undefined,
+          attachmentIds,
+          notes: seriesNotes || undefined,
+          saveAsDraft,
+          idempotencyKey: newIdempotencyKey(),
+          calculationMode: entryMode,
+          quantity: entryMode === 'total_only' ? undefined : qtyValue || undefined,
+          quantityUnit: entryMode === 'total_only' ? undefined : unit,
+          unitPrice: entryMode === 'total_only' ? undefined : resolvedUnitPrice || undefined,
+          productKind: isOil ? 'olive_oil' : undefined,
+        });
+        savedCount += 1;
+        if (!createdId) {
+          createdId = created.id;
+          createdStatus = created.status === 'draft' ? 'draft' : 'posted';
+        }
+      }
+      rememberLastMoneyFieldId(entries[0]?.fieldId || undefined);
       clearMoneyEntryDraft();
       onDirtyChange?.(false);
-      const message = saveAsDraft
-        ? t('capture:money.draftSaved')
-        : kind === 'income'
-          ? t('capture:income.saved')
-          : t('capture:expense.saved');
+      const message =
+        savedCount < entries.length
+          ? t('capture:money.seriesPartial', { saved: savedCount, total: entries.length })
+          : entries.length > 1
+            ? t('capture:money.seriesSaved', { count: entries.length })
+            : saveAsDraft
+              ? t('capture:money.draftSaved')
+              : kind === 'income'
+                ? t('capture:income.saved')
+                : t('capture:expense.saved');
       onSaved(
         {
           type: kind,
-          fieldId: resolvedFieldId || '',
-          sourceId: created.id,
+          fieldId: entries[0]?.fieldId || '',
+          sourceId: createdId,
           amount: resolvedAmount,
           occurredOn,
           description: text,
@@ -565,10 +647,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
         },
         message,
         {
-          transactionId: created.id,
-          status: created.status === 'draft' ? 'draft' : 'posted',
+          transactionId: createdId,
+          status: createdStatus,
           reopen: {
-            fieldId: resolvedFieldId || undefined,
+            fieldId: entries[0]?.fieldId || undefined,
             taskId: relatedTaskId || undefined,
             harvestId,
             preferredType: kind,
@@ -579,12 +661,34 @@ const MoneyCaptureForm: React.FC<Props> = ({
           },
         }
       );
+      return true;
     } catch {
       setError(t('capture:errors.saveFailed'));
+      return false;
     } finally {
       setSubmitting(false);
     }
   };
+
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const canDraftRef = useRef(canDraft);
+  canDraftRef.current = canDraft;
+  useEffect(() => {
+    if (!onBindLeave) return;
+    onBindLeave({
+      saveDraft: async () => {
+        if (!canDraftRef.current) return 'kept-local';
+        const ok = await saveRef.current(true);
+        return ok ? 'saved' : 'failed';
+      },
+      discardLocal: () => {
+        clearMoneyEntryDraft();
+        onDirtyChange?.(false);
+      },
+    });
+    return () => onBindLeave(null);
+  }, [onBindLeave, onDirtyChange]);
 
   const harvestOptionLabels = useMemo(
     () =>
@@ -598,6 +702,25 @@ const MoneyCaptureForm: React.FC<Props> = ({
     [harvests, selectedFieldName, language, dateFormat, t]
   );
   const draftReason = !canDraft ? t('money:draftNeedsAmount') : null;
+  const allowSeries = !oilPath && !context.harvestCampaignLink;
+  const seriesPlan =
+    allowSeries && resolvedAmount && (splitMode !== 'single' || repeat === 'monthly')
+      ? planMoneySeries({
+          amount: resolvedAmount,
+          occurredOn,
+          resultYear,
+          fieldIds: splitMode === 'single' ? [fieldId] : splitFieldIds,
+          areaHectares: Object.fromEntries(
+            usableFields.map((item) => [
+              item.id,
+              item.areaHectares != null && item.areaHectares > 0 ? item.areaHectares : null,
+            ])
+          ),
+          splitMode,
+          repeat,
+        })
+      : null;
+  const seriesReady = seriesPlan == null || seriesPlan.ok;
 
   if (!kind) {
     return (
@@ -711,16 +834,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
           ) : null}
           {step === 'category' ? (
             <>
-              <label className="money-entry-title">
-                <span className="money-sr-only">{t('capture:money.shortDescription')}</span>
-                <input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  maxLength={300}
-                  placeholder={t('capture:money.shortDescription')}
-                  aria-label={t('capture:money.shortDescription')}
-                />
-              </label>
               <MoneyCategorySelector
                 type={kind}
                 value={category}
@@ -846,16 +959,89 @@ const MoneyCaptureForm: React.FC<Props> = ({
             )
           ) : null}
           {step === 'field' ? (
-            <TransactionFieldSelector
-              value={fieldId}
-              fields={usableFields}
-              hideLabel
-              allowUnassigned
-              onChange={(next) => {
-                setFieldId(next);
-                goNext();
-              }}
-            />
+            <>
+              {allowSeries && usableFields.length > 1 ? (
+                <div className="money-split-toggle" role="group" aria-label={t('capture:money.splitAcross')}>
+                  <button
+                    type="button"
+                    className={splitMode === 'single' ? 'is-on' : ''}
+                    onClick={() => setSplitMode('single')}
+                  >
+                    {t('capture:money.splitOne')}
+                  </button>
+                  <button
+                    type="button"
+                    className={splitMode !== 'single' ? 'is-on' : ''}
+                    onClick={() => setSplitMode((current) => (current === 'single' ? 'equal' : current))}
+                  >
+                    {t('capture:money.splitAcross')}
+                  </button>
+                </div>
+              ) : null}
+              {splitMode !== 'single' && allowSeries ? (
+                <>
+                  <div className="money-split-toggle" role="group" aria-label={t('capture:money.splitByArea')}>
+                    <button
+                      type="button"
+                      className={splitMode === 'equal' ? 'is-on' : ''}
+                      onClick={() => setSplitMode('equal')}
+                    >
+                      {t('capture:money.splitEqual')}
+                    </button>
+                    <button
+                      type="button"
+                      className={splitMode === 'area' ? 'is-on' : ''}
+                      onClick={() => setSplitMode('area')}
+                    >
+                      {t('capture:money.splitByArea')}
+                    </button>
+                  </div>
+                  <TransactionFieldSelector
+                    value={fieldId}
+                    fields={usableFields}
+                    hideLabel
+                    allowUnassigned={false}
+                    selectionMode="multiple"
+                    selectedIds={splitFieldIds}
+                    disabledIds={
+                      splitMode === 'area'
+                        ? usableFields
+                            .filter((item) => !(item.areaHectares != null && item.areaHectares > 0))
+                            .map((item) => item.id)
+                        : []
+                    }
+                    onChange={() => undefined}
+                    onToggle={(id) =>
+                      setSplitFieldIds((current) =>
+                        current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+                      )
+                    }
+                  />
+                  {splitMode === 'area'
+                    ? usableFields
+                        .filter((item) => !(item.areaHectares != null && item.areaHectares > 0))
+                        .map((item) => (
+                          <p key={item.id} className="capture-hint">
+                            {t('capture:money.splitMissingArea', {
+                              name: friendlyFieldLabel(item.name),
+                            })}
+                          </p>
+                        ))
+                    : null}
+                </>
+              ) : (
+                <TransactionFieldSelector
+                  value={fieldId}
+                  fields={usableFields}
+                  hideLabel
+                  allowUnassigned
+                  onChange={(next) => {
+                    setFieldId(next);
+                    goNext();
+                  }}
+                />
+              )}
+            </>
           ) : null}
           {step === 'when' ? (
             <>
@@ -886,9 +1072,60 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   ) : null}
                 </>
               )}
-              {context.dateDefaultedToToday && !oilPath ? (
+              {context.dateNeedsChoice && !oilPath ? (
+                <p className="capture-hint">
+                  {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                </p>
+              ) : context.dateDefaultedToToday && !oilPath ? (
                 <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
               ) : null}
+              {allowSeries ? (
+                <div className="money-split-toggle" role="group" aria-label={t('capture:money.repeatMonthly')}>
+                  <button
+                    type="button"
+                    className={repeat === 'once' ? 'is-on' : ''}
+                    onClick={() => setRepeat('once')}
+                  >
+                    {t('capture:money.repeatOnce')}
+                  </button>
+                  <button
+                    type="button"
+                    className={repeat === 'monthly' ? 'is-on' : ''}
+                    onClick={() => setRepeat('monthly')}
+                  >
+                    {t('capture:money.repeatMonthly')}
+                  </button>
+                </div>
+              ) : null}
+              {seriesPlan?.ok && seriesPlan.entries.length > 1 ? (
+                <p className="capture-hint">
+                  {t('capture:money.seriesPreview', {
+                    count: seriesPlan.entries.length,
+                    amount: formatMoney(
+                      seriesPlan.entries.reduce((sum, entry) => sum + entry.amount, 0),
+                      language
+                    ),
+                  })}
+                </p>
+              ) : null}
+              {seriesPlan && !seriesPlan.ok ? (
+                <p className="capture-error" role="alert">
+                  {seriesPlan.reason === 'need-two'
+                    ? t('capture:money.splitNeedTwo')
+                    : seriesPlan.reason === 'missing-area'
+                      ? t('capture:money.splitMissingAreaShort')
+                      : t('capture:money.seriesTooMany')}
+                </p>
+              ) : null}
+              <label className="money-form-label">
+                {t('capture:money.entryName')}
+                <input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={300}
+                  placeholder={financialCategoryLabel(category, language)}
+                />
+              </label>
               {oilPath ? (
                 <SaleBuyerPicker
                   value={counterpartyName}
@@ -969,12 +1206,22 @@ const MoneyCaptureForm: React.FC<Props> = ({
       {step === 'oil' ? continueFooter(selectedOilIds.length > 0) : null}
       {step === 'pack' ? continueFooter(packLitres(soldPack) > 0) : null}
       {step === 'amount' ? continueFooter(canSubmit) : null}
+      {step === 'field' && splitMode !== 'single' && allowSeries
+        ? continueFooter(
+            splitFieldIds.length >= 2 &&
+              (splitMode !== 'area' ||
+                splitFieldIds.filter((id) => {
+                  const match = usableFields.find((item) => item.id === id);
+                  return match?.areaHectares != null && match.areaHectares > 0;
+                }).length >= 2)
+          )
+        : null}
       {step === 'when' ? (
         <AddMoneyFooter
           type={kind}
           amountLabel={resolvedAmount ? `${formatMoney(resolvedAmount, language)} €` : '—'}
           quantityLine={quantityLine}
-          canSubmit={canSubmit}
+          canSubmit={canSubmit && seriesReady}
           canDraft={canDraft}
           disabledReason={canSubmit ? null : t('capture:money.needPositiveAmount')}
           draftDisabledReason={draftReason}

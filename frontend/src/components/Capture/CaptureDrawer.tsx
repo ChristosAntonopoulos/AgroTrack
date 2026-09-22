@@ -23,11 +23,16 @@ import type { Field } from '../../services/fieldService';
 import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { readLastMoneyFieldId } from '../../finance/lastField';
+import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
+import { taskFormPath } from '../../navigation/intents';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import PhotoCaptureForm from './PhotoCaptureForm';
 import './Capture.css';
 
 const MAX_PHOTOS = 5;
+
+const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17', 'T21'] as const;
 
 type Props = {
   open: boolean;
@@ -59,7 +64,7 @@ const CaptureDrawer: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'money']);
+  const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'money']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const navigate = useNavigate();
@@ -80,6 +85,12 @@ const CaptureDrawer: React.FC<Props> = ({
   const [fieldId, setFieldId] = useState(context.fieldId || '');
   const [occurredAt, setOccurredAt] = useState(toDateTimeLocal(context.occurredAt));
   const [dirty, setDirty] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const moneyLeaveRef = useRef<{
+    saveDraft: () => Promise<'saved' | 'kept-local' | 'failed'>;
+    discardLocal: () => void;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -102,6 +113,7 @@ const CaptureDrawer: React.FC<Props> = ({
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
+  const [workTemplate, setWorkTemplate] = useState('');
 
   const permissions = useMemo(
     () =>
@@ -140,6 +152,7 @@ const CaptureDrawer: React.FC<Props> = ({
     setFieldId(context.fieldId || readLastMoneyFieldId() || '');
     setOccurredAt(toDateTimeLocal(context.occurredAt));
     setDirty(false);
+    setLeaveOpen(false);
     setError(null);
     setMoreOpen(false);
     setBody(context.description || '');
@@ -184,16 +197,46 @@ const CaptureDrawer: React.FC<Props> = ({
 
   const markDirty = () => setDirty(true);
 
+  const moneyStepOpen = step === 'money' || step === 'expense' || step === 'income';
+
   const requestClose = () => {
+    if (leaveOpen) return;
+    if (dirty && moneyStepOpen) {
+      setLeaveOpen(true);
+      return;
+    }
     if (dirty) {
-      const moneyOpen = step === 'money' || step === 'expense' || step === 'income';
-      const message = moneyOpen
-        ? t('money:leaveUnsavedTitle', { defaultValue: t('capture:discardTitle') })
-        : t('capture:discardTitle');
-      const ok = window.confirm(message);
+      const ok = window.confirm(t('capture:discardTitle'));
       if (!ok) return;
     }
     onClose();
+  };
+
+  const keepEditing = () => setLeaveOpen(false);
+
+  const discardMoney = () => {
+    moneyLeaveRef.current?.discardLocal();
+    setDirty(false);
+    setLeaveOpen(false);
+    onClose();
+  };
+
+  const saveMoneyDraft = async () => {
+    const actions = moneyLeaveRef.current;
+    if (!actions) {
+      setLeaveOpen(false);
+      onClose();
+      return;
+    }
+    setLeaveBusy(true);
+    try {
+      const result = await actions.saveDraft();
+      if (result === 'failed') return;
+      setLeaveOpen(false);
+      if (result === 'kept-local') onClose();
+    } finally {
+      setLeaveBusy(false);
+    }
   };
 
   const selectType = (type: CaptureType) => {
@@ -344,7 +387,7 @@ const CaptureDrawer: React.FC<Props> = ({
         const note = await noteService.createNote({
           body: body.trim(),
           fieldId,
-          pinned: true,
+          pinned: false,
           occurredAt: when,
           mediaUrls,
         });
@@ -360,10 +403,13 @@ const CaptureDrawer: React.FC<Props> = ({
         );
       } else if (step === 'work') {
         if (!ensureField()) return;
-        const q = new URLSearchParams();
-        q.set('fieldId', fieldId);
+        if (!workTemplate) {
+          setError(t('capture:work.chooseType'));
+          setSubmitting(false);
+          return;
+        }
         onClose();
-        navigate(`/tasks/new?${q.toString()}`);
+        navigate(taskFormPath({ fieldId, templateCode: workTemplate }));
         return;
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
@@ -418,7 +464,7 @@ const CaptureDrawer: React.FC<Props> = ({
         const note = await noteService.createNote({
           body: t('capture:voice.noteBody'),
           fieldId,
-          pinned: true,
+          pinned: false,
           occurredAt: when,
           mediaUrls: [mediaUrl],
         });
@@ -438,7 +484,7 @@ const CaptureDrawer: React.FC<Props> = ({
         const note = await noteService.createNote({
           body: documentName.trim(),
           fieldId,
-          pinned: true,
+          pinned: false,
           occurredAt: when,
           mediaUrls: [mediaUrl],
         });
@@ -512,6 +558,7 @@ const CaptureDrawer: React.FC<Props> = ({
       }
     >
             {isMoneyStep ? (
+              <>
               <MoneyCaptureForm
                 context={{
                   ...context,
@@ -526,7 +573,30 @@ const CaptureDrawer: React.FC<Props> = ({
                   if (next) markDirty();
                   else setDirty(false);
                 }}
+                onBindLeave={(actions) => {
+                  moneyLeaveRef.current = actions;
+                }}
               />
+              {leaveOpen ? (
+                <div className="capture-leave" role="dialog" aria-modal="true" aria-labelledby="capture-leave-title">
+                  <div className="capture-leave__card">
+                    <h2 id="capture-leave-title">{t('money:leaveTitle')}</h2>
+                    <p>{t('money:leaveBody')}</p>
+                    <div className="capture-leave__actions">
+                      <button type="button" className="money-primary-action" disabled={leaveBusy} onClick={() => void saveMoneyDraft()}>
+                        {t('money:leaveSaveDraft')}
+                      </button>
+                      <button type="button" className="capture-leave__discard" disabled={leaveBusy} onClick={discardMoney}>
+                        {t('money:leaveDiscard')}
+                      </button>
+                      <button type="button" className="capture-leave__keep" disabled={leaveBusy} onClick={keepEditing}>
+                        {t('money:leaveKeep')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              </>
             ) : isPhotoStep ? (
               <PhotoCaptureForm
                 context={context}
@@ -543,7 +613,7 @@ const CaptureDrawer: React.FC<Props> = ({
                 <div className="capture-type-list">
                   <p className="capture-prompt">{t('capture:whatToRecord')}</p>
                   {typeCards
-                    .filter((c) => c.enabled)
+                    .filter((c) => c.enabled && (c.type === 'work' || c.type === 'money' || c.type === 'harvest'))
                     .map((card) => (
                       <button
                         key={card.type}
@@ -558,9 +628,36 @@ const CaptureDrawer: React.FC<Props> = ({
                         </span>
                       </button>
                     ))}
+                  <p className="capture-prompt capture-prompt-more">{t('capture:alsoRecord')}</p>
+                  {typeCards
+                    .filter((c) => c.enabled && c.type !== 'work' && c.type !== 'money' && c.type !== 'harvest')
+                    .map((card) => (
+                      <button
+                        key={card.type}
+                        type="button"
+                        className="capture-type-card is-quiet"
+                        onClick={() => selectType(card.type)}
+                      >
+                        <span className="capture-type-icon">{card.icon}</span>
+                        <span>
+                          <strong>{t(`capture:types.${card.type}.title`)}</strong>
+                          <span>{t(`capture:types.${card.type}.description`)}</span>
+                        </span>
+                      </button>
+                    ))}
                 </div>
               ) : (
                 <div className="capture-form">
+                  {selectedFieldName || context.periodLabel ? (
+                    <p className="capture-context">
+                      {[
+                        selectedFieldName ? friendlyFieldLabel(selectedFieldName) : null,
+                        context.periodLabel,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  ) : null}
                   <label className="capture-label">
                     {t('capture:fieldLabel')}
                     {fieldLocked ? (
@@ -592,7 +689,11 @@ const CaptureDrawer: React.FC<Props> = ({
                       }}
                     />
                   </label>
-                  {context.dateDefaultedToToday ? (
+                  {context.dateNeedsChoice ? (
+                    <p className="capture-hint">
+                      {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                    </p>
+                  ) : context.dateDefaultedToToday ? (
                     <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
                   ) : null}
 
@@ -707,9 +808,23 @@ const CaptureDrawer: React.FC<Props> = ({
                   {step === 'work' ? (
                     <div className="capture-label">
                       <p>{t('capture:work.whatWork')}</p>
-                      <p className="capture-hint">
-                        {t('capture:scheduleLater', { defaultValue: 'Continue to create a field task.' })}
-                      </p>
+                      <div className="capture-work-choices" role="listbox" aria-label={t('capture:work.whatWork')}>
+                        {WORK_CHOICES.map((code) => (
+                          <button
+                            key={code}
+                            type="button"
+                            role="option"
+                            aria-selected={workTemplate === code}
+                            className={`capture-work-choice${workTemplate === code ? ' is-selected' : ''}`}
+                            onClick={() => {
+                              setWorkTemplate(code);
+                              markDirty();
+                            }}
+                          >
+                            {templateTitle(code, i18n.language)}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
 

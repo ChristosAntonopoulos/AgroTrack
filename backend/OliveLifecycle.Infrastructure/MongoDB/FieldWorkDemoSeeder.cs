@@ -71,16 +71,15 @@ public static class FieldWorkDemoSeeder
         var executionsCol = context.GetCollection<TaskExecutionDocument>("task_executions");
         var mediaCol = context.GetCollection<MediaAttachmentDocument>("media_attachments");
 
-        // Replace prior Cycle 2 demo tasks/executions/photos so reseed stays idempotent.
-        await tasksCol.DeleteManyAsync(t => TaskIds.Contains(t.Id), cancellationToken);
-        await executionsCol.DeleteManyAsync(e => e.Id == CompletedExecutionId || TaskIds.Contains(e.TaskId), cancellationToken);
-        await mediaCol.DeleteManyAsync(m => PhotoIds.Contains(m.Id), cancellationToken);
+        await tasksCol.DeleteManyAsync(t => fieldIds.Contains(t.FieldId), cancellationToken);
+        await executionsCol.DeleteManyAsync(e => fieldIds.Contains(e.FieldId), cancellationToken);
+        await mediaCol.DeleteManyAsync(m => fieldIds.Contains(m.FieldId) || PhotoIds.Contains(m.Id), cancellationToken);
 
         var completedPhotoIds = new List<string> { PhotoIds[0], PhotoIds[1] };
         var irrigationChecklist = ChecklistFromCatalogue("T08", answered: false);
         var flyChecklist = ChecklistFromCatalogue("T14", answered: false);
         var groundCoverChecklist = ChecklistFromCatalogue("T09", answered: false);
-        var fertChecklist = ChecklistFromCatalogue("T05", answered: false);
+        var harvestPrepChecklist = ChecklistFromCatalogue("T20", answered: false);
         var stressChecklist = ChecklistFromCatalogue("T17", answered: true, photoAttachmentIds: completedPhotoIds);
 
         var tasks = new List<FieldTaskDocument>
@@ -160,16 +159,16 @@ public static class FieldWorkDemoSeeder
                 CreatedAt = todayStart.AddDays(-1),
                 UpdatedAt = now,
             },
-            // 4) In progress fertilisation — collaborator
+            // 4) In progress — pre-harvest nets, before October picking
             new()
             {
                 Id = TaskIds[3],
                 FieldId = f0,
                 ResultYear = resultYear,
-                TemplateCode = "T05",
+                TemplateCode = "T20",
                 TemplateVersion = FieldWorkCatalogue.Version,
-                Title = "Βασική / εδαφική λίπανση",
-                Description = "Ο Κώστας εφαρμόζει το σχέδιο λίπανσης στη βόρεια πλευρά.",
+                Title = "Προετοιμασία συγκομιδής",
+                Description = "Ο Κώστας στρώνει δίχτυα στο 088 και ελέγχει ότι πέρασαν οι μέρες από τον τελευταίο ψεκασμό.",
                 Status = FieldTaskStatus.InProgress.ToApiString(),
                 PlannedStart = todayStart.AddDays(-1),
                 PlannedEnd = todayStart.AddDays(1),
@@ -178,7 +177,7 @@ public static class FieldWorkDemoSeeder
                 ResponsibleUserId = ProducerId,
                 AssignmentResponse = TaskAssignmentResponse.Accepted.ToApiString(),
                 AssignmentRespondedAt = todayStart.AddDays(-2),
-                ChecklistSnapshot = fertChecklist,
+                ChecklistSnapshot = harvestPrepChecklist,
                 EstimatedCost = 120m,
                 EstimatedCostCurrency = "EUR",
                 EstimatedLabourHours = 3m,
@@ -205,11 +204,7 @@ public static class FieldWorkDemoSeeder
                 ResponsibleUserId = ProducerId,
                 AssignmentResponse = TaskAssignmentResponse.Accepted.ToApiString(),
                 AssignmentRespondedAt = todayStart.AddDays(-13),
-                ChecklistSnapshot = stressChecklist.Select(c =>
-                {
-                    if (c.Key == "area") c.TextValue = "Βόρεια ζώνη · ~0.15 ha";
-                    return c;
-                }).ToList(),
+                ChecklistSnapshot = stressChecklist,
                 EstimatedCost = 95m,
                 EstimatedCostCurrency = "EUR",
                 EstimatedLabourHours = 2.5m,
@@ -223,10 +218,16 @@ public static class FieldWorkDemoSeeder
             },
         };
 
+        var seasonExecutions = new List<TaskExecutionDocument>();
+        for (var fieldNumber = 1; fieldNumber <= fieldIds.Length; fieldNumber++)
+        {
+            AppendSeasonWork(tasks, seasonExecutions, fieldIds[fieldNumber - 1], fieldNumber, now);
+        }
+
         await tasksCol.InsertManyAsync(tasks, cancellationToken: cancellationToken);
 
         var completedAt = todayStart.AddDays(-11).AddHours(3);
-        await executionsCol.InsertOneAsync(
+        seasonExecutions.Add(
             new TaskExecutionDocument
             {
                 Id = CompletedExecutionId,
@@ -254,8 +255,8 @@ public static class FieldWorkDemoSeeder
                 PlannedEndSnapshot = tasks[4].PlannedEnd,
                 CreatedAt = completedAt,
                 UpdatedAt = completedAt,
-            },
-            cancellationToken: cancellationToken);
+            });
+        await executionsCol.InsertManyAsync(seasonExecutions, cancellationToken: cancellationToken);
 
         // Minimal Photo Hub documents (demo image URLs — no binary upload).
         var photos = new List<MediaAttachmentDocument>
@@ -320,6 +321,44 @@ public static class FieldWorkDemoSeeder
             },
             new ReplaceOptions { IsUpsert = true },
             cancellationToken);
+
+        await notifications.ReplaceOneAsync(
+            n => n.Id == "67c801b30000000000000004",
+            new UserNotificationDocument
+            {
+                Id = "67c801b30000000000000004",
+                UserId = OwnerId,
+                Type = "task_assigned",
+                Title = "Ανάθεση: έλεγχος αρδευτικού",
+                Message = "Ο Κώστας έχει τον έλεγχο αρδευτικού στο χωράφι.",
+                RelatedEntityId = TaskIds[0],
+                RelatedEntityType = "Task",
+                ActionUrl = $"/tasks/{TaskIds[0]}",
+                IsRead = true,
+                CreatedAt = new DateTime(2026, 9, 4, 8, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 4, 8, 0, 0, DateTimeKind.Utc)
+            },
+            new ReplaceOptions { IsUpsert = true },
+            cancellationToken);
+
+        await notifications.ReplaceOneAsync(
+            n => n.Id == "67c801b30000000000000005",
+            new UserNotificationDocument
+            {
+                Id = "67c801b30000000000000005",
+                UserId = ProducerId,
+                Type = "task_approved",
+                Title = "Εγκρίθηκε εργασία",
+                Message = "Ο Γιώργος ενέκρινε τον ολοκληρωμένο ψεκασμό.",
+                RelatedEntityId = TaskIds[4],
+                RelatedEntityType = "Task",
+                ActionUrl = $"/tasks/{TaskIds[4]}",
+                IsRead = true,
+                CreatedAt = new DateTime(2026, 9, 7, 18, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 7, 18, 0, 0, DateTimeKind.Utc)
+            },
+            new ReplaceOptions { IsUpsert = true },
+            cancellationToken);
     }
 
     private static MediaAttachmentDocument Photo(
@@ -350,6 +389,110 @@ public static class FieldWorkDemoSeeder
             UpdatedAt = when,
         };
 
+    /// <summary>
+    /// Closed years 2024 and 2025, plus 2026 work already done (pruning, fertiliser, fly check).
+    /// October harvest stays out of 2026 — picking has not started.
+    /// </summary>
+    private static void AppendSeasonWork(
+        List<FieldTaskDocument> tasks,
+        List<TaskExecutionDocument> executions,
+        string fieldId,
+        int fieldNumber,
+        DateTime now)
+    {
+        var jobs = new (int Seq, string Code, int Month, int Day, bool Harvest)[]
+        {
+            (1, "T06", 2, 12, false),
+            (2, "T05", 3, 8, false),
+            (3, "T14", 5, 6, false),
+            (4, "T21", 10, 8, true),
+            (5, "T22", 10, 20, true),
+        };
+
+        foreach (var year in new[] { 2024, 2025, 2026 })
+        {
+            foreach (var job in jobs)
+            {
+                if (year == 2026 && job.Harvest)
+                {
+                    continue;
+                }
+
+                var when = new DateTime(year, job.Month, job.Day + fieldNumber, 8, 0, 0, DateTimeKind.Utc);
+                if (when > now)
+                {
+                    continue;
+                }
+
+                var entry = FieldWorkCatalogue.GetByCode(job.Code);
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                var taskId = DemoFarmDataSeeder.SeasonTaskId(year, fieldNumber, job.Seq);
+                var executionId = DemoFarmDataSeeder.SeasonExecutionId(year, fieldNumber, job.Seq);
+                var harvestId = job.Harvest
+                    ? DemoFarmDataSeeder.SeasonHarvestId(year, fieldNumber)
+                    : null;
+                var checklist = ChecklistFromCatalogue(job.Code, answered: true);
+                var completed = when.AddHours(5);
+
+                tasks.Add(new FieldTaskDocument
+                {
+                    Id = taskId,
+                    FieldId = fieldId,
+                    ResultYear = year,
+                    TemplateCode = job.Code,
+                    TemplateVersion = FieldWorkCatalogue.Version,
+                    Title = entry.GreekName,
+                    Description = year == 2026
+                        ? "Ολοκληρώθηκε για τη φετινή χρονιά."
+                        : $"Ολοκληρώθηκε τη χρονιά {year}.",
+                    Status = FieldTaskStatus.Completed.ToApiString(),
+                    PlannedStart = when,
+                    PlannedEnd = when.AddHours(6),
+                    StartedAt = when.AddHours(1),
+                    AssignedUserId = ProducerId,
+                    ResponsibleUserId = job.Code == "T22" ? OwnerId : ProducerId,
+                    AssignmentResponse = TaskAssignmentResponse.Accepted.ToApiString(),
+                    AssignmentRespondedAt = when.AddDays(-2),
+                    ChecklistSnapshot = checklist,
+                    RelatedHarvestId = harvestId,
+                    LatestExecutionId = executionId,
+                    WeatherSuitability = WeatherSuitability.Good.ToApiString(),
+                    CreatedByUserId = OwnerId,
+                    CreatedAt = when.AddDays(-3),
+                    UpdatedAt = completed,
+                });
+
+                executions.Add(new TaskExecutionDocument
+                {
+                    Id = executionId,
+                    TaskId = taskId,
+                    FieldId = fieldId,
+                    ResultYear = year,
+                    StartedAt = when.AddHours(1),
+                    CompletedAt = completed,
+                    Outcome = TaskExecutionOutcome.Completed.ToApiString(),
+                    CompletedByUserIds = [ProducerId],
+                    ChecklistResults = checklist.Select(c => new TaskExecutionChecklistResultDocument
+                    {
+                        Key = c.Key,
+                        IsAnswered = true,
+                        BoolValue = c.BoolValue,
+                    }).ToList(),
+                    WeatherSuitability = WeatherSuitability.Good.ToApiString(),
+                    RecordedByUserId = ProducerId,
+                    PlannedStartSnapshot = when,
+                    PlannedEndSnapshot = when.AddHours(6),
+                    CreatedAt = completed,
+                    UpdatedAt = completed,
+                });
+            }
+        }
+    }
+
     private static List<FieldTaskChecklistItemDocument> ChecklistFromCatalogue(
         string templateCode,
         bool answered,
@@ -358,7 +501,7 @@ public static class FieldWorkDemoSeeder
         var entry = FieldWorkCatalogue.GetByCode(templateCode);
         if (entry is null) return [];
 
-        return entry.DefaultChecklist.Select((c, i) => new FieldTaskChecklistItemDocument
+        return ChecklistSnapshotFactory.WorkingChecks(entry.DefaultChecklist).Select((c, i) => new FieldTaskChecklistItemDocument
         {
             Key = c.Key,
             GreekLabel = c.GreekLabel,

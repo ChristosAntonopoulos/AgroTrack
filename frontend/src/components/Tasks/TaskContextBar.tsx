@@ -45,7 +45,7 @@ const TaskContextBar: React.FC<TaskContextBarProps> = ({
   clearAssigneeLabel,
   clearYearLabel,
 }) => {
-  const [moreOpen, setMoreOpen] = useState(year !== defaultYear);
+  const [moreOpen, setMoreOpen] = useState(year !== defaultYear || Boolean(assigneeId));
   const yearChanged = year !== defaultYear;
   const fieldChanged = Boolean(fieldId);
   const assigneeChanged = Boolean(assigneeId);
@@ -70,21 +70,6 @@ const TaskContextBar: React.FC<TaskContextBarProps> = ({
             ))}
           </select>
         </label>
-        <label className="tasks-context-control">
-          <span className="tasks-context-label">{assigneeLabel}</span>
-          <select
-            value={assigneeId}
-            onChange={(event) => onAssigneeChange(event.target.value)}
-            aria-label={assigneeLabel}
-          >
-            <option value="">{allAssigneesLabel}</option>
-            {assignees.map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name}
-              </option>
-            ))}
-          </select>
-        </label>
         <button
           type="button"
           className="tasks-context-more"
@@ -97,6 +82,21 @@ const TaskContextBar: React.FC<TaskContextBarProps> = ({
 
       {moreOpen ? (
         <div className="tasks-context-more-panel">
+          <label className="tasks-context-control">
+            <span className="tasks-context-label">{assigneeLabel}</span>
+            <select
+              value={assigneeId}
+              onChange={(event) => onAssigneeChange(event.target.value)}
+              aria-label={assigneeLabel}
+            >
+              <option value="">{allAssigneesLabel}</option>
+              {assignees.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="tasks-context-control">
             <span className="tasks-context-label">{yearLabel}</span>
             <select

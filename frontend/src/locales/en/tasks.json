@@ -413,53 +413,38 @@
       "createAnother": "Create another",
       "undo": "Undo",
       "types": {
-        "pruning": "Pruning",
+        "irrigation": "Irrigation check",
+        "fly": "Olive-fly check",
         "fertilisation": "Fertilisation",
-        "weeds": "Ground cover",
-        "irrigation": "Irrigation",
-        "inspection": "Check",
-        "protection": "Plant protection",
+        "pruning": "Pruning",
+        "weeds": "Weed management",
         "harvest": "Harvest",
-        "transport": "Transport",
-        "maintenance": "Maintenance",
-        "other": "Other work"
+        "other": "Custom work"
       },
       "suggestions": {
-        "pruning": [
-          "Prune the dry branches",
-          "Fruiting prune"
+        "irrigation": [
+          "Check the pump",
+          "Check for leaks"
+        ],
+        "fly": [
+          "Count trap catches",
+          "Check the fruit"
         ],
         "fertilisation": [
           "Base fertilisation",
           "Top dressing"
         ],
+        "pruning": [
+          "Prune the dry branches",
+          "Fruiting prune"
+        ],
         "weeds": [
           "Clear the grass",
           "Cut the cover crop"
         ],
-        "irrigation": [
-          "Watering",
-          "Check irrigation"
-        ],
-        "inspection": [
-          "Field check",
-          "Tree observation"
-        ],
-        "protection": [
-          "Trap check",
-          "Olive-fly monitoring"
-        ],
         "harvest": [
           "Harvest",
           "Take olives to the mill"
-        ],
-        "transport": [
-          "Move olives",
-          "Move oil"
-        ],
-        "maintenance": [
-          "Irrigation maintenance",
-          "Repair"
         ],
         "other": [
           "Field work"
@@ -985,5 +970,85 @@
       "title": "Possible rain on the work day",
       "body": "This task may need a date change."
     }
+  },
+  "notebook": {
+    "sections": {
+      "attention": "Needs attention",
+      "today": "Today",
+      "next": "Next",
+      "suggestions": "Suggestions"
+    },
+    "status": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "blocked": "Blocked",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    },
+    "when": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "overdue": "Overdue",
+      "noDate": "No date yet"
+    },
+    "fieldCount": "{{n}} fields",
+    "fieldProgress": "{{done}} of {{total}} completed",
+    "checks": "{{done}} of {{total}} steps",
+    "unassigned": "Unassigned",
+    "actions": {
+      "resolve": "Resolve"
+    },
+    "menu": {
+      "reschedule": "Reschedule",
+      "block": "Cannot do",
+      "skip": "Skip",
+      "cancel": "Cancel",
+      "reopen": "Reopen"
+    },
+    "search": "Search",
+    "mine": "Mine",
+    "everyone": "Everyone",
+    "tabs": {
+      "todo": "To do",
+      "done": "Completed"
+    },
+    "weather": {
+      "unsuitable": "Unsuitable weather",
+      "caution": "Weather warning"
+    },
+    "work": {
+      "started": "Started {{time}}",
+      "checks": "Checks",
+      "note": "Note",
+      "saveNote": "Save note",
+      "complete": "Complete",
+      "pause": "Pause",
+      "incomplete": "{{open}} required checks are still open.",
+      "backToChecks": "Return to checks",
+      "completeAnyway": "Complete with explanation",
+      "doneNow": "Completed now",
+      "confirm": "Confirm",
+      "activity": "Activity",
+      "addPhoto": "Add photo",
+      "noChecks": "No checks. You can complete this as soon as the work is done.",
+      "activityActions": {
+        "created": "Created",
+        "started": "Started",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "rescheduled": "Rescheduled",
+        "check_completed": "Check marked",
+        "check_cleared": "Check cleared",
+        "blocked": "Blocked",
+        "skipped": "Skipped",
+        "resolved": "Resolved",
+        "reopened": "Reopened"
+      }
+    },
+    "scope": "Who is shown",
+    "frequent": "Common work",
+    "oneField": "One field",
+    "severalFields": "Several fields"
   }
 }

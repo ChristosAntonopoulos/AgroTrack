@@ -24,6 +24,9 @@ export type PhotoLightboxProps = {
   onCloseDetails?: () => void;
   /** Tap the photo (without pan/zoom) to open or edit details. */
   onImageActivate?: () => void;
+  onRemoveImage?: () => void;
+  onReplaceImage?: (file: File) => void;
+  onReportImage?: () => void;
   sidePanel?: React.ReactNode;
   footerAction?: React.ReactNode;
 };
@@ -46,6 +49,9 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   detailsOpen = false,
   onCloseDetails,
   onImageActivate,
+  onRemoveImage,
+  onReplaceImage,
+  onReportImage,
   sidePanel,
   footerAction,
 }) => {
@@ -179,11 +185,8 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       aria-labelledby={titleId}
       ref={dialogRef}
     >
-      <button
-        type="button"
+      <div
         className="photo-lightbox-backdrop"
-        tabIndex={-1}
-        aria-hidden="true"
         onClick={requestClose}
       />
       <div className="photo-lightbox-main">
@@ -311,6 +314,9 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
               alt={current.alt || t('detail.title')}
               fit="contain"
               className={`photo-lightbox-frame${onImageActivate ? ' is-editable' : ''}`}
+              onRemove={onRemoveImage}
+              onReplace={onReplaceImage}
+              onReport={onReportImage}
             />
           </div>
         </div>

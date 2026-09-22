@@ -19,6 +19,9 @@ export type CaptureContext = {
   occurredAt?: string;
   /** Chronologio: date was forced to today because the user is not on Days of the live month. */
   dateDefaultedToToday?: boolean;
+  /** Past month or past agricultural year — confirm a date inside that period. */
+  dateNeedsChoice?: boolean;
+  periodLabel?: string;
   category?: FinancialCategory;
   description?: string;
   harvestCampaignLink?: boolean;

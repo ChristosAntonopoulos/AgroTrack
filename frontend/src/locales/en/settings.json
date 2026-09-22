@@ -23,14 +23,32 @@
     "userId": "User ID",
     "appVersion": "App version",
     "profileTitle": "Profile",
-    "profileUnavailable": "Name editing is not available in this build. Your current profile is shown below.",
+    "profileHelp": "This is the name other people see on your work.",
     "firstName": "First name",
     "lastName": "Last name",
+    "saveName": "Save name",
+    "nameSaved": "Name saved.",
+    "nameRequired": "Enter your first name.",
     "emailTitle": "Email",
-    "emailChangeUnavailable": "Changing or verifying email is not available yet.",
+    "emailHelp": "We send a code to the new address. It becomes your sign-in email only after you enter the code.",
+    "verified": "Verified",
+    "newEmail": "New email",
+    "currentPassword": "Current password",
+    "sendCode": "Send verification code",
+    "codeSent": "Enter the 6-digit code we sent to {{email}}.",
+    "codeLabel": "Verification code",
+    "confirmEmail": "Confirm new email",
+    "emailUpdated": "Email updated. Sign in with it on your other devices.",
+    "devCode": "Email delivery is not configured in this build. Your code is {{code}}.",
     "passwordTitle": "Password",
-    "passwordHelp": "There is no in-app password change yet. Use the reset flow to set a new password.",
-    "passwordResetLink": "Reset password by email"
+    "passwordHelp": "Choose a new password. You stay signed in on this device.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "changePassword": "Change password",
+    "passwordUpdated": "Password updated.",
+    "passwordMismatch": "The two new passwords do not match.",
+    "passwordTooShort": "Use at least 8 characters.",
+    "passwordResetLink": "Forgot your password?"
   },
   "appearance": {
     "theme": "Theme",
@@ -110,7 +128,8 @@
   },
   "notifications": {
     "title": "Notifications",
-    "deviceOnlyHint": "These choices are saved on this device. They control what you want to see here; they do not change email from the server.",
+    "accountHint": "Saved to your account with your inbox. The same choices apply on every device where you sign in.",
+    "accountHintDemo": "Saved to this demo account in the browser, with sample assignment and approval notices. On a live OLEACHRON account they follow you to every device.",
     "email": "Email Notifications",
     "taskAssignment": "Task Assignment Notifications",
     "deadline": "Deadline Reminders",
@@ -134,14 +153,28 @@
     }
   },
   "privacy": {
-    "exportUnavailable": "Your account holds profile details, fields, tasks, photos, money records, and messages. A downloadable data export is not available yet."
+    "exportHelp": "Download a copy of your profile, notification choices, fields, and notifications. Photos and money records can be requested from support.",
+    "exportButton": "Download my data",
+    "exportWorking": "Preparing your file…",
+    "exportDone": "Download started.",
+    "supportTitle": "Ask support",
+    "supportBody": "For a correction, a complete archive, or written confirmation that grove data was deleted, email OLEACHRON support. Include the account email you sign in with.",
+    "supportAction": "Email support"
   },
   "sessions": {
     "thisDevice": "This device",
     "thisDeviceHint": "OLEACHRON only tracks the session on this browser. Sign out to end it."
   },
   "danger": {
-    "deleteUnavailable": "Account deletion is not available in this build."
+    "deleteHelp": "Closing your account signs you out and removes your name and email from the login. Grove records stay until support confirms they were deleted.",
+    "deleteButton": "Close account",
+    "confirmTitle": "Close this account?",
+    "confirmBody": "Enter your password and type your email to confirm. You will be signed out.",
+    "confirmEmail": "Type your email",
+    "deletePassword": "Password",
+    "deleteAction": "Close account permanently",
+    "cancel": "Cancel",
+    "emailMismatch": "That does not match your email."
   },
   "technical": {
     "purpose": "Share the app version with support if something goes wrong.",

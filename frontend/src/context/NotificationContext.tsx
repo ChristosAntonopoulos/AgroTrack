@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getPartnerService } from '../services/serviceFactory';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from 'react';
+import { getPartnerService, isMockMode } from '../services/serviceFactory';
 import { inAppMessageService } from '../services/inAppCampaignService';
+import { accountService } from '../services/accountService';
+import { PREFERENCES_CHANGED_EVENT, settingsService } from '../services/settingsService';
+import { mergeDemoInbox } from '../components/Notifications/demoInbox';
+import { readInboxIds, rememberInboxRead } from '../components/Notifications/inboxReadStore';
+import { partitionNotifications } from '../components/Notifications/notificationVisibility';
 import { useAuth } from './AuthContext';
 import { useInAppMessages } from './InAppMessageContext';
 
@@ -14,6 +19,8 @@ export interface Notification {
   actionUrl?: string;
   relatedEntityId?: string;
   relatedEntityType?: string;
+  /** Raw server type, such as task_assigned or task_approval. */
+  eventType?: string;
   source?: 'transactional' | 'campaign' | 'local';
   campaignId?: string;
   campaignKind?: string;
@@ -23,6 +30,8 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
+  hiddenUnreadCount: number;
+  inboxLoading: boolean;
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -43,13 +52,18 @@ const mapInboxType = (type: string, source: string): Notification['type'] => {
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const { isAuthenticated } = useAuth();
+  const [inboxLoading, setInboxLoading] = useState(true);
+  const [prefs, setPrefs] = useState(() => settingsService.getPreferences().notificationPrefs);
+  const loadedOnce = useRef(false);
+  const { isAuthenticated, user } = useAuth();
   const { openCampaign, refreshInboxSignal } = useInAppMessages();
 
   const loadInbox = useCallback(async () => {
+    const userId = user?.userId;
+    const applyRead = (id: string, isRead: boolean) => isRead || readInboxIds(userId).has(id);
     try {
-      const items = await inAppMessageService.getInbox();
-      // Merged inbox omits related-entity fields; enrich from the transactional API when available.
+      const fetched = await inAppMessageService.getInbox();
+      const items = mergeDemoInbox(fetched, userId, isMockMode());
       const relatedById = new Map<
         string,
         { relatedEntityId?: string; relatedEntityType?: string; actionUrl?: string }
@@ -74,13 +88,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           return {
             id: item.id,
             type: mapInboxType(item.type, item.source),
+            eventType: item.type,
             title: item.title,
             message: item.message,
             timestamp: new Date(item.createdAt),
-            read: item.isRead,
+            read: applyRead(item.id, item.isRead),
             actionUrl: item.actionUrl ?? related?.actionUrl,
-            relatedEntityId: related?.relatedEntityId,
-            relatedEntityType: related?.relatedEntityType,
+            relatedEntityId: item.relatedEntityId ?? related?.relatedEntityId,
+            relatedEntityType: item.relatedEntityType ?? related?.relatedEntityType,
             source: item.source === 'campaign' ? 'campaign' : 'transactional',
             campaignId: item.campaignId ?? undefined,
             campaignKind: item.campaignKind ?? undefined,
@@ -90,21 +105,36 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return [...fromApi, ...localOnly];
       });
     } catch {
-      // Fallback to legacy transactional endpoint if merged inbox is unavailable.
       try {
-        const items = await getPartnerService().getNotifications();
+        const items = mergeDemoInbox([], userId, isMockMode());
+        const legacy = items.length > 0 ? items : await getPartnerService().getNotifications().then((rows) =>
+          rows.map((row) => ({
+            id: row.id,
+            source: 'transactional',
+            type: row.type,
+            title: row.title,
+            message: row.message,
+            actionUrl: row.actionUrl,
+            relatedEntityId: row.relatedEntityId,
+            relatedEntityType: row.relatedEntityType,
+            isRead: row.isRead,
+            isCompleted: row.isRead,
+            createdAt: row.createdAt,
+          }))
+        );
         setNotifications((prev) => {
           const localOnly = prev.filter((n) => n.id.startsWith('notif-'));
-          const fromApi: Notification[] = items.map((item) => ({
+          const fromApi: Notification[] = legacy.map((item) => ({
             id: item.id,
             type: item.type.includes('update') ? 'success' : 'info',
+            eventType: item.type,
             title: item.title,
             message: item.message,
             timestamp: new Date(item.createdAt),
-            read: item.isRead,
-            actionUrl: item.actionUrl,
-            relatedEntityId: item.relatedEntityId,
-            relatedEntityType: item.relatedEntityType,
+            read: applyRead(item.id, item.isRead),
+            actionUrl: item.actionUrl ?? undefined,
+            relatedEntityId: item.relatedEntityId ?? undefined,
+            relatedEntityType: item.relatedEntityType ?? undefined,
             source: 'transactional',
           }));
           return [...fromApi, ...localOnly];
@@ -113,10 +143,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         // Inbox is optional when the API is offline.
       }
     }
+  }, [user?.userId]);
+  useEffect(() => {
+    const sync = () => setPrefs(settingsService.getPreferences().notificationPrefs);
+    window.addEventListener(PREFERENCES_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(PREFERENCES_CHANGED_EVENT, sync);
   }, []);
 
   useEffect(() => {
+    if (!user?.userId) return;
+    void accountService.loadNotificationPrefs(user.userId).then((loaded) => {
+      if (loaded) settingsService.savePreferences({ notificationPrefs: loaded });
+    });
+  }, [user?.userId]);
+
+  useEffect(() => {
     if (!isAuthenticated) {
+      loadedOnce.current = false;
+      setInboxLoading(false);
       setNotifications((prev) => prev.filter((n) => n.id.startsWith('notif-')));
       return;
     }
@@ -124,7 +168,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     let cancelled = false;
     const run = async () => {
       if (cancelled) return;
-      await loadInbox();
+      if (!loadedOnce.current) setInboxLoading(true);
+      try {
+        await loadInbox();
+        loadedOnce.current = true;
+      } finally {
+        if (!cancelled) setInboxLoading(false);
+      }
     };
     void run();
     const timer = window.setInterval(() => void run(), 60000);
@@ -146,8 +196,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const markAsRead = (id: string) => {
+    rememberInboxRead(id, user?.userId);
     setNotifications((prev) => prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)));
-    if (id.startsWith('notif-')) return;
+    if (id.startsWith('notif-') || id.startsWith('demo-')) return;
 
     if (id.startsWith('campaign:')) {
       const campaignId = id.slice('campaign:'.length);
@@ -159,9 +210,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const markAllAsRead = () => {
+    const userId = user?.userId;
     setNotifications((prev) => {
       prev.forEach((n) => {
-        if (n.read || n.id.startsWith('notif-')) return;
+        if (!n.read) rememberInboxRead(n.id, userId);
+        if (n.read || n.id.startsWith('notif-') || n.id.startsWith('demo-')) return;
         if (n.source === 'campaign' && n.campaignId) {
           void inAppMessageService.markSeen(n.campaignId).catch(() => undefined);
         } else if (n.source === 'transactional') {
@@ -171,7 +224,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       return prev.map((notif) => ({ ...notif, read: true }));
     });
   };
-
   const removeNotification = (id: string) => {
     setNotifications((prev) => prev.filter((notif) => notif.id !== id));
     if (id.startsWith('campaign:')) {
@@ -198,13 +250,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { visible, hiddenUnread } = useMemo(
+    () => partitionNotifications(notifications, prefs),
+    [notifications, prefs]
+  );
+  const unreadCount = visible.filter((n) => !n.read).length;
 
   return (
     <NotificationContext.Provider
       value={{
-        notifications,
+        notifications: visible,
         unreadCount,
+        hiddenUnreadCount: hiddenUnread,
+        inboxLoading,
         addNotification,
         markAsRead,
         markAllAsRead,

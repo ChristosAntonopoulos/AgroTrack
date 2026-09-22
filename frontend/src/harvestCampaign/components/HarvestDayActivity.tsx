@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { moneyPath } from '../../navigation/intents';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
@@ -64,6 +66,8 @@ type RowModel = {
   context: string[];
   status?: { label: string; tone: 'ok' | 'warn' | 'muted' };
   canEdit: boolean;
+  /** Harvest expenses are changed in Money. */
+  moneyTransactionId?: string;
 };
 
 const useIsNarrow = (breakpoint = 768) => {
@@ -343,8 +347,8 @@ export const HarvestDayActivity: React.FC<Props> = ({
       pushTime(context, entry.createdAt);
       if (entry.note) context.push(entry.note);
       else context.push(t('harvestCampaign.expense.moneyDescription'));
-      if (entry.transactionId) {
-        context.push(t('harvestCampaign.dayActivity.linkedExpense'));
+      if (!entry.transactionId) {
+        context.push(t('harvestCampaign.dayActivity.expenseOnThisDay'));
       }
       return {
         id: entry.id,
@@ -352,6 +356,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
         title: `${entry.amountEur} €`,
         context,
         canEdit: false,
+        moneyTransactionId: entry.transactionId,
       };
     });
 
@@ -427,13 +432,21 @@ export const HarvestDayActivity: React.FC<Props> = ({
                   <li key={row.id} className="hc-day-activity-item">
                     <div className="hc-day-activity-main">
                       <strong>{row.title}</strong>
-                      {row.context.length > 0 || row.status ? (
+                      {row.context.length > 0 || row.status || row.moneyTransactionId ? (
                         <div className="hc-day-row-meta">
                           {row.context.map((bit) => (
                             <span key={`${row.id}-${bit}`} className="hc-day-meta-bit">
                               {bit}
                             </span>
                           ))}
+                          {row.moneyTransactionId ? (
+                            <Link
+                              className="hc-day-money-link"
+                              to={moneyPath({ tx: row.moneyTransactionId })}
+                            >
+                              {t('harvestCampaign.dayActivity.editInMoney')}
+                            </Link>
+                          ) : null}
                           {row.status ? (
                             <span className={`hc-day-status is-${row.status.tone}`}>
                               {row.status.label}

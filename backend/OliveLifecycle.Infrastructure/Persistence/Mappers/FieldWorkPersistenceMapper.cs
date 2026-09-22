@@ -210,6 +210,14 @@ public static class FieldWorkPersistenceMapper
         PauseReason = d.PauseReason,
         PausedAt = d.PausedAt,
         WorkGroupId = d.WorkGroupId,
+        BlockedReason = d.BlockedReason,
+        Activity = (d.Activity ?? []).Select(a => new FieldTaskActivity
+        {
+            Action = a.Action,
+            ActorId = a.ActorId,
+            OccurredAt = a.OccurredAt,
+            Comment = a.Comment
+        }).ToList(),
         CreatedByUserId = d.CreatedByUserId,
         CreatedAt = d.CreatedAt,
         UpdatedAt = d.UpdatedAt
@@ -263,6 +271,14 @@ public static class FieldWorkPersistenceMapper
         PauseReason = e.PauseReason,
         PausedAt = e.PausedAt,
         WorkGroupId = e.WorkGroupId,
+        BlockedReason = e.BlockedReason,
+        Activity = (e.Activity ?? []).Select(a => new FieldTaskActivityDocument
+        {
+            Action = a.Action,
+            ActorId = a.ActorId,
+            OccurredAt = a.OccurredAt,
+            Comment = a.Comment
+        }).ToList(),
         CreatedByUserId = e.CreatedByUserId,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt

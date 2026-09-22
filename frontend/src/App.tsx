@@ -140,7 +140,7 @@ const router = createBrowserRouter(
         <Route path="harvest" element={<HarvestCampaignPage />} />
         <Route path="this-harvest" element={<Navigate to="/harvest" replace />} />
         <Route path="this-harvest/review" element={<ThisHarvestReviewPage />} />
-        <Route path="calendar" element={<Navigate to="/tasks?view=upcoming" replace />} />
+        <Route path="calendar" element={<Navigate to="/tasks" replace />} />
         <Route
           path="analytics"
           element={<Navigate to="/reports" replace />}

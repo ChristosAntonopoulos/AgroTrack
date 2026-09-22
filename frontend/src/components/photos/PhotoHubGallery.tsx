@@ -12,6 +12,9 @@ type Props = {
   photos: Photo[];
   fields?: Field[];
   onOpenViewer: (photo: Photo, index: number) => void;
+  onRemove?: (photo: Photo) => void;
+  onReplace?: (photo: Photo, file: File) => void;
+  onReport?: (photo: Photo) => void;
   selectionMode?: boolean;
   selectedIds?: ReadonlySet<string>;
   onToggleSelected?: (photoId: string) => void;
@@ -21,6 +24,9 @@ const PhotoHubGallery: React.FC<Props> = ({
   photos,
   fields,
   onOpenViewer,
+  onRemove,
+  onReplace,
+  onReport,
   selectionMode = false,
   selectedIds,
   onToggleSelected,
@@ -69,6 +75,9 @@ const PhotoHubGallery: React.FC<Props> = ({
                     : () => onOpenViewer(photo, index)
                 }
                 activateLabel={aria}
+                onRemove={onRemove && photo.canTrash !== false ? () => onRemove(photo) : undefined}
+                onReplace={onReplace ? (file) => onReplace(photo, file) : undefined}
+                onReport={onReport ? () => onReport(photo) : undefined}
               />
               {needsReview ? (
                 <span className="photo-badge review">

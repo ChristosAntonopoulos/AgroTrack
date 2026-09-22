@@ -94,6 +94,28 @@
   min-width: 0;
 }
 
+.money-export-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 48px;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--money-border, var(--color-border));
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.money-export-cta:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .money-capture-cta,
 .money-primary-action {
   display: inline-flex;
@@ -683,9 +705,50 @@
   border-bottom: 0;
 }
 
+.money-field-item__name {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
 .money-field-item strong {
   display: block;
   font-size: 16px;
+}
+
+.money-field-excluded {
+  margin: 4px 0 0;
+  color: var(--money-text-muted);
+  font-size: 13px;
+}
+
+.money-field-choice.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.money-split-toggle {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.money-split-toggle button {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--money-border, var(--color-border));
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.money-split-toggle button.is-on {
+  border-color: var(--olive-primary);
+  background: color-mix(in srgb, var(--olive-primary) 12%, transparent);
 }
 
 .money-field-item span,

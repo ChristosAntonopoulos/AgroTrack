@@ -32,11 +32,18 @@ const ChronologioCurrentYearCard: React.FC<Props> = ({ summary, numberLocale, on
     harvesting && summary.harvestCount > 0 && !harvestHasResult(summary);
 
   return (
-    <button
-      type="button"
+    <article
       id={`chrono-year-${summary.periodYear}`}
       className="chrono-year-chapter is-live"
       onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <header className="chrono-year-chapter-head">
         <div>
@@ -78,8 +85,17 @@ const ChronologioCurrentYearCard: React.FC<Props> = ({ summary, numberLocale, on
       <ChronologioYearFacts facts={yearChapterFacts(summary, true)} numberLocale={numberLocale} />
 
       {headline ? <p className="chrono-year-headline">{headline}</p> : null}
-      <span className="chrono-year-chapter-hint">{t('yearView.openHint')}</span>
-    </button>
+      <button
+        type="button"
+        className="chrono-year-chapter-hint"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen();
+        }}
+      >
+        {t('yearView.openHint')}
+      </button>
+    </article>
   );
 };
 

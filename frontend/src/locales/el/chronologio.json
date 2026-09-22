@@ -13,6 +13,7 @@
   "filtersTitle": "Φιλτράρισμα ανά τύπο",
   "moreFilters": "Περισσότερα φίλτρα",
   "captureDateUsesToday": "Η ημερομηνία ορίστηκε σε σήμερα — βλέπεις παλαιότερη περίοδο.",
+  "captureDateChoose": "Διάλεξε ημερομηνία μέσα στο {{period}}.",
   "primaryCategories": {
     "all": "Όλα",
     "work": "Εργασίες",
@@ -179,6 +180,19 @@
     "metricYield": "Απόδοση",
     "statRain": "{{mm}} mm",
     "statHeatDays": "{{count}} ημέρες ζέστης",
+    "statHeatDays_one": "{{count}} ημέρα ζέστης",
+    "statHeatDays_other": "{{count}} ημέρες ζέστης",
+    "limitedRecords": "Λίγες καταγραφές για αυτή τη χρονιά",
+    "selectAllTypes": "Όλα",
+    "clearTypes": "Καθαρισμός",
+    "allTypesOn": "Φαίνονται όλοι οι τύποι καταγραφών.",
+    "typesOn": "{{count}} από {{total}} τύπους",
+    "preset": {
+      "fieldWork": "Εργασίες χωραφιού",
+      "harvestStory": "Ιστορία συγκομιδής",
+      "decisions": "Αποφάσεις",
+      "people": "Άνθρωποι"
+    },
     "statFrostNights": "{{count}} παγετοί",
     "peekMonth": "Κεφάλαιο μήνα",
     "peekYear": "Κεφάλαιο χρονιάς",
@@ -249,6 +263,18 @@
     "moneyUp": "+{{pct}}% από τον προηγούμενο μήνα",
     "moneyDown": "{{pct}}% λιγότερα από τον προηγούμενο μήνα",
     "harvestNotStarted": "Δεν έχει ξεκινήσει η συγκομιδή",
+    "focusTitle": {
+      "work": "Εργασίες · {{month}}",
+      "money": "Χρήματα · {{month}}",
+      "harvest": "Συγκομιδή · {{month}}",
+      "observation": "Παρατηρήσεις · {{month}}"
+    },
+    "focusKicker": {
+      "work": "Εργασίες",
+      "money": "Κινήσεις",
+      "harvest": "Συγκομιδή",
+      "observation": "Παρατηρήσεις"
+    },
     "harvestNoResult": "Δεν έχει καταχωρηθεί αποτέλεσμα συγκομιδής"
   },
   "yearView": {
@@ -294,7 +320,19 @@
       "expensesUp": "+{{pct}}% περισσότερα έξοδα από το {{year}}",
       "expensesUp_ytd": "Μέχρι σήμερα · +{{pct}}% περισσότερα έξοδα σε σχέση με την ίδια ημερομηνία το {{year}}",
       "expensesDown": "{{pct}}% λιγότερα έξοδα από το {{year}}",
-      "expensesDown_ytd": "Μέχρι σήμερα · {{pct}}% λιγότερα έξοδα σε σχέση με την ίδια ημερομηνία το {{year}}"
+      "expensesDown_ytd": "Μέχρι σήμερα · {{pct}}% λιγότερα έξοδα σε σχέση με την ίδια ημερομηνία το {{year}}",
+      "yield": "{{points}} μονάδες απόδοσης σε σχέση με το {{year}}",
+      "yield_ytd": "Μέχρι σήμερα · {{points}} μονάδες απόδοσης σε σχέση με το {{year}}",
+      "inProgress": "Η {{year}} είναι ακόμη σε εξέλιξη. Η σύγκριση είναι μέχρι την ίδια ημερομηνία.",
+      "costPerKg": "Κόστος ανά kg λαδιού",
+      "costUp": "{{amount}} ακριβότερο ανά kg λαδιού από το {{year}}",
+      "costUp_ytd": "Μέχρι σήμερα · {{amount}} ακριβότερο ανά kg λαδιού από το {{year}}",
+      "costDown": "{{amount}} φθηνότερο ανά kg λαδιού από το {{year}}",
+      "costDown_ytd": "Μέχρι σήμερα · {{amount}} φθηνότερο ανά kg λαδιού από το {{year}}",
+      "fieldsOne": "Περιλαμβάνεται το {{field}}",
+      "fieldsAll": "Περιλαμβάνονται {{fields}}",
+      "fieldsEvery": "Περιλαμβάνονται όλα τα χωράφια",
+      "drivers": "Μήνες που έκαναν τη διαφορά"
     },
     "stages": {
       "afterHarvest": "Μετά τη συγκομιδή",
@@ -338,7 +376,18 @@
     "weatherAfter": "Επίδραση καιρού",
     "exactTime": "Ώρα",
     "quantity": "Ποσότητα",
-    "moneyCategory": "Τύπος",
+    "moneyCategory": "Κατηγορία",
+    "moreActions": "Περισσότερα",
+    "correctRecordHintLabel": "Διόρθωση",
+    "correctRecordHint": "Ανοίγει την ολοκληρωμένη εργασία για διόρθωση της καταγραφής.",
+    "openPhotoN": "Άνοιγμα φωτογραφίας {{index}}",
+    "mediaUnavailable": "Η φωτογραφία {{index}} δεν φορτώθηκε",
+    "mediaRetry": "Δοκιμή ξανά",
+    "officialWeightKg": "kg επίσημο βάρος",
+    "sackChain": "{{count}} σακιά",
+    "fruitChain": "{{kg}} kg επίσημο βάρος καρπού",
+    "oilChain": "{{kg}} kg λάδι",
+    "yieldChain": "{{pct}}% απόδοση",
     "generalOperation": "Γενική λειτουργία",
     "date": "Ημερομηνία",
     "posting": "Κατάσταση καταχώρησης",
@@ -367,6 +416,9 @@
   },
   "weatherCard": {
     "label": "Καιρός",
+    "areaApplies": "Καιρός περιοχής {{area}} · ισχύει για {{count}} κοντινά χωράφια",
+    "nearbyApplies": "Ίδιος καιρός · ισχύει για {{count}} κοντινά χωράφια",
+    "activeField": "Καιρός · {{field}} · επιλέχθηκε γιατί είναι το ενεργό χωράφι",
     "feelsLike": "αίσθηση {{temp}}°",
     "updated": "Ενημέρωση {{time}}",
     "stale": "Παλιά μέτρηση",
@@ -547,8 +599,10 @@
     "insightDrier": "Πιο ξηρός από πέρυσι",
     "insightGreener": "Πιο πράσινα δέντρα",
     "insightBrowner": "Λιγότερο πράσινα δέντρα",
-    "insightMoistureUp": "Τα φύλλα κράτησαν περισσότερη υγρασία",
-    "insightMoistureDown": "Τα φύλλα κράτησαν λιγότερη υγρασία"
+    "insightMoistureUp": "Πιθανή υψηλότερη υγρασία φύλλων — από τη μέση υγρασία της περιόδου, όχι από μέτρηση στα φύλλα",
+    "insightMoistureDown": "Πιθανή χαμηλότερη υγρασία φύλλων — από τη μέση υγρασία της περιόδου, όχι από μέτρηση στα φύλλα",
+    "historyBoundary": "Ιστορικά μέχρι {{day}} {{month}} · ό,τι ακολουθεί είναι πρόβλεψη",
+    "sharedFields": "Καιρός για {{names}}"
   },
   "activeFilters": "Ενεργά φίλτρα",
   "clearAllFilters": "Καθαρισμός όλων",

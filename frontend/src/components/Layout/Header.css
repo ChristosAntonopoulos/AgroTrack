@@ -126,7 +126,7 @@
   background-color: var(--surface-hover);
 }
 
-.notification-badge {
+.notification-bell-count {
   position: absolute;
   top: 0;
   right: 0;

@@ -17,10 +17,11 @@ type TodayBundle = ReturnType<typeof useTodaySummary>;
 type Props = {
   today: TodayBundle;
   fieldId?: string;
+  weatherScopeNote?: string;
   onOpenWeather?: () => void;
 };
 
-const TodaySummary: React.FC<Props> = ({ today, fieldId, onOpenWeather }) => {
+const TodaySummary: React.FC<Props> = ({ today, fieldId, weatherScopeNote, onOpenWeather }) => {
   const { t, i18n } = useTranslation(['chronologio', 'today', 'fields']);
   const navigate = useNavigate();
   const capture = useCaptureOptional();
@@ -116,7 +117,8 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, onOpenWeather }) => {
         compact
         fieldWeather={today.fieldWeather}
         snapshot={today.weather}
-        fieldName={today.weatherField?.name}
+        fieldName={weatherScopeNote ? undefined : today.weatherField?.name}
+        scopeNote={weatherScopeNote}
         onOpen={onOpenWeather}
       />
     </section>

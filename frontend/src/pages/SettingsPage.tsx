@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Monitor, Sun, Moon, Check, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +13,9 @@ import {
   NotificationDevicePreferences,
 } from '../services/settingsService';
 import { isMockMode } from '../services/serviceFactory';
+import { accountService } from '../services/accountService';
+import AccountSettings from './settings/AccountSettings';
+import DataRightsSettings from './settings/DataRightsSettings';
 import { demoStore } from '../services/demo/demoStore';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
 import type { FontScale } from '../experience/types';
@@ -63,9 +65,6 @@ const SettingsPage: React.FC = () => {
 
   const languageOptions = SUPPORTED_LOCALES.filter((l) => l.code === 'el' || l.code === 'en');
 
-  const displayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.email || '—';
-
   useEffect(() => {
     const prefs = settingsService.getPreferences();
     setPreferences(prefs);
@@ -73,6 +72,24 @@ const SettingsPage: React.FC = () => {
       setTheme(prefs.theme);
     }
   }, []);
+
+  useEffect(() => {
+    const sync = () => setPreferences(settingsService.getPreferences());
+    window.addEventListener('oleachron-preferences', sync);
+    return () => window.removeEventListener('oleachron-preferences', sync);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.userId) return;
+    let cancelled = false;
+    void accountService.loadNotificationPrefs(user.userId).then((loaded) => {
+      if (cancelled || !loaded) return;
+      settingsService.savePreferences({ notificationPrefs: loaded });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.userId]);
 
   useEffect(() => {
     return () => {
@@ -125,8 +142,26 @@ const SettingsPage: React.FC = () => {
   };
 
   const onNotificationPref = (key: keyof NotificationDevicePreferences, enabled: boolean) => {
-    const next = { ...preferences.notificationPrefs, [key]: enabled };
-    persist({ notificationPrefs: next }, undefined, () => onNotificationPref(key, enabled));
+    const previous = preferences.notificationPrefs;
+    const next = { ...previous, [key]: enabled };
+    const ok = settingsService.savePreferences({ notificationPrefs: next });
+    if (!ok || !user?.userId) {
+      setSaveStatus('error');
+      setLastFailed(() => () => onNotificationPref(key, enabled));
+      return;
+    }
+    setPreferences((prev) => ({ ...prev, notificationPrefs: next }));
+    void accountService.saveNotificationPrefs(user.userId, next).then((synced) => {
+      if (!synced) {
+        settingsService.savePreferences({ notificationPrefs: previous });
+        setPreferences((prev) => ({ ...prev, notificationPrefs: previous }));
+        setSaveStatus('error');
+        setLastFailed(() => () => onNotificationPref(key, enabled));
+        return;
+      }
+      setLastFailed(null);
+      flashSaved();
+    });
   };
 
   const onFontScale = (scale: FontScale) => {
@@ -234,50 +269,15 @@ const SettingsPage: React.FC = () => {
         </div>
 
         <div className="settings-column">
-          <section className="settings-block" aria-labelledby="settings-account">
-            <h2 id="settings-account" className="settings-block-title">
-              {t('sections.account')}
-            </h2>
-            <div className="settings-account-card">
-              <p className="settings-account-name">{displayName}</p>
-              <p className="settings-account-email">{user?.email}</p>
-            </div>
-
-            <div className="settings-subblock">
-              <h3 className="settings-subtitle">{t('account.profileTitle')}</h3>
-              <p className="settings-help">{t('account.profileUnavailable')}</p>
-              <div className="settings-readonly-grid">
-                <div>
-                  <span className="settings-readonly-label">{t('account.firstName')}</span>
-                  <p className="settings-readonly-value">{user?.firstName || '—'}</p>
-                </div>
-                <div>
-                  <span className="settings-readonly-label">{t('account.lastName')}</span>
-                  <p className="settings-readonly-value">{user?.lastName || '—'}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="settings-subblock">
-              <h3 className="settings-subtitle">{t('account.emailTitle')}</h3>
-              <p className="settings-readonly-value">{user?.email || '—'}</p>
-              <p className="settings-help">{t('account.emailChangeUnavailable')}</p>
-            </div>
-
-            <div className="settings-subblock">
-              <h3 className="settings-subtitle">{t('account.passwordTitle')}</h3>
-              <p className="settings-help">{t('account.passwordHelp')}</p>
-              <Link className="settings-text-link" to="/forgot-password">
-                {t('account.passwordResetLink')}
-              </Link>
-            </div>
-          </section>
+          <AccountSettings />
 
           <section className="settings-block" aria-labelledby="settings-notifications">
             <h2 id="settings-notifications" className="settings-block-title">
               {t('sections.notifications')}
             </h2>
-            <p className="settings-help settings-help--block">{t('notifications.deviceOnlyHint')}</p>
+            <p className="settings-help settings-help--block">
+              {t(isMockMode() ? 'notifications.accountHintDemo' : 'notifications.accountHint')}
+            </p>
             {NOTIFICATION_PREF_KEYS.map((key) => (
               <div key={key} className="settings-row settings-row-toggle">
                 <div className="settings-row-text">
@@ -455,12 +455,7 @@ const SettingsPage: React.FC = () => {
             <p className="settings-autosave-hint">{t('autosaveHint')}</p>
           </section>
 
-          <section className="settings-block" aria-labelledby="settings-privacy">
-            <h2 id="settings-privacy" className="settings-block-title">
-              {t('sections.privacy')}
-            </h2>
-            <p className="settings-help">{t('privacy.exportUnavailable')}</p>
-          </section>
+          <DataRightsSettings />
 
           <section className="settings-block" aria-labelledby="settings-sessions">
             <h2 id="settings-sessions" className="settings-block-title">
@@ -475,13 +470,6 @@ const SettingsPage: React.FC = () => {
                 {t('common:logout')}
               </Button>
             </div>
-          </section>
-
-          <section className="settings-block settings-danger" aria-labelledby="settings-danger">
-            <h2 id="settings-danger" className="settings-block-title">
-              {t('sections.danger')}
-            </h2>
-            <p className="settings-help">{t('danger.deleteUnavailable')}</p>
           </section>
 
           {isMockMode() ? (

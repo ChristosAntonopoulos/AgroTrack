@@ -2181,6 +2181,25 @@
   margin-bottom: 0.75rem;
 }
 
+.photo-bulk-field input {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-color, #d0d5dd);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.photo-bulk-caption {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.photo-bulk-caption input {
+  width: 100%;
+}
+
 .photo-review-header-actions {
   display: flex;
   gap: 0.5rem;

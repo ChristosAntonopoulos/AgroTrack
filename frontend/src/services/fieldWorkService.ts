@@ -6,7 +6,8 @@ export type FieldTaskStatus =
   | 'in_progress'
   | 'blocked'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'skipped';
 
 export interface TaskProposal {
   id: string;
@@ -127,6 +128,8 @@ export interface FieldTask {
   pauseReason?: string;
   pausedAt?: string;
   workGroupId?: string;
+  blockedReason?: string;
+  activity?: Array<{ action: string; actorId: string; occurredAt: string; comment?: string }>;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -162,6 +165,7 @@ export interface CreateFieldTaskInput {
   estimatedCost?: number;
   resultYear?: number;
   relatedHarvestId?: string;
+  workGroupId?: string;
 }
 
 export interface AcceptProposalInput {
@@ -554,6 +558,7 @@ export const fieldWorkService = {
         boolValue?: boolean;
       }>;
       createFollowUpForRemainder?: boolean;
+      allowIncomplete?: boolean;
     }
   ): Promise<TaskExecution> => {
     const response = await api.post<TaskExecution>(`/api/v1/field-tasks/${id}/complete`, body);
@@ -567,6 +572,41 @@ export const fieldWorkService = {
 
   cancelFieldTask: async (id: string): Promise<FieldTask> => {
     const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/cancel`);
+    return response.data;
+  },
+
+  setChecklistItem: async (id: string, key: string, completed: boolean): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/checklist/${encodeURIComponent(key)}`, {
+      completed,
+    });
+    return response.data;
+  },
+
+  blockFieldTask: async (id: string, reason?: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/block`, { reason });
+    return response.data;
+  },
+
+  skipFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/skip`);
+    return response.data;
+  },
+
+  resolveFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/resolve`);
+    return response.data;
+  },
+
+  reopenFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/reopen`);
+    return response.data;
+  },
+
+  updateFieldTask: async (
+    id: string,
+    body: { notes?: string; description?: string; title?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.put<FieldTask>(`/api/v1/field-tasks/${id}`, body);
     return response.data;
   },
 

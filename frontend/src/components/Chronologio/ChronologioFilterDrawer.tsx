@@ -20,8 +20,13 @@ import {
   type MoreFilterCategory,
 } from '../../chronologio/primaryCategories';
 import type { LivingFilters } from '../../chronologio/livingTypes';
+import {
+  CHRONOLOGIO_TYPE_IDS,
+  chronologioTypesParam,
+  selectedChronologioTypes,
+  type ChronologioTypeId,
+} from '../../chronologio/categorySelection';
 import type { Field } from '../../services/fieldService';
-import type { RailCategory } from './CategoryFilterRail';
 
 type Props = {
   open: boolean;
@@ -34,7 +39,7 @@ type Props = {
   onClearAll: () => void;
 };
 
-const TYPE_OPTIONS: Array<{ id: RailCategory; icon: React.ReactNode }> = [
+const TYPE_OPTIONS: Array<{ id: ChronologioTypeId | 'all'; icon: React.ReactNode }> = [
   { id: 'all', icon: <LayoutGrid size={16} aria-hidden /> },
   { id: 'work', icon: <CheckSquare size={16} aria-hidden /> },
   { id: 'observation', icon: <Eye size={16} aria-hidden /> },
@@ -46,7 +51,7 @@ const TYPE_OPTIONS: Array<{ id: RailCategory; icon: React.ReactNode }> = [
   { id: 'collaborator', icon: <Users size={16} aria-hidden /> },
 ];
 
-const typeLabelKey = (id: RailCategory): string => {
+const typeLabelKey = (id: string): string => {
   if (id === 'all' || PRIMARY_RAIL_CATEGORIES.includes(id as (typeof PRIMARY_RAIL_CATEGORIES)[number])) {
     return `primaryCategories.${id}`;
   }
@@ -57,22 +62,6 @@ const typeLabelKey = (id: RailCategory): string => {
     return `primaryCategories.${id}`;
   }
   return `primaryCategories.${id}`;
-};
-
-const railFromFilter = (category: LivingFilters['category']): RailCategory => {
-  if (category === 'task') return 'work';
-  if (category === 'note') return 'observation';
-  if (category === 'expense' || category === 'income') return 'money';
-  if (category === 'lifecycle') return 'field_change';
-  if (category === 'photo' || category === 'collaborator') return category;
-  if (
-    category === 'all' ||
-    PRIMARY_RAIL_CATEGORIES.includes(category as (typeof PRIMARY_RAIL_CATEGORIES)[number]) ||
-    MORE_FILTER_CATEGORIES.includes(category as MoreFilterCategory)
-  ) {
-    return category as RailCategory;
-  }
-  return 'all';
 };
 
 /**
@@ -89,14 +78,30 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
   onClearAll,
 }) => {
   const { t } = useTranslation('chronologio');
-  const selectedType = railFromFilter(filters.category);
+  const selectedTypes = selectedChronologioTypes(filters.category);
   const options = useMemo(
-    () => TYPE_OPTIONS.filter((item) => !(hideHarvest && item.id === 'harvest')),
+    () => TYPE_OPTIONS.filter((item) => item.id === 'all' || !(hideHarvest && item.id === 'harvest')),
     [hideHarvest]
   );
+  const typeIds = CHRONOLOGIO_TYPE_IDS.filter((id) => !(hideHarvest && id === 'harvest'));
+
+  const toggleType = (id: ChronologioTypeId | 'all') => {
+    if (id === 'all') {
+      onSetFilters({ category: 'all' });
+      return;
+    }
+    const current = selectedTypes.includes(id)
+      ? selectedTypes.filter((item) => item !== id)
+      : [...selectedTypes, id];
+    onSetFilters({ category: chronologioTypesParam(current) });
+  };
+
+  const applyPreset = (ids: ChronologioTypeId[]) => {
+    onSetFilters({ category: chronologioTypesParam(ids) });
+  };
 
   const hasActive =
-    (filters.category && filters.category !== 'all') ||
+    selectedTypes.length > 0 ||
     Boolean(filters.fieldId) ||
     Boolean(filters.lifecycleYear);
 
@@ -133,20 +138,43 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
       ) : null}
 
       <section className="chrono-filter-section" aria-labelledby="chrono-filter-type">
-        <h3 id="chrono-filter-type">{t('filtersTitle')}</h3>
-        <div className="chrono-filter-type-grid" role="radiogroup" aria-labelledby="chrono-filter-type">
+        <div className="chrono-filter-type-head">
+          <h3 id="chrono-filter-type">{t('filtersTitle')}</h3>
+          <div className="chrono-filter-type-actions">
+            <button type="button" onClick={() => onSetFilters({ category: 'all' })}>
+              {t('living.selectAllTypes')}
+            </button>
+            <button type="button" onClick={() => onSetFilters({ category: 'all' })}>
+              {t('living.clearTypes')}
+            </button>
+          </div>
+        </div>
+        <div className="chrono-filter-presets">
+          {(
+            [
+              ['fieldWork', ['work', 'observation', 'photo']],
+              ['harvestStory', ['harvest', 'money', 'photo']],
+              ['decisions', ['observation', 'weather', 'work']],
+              ['people', ['work', 'collaborator']],
+            ] as const
+          ).map(([key, ids]) => (
+            <button key={key} type="button" onClick={() => applyPreset([...ids])}>
+              {t(`living.preset.${key}`)}
+            </button>
+          ))}
+        </div>
+        <div className="chrono-filter-type-grid" role="group" aria-labelledby="chrono-filter-type">
           {options.map((item) => {
-            const selected = selectedType === item.id;
+            const selected =
+              item.id === 'all' ? selectedTypes.length === 0 : selectedTypes.includes(item.id as ChronologioTypeId);
             return (
               <button
                 key={item.id}
                 type="button"
-                role="radio"
+                role="checkbox"
                 aria-checked={selected}
                 className={`chrono-filter-type-chip chrono-category-chip--${item.id}${selected ? ' is-selected' : ''}`}
-                onClick={() =>
-                  onSetFilters({ category: item.id === 'all' ? 'all' : item.id })
-                }
+                onClick={() => toggleType(item.id === 'all' ? 'all' : (item.id as ChronologioTypeId))}
               >
                 {item.icon}
                 <span>{t(typeLabelKey(item.id))}</span>
@@ -154,6 +182,11 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
             );
           })}
         </div>
+        <p className="chrono-filter-type-note">
+          {selectedTypes.length === 0
+            ? t('living.allTypesOn')
+            : t('living.typesOn', { count: selectedTypes.length, total: typeIds.length })}
+        </p>
       </section>
 
       <section className="chrono-filter-section" aria-labelledby="chrono-filter-lifecycle">

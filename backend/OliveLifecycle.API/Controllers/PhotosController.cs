@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OliveLifecycle.Application.Abstractions.Services;
+using OliveLifecycle.Application.Abstractions.Storage;
 using OliveLifecycle.Application.DTOs.Photos;
 using OliveLifecycle.Application.Services;
+using OliveLifecycle.Core.Exceptions;
 
 namespace OliveLifecycle.API.Controllers;
 
@@ -11,11 +13,16 @@ namespace OliveLifecycle.API.Controllers;
 public class PhotosController : BaseApiController
 {
     private readonly IPhotoHubService _photos;
+    private readonly IPhotoUploadSessionStore _sessions;
 
-    public PhotosController(IPhotoHubService photos, ICurrentUserContext currentUser)
+    public PhotosController(
+        IPhotoHubService photos,
+        IPhotoUploadSessionStore sessions,
+        ICurrentUserContext currentUser)
         : base(currentUser)
     {
         _photos = photos;
+        _sessions = sessions;
     }
 
     [HttpPost("upload")]
@@ -63,6 +70,149 @@ public class PhotosController : BaseApiController
                 await stream.DisposeAsync();
             }
         }
+    }
+
+    [HttpPost("uploads")]
+    public async Task<ActionResult<PhotoUploadSessionDto>> BeginUpload(
+        [FromBody] BeginPhotoUploadDto dto,
+        CancellationToken cancellationToken)
+    {
+        var session = await _sessions.CreateAsync(
+            UserContext.UserId,
+            dto.FileName,
+            dto.ContentType ?? "image/jpeg",
+            dto.TotalBytes,
+            cancellationToken);
+        return OkResult(ToSessionDto(session));
+    }
+
+    [HttpGet("uploads/{uploadId}")]
+    public async Task<ActionResult<PhotoUploadSessionDto>> GetUpload(
+        string uploadId,
+        CancellationToken cancellationToken)
+    {
+        var session = await _sessions.GetAsync(uploadId, UserContext.UserId, cancellationToken);
+        if (session == null)
+        {
+            return NotFound();
+        }
+
+        return OkResult(ToSessionDto(session));
+    }
+
+    [HttpPut("uploads/{uploadId}")]
+    [RequestSizeLimit(1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 1024 * 1024)]
+    public async Task<ActionResult<PhotoUploadSessionDto>> AppendUpload(
+        string uploadId,
+        CancellationToken cancellationToken)
+    {
+        long start;
+        if (Request.Query.TryGetValue("offset", out var offsetRaw) && long.TryParse(offsetRaw, out var offset))
+        {
+            start = offset;
+        }
+        else if (!TryParseContentRange(Request.Headers.ContentRange.ToString(), out start, out _, out _))
+        {
+            return BadRequest(new { message = "Content-Range is required." });
+        }
+
+        try
+        {
+            var result = await _sessions.AppendAsync(
+                uploadId, UserContext.UserId, start, Request.Body, cancellationToken);
+            if (result.Conflict)
+            {
+                return Conflict(ToSessionDto(result.Session));
+            }
+
+            return OkResult(ToSessionDto(result.Session));
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpPost("uploads/{uploadId}/complete")]
+    public async Task<ActionResult<PhotoUploadResultDto>> CompleteUpload(
+        string uploadId,
+        [FromBody] CompletePhotoUploadDto dto,
+        CancellationToken cancellationToken)
+    {
+        var session = await _sessions.GetAsync(uploadId, UserContext.UserId, cancellationToken);
+        if (session == null)
+        {
+            return NotFound();
+        }
+
+        if (session.ReceivedBytes != session.TotalBytes)
+        {
+            return Conflict(ToSessionDto(session));
+        }
+
+        await using var stream = await _sessions.OpenReadAsync(uploadId, UserContext.UserId, cancellationToken);
+        if (stream == null)
+        {
+            return NotFound();
+        }
+
+        var results = await _photos.UploadAsync(
+            new[]
+            {
+                new PhotoUploadFile
+                {
+                    Content = stream,
+                    FileName = session.FileName,
+                    ContentType = session.ContentType,
+                    CapturedAt = dto.CapturedAt,
+                    Latitude = dto.Latitude,
+                    Longitude = dto.Longitude,
+                    SourceHash = dto.SourceHash,
+                    Transcoded = dto.Transcoded
+                }
+            },
+            UserContext.UserId,
+            UserContext.Role,
+            dto.AllowDuplicates,
+            cancellationToken);
+        await _sessions.DeleteAsync(uploadId, UserContext.UserId, cancellationToken);
+        return OkResult(results[0]);
+    }
+
+    private static PhotoUploadSessionDto ToSessionDto(PhotoUploadSession session) => new()
+    {
+        UploadId = session.Id,
+        ReceivedBytes = session.ReceivedBytes,
+        TotalBytes = session.TotalBytes
+    };
+
+    private static bool TryParseContentRange(string header, out long start, out long end, out long total)
+    {
+        start = 0;
+        end = 0;
+        total = 0;
+        if (string.IsNullOrWhiteSpace(header))
+        {
+            return false;
+        }
+
+        var value = header.Trim();
+        if (value.StartsWith("bytes ", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value[6..];
+        }
+
+        var slash = value.IndexOf('/');
+        var dash = value.IndexOf('-');
+        if (slash < 0 || dash < 0 || dash > slash)
+        {
+            return false;
+        }
+
+        return long.TryParse(value[..dash], out start)
+            && long.TryParse(value[(dash + 1)..slash], out end)
+            && (value[(slash + 1)..] == "*" || long.TryParse(value[(slash + 1)..], out total));
     }
 
     [HttpGet]

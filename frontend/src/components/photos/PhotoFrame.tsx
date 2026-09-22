@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PHOTO_ACCEPT } from './photoUploadRules';
+import { imageRecoveryMode } from './imageRecovery';
 
 type LoadState = 'loading' | 'loaded' | 'error' | 'missing' | 'denied';
 
@@ -11,6 +13,9 @@ type Props = {
   /** When set, a successful image is a button that opens the photo. */
   onActivate?: () => void;
   activateLabel?: string;
+  onRemove?: () => void;
+  onReplace?: (file: File) => void;
+  onReport?: () => void;
 };
 
 const classifyFailure = async (src: string): Promise<LoadState> => {
@@ -31,8 +36,12 @@ const PhotoFrame: React.FC<Props> = ({
   className = '',
   onActivate,
   activateLabel,
+  onRemove,
+  onReplace,
+  onReport,
 }) => {
   const { t } = useTranslation('photos');
+  const replaceRef = useRef<HTMLInputElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<LoadState>(src ? 'loading' : 'missing');
 
@@ -64,13 +73,20 @@ const PhotoFrame: React.FC<Props> = ({
     />
   ) : null;
 
+  const recovery = imageRecoveryMode(
+    attempt,
+    state === 'error' || state === 'missing' || state === 'denied'
+  );
+  const canChoose = Boolean(onRemove || onReplace || onReport);
+  const activateName = (activateLabel || alt || '').trim() || t('detail.title');
+
   return (
     <div className={`photo-frame is-${state} ${className}`.trim()} data-state={state}>
       {state === 'loading' ? (
         <span className="photo-frame-loading" role="status" aria-label={t('loading')} />
       ) : null}
       {state === 'loaded' && onActivate ? (
-        <button type="button" className="photo-frame-hit" onClick={onActivate} aria-label={activateLabel || alt}>
+        <button type="button" className="photo-frame-hit" onClick={onActivate} aria-label={activateName}>
           {image}
         </button>
       ) : (
@@ -79,10 +95,56 @@ const PhotoFrame: React.FC<Props> = ({
       {state === 'error' || state === 'missing' || state === 'denied' ? (
         <div className="photo-frame-fallback" role="alert">
           <p>{message}</p>
-          {state === 'error' ? (
+          {recovery === 'retry' ? (
             <button type="button" className="photo-frame-retry" onClick={() => setAttempt((n) => n + 1)}>
               {t('errors.imageRetry')}
             </button>
+          ) : null}
+          {recovery === 'choices' ? (
+            <>
+              <p>{t('errors.imageStillBroken')}</p>
+              <div className="photo-frame-actions">
+                {onRemove ? (
+                  <button type="button" className="photo-frame-retry" onClick={onRemove}>
+                    {t('errors.imageRemove')}
+                  </button>
+                ) : null}
+                {onReplace ? (
+                  <button
+                    type="button"
+                    className="photo-frame-retry"
+                    onClick={() => replaceRef.current?.click()}
+                  >
+                    {t('errors.imageReplace')}
+                  </button>
+                ) : null}
+                {onReport ? (
+                  <button type="button" className="photo-frame-retry is-quiet" onClick={onReport}>
+                    {t('errors.imageReport')}
+                  </button>
+                ) : null}
+                {!canChoose ? (
+                  <button type="button" className="photo-frame-retry" onClick={() => setAttempt((n) => n + 1)}>
+                    {t('errors.imageRetry')}
+                  </button>
+                ) : null}
+              </div>
+              {onReplace ? (
+                <input
+                  ref={replaceRef}
+                  type="file"
+                  accept={PHOTO_ACCEPT}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="photo-hidden-input"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (file) onReplace(file);
+                  }}
+                />
+              ) : null}
+            </>
           ) : null}
         </div>
       ) : null}

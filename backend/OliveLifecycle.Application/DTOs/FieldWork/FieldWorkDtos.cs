@@ -79,6 +79,7 @@ public class CreateFieldTaskDto
     public decimal? EstimatedCost { get; set; }
     public int? ResultYear { get; set; }
     public string? RelatedHarvestId { get; set; }
+    public string? WorkGroupId { get; set; }
 }
 
 public class UpdateFieldTaskDto
@@ -119,6 +120,9 @@ public class CompleteFieldTaskDto
     public List<ChecklistAnswerDto>? ChecklistAnswers { get; set; }
     public double? TreatedAreaHectares { get; set; }
     public bool CreateFollowUpForRemainder { get; set; } = true;
+
+    /// <summary>Complete even when required checks are open. Notes should explain why.</summary>
+    public bool AllowIncomplete { get; set; }
 }
 
 public class ChecklistAnswerDto
@@ -164,9 +168,29 @@ public class FieldTaskDto
     public string? PauseReason { get; set; }
     public DateTime? PausedAt { get; set; }
     public string? WorkGroupId { get; set; }
+    public string? BlockedReason { get; set; }
+    public List<FieldTaskActivityDto> Activity { get; set; } = [];
     public string CreatedByUserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class FieldTaskActivityDto
+{
+    public string Action { get; set; } = string.Empty;
+    public string ActorId { get; set; } = string.Empty;
+    public DateTime OccurredAt { get; set; }
+    public string? Comment { get; set; }
+}
+
+public class SetChecklistItemDto
+{
+    public bool Completed { get; set; }
+}
+
+public class BlockFieldTaskDto
+{
+    public string? Reason { get; set; }
 }
 
 public class PauseFieldTaskDto

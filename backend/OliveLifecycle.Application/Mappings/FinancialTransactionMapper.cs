@@ -176,6 +176,10 @@ public static class FinancialTransactionMapper
         ExpensesAreUnknown = availability.ExpensesAreUnknown,
         AreaIsMissing = availability.AreaIsMissing,
         OilQuantityIsMissing = availability.OilQuantityIsMissing,
-        IncludesUnassigned = availability.IncludesUnassigned
+        IncludesUnassigned = availability.IncludesUnassigned,
+        MissingAreaFieldIds = availability.MissingAreaFieldIds.ToList(),
+        MissingAreaFieldNames = availability.MissingAreaFieldNames.ToList(),
+        IncompleteFieldNames = availability.IncompleteFieldNames.ToList(),
+        PerAreaExcludesUnassigned = availability.PerAreaExcludesUnassigned
     };
 }

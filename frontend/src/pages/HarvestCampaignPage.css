@@ -1466,6 +1466,19 @@
   line-height: 1.2;
 }
 
+.hc-day-money-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--olive-primary) 14%, transparent);
+  color: var(--olive-primary);
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .hc-day-status.is-ok {
   background: color-mix(in srgb, var(--harvest-gold-soft) 70%, var(--surface-1));
   color: var(--harvest-gold-deep, var(--harvest-ink));

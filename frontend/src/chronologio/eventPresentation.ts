@@ -1,6 +1,7 @@
 import type { ChronologioEntry, ChronologioSourceType } from '../services/chronologioService';
 import { financialCategoryLabel } from '../finance/display';
 import { presentPrimaryCategory } from './primaryCategories';
+import { formatMonthHeading } from '../utils/taskFormDates';
 
 export type ChronologioEventKey = {
   sourceType: ChronologioSourceType | string;
@@ -247,22 +248,43 @@ const humanTitle = (raw: string | undefined, language: string, fallback: string)
 const weatherLabel = (entry: ChronologioEntry, language: string): string => {
   const weather = entry.details.weather;
   if (weather?.year && weather.month) {
-    const locale = isEnglish(language) ? 'en-US' : 'el-GR';
-    const monthName = new Date(Date.UTC(weather.year, weather.month - 1, 1)).toLocaleDateString(locale, {
-      month: 'long',
-      timeZone: 'UTC',
-    });
-    return isEnglish(language) ? `${monthName} ${weather.year}` : `${monthName} ${weather.year}`;
+    return formatMonthHeading(weather.year, weather.month, language);
   }
   if (weather?.year) return String(weather.year);
   return humanTitle(entry.title, language, presentCategory('weather', language));
 };
 
-const truncateLabel = (text: string, max = 72): { title: string; body?: string } => {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return { title: trimmed };
-  const cut = trimmed.slice(0, max).replace(/\s+\S*$/, '').trim();
-  return { title: cut || trimmed.slice(0, max), body: trimmed };
+const GENERIC_NOTE_TITLES = new Set([
+  'observation',
+  'note',
+  'photo',
+  'παρατήρηση',
+  'σημείωση',
+  'φωτογραφία',
+  'osservazione',
+  'nota',
+  'foto',
+]);
+
+/** First sentence, capped so the card preview stays two or three lines. */
+export const observationPreview = (text: string, max = 140): string => {
+  const trimmed = text.replace(/\s+/g, ' ').trim();
+  if (!trimmed) return '';
+  const breakAt = trimmed.search(/[.!;…](?:\s|$)/);
+  const sentence = (breakAt >= 0 ? trimmed.slice(0, breakAt) : trimmed).trim();
+  const source = sentence || trimmed;
+  if (source.length <= max) return source;
+  const cut = source.slice(0, max).replace(/\s+\S*$/, '').trim();
+  return `${cut || source.slice(0, max)}…`;
+};
+
+const isGenericNoteTitle = (title: string, body: string): boolean => {
+  const key = title.trim().toLowerCase();
+  if (!key) return true;
+  if (GENERIC_NOTE_TITLES.has(key)) return true;
+  if (looksLikeInternalCode(title)) return true;
+  if (body && key === body.trim().toLowerCase()) return true;
+  return false;
 };
 
 export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'): EventPresentation => {
@@ -272,8 +294,9 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
   const accent = accentFor(category, String(entry.importance || ''));
 
   if (category === 'note' || category === 'photo') {
-    const preview = (entry.details.note?.bodyPreview || entry.summary || entry.title || '').trim();
-    if (category === 'photo' && (!preview || preview.toLowerCase() === 'photo' || preview === 'Φωτογραφία')) {
+    const body = (entry.details.note?.bodyPreview || entry.summary || '').trim();
+    const rawTitle = (entry.title || '').trim();
+    if (category === 'photo' && (!body || body.toLowerCase() === 'photo' || body === 'Φωτογραφία') && isGenericNoteTitle(rawTitle, body)) {
       const field = entry.field?.name;
       const auto = field
         ? isEnglish(language)
@@ -282,13 +305,26 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
         : presentCategory('photo', language);
       return { label: auto, shortLabel, icon: 'photo', accent, description: undefined };
     }
-    const { title, body } = truncateLabel(preview || presentCategory('note', language));
+    if (isGenericNoteTitle(rawTitle, body)) {
+      return {
+        label: observationPreview(body || presentCategory('note', language)),
+        shortLabel,
+        icon: category === 'photo' ? 'photo' : icon,
+        accent,
+        description: undefined,
+      };
+    }
+    const preview = observationPreview(body);
+    const repeatsTitle =
+      !preview ||
+      preview.toLowerCase() === rawTitle.toLowerCase() ||
+      body.toLowerCase().startsWith(rawTitle.toLowerCase());
     return {
-      label: title,
+      label: humanTitle(rawTitle, language, presentCategory('note', language)),
       shortLabel,
       icon: category === 'photo' ? 'photo' : icon,
       accent,
-      description: body,
+      description: repeatsTitle ? undefined : preview,
     };
   }
 
@@ -335,12 +371,17 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
     const label = genericMoneyTitle
       ? categoryLabel || titled || shortLabel
       : titled;
+    const summary = (entry.summary || '').trim();
+    const extra =
+      summary && summary !== label && summary.toLowerCase() !== label.toLowerCase()
+        ? summary
+        : undefined;
     return {
       label,
       shortLabel,
       icon,
       accent,
-      description: label === categoryLabel ? entry.summary || undefined : categoryLabel || entry.summary || undefined,
+      description: label === categoryLabel ? extra : categoryLabel || extra,
     };
   }
 

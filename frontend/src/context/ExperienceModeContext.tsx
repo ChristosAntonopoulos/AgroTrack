@@ -7,7 +7,7 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
-import { settingsService } from '../services/settingsService';
+import { settingsService, UserPreferences } from '../services/settingsService';
 import type { FontScale } from '../experience/types';
 import { FONT_SCALE_VALUES, TAP_MIN_PX } from '../experience/types';
 import { useAuth } from './AuthContext';
@@ -63,13 +63,21 @@ export const ExperienceModeProvider: React.FC<{ children: ReactNode }> = ({ chil
   useEffect(() => {
     const server = user?.preferences;
     if (!server) return;
-    const scale = (server.fontScale === 'large' || server.fontScale === 'xl' ? server.fontScale : 'default') as FontScale;
-    setFontScaleState(scale);
-    setLargeControlsState(Boolean(server.largeControls));
-    settingsService.savePreferences({
-      fontScale: scale,
-      largeControls: Boolean(server.largeControls),
-    });
+    const patch: { fontScale?: FontScale; largeControls?: boolean; notificationPrefs?: UserPreferences['notificationPrefs'] } = {};
+    if (server.fontScale === 'default' || server.fontScale === 'large' || server.fontScale === 'xl') {
+      setFontScaleState(server.fontScale);
+      patch.fontScale = server.fontScale;
+    }
+    if (typeof server.largeControls === 'boolean') {
+      setLargeControlsState(server.largeControls);
+      patch.largeControls = server.largeControls;
+    }
+    if (server.notifications) {
+      patch.notificationPrefs = server.notifications;
+    }
+    if (patch.fontScale || typeof patch.largeControls === 'boolean' || patch.notificationPrefs) {
+      settingsService.savePreferences(patch);
+    }
   }, [user?.userId]);
 
   useEffect(() => {

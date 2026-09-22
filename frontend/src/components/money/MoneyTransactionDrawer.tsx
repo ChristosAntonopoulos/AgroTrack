@@ -17,7 +17,7 @@ import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { taskPeekPath } from '../../navigation/intents';
+import { harvestPath, taskPeekPath } from '../../navigation/intents';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import './Money.css';
 
@@ -214,10 +214,20 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 </dd>
               </div>
             ) : null}
-            {transaction.relatedHarvestId ? (
+            {transaction.relatedHarvestId || transaction.sourceType === 'harvest' ? (
               <div>
                 <dt>{t('money:relatedHarvest')}</dt>
-                <dd>{relatedHarvestTitle || t('money:relatedHarvest')}</dd>
+                <dd>
+                  <Link
+                    to={harvestPath({
+                      fieldId: transaction.fieldId || undefined,
+                      harvestId: transaction.relatedHarvestId || undefined,
+                      day: transaction.occurredOn.slice(0, 10),
+                    })}
+                  >
+                    {relatedHarvestTitle || t('money:openHarvestDay')}
+                  </Link>
+                </dd>
               </div>
             ) : null}
             {transaction.paymentMethod ? (
@@ -250,6 +260,9 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                     i18n.language
                   )
                 )}
+                {transaction.sourceType === 'harvest' ? (
+                  <span className="money-summary-note"> {t('money:harvestExpenseHere')}</span>
+                ) : null}
               </dd>
             </div>
             <div>

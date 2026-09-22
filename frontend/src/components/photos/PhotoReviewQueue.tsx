@@ -7,7 +7,15 @@ import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import type { Field } from '../../services/fieldService';
 import type { PhotoUploadResult } from '../../services/photoService';
 
-export type PhotoBatchStatus = 'staged' | 'queued' | 'uploading' | 'uploaded' | 'failed' | 'duplicate';
+export type PhotoBatchStatus =
+  | 'staged'
+  | 'converting'
+  | 'queued'
+  | 'uploading'
+  | 'uploaded'
+  | 'failed'
+  | 'duplicate'
+  | 'offline';
 
 export type PhotoBatchItem = {
   localId: string;
@@ -17,13 +25,14 @@ export type PhotoBatchItem = {
   error?: string | null;
   result?: PhotoUploadResult;
   allowDuplicate?: boolean;
+  progress?: number | null;
 };
 
 type Props = {
   items: PhotoBatchItem[];
   fields: Field[];
   uploading: boolean;
-  progress: { done: number; total: number } | null;
+  progress: { done: number; total: number; percent?: number } | null;
   onRemove: (localId: string) => void;
   onRetry: (localId: string) => void;
   onConfirmField: (photoId: string, fieldId: string) => Promise<void>;
@@ -72,9 +81,10 @@ const PhotoReviewQueue: React.FC<Props> = ({
 
   const selectedFor = (photoId: string) => picked[photoId] ?? defaults[photoId] ?? '';
   const determinate =
-    progress && progress.total > 0
+    progress?.percent ??
+    (progress && progress.total > 0
       ? Math.min(100, Math.round((progress.done / progress.total) * 100))
-      : null;
+      : null);
   const stagedCount = items.filter((i) => i.status === 'staged').length;
   const canDismiss =
     !uploading && items.every((i) => i.status !== 'queued' && i.status !== 'uploading' && i.status !== 'staged');
@@ -151,7 +161,11 @@ const PhotoReviewQueue: React.FC<Props> = ({
             fields.find((f) => f.id === (photo?.fieldId || selected))?.name ||
             null;
           const statusLabel =
-            item.status === 'staged'
+            item.status === 'converting'
+              ? t('converting')
+              : item.status === 'offline'
+                ? t('waitingOnline')
+                : item.status === 'staged'
               ? t('review.statusQueued')
               : item.status === 'queued'
               ? t('review.statusQueued')
@@ -162,7 +176,13 @@ const PhotoReviewQueue: React.FC<Props> = ({
                   : item.status === 'duplicate'
                     ? t('review.duplicateSkipped')
                     : t('review.statusUploaded');
-          const canRemove = item.status === 'staged' || item.status === 'queued' || item.status === 'failed' || item.status === 'duplicate';
+          const canRemove =
+            item.status === 'staged' ||
+            item.status === 'converting' ||
+            item.status === 'queued' ||
+            item.status === 'offline' ||
+            item.status === 'failed' ||
+            item.status === 'duplicate';
           const reason = photo?.assignmentReason;
 
           return (
@@ -189,6 +209,18 @@ const PhotoReviewQueue: React.FC<Props> = ({
                   <p className="photo-review-filename" title={item.file.name}>
                     {item.file.name}
                   </p>
+                  {item.status === 'uploading' && item.progress != null ? (
+                    <div
+                      className="photo-review-file-progress"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={item.progress}
+                      aria-label={t('uploading')}
+                    >
+                      <span style={{ width: `${item.progress}%` }} />
+                    </div>
+                  ) : null}
                   {item.error ? (
                     <p className="photo-review-error" role="alert">
                       {item.error}

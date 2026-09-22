@@ -7,8 +7,9 @@ namespace OliveLifecycle.Application.Tests.FieldWork;
 public class FieldWorkDisplayLabelsTests
 {
     [Theory]
-    [InlineData(FieldTaskStatus.Planned, "Προγραμματισμένη", "Planned")]
-    [InlineData(FieldTaskStatus.Ready, "Έτοιμη", "Ready")]
+    [InlineData(FieldTaskStatus.Planned, "Να γίνει", "To do")]
+    [InlineData(FieldTaskStatus.Ready, "Να γίνει", "To do")]
+    [InlineData(FieldTaskStatus.Skipped, "Παραλείφθηκε", "Skipped")]
     [InlineData(FieldTaskStatus.InProgress, "Σε εξέλιξη", "In progress")]
     [InlineData(FieldTaskStatus.Blocked, "Δεν μπορεί να γίνει", "Blocked")]
     [InlineData(FieldTaskStatus.Completed, "Ολοκληρώθηκε", "Completed")]

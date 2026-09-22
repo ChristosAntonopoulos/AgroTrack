@@ -2,7 +2,7 @@
   "title": "Olive grove photos",
   "subtitle": "Photos are organized by field and date.",
   "uploadPromise": "We suggest a field and date when the image contains that information. You confirm.",
-  "formats": "JPEG, PNG, WebP, or GIF, up to 10 MB. iPhone HEIC photos need to be exported as JPEG first.",
+  "formats": "JPEG, PNG, WebP, GIF, or iPhone HEIC, up to 10 MB.",
   "upload": "Add photos",
   "takePhoto": "Take a photo",
   "choosePhotos": "Choose from device",
@@ -11,6 +11,9 @@
   "dropActive": "Drop to add photos",
   "choosePhotosHint": "You only grant access to the photos you select. We suggest a field and date when the image contains that information.",
   "uploading": "Uploading…",
+  "converting": "Converting iPhone photo…",
+  "offlineQueued": "Saved on this device. Photos will upload when you're back online.",
+  "waitingOnline": "Waiting for a connection",
   "uploadSuccess": "Added {{count}} photo(s).",
   "uploadSuccessReview": "Added {{count}}. {{review}} need a quick field check.",
   "uploadSummary": "{{added}} added · {{review}} need review · {{duplicates}} duplicates skipped · {{failed}} failed",
@@ -47,7 +50,8 @@
     "newest": "Newest",
     "oldest": "Oldest",
     "menu": "Filters",
-    "date": "Date"
+    "date": "Date",
+    "removeChip": "Remove filter {{label}}"
   },
   "badges": {
     "standalone": "Not linked",
@@ -175,7 +179,17 @@
     "trash": "Move to trash",
     "assign": "Assign field",
     "cancel": "Cancel selection",
-    "done": "Done"
+    "done": "Done",
+    "toolbar": "Bulk photo actions",
+    "date": "Capture date",
+    "applyDate": "Set date",
+    "caption": "Description",
+    "applyCaption": "Set description",
+    "kind": "Type",
+    "applyKind": "Set type",
+    "link": "Link to record",
+    "applyLink": "Link",
+    "linkNeedsField": "Assign the same field first"
   },
   "trash": {
     "title": "Trash",
@@ -198,11 +212,16 @@
     "retry": "Retry",
     "image": "This photo could not be loaded",
     "imageRetry": "Try again",
+    "imageStillBroken": "This photo still won't load.",
+    "imageRemove": "Remove",
+    "imageReplace": "Replace",
+    "imageReport": "Report",
+    "imageReportDraft": "Photo {{id}} won't load.",
     "imageMissing": "This photo is no longer available.",
     "imageDenied": "You no longer have access to this photo.",
-    "heic": "HEIC is not supported. Export the photo as JPEG from the iPhone and add it again.",
+    "heic": "Couldn't read this HEIC photo. Try adding it again.",
     "oversize": "This file is over 10 MB. Reduce the size and try again.",
-    "unsupported": "This file type is not supported. Use JPEG, PNG, WebP, or GIF.",
+    "unsupported": "This file type is not supported. Use JPEG, PNG, WebP, GIF, or HEIC.",
     "emptyFile": "This file is empty."
   }
 }

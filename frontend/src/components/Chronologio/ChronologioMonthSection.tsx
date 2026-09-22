@@ -11,9 +11,12 @@ import {
   buildMonthWeatherView,
   harvestHasResult,
   isMeaningfulHighlight,
+  weatherReviewsShareReading,
+  type MonthChapterFocus,
 } from '../../chronologio/monthPresentation';
 import { isFeaturedChronologioCard } from '../../chronologio/eventCardLayout';
 import { periodEventCount } from '../../chronologio/summaryFacts';
+import { formatMonthHeading } from '../../utils/taskFormDates';
 import type { SupportedLocale } from '../../i18n/config';
 import ChronologioEvent from './ChronologioEvent';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
@@ -33,7 +36,7 @@ type Props = {
   active?: boolean;
   isCurrent?: boolean;
   empty?: boolean;
-  onOpenMonth: () => void;
+  onOpenMonth: (focus?: MonthChapterFocus) => void;
   onOpenDays: () => void;
   onSelect?: (entry: ChronologioEntry) => void;
   onClearSelection?: () => void;
@@ -43,8 +46,7 @@ type Props = {
 const isMonthReview = (entry: ChronologioEntry) =>
   entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
 
-const pickPinnedOrImportant = (entries: ChronologioEntry[]): ChronologioEntry | undefined =>
-  entries.find((entry) => entry.details.note?.pinned) ||
+const pickSpotlight = (entries: ChronologioEntry[]): ChronologioEntry | undefined =>
   entries.find((entry) => isFeaturedChronologioCard(entry));
 
 const ChronologioMonthSection: React.FC<Props> = ({
@@ -72,11 +74,7 @@ const ChronologioMonthSection: React.FC<Props> = ({
     onSelect?.(entry);
   };
 
-  const title = new Date(Date.UTC(month.year, month.month - 1, 1)).toLocaleDateString(i18n.language, {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  const title = formatMonthHeading(month.year, month.month, i18n.language);
   const weatherView = buildMonthWeatherView(month, weather);
   const highlight =
     (month.highlightTitles || []).find(isMeaningfulHighlight) ||
@@ -86,7 +84,20 @@ const ChronologioMonthSection: React.FC<Props> = ({
   const showPicks = fieldPicks.length > 1;
   const singleReview = !showPicks ? weatherReviews[0] : undefined;
   const eventCount = periodEventCount(month) + fieldPicks.length;
-  const spotlight = pickPinnedOrImportant(journal);
+  const spotlight = pickSpotlight(journal);
+  const sharedWeather = showPicks && weatherReviewsShareReading(fieldPicks);
+  const openCategory = (
+    focus: MonthChapterFocus,
+    match: (entry: ChronologioEntry) => boolean,
+    count: number
+  ) => {
+    const rows = journal.filter(match);
+    if (count <= 1 && rows[0]) {
+      selectEntry(rows[0]);
+      return;
+    }
+    onOpenMonth(focus);
+  };
 
   if (empty) {
     return (
@@ -176,21 +187,26 @@ const ChronologioMonthSection: React.FC<Props> = ({
         {showPicks ? (
           <div className="chrono-weather-cluster">
             <p className="chrono-weather-cluster-kicker">
-              {fieldPickNames
-                ? t('weatherReview.fieldsCompareNamed', {
-                    count: fieldPicks.length,
+              {sharedWeather
+                ? t('weatherReview.sharedFields', {
                     names: fieldPickNames,
-                    defaultValue: '{{count}} fields · {{names}}',
+                    defaultValue: 'Weather for {{names}}',
                   })
-                : t('weatherReview.fieldsCompare', { count: fieldPicks.length })}
+                : fieldPickNames
+                  ? t('weatherReview.fieldsCompareNamed', {
+                      count: fieldPicks.length,
+                      names: fieldPickNames,
+                      defaultValue: '{{count}} fields · {{names}}',
+                    })
+                  : t('weatherReview.fieldsCompare', { count: fieldPicks.length })}
             </p>
             <div className="chrono-weather-cluster-row" role="list">
-              {fieldPicks.map((entry) => (
+              {(sharedWeather ? fieldPicks.slice(0, 1) : fieldPicks).map((entry) => (
                 <div key={entry.id} className="chrono-day-event-cell is-field-pick" role="listitem">
                   <ChronologioEvent
                     entry={entry}
                     density="card"
-                    showField
+                    showField={!sharedWeather}
                     locale={locale}
                     selected={selectedEntryId === entry.id}
                     weatherTile
@@ -216,7 +232,9 @@ const ChronologioMonthSection: React.FC<Props> = ({
                 category="task"
                 kicker={t('monthView.work')}
                 title={t('monthView.workShort', { count: month.taskCount })}
-                onClick={onOpenMonth}
+                onClick={() =>
+                  openCategory('work', (entry) => entry.category === 'task', month.taskCount)
+                }
               />
             ) : null}
             {month.noteCount > 0 ? (
@@ -224,7 +242,13 @@ const ChronologioMonthSection: React.FC<Props> = ({
                 category="note"
                 kicker={t('monthView.observationShortLabel')}
                 title={highlight || t('monthView.notesShort', { count: month.noteCount })}
-                onClick={onOpenMonth}
+                onClick={() =>
+                  openCategory(
+                    'observation',
+                    (entry) => entry.category === 'note' || entry.category === 'photo',
+                    month.noteCount
+                  )
+                }
               />
             ) : null}
             {month.expenseCount > 0 || month.expenseTotal > 0 ? (
@@ -234,7 +258,13 @@ const ChronologioMonthSection: React.FC<Props> = ({
                 title={t('monthView.expensesShort', {
                   amount: formatChronologioMoney(month.expenseTotal, month.currency, numberLocale),
                 })}
-                onClick={onOpenMonth}
+                onClick={() =>
+                  openCategory(
+                    'money',
+                    (entry) => entry.category === 'expense' || entry.category === 'income',
+                    month.expenseCount
+                  )
+                }
               />
             ) : null}
             {harvestHasResult(month) ? (
@@ -246,7 +276,9 @@ const ChronologioMonthSection: React.FC<Props> = ({
                     ? `${formatGroveMassKg(month.oilKg, numberLocale)} ${t('oilUnit')}`
                     : `${formatGroveMassKg(month.oliveKg, numberLocale)} ${t('olivesUnit')}`
                 }
-                onClick={onOpenMonth}
+                onClick={() =>
+                  openCategory('harvest', (entry) => entry.category === 'harvest', month.harvestCount)
+                }
               />
             ) : null}
           </div>

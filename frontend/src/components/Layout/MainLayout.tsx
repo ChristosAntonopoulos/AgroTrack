@@ -4,6 +4,7 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import OfflineBanner from '../Offline/OfflineBanner';
+import PhotoUploadRunner from '../photos/PhotoUploadRunner';
 import { CaptureProvider } from '../../context/CaptureContext';
 import { FeedbackProvider } from '../../context/FeedbackContext';
 import { HarvestCampaignProvider } from '../../context/HarvestCampaignContext';
@@ -47,6 +48,7 @@ const MainLayout: React.FC = () => {
           <main className="main-content">
             <div className="app-canvas" aria-hidden="true" />
             <OfflineBanner />
+            <PhotoUploadRunner />
             <Outlet />
           </main>
         </div>

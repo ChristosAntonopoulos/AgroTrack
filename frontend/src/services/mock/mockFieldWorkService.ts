@@ -21,6 +21,7 @@ import type {
 import { demoStore } from '../demo/demoStore';
 import { athensCalendarYear } from '../../utils/athensDate';
 import { FIELD_WORK_TEMPLATE_META } from '../../data/fieldWorkCatalogueLabels';
+import { checksForTemplate } from '../../utils/taskFormTypes';
 import {
   DISMISSAL_PROMPT_THRESHOLD,
   isAnnualReviewDue,
@@ -90,114 +91,47 @@ let mockProposals: TaskProposal[] = [
     confidence: 'worth_checking',
     confidenceLabel: 'Χρειάζεται έλεγχο',
     reasonCodes: ['olive_fly_weekly_check'],
-    explanation: 'Ήρθε η εβδομαδιαία ημερομηνία ελέγχου παγίδων δάκου.',
-    greekExplanation: 'Ήρθε η εβδομαδιαία ημερομηνία ελέγχου παγίδων δάκου.',
+    explanation: 'Δεν έχει καταγραφεί έλεγχος δάκου τις τελευταίες εβδομάδες.',
+    greekExplanation: 'Δεν έχει καταγραφεί έλεγχος δάκου τις τελευταίες εβδομάδες.',
     recommendedWindowStart: nowIso(),
-    recommendedWindowEnd: new Date(Date.now() + 5 * 86400000).toISOString(),
-    status: 'active',
-    statusLabel: 'Πρόταση',
-  },
-  {
-    id: 'mock-proposal-2',
-    fieldId: '',
-    resultYear: new Date().getFullYear(),
-    templateCode: 'T18',
-    templateVersion: 1,
-    sourceType: 'seasonal_baseline',
-    sourceTypeLabel: 'Εποχική βάση',
-    generatedAt: nowIso(),
-    confidence: 'worth_checking',
-    confidenceLabel: 'Χρειάζεται έλεγχο',
-    reasonCodes: ['harvest_estimate'],
-    explanation: 'Η συγκομιδή πλησιάζει. Επιβεβαίωσε εκτίμηση παραγωγής.',
-    greekExplanation: 'Η συγκομιδή πλησιάζει. Επιβεβαίωσε εκτίμηση παραγωγής.',
-    recommendedWindowStart: `${athensCalendarYear(new Date())}-08-15`,
-    recommendedWindowEnd: `${athensCalendarYear(new Date())}-09-30`,
-    status: 'active',
-    statusLabel: 'Πρόταση',
-  },
-  {
-    id: 'mock-proposal-3',
-    fieldId: '',
-    resultYear: new Date().getFullYear(),
-    templateCode: 'T18',
-    templateVersion: 1,
-    sourceType: 'seasonal_baseline',
-    sourceTypeLabel: 'Εποχική βάση',
-    generatedAt: nowIso(),
-    confidence: 'worth_checking',
-    confidenceLabel: 'Χρειάζεται έλεγχο',
-    reasonCodes: ['harvest_estimate'],
-    explanation: 'Η συγκομιδή πλησιάζει. Επιβεβαίωσε εκτίμηση παραγωγής.',
-    greekExplanation: 'Η συγκομιδή πλησιάζει. Επιβεβαίωσε εκτίμηση παραγωγής.',
-    recommendedWindowStart: `${athensCalendarYear(new Date())}-08-15`,
-    recommendedWindowEnd: `${athensCalendarYear(new Date())}-09-30`,
+    recommendedWindowEnd: new Date(Date.now() + 4 * 86400000).toISOString(),
     status: 'active',
     statusLabel: 'Πρόταση',
   },
 ];
 
-const mockCheck = (
-  key: string,
-  answered: boolean,
-  sortOrder: number
-): FieldTask['checklist'][number] => ({
-  key,
-  label: key,
-  greekLabel: key,
-  englishLabel: key,
-  itemType: 'bool',
-  requirement: 'required',
-  isEssential: true,
-  sortOrder,
-  isAnswered: answered,
-  attachmentIds: [],
-  choices: [],
-});
+const checksFromTemplate = (code: string, answeredThrough = 0): FieldTask['checklist'] =>
+  checksForTemplate(code).map((item, index) => ({
+    key: item.key,
+    label: item.el,
+    greekLabel: item.el,
+    englishLabel: item.en,
+    itemType: 'bool',
+    requirement: 'required',
+    isEssential: true,
+    sortOrder: index + 1,
+    isAnswered: index < answeredThrough,
+    attachmentIds: [],
+    choices: [],
+  }));
+
+const year = athensCalendarYear(new Date());
 
 let mockTasks: FieldTask[] = [
   {
     id: 'mock-task-overdue',
     fieldId: '',
-    resultYear: athensCalendarYear(new Date()),
-    templateCode: 'T14',
-    title: 'Έλεγχος παγίδων δάκου',
+    resultYear: year,
+    templateCode: 'T08',
+    title: 'Έλεγχος άρδευσης',
     status: 'planned',
-    statusLabel: 'Προγραμματισμένη',
-    plannedStart: `${athensCalendarYear(new Date())}-09-01`,
-    plannedEnd: `${athensCalendarYear(new Date())}-09-05`,
-    checklist: [
-      mockCheck('trap_1', false, 1),
-      mockCheck('trap_2', false, 2),
-      mockCheck('trap_3', false, 3),
-      mockCheck('trap_4', false, 4),
-      mockCheck('trap_5', false, 5),
-      mockCheck('trap_6', false, 6),
-      mockCheck('trap_7', false, 7),
-    ],
+    statusLabel: 'Να γίνει',
+    plannedStart: `${year}-09-01`,
+    plannedEnd: `${year}-09-05`,
+    checklist: checksFromTemplate('T08'),
     additionalParticipantUserIds: [],
-    assignmentResponse: 'pending',
-    weatherSuitability: 'caution',
-    weatherSuitabilityLabel: 'Θέλει προσοχή',
-    attachmentIds: [],
-    createdByUserId: 'mock-user',
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: 'mock-task-planned',
-    fieldId: '',
-    resultYear: athensCalendarYear(new Date()),
-    templateCode: 'T18',
-    title: 'Προκαταρκτική εκτίμηση συγκομιδής',
-    status: 'planned',
-    statusLabel: 'Προγραμματισμένη',
-    plannedStart: `${athensCalendarYear(new Date())}-09-20`,
-    plannedEnd: `${athensCalendarYear(new Date())}-10-01`,
-    checklist: [mockCheck('a', false, 1), mockCheck('b', false, 2), mockCheck('c', false, 3)],
-    additionalParticipantUserIds: [],
-    assignmentResponse: 'pending',
-    weatherSuitability: 'unknown',
+    assignmentResponse: 'accepted',
+    weatherSuitability: 'good',
     weatherSuitabilityLabel: 'Καλή ημέρα',
     attachmentIds: [],
     createdByUserId: 'mock-user',
@@ -207,23 +141,15 @@ let mockTasks: FieldTask[] = [
   {
     id: 'mock-task-active',
     fieldId: '',
-    resultYear: athensCalendarYear(new Date()),
-    templateCode: 'T19',
-    title: 'Κράτηση συνεργείου και ελαιοτριβείου',
+    resultYear: year,
+    templateCode: 'T05',
+    title: 'Λίπανση',
     status: 'in_progress',
     statusLabel: 'Σε εξέλιξη',
-    plannedStart: `${athensCalendarYear(new Date())}-09-01`,
-    plannedEnd: `${athensCalendarYear(new Date())}-09-20`,
-    startedAt: `${athensCalendarYear(new Date())}-09-11T08:00:00Z`,
-    checklist: [
-      mockCheck('a', true, 1),
-      mockCheck('b', true, 2),
-      mockCheck('c', true, 3),
-      mockCheck('d', false, 4),
-      mockCheck('e', false, 5),
-      mockCheck('f', false, 6),
-      mockCheck('g', false, 7),
-    ],
+    plannedStart: `${year}-09-10`,
+    plannedEnd: `${year}-09-20`,
+    startedAt: `${year}-09-11T08:00:00Z`,
+    checklist: checksFromTemplate('T05', 1),
     additionalParticipantUserIds: [],
     assignmentResponse: 'accepted',
     weatherSuitability: 'good',
@@ -236,14 +162,14 @@ let mockTasks: FieldTask[] = [
   {
     id: 'mock-task-done',
     fieldId: '',
-    resultYear: athensCalendarYear(new Date()),
+    resultYear: year,
     templateCode: 'T06',
     title: 'Κλάδεμα',
     status: 'completed',
     statusLabel: 'Ολοκληρωμένη',
-    plannedStart: `${athensCalendarYear(new Date())}-03-10`,
-    plannedEnd: `${athensCalendarYear(new Date())}-03-12`,
-    checklist: [mockCheck('a', true, 1), mockCheck('b', true, 2)],
+    plannedStart: `${year}-03-10`,
+    plannedEnd: `${year}-03-12`,
+    checklist: checksFromTemplate('T06', 3),
     additionalParticipantUserIds: [],
     assignmentResponse: 'accepted',
     weatherSuitability: 'good',
@@ -251,7 +177,7 @@ let mockTasks: FieldTask[] = [
     attachmentIds: [],
     createdByUserId: 'mock-user',
     createdAt: nowIso(),
-    updatedAt: `${athensCalendarYear(new Date())}-03-12T16:00:00Z`,
+    updatedAt: `${year}-03-12T16:00:00Z`,
   },
 ];
 
@@ -375,7 +301,8 @@ export const mockFieldWorkService = {
       title: input.title,
       description: input.description,
       status: 'planned',
-      statusLabel: 'Προγραμματισμένη',
+      statusLabel: 'Να γίνει',
+      workGroupId: input.workGroupId,
       plannedStart: input.plannedStart,
       plannedEnd: input.plannedEnd,
       preferredTimeWindow: input.preferredTimeWindow,
@@ -383,7 +310,7 @@ export const mockFieldWorkService = {
       assignedCollaboratorId: input.assignedCollaboratorId,
       additionalParticipantUserIds: [],
       assignmentResponse: 'pending',
-      checklist: [],
+      checklist: checksFromTemplate(input.templateCode || ''),
       estimatedCost: input.estimatedCost,
       notes: input.notes,
       attachmentIds: [],
@@ -521,6 +448,55 @@ export const mockFieldWorkService = {
     const task = await mockFieldWorkService.getFieldTask(id);
     task.status = 'cancelled';
     task.statusLabel = 'Ακυρώθηκε';
+    return task;
+  },
+
+  updateFieldTask: async (id: string, body: { notes?: string; description?: string; title?: string }) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    if (body.notes !== undefined) task.notes = body.notes;
+    if (body.description !== undefined) task.description = body.description;
+    if (body.title !== undefined) task.title = body.title;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  setChecklistItem: async (id: string, key: string, completed: boolean) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    const item = task.checklist.find((entry) => entry.key === key);
+    if (!item) throw new Error('Checklist item was not found');
+    item.isAnswered = completed;
+    item.boolValue = completed;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  blockFieldTask: async (id: string, reason?: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = 'blocked';
+    task.statusLabel = 'Δεν μπορεί να γίνει';
+    task.blockedReason = reason;
+    return task;
+  },
+
+  skipFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = 'skipped';
+    task.statusLabel = 'Παραλείφθηκε';
+    return task;
+  },
+
+  resolveFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = task.startedAt ? 'in_progress' : 'planned';
+    task.statusLabel = task.startedAt ? 'Σε εξέλιξη' : 'Να γίνει';
+    task.blockedReason = undefined;
+    return task;
+  },
+
+  reopenFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = 'planned';
+    task.statusLabel = 'Να γίνει';
     return task;
   },
 

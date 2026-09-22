@@ -28,14 +28,37 @@ describe('eventPresentation', () => {
     expect(presented.icon).toBe('note');
   });
 
-  it('truncates long observation bodies for the title', () => {
-    const long = 'Α'.repeat(100);
+  it('uses one preview line for an untitled observation and keeps the full text off the card', () => {
+    const long = 'Περισσότερα τσιμπήματα δάκου στα δέντρα δίπλα στο μονοπάτι. Και δεύτερη πρόταση που δεν πρέπει να φανεί στην κάρτα.';
     const presented = presentChronologioEvent(
-      entry({ details: { note: { noteId: 'n1', bodyPreview: long, pinned: false } } }),
+      entry({
+        title: 'Observation',
+        details: { note: { noteId: 'n1', bodyPreview: long, pinned: false } },
+      }),
       'el'
     );
-    expect(presented.label.length).toBeLessThanOrEqual(72);
-    expect(presented.description).toBe(long);
+    expect(presented.label).toBe('Περισσότερα τσιμπήματα δάκου στα δέντρα δίπλα στο μονοπάτι');
+    expect(presented.description).toBeUndefined();
+  });
+
+  it('shows a real title once and a single body preview that does not repeat it', () => {
+    const presented = presentChronologioEvent(
+      entry({
+        title: 'Δάκος στο μονοπάτι',
+        summary: 'Είδα περισσότερα τσιμπήματα στα δέντρα δίπλα στο μονοπάτι.',
+        details: {
+          note: {
+            noteId: 'n1',
+            bodyPreview: 'Είδα περισσότερα τσιμπήματα στα δέντρα δίπλα στο μονοπάτι.',
+            pinned: false,
+          },
+        },
+      }),
+      'el'
+    );
+    expect(presented.label).toBe('Δάκος στο μονοπάτι');
+    expect(presented.description).toBe('Είδα περισσότερα τσιμπήματα στα δέντρα δίπλα στο μονοπάτι');
+    expect(presented.description).not.toBe(presented.label);
   });
 
   it('maps expense category codes to Greek labels', () => {

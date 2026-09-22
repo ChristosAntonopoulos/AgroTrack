@@ -200,6 +200,39 @@ public class FinancialCalculatorTests
         Assert.Null(missing.CostPerHectare);
         Assert.Equal(50m, valid.CostPerHectare);
         Assert.True(zeroArea.DataAvailability.AreaIsMissing);
+        Assert.Equal(["field-1"], zeroArea.DataAvailability.MissingAreaFieldIds);
+        Assert.Contains("Κτήμα", zeroArea.DataAvailability.MissingAreaFieldNames);
+    }
+
+    [Fact]
+    public void PerArea_LeavesOutFieldsWithMissingAreaAndUnassignedMoney()
+    {
+        var transactions = new[]
+        {
+            Tx("with-area", FinancialTransactionType.Expense, FinancialTransactionStatus.Posted, 100, fieldId: "known"),
+            Tx("no-area", FinancialTransactionType.Expense, FinancialTransactionStatus.Posted, 40, fieldId: "bare"),
+            Tx("loose", FinancialTransactionType.Expense, FinancialTransactionStatus.Posted, 10, fieldId: null)
+        };
+        var fields = new[]
+        {
+            new FinancialFieldMetrics("known", "Με άκρη", 2),
+            new FinancialFieldMetrics("bare", "Χωρίς έκταση", null)
+        };
+
+        var summary = FinancialCalculator.BuildYearSummary(
+            2026,
+            transactions,
+            fields,
+            incompleteFieldNames: ["Πρόχειρο"]);
+
+        Assert.Equal(150m, summary.TotalExpenses);
+        Assert.Equal(50m, summary.CostPerHectare);
+        Assert.False(summary.DataAvailability.AreaIsMissing);
+        Assert.Equal(["bare"], summary.DataAvailability.MissingAreaFieldIds);
+        Assert.Equal(["Χωρίς έκταση"], summary.DataAvailability.MissingAreaFieldNames);
+        Assert.Equal(["Πρόχειρο"], summary.DataAvailability.IncompleteFieldNames);
+        Assert.True(summary.DataAvailability.PerAreaExcludesUnassigned);
+        Assert.True(summary.DataAvailability.IncludesUnassigned);
     }
 
     [Fact]

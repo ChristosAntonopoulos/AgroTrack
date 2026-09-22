@@ -40,6 +40,8 @@ import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
 import TransactionSection from '../components/money/TransactionSection';
 import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
 import { formatRelatedHarvestLabel } from '../finance/relatedHarvestLabel';
+import { downloadTextFile, moneyLedgerCsv } from '../finance/moneyExport';
+import { unassignedFieldLabel } from '../finance/display';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import '../components/money/Money.css';
 
@@ -77,6 +79,8 @@ const MoneyPage: React.FC = () => {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [nextPage, setNextPage] = useState(2);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const patch = (next: Record<string, string | null | undefined>) => {
     setSearchParams(
@@ -285,6 +289,46 @@ const MoneyPage: React.FC = () => {
 
   const reload = () => setReloadToken((n) => n + 1);
 
+  const exportLedger = async () => {
+    try {
+      setExporting(true);
+      setExportError(null);
+      const pageSize = 200;
+      const collected: FinancialTransaction[] = [];
+      let page = 1;
+      let fetched = 0;
+      let total = Number.POSITIVE_INFINITY;
+      while (fetched < total && page <= 25) {
+        const ledger = await getFinancialTransactionService().list({
+          ...listParams(),
+          page,
+          pageSize,
+        });
+        total = ledger.totalCount;
+        fetched += ledger.items.length;
+        collected.push(
+          ...ledger.items.filter((row) => {
+            if (row.status === 'void') return false;
+            if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
+            return true;
+          })
+        );
+        if (ledger.items.length === 0) break;
+        page += 1;
+      }
+      const csv = moneyLedgerCsv({
+        rows: collected,
+        fieldNames,
+        unassignedLabel: unassignedFieldLabel(i18n.language),
+      });
+      downloadTextFile(`money-${harvestYearSpan(year)}.csv`, csv);
+    } catch {
+      setExportError(t('money:exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const emptyYear =
     !summaryForbidden &&
     summary &&
@@ -346,7 +390,10 @@ const MoneyPage: React.FC = () => {
           fieldId={fieldId}
           onFieldChange={(next) => patch({ fieldId: next || null })}
           onCapture={() => openCapture()}
+          onExport={() => void exportLedger()}
+          exporting={exporting}
         />
+        {exportError ? <p className="money-error">{exportError}</p> : null}
         <MoneyContextBar
           year={year}
           yearRangeLabel={agriculturalYearRangeLabel(year, i18n.language)}
@@ -470,6 +517,8 @@ const MoneyPage: React.FC = () => {
                 locale={i18n.language}
                 showPerHectare={true}
                 fieldNames={fieldNames}
+                fields={visibleFields}
+                missingAreaFieldIds={summary.dataAvailability.missingAreaFieldIds ?? []}
                 onSelectField={(id) => patch({ fieldId: id || null })}
               />
             ) : null}

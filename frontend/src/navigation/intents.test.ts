@@ -29,7 +29,7 @@ describe('deep-link intents', () => {
     expect(fieldStreamPath('f1', { entry: 'e2' })).toBe(
       '/fields/f1?tab=chronologio&entry=e2'
     );
-    expect(taskPeekPath('t1')).toBe('/tasks?task=t1');
+    expect(taskPeekPath('t1')).toBe('/tasks/t1');
     expect(taskCompletePath('t1')).toBe('/tasks/t1/complete');
     expect(taskFormPath({ fieldId: 'f1' })).toBe('/tasks/new?fieldId=f1');
     expect(moneyPath({ year: 2026, fieldId: 'f1', tx: 'tx-9' })).toBe(

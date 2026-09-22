@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications, Notification } from '../../context/NotificationContext';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { resolveNotificationTarget } from './resolveNotificationTarget';
-import { Bell, Check, Megaphone, MessageCircleQuestion, MoreVertical, PieChart, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { drawerState, notificationCategory } from './notificationVisibility';
+import { Bell, Check, CloudSun, Leaf, Megaphone, MessageCircleQuestion, MoreVertical, PieChart, UserRound, Wallet, X } from 'lucide-react';
 import './NotificationDropdown.css';
 
 interface NotificationDropdownProps {
@@ -15,15 +17,20 @@ const SourceBadge: React.FC<{ notification: Notification; label: string }> = ({
   notification,
   label,
 }) => {
-  const kind = notification.campaignKind || notification.type;
+  const kind = notification.campaignKind || notification.eventType || notification.type;
+  const category = notificationCategory(notification);
   let Icon = Bell;
   if (notification.source === 'campaign') {
     if (kind === 'poll') Icon = PieChart;
     else if (kind === 'questionnaire') Icon = MessageCircleQuestion;
     else Icon = Megaphone;
-  }
+  } else if (category === 'taskAssignment') Icon = UserRound;
+  else if (category === 'approval') Icon = Check;
+  else if (category === 'harvest') Icon = Leaf;
+  else if (category === 'financial') Icon = Wallet;
+  else if (category === 'satelliteWeather') Icon = CloudSun;
   return (
-    <span className={`notification-badge source-${notification.source || 'local'}`}>
+    <span className={`notification-source-badge source-${notification.source || 'local'}`}>
       <Icon size={12} aria-hidden />
       {label}
     </span>
@@ -33,8 +40,16 @@ const SourceBadge: React.FC<{ notification: Notification; label: string }> = ({
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) => {
   const { t } = useTranslation('common');
   const { formatDateTime } = useLocaleFormatters();
-  const { notifications, markAsRead, markAllAsRead, removeNotification, clearAll, openNotification } =
-    useNotifications();
+  const {
+    notifications,
+    hiddenUnreadCount,
+    inboxLoading,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    clearAll,
+    openNotification,
+  } = useNotifications();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -51,11 +66,16 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
   }, [menuOpen]);
 
   const badgeLabel = (notification: Notification) => {
-    if (notification.source !== 'campaign') return t('notifications.badge.update');
-    if (notification.campaignKind === 'poll') return t('inApp.poll');
-    if (notification.campaignKind === 'questionnaire') return t('inApp.questionnaire');
-    return t('inApp.announcement');
+    if (notification.source === 'campaign') {
+      if (notification.campaignKind === 'poll') return t('inApp.poll');
+      if (notification.campaignKind === 'questionnaire') return t('inApp.questionnaire');
+      return t('inApp.announcement');
+    }
+    const category = notificationCategory(notification);
+    return t(`notifications.types.${category}`);
   };
+
+  const state = drawerState(notifications.length, hiddenUnreadCount, inboxLoading);
 
   const handleNotificationClick = (notification: Notification) => {
     if (notification.source === 'campaign' && notification.campaignId) {
@@ -129,7 +149,20 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onClose }) 
       </div>
 
       <div className="notification-list">
-        {notifications.length === 0 ? (
+        {state === 'loading' ? (
+          <div className="no-notifications">
+            <Bell size={28} aria-hidden />
+            <strong>{t('notifications.loading')}</strong>
+          </div>
+        ) : state === 'hidden' ? (
+          <div className="no-notifications">
+            <Bell size={28} aria-hidden />
+            <strong>{t('notifications.hiddenBySettings', { count: hiddenUnreadCount })}</strong>
+            <Link to="/settings" onClick={onClose}>
+              {t('notifications.reviewSettings')}
+            </Link>
+          </div>
+        ) : state === 'clear' ? (
           <div className="no-notifications">
             <Bell size={28} aria-hidden />
             <strong>{t('notifications.empty')}</strong>

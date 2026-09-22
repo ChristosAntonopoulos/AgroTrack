@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Pin } from 'lucide-react';
 import { taskPeekPath } from '../../navigation/intents';
 import Button from '../Common/Button';
 import HarvestMoneyPanel from '../money/HarvestMoneyPanel';
@@ -35,6 +34,8 @@ import { buildDayWeatherView, type DayWeatherInput } from '../../chronologio/day
 import { EntityCache } from '../../utils/entityCache';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { ChronologioMediaImage } from './ChronologioThumbnail';
+import { isDateOnlyTimestamp } from '../../chronologio/clockLabel';
 
 type Props = {
   entry: ChronologioEntry;
@@ -46,11 +47,14 @@ const formatWhen = (value?: string | null, language = 'el') => {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return `${d.toLocaleDateString(language, { dateStyle: 'long' })} · ${d.toLocaleTimeString(language, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })}`;
+  const clock = isDateOnlyTimestamp(value)
+    ? ''
+    : ` · ${d.toLocaleTimeString(language, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })}`;
+  return `${d.toLocaleDateString(language, { dateStyle: 'long' })}${clock}`;
 };
 
 const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
@@ -99,9 +103,14 @@ const MediaGallery: React.FC<{ entry: ChronologioEntry; title: string }> = ({ en
               key={item.id}
               type="button"
               onClick={() => lightbox.openAt(items, index)}
-              aria-label={t('viewer.expand')}
+              aria-label={t('chronologio:drawer.openPhotoN', { index: index + 1 })}
             >
-              <img src={item.src} alt="" loading="lazy" />
+              <ChronologioMediaImage
+                src={item.src}
+                alt=""
+                retryLabel={t('chronologio:drawer.mediaRetry')}
+                unavailableLabel={t('chronologio:drawer.mediaUnavailable', { index: index + 1 })}
+              />
             </button>
           ))}
         </div>
@@ -333,6 +342,9 @@ const TaskDetail: React.FC<{
           );
         })()}
         <Fact label={t('common:description')}>{full?.notes || entry.summary}</Fact>
+        <Fact label={t('drawer.correctRecordHintLabel')}>
+          {t('drawer.correctRecordHint')}
+        </Fact>
         {entry.amount ? (
           <Fact label={t('drawer.cost')}>
             {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
@@ -420,11 +432,6 @@ const ObservationDetail: React.FC<{ entry: ChronologioEntry; actor: string }> = 
         <Fact label={t('living.field')}>{entry.field?.name}</Fact>
         <Fact label={t('drawer.recordedBy', { defaultValue: 'Recorded by' })}>{actor}</Fact>
         <Fact label={t('drawer.exactTime')}>{formatWhen(entry.occurredAt, i18n.language)}</Fact>
-        {noteMeta?.pinned || note?.pinned ? (
-          <p className="chrono-drawer-pin-flag">
-            <Pin size={14} aria-hidden /> {t('pinned')}
-          </p>
-        ) : null}
       </dl>
       <MediaGallery entry={mediaEntry} title={t('living.photos')} />
     </>
@@ -489,7 +496,12 @@ const MoneyDetail: React.FC<{
           {new Date(entry.occurredAt).toLocaleDateString(i18n.language, { dateStyle: 'long' })}
         </Fact>
         <Fact label={t('common:description')}>
-          {expense?.description || tx?.description || entry.summary}
+          {(() => {
+            const text = (expense?.description || tx?.description || entry.summary || '').trim();
+            const title = (entry.title || '').trim();
+            if (!text || text === title || text === typeLabel) return null;
+            return text;
+          })()}
         </Fact>
         <Fact label={t('drawer.posting')}>
           {tx ? financialStatusLabel(tx.status, i18n.language) : null}
@@ -536,7 +548,7 @@ const HarvestDetail: React.FC<{
             <span>
               {harvest.hasOfficialWeight === false
                 ? t('approxOlives', { defaultValue: 'περίπου kg' })
-                : t('officialOlives', { defaultValue: 'επίσημο βάρος' })}
+                : t('drawer.officialWeightKg')}
             </span>
           </div>
         ) : null}
@@ -579,6 +591,27 @@ const HarvestDetail: React.FC<{
           </div>
         ) : null}
       </div>
+      {(() => {
+        const chain = [
+          (harvest.sackCount ?? 0) > 0
+            ? t('drawer.sackChain', { count: harvest.sackCount })
+            : null,
+          harvest.oliveKg > 0
+            ? t('drawer.fruitChain', {
+                kg: formatGroveMassKg(harvest.oliveKg, numberLocale),
+              })
+            : null,
+          harvest.oilKg != null && harvest.oilKg > 0
+            ? t('drawer.oilChain', { kg: formatGroveMassKg(harvest.oilKg, numberLocale) })
+            : null,
+          harvest.oilYieldPercent != null && harvest.oilYieldPercent > 0
+            ? t('drawer.yieldChain', {
+                pct: formatGroveMassKg(harvest.oilYieldPercent, numberLocale),
+              })
+            : null,
+        ].filter(Boolean);
+        return chain.length ? <p className="chrono-harvest-chain">{chain.join(' → ')}</p> : null;
+      })()}
       {presented.description ? <p className="chronologio-harvest-day-summary">{presented.description}</p> : null}
       {!isDay ? (
         <HarvestMoneyPanel
