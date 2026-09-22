@@ -875,7 +875,7 @@ const CaptureDrawer: React.FC<Props> = ({
                     </>
                   ) : null}
 
-                  {(step === 'observation' || step === 'work' || step === 'harvest') && (
+                  {(step === 'observation' || step === 'harvest') && (
                     <div className="capture-photos">
                       <div className="capture-photo-row">
                         {photos.map((p) => (

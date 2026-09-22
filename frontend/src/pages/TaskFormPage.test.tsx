@@ -333,4 +333,12 @@ describe('TaskFormPage Phase 4', () => {
       'task-form-error'
     );
   });
+
+  it('opens capture work on the field step with the catalogue title', async () => {
+    renderForm('fieldId=field-1&templateCode=T15');
+
+    expect(await screen.findByRole('heading', { name: 'Σε ποιο χωράφι;' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Τι χρειάζεται να γίνει;' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Προγραμματισμός άρδευσης/)).toBeInTheDocument();
+  });
 });

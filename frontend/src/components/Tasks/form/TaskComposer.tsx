@@ -6,7 +6,7 @@ import { friendlyFieldLabel } from '../../../utils/fieldLabels';
 import { resolveFieldColor } from '../../../utils/fieldColors';
 import type { TaskProposal } from '../../../services/fieldWorkService';
 import { templateTitle } from '../../../data/fieldWorkCatalogueLabels';
-import { TASK_FORM_TYPES, templateFromType, type TaskFormTypeId } from '../../../utils/taskFormTypes';
+import { TASK_FORM_TYPES, templateFromType, typeFromTemplate, type TaskFormTypeId } from '../../../utils/taskFormTypes';
 import {
   addDaysToIso,
   athensTodayIso,
@@ -49,6 +49,7 @@ interface TaskComposerProps {
   assigneeOptions: AssigneeOption[];
   initialFieldId: string;
   initialAssigneeKey: string;
+  initialTemplateCode?: string;
   saving: boolean;
   error: string | null;
   onFieldChange?: (fieldId: string) => void;
@@ -72,6 +73,7 @@ const TaskComposer: React.FC<TaskComposerProps> = ({
   assigneeOptions,
   initialFieldId,
   initialAssigneeKey,
+  initialTemplateCode = '',
   saving,
   error,
   onFieldChange,
@@ -80,12 +82,17 @@ const TaskComposer: React.FC<TaskComposerProps> = ({
 }) => {
   const { t, i18n } = useTranslation('tasks');
   const today = athensTodayIso();
+  const seededTemplate = initialTemplateCode.trim();
   const proposalStart = futureOrToday(proposal?.recommendedWindowStart);
   const [typeId, setTypeId] = useState<TaskFormTypeId | ''>(
-    mode === 'proposal' ? '' : ''
+    seededTemplate ? typeFromTemplate(seededTemplate) || 'other' : ''
   );
   const [title, setTitle] = useState(
-    mode === 'proposal' && proposal ? templateTitle(proposal.templateCode, i18n.language) : ''
+    mode === 'proposal' && proposal
+      ? templateTitle(proposal.templateCode, i18n.language)
+      : seededTemplate
+        ? templateTitle(seededTemplate, i18n.language)
+        : ''
   );
   const [fieldIds, setFieldIds] = useState<string[]>(initialFieldId ? [initialFieldId] : []);
   const [several, setSeveral] = useState(false);
@@ -100,20 +107,25 @@ const TaskComposer: React.FC<TaskComposerProps> = ({
         ? initialFieldId
           ? ['when', 'who']
           : ['where', 'when', 'who']
-        : ['what', 'where', 'when', 'who'],
-    [initialFieldId, mode]
+        : seededTemplate
+          ? ['where', 'when', 'who']
+          : ['what', 'where', 'when', 'who'],
+    [initialFieldId, mode, seededTemplate]
   );
   const [step, setStep] = useState<TaskStep>(steps[0]);
   const [direction, setDirection] = useState(1);
   useEffect(() => {
-    document.getElementById('task-step-title')?.scrollIntoView({ block: 'nearest' });
+    document.getElementById('task-step-title')?.scrollIntoView?.({ block: 'nearest' });
   }, [step]);
   const [more, setMore] = useState(false);
   const [notes, setNotes] = useState('');
   const [description, setDescription] = useState('');
   const [cost, setCost] = useState('');
 
-  const templateCode = mode === 'proposal' ? proposal?.templateCode : templateFromType(typeId);
+  const templateCode =
+    mode === 'proposal'
+      ? proposal?.templateCode
+      : seededTemplate || templateFromType(typeId);
 
   const applyPreset = (next: DatePreset) => {
     const day = athensTodayIso();

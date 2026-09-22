@@ -91,6 +91,7 @@
 
 /* Primary amount / stepper — soft fill, no hard border, large type */
 .hc-amount-field {
+  position: relative;
   display: grid;
   gap: 0.45rem;
 }
@@ -100,6 +101,17 @@
   font-weight: 650;
   color: var(--money-text-secondary, var(--color-text-secondary));
   letter-spacing: -0.01em;
+}
+
+.hc-amount-label.is-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 .hc-amount-input {
@@ -1076,6 +1088,88 @@ button.hc-path-node:focus-visible {
 }
 
 .hc-oil-split .capture-yield {
+  margin: 0;
+}
+
+.hc-oil-steps {
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hc-oil-step {
+  display: grid;
+  grid-template-columns: 1.85rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+}
+
+.hc-oil-step-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.hc-oil-step:not(:last-child) .hc-oil-step-rail::before {
+  content: '';
+  position: absolute;
+  top: 1.85rem;
+  bottom: 0;
+  width: 1.5px;
+  background: color-mix(in srgb, var(--harvest-gold, #c4a35a) 62%, var(--color-border));
+}
+
+.hc-oil-step-mark {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  background: var(--harvest-gold, #c4a35a);
+  color: #2a2416;
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hc-oil-step-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-bottom: 1.2rem;
+}
+
+.hc-oil-step:last-child .hc-oil-step-body {
+  padding-bottom: 0.35rem;
+}
+
+.hc-oil-step-title {
+  margin: 0.22rem 0 0;
+  color: var(--harvest-ink, var(--color-text-primary));
+  font-size: 1.02rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.hc-oil-step .hc-carry-block,
+.hc-oil-step .hc-oil-step-hint {
+  margin: 0;
+}
+
+.hc-oil-after {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0.85rem 0 0 calc(1.85rem + 0.75rem);
+}
+
+.hc-oil-source {
   margin: 0;
 }
 

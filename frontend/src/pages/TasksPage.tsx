@@ -38,7 +38,6 @@ import TodoNotebook from '../components/Tasks/TodoNotebook';
 import type { NotebookMenuAction } from '../components/Tasks/TaskNotebookCard';
 import { notebookStatus, type NotebookAction } from '../utils/taskNotebook';
 import CreatedTaskBanner from '../components/Tasks/CreatedTaskBanner';
-import PauseTaskSheet, { type PauseReason } from '../components/Tasks/PauseTaskSheet';
 import RescheduleTaskSheet from '../components/Tasks/RescheduleTaskSheet';
 import ScheduleGroupSheet from '../components/Tasks/ScheduleGroupSheet';
 import { formatLongTaskDate } from '../utils/taskFormDates';
@@ -82,7 +81,6 @@ const TasksPage: React.FC = () => {
   const dismissalDrawer = useDrawerPresence(dismissalPrompt);
   const [learningBusy, setLearningBusy] = useState(false);
   const [undoStartIds, setUndoStartIds] = useState<string[]>([]);
-  const [pauseTask, setPauseTask] = useState<FieldTask | null>(null);
   const [rescheduleTask, setRescheduleTask] = useState<FieldTask | null>(null);
   const [scheduleGroup, setScheduleGroup] = useState<ProposalTemplateGroup | null>(null);
   const [query, setQuery] = useState('');
@@ -334,24 +332,6 @@ const TasksPage: React.FC = () => {
       await loadData();
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fieldWork.errors.undoStart'));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handlePause = async (reason: PauseReason, newDate?: string) => {
-    if (!pauseTask) return;
-    try {
-      setBusyId(pauseTask.id);
-      await getFieldWorkService().pauseFieldTask(pauseTask.id, {
-        reason,
-        plannedStart: newDate,
-        plannedEnd: newDate,
-      });
-      setPauseTask(null);
-      await loadData();
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.pause'));
     } finally {
       setBusyId(null);
     }
@@ -693,14 +673,6 @@ const TasksPage: React.FC = () => {
           </section>
         )}
       </div>
-
-      <PauseTaskSheet
-        task={pauseTask}
-        open={Boolean(pauseTask)}
-        busy={Boolean(pauseTask && busyId === pauseTask.id)}
-        onClose={() => setPauseTask(null)}
-        onConfirm={(reason, date) => void handlePause(reason, date)}
-      />
 
       <RescheduleTaskSheet
         task={rescheduleTask}

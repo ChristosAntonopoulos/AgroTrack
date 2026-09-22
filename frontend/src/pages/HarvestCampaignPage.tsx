@@ -958,7 +958,7 @@ const HarvestCampaignPage: React.FC = () => {
 
   if (pageGuard.loading) {
     return (
-      <PageContainer>
+      <PageContainer maxWidth="full" padding="none" className="harvest-page">
         <LoadingSpinner />
       </PageContainer>
     );
@@ -968,7 +968,7 @@ const HarvestCampaignPage: React.FC = () => {
   }
 
   return (
-    <PageContainer>
+    <PageContainer maxWidth="full" padding="none" className="harvest-page">
       <div className={`harvest-campaign${isLive ? ' is-mode' : ''}`}>
         {!isLive && showHistoricalDay ? (
           <HistoricalHarvestDayBoard

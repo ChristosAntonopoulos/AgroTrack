@@ -29,6 +29,24 @@ import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidatio
 import type { HarvestFieldShare, HarvestOilEntry } from '../types';
 import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
 
+const OilStep: React.FC<{
+  n: number;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ n, title, hint, children }) => (
+  <li className="hc-oil-step">
+    <div className="hc-oil-step-rail" aria-hidden>
+      <span className="hc-oil-step-mark">{n}</span>
+    </div>
+    <div className="hc-oil-step-body">
+      <h3 className="hc-oil-step-title">{title}</h3>
+      {hint ? <p className="capture-hint hc-oil-step-hint">{hint}</p> : null}
+      {children}
+    </div>
+  </li>
+);
+
 export const HarvestOilSheet: React.FC<
   HarvestSheetSharedProps & {
     prefillMillIds?: string[];
@@ -246,187 +264,217 @@ export const HarvestOilSheet: React.FC<
         </>
       }
     >
-      <p className="capture-prompt">
-        {editing ? t('harvestCampaign.dayActivity.editOil') : t('harvestCampaign.oil.prompt')}
-      </p>
-      {millChipOrder.length > 0 ? (
-        <HarvestCarryPicker
-          label={t('harvestCampaign.oil.relatedKg')}
-          items={millChipOrder.map((row) => {
-            const fieldNames = row.fieldIds
-              .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
-              .filter(Boolean);
-            const needsOil = uncovered.some((m) => m.id === row.id);
-            return {
-              id: row.id,
-              title: `${formatGroveMassKg(row.kg, locale)} kg`,
-              detail: fieldNames.join(' + '),
-              colors: row.fieldIds.map((id) => {
-                const field = fields.find((f) => f.id === id);
-                return resolveFieldColor(field?.color, id);
-              }),
-              badge: needsOil ? t('harvestCampaign.flow.needsOil') : undefined,
-            };
-          })}
-          selected={millWeightIds}
-          onToggle={toggleMill}
-          transfer={
-            relatedOliveKg > 0
-              ? {
-                  from: t('harvestCampaign.flow.fruitLine', { kg: Math.round(relatedOliveKg) }),
-                  to: t('harvestCampaign.addMenu.title.oil'),
-                  color: carryColor(
-                    selectedMills.flatMap((row) =>
-                      row.fieldIds.map((id) => {
-                        const field = fields.find((f) => f.id === id);
-                        return resolveFieldColor(field?.color, id);
-                      })
-                    )
-                  ),
-                }
-              : null
-          }
-          hint={relatedOliveKg > 0 ? undefined : t('harvestCampaign.carry.pickFruit')}
-          trailing={
-            <button
-              type="button"
-              className={`hc-carry-clear${millWeightIds.length === 0 ? ' is-on' : ''}`}
-              onClick={() => {
-                setMillWeightIds([]);
-                setAdjustShares(false);
-              }}
-            >
-              {t('harvestCampaign.oil.noRelated')}
-            </button>
-          }
-        />
-      ) : null}
-      <HarvestNumberInput
-        label={t('harvestCampaign.addMenu.title.oil')}
-        value={amount}
-        onChange={setAmount}
-        suffix={unitSuffix}
-        autoFocus={!flow || Boolean(flow.active)}
-      />
-      <HarvestSegmentedControl
-        value={unit}
-        ariaLabel={t('harvestCampaign.oil.unitLabel')}
-        onChange={setUnit}
-        options={[
-          { value: 'kg', label: t('harvestCampaign.oil.kg') },
-          { value: 'litres', label: t('harvestCampaign.oil.litres') },
-        ]}
-      />
-      {unit === 'litres' && isPositiveAmount(value) ? (
-        <p className="capture-hint">
-          {t('harvestCampaign.oil.estimatedKg', {
-            kg: formatGroveMassKg(oilKg, locale),
-          })}
-        </p>
-      ) : null}
-
-      {isPositiveAmount(value) ? (
-        <>
-          <p className="hc-form-section">{t('harvestCampaign.oil.millTitle')}</p>
-          <p className="capture-hint">{t('harvestCampaign.oil.millHint')}</p>
-          <div className="hc-mill-kept">
-            <HarvestNumberInput
-              label={t('harvestCampaign.oil.millTitle')}
-              value={millKept}
-              onChange={setMillKept}
-              suffix={millMode === 'percent' ? '%' : unitSuffix}
-              min={0}
-            />
-            <HarvestSegmentedControl
-              value={millMode}
-              ariaLabel={t('harvestCampaign.oil.millModeLabel')}
-              onChange={setMillMode}
-              options={[
-                { value: 'amount', label: t('harvestCampaign.oil.millAmount') },
-                { value: 'percent', label: t('harvestCampaign.oil.millPercent') },
-              ]}
-            />
-          </div>
-
-          <p className="hc-form-section">{t('harvestCampaign.oil.storedTitle')}</p>
-          <HarvestSegmentedControl
-            value={storageMode}
-            ariaLabel={t('harvestCampaign.oil.storedTitle')}
-            onChange={setStorageMode}
-            options={[
-              { value: 'all', label: t('harvestCampaign.oil.storedAll') },
-              { value: 'tins', label: t('harvestCampaign.oil.storedTins') },
-            ]}
-          />
-          {storageMode === 'all' ? (
-            <p className="capture-hint">{t('harvestCampaign.oil.storedAllHint')}</p>
-          ) : (
-            <>
-              <HarvestNumberStepper
-                label={t('harvestCampaign.oil.tin16')}
-                value={tin16}
-                onChange={(next) => setTin16(Math.max(0, Math.round(next)))}
-                min={0}
-                suffix={t('harvestCampaign.oil.tinSuffix')}
-              />
-              <HarvestNumberStepper
-                label={t('harvestCampaign.oil.tin17')}
-                value={tin17}
-                onChange={(next) => setTin17(Math.max(0, Math.round(next)))}
-                min={0}
-                suffix={t('harvestCampaign.oil.tinSuffix')}
-              />
-              {settlement && !settlement.millOver && settlement.overAmount <= 0 ? (
-                <p className="capture-hint">
-                  {t('harvestCampaign.oil.bulkLine', {
-                    amount: formatHarvestOilAmountLabel(settlement.bulkAmount, unit, locale),
-                  })}
-                </p>
-              ) : null}
-            </>
-          )}
-
-          {settlement ? (
-            <OilSplitSummary
-              parts={settlement.parts}
-              unit={unit}
-              locale={locale}
-              millOver={settlement.millOver}
-              overAmount={settlement.overAmount}
-              labelFor={(key) => t(`harvestCampaign.oil.part.${key}`)}
-              overLabel={t('harvestCampaign.oil.overTins', {
-                amount: formatHarvestOilAmountLabel(settlement.overAmount, unit, locale),
+      <ol className="hc-oil-steps">
+        {millChipOrder.length > 0 ? (
+          <OilStep n={1} title={t('harvestCampaign.oil.relatedKg')}>
+            <HarvestCarryPicker
+              hideHeading
+              label={t('harvestCampaign.oil.relatedKg')}
+              items={millChipOrder.map((row) => {
+                const fieldNames = row.fieldIds
+                  .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
+                  .filter(Boolean);
+                const needsOil = uncovered.some((m) => m.id === row.id);
+                return {
+                  id: row.id,
+                  title: `${formatGroveMassKg(row.kg, locale)} kg`,
+                  detail: fieldNames.join(' + '),
+                  colors: row.fieldIds.map((id) => {
+                    const field = fields.find((f) => f.id === id);
+                    return resolveFieldColor(field?.color, id);
+                  }),
+                  badge: needsOil ? t('harvestCampaign.flow.needsOil') : undefined,
+                };
               })}
-              millOverLabel={t('harvestCampaign.oil.overMill')}
-              yieldLabel={
-                yieldPct != null
-                  ? t('harvestCampaign.oil.yieldLine', {
-                      olives: formatGroveMassKg(relatedOliveKg, locale),
-                      oil: formatGroveMassKg(oilKg, locale),
-                      yield: formatHarvestYieldPercent(yieldPct, locale),
-                    })
+              selected={millWeightIds}
+              onToggle={toggleMill}
+              transfer={
+                relatedOliveKg > 0
+                  ? {
+                      from: t('harvestCampaign.flow.fruitLine', { kg: Math.round(relatedOliveKg) }),
+                      to: t('harvestCampaign.addMenu.title.oil'),
+                      color: carryColor(
+                        selectedMills.flatMap((row) =>
+                          row.fieldIds.map((id) => {
+                            const field = fields.find((f) => f.id === id);
+                            return resolveFieldColor(field?.color, id);
+                          })
+                        )
+                      ),
+                    }
                   : null
               }
+              hint={relatedOliveKg > 0 ? undefined : t('harvestCampaign.carry.pickFruit')}
+              trailing={
+                <button
+                  type="button"
+                  className={`hc-carry-clear${millWeightIds.length === 0 ? ' is-on' : ''}`}
+                  onClick={() => {
+                    setMillWeightIds([]);
+                    setAdjustShares(false);
+                  }}
+                >
+                  {t('harvestCampaign.oil.noRelated')}
+                </button>
+              }
             />
+            {showFieldPicker ? (
+              <HarvestFieldPicker
+                mode="multiple"
+                fields={fields}
+                value={fieldIds}
+                onChange={(next) => {
+                  setFieldIds(next);
+                  setAdjustShares(false);
+                }}
+                sectionLabel={t('harvestCampaign.millKg.whichField')}
+              />
+            ) : null}
+          </OilStep>
+        ) : (
+          <OilStep n={1} title={t('harvestCampaign.millKg.whichField')}>
+            <HarvestFieldPicker
+              mode="multiple"
+              fields={fields}
+              value={fieldIds}
+              onChange={(next) => {
+                setFieldIds(next);
+                setAdjustShares(false);
+              }}
+            />
+          </OilStep>
+        )}
+
+        <OilStep
+          n={2}
+          title={
+            editing ? t('harvestCampaign.dayActivity.editOil') : t('harvestCampaign.oil.prompt')
+          }
+        >
+          <HarvestNumberInput
+            hideLabel
+            label={t('harvestCampaign.oil.prompt')}
+            value={amount}
+            onChange={setAmount}
+            suffix={unitSuffix}
+            autoFocus={!flow || Boolean(flow.active)}
+          />
+          <HarvestSegmentedControl
+            value={unit}
+            ariaLabel={t('harvestCampaign.oil.unitLabel')}
+            onChange={setUnit}
+            options={[
+              { value: 'kg', label: t('harvestCampaign.oil.kg') },
+              { value: 'litres', label: t('harvestCampaign.oil.litres') },
+            ]}
+          />
+          {unit === 'litres' && isPositiveAmount(value) ? (
+            <p className="capture-hint">
+              {t('harvestCampaign.oil.estimatedKg', {
+                kg: formatGroveMassKg(oilKg, locale),
+              })}
+            </p>
           ) : null}
-        </>
-      ) : null}
-      {!showFieldPicker && inferredLabels.length > 0 ? (
-        <p className="capture-hint">
-          {t('harvestCampaign.shared.fromFields', { fields: inferredLabels.join(' + ') })}
-        </p>
-      ) : null}
-      {showFieldPicker ? (
-        <HarvestFieldPicker
-          mode="multiple"
-          fields={fields}
-          value={fieldIds}
-          onChange={(next) => {
-            setFieldIds(next);
-            setAdjustShares(false);
-          }}
-          sectionLabel={t('harvestCampaign.millKg.whichField')}
-        />
+        </OilStep>
+
+        {isPositiveAmount(value) ? (
+          <OilStep
+            n={3}
+            title={t('harvestCampaign.oil.millTitle')}
+            hint={t('harvestCampaign.oil.millHint')}
+          >
+            <div className="hc-mill-kept">
+              <HarvestNumberInput
+                hideLabel
+                label={t('harvestCampaign.oil.millTitle')}
+                value={millKept}
+                onChange={setMillKept}
+                suffix={millMode === 'percent' ? '%' : unitSuffix}
+                min={0}
+              />
+              <HarvestSegmentedControl
+                value={millMode}
+                ariaLabel={t('harvestCampaign.oil.millModeLabel')}
+                onChange={setMillMode}
+                options={[
+                  { value: 'amount', label: t('harvestCampaign.oil.millAmount') },
+                  { value: 'percent', label: t('harvestCampaign.oil.millPercent') },
+                ]}
+              />
+            </div>
+          </OilStep>
+        ) : null}
+
+        {isPositiveAmount(value) ? (
+          <OilStep n={4} title={t('harvestCampaign.oil.storedTitle')}>
+            <HarvestSegmentedControl
+              value={storageMode}
+              ariaLabel={t('harvestCampaign.oil.storedTitle')}
+              onChange={setStorageMode}
+              options={[
+                { value: 'all', label: t('harvestCampaign.oil.storedAll') },
+                { value: 'tins', label: t('harvestCampaign.oil.storedTins') },
+              ]}
+            />
+            {storageMode === 'all' ? (
+              <p className="capture-hint">{t('harvestCampaign.oil.storedAllHint')}</p>
+            ) : (
+              <>
+                <HarvestNumberStepper
+                  label={t('harvestCampaign.oil.tin16')}
+                  value={tin16}
+                  onChange={(next) => setTin16(Math.max(0, Math.round(next)))}
+                  min={0}
+                  suffix={t('harvestCampaign.oil.tinSuffix')}
+                />
+                <HarvestNumberStepper
+                  label={t('harvestCampaign.oil.tin17')}
+                  value={tin17}
+                  onChange={(next) => setTin17(Math.max(0, Math.round(next)))}
+                  min={0}
+                  suffix={t('harvestCampaign.oil.tinSuffix')}
+                />
+                {settlement && !settlement.millOver && settlement.overAmount <= 0 ? (
+                  <p className="capture-hint">
+                    {t('harvestCampaign.oil.bulkLine', {
+                      amount: formatHarvestOilAmountLabel(settlement.bulkAmount, unit, locale),
+                    })}
+                  </p>
+                ) : null}
+              </>
+            )}
+          </OilStep>
+        ) : null}
+      </ol>
+
+      <div className="hc-oil-after">
+      {isPositiveAmount(value) && settlement ? (
+          <OilSplitSummary
+            parts={settlement.parts}
+            unit={unit}
+            locale={locale}
+            millOver={settlement.millOver}
+            overAmount={settlement.overAmount}
+            labelFor={(key) => t(`harvestCampaign.oil.part.${key}`)}
+            overLabel={t('harvestCampaign.oil.overTins', {
+              amount: formatHarvestOilAmountLabel(settlement.overAmount, unit, locale),
+            })}
+            millOverLabel={t('harvestCampaign.oil.overMill')}
+            yieldLabel={
+              yieldPct != null
+                ? t('harvestCampaign.oil.yieldLine', {
+                    olives: formatGroveMassKg(relatedOliveKg, locale),
+                    oil: formatGroveMassKg(oilKg, locale),
+                    yield: formatHarvestYieldPercent(yieldPct, locale),
+                  })
+                : null
+            }
+            sourceLabel={
+              !showFieldPicker && inferredLabels.length > 0
+                ? t('harvestCampaign.shared.fromFields', { fields: inferredLabels.join(' + ') })
+                : null
+            }
+          />
       ) : null}
       {activeShares.length > 1 ? (
         <button type="button" className="money-text-link" onClick={beginAdjustShares}>
@@ -474,6 +522,7 @@ export const HarvestOilSheet: React.FC<
           </label>
         </>
       ) : null}
+      </div>
     </HarvestSheetShell>
   );
 };
@@ -485,6 +534,7 @@ const OilSplitSummary: React.FC<{
   millOver: boolean;
   overAmount: number;
   yieldLabel: string | null;
+  sourceLabel: string | null;
   overLabel: string;
   millOverLabel: string;
   labelFor: (key: OilSplitPartKey) => string;
@@ -495,6 +545,7 @@ const OilSplitSummary: React.FC<{
   millOver,
   overAmount,
   yieldLabel,
+  sourceLabel,
   overLabel,
   millOverLabel,
   labelFor,
@@ -529,6 +580,7 @@ const OilSplitSummary: React.FC<{
             ))}
           </ul>
           {yieldLabel ? <p className="capture-yield">{yieldLabel}</p> : null}
+          {sourceLabel ? <p className="capture-hint hc-oil-source">{sourceLabel}</p> : null}
         </>
       )}
     </section>

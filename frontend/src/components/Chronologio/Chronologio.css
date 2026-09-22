@@ -2845,7 +2845,38 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chrono-compare-spines ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 @media (max-width: 900px) {
-  .chrono-date-rail { display: none; }
+  .chrono-living-layout.has-date-rail { grid-template-columns: minmax(0, 1fr); }
+  .chrono-date-rail {
+    display: block;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0 0 0.35rem;
+    order: -1;
+  }
+  .chrono-date-rail-hint { display: none; }
+  .chrono-date-rail ul {
+    flex-direction: row;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding: 0.15rem 0 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chrono-date-rail ul::before { display: none; }
+  .chrono-rail-item {
+    flex-direction: row;
+    width: auto;
+    min-height: 36px;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--surface-2, var(--color-surface));
+    gap: 0.35rem;
+  }
+  .chrono-rail-item.is-active {
+    border-color: var(--olive-primary);
+    background: color-mix(in srgb, var(--olive-primary) 12%, transparent);
+  }
   .chrono-year-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .chrono-compare-spines { grid-template-columns: 1fr; }
   .chrono-return-today { right: 0.75rem; bottom: 5.5rem; }

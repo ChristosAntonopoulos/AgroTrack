@@ -29,6 +29,7 @@ const TaskFormPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const fieldIdParam = searchParams.get('fieldId') || '';
   const proposalIdParam = searchParams.get('proposalId') || '';
+  const templateCodeParam = searchParams.get('templateCode') || '';
 
   const stashed = proposalIdParam ? readStashedProposal() : null;
   const proposal: TaskProposal | null =
@@ -152,7 +153,9 @@ const TaskFormPage: React.FC = () => {
   const selectedField = fields.find((field) => field.id === fieldId);
   const initialTitle = proposal
     ? templateTitle(proposal.templateCode, i18n.language)
-    : '';
+    : templateCodeParam
+      ? templateTitle(templateCodeParam, i18n.language)
+      : '';
 
   const goToPlanned = (createdId: string, year: number, nextFieldId: string) => {
     const params = buildTaskSearchParams({
@@ -231,7 +234,10 @@ const TaskFormPage: React.FC = () => {
   const subtitle =
     mode === 'proposal'
       ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ')
-      : t('fieldWork.form.manualSubtitle');
+      : templateCodeParam
+        ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ') ||
+          t('fieldWork.form.manualSubtitle')
+        : t('fieldWork.form.manualSubtitle');
 
   return (
     <PageContainer className="tasks-page-container">
@@ -245,13 +251,14 @@ const TaskFormPage: React.FC = () => {
         </header>
 
         <TaskComposer
-          key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}-${fieldId}`}
+          key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}-${fieldId}-${templateCodeParam}`}
           mode={mode}
           fields={fields}
           proposal={proposal}
           assigneeOptions={assigneeOptions}
           initialFieldId={fieldId}
           initialAssigneeKey={suggestedAssigneeKey}
+          initialTemplateCode={templateCodeParam}
           saving={saving}
           error={error}
           onFieldChange={setFieldId}

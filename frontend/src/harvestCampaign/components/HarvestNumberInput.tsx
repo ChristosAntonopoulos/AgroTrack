@@ -15,6 +15,8 @@ export type HarvestNumberInputProps = {
   autoFocus?: boolean;
   error?: string | null;
   disabled?: boolean;
+  /** Keep the name for assistive tech, but let a step title show it instead. */
+  hideLabel?: boolean;
 };
 
 export const HarvestNumberInput: React.FC<HarvestNumberInputProps> = ({
@@ -30,6 +32,7 @@ export const HarvestNumberInput: React.FC<HarvestNumberInputProps> = ({
   autoFocus,
   error,
   disabled,
+  hideLabel,
 }) => {
   const commit = () => {
     if (!onCommit) return;
@@ -41,7 +44,7 @@ export const HarvestNumberInput: React.FC<HarvestNumberInputProps> = ({
 
   return (
     <label className="hc-amount-field">
-      <span className="hc-amount-label">{label}</span>
+      <span className={`hc-amount-label${hideLabel ? ' is-sr' : ''}`}>{label}</span>
       <div className={`hc-amount-input${error ? ' is-invalid' : ''}`}>
         <input
           inputMode={inputMode}

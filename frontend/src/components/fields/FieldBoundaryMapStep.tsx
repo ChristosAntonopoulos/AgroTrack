@@ -505,70 +505,70 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
               {t('mapLayerStreet')}
             </button>
           </div>
-
-          <div className="boundary-action-bar">
-            {phase === 'locate' ? (
-              <button type="button" className="btn btn-primary boundary-primary-action" onClick={startDrawing}>
-                <Crosshair size={20} aria-hidden />
-                {t('addField.boundaryStartMarking')}
-              </button>
-            ) : null}
-
-            {phase === 'drawing' ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-secondary boundary-tool-btn"
-                  onClick={undoCorner}
-                  disabled={corners.length === 0}
-                >
-                  <Undo2 size={18} aria-hidden />
-                  {t('addField.boundaryUndo')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary boundary-tool-btn"
-                  onClick={clearCorners}
-                  disabled={corners.length === 0}
-                >
-                  <Trash2 size={18} aria-hidden />
-                  {t('addField.boundaryClear')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary boundary-primary-action"
-                  onClick={finishShape}
-                  disabled={corners.length < 3 || zoomTooLow}
-                  title={
-                    corners.length < 3
-                      ? t('addField.boundaryValidation.tooFewPoints')
-                      : zoomTooLow
-                        ? t('addField.boundaryValidation.zoomTooLow')
-                        : undefined
-                  }
-                >
-                  <Check size={20} aria-hidden />
-                  {t('addField.boundaryFinish')}
-                </button>
-                {corners.length > 0 && corners.length < 3 ? (
-                  <p className="boundary-location-status" role="status">
-                    {t('addField.boundaryValidation.tooFewPoints')}
-                  </p>
-                ) : null}
-              </>
-            ) : null}
-
-            {phase === 'done' ? (
-              <>
-                <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
-                  <Trash2 size={18} aria-hidden />
-                  {t('addField.boundaryRedraw')}
-                </button>
-                <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
-              </>
-            ) : null}
-          </div>
         </div>
+      </div>
+
+      <div className="boundary-action-bar">
+        {phase === 'locate' ? (
+          <button type="button" className="btn btn-primary boundary-primary-action" onClick={startDrawing}>
+            <Crosshair size={16} aria-hidden />
+            {t('addField.boundaryStartMarking')}
+          </button>
+        ) : null}
+
+        {phase === 'drawing' ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary boundary-tool-btn"
+              onClick={undoCorner}
+              disabled={corners.length === 0}
+            >
+              <Undo2 size={16} aria-hidden />
+              {t('addField.boundaryUndo')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary boundary-tool-btn"
+              onClick={clearCorners}
+              disabled={corners.length === 0}
+            >
+              <Trash2 size={16} aria-hidden />
+              {t('addField.boundaryClear')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary boundary-primary-action"
+              onClick={finishShape}
+              disabled={corners.length < 3 || zoomTooLow}
+              title={
+                corners.length < 3
+                  ? t('addField.boundaryValidation.tooFewPoints')
+                  : zoomTooLow
+                    ? t('addField.boundaryValidation.zoomTooLow')
+                    : undefined
+              }
+            >
+              <Check size={16} aria-hidden />
+              {t('addField.boundaryFinish')}
+            </button>
+            {corners.length > 0 && corners.length < 3 ? (
+              <p className="boundary-location-status" role="status">
+                {t('addField.boundaryValidation.tooFewPoints')}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+
+        {phase === 'done' ? (
+          <>
+            <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
+              <Trash2 size={16} aria-hidden />
+              {t('addField.boundaryRedraw')}
+            </button>
+            <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
+          </>
+        ) : null}
       </div>
 
       {corners.length > 0 ? (
