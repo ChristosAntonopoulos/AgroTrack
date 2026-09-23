@@ -395,10 +395,19 @@ stages:
             condition: eq('${{ parameters.deployBackend }}', true)
             continueOnError: true
 
-          - script: 'kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=300s'
+          - script: |
+              set +e
+              kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=600s
+              status=$?
+              if [ "$status" -ne 0 ]; then
+                echo "=== Frontend rollout did not finish ==="
+                kubectl get pods -n $(frontendNamespace) -o wide
+                kubectl describe deployment olive-lifecycle-frontend -n $(frontendNamespace)
+                kubectl describe pods -n $(frontendNamespace) -l app=olive-lifecycle-frontend
+                exit "$status"
+              fi
             displayName: 'Wait for frontend deployment rollout'
             condition: eq('${{ parameters.deployFrontend }}', true)
-            continueOnError: true
 
           - script: |
               echo "=== Deployment Status ==="
