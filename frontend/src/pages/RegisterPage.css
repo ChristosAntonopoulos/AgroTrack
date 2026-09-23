@@ -145,7 +145,52 @@
   }
 }
 
-@media (max-height: 900px) {
+@media (max-width: 1024px) {
+  .register-page,
+  .register-page .login-page-layout {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    grid-template-columns: 1fr;
+  }
+
+  .register-page .login-page-hero {
+    display: none;
+  }
+
+  .register-page .login-page-panel {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+    border-left: none;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-page .login-card {
+    padding: 1.05rem 0.9rem 1.1rem;
+  }
+
+  .register-page .login-card-heading {
+    margin-bottom: 0.45rem;
+  }
+
+  .register-page .login-card-heading h1 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+
+  .register-page .login-form {
+    gap: 0.55rem;
+  }
+
+  .register-name-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 900px) and (min-width: 1025px) {
   .register-page .login-page-hero-steps,
   .register-page .register-hero-panel,
   .register-page .register-hero-steps {
@@ -154,9 +199,5 @@
 
   .register-page .login-page-hero {
     min-height: 0;
-  }
-
-  .register-page .login-page-layout {
-    grid-template-columns: minmax(0, 0.85fr) minmax(22rem, 1.15fr);
   }
 }

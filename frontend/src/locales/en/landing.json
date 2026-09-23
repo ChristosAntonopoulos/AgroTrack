@@ -1,203 +1,167 @@
 {
   "brand": "Oleachron",
-  "alphaBadge": "Alpha",
   "header": {
     "howItWorks": "How it works",
     "chronologio": "Chronologio",
-    "features": "Features",
-    "partners": "Collaboration",
-    "pricing": "Start",
+    "features": "What you can do",
     "signIn": "Sign in",
     "startFree": "Start free"
   },
   "hero": {
-    "eyebrow": "Your grove’s knowledge, organised.",
-    "title": "Nobody knows your olive grove better than you.",
-    "definition": "Your grove’s digital diary — tasks, costs, weather, and harvest, organised by year.",
-    "sub": "Oleachron keeps what you know, what you do, and what happens in the field — so every year leaves knowledge behind.",
-    "benefits": [
-      "Record easily.",
-      "See what happened.",
-      "Pass the knowledge on."
-    ],
+    "eyebrow": "For your olive grove. For every year of it.",
+    "title": "Your olive grove’s story lives here.",
+    "sub": "Record what you do today and find it clearly whenever you need it: work, harvest, expenses, notes, photos, and whatever explains a year.",
     "ctaPrimary": "Start free",
-    "ctaSecondary": "See the Chronologio",
-    "ctaPreview": "Try an interactive demo",
-    "trust": "1 field free · No complicated setup · No card required"
+    "ctaSecondary": "See how it works",
+    "trust": "Your first field is free · For your own or a family grove",
+    "today": "Today",
+    "todayText": "A note in the field",
+    "strip": ["Work", "Harvest", "Expenses", "Photos", "Map"]
   },
-  "promises": {
-    "recordTitle": "Record it",
-    "recordText": "Tasks, observations, harvests, costs, and what you know about the field.",
-    "dataTitle": "Tie it to time",
-    "dataText": "Every entry lands on the right day, year, and growing season — automatically.",
-    "passTitle": "Keep it for later",
-    "passText": "The knowledge stays with the grove — ready for whoever cares for it next."
-  },
-  "problem": {
-    "title": "Years of knowledge don’t fit in a notebook.",
-    "lines": [
-      "Notes in notebooks.",
-      "Receipts in drawers.",
-      "Photos on the phone.",
-      "Work only one person remembers."
-    ],
-    "bridge": "And after two or three years, the details fade.",
-    "solution": "Oleachron brings it all into one history that follows the grove itself.",
-    "close": "No more knowledge that lives only in memory."
-  },
-  "brandMoment": {
-    "title": "Every year adds a new chapter.",
-    "intro": "From the first tasks to harvest, every action becomes part of the grove’s story.",
-    "flow": [
-      "Cultivation",
-      "Observation",
-      "Weather",
-      "Cost",
-      "Harvest",
-      "Next year"
-    ],
-    "close": "The grove gains a memory."
+  "memory": {
+    "title": "What you know about your grove deserves to stay.",
+    "text": "A note on the phone, a conversation in the field, an old notebook — all of it is useful until you need to find it. Oleachron keeps it with the field and its year.",
+    "close": "What happened. When it happened. Why it matters.",
+    "photoAlt": "An old notebook and notes, with the grove in afternoon light"
   },
   "chronologio": {
-    "title": "Everything that happened in the grove. One story.",
-    "text": "Tasks, weather, observations, harvests, money, and field changes appear at the right moment.",
-    "tasksTitle": "Tasks",
-    "tasksText": "What was done, and when.",
-    "notesTitle": "Observations",
-    "notesText": "What you saw in the field.",
-    "weatherTitle": "Weather",
-    "weatherText": "What was happening when you decided.",
-    "harvestTitle": "Money",
-    "harvestText": "What it cost, and what it returned.",
-    "foot": "And everything connects to the same field.",
-    "cta": "Create an account",
-    "ctaPreview": "Open interactive preview",
-    "shotAlt": "Grove Chronologio on a phone"
+    "title": "The Chronologio is your grove’s memory.",
+    "text": "It doesn’t just keep records. It shows the thread: what happened, in which field, under what conditions, and what followed.",
+    "points": [
+      "Remember what you did last year",
+      "Find a record in seconds",
+      "Understand the year that passed"
+    ],
+    "months": ["Sep", "Oct", "Nov"],
+    "railLabel": "Months of the year"
   },
-  "knowledge": {
-    "title": "Data shows what happened.\nYou know why.",
-    "p1": "A sensor can record the rain.",
-    "p2": "Oleachron can also keep what only you know: why you sprayed, what you noticed, what you changed, and what you’d do differently.",
-    "close": "Technology complements your experience. It doesn’t replace it."
+  "journal": {
+    "example": "Example",
+    "field": "Kato Alonia",
+    "month": "October 2025",
+    "dayEarly": "8 October",
+    "dayLate": "22 October",
+    "weatherTitle": "The day’s weather",
+    "weatherMeta": "17° · 12 mm rain",
+    "taskTitle": "Fruiting prune",
+    "taskMeta": "Completed",
+    "taskNextTitle": "Nets before harvest",
+    "taskNextMeta": "Friday · each year",
+    "noteTitle": "Fruit darkened on the south side",
+    "noteMeta": "Note and photo",
+    "harvestTitle": "Harvest",
+    "harvestMeta": "42 sacks · 860 kg · 148 L oil",
+    "expenseTitle": "Harvest labour",
+    "expenseMeta": "€320",
+    "sepTitle": "A check of the trees",
+    "sepMeta": "Completed · 12 September",
+    "sepDetail": "A quiet day in the field, before October opened.",
+    "novTitle": "Oil at the mill",
+    "novMeta": "148 L · 4 November",
+    "novDetail": "October’s oil stayed tied to the same field.",
+    "detailWeather": "12 mm of rain, the day the pruning was finished.",
+    "detailTask": "The task closed on 8 October. It stays with the field.",
+    "detailNote": "A note with a photo, before harvest began.",
+    "detailHarvest": "42 sacks, 860 kg of olives, 148 litres of oil.",
+    "detailExpense": "€320 of labour, tied to this field.",
+    "shotAlt": "October Chronologio for Kato Alonia: a task, a note, weather, a harvest and an expense"
   },
-  "beforeAfter": {
-    "title": "One grove. One memory.",
-    "beforeTitle": "Without Oleachron",
-    "beforeItems": [
-      "Notebooks",
-      "WhatsApp",
-      "Photos",
-      "Receipts",
-      "Memory",
-      "Excel",
-      "“Ask Giorgos”"
-    ],
-    "afterTitle": "With Oleachron",
-    "afterItems": [
-      "One history",
-      "One field",
-      "Every collaborator",
-      "Every year"
-    ],
-    "close": "Whatever belongs to the grove stays with the grove."
+  "capabilities": {
+    "title": "From the field to the year’s reckoning.",
+    "bridge": "Not six tools. Everything becomes part of the grove’s story.",
+    "items": [
+      {
+        "key": "map",
+        "title": "Your groves on the map",
+        "outcome": "See each field as it is.",
+        "text": "Find its place, keep its boundaries, and always have the picture of the grove in front of you."
+      },
+      {
+        "key": "tasks",
+        "title": "Work that isn’t forgotten",
+        "outcome": "Organise what needs doing.",
+        "text": "Create tasks for each field, set a time and a repeat, and mark them as soon as they’re done."
+      },
+      {
+        "key": "capture",
+        "title": "A record in a few seconds",
+        "outcome": "Keep the moment before it fades.",
+        "text": "Write a note, add a photo, or log an expense the moment it happens."
+      },
+      {
+        "key": "harvest",
+        "title": "Your harvest, without scraps of paper",
+        "outcome": "Sacks, kilos, oil and expenses, on the same field.",
+        "text": "Add what comes off as you pick, and close the harvest with a clear result."
+      },
+      {
+        "key": "money",
+        "title": "Expenses and a picture of the year",
+        "outcome": "See what it cost and what it returned.",
+        "text": "Tie expenses and income to the right field, so your reckoning makes sense."
+      },
+      {
+        "key": "context",
+        "title": "Weather, vegetation and past seasons",
+        "outcome": "See your grove through the data as well.",
+        "text": "Conditions and the field’s picture, always beside what actually happened."
+      }
+    ]
   },
-  "sharing": {
-    "title": "Knowledge stays with the field — not only with one person.",
-    "text": "Family, agronomist, or partner can see what happened without starting from zero.",
-    "familyTitle": "In the family",
-    "familyText": "The next generation finds the story ready.",
-    "partnersTitle": "With collaborators",
-    "partnersText": "The agronomist or worker has the context they need.",
-    "agronomistTitle": "For the next owner",
-    "agronomistText": "The grove keeps its history.",
-    "close": "Knowledge becomes part of the field itself."
+  "map": {
+    "title": "See your grove differently, without losing the real picture.",
+    "text": "Find your fields, keep their boundaries, and see how conditions change through the year. The map, the weather and the vegetation sit beside what actually happened in the grove.",
+    "marchLabel": "Vegetation · March 2026",
+    "juneLabel": "Vegetation · June 2026",
+    "marchFact": "In March the field’s picture was more uneven.",
+    "juneFact": "In June the field’s picture was more even.",
+    "compareLabel": "Compare two dates",
+    "march": "March 2026",
+    "june": "June 2026"
   },
-  "timeValue": {
-    "title": "Every year makes your grove clearer.",
-    "year1Label": "Year 1",
-    "year1": "You start recording.",
-    "year2Label": "Year 2",
-    "year2": "You start comparing.",
-    "year3Label": "Year 3+",
-    "year3": "You start seeing patterns.",
-    "questions": [
-      "When was the intervention?",
-      "What was the weather?",
-      "What did it cost?",
-      "What yield did we get?"
-    ],
-    "close": "As the history grows, decisions get better."
-  },
-  "simpleUse": {
-    "title": "In the field, you need simplicity.",
-    "lines": [
-      "No forms with twenty fields.",
-      "No complicated software.",
-      "No office work."
-    ],
-    "steps": [
-      "Open your phone.",
-      "Record what happened.",
-      "Get back to work."
-    ],
-    "bullets": [
-      "A few taps",
-      "A photo when you need it",
-      "Oleachron organises the rest"
-    ],
-    "shotAlt": "Logging a task from a phone"
+  "harvest": {
+    "title": "Your harvest, clear from the first day to the final reckoning.",
+    "text": "Note sacks, kilos, oil and expenses as the harvest goes on. When the year closes, you know what each field gave — and you have the reference for the next one.",
+    "sacks": "Sacks",
+    "kilos": "Kilos",
+    "litres": "Litres of oil",
+    "expenses": "Expenses",
+    "sacksValue": "6",
+    "kilosValue": "128",
+    "litresValue": "—",
+    "expensesValue": "€40",
+    "add": "Add today’s record",
+    "soFar": "October so far · 42 sacks"
   },
   "steps": {
-    "title": "Start today.",
-    "lead": "You don’t need to load your whole past into the system.",
+    "title": "Start simply. Your grove builds its own story.",
     "step1Title": "Add your grove",
-    "step1Text": "Only the basics.",
-    "step2Title": "Log the next task",
-    "step2Text": "That’s where the history begins.",
-    "step3Title": "Let time do its work",
-    "step3Text": "Every new entry adds value.",
-    "cta": "Add my first grove"
+    "step1Text": "Find it on the map and keep its basic details.",
+    "step2Title": "Record what you do",
+    "step2Text": "A task, a note, an expense, or today’s harvest.",
+    "step3Title": "Watch the year take on meaning",
+    "step3Text": "The Chronologio organises what happened, so you can find it again and use it."
   },
-  "future": {
-    "title": "You’re not just keeping a file.\nYou’re building continuity.",
-    "pastTitle": "Past",
-    "pastText": "What did we do?",
-    "todayTitle": "Today",
-    "todayText": "What’s happening now?",
-    "nextTitle": "Next season",
-    "nextText": "What did we learn, and what should change?",
-    "close": "Oleachron turns records into experience that isn’t lost."
+  "trust": {
+    "title": "Made for people who carry the grove in mind.",
+    "text": "For you, caring for your own or a family grove and wanting to keep what you learn each year. Simple in the field, clear when you come home.",
+    "labels": ["Designed for olive groves", "A record in a few seconds", "The first field is free"]
+  },
+  "cta": {
+    "title": "Don’t let another year stay on scraps of paper.",
+    "text": "Start your grove on Oleachron and keep what matters, from today.",
+    "primary": "Start with your first field free"
   },
   "alpha": {
-    "title": "Start with your first grove free.",
-    "text": "You don’t need to change how you work. Start with one field and watch its history grow.",
-    "cardTitle": "Oleachron Free",
-    "price": "1 field free",
-    "includes": [
-      "Chronologio",
-      "Tasks",
-      "Observations",
-      "Harvests",
-      "Money records",
-      "Weather history"
-    ],
-    "trust": "No card · Your data stays yours",
-    "download": "Download Android trial APK",
-    "downloadHint": "Optional sideload for early testers. Most people should start on the web.",
-    "safetyWhy": "This build is signed and hosted only on oleachron.com. Android will warn about unknown sources — that is normal for apps not yet on Play Store, not a sign of malware.",
-    "webCta": "Create your first grove",
     "androidTestTitle": "Android trial (advanced)",
-    "released": "Released",
-    "releasedValue": "2026-09",
-    "size": "Size",
-    "sizeValue": "see file",
+    "download": "Download the Android trial APK",
+    "downloadHint": "Optional install. Most people start on the web.",
+    "safetyWhy": "This build is signed and hosted only on oleachron.com. Android will warn about an unknown source — that is normal before the Play Store.",
     "version": "Version",
     "versionValue": "0.1.0-alpha",
-    "platform": "Platform",
-    "platformValue": "Web & Android",
-    "status": "Status",
-    "statusValue": "Free to start",
-    "installGuide": "Install guide (trial)",
+    "released": "Date",
+    "releasedValue": "2026-09",
+    "installGuide": "Install guide",
     "installTitle": "How to install the trial app",
     "installSteps": [
       "Download the file on your Android phone.",
@@ -206,30 +170,12 @@
       "Open Oleachron.",
       "Create an account or sign in."
     ],
-    "safety": "Install only from oleachron.com. Never from forwarded files or third-party sites."
-  },
-  "demo": {
-    "title": "See an example",
-    "subtitle": "Tell us about your groves and we’ll get in touch.",
-    "name": "Name",
-    "email": "Email",
-    "organization": "Farm or organisation",
-    "message": "What would you like to see?",
-    "submit": "Send",
-    "mailtoSubject": "Oleachron demo request"
-  },
-  "cta": {
-    "kicker": "Every field has a story.",
-    "title": "Your grove’s story has already begun.",
-    "text": "All that’s left is not to lose it.",
-    "primary": "Start free",
-    "secondary": "See an example"
+    "safety": "Install only from oleachron.com."
   },
   "footer": {
-    "description": "Your grove has knowledge. Oleachron makes sure it isn’t lost.",
+    "description": "The digital archive of your olive grove.",
     "product": "Product",
     "contact": "Contact",
-    "contactEmail": "hello@oleachron.com",
     "privacy": "Privacy",
     "terms": "Terms",
     "version": "Alpha"
