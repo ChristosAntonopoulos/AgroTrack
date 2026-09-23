@@ -28,6 +28,8 @@ import Button from '../components/ui/Button';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { changeAppLanguage } from '../i18n';
+import { isMockMode } from '../services/serviceFactory';
+import { NOTIFICATION_PREF_KEYS } from '../services/userPreferencesService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -77,6 +79,8 @@ const SettingsScreen = () => {
     setDefaultView,
     dateFormat,
     setDateFormat,
+    notificationPrefs,
+    setNotificationPref,
     tapMin,
     fontScaleMultiplier,
   } = usePreferences();
@@ -275,6 +279,43 @@ const SettingsScreen = () => {
         </View>
       </Group>
 
+      <Group title={t('settings:sections.notifications')}>
+        <Text style={[styles.hint, { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier }]}>
+          {t(isMockMode() ? 'settings:notifications.accountHintDemo' : 'settings:notifications.accountHint')}
+        </Text>
+        {NOTIFICATION_PREF_KEYS.map((key, index) => (
+          <View key={key}>
+            {index > 0 ? <View style={[styles.divider, { backgroundColor: colors.gray200 }]} /> : null}
+            <View style={[styles.switchRow, { minHeight: Math.max(52, controlH + 10) }]}>
+              <View style={{ flex: 1, paddingRight: spacing.sm }}>
+                <Text style={[styles.rowTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
+                  {t(`settings:notifications.prefs.${key}`)}
+                </Text>
+                <Text
+                  style={[
+                    styles.hint,
+                    { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier, marginBottom: 0 },
+                  ]}
+                >
+                  {t(`settings:notifications.prefsHints.${key}`)}
+                </Text>
+              </View>
+              <Switch
+                value={notificationPrefs[key]}
+                onValueChange={(enabled) => {
+                  void setNotificationPref(key, enabled)
+                    .then(flashSaved)
+                    .catch(() => Alert.alert(t('settings:saveError')));
+                }}
+                trackColor={{ false: colors.warmStone, true: colors.sage }}
+                thumbColor={colors.white}
+                accessibilityLabel={t(`settings:notifications.prefs.${key}`)}
+              />
+            </View>
+          </View>
+        ))}
+      </Group>
+
       <Group title={t('settings:sections.appearance')}>
         <FieldBlock title={t('settings:theme')} hint={t(`settings:themeHints.${themeMode}`)}>
           <Segmented
@@ -367,6 +408,20 @@ const SettingsScreen = () => {
             onChange={(v) => void setDefaultView(v as DefaultStartView).then(flashSaved)}
           />
         </FieldBlock>
+      </Group>
+
+      <Group title={t('settings:sections.legal')}>
+        <SelectRow
+          title={t('auth:login.privacy')}
+          valueLabel=""
+          onPress={() => navigation.navigate('Legal', { kind: 'privacy' })}
+        />
+        <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
+        <SelectRow
+          title={t('auth:login.terms')}
+          valueLabel=""
+          onPress={() => navigation.navigate('Legal', { kind: 'terms' })}
+        />
       </Group>
 
       <Group title={t('settings:sections.advanced')}>

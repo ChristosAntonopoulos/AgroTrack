@@ -9,7 +9,8 @@ import {
   isProvisionalActiveYearResult,
   resultLabel as computeResultLabel,
 } from '../../finance/display';
-import { formatOfficialAmount, formatOfficialNet } from '../../finance/format';
+import { harvestYearSpan } from '../../finance/harvestYear';
+import { formatLitres, formatOfficialAmount, formatOfficialNet } from '../../finance/format';
 import { radii, spacing, typography, createElevation } from '../../theme';
 
 type Props = {
@@ -74,7 +75,7 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
         ]}
       >
         <Text style={[styles.kicker, { color: colors.textTertiary }]}>
-          {provisional ? t('provisionalBalance') : t('resultYear', { year: summary.year })}
+          {provisional ? t('provisionalBalance') : t('resultYear', { span: harvestYearSpan(summary.year) })}
         </Text>
         <Text
           style={[
@@ -125,6 +126,10 @@ const MoneySummaryCards: React.FC<Props> = ({ summary, locale, onAddIncome }) =>
                 </Pressable>
               ) : null}
             </>
+          ) : summary.oliveOil?.soldLitres != null ? (
+            <Text style={[styles.note, { color: colors.textTertiary }]} numberOfLines={2}>
+              {t('sold')} {formatLitres(summary.oliveOil.soldLitres, locale, '—')}
+            </Text>
           ) : null}
         </View>
 

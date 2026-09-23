@@ -29,6 +29,8 @@
     "appearance": "Appearance",
     "locale": "Language & region",
     "startup": "Startup",
+    "notifications": "Notifications",
+    "legal": "Legal",
     "advanced": "Advanced",
     "technical": "Technical details"
   },
@@ -44,6 +46,27 @@
   "appVersion": "App version",
   "logout": "Sign out",
   "logoutConfirm": "Are you sure you want to sign out?",
+  "saveError": "Could not save that change.",
+  "notifications": {
+    "accountHint": "Saved to your account. The same choices apply on every device where you sign in.",
+    "accountHintDemo": "Saved on this phone for the demo account.",
+    "prefs": {
+      "taskAssignment": "Task assignment",
+      "approval": "Approvals",
+      "harvest": "Harvest",
+      "financial": "Financial",
+      "satelliteWeather": "Satellite & weather",
+      "marketingSystem": "Marketing & system messages"
+    },
+    "prefsHints": {
+      "taskAssignment": "When someone assigns you field work.",
+      "approval": "When a task needs or receives approval.",
+      "harvest": "Harvest campaign and recording updates.",
+      "financial": "Money and cost-related notices.",
+      "satelliteWeather": "Field weather and satellite alerts.",
+      "marketingSystem": "Product announcements and system messages."
+    }
+  },
   "experience": {
     "fontScale": "Text size",
     "fontScales": {

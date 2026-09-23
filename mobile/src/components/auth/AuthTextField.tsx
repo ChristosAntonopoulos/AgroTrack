@@ -7,13 +7,22 @@ import {
   TouchableOpacity,
   TextInputProps,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { loginTheme } from '../../theme/loginTheme';
-import { typography, spacing, spacingPatterns } from '../../theme';
+import { typography, spacing, radii } from '../../theme';
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 type Props = TextInputProps & {
   label: string;
-  leftIcon?: React.ReactNode;
+  leftIcon?: IconName;
   showPasswordToggle?: boolean;
+  error?: string;
+  helperText?: string;
+  required?: boolean;
+  optional?: boolean;
+  labelRight?: React.ReactNode;
 };
 
 const AuthTextField: React.FC<Props> = ({
@@ -23,30 +32,54 @@ const AuthTextField: React.FC<Props> = ({
   secureTextEntry,
   style,
   editable = true,
+  error,
+  helperText,
+  required,
+  optional,
+  labelRight,
   ...rest
 }) => {
+  const { t } = useTranslation('auth');
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
   const isSecure = Boolean(secureTextEntry);
   const hidePassword = showPasswordToggle && isSecure && !visible;
+  const hasError = Boolean(error);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>
+          {label}
+          {required ? <Text style={styles.required}> *</Text> : null}
+          {optional ? <Text style={styles.optional}> {t('register.optional')}</Text> : null}
+        </Text>
+        {labelRight}
+      </View>
       <View
         style={[
           styles.field,
           focused && styles.fieldFocused,
+          hasError && styles.fieldError,
           editable === false && styles.fieldDisabled,
         ]}
       >
-        {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
+        {leftIcon ? (
+          <Ionicons
+            name={leftIcon}
+            size={18}
+            color={hasError ? loginTheme.error : loginTheme.textMuted}
+            style={styles.leftIcon}
+          />
+        ) : null}
         <TextInput
           {...rest}
           editable={editable}
           secureTextEntry={hidePassword}
           placeholderTextColor={loginTheme.inputPlaceholder}
           style={[styles.input, style]}
+          accessibilityLabel={label}
+          accessibilityState={{ disabled: editable === false }}
           onFocus={(e) => {
             setFocused(true);
             rest.onFocus?.(e);
@@ -61,12 +94,22 @@ const AuthTextField: React.FC<Props> = ({
             style={styles.toggle}
             onPress={() => setVisible((v) => !v)}
             accessibilityRole="button"
-            accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+            accessibilityLabel={visible ? t('login.hidePassword') : t('login.showPassword')}
           >
-            <Text style={styles.toggleIcon}>{visible ? '👁' : '👁‍🗨️'}</Text>
+            <Ionicons
+              name={visible ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={loginTheme.textMuted}
+            />
           </TouchableOpacity>
         ) : null}
       </View>
+      {helperText && !error ? <Text style={styles.helper}>{helperText}</Text> : null}
+      {error ? (
+        <Text style={styles.error} accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 };
@@ -75,10 +118,25 @@ const styles = StyleSheet.create({
   wrap: {
     marginBottom: spacing.base,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
   label: {
     ...typography.styles.label,
     color: loginTheme.textPrimary,
-    marginBottom: spacing.xs,
+    flex: 1,
+  },
+  required: {
+    color: loginTheme.error,
+  },
+  optional: {
+    ...typography.styles.caption,
+    color: loginTheme.textMuted,
+    fontWeight: '400',
   },
   field: {
     flexDirection: 'row',
@@ -86,20 +144,21 @@ const styles = StyleSheet.create({
     backgroundColor: loginTheme.inputBg,
     borderWidth: 1,
     borderColor: loginTheme.inputBorder,
-    borderRadius: spacingPatterns.borderRadius.lg,
+    borderRadius: radii.lg,
     minHeight: 52,
   },
   fieldFocused: {
     borderColor: loginTheme.inputBorderFocused,
     borderWidth: 1.5,
   },
+  fieldError: {
+    borderColor: loginTheme.error,
+  },
   fieldDisabled: {
     opacity: 0.65,
   },
   leftIcon: {
-    paddingLeft: spacing.base,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginLeft: spacing.base,
   },
   input: {
     flex: 1,
@@ -111,12 +170,20 @@ const styles = StyleSheet.create({
   },
   toggle: {
     paddingHorizontal: spacing.base,
+    minHeight: 44,
+    minWidth: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  toggleIcon: {
-    fontSize: 18,
+  helper: {
+    ...typography.styles.caption,
     color: loginTheme.textMuted,
+    marginTop: spacing.xs,
+  },
+  error: {
+    ...typography.styles.caption,
+    color: loginTheme.error,
+    marginTop: spacing.xs,
   },
 });
 

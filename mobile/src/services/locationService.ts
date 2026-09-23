@@ -1,5 +1,4 @@
-// Location Service - Provides GPS and location utilities
-// Uses expo-location when available, falls back to mock data
+// GPS helpers. Denied or unavailable location fails closed — never a stand-in city.
 
 export interface Location {
   latitude: number;
@@ -12,14 +11,13 @@ export interface Directions {
   route: Location[];
 }
 
-// Haversine formula to calculate distance between two coordinates
 export const calculateDistance = (
   lat1: number,
   lng1: number,
   lat2: number,
   lng2: number
 ): number => {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
@@ -32,96 +30,68 @@ export const calculateDistance = (
   return R * c;
 };
 
+export const validateCoordinates = (lat: number, lng: number): boolean =>
+  typeof lat === 'number' &&
+  typeof lng === 'number' &&
+  lat >= -90 &&
+  lat <= 90 &&
+  lng >= -180 &&
+  lng <= 180 &&
+  !Number.isNaN(lat) &&
+  !Number.isNaN(lng);
+
 export interface LocationService {
   getCurrentLocation(): Promise<Location>;
   calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number;
-  getDirectionsToField(fieldId: string, currentLocation?: Location): Promise<Directions>;
+  /** Straight-line distance to a real field center. Same MVP as the web client. */
+  getDirectionsToField(fieldLocation: Location, currentLocation?: Location): Promise<Directions>;
   validateCoordinates(lat: number, lng: number): boolean;
 }
 
 class LocationServiceImpl implements LocationService {
-  private mockCurrentLocation: Location = {
-    latitude: 37.7749,
-    longitude: -122.4194,
-  };
-
   async getCurrentLocation(): Promise<Location> {
-    try {
-      // Try to use expo-location if available
-      // @ts-ignore - expo-location may not be installed yet
-      const { requestForegroundPermissionsAsync, getCurrentPositionAsync } = require('expo-location');
-      
-      const { status } = await requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        throw new Error('Location permission not granted');
-      }
-
-      const location = await getCurrentPositionAsync({});
-      return {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-    } catch (error) {
-      // Fallback to mock location if expo-location is not available or permission denied
-      if (__DEV__) {
-        console.log('[LocationService] Using mock location (expo-location not available or permission denied)');
-      }
-      return this.mockCurrentLocation;
+    const { requestForegroundPermissionsAsync, getCurrentPositionAsync } = require('expo-location');
+    const { status } = await requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      throw new Error('Location permission denied');
     }
+    const location = await getCurrentPositionAsync({});
+    const next = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+    if (!validateCoordinates(next.latitude, next.longitude)) {
+      throw new Error('Location unavailable');
+    }
+    return next;
   }
 
   calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
     return calculateDistance(lat1, lng1, lat2, lng2);
   }
 
-  async getDirectionsToField(fieldId: string, currentLocation?: Location): Promise<Directions> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real implementation, this would call a directions API (Google Maps, etc.)
-    // For now, we'll use mock data and calculate straight-line distance
-    
-    const current = currentLocation || await this.getCurrentLocation();
-    
-    // Mock field location (in real app, fetch from field service)
-    const fieldLocation: Location = {
-      latitude: 37.7849,
-      longitude: -122.4094,
-    };
-    
+  async getDirectionsToField(fieldLocation: Location, currentLocation?: Location): Promise<Directions> {
+    if (!validateCoordinates(fieldLocation.latitude, fieldLocation.longitude)) {
+      throw new Error('Field location is missing');
+    }
+    const current = currentLocation ?? (await this.getCurrentLocation());
     const distance = this.calculateDistance(
       current.latitude,
       current.longitude,
       fieldLocation.latitude,
       fieldLocation.longitude
     );
-    
-    // Estimate duration: assume average speed of 50 km/h
     const duration = Math.round((distance / 50) * 60);
-    
-    // Generate mock route (simplified - just start and end points)
-    const route: Location[] = [current, fieldLocation];
-    
     return {
       distance: Math.round(distance * 10) / 10,
       duration,
-      route,
+      route: [current, fieldLocation],
     };
   }
 
   validateCoordinates(lat: number, lng: number): boolean {
-    return (
-      typeof lat === 'number' &&
-      typeof lng === 'number' &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180 &&
-      !isNaN(lat) &&
-      !isNaN(lng)
-    );
+    return validateCoordinates(lat, lng);
   }
 }
 
-// Export singleton instance
 export const locationService: LocationService = new LocationServiceImpl();

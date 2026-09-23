@@ -6,7 +6,8 @@ export type FieldTaskStatus =
   | 'in_progress'
   | 'blocked'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'skipped';
 
 export interface TaskProposal {
   id: string;
@@ -117,6 +118,8 @@ export interface FieldTask {
   pauseReason?: string;
   pausedAt?: string;
   workGroupId?: string;
+  blockedReason?: string;
+  activity?: Array<{ action: string; actorId: string; occurredAt: string; comment?: string }>;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -338,6 +341,64 @@ export interface ActivateFieldWorkProfileInput {
   status?: string;
 }
 
+/** Copy practice preferences to other Active fields. Flags default off. */
+export interface CopyFieldWorkProfileInput {
+  targetFieldIds: string[];
+  copyIrrigation?: boolean;
+  copyLastPerformed?: boolean;
+  copyAssignments?: boolean;
+}
+
+export interface CopyFieldWorkProfileTargetResult {
+  fieldId: string;
+  success: boolean;
+  profileId?: string | null;
+  profileStatus?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  skippedAssignmentUserIds: string[];
+}
+
+export interface CopyFieldWorkProfileResult {
+  sourceFieldId: string;
+  results: CopyFieldWorkProfileTargetResult[];
+}
+
+/** Dry-run year plan from work-profile eligibility (Draft or Active). */
+export interface FieldWorkPlanPreviewItem {
+  templateCode: string;
+  templateName: string;
+  eligibilityStatus: string;
+  reasonCode: string;
+  reason: string;
+  practiceCategory: string;
+  windowStart?: string | null;
+  windowEnd?: string | null;
+}
+
+export interface FieldWorkPlanPreview {
+  fieldId: string;
+  resultYear: number;
+  profileStatus: string;
+  usedDraftAsPreview: boolean;
+  enabledCount: number;
+  askFirstCount: number;
+  suppressedCount: number;
+  enabled: FieldWorkPlanPreviewItem[];
+  askFirst: FieldWorkPlanPreviewItem[];
+  suppressed: FieldWorkPlanPreviewItem[];
+}
+
+export interface FieldWorkLearningStatus {
+  annualReviewDue: boolean;
+  lastReviewedAt?: string | null;
+  onboardingVersion: number;
+  currentOnboardingVersion: number;
+  hasIncrementalQuestions: boolean;
+  pendingIncrementalQuestionIds: string[];
+  incrementalOnboardingNote?: string;
+}
+
 export interface TaskExecution {
   id: string;
   taskId: string;
@@ -368,6 +429,7 @@ export interface CreateFieldTaskInput {
   estimatedCost?: number;
   resultYear?: number;
   relatedHarvestId?: string;
+  workGroupId?: string;
 }
 
 export interface AcceptProposalInput {
@@ -503,6 +565,7 @@ export const fieldWorkService = {
         boolValue?: boolean;
       }>;
       createFollowUpForRemainder?: boolean;
+      allowIncomplete?: boolean;
     } = {}
   ): Promise<TaskExecution> => {
     const response = await api.post<TaskExecution>(`/api/v1/field-tasks/${id}/complete`, body);
@@ -518,6 +581,42 @@ export const fieldWorkService = {
 
   cancelFieldTask: async (id: string): Promise<FieldTask> => {
     const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/cancel`);
+    return response.data;
+  },
+
+  setChecklistItem: async (id: string, key: string, completed: boolean): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(
+      `/api/v1/field-tasks/${id}/checklist/${encodeURIComponent(key)}`,
+      { completed }
+    );
+    return response.data;
+  },
+
+  blockFieldTask: async (id: string, reason?: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/block`, { reason });
+    return response.data;
+  },
+
+  skipFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/skip`);
+    return response.data;
+  },
+
+  resolveFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/resolve`);
+    return response.data;
+  },
+
+  reopenFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/reopen`);
+    return response.data;
+  },
+
+  updateFieldTask: async (
+    id: string,
+    body: { notes?: string; description?: string; title?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.put<FieldTask>(`/api/v1/field-tasks/${id}`, body);
     return response.data;
   },
 
@@ -586,6 +685,53 @@ export const fieldWorkService = {
   ): Promise<FieldWorkProfile> => {
     const response = await api.post<FieldWorkProfile>(
       `/api/v1/fields/${fieldId}/work-profile/activate`,
+      body ?? {}
+    );
+    return response.data;
+  },
+
+  /** Dry-run plan preview from a draft or active profile. Does not create tasks. */
+  getPlanPreview: async (fieldId: string, year?: number): Promise<FieldWorkPlanPreview> => {
+    const response = await api.get<FieldWorkPlanPreview>(
+      `/api/v1/fields/${fieldId}/work-profile/plan-preview`,
+      { params: year != null ? { year } : undefined }
+    );
+    return response.data;
+  },
+
+  /**
+   * Copy practice preferences to other fields.
+   * Irrigation, last-performed, and assignments stay off unless asked for.
+   */
+  copyWorkProfile: async (
+    fieldId: string,
+    body: CopyFieldWorkProfileInput
+  ): Promise<CopyFieldWorkProfileResult> => {
+    const response = await api.post<CopyFieldWorkProfileResult>(
+      `/api/v1/fields/${fieldId}/work-profile/copy`,
+      {
+        targetFieldIds: body.targetFieldIds,
+        copyIrrigation: body.copyIrrigation ?? false,
+        copyLastPerformed: body.copyLastPerformed ?? false,
+        copyAssignments: body.copyAssignments ?? false,
+      }
+    );
+    return response.data;
+  },
+
+  getLearningStatus: async (fieldId: string): Promise<FieldWorkLearningStatus> => {
+    const response = await api.get<FieldWorkLearningStatus>(
+      `/api/v1/fields/${fieldId}/work-profile/learning/status`
+    );
+    return response.data;
+  },
+
+  markWorkProfileReviewed: async (
+    fieldId: string,
+    body?: { incrementalQuestionId?: string }
+  ): Promise<FieldWorkProfile> => {
+    const response = await api.post<FieldWorkProfile>(
+      `/api/v1/fields/${fieldId}/work-profile/learning/mark-reviewed`,
       body ?? {}
     );
     return response.data;

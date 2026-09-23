@@ -24,6 +24,8 @@ type Props = {
   onPressToday?: () => void;
   todayLabel?: string;
   filtersLabel?: string;
+  onPressCapture?: () => void;
+  captureLabel?: string;
 };
 
 /**
@@ -47,6 +49,8 @@ const ChronologioJournalHeader: React.FC<Props> = ({
   onPressToday,
   todayLabel = 'Today',
   filtersLabel = 'Filters',
+  onPressCapture,
+  captureLabel = 'New record',
 }) => {
   const { colors, fontScaleMultiplier } = useTheme();
   const titleSize = (compact ? 20 : 26) * fontScaleMultiplier;
@@ -173,6 +177,14 @@ const ChronologioJournalHeader: React.FC<Props> = ({
                 {todayLabel}
               </Text>
             </Pressable>
+          ) : null}
+          {onPressCapture ? (
+            <HeaderIconButton
+              compact
+              icon="add-outline"
+              accessibilityLabel={captureLabel}
+              onPress={onPressCapture}
+            />
           ) : null}
           <HeaderIconButton
             compact

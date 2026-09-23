@@ -11,9 +11,10 @@ export const FIELD_PAGE_TABS: FieldTab[] = ['overview', 'map', 'chronologio', 'd
 type Props = {
   tab: FieldTab;
   onTabChange: (tab: FieldTab) => void;
+  tabs?: FieldTab[];
 };
 
-const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange }) => {
+const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_PAGE_TABS }) => {
   const { t } = useTranslation('fields');
   const { colors, tapMin } = useTheme();
 
@@ -33,7 +34,7 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange }) => {
         accessibilityRole="tablist"
         accessibilityLabel={t('page.tabsAria')}
       >
-        {FIELD_PAGE_TABS.map((id) => {
+        {tabs.map((id) => {
           const selected = tab === id;
           return (
             <Pressable

@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -10,33 +10,21 @@ import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
-import { fieldPeopleService, FieldInvite, FieldMembership } from '../services/fieldPeopleService';
-import {
-  DEFAULT_FAMILY_MODULES,
-  FamilyAccessLevel,
-  FamilyModule,
-} from '../services/familyService';
-import { DEFAULT_PARTNER_MODULES } from '../services/ownerPartnerService';
-import {
-  SavedContact,
-  ServiceCategory,
-} from '../services/partnerService';
-import { fromSavedContacts, GrovePerson, occupiesAccessSeat } from '../utils/grovePeople';
-import { canPickDeviceContact, pickDeviceContact } from '../utils/pickDeviceContact';
-import {
-  groupPeople,
-  personContextLine,
-  personSubtitle,
-} from '../utils/personPresentation';
-import InviteSharePanel from '../components/partners/InviteSharePanel';
-import PartnersSheet from '../components/partners/PartnersSheet';
+import { FieldInvite, FieldMembership, fieldPeopleService } from '../services/fieldPeopleService';
+import { SavedContact, ServiceCategory } from '../services/partnerService';
+import { fromSavedContacts, GrovePerson, linkedFieldIds, occupiesAccessSeat } from '../utils/grovePeople';
+import { canPickDeviceContact } from '../utils/pickDeviceContact';
+import { isListedGrove } from '../utils/fieldDisplay';
+import { friendlyFieldLabel } from '../utils/fieldLabels';
+import { personSubtitle } from '../utils/personPresentation';
+import PartnersFieldPicker from '../components/partners/PartnersFieldPicker';
+import TeamAccessSection from '../components/partners/TeamAccessSection';
+import SavedContactSheet from '../components/partners/SavedContactSheet';
+import SeatInviteSheet from '../components/partners/SeatInviteSheet';
 import ImportPhoneContactsSheet from '../components/partners/ImportPhoneContactsSheet';
-import AccessFields from '../components/partners/AccessFields';
-import TeamMemberCard from '../components/partners/TeamMemberCard';
 import PersonCard from '../components/partners/PersonCard';
 import PersonDetailSheet from '../components/partners/PersonDetailSheet';
 import { RootStackParamList } from '../navigation/types';
@@ -50,8 +38,7 @@ const FIELD_KEY = '@Oleachron/lastPartnerFieldId';
 const PartnersHomeScreen = () => {
   const { t, i18n } = useTranslation(['partners', 'common', 'nav']);
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier } = usePreferences();
-  const { user, isFieldOwner } = useAuth();
+  const { user } = useAuth();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
 
@@ -59,65 +46,39 @@ const PartnersHomeScreen = () => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [fieldId, setFieldId] = useState(route.params?.fieldId || '');
   const [people, setPeople] = useState<GrovePerson[]>([]);
+  const [peopleByField, setPeopleByField] = useState<Record<string, FieldMembership[]>>({});
   const [loading, setLoading] = useState(true);
   const [peopleTick, setPeopleTick] = useState(0);
-  const [fieldPeople, setFieldPeople] = useState<FieldMembership[]>([]);
   const [seatsTick, setSeatsTick] = useState(0);
-  const [query, setQuery] = useState('');
+  const [pendingInvitesById, setPendingInvitesById] = useState<Record<string, FieldInvite>>({});
   const [selected, setSelected] = useState<GrovePerson | null>(null);
-
   const [adding, setAdding] = useState(false);
-  const [addStep, setAddStep] = useState<'choose' | 'save' | 'invite'>('choose');
-  const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
-  const [inviteName, setInviteName] = useState('');
-  const [invitePhone, setInvitePhone] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteWorksHere, setInviteWorksHere] = useState(true);
-  const [inviteCanSee, setInviteCanSee] = useState(false);
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactNotes, setContactNotes] = useState('');
-  const [contactFields, setContactFields] = useState<string[]>([]);
-  const [contactSource, setContactSource] = useState<'Manual' | 'PhoneBook'>('Manual');
-  const [savingContact, setSavingContact] = useState(false);
-  const [invite, setInvite] = useState<FieldInvite | null>(null);
-
+  const [importing, setImporting] = useState(false);
   const [addingFamily, setAddingFamily] = useState(false);
-  const [familyName, setFamilyName] = useState('');
-  const [familyEmail, setFamilyEmail] = useState('');
-  const [familyModules, setFamilyModules] = useState<FamilyModule[]>([...DEFAULT_FAMILY_MODULES]);
-  const [familyLevel, setFamilyLevel] = useState<FamilyAccessLevel>('view');
-  const [familyInvite, setFamilyInvite] = useState<FieldInvite | null>(null);
-  const [savingFamily, setSavingFamily] = useState(false);
-
   const [addingPartner, setAddingPartner] = useState(false);
-  const [partnerName, setPartnerName] = useState('');
-  const [partnerEmail, setPartnerEmail] = useState('');
-  const [partnerModules, setPartnerModules] = useState<FamilyModule[]>([...DEFAULT_PARTNER_MODULES]);
-  const [partnerLevel, setPartnerLevel] = useState<FamilyAccessLevel>('work');
-  const [partnerInvite, setPartnerInvite] = useState<FieldInvite | null>(null);
-  const [savingPartner, setSavingPartner] = useState(false);
-
+  const [invitePrefill, setInvitePrefill] = useState<{ name?: string; email?: string }>({});
+  const [inviteTargetFieldId, setInviteTargetFieldId] = useState('');
   const openedAddContact = useRef(false);
 
-  const openAddChooser = () => {
-    setAddStep('choose');
-    setInvite(null);
-    setEditing(null);
-    setAdding(true);
-  };
+  const groveFields = useMemo(() => fields.filter(isListedGrove), [fields]);
+  const listedFields = useMemo(() => {
+    if (fieldId && !groveFields.some((field) => field.id === fieldId)) {
+      const extra = fields.find((field) => field.id === fieldId);
+      if (extra) return [extra, ...groveFields];
+    }
+    return groveFields;
+  }, [fields, fieldId, groveFields]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       title: t('nav:partners', { defaultValue: t('partners:title') }),
       headerRight: () => (
         <Pressable
-          onPress={openAddChooser}
+          onPress={() => setAdding(true)}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel={t('partners:addCollaborator')}
+          accessibilityLabel={t('partners:addContact')}
           style={{ paddingHorizontal: 12, paddingVertical: 6 }}
         >
           <Ionicons name="add" size={28} color={colors.primary} />
@@ -132,15 +93,15 @@ const PartnersHomeScreen = () => {
         const remembered = await AsyncStorage.getItem(FIELD_KEY);
         const [fieldRows, cats] = await Promise.all([
           getFieldService().getFields(user?.id || '', user?.role || ''),
-          getPartnerService().getCategories(),
+          getPartnerService().getCategories().catch(() => [] as ServiceCategory[]),
         ]);
         setFields(fieldRows);
-        setCategories(cats);
+        setCategories(Array.isArray(cats) ? cats : []);
         const preferred = route.params?.fieldId || remembered || '';
-        const next = fieldRows.some((f) => f.id === preferred) ? preferred : fieldRows[0]?.id || '';
-        if (next) {
-          setFieldId(next);
-          await AsyncStorage.setItem(FIELD_KEY, next);
+        if (preferred && fieldRows.some((field) => field.id === preferred)) {
+          setFieldId(preferred);
+        } else {
+          setFieldId('');
         }
       } finally {
         setLoading(false);
@@ -158,420 +119,220 @@ const PartnersHomeScreen = () => {
   }, [peopleTick, i18n.language, categories]);
 
   useEffect(() => {
-    if (!fieldId) {
-      setFieldPeople([]);
+    if (!user || listedFields.length === 0) {
+      setPeopleByField({});
       return;
     }
+    let cancelled = false;
     void (async () => {
       try {
-        setFieldPeople(await fieldPeopleService.getPeople(fieldId));
+        const entries = await Promise.all(
+          listedFields.map(async (field) => {
+            try {
+              const rows = await fieldPeopleService.getPeople(field.id);
+              return [field.id, rows.map((row) => ({ ...row, fieldId: field.id }))] as const;
+            } catch {
+              return [field.id, [] as FieldMembership[]] as const;
+            }
+          })
+        );
+        if (!cancelled) setPeopleByField(Object.fromEntries(entries));
       } catch {
-        setFieldPeople([]);
+        if (!cancelled) setPeopleByField({});
       }
     })();
-  }, [fieldId, seatsTick]);
-
-  const openSave = (existing?: SavedContact) => {
-    setEditing(existing || null);
-    setContactName(existing?.displayName || '');
-    setContactPhone(existing?.phone || '');
-    setContactEmail(existing?.email || '');
-    setContactNotes(existing?.notes || '');
-    setContactFields(existing?.fieldIds?.length ? existing.fieldIds : fields.map((field) => field.id));
-    setContactSource(existing?.source || 'Manual');
-    setInvite(null);
-    setAddStep('save');
-    setAdding(true);
-    setSelected(null);
-  };
-
-  const openFamilyInvite = () => {
-    setFamilyInvite(null);
-    setFamilyName('');
-    setFamilyEmail('');
-    setFamilyModules([...DEFAULT_FAMILY_MODULES]);
-    setFamilyLevel('view');
-    setAddingFamily(true);
-    setAdding(false);
-    setAddingPartner(false);
-  };
-
-  const openPartnerInvite = () => {
-    setPartnerInvite(null);
-    setPartnerName('');
-    setPartnerEmail('');
-    setPartnerModules([...DEFAULT_PARTNER_MODULES]);
-    setPartnerLevel('work');
-    setAddingPartner(true);
-    setAdding(false);
-    setAddingFamily(false);
-  };
+    return () => {
+      cancelled = true;
+    };
+  }, [user, listedFields, seatsTick]);
 
   useEffect(() => {
     if (loading || !route.params?.addContact || openedAddContact.current) return;
     openedAddContact.current = true;
-    openAddChooser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setAdding(true);
   }, [loading, route.params?.addContact]);
 
-  const fromPhone = async (target: 'contact' | 'family' | 'partner' | 'invite') => {
-    try {
-      const picked = await pickDeviceContact();
-      if (!picked) {
-        Alert.alert(t('partners:contactPickerUnavailable'));
-        return;
-      }
-      if (target === 'contact') {
-        if (picked.displayName) setContactName(picked.displayName);
-        if (picked.phone) setContactPhone(picked.phone);
-        if (picked.email) setContactEmail(picked.email);
-        setContactSource('PhoneBook');
-      } else if (target === 'family') {
-        if (picked.displayName) setFamilyName(picked.displayName);
-        if (picked.email) setFamilyEmail(picked.email);
-      } else if (target === 'partner') {
-        if (picked.displayName) setPartnerName(picked.displayName);
-        if (picked.email) setPartnerEmail(picked.email);
-      } else {
-        if (picked.displayName) setInviteName(picked.displayName);
-        if (picked.phone) setInvitePhone(picked.phone);
-        if (picked.email) setInviteEmail(picked.email);
-      }
-    } catch {
-      Alert.alert(t('partners:contactPickerUnavailable'));
-    }
+  const onFieldChange = (nextId: string) => {
+    setFieldId(nextId);
+    if (nextId) void AsyncStorage.setItem(FIELD_KEY, nextId);
   };
 
-  const saveContact = async () => {
-    const name = contactName.trim();
-    if (!name) return;
-    setSavingContact(true);
-    try {
-      const fieldIds = contactFields.length ? contactFields : fields.map((field) => field.id);
-      const payload = {
-        displayName: name,
-        phone: contactPhone.trim() || undefined,
-        email: contactEmail.trim() || undefined,
-        notes: contactNotes.trim() || undefined,
-        fieldIds,
-        source: contactSource,
-      };
-      if (editing) {
-        await getPartnerService().updateContact(editing.id, payload);
-      } else {
-        await getPartnerService().createContact(payload);
-      }
-      setAdding(false);
-      setEditing(null);
-      setAddStep('choose');
-      setPeopleTick((n) => n + 1);
-    } finally {
-      setSavingContact(false);
-    }
+  const canManageField = (id: string) => {
+    if (!id || !user?.id) return false;
+    if (user.role === 'Administrator') return true;
+    const field = fields.find((row) => row.id === id);
+    if (field?.ownerId === user.id) return true;
+    return (peopleByField[id] || []).some(
+      (person) => person.userId === user.id && person.role === 'Admin'
+    );
   };
 
-  const deleteContact = async () => {
-    if (!editing) return;
-    await getPartnerService().deleteContact(editing.id);
-    setAdding(false);
-    setEditing(null);
-    setAddStep('choose');
-    setPeopleTick((n) => n + 1);
-  };
-
-  const createInvite = async () => {
-    if (!fieldId) return;
-    const created = await fieldPeopleService.createInvite(fieldId, {
-      role: inviteWorksHere ? 'Partner' : 'Family',
-      modules: [...DEFAULT_FAMILY_MODULES],
-      accessLevel: inviteWorksHere ? 'work' : 'view',
-      displayName: inviteName.trim() || undefined,
-      phone: invitePhone.trim() || undefined,
-      email: inviteEmail.trim() || undefined,
-    });
-    setInvite(created);
-    setPeopleTick((n) => n + 1);
-  };
-
-  const createFamilyInvite = async () => {
-    if (!fieldId || !familyName.trim() || familyModules.length === 0) {
-      return;
-    }
-    setSavingFamily(true);
-    try {
-      const created = await fieldPeopleService.createInvite(fieldId, {
-        role: 'Family',
-        displayName: familyName.trim(),
-        email: familyEmail.trim() || undefined,
-        modules: familyModules,
-        accessLevel: familyLevel,
-      });
-      setFamilyInvite(created);
-      setSeatsTick((n) => n + 1);
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        t('partners:family.acceptFailed');
-      Alert.alert(t('partners:family.addMember'), message);
-    } finally {
-      setSavingFamily(false);
-    }
-  };
-
-  const createPartnerInvite = async () => {
-    if (!fieldId || !partnerName.trim() || partnerModules.length === 0) {
-      return;
-    }
-    setSavingPartner(true);
-    try {
-      const created = await fieldPeopleService.createInvite(fieldId, {
-        role: 'Partner',
-        displayName: partnerName.trim(),
-        email: partnerEmail.trim() || undefined,
-        modules: partnerModules,
-        accessLevel: partnerLevel,
-      });
-      setPartnerInvite(created);
-      setSeatsTick((n) => n + 1);
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        t('partners:ownerPartner.acceptFailed');
-      Alert.alert(t('partners:ownerPartner.addPartner'), message);
-    } finally {
-      setSavingPartner(false);
-    }
-  };
-
-  const canManageTeam = Boolean(isFieldOwner() || fields.some((f) => f.ownerId === user?.id));
-  const teamSeats = fieldPeople.filter((p) => p.role !== 'Admin' && p.status !== 'revoked');
-  const familySeats = teamSeats.filter((p) => p.role === 'Family');
-  const partnerSeats = teamSeats.filter((p) => p.role === 'Partner');
-  const seatsUsed = familySeats.length;
-  const seatsMax = 2;
-  const partnerUsed = partnerSeats.length;
-  const partnerMax = 1;
-  const canAddFamily = Boolean(canManageTeam && seatsUsed < seatsMax);
-  const canAddPartner = Boolean(canManageTeam && partnerUsed < partnerMax);
-  const hasTeamAnyone = teamSeats.length > 0;
-  const canPickPhone = canPickDeviceContact();
+  const fieldPeople = useMemo(
+    () => (fieldId ? peopleByField[fieldId] || [] : Object.values(peopleByField).flat()),
+    [fieldId, peopleByField]
+  );
 
   const accessUserIds = useMemo(() => {
     const ids = new Set<string>();
-    fieldPeople.forEach((member) => {
-      if (member.userId) ids.add(member.userId);
+    fieldPeople.forEach((person) => {
+      if (person.userId && person.role !== 'Admin') ids.add(person.userId);
     });
     return ids;
   }, [fieldPeople]);
 
   const accessEmails = useMemo(() => {
     const emails = new Set<string>();
-    fieldPeople.forEach((member) => {
-      if (member.email) emails.add(member.email.trim().toLowerCase());
+    fieldPeople.forEach((person) => {
+      if (person.email) emails.add(person.email.trim().toLowerCase());
     });
     return emails;
   }, [fieldPeople]);
 
-  const contactPeople = useMemo(
+  const visiblePeople = useMemo(
     () =>
       people.filter((person) => {
         if (!person.savedContact) return false;
         if (user?.id && person.userId === user.id) return false;
-        return !occupiesAccessSeat(person, accessUserIds, accessEmails);
+        if (occupiesAccessSeat(person, accessUserIds, accessEmails)) return false;
+        if (!fieldId) return true;
+        return linkedFieldIds(person).includes(fieldId);
       }),
-    [people, user?.id, accessUserIds, accessEmails]
+    [people, user?.id, accessUserIds, accessEmails, fieldId]
   );
 
-  const filteredPeople = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return contactPeople;
-    return contactPeople.filter(
-      (p) =>
-        p.displayName.toLowerCase().includes(q) ||
-        (p.phone || '').toLowerCase().includes(q) ||
-        (p.email || '').toLowerCase().includes(q) ||
-        personSubtitle(p, fields, t).toLowerCase().includes(q)
-    );
-  }, [contactPeople, query, t, fields]);
+  const fieldPeopleCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    listedFields.forEach((field) => {
+      const members = (peopleByField[field.id] || []).filter(
+        (person) =>
+          person.role !== 'Admin' &&
+          !/^revoked$/i.test(person.status) &&
+          !/^removed$/i.test(person.status)
+      );
+      const memberUsers = new Set(members.map((person) => person.userId).filter(Boolean));
+      const memberEmails = new Set(
+        members.map((person) => person.email?.trim().toLowerCase()).filter(Boolean) as string[]
+      );
+      const extraContacts = people.filter((person) => {
+        if (!linkedFieldIds(person).includes(field.id)) return false;
+        if (person.userId && memberUsers.has(person.userId)) return false;
+        const email = (person.email || person.savedContact?.email || '').trim().toLowerCase();
+        if (email && memberEmails.has(email)) return false;
+        return true;
+      });
+      counts[field.id] = members.length + extraContacts.length;
+    });
+    return counts;
+  }, [listedFields, peopleByField, people]);
 
-  const { onField, services, showGroups } = useMemo(() => groupPeople(filteredPeople), [filteredPeople]);
-  const showSearch = contactPeople.length >= 12;
-
-  const renderPerson = (person: GrovePerson) => {
-    const subtitle = personSubtitle(person, fields, t);
-    const hint = person.phone
-      ? undefined
-      : personContextLine(person, fields, t, i18n.language);
-    return (
-      <PersonCard
-        key={person.id}
-        name={person.displayName}
-        subtitle={subtitle}
-        hint={hint}
-        phone={person.phone}
-        onPress={() => setSelected(person)}
-      />
-    );
+  const onSeatsChanged = (invite?: FieldInvite) => {
+    if (invite?.id) {
+      setPendingInvitesById((prev) => ({ ...prev, [invite.id]: invite }));
+    }
+    setSeatsTick((n) => n + 1);
   };
 
-  const choiceCard = (
-    icon: keyof typeof Ionicons.glyphMap,
-    title: string,
-    desc: string,
-    onPress: () => void
-  ) => (
-    <Pressable
-      onPress={onPress}
-      style={[styles.choiceCard, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
-    >
-      <View style={[styles.choiceIcon, { backgroundColor: colors.primaryLight }]}>
-        <Ionicons name={icon} size={22} color={colors.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 }}>{title}</Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 2 }}>{desc}</Text>
-      </View>
-    </Pressable>
-  );
+  const openInviteFamily = (prefill: { name?: string; email?: string } = {}, targetFieldId?: string) => {
+    const next = targetFieldId || fieldId;
+    if (!next) return;
+    setInviteTargetFieldId(next);
+    setInvitePrefill(prefill);
+    setAddingFamily(true);
+  };
+
+  const openInvitePartner = (prefill: { name?: string; email?: string } = {}, targetFieldId?: string) => {
+    const next = targetFieldId || fieldId;
+    if (!next) return;
+    setInviteTargetFieldId(next);
+    setInvitePrefill(prefill);
+    setAddingPartner(true);
+  };
+
+  const inviteFieldId = inviteTargetFieldId || fieldId;
+  const inviteField = fields.find((field) => field.id === inviteFieldId);
+  const accessFields = fieldId ? listedFields.filter((field) => field.id === fieldId) : listedFields;
+  const canPickPhone = canPickDeviceContact();
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <ScreenLayout scroll padded canvasOpacity={0.45}>
-      <Text style={[styles.countLine, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier, marginBottom: spacing.sm }]}>
-        {t('partners:peopleCount', { count: contactPeople.length })}
-      </Text>
-
-      {user && (hasTeamAnyone || canAddFamily || canAddPartner) ? (
-        <View style={styles.teamBlock}>
-          <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>
-            {t('partners:accessSectionTitle', { defaultValue: 'Πρόσβαση στο Oleachron' })}
-          </Text>
-
-          <View style={styles.seatActions}>
-            {canAddFamily ? (
-              <Pressable onPress={openFamilyInvite} style={{ paddingVertical: 8 }}>
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                  + {t('partners:family.title')} · {t('partners:team.seats', { used: seatsUsed, max: seatsMax })}
-                </Text>
-              </Pressable>
-            ) : null}
-            {canAddPartner ? (
-              <Pressable onPress={openPartnerInvite} style={{ paddingVertical: 8 }}>
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                  + {t('partners:ownerPartner.title')} ·{' '}
-                  {t('partners:team.seats', { used: partnerUsed, max: partnerMax })}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          {familySeats.map((member) => (
-            <TeamMemberCard
-              key={member.userId || member.inviteId || member.email}
-              kind="family"
-              displayName={member.displayName || member.email || member.userId}
-              phone={member.phone}
-              email={member.email}
-              modules={member.modules}
-              accessLevel={member.accessLevel}
-              status={member.status}
-              pendingInvite={null}
-              canManage={canManageTeam}
-              onChanged={() => setSeatsTick((n) => n + 1)}
-              onUpdate={async (payload) => {
-                if (!member.userId) return;
-                await fieldPeopleService.updatePerson(fieldId, member.userId, payload);
-              }}
-              onRevoke={async () => {
-                if (!member.userId) return;
-                await fieldPeopleService.removeMembership(fieldId, member.userId);
-              }}
-            />
-          ))}
-
-          {partnerSeats.map((member) => (
-            <TeamMemberCard
-              key={member.userId || member.inviteId || member.email}
-              kind="partner"
-              displayName={member.displayName || member.email || member.userId}
-              phone={member.phone}
-              email={member.email}
-              modules={member.modules}
-              accessLevel={member.accessLevel}
-              status={member.status}
-              pendingInvite={null}
-              canManage={canManageTeam}
-              onChanged={() => setSeatsTick((n) => n + 1)}
-              onUpdate={async (payload) => {
-                if (!member.userId) return;
-                await fieldPeopleService.updatePerson(fieldId, member.userId, payload);
-              }}
-              onRevoke={async () => {
-                if (!member.userId) return;
-                await fieldPeopleService.removeMembership(fieldId, member.userId);
-              }}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      {showSearch ? (
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('partners:searchPlaceholder')}
-          placeholderTextColor={colors.textTertiary}
-          style={[
-            styles.search,
-            {
-              color: colors.textPrimary,
-              borderColor: colors.gray200,
-              backgroundColor: colors.surfaceElevated,
-              minHeight: 44,
-            },
-          ]}
+      {listedFields.length > 0 ? (
+        <PartnersFieldPicker
+          fields={listedFields}
+          value={fieldId}
+          onChange={onFieldChange}
+          counts={fieldPeopleCounts}
         />
       ) : null}
 
-      <Text style={[styles.groupLabel, { color: colors.textTertiary, marginTop: spacing.sm }]}>
-        {t('partners:contactsSectionTitle', { defaultValue: 'Επαφές' })}
-      </Text>
+      <View style={styles.sectionHead}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            {t('partners:contactsSection')}
+            {visiblePeople.length > 0 ? (
+              <Text style={{ color: colors.textSecondary }}> {visiblePeople.length}</Text>
+            ) : null}
+          </Text>
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:contactsSectionHint')}</Text>
+          <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('partners:contactsVsUsers')}</Text>
+        </View>
+      </View>
 
-      {contactPeople.length === 0 ? (
+      <View style={styles.actions}>
+        {canPickPhone ? (
+          <Button
+            title={t('partners:importPhone.openPhone')}
+            variant="outline"
+            onPress={() => setImporting(true)}
+          />
+        ) : null}
+        <Button title={t('partners:addContact')} onPress={() => setAdding(true)} />
+      </View>
+
+      {visiblePeople.length === 0 ? (
         <EmptyState
           title={t('partners:emptyPeople')}
-          description={t('partners:emptyPeopleHint')}
-          action={{ label: t('partners:addCollaborator'), onPress: openAddChooser }}
+          description={fieldId ? t('partners:emptyPeopleHintField') : t('partners:emptyPeopleHint')}
+          action={{ label: t('partners:addContact'), onPress: () => setAdding(true) }}
         />
-      ) : showGroups ? (
-        <>
-          {onField.length > 0 ? (
-            <>
-              <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>
-                {t('partners:groups.onField')}
-              </Text>
-              {onField.map(renderPerson)}
-            </>
-          ) : null}
-          {services.length > 0 ? (
-            <>
-              <Text style={[styles.groupLabel, { color: colors.textTertiary, marginTop: spacing.sm }]}>
-                {t('partners:groups.services')}
-              </Text>
-              {services.map(renderPerson)}
-            </>
-          ) : null}
-        </>
       ) : (
-        filteredPeople.map(renderPerson)
+        visiblePeople.map((person) => (
+            <PersonCard
+              key={person.id}
+              name={person.displayName}
+              subtitle={personSubtitle(person, fields, t)}
+              phone={person.phone}
+              email={person.email}
+              hint={person.serviceLabels.join(' · ') || undefined}
+              onPress={() => setSelected(person)}
+            />
+          ))
       )}
+
+      {user
+        ? accessFields.map((field) => (
+            <TeamAccessSection
+              key={field.id}
+              fieldId={field.id}
+              fieldName={friendlyFieldLabel(field.name)}
+              fieldColor={field.color}
+              showFieldHeading={!fieldId}
+              people={peopleByField[field.id] || []}
+              canManage={canManageField(field.id)}
+              pendingInvitesById={pendingInvitesById}
+              onAddFamily={() => openInviteFamily({}, field.id)}
+              onAddPartner={() => openInvitePartner({}, field.id)}
+              onChanged={() => onSeatsChanged()}
+            />
+          ))
+        : null}
 
       <PersonDetailSheet
         person={selected}
         fields={fields}
         canRemoveFromField={Boolean(
-          isFieldOwner() && selected?.membership && !selected.connections.includes('owner')
+          selected?.membership && !selected.connections.includes('owner') && canManageField(fieldId)
         )}
         onClose={() => setSelected(null)}
         onEdit={
@@ -579,8 +340,29 @@ const PartnersHomeScreen = () => {
             ? () => {
                 const contact = selected.savedContact!;
                 setSelected(null);
-                openSave(contact);
+                setEditing(contact);
               }
+            : undefined
+        }
+        onInvite={
+          selected
+            ? (() => {
+                const person = selected;
+                const inviteFieldForPerson = fieldId
+                  ? canManageField(fieldId)
+                    ? fieldId
+                    : ''
+                  : linkedFieldIds(person).find((id) => canManageField(id)) || '';
+                if (!inviteFieldForPerson) return undefined;
+                return () =>
+                  openInviteFamily(
+                    {
+                      name: person.displayName,
+                      email: person.email || person.savedContact?.email || '',
+                    },
+                    inviteFieldForPerson
+                  );
+              })()
             : undefined
         }
         onRemoveFromField={
@@ -593,6 +375,7 @@ const PartnersHomeScreen = () => {
                     ids.map((id) => fieldPeopleService.removeMembership(id, person.userId!))
                   );
                   setPeopleTick((n) => n + 1);
+                  setSeatsTick((n) => n + 1);
                 })();
               }
             : undefined
@@ -616,351 +399,64 @@ const PartnersHomeScreen = () => {
         onImported={() => setPeopleTick((n) => n + 1)}
       />
 
-      <PartnersSheet
+      <SavedContactSheet
         visible={adding}
-        title={
-          addStep === 'choose'
-            ? t('partners:addCollaborator')
-            : addStep === 'save'
-              ? editing
-                ? t('partners:editContact')
-                : t('partners:saveContact')
-              : invite
-                ? t('partners:inviteReady')
-                : t('partners:inviteToOleachron')
-        }
-        subtitle={addStep === 'choose' ? t('partners:addPersonChoicesHint') : undefined}
-        onClose={() => {
-          setAdding(false);
-          setInvite(null);
-          setEditing(null);
-          setAddStep('choose');
-        }}
-      >
-        {addStep === 'choose' ? (
-          <View style={styles.choiceGrid}>
-            {canPickPhone
-              ? choiceCard(
-                  'phone-portrait-outline',
-                  t('partners:addChoices.fromPhone'),
-                  t('partners:addChoices.fromPhoneHint'),
-                  () => {
-                    setAdding(false);
-                    setImporting(true);
-                  }
-                )
-              : null}
-            {choiceCard(
-              'person-outline',
-              t('partners:addChoices.newPerson'),
-              t('partners:addChoices.newPersonHint'),
-              () => openSave()
-            )}
-            {choiceCard(
-              'link-outline',
-              t('partners:addChoices.invite'),
-              t('partners:addChoices.inviteHint'),
-              () => {
-                if (canAddFamily) {
-                  openFamilyInvite();
-                  return;
-                }
-                if (canAddPartner) {
-                  openPartnerInvite();
-                  return;
-                }
-                setInvite(null);
-                setInviteName('');
-                setInvitePhone('');
-                setInviteEmail('');
-                setAddStep('invite');
-              }
-            )}
-            {choiceCard(
-              'business-outline',
-              t('partners:addChoices.crew'),
-              t('partners:addChoices.crewHint'),
-              () => openSave()
-            )}
-          </View>
-        ) : addStep === 'save' ? (
-          <>
-            {canPickPhone && !editing ? (
-              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('contact')} />
-            ) : null}
-            <TextInput
-              value={contactName}
-              onChangeText={setContactName}
-              placeholder={t('partners:inviteName')}
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={contactPhone}
-              onChangeText={setContactPhone}
-              placeholder={t('partners:invitePhone')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={contactEmail}
-              onChangeText={setContactEmail}
-              placeholder={t('partners:contactEmail')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={contactNotes}
-              onChangeText={setContactNotes}
-              placeholder={t('partners:contactNotes')}
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <Button
-              title={t('common:save')}
-              loading={savingContact}
-              onPress={() => void saveContact()}
-              disabled={!contactName.trim()}
-            />
-            {editing ? (
-              <Button title={t('partners:deleteContact')} variant="outline" onPress={() => void deleteContact()} />
-            ) : null}
-          </>
-        ) : invite ? (
-          <InviteSharePanel
-            invite={{
-              shareUrl: invite.shareUrl,
-              whatsAppUrl: invite.whatsAppUrl,
-              displayName: inviteName,
-              phone: invitePhone || undefined,
-            }}
-            copyNs="family"
-            onDone={() => {
-              setAdding(false);
-              setInvite(null);
-            }}
-          />
-        ) : (
-          <>
-            {canPickPhone ? (
-              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('invite')} />
-            ) : null}
-            <TextInput
-              value={inviteName}
-              onChangeText={setInviteName}
-              placeholder={t('partners:inviteName')}
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={invitePhone}
-              onChangeText={setInvitePhone}
-              placeholder={t('partners:invitePhone')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={inviteEmail}
-              onChangeText={setInviteEmail}
-              placeholder={t('partners:inviteEmail')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <Pressable
-              onPress={() => setInviteWorksHere((v) => !v)}
-              style={[styles.fieldRow, { borderColor: colors.gray200, minHeight: tapMin }]}
-            >
-              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
-                {inviteWorksHere ? '☑ ' : '☐ '}
-                {t('partners:connection.works')}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setInviteCanSee((v) => !v)}
-              style={[styles.fieldRow, { borderColor: colors.gray200, minHeight: tapMin }]}
-            >
-              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
-                {inviteCanSee ? '☑ ' : '☐ '}
-                {t('partners:connection.sees')}
-              </Text>
-            </Pressable>
-            <Button
-              title={t('partners:createInvite')}
-              onPress={() => void createInvite()}
-              disabled={!inviteName.trim() && !invitePhone.trim() && !inviteEmail.trim()}
-            />
-            <Button title={t('common:back')} variant="outline" onPress={() => setAddStep('choose')} />
-          </>
-        )}
-      </PartnersSheet>
+        fieldId={fieldId || undefined}
+        fields={fields}
+        onClose={() => setAdding(false)}
+        onSaved={() => setPeopleTick((n) => n + 1)}
+      />
+      <SavedContactSheet
+        visible={Boolean(editing)}
+        fieldId={fieldId || undefined}
+        fields={fields}
+        existing={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => setPeopleTick((n) => n + 1)}
+      />
 
-      <PartnersSheet
-        visible={addingFamily}
-        title={t('partners:family.addMember')}
-        subtitle={familyInvite ? t('partners:family.inviteReady') : t('partners:family.addHint')}
-        onClose={() => setAddingFamily(false)}
-        footer={
-          familyInvite ? undefined : (
-            <>
-              <Button
-                title={t('partners:family.sendInvite')}
-                loading={savingFamily}
-                onPress={() => void createFamilyInvite()}
-                disabled={!familyName.trim() || !familyEmail.trim() || familyModules.length === 0}
-              />
-              <Button title={t('common:cancel')} variant="outline" onPress={() => setAddingFamily(false)} />
-            </>
-          )
-        }
-      >
-        {familyInvite ? (
-          <InviteSharePanel invite={familyInvite} copyNs="family" onDone={() => setAddingFamily(false)} />
-        ) : (
-          <>
-            {canPickPhone ? (
-              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('family')} />
-            ) : null}
-            <TextInput
-              value={familyName}
-              onChangeText={setFamilyName}
-              placeholder={t('partners:inviteName')}
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={familyEmail}
-              onChangeText={setFamilyEmail}
-              placeholder={t('partners:inviteEmail')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <AccessFields
-              modules={familyModules}
-              accessLevel={familyLevel}
-              onToggleModule={(module) =>
-                setFamilyModules((prev) =>
-                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
-                )
-              }
-              onSetLevel={setFamilyLevel}
-            />
-          </>
-        )}
-      </PartnersSheet>
-
-      <PartnersSheet
-        visible={addingPartner}
-        title={t('partners:ownerPartner.addPartner')}
-        subtitle={partnerInvite ? t('partners:ownerPartner.inviteReady') : t('partners:ownerPartner.addHint')}
-        onClose={() => setAddingPartner(false)}
-        footer={
-          partnerInvite ? undefined : (
-            <>
-              <Button
-                title={t('partners:ownerPartner.sendInvite')}
-                loading={savingPartner}
-                onPress={() => void createPartnerInvite()}
-                disabled={!partnerName.trim() || !partnerEmail.trim() || partnerModules.length === 0}
-              />
-              <Button title={t('common:cancel')} variant="outline" onPress={() => setAddingPartner(false)} />
-            </>
-          )
-        }
-      >
-        {partnerInvite ? (
-          <InviteSharePanel invite={partnerInvite} copyNs="ownerPartner" onDone={() => setAddingPartner(false)} />
-        ) : (
-          <>
-            {canPickPhone ? (
-              <Button title={t('partners:fromPhone')} variant="outline" onPress={() => void fromPhone('partner')} />
-            ) : null}
-            <TextInput
-              value={partnerName}
-              onChangeText={setPartnerName}
-              placeholder={t('partners:inviteName')}
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <TextInput
-              value={partnerEmail}
-              onChangeText={setPartnerEmail}
-              placeholder={t('partners:inviteEmail')}
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.gray200, minHeight: tapMin }]}
-            />
-            <AccessFields
-              modules={partnerModules}
-              accessLevel={partnerLevel}
-              onToggleModule={(module) =>
-                setPartnerModules((prev) =>
-                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
-                )
-              }
-              onSetLevel={setPartnerLevel}
-            />
-          </>
-        )}
-      </PartnersSheet>
+      {inviteFieldId ? (
+        <SeatInviteSheet
+          visible={addingFamily}
+          role="Family"
+          fieldId={inviteFieldId}
+          fieldName={inviteField?.name}
+          initialName={invitePrefill.name}
+          initialEmail={invitePrefill.email}
+          onClose={() => {
+            setAddingFamily(false);
+            setInvitePrefill({});
+            setInviteTargetFieldId('');
+          }}
+          onCreated={onSeatsChanged}
+        />
+      ) : null}
+      {inviteFieldId ? (
+        <SeatInviteSheet
+          visible={addingPartner}
+          role="Partner"
+          fieldId={inviteFieldId}
+          fieldName={inviteField?.name}
+          initialName={invitePrefill.name}
+          initialEmail={invitePrefill.email}
+          onClose={() => {
+            setAddingPartner(false);
+            setInvitePrefill({});
+            setInviteTargetFieldId('');
+          }}
+          onCreated={onSeatsChanged}
+        />
+      ) : null}
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  countLine: { fontWeight: '600' },
-  groupLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    marginTop: 2,
-  },
-  search: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  teamBlock: { marginBottom: spacing.md },
-  seatActions: { marginBottom: spacing.xs },
-  choiceGrid: { gap: spacing.sm },
-  choiceCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
-    padding: spacing.md,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  choiceIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fieldRow: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    padding: spacing.md,
-    justifyContent: 'center',
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    marginBottom: 8,
-  },
+  sectionHead: { marginBottom: spacing.sm },
+  sectionTitle: { fontSize: 22, fontWeight: '800' },
+  lead: { fontSize: 14, lineHeight: 20, marginTop: 4 },
+  hint: { fontSize: 12, lineHeight: 18, marginTop: 4 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
 });
 
 export default PartnersHomeScreen;

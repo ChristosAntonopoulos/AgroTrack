@@ -36,9 +36,11 @@ import { harvestHasResult } from '../../chronologio/monthPresentation';
 import {
   harvestYearCopyKey,
   yearComparison,
+  yearComparisonCopyKey,
   yearHeadline,
 } from '../../chronologio/yearPresentation';
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
+import type { DayWeatherInput } from '../../chronologio/dayWeather';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { detailAccentToken, chronologioDetailKind } from '../../chronologio/detailKind';
@@ -51,7 +53,8 @@ import {
   chronologioPhotoId,
   chronologioTaskId,
 } from '../../chronologio/entryDestination';
-import WeatherReviewSummary from './WeatherReviewSummary';
+import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import ChronologioDayWeatherDetail from './ChronologioDayWeatherDetail';
 import ChronologioRecentList from './ChronologioRecentList';
 import ChronologioEventPeekBody, {
   eventPeekFooterActions,
@@ -76,12 +79,14 @@ export type ChronologioPeekTarget =
       summary: ChronologioMonthSummary;
       recent: ChronologioEntry[];
       loadingRecent?: boolean;
+      focus?: 'work' | 'money' | 'harvest' | 'observation';
     }
   | {
       mode: 'year';
       summary: ChronologioPeriodSummary;
       months: ChronologioMonthSummary[];
       previous?: ChronologioPeriodSummary | null;
+      previousMonths?: ChronologioMonthSummary[];
     }
   | {
       mode: 'monthWeather';
@@ -89,6 +94,16 @@ export type ChronologioPeekTarget =
       month: number;
       reviews: ChronologioEntry[];
       loading?: boolean;
+    }
+  | {
+      mode: 'dayWeather';
+      year: number;
+      month: number;
+      dateKey: string;
+      weather: DayWeatherInput | null;
+      events: ChronologioEntry[];
+      relatedFieldNames?: string[];
+      sharedWeatherGrid?: boolean;
     };
 
 type FieldOption = { id: string; name: string };
@@ -173,7 +188,9 @@ const ChronologioPeekSheet: React.FC<Props> = ({
     peek?.mode === 'event'
       ? eventPresentation?.label || peek.entry.title
       : peek?.mode === 'month'
-        ? monthTitle(peek.summary)
+        ? peek.focus
+          ? t(`monthView.focusTitle.${peek.focus}`, { month: monthTitle(peek.summary) })
+          : monthTitle(peek.summary)
         : peek?.mode === 'year'
           ? t('drawer.agriYear', {
               year: peek.summary.periodYear,
@@ -181,6 +198,12 @@ const ChronologioPeekSheet: React.FC<Props> = ({
             })
           : peek?.mode === 'monthWeather'
             ? weatherMonthTitle
+            : peek?.mode === 'dayWeather'
+              ? new Date(`${peek.dateKey}T12:00:00`).toLocaleDateString(i18n.language, {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })
             : '';
 
   const yearSubtitle =
@@ -194,11 +217,15 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         ? t('weatherPeek.kicker')
         : eventPresentation?.shortLabel || ''
       : peek?.mode === 'month'
-        ? t('living.peekMonth')
+        ? peek.focus
+          ? t(`monthView.focusKicker.${peek.focus}`)
+          : t('living.peekMonth')
         : peek?.mode === 'year'
           ? t('living.peekYear')
           : peek?.mode === 'monthWeather'
             ? t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })
+            : peek?.mode === 'dayWeather'
+              ? t('living.peekWeather')
             : '';
 
   const monthSubtitle =
@@ -214,7 +241,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       : undefined;
 
   const sheetAccent =
-    peek?.mode === 'monthWeather' || isPeriodReview
+    peek?.mode === 'monthWeather' || peek?.mode === 'dayWeather' || isPeriodReview
       ? colors.weatherBlue
       : peek?.mode === 'event'
         ? eventAccent
@@ -339,12 +366,21 @@ const ChronologioPeekSheet: React.FC<Props> = ({
             openPhoto: () => navigateFromEntry(entry),
             edit: () => navigateFromEntry(entry),
             remove: removeEntry,
-            createTask: capture
+            createTask: () => {
+              onClose();
+              navigation.navigate('CreateTask', {
+                fieldId: entry.fieldId,
+                scheduledStart: entry.occurredAt,
+              });
+            },
+            addNote: capture
               ? () => {
                   onClose();
                   capture.openCapture({
-                    preferredType: 'work',
+                    preferredType: 'observation',
                     fieldId: entry.fieldId,
+                    taskId: entry.details.task?.taskId,
+                    occurredAt: entry.occurredAt,
                   });
                 }
               : undefined,
@@ -455,6 +491,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       edge="end"
       size={
         peek?.mode === 'monthWeather' ||
+        peek?.mode === 'dayWeather' ||
         isPeriodReview ||
         peek?.mode === 'month' ||
         peek?.mode === 'year'
@@ -467,7 +504,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       title={headerTitle || undefined}
       subtitle={monthSubtitle || yearSubtitle}
       icon={
-        peek?.mode === 'monthWeather' || isPeriodReview ? (
+        peek?.mode === 'monthWeather' || peek?.mode === 'dayWeather' || isPeriodReview ? (
           <Ionicons name="rainy-outline" size={22} color={colors.weatherBlue} />
         ) : peek?.mode === 'month' ? (
           <Ionicons name="calendar-outline" size={22} color={colors.primary} />
@@ -483,6 +520,8 @@ const ChronologioPeekSheet: React.FC<Props> = ({
 
       {peek?.mode === 'month' ? (
         <>
+          {!peek.focus ? (
+            <>
           <View style={styles.metricsRow}>
             {yearFixedMetrics(peek.summary, numberLocale, tt).map(m => (
               <View key={m.label} style={styles.metricCell}>
@@ -576,16 +615,19 @@ const ChronologioPeekSheet: React.FC<Props> = ({
               ) : null}
             </View>
           )}
+            </>
+          ) : null}
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {t('living.peekRecent')}
+              {peek.focus ? t(`monthView.focusKicker.${peek.focus}`) : t('living.peekRecent')}
             </Text>
             {peek.loadingRecent ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: 8 }} />
             ) : (
               <ChronologioRecentList
                 entries={peek.recent}
+                limit={peek.focus ? 12 : 5}
                 emptyLabel={t('living.emptyPeriod')}
                 onPressEntry={e => onSelectRecent?.(e)}
               />
@@ -597,22 +639,25 @@ const ChronologioPeekSheet: React.FC<Props> = ({
       {peek?.mode === 'year' ? (
         <>
           {(() => {
-            const comparison = yearComparison(peek.summary, peek.previous);
+            const comparison = yearComparison(peek.summary, peek.previous, {
+              currentMonths: peek.months,
+              previousMonths: peek.previousMonths,
+            });
             const harvestKey = harvestYearCopyKey(peek.summary);
             const headline = yearHeadline(peek.summary);
             return (
               <View style={[styles.section, { marginTop: 0 }]}>
                 <Text style={[styles.heroLine, { color: colors.textPrimary }]}>
                   {comparison
-                    ? t(
-                        `yearView.compare.${comparison.kind}${
-                          comparison.percent >= 0 ? 'Up' : 'Down'
-                        }`,
-                        {
-                          pct: Math.abs(comparison.percent),
-                          year: comparison.previousYear,
-                        }
-                      )
+                    ? t(yearComparisonCopyKey(comparison), {
+                        context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+                        pct: Math.abs(comparison.percent),
+                        points: comparison.percent.toLocaleString(numberLocale, {
+                          signDisplay: 'exceptZero',
+                          maximumFractionDigits: 1,
+                        }),
+                        year: comparison.previousYear,
+                      })
                     : harvestKey === 'result'
                       ? t('yearView.mainResult')
                       : harvestKey === 'noResult'
@@ -763,26 +808,31 @@ const ChronologioPeekSheet: React.FC<Props> = ({
               </ScrollView>
 
               {selectedWeatherReview?.details.weather ? (
-                <WeatherReviewSummary
+                <WeatherMonthSnapshot
                   weather={selectedWeatherReview.details.weather}
                   eventType={selectedWeatherReview.eventType}
                   numberLocale={numberLocale}
                   locale={i18n.language}
-                  showSource
+                  fieldId={selectedWeatherReview.fieldId}
+                  variant="hero"
+                  onOpen={() => selectedWeatherReview && onSelectRecent?.(selectedWeatherReview)}
                 />
               ) : null}
-
-              <Pressable
-                onPress={() => selectedWeatherReview && onSelectRecent?.(selectedWeatherReview)}
-                hitSlop={8}
-              >
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                  {t('weatherReview.tapForDetails')}
-                </Text>
-              </Pressable>
             </>
           )}
         </View>
+      ) : null}
+
+      {peek?.mode === 'dayWeather' ? (
+        <ChronologioDayWeatherDetail
+          dateKey={peek.dateKey}
+          weather={peek.weather}
+          events={peek.events}
+          numberLocale={numberLocale}
+          sharedWeatherGrid={peek.sharedWeatherGrid}
+          relatedFieldNames={peek.relatedFieldNames}
+          onSelectEvent={onSelectRecent}
+        />
       ) : null}
     </Sheet>
     <NoteSheet

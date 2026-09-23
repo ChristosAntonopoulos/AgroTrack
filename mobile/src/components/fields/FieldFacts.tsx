@@ -22,6 +22,8 @@ type Props = {
   field: Field;
   year: number;
   canOwn: boolean;
+  canViewSensitiveIdentity?: boolean;
+  canViewDocuments?: boolean;
   workProfile?: FieldWorkProfile | null;
   phenology?: FieldPhenology | null;
   onOpenMap?: () => void;
@@ -94,7 +96,16 @@ const formatPct = (value: number | undefined, locale: string): string | null => 
   return `${value.toLocaleString(locale, { maximumFractionDigits: 1 })}%`;
 };
 
-const FieldFacts: React.FC<Props> = ({ field, year, canOwn, workProfile, phenology, onOpenMap }) => {
+const FieldFacts: React.FC<Props> = ({
+  field,
+  year,
+  canOwn,
+  canViewSensitiveIdentity = true,
+  canViewDocuments = true,
+  workProfile,
+  phenology,
+  onOpenMap,
+}) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
   const { colors } = useTheme();
   const navigation = useNavigation<Nav>();
@@ -450,7 +461,13 @@ const FieldFacts: React.FC<Props> = ({ field, year, canOwn, workProfile, phenolo
         ) : null}
         {canOwn ? (
           <Pressable
-            onPress={() => navigation.navigate('FieldWorkSetup', { fieldId: field.id, edit: true })}
+            onPress={() => {
+              if (workProfile?.status === 'active') {
+                navigation.navigate('FieldWorkProfile', { fieldId: field.id });
+                return;
+              }
+              navigation.navigate('FieldWorkSetup', { fieldId: field.id, edit: true });
+            }}
             style={{ paddingVertical: 10 }}
           >
             <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('fields:details.openPractices')}</Text>
@@ -477,8 +494,11 @@ const FieldFacts: React.FC<Props> = ({ field, year, canOwn, workProfile, phenolo
             value={formatRelativeTime(field.updatedAt, numberLocale)}
           />
         ) : null}
-        {field.greekCadastre?.kaek ? (
+        {canViewSensitiveIdentity && field.greekCadastre?.kaek ? (
           <FactRow label={t('fields:details.cadastre')} value={field.greekCadastre.kaek} />
+        ) : null}
+        {canViewSensitiveIdentity && field.accessNotes ? (
+          <FactRow label={t('fields:details.accessNotes', { defaultValue: 'Access notes' })} value={field.accessNotes} />
         ) : null}
       </FactCard>
 
@@ -489,6 +509,7 @@ const FieldFacts: React.FC<Props> = ({ field, year, canOwn, workProfile, phenolo
         ))}
       </FactCard>
 
+      {canViewDocuments ? (
       <FactCard title={t('fields:page.documents')}>
         {(field.documents || []).length === 0 ? (
           <Text style={{ color: colors.textTertiary }}>{t('fields:details.noDocuments')}</Text>
@@ -498,6 +519,7 @@ const FieldFacts: React.FC<Props> = ({ field, year, canOwn, workProfile, phenolo
           ))
         )}
       </FactCard>
+      ) : null}
     </View>
   );
 };

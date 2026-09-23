@@ -20,6 +20,8 @@ export interface MinistryNotification {
   date: Date;
   read: boolean;
   actionUrl?: string;
+  category?: string;
+  expirationDate?: Date;
 }
 
 const mapNotification = (dto: MinistryNotificationDto): MinistryNotification => ({

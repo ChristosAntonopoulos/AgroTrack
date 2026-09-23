@@ -6,6 +6,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Sheet from '../ui/Sheet';
 import GroveWeatherCard from './GroveWeatherCard';
+import GroveWeekForecast from './GroveWeekForecast';
+import { presentGroveForecast } from '../../weather/presentGroveForecast';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing, radii, typography } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
@@ -179,6 +181,20 @@ const WeatherPeekSheet: React.FC<Props> = ({
               embedded
             />
           )}
+
+          {presentGroveForecast(selectedWeather).length >= 2 ? (
+            <View style={styles.outlook}>
+              <Text
+                style={[
+                  styles.outlookTitle,
+                  { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier },
+                ]}
+              >
+                {t('weatherPeek.week')}
+              </Text>
+              <GroveWeekForecast fieldWeather={selectedWeather} variant="detail" />
+            </View>
+          ) : null}
 
           <View style={styles.outlook}>
             <Text

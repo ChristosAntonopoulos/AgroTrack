@@ -225,7 +225,7 @@ export interface ChronologioFilters {
   offset?: number;
 }
 
-export type ChronologioAxis = 'calendar' | 'season';
+export type ChronologioAxis = 'calendar' | 'season' | 'agricultural';
 
 export interface ChronologioSummaryFilters {
   axis?: ChronologioAxis | string;

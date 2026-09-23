@@ -7,11 +7,13 @@ import { formatKg } from '../../utils/harvestUtils';
 import { oilAmountToKg } from '../totals';
 import type {
   HarvestCampaign,
+  HarvestCaptureKind,
   HarvestMillWeightEntry,
   HarvestOilEntry,
   HarvestPeopleEntry,
   HarvestSackEntry,
 } from '../types';
+import { formatHarvestOilAmountLabel, readOilTinCounts } from '../utils/harvestCalculations';
 import { HarvestCard } from './HarvestCard';
 import { radii, spacing } from '../../theme';
 
@@ -31,6 +33,7 @@ type Props = {
   onEdit: (target: DayActivityEditTarget) => void;
   onRemove: (target: DayActivityEditTarget) => void;
   onAdd: (kind: DayActivityKind) => void;
+  allowedKinds?: HarvestCaptureKind[];
 };
 
 type RowProps = {
@@ -110,8 +113,9 @@ export const HarvestDayActivity: React.FC<Props> = ({
   onEdit,
   onRemove,
   onAdd,
+  allowedKinds,
 }) => {
-  const { t } = useTranslation(['fields', 'common']);
+  const { t, i18n } = useTranslation(['fields', 'common']);
   const { colors, tapMin } = useTheme();
 
   const day = useMemo(() => {
@@ -185,10 +189,18 @@ export const HarvestDayActivity: React.FC<Props> = ({
 
       {!closed ? (
         <View style={styles.addRow}>
-          {addChip('sack', t('harvestCampaign.actions.sacks'))}
-          {addChip('mill', t('harvestCampaign.actions.mill'))}
-          {addChip('oil', t('harvestCampaign.actions.oil'))}
-          {addChip('people', t('harvestCampaign.actions.people'))}
+          {(!allowedKinds || allowedKinds.includes('sacks'))
+            ? addChip('sack', t('harvestCampaign.actions.sacks'))
+            : null}
+          {(!allowedKinds || allowedKinds.includes('mill'))
+            ? addChip('mill', t('harvestCampaign.actions.mill'))
+            : null}
+          {(!allowedKinds || allowedKinds.includes('oil'))
+            ? addChip('oil', t('harvestCampaign.actions.oil'))
+            : null}
+          {(!allowedKinds || allowedKinds.includes('people'))
+            ? addChip('people', t('harvestCampaign.actions.people'))
+            : null}
         </View>
       ) : null}
 
@@ -241,7 +253,23 @@ export const HarvestDayActivity: React.FC<Props> = ({
             />
           ))}
 
-          {day.oils.map((entry) => (
+          {day.oils.map((entry) => {
+            const tins = readOilTinCounts(entry);
+            const oilBits: string[] = [];
+            if (tins.tin16 > 0) {
+              oilBits.push(t('harvestCampaign.oil.tinBit', { count: tins.tin16, size: 16 }));
+            }
+            if (tins.tin17 > 0) {
+              oilBits.push(t('harvestCampaign.oil.tinBit', { count: tins.tin17, size: 17 }));
+            }
+            if (entry.millKept != null) {
+              oilBits.push(
+                t('harvestCampaign.oil.millBit', {
+                  amount: formatHarvestOilAmountLabel(entry.millKept, entry.unit, i18n.language || 'en'),
+                })
+              );
+            }
+            return (
             <ActivityRow
               key={entry.id}
               kindLabel={t('harvestCampaign.actions.oil')}
@@ -256,6 +284,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
                   : t('harvestCampaign.dayActivity.fromMills', {
                       count: entry.millWeightIds.length,
                     }),
+                ...oilBits,
                 entry.acidity != null
                   ? `${t('harvestCampaign.oil.acidity')}: ${entry.acidity}`
                   : null,
@@ -267,7 +296,8 @@ export const HarvestDayActivity: React.FC<Props> = ({
               onEdit={() => onEdit({ kind: 'oil', entry })}
               onRemove={() => confirmRemove({ kind: 'oil', entry })}
             />
-          ))}
+            );
+          })}
 
           {day.people.map((entry) => (
             <ActivityRow

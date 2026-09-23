@@ -6,12 +6,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing, typography, createElevation, motion } from '../../theme';
 import type { FieldWeather } from '../../services/geospatialService';
 import type { WeatherData } from '../../services/weatherService';
+import GroveWeekForecast from './GroveWeekForecast';
 import { presentGroveWeather, type GroveWeatherMood } from '../../weather/presentGroveWeather';
 
 type Props = {
   fieldWeather?: FieldWeather | null;
   snapshot?: WeatherData | null;
   fieldName?: string | null;
+  scopeNote?: string;
   onPress?: () => void;
   embedded?: boolean;
   compact?: boolean;
@@ -65,6 +67,7 @@ const GroveWeatherCard: React.FC<Props> = ({
   fieldWeather,
   snapshot,
   fieldName,
+  scopeNote,
   onPress,
   embedded = false,
   compact = false,
@@ -209,10 +212,14 @@ const GroveWeatherCard: React.FC<Props> = ({
         </Text>
       ) : null}
 
-      {(fieldName || updated) && !compact ? (
-        <Text style={[styles.meta, { color: muted }]} numberOfLines={1}>
+      {!embedded && view.mood !== 'missing' ? (
+        <GroveWeekForecast fieldWeather={fieldWeather} />
+      ) : null}
+
+      {scopeNote || fieldName || updated ? (
+        <Text style={[styles.meta, { color: muted }]} numberOfLines={2}>
           {[
-            fieldName || null,
+            scopeNote || fieldName || null,
             updated
               ? view.stale
                 ? t('weatherCard.stale')

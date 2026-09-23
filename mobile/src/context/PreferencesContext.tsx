@@ -5,7 +5,12 @@ import type { FontScale } from '../experience/types';
 import { FONT_SCALE_VALUES, TAP_MIN_PX } from '../experience/types';
 import { useAuth } from './AuthContext';
 import { isMockMode } from '../services/serviceFactory';
-import { userPreferencesService } from '../services/userPreferencesService';
+import {
+  DEFAULT_NOTIFICATION_PREFS,
+  normalizeNotificationPrefs,
+  userPreferencesService,
+  type NotificationDevicePreferences,
+} from '../services/userPreferencesService';
 
 export type AppLanguage = 'en' | 'el' | 'it';
 export type DefaultStartView = 'fields' | 'chronologio';
@@ -19,12 +24,14 @@ interface PreferencesContextType {
   fullTutorialSeen: boolean;
   defaultView: DefaultStartView;
   dateFormat: DateFormatPref;
+  notificationPrefs: NotificationDevicePreferences;
   setLanguage: (lang: AppLanguage) => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   setFontScale: (scale: FontScale) => Promise<void>;
   setLargeControls: (enabled: boolean) => Promise<void>;
   setDefaultView: (view: DefaultStartView) => Promise<void>;
   setDateFormat: (format: DateFormatPref) => Promise<void>;
+  setNotificationPref: (key: keyof NotificationDevicePreferences, enabled: boolean) => Promise<void>;
   markFullTutorialSeen: () => Promise<void>;
   fontScaleMultiplier: number;
   tapMin: number;
@@ -40,6 +47,7 @@ const LARGE_CONTROLS_KEY = '@Oleachron_large_controls';
 const FULL_TUTORIAL_SEEN_KEY = '@Oleachron_full_tutorial_seen';
 const DEFAULT_VIEW_KEY = '@Oleachron_default_view';
 const DATE_FORMAT_KEY = '@Oleachron_date_format';
+const NOTIFICATION_PREFS_KEY = '@Oleachron_notification_prefs';
 
 export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -50,6 +58,9 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [fullTutorialSeen, setFullTutorialSeen] = useState(false);
   const [defaultView, setDefaultViewState] = useState<DefaultStartView>('chronologio');
   const [dateFormat, setDateFormatState] = useState<DateFormatPref>('dd/MM/yyyy');
+  const [notificationPrefs, setNotificationPrefsState] = useState<NotificationDevicePreferences>(
+    DEFAULT_NOTIFICATION_PREFS
+  );
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -63,6 +74,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           storedFullTut,
           storedDefaultView,
           storedDateFormat,
+          storedNotificationPrefs,
         ] = await Promise.all([
           AsyncStorage.getItem(LANG_KEY),
           AsyncStorage.getItem(THEME_KEY),
@@ -71,6 +83,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           AsyncStorage.getItem(FULL_TUTORIAL_SEEN_KEY),
           AsyncStorage.getItem(DEFAULT_VIEW_KEY),
           AsyncStorage.getItem(DATE_FORMAT_KEY),
+          AsyncStorage.getItem(NOTIFICATION_PREFS_KEY),
         ]);
         if (storedLang === 'en' || storedLang === 'el' || storedLang === 'it') {
           setLanguageState(storedLang);
@@ -99,6 +112,15 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           setDateFormatState(storedDateFormat);
         }
         setFullTutorialSeen(storedFullTut === 'true');
+        if (storedNotificationPrefs) {
+          try {
+            setNotificationPrefsState(
+              normalizeNotificationPrefs(JSON.parse(storedNotificationPrefs) as NotificationDevicePreferences)
+            );
+          } catch {
+            setNotificationPrefsState(DEFAULT_NOTIFICATION_PREFS);
+          }
+        }
       } finally {
         setIsReady(true);
       }
@@ -118,9 +140,11 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
         }
         setFontScaleState(server.fontScale);
         setLargeControlsState(server.largeControls);
+        setNotificationPrefsState(server.notifications);
         await AsyncStorage.multiSet([
           [FONT_SCALE_KEY, server.fontScale],
           [LARGE_CONTROLS_KEY, server.largeControls ? 'true' : 'false'],
+          [NOTIFICATION_PREFS_KEY, JSON.stringify(server.notifications)],
         ]);
       } catch {
         // Local prefs stay authoritative when offline.
@@ -185,6 +209,26 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     await AsyncStorage.setItem(DATE_FORMAT_KEY, format);
   };
 
+  const setNotificationPref = useCallback(
+    async (key: keyof NotificationDevicePreferences, enabled: boolean) => {
+      const previous = notificationPrefs;
+      const next = { ...previous, [key]: enabled };
+      setNotificationPrefsState(next);
+      await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(next));
+      if (!user || isMockMode()) return;
+      try {
+        const saved = await userPreferencesService.update({ notifications: next });
+        setNotificationPrefsState(saved.notifications);
+        await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(saved.notifications));
+      } catch {
+        setNotificationPrefsState(previous);
+        await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(previous));
+        throw new Error('notification-pref-save-failed');
+      }
+    },
+    [notificationPrefs, user]
+  );
+
   const markFullTutorialSeen = useCallback(async () => {
     setFullTutorialSeen(true);
     await AsyncStorage.setItem(FULL_TUTORIAL_SEEN_KEY, 'true');
@@ -204,11 +248,13 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       setLargeControls,
       setDefaultView,
       setDateFormat,
+      setNotificationPref,
       markFullTutorialSeen,
       tapMin: largeControls ? TAP_MIN_PX.large : TAP_MIN_PX.default,
       fontScaleMultiplier: FONT_SCALE_VALUES[fontScale] ?? 1,
       defaultView,
       dateFormat,
+      notificationPrefs,
     }),
     [
       language,
@@ -219,6 +265,8 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
       fullTutorialSeen,
       defaultView,
       dateFormat,
+      notificationPrefs,
+      setNotificationPref,
       markFullTutorialSeen,
     ]
   );

@@ -7,6 +7,7 @@ export type CaptureType =
   | 'income'
   | 'harvest'
   | 'money'
+  | 'photo'
   | 'voice'
   | 'document';
 
@@ -16,6 +17,9 @@ export type CaptureContext = {
   harvestId?: string;
   preferredType?: CaptureType;
   occurredAt?: string;
+  dateNeedsChoice?: boolean;
+  dateDefaultedToToday?: boolean;
+  periodLabel?: string;
   category?: FinancialCategory;
   description?: string;
   harvestCampaignLink?: boolean;

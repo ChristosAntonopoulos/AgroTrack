@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -48,7 +48,8 @@ import FieldFacts from '../components/fields/FieldFacts';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import FieldHarvestCard from '../components/domain/FieldHarvestCard';
-import FieldLocalNavigation, { FieldTab } from '../components/fields/FieldLocalNavigation';
+import FieldLocalNavigation, { FIELD_PAGE_TABS, FieldTab } from '../components/fields/FieldLocalNavigation';
+import { resolveFieldGates } from '../utils/fieldGates';
 import FieldResultYearControl from '../components/fields/FieldResultYearControl';
 import ChronologioScreen from './ChronologioScreen';
 import type { HarvestRecord } from '../services/harvestService';
@@ -86,7 +87,7 @@ const FieldDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
   const { fieldId, focus, mode: modeParam } = route.params;
-  const { isFieldOwner, user } = useAuth();
+  const { user } = useAuth();
   const capture = useCaptureOptional();
   const { colors, tapMin } = useTheme();
   const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks']);
@@ -273,7 +274,21 @@ const FieldDetailScreen = () => {
     year,
   ]);
 
-  const canOwn = Boolean(isFieldOwner() || field?.ownerId === user?.id);
+  const gates = useMemo(
+    () =>
+      resolveFieldGates({
+        field,
+        userId: user?.id,
+        userRole: user?.role,
+      }),
+    [field, user?.id, user?.role]
+  );
+  const canOwn = gates.canOwn;
+  const visibleTabs = FIELD_PAGE_TABS.filter((id) => {
+    if (id === 'map') return gates.canViewMap;
+    if (id === 'chronologio') return gates.canViewChronologio;
+    return true;
+  });
   const showWorkSetupBanner =
     Boolean(canOwn) &&
     field?.status === 'Active' &&
@@ -288,9 +303,15 @@ const FieldDetailScreen = () => {
       headerRight: () => (
         <FieldMoreMenu
           field={field}
-          canOwn={canOwn}
+          canEdit={gates.canOwn}
+          canDelete={gates.canDelete}
+          canManageAccess={gates.canManageAccess}
+          canViewChronologio={gates.canViewChronologio}
+          canViewPhotos={gates.canViewPhotos}
+          canViewMap={gates.canViewMap}
+          canViewEnvironmentalData={gates.canViewEnvironmentalData}
           onDelete={
-            canOwn
+            gates.canDelete
               ? () => {
                   Alert.alert(t('fields:deleteField'), t('fields:deleteConfirm'), [
                     { text: t('common:cancel'), style: 'cancel' },
@@ -312,11 +333,16 @@ const FieldDetailScreen = () => {
         />
       ),
     });
-  }, [field, fieldId, navigation, canOwn, t]);
+  }, [field, fieldId, navigation, gates, t]);
 
   const setTab = (next: FieldTab) => {
     navigation.setParams({ mode: next === 'overview' ? undefined : next });
   };
+
+  useEffect(() => {
+    if (tab === 'map' && !gates.canViewMap) setTab('overview');
+    if (tab === 'chronologio' && !gates.canViewChronologio) setTab('overview');
+  }, [tab, gates.canViewMap, gates.canViewChronologio]);
 
   const handleAttentionPrimary = useCallback(() => {
     if (!attention) return;
@@ -392,7 +418,7 @@ const FieldDetailScreen = () => {
         <FieldResultYearControl year={year} onYearChange={setYear} />
       </View>
 
-      <FieldLocalNavigation tab={tab} onTabChange={setTab} />
+      <FieldLocalNavigation tab={tab} tabs={visibleTabs} onTabChange={setTab} />
 
       {tab === 'chronologio' ? (
         <View style={styles.flex}>
@@ -448,7 +474,7 @@ const FieldDetailScreen = () => {
               onOpenChronologio={() => setTab('chronologio')}
             />
           ) : null}
-          <FieldDetailMap field={field} height={220} showDataLayers={false} />
+          {gates.canViewMap ? <FieldDetailMap field={field} height={220} showDataLayers={false} /> : null}
           {attention ? (
             <FieldAttentionCard
               attention={attention}
@@ -458,6 +484,7 @@ const FieldDetailScreen = () => {
               }
             />
           ) : null}
+          {gates.canViewEnvironmentalData ? (
           <FieldWeatherSection
             fieldId={field.id}
             fieldName={field.name}
@@ -477,18 +504,21 @@ const FieldDetailScreen = () => {
                 : undefined
             }
           />
+          ) : null}
           <FieldYearGlance
             year={year}
             costSummary={costSummary}
             yearRollup={yearRollup}
             plannedRemaining={plannedRemaining}
+            canViewMoney={gates.canViewMoney}
             onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
           />
+          {gates.canViewHarvest ? (
           <FieldHarvestCard
             fieldId={field.id}
             records={harvestRecords}
-            canAdd={field.status !== 'Draft'}
-            canVoid={canOwn}
+            canAdd={field.status !== 'Draft' && gates.canCapture}
+            canVoid={gates.canOwn}
             onLogHarvest={() =>
               capture?.openCapture({ preferredType: 'harvest', fieldId: field.id })
             }
@@ -498,7 +528,10 @@ const FieldDetailScreen = () => {
               await load();
             }}
           />
-          <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
+          ) : null}
+          {gates.canViewChronologio ? (
+            <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
+          ) : null}
         </ScrollView>
       ) : null}
 
@@ -510,6 +543,8 @@ const FieldDetailScreen = () => {
             field={field}
             year={year}
             canOwn={canOwn}
+            canViewSensitiveIdentity={gates.canViewSensitiveIdentity}
+            canViewDocuments={gates.canViewDocuments}
             workProfile={workProfile}
             phenology={phenology}
             onOpenMap={() => setTab('map')}
@@ -517,7 +552,7 @@ const FieldDetailScreen = () => {
         </ScrollView>
       ) : null}
 
-      {capture && tab !== 'details' && tab !== 'map' ? (
+      {capture && gates.canCapture && tab !== 'details' && tab !== 'map' ? (
         <View style={[styles.stickyCapture, { bottom: dockHeight + bottomInset + spacing.sm }]}>
           <Button title={t('fields:page.capture')} onPress={openCapture} fullWidth />
         </View>

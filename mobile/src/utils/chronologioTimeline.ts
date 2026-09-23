@@ -14,6 +14,7 @@ export type ChronologioTimelineRow = {
   /** Secondary line under day heading e.g. "Fri, 11 September" */
   sublabel?: string;
   dayKind?: 'today' | 'yesterday' | 'day';
+  dateKey?: string;
   entry?: ChronologioEntry;
   /** Month weather reviews for the field-pick cluster (same card family). */
   weatherReviews?: ChronologioEntry[];
@@ -128,6 +129,7 @@ export const buildChronologioTimelineRows = (
         label: dayLabel,
         sublabel,
         dayKind: d.kind,
+        dateKey: d.key,
       });
 
       const monthReviews = dayEntries.filter((e) => e.eventType === 'weather.monthReview');

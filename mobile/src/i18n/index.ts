@@ -18,6 +18,7 @@ import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
 import enPhotos from '../locales/en/photos.json';
 import enFeedback from '../locales/en/feedback.json';
+import enLegal from '../locales/en/legal.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -36,6 +37,7 @@ import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
 import elPhotos from '../locales/el/photos.json';
 import elFeedback from '../locales/el/feedback.json';
+import elLegal from '../locales/el/legal.json';
 
 import itFields from '../locales/it/fields.json';
 
@@ -63,6 +65,7 @@ i18n.use(initReactI18next).init({
       money: enMoney,
       photos: enPhotos,
       feedback: enFeedback,
+      legal: enLegal,
     },
     el: {
       auth: elAuth,
@@ -82,6 +85,7 @@ i18n.use(initReactI18next).init({
       money: elMoney,
       photos: elPhotos,
       feedback: elFeedback,
+      legal: elLegal,
     },
     it: {
       // Harvest campaign Italian from FE; other namespaces fall back to English/Greek.

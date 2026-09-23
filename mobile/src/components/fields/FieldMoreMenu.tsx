@@ -25,7 +25,13 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 type Props = {
   field: Field;
-  canOwn: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canManageAccess: boolean;
+  canViewChronologio: boolean;
+  canViewPhotos: boolean;
+  canViewMap: boolean;
+  canViewEnvironmentalData: boolean;
   onDelete?: () => void;
   onOpenChronologio: () => void;
 };
@@ -38,7 +44,18 @@ type Action = {
   destructive?: boolean;
 };
 
-const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDelete, onOpenChronologio }) => {
+const FieldMoreMenu: React.FC<Props> = ({
+  field,
+  canEdit,
+  canDelete,
+  canManageAccess,
+  canViewChronologio,
+  canViewPhotos,
+  canViewMap,
+  canViewEnvironmentalData,
+  onDelete,
+  onOpenChronologio,
+}) => {
   const { t } = useTranslation(['fields', 'common', 'chronologio', 'partners', 'nav']);
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
@@ -56,7 +73,7 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDelete, onOpenChronol
   };
 
   const actions: Action[] = [];
-  if (canOwn) {
+  if (canEdit) {
     actions.push({
       key: 'edit',
       label: t('fields:editField'),
@@ -64,19 +81,23 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDelete, onOpenChronol
       onPress: () => run(() => navigation.navigate('FieldForm', { fieldId: field.id })),
     });
   }
-  actions.push({
-    key: 'chronologio',
-    label: t('chronologio:title'),
-    icon: 'book-outline',
-    onPress: () => run(onOpenChronologio),
-  });
-  actions.push({
-    key: 'photos',
-    label: t('nav:photos', { defaultValue: 'Photos' }),
-    icon: 'images-outline',
-    onPress: () => run(() => navigation.navigate('Photos', { fieldId: field.id })),
-  });
-  if (center) {
+  if (canViewChronologio) {
+    actions.push({
+      key: 'chronologio',
+      label: t('chronologio:title'),
+      icon: 'book-outline',
+      onPress: () => run(onOpenChronologio),
+    });
+  }
+  if (canViewPhotos) {
+    actions.push({
+      key: 'photos',
+      label: t('nav:photos', { defaultValue: 'Photos' }),
+      icon: 'images-outline',
+      onPress: () => run(() => navigation.navigate('Photos', { fieldId: field.id })),
+    });
+  }
+  if (center && canViewPhotos) {
     actions.push({
       key: 'importNearby',
       label: t('fields:more.importNearbyPhotos'),
@@ -85,19 +106,23 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDelete, onOpenChronol
         run(() => navigation.navigate('Photos', { fieldId: field.id, importNearby: true })),
     });
   }
-  actions.push({
-    key: 'weather',
-    label: t('chronologio:weatherVegetation.button'),
-    icon: 'partly-sunny-outline',
-    onPress: () => run(() => navigation.navigate('FieldWeatherVegetation', { fieldId: field.id })),
-  });
-  actions.push({
-    key: 'partners',
-    label: t('fields:more.partners', { defaultValue: t('partners:title') }),
-    icon: 'people-outline',
-    onPress: () => run(() => navigation.navigate('Partners', { fieldId: field.id })),
-  });
-  if (center) {
+  if (canViewEnvironmentalData) {
+    actions.push({
+      key: 'weather',
+      label: t('chronologio:weatherVegetation.button'),
+      icon: 'partly-sunny-outline',
+      onPress: () => run(() => navigation.navigate('FieldWeatherVegetation', { fieldId: field.id })),
+    });
+  }
+  if (canManageAccess) {
+    actions.push({
+      key: 'partners',
+      label: t('fields:more.partners', { defaultValue: t('partners:title') }),
+      icon: 'people-outline',
+      onPress: () => run(() => navigation.navigate('Partners', { fieldId: field.id })),
+    });
+  }
+  if (center && canViewMap) {
     actions.push({
       key: 'maps',
       label: t('fields:openMaps'),
@@ -112,7 +137,7 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDelete, onOpenChronol
         }),
     });
   }
-  if (canOwn && onDelete) {
+  if (canDelete && onDelete) {
     actions.push({
       key: 'delete',
       label: t('common:delete'),

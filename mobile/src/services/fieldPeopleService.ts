@@ -6,17 +6,31 @@ import { FAMILY_MODULES, DEFAULT_FAMILY_MODULES } from './familyService';
 export type FieldPersonRole = 'Admin' | 'Partner' | 'Family';
 export type FieldAccessLevel = FamilyAccessLevel;
 export type FieldModule = FamilyModule;
+export const DEFAULT_FIELD_MODULES = DEFAULT_FAMILY_MODULES;
+export const MAX_PARTNER_SEATS = 1;
+export const MAX_FAMILY_SEATS = 2;
 export type FieldCapacity = 'own' | 'work' | 'advise' | 'help' | 'view';
 
+/** Same flags as the API FieldCapabilitiesDto and the web client. */
 export interface FieldCapabilities {
   canViewField: boolean;
+  canViewBoundary: boolean;
+  canViewSensitiveIdentity: boolean;
+  canViewEnvironmentalData: boolean;
+  canViewChronologio: boolean;
+  canCreateRecords: boolean;
   canViewTasks: boolean;
+  canManageTasks: boolean;
   canViewPhotos: boolean;
+  canUploadPhotos: boolean;
   canViewMoney: boolean;
   canViewHarvest: boolean;
   canViewDocuments: boolean;
-  canViewChronologio: boolean;
+  canManageDocuments: boolean;
   canManageAccess: boolean;
+  canEditField: boolean;
+  canArchiveField: boolean;
+  canDeleteField: boolean;
 }
 
 export interface FieldMembership {
@@ -54,6 +68,9 @@ export interface FieldInvite {
   phone?: string;
   status?: string;
   expiresAt?: string;
+  acceptedBy?: string;
+  invitedByName?: string;
+  createdAt?: string;
   /** @deprecated */
   capacities?: FieldCapacity[];
 }
@@ -106,6 +123,38 @@ const normalizeModules = (modules?: string[]): FieldModule[] => {
     result.push(mapped as FieldModule);
   }
   return result;
+};
+
+/** Client fallback when a payload omits capabilities. Live API values win when present. */
+export const capabilitiesForAccess = (
+  role: FieldPersonRole,
+  modules: FieldModule[],
+  accessLevel: FieldAccessLevel
+): FieldCapabilities => {
+  const admin = role === 'Admin';
+  const has = (module: FieldModule) => admin || modules.includes(module);
+  const canWrite = admin || accessLevel === 'help' || accessLevel === 'work';
+  const canCreate = admin || accessLevel === 'work';
+  return {
+    canViewField: true,
+    canViewBoundary: true,
+    canViewSensitiveIdentity: admin,
+    canViewEnvironmentalData: true,
+    canViewChronologio: has('chronologio'),
+    canCreateRecords: canCreate,
+    canViewTasks: has('tasks'),
+    canManageTasks: has('tasks') && canWrite,
+    canViewPhotos: has('photos'),
+    canUploadPhotos: has('photos') && canCreate,
+    canViewMoney: has('money'),
+    canViewHarvest: has('harvest'),
+    canViewDocuments: has('documents'),
+    canManageDocuments: has('documents') && canCreate,
+    canManageAccess: admin,
+    canEditField: admin,
+    canArchiveField: false,
+    canDeleteField: admin,
+  };
 };
 
 export const capacitiesForMembership = (member: {
@@ -172,6 +221,9 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
     phone: row.phone,
     status: row.status,
     expiresAt: row.expiresAt,
+    acceptedBy: row.acceptedBy,
+    invitedByName: row.invitedByName,
+    createdAt: row.createdAt,
     capacities: capacitiesForMembership({ role, accessLevel }),
   };
 };
@@ -201,12 +253,19 @@ export const fieldPeopleService = {
   getAccessContext: async (): Promise<AccessContext> => {
     try {
       const response = await api.get<AccessContext>('/api/v1/me/access-context');
-      const fields = (response.data?.fields || []).map((row) => ({
-        ...row,
-        role: normalizeRole(row.role),
-        modules: normalizeModules(row.modules),
-        accessLevel: normalizeAccessLevel(row.accessLevel),
-      }));
+      const fields = (response.data?.fields || []).map((row) => {
+        const role = normalizeRole(row.role);
+        const modules = normalizeModules(row.modules);
+        const accessLevel = normalizeAccessLevel(row.accessLevel);
+        return {
+          ...row,
+          role,
+          modules,
+          accessLevel,
+          capabilities:
+            row.capabilities ?? capabilitiesForAccess(role, modules, accessLevel),
+        };
+      });
       return {
         fields,
         ownsAnyField: Boolean(response.data?.ownsAnyField) || fields.some((f) => f.role === 'Admin'),
@@ -274,6 +333,18 @@ export const fieldPeopleService = {
     return normalizeMembership(response.data);
   },
 
+  listInvites: async (fieldId: string): Promise<FieldInvite[]> => {
+    const response = await api.get<FieldInvite[]>(`/api/v1/fields/${fieldId}/people/invites`);
+    return (response.data || []).map(normalizeInvite);
+  },
+
+  resendInvite: async (fieldId: string, inviteId: string): Promise<FieldInvite> => {
+    const response = await api.post<FieldInvite>(
+      `/api/v1/fields/${fieldId}/people/invites/${inviteId}/resend`
+    );
+    return normalizeInvite(response.data);
+  },
+
   addAdvisorComment: async (fieldId: string, body: string): Promise<AdvisorComment> => {
     const response = await api.post<AdvisorComment>(`/api/v1/fields/${fieldId}/people/advisor-comments`, {
       body,
@@ -281,3 +352,11 @@ export const fieldPeopleService = {
     return response.data;
   },
 };
+
+export const countSeats = (people: FieldMembership[], role: 'Partner' | 'Family') =>
+  people.filter(
+    (p) =>
+      p.role === role &&
+      !/^revoked$/i.test(p.status) &&
+      !/^removed$/i.test(p.status)
+  ).length;

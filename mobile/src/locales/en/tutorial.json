@@ -1,7 +1,7 @@
 {
   "everyday": {
     "step1": {
-      "title": "Welcome to Everyday",
+      "title": "Welcome",
       "body": "This is Daybrief — your morning glance at the grove, in plain language."
     },
     "step2": {
@@ -10,12 +10,12 @@
     },
     "step3": {
       "title": "More tools",
-      "body": "Calendar, notifications, and Settings live in More."
+      "body": "Tasks, notifications, and Settings live in More."
     }
   },
   "full": {
     "step1": {
-      "title": "Welcome to Full picture",
+      "title": "Your grove at a glance",
       "body": "Your dashboard shows fields, tasks, and overdue work at a glance."
     },
     "step2": {

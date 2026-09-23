@@ -42,7 +42,7 @@ export type GroveWeatherView = {
   updatedAt?: Date;
 };
 
-const CODE_TO_CONDITION = (code?: number): string => {
+export const weatherCodeToCondition = (code?: number): string => {
   if (code == null) return 'cloud';
   if (code === 0) return 'clear';
   if (code <= 3) return 'partly';
@@ -52,6 +52,8 @@ const CODE_TO_CONDITION = (code?: number): string => {
   if (code >= 95) return 'storm';
   return 'cloud';
 };
+
+const CODE_TO_CONDITION = weatherCodeToCondition;
 
 const SNAP_CONDITION: Record<string, string> = {
   clear: 'clear',

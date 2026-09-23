@@ -13,7 +13,7 @@ import {
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { resolveFieldColor } from '../../utils/fieldColors';
-import WeatherReviewSummary from './WeatherReviewSummary';
+import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { createElevation, motion, radii, spacing } from '../../theme';
@@ -401,12 +401,12 @@ const ChronologioEntryCard: React.FC<Props> = ({
           {category === 'weather' ? (
             isPeriodReview && weather ? (
               <View style={{ marginTop: 8 }}>
-                <WeatherReviewSummary
+                <WeatherMonthSnapshot
                   weather={weather}
                   eventType={entry.eventType}
                   numberLocale={numberLocale}
                   locale={i18n.language}
-                  compact={!featured}
+                  variant="card"
                 />
               </View>
             ) : (

@@ -8,11 +8,10 @@ import { phoneHref } from '../../utils/phoneLinks';
 
 type Props = {
   name: string;
-  /** Single meaning line, e.g. "Εργάτης · Φιλιατρών 088" */
   subtitle: string;
-  /** Optional quieter third cue when useful (last work) — keep short */
   hint?: string;
   phone?: string;
+  email?: string;
   onPress: () => void;
 };
 
@@ -20,7 +19,7 @@ type Props = {
  * Dense network row — same height for everyone.
  * No badges, no action buttons. Phone is a quiet shortcut only.
  */
-const PersonCard: React.FC<Props> = ({ name, subtitle, hint, phone, onPress }) => {
+const PersonCard: React.FC<Props> = ({ name, subtitle, hint, phone, email, onPress }) => {
   const { colors } = useTheme();
   const { fontScaleMultiplier } = usePreferences();
   const tel = phoneHref(phone, 'tel');
@@ -63,6 +62,13 @@ const PersonCard: React.FC<Props> = ({ name, subtitle, hint, phone, onPress }) =
             numberOfLines={1}
           >
             {hint}
+          </Text>
+        ) : email ? (
+          <Text
+            style={[styles.hint, { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier }]}
+            numberOfLines={1}
+          >
+            {email}
           </Text>
         ) : null}
       </View>

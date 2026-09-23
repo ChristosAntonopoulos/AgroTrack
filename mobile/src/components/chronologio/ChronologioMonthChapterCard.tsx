@@ -10,6 +10,7 @@ import {
   buildMonthWeatherView,
   harvestHasResult,
   primaryMonthHighlight,
+  type MonthChapterFocus,
 } from '../../chronologio/monthPresentation';
 import { createElevation, motion, radii } from '../../theme';
 
@@ -20,6 +21,7 @@ type Props = {
   onPress: () => void;
   onOpenDays?: () => void;
   onPressWeather?: () => void;
+  onPressFocus?: (focus: MonthChapterFocus) => void;
 };
 
 type ChipProps = {
@@ -74,6 +76,7 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
   onPress,
   onOpenDays,
   onPressWeather,
+  onPressFocus,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
   const { colors, fontScaleMultiplier } = useTheme();
@@ -106,7 +109,7 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
         icon="checkbox-outline"
         kicker={t('monthView.work')}
         title={t('monthView.workShort', { count: summary.taskCount })}
-        onPress={onPress}
+        onPress={() => (onPressFocus ? onPressFocus('work') : onPress())}
       />
     );
   }
@@ -119,7 +122,7 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
         icon="document-text-outline"
         kicker={t('monthView.observationShortLabel')}
         title={highlight || t('monthView.notesShort', { count: summary.noteCount })}
-        onPress={onPress}
+        onPress={() => (onPressFocus ? onPressFocus('observation') : onPress())}
       />
     );
   }
@@ -134,7 +137,7 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
         title={t('monthView.expensesShort', {
           amount: formatChronologioMoney(summary.expenseTotal, summary.currency || 'EUR', numberLocale),
         })}
-        onPress={onPress}
+        onPress={() => (onPressFocus ? onPressFocus('money') : onPress())}
       />
     );
   }
@@ -151,7 +154,7 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
             ? `${summary.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
             : `${Math.round(summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`
         }
-        onPress={onPress}
+        onPress={() => (onPressFocus ? onPressFocus('harvest') : onPress())}
       />
     );
   }

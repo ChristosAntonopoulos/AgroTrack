@@ -6,7 +6,7 @@ export interface MinistryNotification {
   title: string;
   message: string;
   type: 'regulation' | 'subsidy' | 'deadline' | 'alert' | 'training';
-  priority: 'high' | 'medium' | 'low';
+  priority: 'critical' | 'high' | 'medium' | 'low';
   date: Date;
   expirationDate?: Date;
   read: boolean;

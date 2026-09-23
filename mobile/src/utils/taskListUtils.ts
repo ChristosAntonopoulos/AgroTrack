@@ -24,6 +24,11 @@ export function isTaskOverdue(task: FieldTask, now = new Date()): boolean {
   return due < startOfLocalDay(now);
 }
 
+export const isActiveTask = (task: FieldTask): boolean => {
+  const status = String(task.status || '').toLowerCase();
+  return status === 'pending' || status === 'planned' || status === 'ready' || status === 'in_progress';
+};
+
 export const isTaskDueToday = (task: FieldTask, now = new Date()): boolean => {
   if (isCompletedFieldTask(task)) return false;
   const status = String(task.status).toLowerCase();

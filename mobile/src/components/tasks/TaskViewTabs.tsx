@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { spacing, typography, radii } from '../../theme';
+import { spacing, radii, createElevation, motion } from '../../theme';
 import type { TaskPageView } from '../../utils/taskViewState';
 
 export type TaskViewTabItem = {
@@ -35,46 +35,47 @@ const TaskViewTabs = ({
           <Pressable
             key={view.id}
             onPress={() => onChange(view.id)}
-            style={[
+            style={({ pressed }) => [
               styles.tab,
               {
-                minHeight: Math.max(44, tapMin * 0.9),
-                backgroundColor: selected ? colors.primaryLight : 'transparent',
+                minHeight: Math.max(46, tapMin * 0.92),
+                backgroundColor: selected ? colors.surface : 'transparent',
+                opacity: pressed ? motion.pressOpacity : 1,
+                ...(selected ? createElevation(colors, 'sm') : {}),
               },
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
           >
             <Text
-              style={[
-                styles.label,
-                {
-                  color: selected ? colors.primary : colors.textSecondary,
-                  fontSize: 13 * fontScaleMultiplier,
-                  fontWeight: selected ? '700' : '500',
-                },
-              ]}
+              style={{
+                color: selected ? colors.textPrimary : colors.textSecondary,
+                fontSize: 15 * fontScaleMultiplier,
+                fontWeight: selected ? '700' : '600',
+              }}
               numberOfLines={1}
             >
               {view.label}
             </Text>
-            {view.count > 0 ? (
-              <View
-                style={[
-                  styles.count,
-                  { backgroundColor: selected ? colors.primary : colors.border },
-                ]}
+            <View
+              style={[
+                styles.count,
+                {
+                  backgroundColor: selected ? colors.primaryLight : colors.surface,
+                  borderColor: selected ? colors.oliveBorder : colors.borderLight,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: selected ? colors.primary : colors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: '700',
+                }}
               >
-                <Text
-                  style={[
-                    styles.countText,
-                    { color: selected ? colors.onOlive : colors.textSecondary },
-                  ]}
-                >
-                  {view.count}
-                </Text>
-              </View>
-            ) : null}
+                {view.count}
+              </Text>
+            </View>
           </Pressable>
         );
       })}
@@ -85,34 +86,28 @@ const TaskViewTabs = ({
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    borderRadius: radii.control,
+    borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 3,
-    gap: 2,
+    padding: 4,
+    gap: 4,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    borderRadius: 11,
-    paddingHorizontal: spacing.xs,
-  },
-  label: {
-    ...typography.styles.caption,
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
   },
   count: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,
-  },
-  countText: {
-    fontSize: 10,
-    fontWeight: '700',
+    paddingHorizontal: 6,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });
 

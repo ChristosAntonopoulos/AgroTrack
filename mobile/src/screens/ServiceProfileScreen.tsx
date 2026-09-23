@@ -178,7 +178,7 @@ const ServiceProfileScreen = () => {
               void locationService.getCurrentLocation().then((pos) => {
                 setLatitude(pos.latitude);
                 setLongitude(pos.longitude);
-              });
+              }).catch(() => {});
             }}
           />
           {latitude != null && longitude != null ? (

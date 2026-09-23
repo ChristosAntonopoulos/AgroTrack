@@ -156,6 +156,10 @@ export function fromSavedContacts(
   return mergeGrovePeople([], [], savedContacts, '', language, categories);
 }
 
+export function linkedFieldIds(person: GrovePerson): string[] {
+  return [...new Set([...(person.fieldIds || []), ...(person.savedContact?.fieldIds || [])])];
+}
+
 export function occupiesAccessSeat(
   person: GrovePerson,
   accessUserIds: Set<string>,

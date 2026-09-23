@@ -11,9 +11,20 @@ export type HarvestSheetSharedProps = {
   preferredFieldId?: string;
 };
 
+/** Shared chrome when σάκοι / ελαιόκαρπος / λάδι are one form. */
+export type HarvestFlowChrome = {
+  nextLabel: string;
+  backLabel?: string;
+  onBack?: () => void;
+  busy?: boolean;
+  active?: boolean;
+  bind?: (saveIfReady: () => boolean) => void;
+};
+
 export type HarvestSheetKind =
   | HarvestCaptureKind
   | 'add'
+  | 'produce'
   | 'mill-link'
   | 'mill-next'
   | 'evening'

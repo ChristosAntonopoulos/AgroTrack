@@ -6,6 +6,8 @@ import {
   formatHarvestYieldPercent,
   oilKgFromAmount,
   OLIVE_OIL_KG_PER_LITRE,
+  plausibleOilYield,
+  settleOil,
 } from './harvestCalculations';
 import { isPositiveAmount, parseHarvestDecimal } from './harvestValidation';
 
@@ -21,6 +23,43 @@ describe('harvestCalculations', () => {
     expect(extractionYieldPercent(1000, 184)).toBeCloseTo(18.4, 5);
     expect(formatHarvestYieldPercent(18.4, 'el')).toMatch(/18[,.]4/);
     expect(formatHarvestYieldPercent(18, 'en')).toBe('18');
+  });
+
+  it('hides implausible oil yields', () => {
+    expect(plausibleOilYield(18.4)).toBeCloseTo(18.4, 5);
+    expect(plausibleOilYield(4)).toBeNull();
+    expect(plausibleOilYield(650)).toBeNull();
+    expect(plausibleOilYield(null)).toBeNull();
+  });
+
+  it('splits one oil total into storage and the mill share', () => {
+    const whole = settleOil({
+      total: 100,
+      unit: 'litres',
+      millKept: 0,
+      millMode: 'amount',
+      tin16Count: 0,
+      tin17Count: 0,
+      splitTins: false,
+    });
+    expect(whole.farmerAmount).toBe(100);
+    expect(whole.millAmount).toBe(0);
+    expect(whole.parts.map((part) => part.key)).toEqual(['stored', 'mill']);
+
+    const mixed = settleOil({
+      total: 100,
+      unit: 'litres',
+      millKept: 10,
+      millMode: 'percent',
+      tin16Count: 2,
+      tin17Count: 1,
+      splitTins: true,
+    });
+    expect(mixed.millAmount).toBe(10);
+    expect(mixed.tin16Amount).toBe(32);
+    expect(mixed.tin17Amount).toBe(17);
+    expect(mixed.bulkAmount).toBe(41);
+    expect(mixed.overAmount).toBe(0);
   });
 
   it('formats oil by unit', () => {

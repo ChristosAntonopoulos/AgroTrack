@@ -40,6 +40,8 @@ export type SheetProps = {
   /** Wrap body in ScrollView (default true). Set false when children scroll themselves. */
   scrollable?: boolean;
   maxHeightPercent?: number;
+  /** Phone harvest produce: use the full viewport instead of a nested sheet. */
+  fullScreen?: boolean;
 };
 
 /**
@@ -65,6 +67,7 @@ const Sheet: React.FC<SheetProps> = ({
   flush = false,
   scrollable = true,
   maxHeightPercent = 92,
+  fullScreen = false,
 }) => {
   const { colors, tapMin, fontScaleMultiplier, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -188,6 +191,18 @@ const Sheet: React.FC<SheetProps> = ({
         paddingBottom: spacing.base,
       };
     }
+    if (fullScreen) {
+      return {
+        position: 'absolute' as const,
+        left: 0,
+        right: 0,
+        top: insets.top,
+        bottom: 0,
+        paddingBottom: Math.max(insets.bottom, spacing.base),
+        borderTopLeftRadius: radii.lg,
+        borderTopRightRadius: radii.lg,
+      };
+    }
     return {
       position: 'absolute' as const,
       left: 0,
@@ -198,7 +213,7 @@ const Sheet: React.FC<SheetProps> = ({
       borderTopLeftRadius: radii.sheet,
       borderTopRightRadius: radii.sheet,
     };
-  }, [placement, panelWidth, insets, maxHeightPercent, width, height]);
+  }, [placement, panelWidth, insets, maxHeightPercent, width, height, fullScreen]);
 
   const accentBarStyle =
     placement === 'bottom' || placement === 'center'

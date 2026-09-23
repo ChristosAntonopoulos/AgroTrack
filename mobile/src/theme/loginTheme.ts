@@ -30,4 +30,8 @@ export const loginTheme = {
   shadow: 'rgba(10, 16, 8, 0.35)',
   softSelected: 'rgba(133, 154, 109, 0.22)',
   softSelectedText: '#486038',
+  error: '#C96656',
+  errorBg: 'rgba(201, 102, 86, 0.12)',
+  success: '#4f7a58',
+  successBg: 'rgba(98, 145, 109, 0.16)',
 } as const;

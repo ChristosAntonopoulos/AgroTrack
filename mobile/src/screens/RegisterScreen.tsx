@@ -1,352 +1,267 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  TouchableOpacity,
-  ImageBackground,
-  ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { usePreferences, AppLanguage } from '../context/PreferencesContext';
-import BrandLogo from '../components/ui/BrandLogo';
+import { rememberInviteIntent, readInviteIntent } from '../utils/inviteIntent';
+import { setPendingInviteToken } from '../utils/pendingInvite';
+import AuthScreen, { authLinkStyles } from '../components/auth/AuthScreen';
 import AuthTextField from '../components/auth/AuthTextField';
-import { typography, spacing, spacingPatterns } from '../theme';
-import { loginTheme } from '../theme/loginTheme';
+import AuthButton from '../components/auth/AuthButton';
+import AuthAlert from '../components/auth/AuthAlert';
+import AuthSocialButtons from '../components/auth/AuthSocialButtons';
 import { AuthStackParamList } from '../navigation/types';
 
-const registerBg = require('../../assets/images/auth-register-bg.jpg');
 const MIN_PASSWORD_LENGTH = 8;
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
-
-const UserIcon = () => <Text style={styles.fieldIcon}>👤</Text>;
-const FieldIcon = () => <Text style={styles.fieldIcon}>✉</Text>;
-const LockIcon = () => <Text style={styles.fieldIcon}>🔒</Text>;
+type Route = RouteProp<AuthStackParamList, 'Register'>;
+type FieldKey = 'firstName' | 'email' | 'password' | 'confirmPassword' | 'inviteCode';
 
 const RegisterScreen = () => {
   const { register } = useAuth();
-  const { language, setLanguage } = usePreferences();
   const { t } = useTranslation(['auth', 'common']);
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(route.params?.code || '');
+  const [showInvite, setShowInvite] = useState(Boolean(route.params?.code || route.params?.token));
+  const [showEmailForm, setShowEmailForm] = useState(Boolean(route.params?.code || route.params?.token));
+  const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const isLoading = Boolean(loading);
+
+  const hasInviteIntent = Boolean(route.params?.token || route.params?.code || inviteCode.trim());
+
+  useEffect(() => {
+    void (async () => {
+      const stored = await rememberInviteIntent({
+        token: route.params?.token,
+        code: route.params?.code || inviteCode.trim() || undefined,
+      });
+      if (stored.code && !inviteCode) setInviteCode(stored.code);
+      if (stored.token || stored.code) {
+        setShowInvite(true);
+        setShowEmailForm(true);
+      }
+    })();
+  }, [route.params?.token, route.params?.code]);
+
+  const persistInvite = () => {
+    void rememberInviteIntent({
+      token: route.params?.token,
+      code: inviteCode.trim() || route.params?.code,
+    });
+  };
+
+  const validate = (): Partial<Record<FieldKey, string>> => {
+    const next: Partial<Record<FieldKey, string>> = {};
+    if (!firstName.trim()) next.firstName = t('auth:register.firstNameRequired');
+    if (!email.trim()) next.email = t('auth:register.emailRequired');
+    else if (!isValidEmail(email)) next.email = t('auth:register.emailInvalid');
+    if (!password) next.password = t('auth:register.passwordRequired');
+    else if (password.length < MIN_PASSWORD_LENGTH) next.password = t('auth:register.passwordTooShort');
+    if (!confirmPassword) next.confirmPassword = t('auth:register.passwordRequired');
+    else if (password !== confirmPassword) next.confirmPassword = t('auth:register.passwordMismatch');
+    return next;
+  };
 
   const handleRegister = async () => {
-    if (!email.trim() || !password || !confirmPassword) {
-      Alert.alert(t('auth:register.failed'), t('auth:register.missingFields'));
-      return;
-    }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      Alert.alert(t('auth:register.failed'), t('auth:register.passwordTooShort'));
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert(t('auth:register.failed'), t('auth:register.passwordMismatch'));
-      return;
-    }
+    setFormError(null);
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    const code = inviteCode.trim();
+    persistInvite();
+    setLoading(true);
     try {
-      setLoading(true);
       await register({
         email,
         password,
-        firstName,
-        lastName,
-        inviteCode: inviteCode.trim() || undefined,
+        firstName: firstName.trim(),
+        lastName: lastName.trim() || undefined,
+        inviteCode: code || undefined,
       });
-    } catch (error: any) {
-      Alert.alert(t('auth:register.failed'), error.message || t('auth:register.failed'));
+      const intent = await readInviteIntent();
+      if (intent?.token) setPendingInviteToken(intent.token);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('auth:register.failed');
+      const lower = message.toLowerCase();
+      const fieldErrors: Partial<Record<FieldKey, string>> = {};
+      if (lower.includes('already') || lower.includes('exists') || lower.includes('υπάρχει')) {
+        fieldErrors.email = t('auth:register.emailTaken');
+      } else if (lower.includes('invite') || lower.includes('πρόσκλη')) {
+        fieldErrors.inviteCode = t('auth:register.inviteInvalid');
+        setShowInvite(true);
+      } else if (lower.includes('network') || lower.includes('failed to fetch')) {
+        setFormError(t('auth:register.networkFailed'));
+      } else {
+        setFormError(message || t('auth:register.failed'));
+      }
+      setErrors(fieldErrors);
     } finally {
       setLoading(false);
     }
   };
 
+  const goLogin = () =>
+    navigation.navigate('Login', {
+      token: route.params?.token,
+      code: inviteCode.trim() || route.params?.code,
+    });
+
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      <ImageBackground source={registerBg} style={styles.background} resizeMode="cover">
-        <View style={styles.overlay} />
-        <SafeAreaView style={styles.safe}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <ScrollView
-              contentContainerStyle={styles.content}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.hero}>
-                <BrandLogo variant="stacked" tone="on-dark" size={64} />
-              </View>
+    <AuthScreen
+      variant="register"
+      title={t(hasInviteIntent ? 'auth:register.inviteTitle' : 'auth:register.title')}
+      subtitle={t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.subtitle')}
+    >
+      {formError ? <AuthAlert message={formError} /> : null}
+      {errors.email === t('auth:register.emailTaken') ? (
+        <TouchableOpacity onPress={goLogin} style={authLinkStyles.row}>
+          <Text style={authLinkStyles.accent}>{t('auth:register.loginLink')}</Text>
+        </TouchableOpacity>
+      ) : null}
 
-              <View style={styles.card}>
-                <View style={styles.langRow}>
-                  {([
-                    { id: 'el' as AppLanguage, label: t('common:greek') },
-                    { id: 'en' as AppLanguage, label: t('common:english') },
-                  ]).map((lang) => (
-                    <TouchableOpacity
-                      key={lang.id}
-                      onPress={() => setLanguage(lang.id)}
-                      style={[styles.langBtn, language === lang.id && styles.langBtnActive]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: language === lang.id }}
-                    >
-                      <Text style={[styles.langText, language === lang.id && styles.langTextActive]}>
-                        {lang.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+      <AuthSocialButtons onBeforeContinue={persistInvite} />
+      <Text style={authLinkStyles.legal}>
+        {t('auth:register.legalPrefix')}{' '}
+        <Text onPress={() => navigation.navigate('Legal', { kind: 'terms' })} style={authLinkStyles.accent}>
+          {t('auth:login.terms')}
+        </Text>{' '}
+        {t('auth:register.legalAnd')}{' '}
+        <Text onPress={() => navigation.navigate('Legal', { kind: 'privacy' })} style={authLinkStyles.accent}>
+          {t('auth:login.privacy')}
+        </Text>
+        .
+      </Text>
 
-                <Text style={styles.title}>{t('auth:register.title')}</Text>
-                <Text style={styles.subtitle}>{t('auth:register.subtitle')}</Text>
+      {!showEmailForm ? (
+        <AuthButton
+          title={t('auth:register.continueWithEmail')}
+          variant="outline"
+          icon="mail-outline"
+          onPress={() => setShowEmailForm(true)}
+          style={{ marginTop: 12 }}
+        />
+      ) : (
+        <>
+          <View style={authLinkStyles.divider}>
+            <View style={authLinkStyles.dividerLine} />
+            <Text style={authLinkStyles.dividerText}>{t('auth:register.orEmail')}</Text>
+            <View style={authLinkStyles.dividerLine} />
+          </View>
 
-                <View style={styles.nameRow}>
-                  <View style={styles.nameField}>
-                    <AuthTextField
-                      label={t('auth:register.firstName')}
-                      placeholder={t('auth:register.firstNamePlaceholder')}
-                      value={firstName}
-                      onChangeText={setFirstName}
-                      autoComplete="given-name"
-                      editable={!isLoading}
-                      leftIcon={<UserIcon />}
-                    />
-                  </View>
-                  <View style={styles.nameField}>
-                    <AuthTextField
-                      label={t('auth:register.lastName')}
-                      placeholder={t('auth:register.lastNamePlaceholder')}
-                      value={lastName}
-                      onChangeText={setLastName}
-                      autoComplete="family-name"
-                      editable={!isLoading}
-                      leftIcon={<UserIcon />}
-                    />
-                  </View>
-                </View>
+          <AuthTextField
+            label={t('auth:register.firstName')}
+            placeholder={t('auth:register.firstNamePlaceholder')}
+            value={firstName}
+            onChangeText={setFirstName}
+            autoComplete="given-name"
+            textContentType="givenName"
+            editable={!loading}
+            leftIcon="person-outline"
+            required
+            error={errors.firstName}
+          />
+          <AuthTextField
+            label={t('auth:register.lastName')}
+            placeholder={t('auth:register.lastNamePlaceholder')}
+            value={lastName}
+            onChangeText={setLastName}
+            autoComplete="family-name"
+            textContentType="familyName"
+            editable={!loading}
+            leftIcon="person-outline"
+            optional
+          />
+          <AuthTextField
+            label={t('common:email')}
+            placeholder={t('auth:login.emailPlaceholder')}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
+            editable={!loading}
+            leftIcon="mail-outline"
+            required
+            error={errors.email}
+          />
+          <AuthTextField
+            label={t('auth:login.passwordLabel')}
+            placeholder={t('auth:register.passwordPlaceholder')}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            showPasswordToggle
+            autoComplete="password-new"
+            textContentType="newPassword"
+            editable={!loading}
+            leftIcon="lock-closed-outline"
+            required
+            helperText={t('auth:register.passwordHint')}
+            error={errors.password}
+          />
+          <AuthTextField
+            label={t('auth:register.confirmPassword')}
+            placeholder={t('auth:register.confirmPasswordPlaceholder')}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            showPasswordToggle
+            autoComplete="password-new"
+            textContentType="newPassword"
+            editable={!loading}
+            leftIcon="lock-closed-outline"
+            required
+            error={errors.confirmPassword}
+          />
 
-                <AuthTextField
-                  label={t('auth:register.emailLabel')}
-                  placeholder={t('auth:register.emailPlaceholder')}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                  editable={!isLoading}
-                  leftIcon={<FieldIcon />}
-                />
-                <AuthTextField
-                  label={t('auth:register.passwordLabel')}
-                  placeholder={t('auth:register.passwordPlaceholder')}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  showPasswordToggle
-                  autoComplete="password-new"
-                  editable={!isLoading}
-                  leftIcon={<LockIcon />}
-                />
-                <Text style={styles.hint}>{t('auth:register.passwordHint')}</Text>
-                <AuthTextField
-                  label={t('auth:register.confirmPassword')}
-                  placeholder={t('auth:register.confirmPasswordPlaceholder')}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  showPasswordToggle
-                  autoComplete="password-new"
-                  editable={!isLoading}
-                  leftIcon={<LockIcon />}
-                />
+          {showInvite ? (
+            <AuthTextField
+              label={t('auth:register.inviteCode')}
+              placeholder={t('auth:register.inviteCodePlaceholder')}
+              value={inviteCode}
+              onChangeText={(value) => setInviteCode(value.toUpperCase())}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!loading}
+              leftIcon="ticket-outline"
+              optional
+              helperText={t('auth:register.inviteCodeHint')}
+              error={errors.inviteCode}
+            />
+          ) : (
+            <TouchableOpacity onPress={() => setShowInvite(true)} style={authLinkStyles.row}>
+              <Text style={authLinkStyles.accent}>{t('auth:register.inviteToggle')}</Text>
+            </TouchableOpacity>
+          )}
 
-                <AuthTextField
-                  label={t('auth:register.inviteCode')}
-                  placeholder={t('auth:register.inviteCodePlaceholder')}
-                  value={inviteCode}
-                  onChangeText={(value) => setInviteCode(value.toUpperCase())}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  editable={!isLoading}
-                />
-                <Text style={styles.hint}>{t('auth:register.inviteCodeHint')}</Text>
+          <AuthButton
+            title={t(hasInviteIntent ? 'auth:register.inviteButton' : 'auth:register.button')}
+            onPress={() => void handleRegister()}
+            loading={loading}
+          />
+        </>
+      )}
 
-                <TouchableOpacity
-                  style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
-                  onPress={handleRegister}
-                  disabled={isLoading}
-                  activeOpacity={0.85}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color={loginTheme.buttonText} />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>{t('auth:register.button')}</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Login')}
-                  style={styles.loginLink}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.loginText}>
-                    {t('auth:register.hasAccount')}{' '}
-                    <Text style={styles.loginAccent}>{t('auth:register.loginLink')}</Text>
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </ImageBackground>
-    </View>
+      <TouchableOpacity onPress={goLogin} style={authLinkStyles.row} disabled={loading}>
+        <Text style={authLinkStyles.muted}>
+          {t('auth:register.hasAccount')} <Text style={authLinkStyles.accent}>{t('auth:register.loginLink')}</Text>
+        </Text>
+      </TouchableOpacity>
+    </AuthScreen>
   );
 };
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  background: { flex: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: loginTheme.overlayRegister,
-  },
-  safe: { flex: 1 },
-  flex: { flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-    justifyContent: 'center',
-  },
-  hero: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    marginTop: spacing.md,
-  },
-  logo: { marginBottom: spacing.sm },
-  appName: {
-    ...typography.styles.h2,
-    color: loginTheme.heroText,
-    fontWeight: typography.fontWeight.bold,
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    ...typography.styles.bodySmall,
-    color: loginTheme.heroMuted,
-    marginTop: spacing.xs,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  card: {
-    backgroundColor: loginTheme.cardBg,
-    borderRadius: loginTheme.cardRadius,
-    borderWidth: 1,
-    borderColor: loginTheme.cardBorder,
-    padding: spacing.lg,
-    shadowColor: loginTheme.shadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 1,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  langRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  langBtn: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: spacingPatterns.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: loginTheme.inputBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: loginTheme.inputBg,
-  },
-  langBtnActive: {
-    borderColor: loginTheme.inputBorderFocused,
-    backgroundColor: loginTheme.softSelected,
-  },
-  langText: {
-    ...typography.styles.bodySmall,
-    color: loginTheme.textSecondary,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  langTextActive: {
-    color: loginTheme.softSelectedText,
-  },
-  title: {
-    ...typography.styles.h3,
-    color: loginTheme.textPrimary,
-    fontWeight: typography.fontWeight.bold,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.styles.bodySmall,
-    color: loginTheme.textSecondary,
-    marginBottom: spacing.lg,
-  },
-  nameRow: {
-    flexDirection: 'column',
-  },
-  nameField: {
-    flex: 1,
-  },
-  fieldIcon: {
-    fontSize: 16,
-    color: loginTheme.textMuted,
-  },
-  hint: {
-    ...typography.styles.caption,
-    color: loginTheme.textMuted,
-    marginTop: -spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  primaryBtn: {
-    backgroundColor: loginTheme.buttonBg,
-    borderRadius: spacingPatterns.borderRadius.lg,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
-  primaryBtnDisabled: {
-    opacity: 0.7,
-  },
-  primaryBtnText: {
-    ...typography.styles.button,
-    color: loginTheme.buttonText,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  loginLink: { alignItems: 'center' },
-  loginText: {
-    ...typography.styles.bodySmall,
-    color: loginTheme.textSecondary,
-    textAlign: 'center',
-  },
-  loginAccent: {
-    color: loginTheme.link,
-    fontWeight: typography.fontWeight.semibold,
-  },
-});
 
 export default RegisterScreen;

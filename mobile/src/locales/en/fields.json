@@ -811,6 +811,55 @@
       "whatAdd": "Add to this day",
       "addCue": "Sacks, mill, oil, people, expense, or a note"
     },
+    "addMenu": {
+      "start": "Start here",
+      "next": "Next step",
+      "later": "Or later",
+      "title": {
+        "sacks": "Sacks",
+        "mill": "Olive fruit",
+        "oil": "Oil"
+      },
+      "hint": {
+        "sacks": "How many sacks did you pick in the field?",
+        "mill": "How many kilograms did the mill show?",
+        "oil": "How much oil came out?"
+      },
+      "sacksWaiting": "{{count}} sacks are waiting for kilograms",
+      "fruitWaiting": "{{kg}} kg of fruit still have no oil"
+    },
+    "stepRail": {
+      "aria": "Sacks, olive fruit, oil",
+      "you": "now",
+      "empty": "none",
+      "openLink": "Link: {{step}}"
+    },
+    "wizard": {
+      "next": "Next",
+      "back": "Back",
+      "done": "Done",
+      "other": "People, expense, or note"
+    },
+    "steps": {
+      "review": "Check and save",
+      "reviewHint": "You can add a note, then save.",
+      "oilSource": "Where did this oil come from?",
+      "oilSourceHint": "Pick mill weighings, or skip if this oil is not tied to fruit yet.",
+      "oilAmount": "How much oil came out?",
+      "oilKept": "How much did the mill keep?",
+      "oilStored": "How is the oil stored?",
+      "millFruit": "Which sacks went to the mill?",
+      "millWeight": "What did the mill weigh?",
+      "millFields": "Which fields?",
+      "sacksCount": "How many sacks?",
+      "sacksField": "Which field?",
+      "peopleCount": "How many people?",
+      "peopleHours": "How long did they work?"
+    },
+    "carry": {
+      "pickSacks": "Tap the sacks that were weighed",
+      "pickFruit": "Tap the fruit that became oil"
+    },
     "validation": {
       "pickField": "Pick a field to continue.",
       "enterWeight": "Enter a weight to continue.",
@@ -881,17 +930,45 @@
       "linkConfirm": "Link",
       "linkFound": "Link {{count}} sacks",
       "changeSelection": "Change selection",
-      "save": "Record {{kg}} kg"
+      "save": "Record {{kg}} kg",
+      "receiptRef": "Receipt / ticket number (optional)",
+      "tareHint": "Enter the net olive kilograms shown after tare."
     },
     "oil": {
       "prompt": "How much oil did you get?",
       "kg": "Kilograms",
       "litres": "Litres",
+      "unitLabel": "Unit",
+      "tin16": "16 L tins",
+      "tin17": "17 L tins",
+      "tinSuffix": "tins",
+      "tinCount": "Number of tins",
+      "millTitle": "What the mill kept",
+      "millHint": "Enter 0 if the mill kept no oil.",
+      "millModeLabel": "How to enter the mill's share",
+      "millAmount": "Amount",
+      "millPercent": "%",
+      "storedTitle": "What was stored",
+      "storedAll": "All together",
+      "storedTins": "Tins",
+      "storedAllHint": "The whole remaining quantity, without tins.",
+      "bulkLine": "Bulk leftover {{amount}}",
+      "overTins": "The tins exceed the remaining oil by {{amount}}.",
+      "overMill": "The mill cannot keep more than the total.",
+      "tinBit": "{{count}} × {{size}} L",
+      "millBit": "mill {{amount}}",
+      "part": {
+        "stored": "Stored",
+        "tin16": "16 L tins",
+        "tin17": "17 L tins",
+        "bulk": "Bulk",
+        "mill": "Mill"
+      },
       "relatedKg": "Related weighing",
       "noRelated": "No link",
       "acidity": "Acidity (optional)",
       "yieldLine": "{{olives}} kg olives → {{oil}} kg oil · Yield {{yield}}%",
-      "estimatedKg": "About {{kg}} kg",
+      "estimatedKg": "About {{kg}} kg (density estimate)",
       "save": "Record {{amount}} {{unit}} of oil"
     },
     "people": {
@@ -917,7 +994,8 @@
     },
     "note": {
       "prompt": "Note or photo",
-      "save": "Save"
+      "save": "Save",
+      "chronologioHint": "Saved notes also appear in Chronologio for this field."
     },
     "today": {
       "label": "This day",
@@ -1044,6 +1122,8 @@
       "oliveLine": "{{kg}} kg olives",
       "oilLine": "{{kg}} kg oil",
       "openSacksLine": "{{count}} sacks open",
+      "sackCount": "{{count}} sacks",
+      "fruitLine": "{{kg}} kg fruit",
       "approxOlives": "≈ {{kg}} kg",
       "weighedSplit": "{{weighed}} weighed · {{open}} open",
       "intoMill": "→ {{kg}} kg",

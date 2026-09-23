@@ -15,6 +15,14 @@ export const INCOMPLETE_FIELD_STATUSES: ReadonlySet<FieldStatus> = new Set([
 export const isFieldSetupIncomplete = (status?: string | null): boolean =>
   Boolean(status && INCOMPLETE_FIELD_STATUSES.has(status as FieldStatus));
 
+export const isListedGrove = (field: Pick<Field, 'status' | 'name'>): boolean => {
+  if (field.status === 'Archived' || isFieldSetupIncomplete(field.status)) return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  const leftover = name.length < 8 && !/\s/.test(name) && !/\d/.test(name);
+  return !leftover;
+};
+
 export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   const ring = field.boundary?.coordinates?.[0];
   return Boolean(ring && ring.length >= 4);

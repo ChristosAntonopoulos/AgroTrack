@@ -5,109 +5,127 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing, typography } from '../../theme';
 import { millKgNeedingOil, pendingSackTotal } from '../chain';
+import { HARVEST_ACTION_ICONS, HARVEST_HOME_ACTIONS } from '../harvestActions';
 import type { HarvestCampaign, HarvestCaptureKind } from '../types';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
+import { HarvestStepRail, type HarvestPathStep } from '../components/HarvestStepRail';
 
 const PRODUCTION: HarvestCaptureKind[] = ['sacks', 'mill', 'oil'];
-const OTHER: HarvestCaptureKind[] = ['expense', 'people', 'note'];
-
-const ACTION_META: Record<
-  HarvestCaptureKind,
-  { icon: React.ComponentProps<typeof Ionicons>['name']; soft: 'harvest' | 'expense' | 'work' | 'observation' }
-> = {
-  sacks: { icon: 'bag-handle-outline', soft: 'harvest' },
-  mill: { icon: 'scale-outline', soft: 'harvest' },
-  oil: { icon: 'water-outline', soft: 'harvest' },
-  expense: { icon: 'wallet-outline', soft: 'expense' },
-  people: { icon: 'people-outline', soft: 'work' },
-  note: { icon: 'camera-outline', soft: 'observation' },
-};
 
 export const HarvestAddMenu: React.FC<{
   campaign: HarvestCampaign;
+  allowedKinds?: HarvestCaptureKind[];
+  preferredKind?: HarvestCaptureKind;
   onPick: (kind: HarvestCaptureKind) => void;
-}> = ({ campaign, onPick }) => {
+}> = ({ campaign, allowedKinds, preferredKind, onPick }) => {
   const { t } = useTranslation('fields');
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const openSacks = pendingSackTotal(campaign);
   const openMillKg = millKgNeedingOil(campaign);
+  const allowed = new Set(allowedKinds ?? HARVEST_HOME_ACTIONS);
+  const production = PRODUCTION.filter((k) => allowed.has(k));
+  const other = HARVEST_HOME_ACTIONS.filter((k) => !PRODUCTION.includes(k) && allowed.has(k));
 
-  const softFor = (key: (typeof ACTION_META)[HarvestCaptureKind]['soft']) => {
-    if (key === 'expense') return { soft: colors.eventExpenseSoft, accent: colors.eventExpense };
-    if (key === 'work') return { soft: colors.eventWorkSoft, accent: colors.eventWork };
-    if (key === 'observation') return { soft: colors.eventObservationSoft, accent: colors.eventObservation };
-    return { soft: colors.eventHarvestSoft, accent: colors.eventHarvest };
+  const titleOf = (kind: HarvestCaptureKind) =>
+    PRODUCTION.includes(kind)
+      ? t(`harvestCampaign.addMenu.title.${kind}`)
+      : t(`harvestCampaign.actions.${kind}`);
+
+  const hintOf = (kind: HarvestCaptureKind) => {
+    if (kind === 'mill' && openSacks > 0) {
+      return t('harvestCampaign.addMenu.sacksWaiting', { count: openSacks });
+    }
+    if (kind === 'oil' && openMillKg > 0) {
+      return t('harvestCampaign.addMenu.fruitWaiting', { kg: Math.round(openMillKg) });
+    }
+    if (PRODUCTION.includes(kind)) return t(`harvestCampaign.addMenu.hint.${kind}`);
+    return t(`harvestCampaign.actionHint.${kind}`);
   };
 
-  const row = (kind: HarvestCaptureKind, badge?: string | null) => {
-    const meta = ACTION_META[kind];
-    const tone = softFor(meta.soft);
-    return (
-      <Pressable
-        key={kind}
-        onPress={() => onPick(kind)}
-        style={({ pressed }) => [
-          styles.row,
-          {
-            minHeight: Math.max(64, tapMin + 16),
-            backgroundColor: tone.soft,
-            borderColor: colors.borderLight,
-            opacity: pressed ? 0.9 : 1,
-          },
-        ]}
-      >
-        <View style={[styles.iconWell, { backgroundColor: colors.surface }]}>
-          <Ionicons name={meta.icon} size={22} color={tone.accent} />
-        </View>
-        <View style={styles.copy}>
-          <Text
-            style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
-            numberOfLines={1}
-          >
-            {t(`harvestCampaign.actions.${kind}`)}
-          </Text>
-          <Text
-            style={[styles.hint, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
-            numberOfLines={2}
-          >
-            {t(`harvestCampaign.actionHint.${kind}`)}
-          </Text>
-        </View>
-        {badge ? (
-          <Text style={[styles.badge, { backgroundColor: colors.surface, color: tone.accent }]}>
-            {badge}
-          </Text>
-        ) : (
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-        )}
-      </Pressable>
-    );
-  };
+  const suggested: HarvestCaptureKind | null = (() => {
+    if (preferredKind && production.includes(preferredKind)) return preferredKind;
+    if (production.includes('mill') && openSacks > 0) return 'mill';
+    if (production.includes('oil') && openMillKg > 0) return 'oil';
+    if (production.includes('sacks')) return 'sacks';
+    return production[0] ?? null;
+  })();
+
+  const waiting =
+    (suggested === 'mill' && openSacks > 0) || (suggested === 'oil' && openMillKg > 0);
+
+  const pathSteps = production.filter(
+    (kind): kind is HarvestPathStep => kind === 'sacks' || kind === 'mill' || kind === 'oil'
+  );
+  const pathCurrent: HarvestPathStep | null =
+    suggested === 'sacks' || suggested === 'mill' || suggested === 'oil' ? suggested : null;
+
+  const pathFacts: Partial<Record<HarvestPathStep, string>> = {};
+  if (openSacks > 0) {
+    pathFacts.sacks = t('harvestCampaign.flow.sackCount', { count: openSacks });
+  }
+  if (openMillKg > 0 && pathCurrent !== 'mill') {
+    pathFacts.mill = t('harvestCampaign.flow.fruitLine', { kg: Math.round(openMillKg) });
+  }
+
+  const row = (kind: HarvestCaptureKind) => (
+    <Pressable
+      key={kind}
+      onPress={() => onPick(kind)}
+      style={({ pressed }) => [
+        styles.row,
+        {
+          minHeight: Math.max(64, tapMin + 16),
+          backgroundColor: colors.surface,
+          borderColor: colors.borderLight,
+          opacity: pressed ? 0.9 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.iconWell, { backgroundColor: colors.eventHarvestSoft }]}>
+        <Ionicons name={HARVEST_ACTION_ICONS[kind]} size={22} color={colors.eventHarvest} />
+      </View>
+      <View style={styles.copy}>
+        <Text
+          style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
+          numberOfLines={1}
+        >
+          {titleOf(kind)}
+        </Text>
+        <Text
+          style={[styles.hint, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
+          numberOfLines={2}
+        >
+          {hintOf(kind)}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+    </Pressable>
+  );
 
   return (
     <HarvestSheetShell>
-      <Text style={[styles.section, { color: colors.textSecondary }]}>
-        {t('harvestCampaign.chain.production')}
-      </Text>
-      <View style={styles.list}>
-        {row('sacks')}
-        {row(
-          'mill',
-          openSacks > 0
-            ? t('harvestCampaign.chain.openSacksBadge', { count: openSacks })
-            : null
-        )}
-        {row(
-          'oil',
-          openMillKg > 0
-            ? t('harvestCampaign.chain.openMillBadge', { kg: Math.round(openMillKg) })
-            : null
-        )}
-      </View>
-      <Text style={[styles.section, { color: colors.textSecondary, marginTop: spacing.md }]}>
-        {t('harvestCampaign.chain.other')}
-      </Text>
-      <View style={styles.list}>{OTHER.map((kind) => row(kind))}</View>
+      {pathCurrent ? (
+        <>
+          <Text style={[styles.section, { color: colors.textSecondary }]}>
+            {waiting ? t('harvestCampaign.addMenu.next') : t('harvestCampaign.addMenu.start')}
+          </Text>
+          <HarvestStepRail
+            current={pathCurrent}
+            facts={pathFacts}
+            caption={hintOf(pathCurrent)}
+            enabled={pathSteps}
+            onPick={onPick}
+          />
+        </>
+      ) : null}
+      {other.length > 0 ? (
+        <>
+          <Text style={[styles.section, { color: colors.textSecondary, marginTop: spacing.md }]}>
+            {t('harvestCampaign.chain.other')}
+          </Text>
+          <View style={styles.list}>{other.map((kind) => row(kind))}</View>
+        </>
+      ) : null}
     </HarvestSheetShell>
   );
 };
@@ -134,14 +152,4 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2 },
   title: { fontWeight: '650' as '600', letterSpacing: -0.2 },
   hint: { ...typography.styles.caption, lineHeight: 17 },
-  badge: {
-    maxWidth: 110,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    overflow: 'hidden',
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
 });

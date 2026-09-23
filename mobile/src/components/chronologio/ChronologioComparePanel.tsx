@@ -10,6 +10,14 @@ import type {
 } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import { periodEventCount } from '../../utils/summaryFacts';
+import {
+  comparisonDriverMonths,
+  costPerOilKg,
+  fairYearPair,
+  yearComparisonCopyKey,
+  yearComparisonInsights,
+} from '../../chronologio/yearPresentation';
+import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
 
 type Props = {
   left: ChronologioPeriodSummary | null;
@@ -20,7 +28,9 @@ type Props = {
   rightYear: number;
   availableYears: number[];
   numberLocale: string;
+  fieldNames: string[];
   onChangeYears: (pair: [number, number]) => void;
+  onOpenMonth?: (year: number, month: number) => void;
   onClose: () => void;
 };
 
@@ -33,7 +43,9 @@ const ChronologioComparePanel: React.FC<Props> = ({
   rightYear,
   availableYears,
   numberLocale,
+  fieldNames,
   onChangeYears,
+  onOpenMonth,
   onClose,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
@@ -44,6 +56,38 @@ const ChronologioComparePanel: React.FC<Props> = ({
     const fmt = new Intl.DateTimeFormat(i18n.language, { month: 'short', timeZone: 'UTC' });
     return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(Date.UTC(2020, i, 1))));
   }, [i18n.language]);
+
+  const insights = yearComparisonInsights(left, right, {
+    currentMonths:
+      left && right && left.periodYear >= right.periodYear ? leftMonths : rightMonths,
+    previousMonths:
+      left && right && left.periodYear >= right.periodYear ? rightMonths : leftMonths,
+  });
+  const liveYear = agriculturalYearFor(new Date());
+  const comparesLive = leftYear === liveYear || rightYear === liveYear;
+  const newerIsLeft = (left?.periodYear ?? leftYear) >= (right?.periodYear ?? rightYear);
+  const newerSummary = newerIsLeft ? left : right;
+  const olderSummary = newerIsLeft ? right : left;
+  const newerMonths = newerIsLeft ? leftMonths : rightMonths;
+  const olderMonths = newerIsLeft ? rightMonths : leftMonths;
+  const newerYear = newerIsLeft ? (left?.periodYear ?? leftYear) : (right?.periodYear ?? rightYear);
+  const olderYear = newerIsLeft ? (right?.periodYear ?? rightYear) : (left?.periodYear ?? leftYear);
+  const fair = fairYearPair(newerSummary, olderSummary, {
+    currentMonths: newerMonths,
+    previousMonths: olderMonths,
+  });
+  const currency = left?.currency || right?.currency || 'EUR';
+  const currentCost = fair ? costPerOilKg(fair.current.expenseTotal, fair.current.oilKg) : null;
+  const previousCost = fair ? costPerOilKg(fair.previous.expenseTotal, fair.previous.oilKg) : null;
+  const costForYear = (year: number): number | null => {
+    if (!fair) return null;
+    if (year === fair.current.periodYear) return currentCost;
+    if (year === fair.previous.periodYear) return previousCost;
+    return null;
+  };
+  const formatCost = (value: number | null) =>
+    value == null ? '—' : formatChronologioMoney(value, currency, numberLocale);
+  const drivers = comparisonDriverMonths(newerMonths, olderMonths, newerYear, olderYear);
 
   const rows = [
     ...(left?.expenseTotal || right?.expenseTotal
@@ -88,6 +132,15 @@ const ChronologioComparePanel: React.FC<Props> = ({
               right?.oilKg && right.oilKg > 0
                 ? `${Math.round(right.oilKg).toLocaleString(numberLocale)} kg`
                 : '—',
+          },
+        ]
+      : []),
+    ...(currentCost != null || previousCost != null
+      ? [
+          {
+            label: t('yearView.compare.costPerKg'),
+            a: formatCost(costForYear(leftYear)),
+            b: formatCost(costForYear(rightYear)),
           },
         ]
       : []),
@@ -215,6 +268,83 @@ const ChronologioComparePanel: React.FC<Props> = ({
           </Text>
         </View>
       ))}
+
+      <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
+        {fieldNames.length === 1
+          ? t('yearView.compare.fieldsOne', { field: fieldNames[0] })
+          : fieldNames.length > 1
+            ? t('yearView.compare.fieldsAll', { fields: fieldNames.join(' · ') })
+            : t('yearView.compare.fieldsEvery')}
+      </Text>
+      {comparesLive ? (
+        <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '600' }}>
+          {t('yearView.compare.inProgress', { year: liveYear })}
+        </Text>
+      ) : null}
+      {currentCost != null && previousCost != null && fair ? (
+        <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '600' }}>
+          {t(currentCost >= previousCost ? 'yearView.compare.costUp' : 'yearView.compare.costDown', {
+            context: fair.scope === 'ytd' ? 'ytd' : undefined,
+            amount: formatChronologioMoney(
+              Math.abs(currentCost - previousCost),
+              currency,
+              numberLocale
+            ),
+            year: fair.previous.periodYear,
+          })}
+        </Text>
+      ) : null}
+      {insights.map((comparison) => (
+        <Text
+          key={comparison.kind}
+          style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700', lineHeight: 20 }}
+        >
+          {t(yearComparisonCopyKey(comparison), {
+            context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+            pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
+            points: comparison.percent.toLocaleString(numberLocale, {
+              signDisplay: 'exceptZero',
+              maximumFractionDigits: 1,
+            }),
+            year: comparison.previousYear,
+          })}
+        </Text>
+      ))}
+      {drivers.length > 0 ? (
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>
+            {t('yearView.compare.drivers')}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {drivers.map((link) => (
+              <Pressable
+                key={`${link.year}-${link.month}`}
+                onPress={() => onOpenMonth?.(link.year, link.month)}
+                style={[
+                  styles.yearChip,
+                  {
+                    borderColor: colors.borderLight,
+                    backgroundColor: colors.surfaceMuted,
+                    minHeight: Math.max(tapMin, 36),
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 12 }}>
+                  {new Date(Date.UTC(link.year, link.month - 1, 1)).toLocaleDateString(i18n.language, {
+                    month: 'short',
+                    year: 'numeric',
+                    timeZone: 'UTC',
+                  })}
+                  {' · '}
+                  {link.metric === 'oil'
+                    ? `${link.amount.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} kg`
+                    : formatChronologioMoney(link.amount, currency, numberLocale)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.spines}>
         <View style={{ flex: 1 }}>{spine(leftMonths)}</View>

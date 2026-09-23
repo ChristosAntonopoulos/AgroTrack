@@ -15,6 +15,20 @@ export interface LoginDto {
   password: string;
 }
 
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  password: string;
+}
+
+export interface ForgotPasswordResponse {
+  sent: boolean;
+  devResetToken?: string | null;
+}
+
 /** Matches backend AuthResponseDto — JWT + user claims. */
 export interface AuthResponse {
   token: string;
@@ -49,6 +63,23 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(getApiErrorMessage(error, 'Login failed'));
+    }
+  },
+
+  forgotPassword: async (data: ForgotPasswordDto): Promise<ForgotPasswordResponse> => {
+    try {
+      const response = await api.post<ForgotPasswordResponse>('/api/v1/auth/forgot-password', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Password reset failed'));
+    }
+  },
+
+  resetPassword: async (data: ResetPasswordDto): Promise<void> => {
+    try {
+      await api.post('/api/v1/auth/reset-password', data);
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Password reset failed'));
     }
   },
 

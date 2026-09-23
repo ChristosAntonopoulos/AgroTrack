@@ -7,6 +7,7 @@ export interface HarvestRecord {
   harvestMethod: string;
   workersUsed: number;
   oliveKg: number;
+  sackCount?: number;
   millName?: string;
   oilKg?: number;
   oilLitres?: number | null;

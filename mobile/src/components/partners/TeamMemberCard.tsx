@@ -5,17 +5,15 @@ import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import Button from '../ui/Button';
 import PartnersSheet from './PartnersSheet';
-import InviteSharePanel from './InviteSharePanel';
+import InviteSharePanel, { ShareableInvite } from './InviteSharePanel';
 import AccessFields from './AccessFields';
 import PersonCard from './PersonCard';
 import {
   FamilyAccessLevel,
-  FamilyInviteShare,
   FamilyModule,
 } from '../../services/familyService';
-import { OwnerPartnerInviteShare } from '../../services/ownerPartnerService';
-import { spacing } from '../../theme';
 import { formatPhoneShort } from '../../utils/personPresentation';
+import { spacing } from '../../theme';
 
 type Kind = 'family' | 'partner';
 
@@ -27,7 +25,7 @@ type Props = {
   modules: FamilyModule[];
   accessLevel: FamilyAccessLevel;
   status: string;
-  pendingInvite?: FamilyInviteShare | OwnerPartnerInviteShare | null;
+  pendingInvite?: ShareableInvite | null;
   canManage?: boolean;
   onChanged?: () => void;
   onUpdate: (payload: {

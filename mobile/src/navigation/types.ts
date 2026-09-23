@@ -1,12 +1,13 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
+  Login: { reset?: boolean; token?: string; code?: string } | undefined;
+  Register: { token?: string; code?: string } | undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string } | undefined;
+  Legal: { kind: 'privacy' | 'terms' };
   SessionExpired: undefined;
   InviteAccept: { token: string };
-  FamilyInviteAccept: { token: string };
-  PartnerInviteAccept: { token: string };
 };
 
 export type HarvestCampaignParams = {
@@ -30,7 +31,7 @@ export type MainTabParamList = {
   Tasks: {
     fieldId?: string;
     filter?: string;
-    view?: 'now' | 'upcoming' | 'proposals' | 'history' | 'planned' | 'active';
+    view?: 'todo' | 'done' | 'now' | 'upcoming' | 'proposals' | 'history' | 'planned' | 'active';
     year?: string;
     created?: string;
   } | undefined;
@@ -67,14 +68,22 @@ export type RootStackParamList = {
   TaskCompletion: { taskId: string };
   FieldForm: { fieldId?: string };
   FieldWorkSetup: { fieldId: string; edit?: boolean };
+  FieldWorkProfile: { fieldId: string };
   FieldMapBoundary: { fieldId: string };
-  CreateTask: { fieldId?: string; scheduledStart?: string; scheduledEnd?: string; proposalId?: string };
+  CreateTask: {
+    fieldId?: string;
+    scheduledStart?: string;
+    scheduledEnd?: string;
+    proposalId?: string;
+    templateCode?: string;
+  };
   Notifications: undefined;
   /** Deep-link alias; redirects to Chronologio. */
   NotesList: undefined;
   /** Secondary destinations previously hidden tabs — now root stack. */
   Calendar: { date?: string; fieldId?: string } | undefined;
   Settings: undefined;
+  Legal: { kind: 'privacy' | 'terms' };
   Feedback: undefined;
   /** Deep-link alias; redirects to Chronologio. */
   Dashboard: undefined;

@@ -10,7 +10,7 @@ import {
   FieldYearlyOperations,
   DailyWeatherRow,
   ReportInsight,
-} from '../data/mockReportData';
+} from './reportTypes';
 import { CATEGORY_TO_PNL_KEY, FINANCIAL_CATEGORIES } from '../data/financialCategories';
 
 const seasonParams = (season?: string, extra?: Record<string, string | number | undefined>) => ({

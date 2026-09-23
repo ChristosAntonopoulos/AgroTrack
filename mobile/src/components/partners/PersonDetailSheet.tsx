@@ -24,6 +24,7 @@ type Props = {
   canRemoveFromField?: boolean;
   onClose: () => void;
   onEdit?: () => void;
+  onInvite?: () => void;
   onRemoveFromField?: () => void;
   onOpenProfile?: () => void;
 };
@@ -34,6 +35,7 @@ const PersonDetailSheet: React.FC<Props> = ({
   canRemoveFromField,
   onClose,
   onEdit,
+  onInvite,
   onRemoveFromField,
   onOpenProfile,
 }) => {
@@ -91,6 +93,9 @@ const PersonDetailSheet: React.FC<Props> = ({
         {phoneLabel ? (
           <Text style={{ color: colors.textTertiary, marginTop: 4 }}>{phoneLabel}</Text>
         ) : null}
+        {person.email ? (
+          <Text style={{ color: colors.textTertiary, marginTop: 4 }}>{person.email}</Text>
+        ) : null}
         {context ? (
           <Text style={{ color: colors.textTertiary, marginTop: 6, fontSize: 13 }}>{context}</Text>
         ) : null}
@@ -140,6 +145,18 @@ const PersonDetailSheet: React.FC<Props> = ({
       {onOpenProfile && person.listed && person.userId ? (
         <Pressable onPress={onOpenProfile} style={[styles.moreRow, { minHeight: tapMin }]}>
           <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{t('partners:profile')}</Text>
+        </Pressable>
+      ) : null}
+
+      {onInvite ? (
+        <Pressable
+          onPress={() => {
+            onInvite();
+            onClose();
+          }}
+          style={[styles.moreRow, { minHeight: tapMin }]}
+        >
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('partners:inviteToOleachron')}</Text>
         </Pressable>
       ) : null}
 

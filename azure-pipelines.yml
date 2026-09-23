@@ -1,6 +1,6 @@
 # Azure DevOps Build and Deploy Pipeline for Oleachron (Olive Lifecycle Platform)
 # Builds Docker images, pushes to Docker Hub, deploys to Kubernetes.
-# CI on main: website + API only. Android APK is off by default (opt in on a manual run).
+# CI on main: website, API, and Android APK. The APK is staged into the website /downloads.
 # Maps use MapLibre Native + free Esri/OSM tiles (no Google API key).
 
 trigger:
@@ -8,7 +8,7 @@ trigger:
   - main
 
 # Manual run (Pipelines → Run pipeline): check the boxes you want.
-# CI on main: website + API. Leave "Also build Android APK" unchecked unless you need /downloads.
+# CI on main builds the Android APK and publishes it at /downloads.
 parameters:
   - name: deployBackend
     displayName: 'Deploy backend (API)'
@@ -21,9 +21,9 @@ parameters:
     default: true
 
   - name: buildMobileApk
-    displayName: 'Also build and publish Android APK to /downloads'
+    displayName: 'Build and publish Android APK to /downloads'
     type: boolean
-    default: false
+    default: true
 
   # Destructive: drops the OliveLifecycle Mongo database so API seed recreates field-centric demos.
   # Keep false so routine CI does not wipe prod data. Opt in only for a deliberate reseed.

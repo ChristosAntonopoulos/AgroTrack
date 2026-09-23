@@ -9,12 +9,14 @@ import { Field } from '../services/fieldService';
 import { EntityCache } from '../utils/entityCache';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { useOfflineMode } from '../context/OfflineContext';
+import { athensCalendarYear } from '../utils/athensDate';
 
 export type TaskListFilter = 'all' | 'planned' | 'in_progress' | 'ready' | 'blocked';
 
 export interface UseTasksOptions {
   fieldId?: string;
   filter?: TaskListFilter;
+  resultYear?: number;
 }
 
 export interface UseTasksResult {
@@ -32,7 +34,7 @@ export interface UseTasksResult {
 export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
   const { user } = useAuth();
   const { setShowingCachedData, syncGeneration } = useOfflineMode();
-  const { fieldId } = options;
+  const { fieldId, resultYear = athensCalendarYear(new Date()) } = options;
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [fields, setFields] = useState<Record<string, Field>>({});
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,10 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
       const online = await isDeviceOnline();
 
       const tasksData = (
-        await getFieldWorkService().listFieldTasks(fieldId ? { fieldId } : undefined)
+        await getFieldWorkService().listFieldTasks({
+            resultYear,
+            ...(fieldId ? { fieldId } : {}),
+          })
       ).filter(isActiveFieldTask);
 
       setTasks(tasksData);
@@ -78,9 +83,11 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
       if (user) {
         const cachedTasks = await EntityCache.getTasks(user.id);
         if (cachedTasks) {
-          const data = fieldId
-            ? cachedTasks.data.filter((t) => t.fieldId === fieldId)
-            : cachedTasks.data;
+          const data = cachedTasks.data.filter(
+            (t) =>
+              (!fieldId || t.fieldId === fieldId) &&
+              (t.resultYear == null || t.resultYear === resultYear)
+          );
           setTasks(data.filter(isActiveFieldTask));
           setFromCache(true);
           setShowingCachedData(true);
@@ -100,7 +107,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
 
   useEffect(() => {
     loadTasks();
-  }, [user, fieldId, syncGeneration]);
+  }, [user, fieldId, resultYear, syncGeneration]);
 
   const filteredTasks = useMemo(() => {
     if (filter === 'all') return tasks;

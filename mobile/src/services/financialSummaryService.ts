@@ -38,6 +38,13 @@ export interface FinancialDataAvailability {
   areaIsMissing: boolean;
   oilQuantityIsMissing: boolean;
   includesUnassigned: boolean;
+  /** Posted fields left out of per-stremma because area is missing. */
+  missingAreaFieldIds?: string[];
+  missingAreaFieldNames?: string[];
+  /** Incomplete fields left out of the totals. */
+  incompleteFieldNames?: string[];
+  /** Entries with no field are in the totals and left out of per-stremma. */
+  perAreaExcludesUnassigned?: boolean;
 }
 
 export interface OliveOilEconomics {

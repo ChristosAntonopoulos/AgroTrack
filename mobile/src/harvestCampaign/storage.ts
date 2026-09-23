@@ -109,6 +109,16 @@ const parseOil = (value: unknown): HarvestOilEntry | null => {
     date: value.date,
     amount,
     unit: value.unit === 'litres' ? 'litres' : 'kg',
+    millKept: asNumber(value.millKept),
+    tin16Count:
+      asNumber(value.tin16Count) ??
+      (value.tinSizeLitres === 16 ? asNumber(value.tinCount) : undefined),
+    tin17Count:
+      asNumber(value.tin17Count) ??
+      (value.tinSizeLitres === 17 ? asNumber(value.tinCount) : undefined),
+    tinSizeLitres: value.tinSizeLitres === 16 || value.tinSizeLitres === 17 ? value.tinSizeLitres : undefined,
+    tinCount: asNumber(value.tinCount),
+    extraLitres: asNumber(value.extraLitres),
     millWeightIds: asStringArray(value.millWeightIds),
     fieldIds: fieldShares ? fieldIdsFromShares(fieldShares) : fieldIds,
     fieldShares,
@@ -117,6 +127,10 @@ const parseOil = (value: unknown): HarvestOilEntry | null => {
     batchId: asString(value.batchId),
     harvestRecordId: asString(value.harvestRecordId),
     harvestRecordIds: asStringArray(value.harvestRecordIds),
+    soldLitres: asNumber(value.soldLitres),
+    soldTin16: asNumber(value.soldTin16),
+    soldTin17: asNumber(value.soldTin17),
+    soldBulkLitres: asNumber(value.soldBulkLitres),
     createdAt: asString(value.createdAt) || value.date,
   };
 };
@@ -475,7 +489,20 @@ export const updateOil = (
   patch: Partial<
     Pick<
       HarvestOilEntry,
-      'amount' | 'unit' | 'millWeightIds' | 'fieldIds' | 'fieldShares' | 'acidity' | 'note' | 'date'
+      | 'amount'
+      | 'unit'
+      | 'millKept'
+      | 'tin16Count'
+      | 'tin17Count'
+      | 'tinSizeLitres'
+      | 'tinCount'
+      | 'extraLitres'
+      | 'millWeightIds'
+      | 'fieldIds'
+      | 'fieldShares'
+      | 'acidity'
+      | 'note'
+      | 'date'
     >
   >
 ): HarvestCampaign => ({

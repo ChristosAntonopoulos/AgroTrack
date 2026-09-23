@@ -20,6 +20,7 @@ type Props = {
   yearRollup: FieldYearSummary | null;
   plannedRemaining: number;
   onSeeFinance: () => void;
+  canViewMoney?: boolean;
 };
 
 const formatKg = (value: number | null | undefined, locale: string, unknown: string): string => {
@@ -36,6 +37,7 @@ const FieldYearGlance: React.FC<Props> = ({
   yearRollup,
   plannedRemaining,
   onSeeFinance,
+  canViewMoney = true,
 }) => {
   const { t, i18n } = useTranslation(['fields', 'money']);
   const { colors } = useTheme();
@@ -91,7 +93,7 @@ const FieldYearGlance: React.FC<Props> = ({
         />
       </View>
 
-      {hasPosted ? (
+      {canViewMoney ? (hasPosted ? (
         <View style={[styles.moneyBlock, { borderTopColor: colors.borderLight }]}>
           <MoneyTriadFacts
             income={income}
@@ -132,13 +134,15 @@ const FieldYearGlance: React.FC<Props> = ({
         <Text style={[styles.emptyMoney, { color: colors.textSecondary }]}>
           {t('fields:overview.yearGlance.noMoney', { year })}
         </Text>
-      )}
+      )) : null}
 
-      <Pressable onPress={onSeeFinance} style={styles.link} hitSlop={6}>
-        <Text style={[styles.linkText, { color: colors.primary }]}>
-          {t('fields:overview.seeFinance')}
-        </Text>
-      </Pressable>
+      {canViewMoney ? (
+        <Pressable onPress={onSeeFinance} style={styles.link} hitSlop={6}>
+          <Text style={[styles.linkText, { color: colors.primary }]}>
+            {t('fields:overview.seeFinance')}
+          </Text>
+        </Pressable>
+      ) : null}
     </FieldOverviewCard>
   );
 };

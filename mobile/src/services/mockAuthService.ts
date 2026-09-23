@@ -55,6 +55,18 @@ export const mockAuthService = {
     return auth;
   },
 
+  forgotPassword: async (data: { email: string }) => {
+    await simulateDelay();
+    return {
+      sent: true,
+      devResetToken: `mock-reset-${encodeURIComponent(data.email)}`,
+    };
+  },
+
+  resetPassword: async (_data: { token: string; password: string }) => {
+    await simulateDelay();
+  },
+
   logout: async () => {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');

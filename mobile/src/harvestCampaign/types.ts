@@ -49,6 +49,7 @@ export type HarvestMillWeightEntry = {
   /** Sack-weighted (or manual) shares; when missing, derived from linked sacks / equal fieldIds. */
   fieldShares?: HarvestFieldShare[];
   sackIds: string[];
+  receiptRef?: string;
   note?: string;
   photoCount?: number;
   /** Shared batch id for multi-field persist; also stored on each HarvestRecord. */
@@ -64,6 +65,14 @@ export type HarvestOilEntry = {
   date: string;
   amount: number;
   unit: HarvestOilUnit;
+  /** Mill share in the same unit as `amount`. 0 = mill kept no oil. */
+  millKept?: number;
+  tin16Count?: number;
+  tin17Count?: number;
+  /** Legacy single-size tin entry. */
+  tinSizeLitres?: 16 | 17;
+  tinCount?: number;
+  extraLitres?: number;
   millWeightIds: string[];
   fieldIds: string[];
   fieldShares?: HarvestFieldShare[];
@@ -72,6 +81,10 @@ export type HarvestOilEntry = {
   batchId?: string;
   harvestRecordId?: string;
   harvestRecordIds?: string[];
+  soldLitres?: number;
+  soldTin16?: number;
+  soldTin17?: number;
+  soldBulkLitres?: number;
   createdAt: string;
 };
 

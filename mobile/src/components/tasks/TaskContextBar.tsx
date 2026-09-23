@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { spacing, typography, radii } from '../../theme';
 import Sheet from '../ui/Sheet';
 import type { Field } from '../../services/fieldService';
+import { harvestYearSpan } from '../../finance/harvestYear';
 
 const TaskContextBar = ({
   yearLabel,
@@ -16,10 +17,16 @@ const TaskContextBar = ({
   fieldId,
   fields,
   moreFiltersLabel,
+  assigneeLabel,
+  allAssigneesLabel,
+  assigneeId,
+  assignees = [],
   onYearChange,
   onFieldChange,
+  onAssigneeChange,
   clearYearLabel,
   clearFieldLabel,
+  clearAssigneeLabel,
 }: {
   yearLabel: string;
   year: number;
@@ -30,35 +37,46 @@ const TaskContextBar = ({
   fieldId: string;
   fields: Field[];
   moreFiltersLabel: string;
+  assigneeLabel?: string;
+  allAssigneesLabel?: string;
+  assigneeId?: string;
+  assignees?: Array<{ id: string; name: string }>;
   onYearChange: (year: number) => void;
   onFieldChange: (fieldId: string) => void;
+  onAssigneeChange?: (assigneeId: string) => void;
   clearYearLabel: string;
   clearFieldLabel: string;
+  clearAssigneeLabel?: string;
 }) => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const [yearOpen, setYearOpen] = useState(false);
   const [fieldOpen, setFieldOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
   const yearChanged = year !== defaultYear;
   const fieldChanged = Boolean(fieldId);
+  const assigneeChanged = Boolean(assigneeId);
   const selectedField = fields.find((field) => field.id === fieldId);
+  const selectedAssignee = assignees.find((item) => item.id === assigneeId);
+  const yearText = harvestYearSpan(year);
 
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
         <Pressable
           onPress={() => setFieldOpen(true)}
+          accessibilityLabel={fieldLabel}
           style={[
             styles.control,
             {
-              borderColor: colors.borderLight,
-              backgroundColor: colors.surface,
+              borderColor: fieldChanged ? colors.oliveBorder : colors.borderLight,
+              backgroundColor: fieldChanged ? colors.primaryLight : colors.surface,
               minHeight: Math.max(44, tapMin * 0.9),
               flex: 1.4,
             },
           ]}
         >
-          <Text style={[styles.controlLabel, { color: colors.textTertiary }]}>{fieldLabel}</Text>
+          <Ionicons name="location-outline" size={16} color={fieldChanged ? colors.primary : colors.textTertiary} />
           <Text
             style={[styles.controlValue, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}
             numberOfLines={1}
@@ -69,28 +87,28 @@ const TaskContextBar = ({
         </Pressable>
         <Pressable
           onPress={() => setMoreOpen(true)}
+          accessibilityLabel={moreFiltersLabel}
           style={[
             styles.control,
             {
-              borderColor: colors.borderLight,
-              backgroundColor: colors.surface,
+              borderColor: yearChanged || assigneeChanged ? colors.oliveBorder : colors.borderLight,
+              backgroundColor: yearChanged || assigneeChanged ? colors.primaryLight : colors.surface,
               minHeight: Math.max(44, tapMin * 0.9),
               flex: 1,
             },
           ]}
         >
-          <Text style={[styles.controlLabel, { color: colors.textTertiary }]}>{moreFiltersLabel}</Text>
+          <Ionicons name="options-outline" size={16} color={yearChanged || assigneeChanged ? colors.primary : colors.textTertiary} />
           <Text
             style={[styles.controlValue, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}
             numberOfLines={1}
           >
-            {yearChanged ? String(year) : yearLabel}
+            {yearChanged ? yearText : moreFiltersLabel}
           </Text>
-          <Ionicons name="options-outline" size={16} color={colors.textTertiary} />
         </Pressable>
       </View>
 
-      {yearChanged || fieldChanged ? (
+      {yearChanged || fieldChanged || assigneeChanged ? (
         <View style={styles.chips}>
           {fieldChanged ? (
             <Pressable
@@ -104,6 +122,18 @@ const TaskContextBar = ({
               <Ionicons name="close" size={14} color={colors.primary} />
             </Pressable>
           ) : null}
+          {assigneeChanged ? (
+            <Pressable
+              onPress={() => onAssigneeChange?.('')}
+              style={[styles.filterChip, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}
+              accessibilityLabel={clearAssigneeLabel}
+            >
+              <Text style={[styles.filterChipText, { color: colors.primary }]} numberOfLines={1}>
+                {selectedAssignee?.name || assigneeId}
+              </Text>
+              <Ionicons name="close" size={14} color={colors.primary} />
+            </Pressable>
+          ) : null}
           {yearChanged ? (
             <Pressable
               onPress={() => onYearChange(defaultYear)}
@@ -111,7 +141,7 @@ const TaskContextBar = ({
               accessibilityLabel={clearYearLabel}
             >
               <Text style={[styles.filterChipText, { color: colors.primary }]}>
-                {yearLabel}: {year}
+                {yearLabel}: {yearText}
               </Text>
               <Ionicons name="close" size={14} color={colors.primary} />
             </Pressable>
@@ -161,6 +191,20 @@ const TaskContextBar = ({
       </Sheet>
 
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={moreFiltersLabel} edge="bottom" size="sm">
+        {onAssigneeChange ? (
+          <Pressable
+            onPress={() => {
+              setMoreOpen(false);
+              setAssigneeOpen(true);
+            }}
+            style={[styles.sheetRow, { minHeight: tapMin }]}
+          >
+            <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+              {assigneeLabel}: {selectedAssignee?.name || allAssigneesLabel}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() => {
             setMoreOpen(false);
@@ -169,10 +213,51 @@ const TaskContextBar = ({
           style={[styles.sheetRow, { minHeight: tapMin }]}
         >
           <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
-            {yearLabel}: {year}
+            {yearLabel}: {yearText}
           </Text>
           <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
         </Pressable>
+      </Sheet>
+
+      <Sheet open={assigneeOpen} onClose={() => setAssigneeOpen(false)} title={assigneeLabel} edge="bottom" size="md">
+        <Pressable
+          onPress={() => {
+            onAssigneeChange?.('');
+            setAssigneeOpen(false);
+          }}
+          style={[
+            styles.sheetRow,
+            {
+              minHeight: tapMin,
+              backgroundColor: !assigneeId ? colors.primaryLight : 'transparent',
+            },
+          ]}
+        >
+          <Text style={{ color: colors.textPrimary, fontWeight: !assigneeId ? '700' : '500' }}>
+            {allAssigneesLabel}
+          </Text>
+        </Pressable>
+        {assignees.map((person) => (
+          <Pressable
+            key={person.id}
+            onPress={() => {
+              onAssigneeChange?.(person.id);
+              setAssigneeOpen(false);
+            }}
+            style={[
+              styles.sheetRow,
+              {
+                minHeight: tapMin,
+                backgroundColor: person.id === assigneeId ? colors.primaryLight : 'transparent',
+              },
+            ]}
+          >
+            <Text style={{ color: colors.textPrimary, fontWeight: person.id === assigneeId ? '700' : '500' }}>
+              {person.name}
+            </Text>
+            {person.id === assigneeId ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
+          </Pressable>
+        ))}
       </Sheet>
 
       <Sheet open={yearOpen} onClose={() => setYearOpen(false)} title={yearLabel} edge="bottom" size="sm">
@@ -192,7 +277,7 @@ const TaskContextBar = ({
             ]}
           >
             <Text style={{ color: colors.textPrimary, fontWeight: option === year ? '700' : '500' }}>
-              {option}
+              {harvestYearSpan(option)}
             </Text>
             {option === year ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
           </Pressable>
@@ -210,13 +295,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     borderWidth: 1,
-    borderRadius: radii.lg,
+    borderRadius: radii.full,
     paddingHorizontal: spacing.md,
-  },
-  controlLabel: {
-    ...typography.styles.caption,
-    fontSize: 11,
-    fontWeight: '600',
   },
   controlValue: {
     ...typography.styles.bodySmall,

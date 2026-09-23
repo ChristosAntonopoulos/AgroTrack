@@ -2,6 +2,7 @@ import type { CaptureContext } from './types';
 
 export type CapturePermissions = {
   canRecordObservation: boolean;
+  canRecordPhoto: boolean;
   canRecordWork: boolean;
   canRecordExpense: boolean;
   canRecordIncome: boolean;
@@ -27,6 +28,7 @@ export const getAvailableCaptureActions = (opts: {
   if (accessLevel === 'view') {
     return {
       canRecordObservation: false,
+      canRecordPhoto: false,
       canRecordWork: false,
       canRecordExpense: false,
       canRecordIncome: false,
@@ -43,6 +45,7 @@ export const getAvailableCaptureActions = (opts: {
   if (accessLevel === 'help') {
     return {
       canRecordObservation: access && has('chronologio'),
+      canRecordPhoto: false,
       canRecordWork: (canWork || access) && has('tasks'),
       canRecordExpense: false,
       canRecordIncome: false,
@@ -55,6 +58,7 @@ export const getAvailableCaptureActions = (opts: {
 
   return {
     canRecordObservation: access && has('chronologio'),
+    canRecordPhoto: access && has('photos') && (canOwn || canWork),
     canRecordWork: canWork && has('tasks'),
     canRecordExpense: (canOwn || canWork) && has('money'),
     canRecordIncome: canOwn && has('money'),

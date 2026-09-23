@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { spacing, typography, radii } from '../../theme';
-import Button from '../ui/Button';
-import AccentCard from '../ui/AccentCard';
-import { DOMAIN_ACCENTS } from '../../utils/domainAccents';
+import { spacing, radii, createElevation, motion } from '../../theme';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
 import {
   formatRecommendedPeriod,
-  proposalExplanation,
   proposalTitle,
   type ProposalTemplateGroup,
 } from '../../utils/proposalPresentation';
+import TaskCategoryGlyph from './TaskCategoryGlyph';
 
 const VISIBLE_FIELDS = 3;
 
@@ -35,86 +35,164 @@ const GroupedProposalCard = ({
   onWhy,
 }: Props) => {
   const { t, i18n } = useTranslation('tasks');
-  const { colors, fontScaleMultiplier } = useTheme();
+  const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const [expanded, setExpanded] = useState(false);
-  const title = proposalTitle(group.proposals[0], i18n.language);
-  const period = formatRecommendedPeriod(group.proposals[0], i18n.language);
-  const explanation = proposalExplanation(group.proposals[0], i18n.language);
+  const lead = group.proposals[0];
+  const title = proposalTitle(lead, i18n.language);
+  const period = formatRecommendedPeriod(lead, i18n.language);
   const fieldLabels = group.fieldIds.map((id) => fieldNames[id] || unknownField);
   const visible = expanded ? fieldLabels : fieldLabels.slice(0, VISIBLE_FIELDS);
   const remaining = fieldLabels.length - visible.length;
+  const accent = resolveTaskCategoryAccent(lead.templateCode);
+  const rail = resolveFieldColor(undefined, group.fieldIds[0]) || accent;
 
   return (
-    <AccentCard accentColor={DOMAIN_ACCENTS.task} style={styles.card}>
-      <Text style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
-        {title}
-      </Text>
-      <Text style={[styles.meta, { color: colors.textSecondary }]}>
-        {t('fieldWork.proposal.forFields', { count: group.fieldIds.length })}
-      </Text>
-      {period ? (
-        <Text style={[styles.meta, { color: colors.textSecondary }]}>
-          {t('fieldWork.proposal.suitablePeriod')}: {period}
-        </Text>
-      ) : null}
-      <View style={styles.chips}>
-        {visible.map((name) => (
-          <View
-            key={name}
-            style={[styles.chip, { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight }]}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.borderLight,
+          ...createElevation(colors, 'sm'),
+        },
+      ]}
+    >
+      <View style={[styles.rail, { backgroundColor: rail }]} />
+      <View style={styles.body}>
+        <TaskCategoryGlyph templateCode={lead.templateCode} accent={accent} />
+        <View style={styles.copy}>
+          <Text
+            style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
+            numberOfLines={2}
           >
-            <Text style={[styles.chipText, { color: colors.textSecondary }]} numberOfLines={1}>
-              {name}
-            </Text>
+            {title}
+          </Text>
+          <Text style={[styles.meta, { color: colors.textSecondary }]}>
+            {t('fieldWork.proposal.forFields', { count: group.fieldIds.length })}
+            {period ? ` · ${period}` : ''}
+          </Text>
+          <View style={styles.chips}>
+            {visible.map((name) => (
+              <View
+                key={name}
+                style={[styles.chip, { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight }]}
+              >
+                <Text style={[styles.chipText, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {name}
+                </Text>
+              </View>
+            ))}
+            {remaining > 0 ? (
+              <Pressable onPress={() => setExpanded(true)} hitSlop={8}>
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+                  {t('fieldWork.proposal.moreFields', { count: remaining })}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
-        ))}
-        {remaining > 0 ? (
-          <Pressable onPress={() => setExpanded(true)}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              {t('fieldWork.proposal.moreFields', { count: remaining })}
-            </Text>
-          </Pressable>
-        ) : null}
+        </View>
       </View>
-      <Pressable onPress={onWhy}>
-        <Text style={[styles.why, { color: colors.primary }]}>
-          {t('fieldWork.proposal.whyRecommended')}
-        </Text>
-      </Pressable>
-      <Text style={[styles.explanation, { color: colors.textSecondary }]}>{explanation}</Text>
       <View style={styles.actions}>
-        <Button
-          title={t('fieldWork.actions.schedule', { defaultValue: t('fieldWork.actions.scheduleIt') })}
+        <Pressable
           onPress={onSchedule}
           disabled={busy}
-        />
-        <Button
-          title={t('fieldWork.actions.notRelevant', { defaultValue: t('fieldWork.proposal.notForField') })}
-          variant="outline"
+          style={[
+            styles.primary,
+            {
+              minHeight: Math.max(44, tapMin * 0.92),
+              backgroundColor: colors.primary,
+              opacity: busy ? 0.6 : 1,
+            },
+          ]}
+        >
+          <Text style={{ color: colors.onOlive, fontWeight: '700' }}>
+            {t('fieldWork.actions.schedule', { defaultValue: t('fieldWork.actions.scheduleIt') })}
+          </Text>
+        </Pressable>
+        <Pressable
           onPress={onDismiss}
           disabled={busy}
-        />
+          style={[
+            styles.ghost,
+            {
+              minHeight: Math.max(44, tapMin * 0.92),
+              borderColor: colors.borderLight,
+              backgroundColor: colors.surfaceMuted,
+              opacity: busy ? 0.6 : 1,
+            },
+          ]}
+        >
+          <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 13 }} numberOfLines={1}>
+            {t('fieldWork.actions.notRelevant', { defaultValue: t('fieldWork.proposal.notForField') })}
+          </Text>
+        </Pressable>
       </View>
-    </AccentCard>
+      {onWhy ? (
+        <Pressable
+          onPress={onWhy}
+          style={({ pressed }) => [styles.why, { opacity: pressed ? motion.pressOpacity : 1 }]}
+        >
+          <Ionicons name="help-circle-outline" size={16} color={colors.primary} />
+          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+            {t('fieldWork.proposal.whyRecommended')}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { marginBottom: spacing.md, gap: spacing.sm },
-  title: { ...typography.styles.body, fontWeight: '700' },
-  meta: { ...typography.styles.bodySmall },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, alignItems: 'center' },
+  card: {
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  rail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  body: { flexDirection: 'row', gap: 12, padding: 14, paddingLeft: 18 },
+  copy: { flex: 1, minWidth: 0, gap: 4 },
+  title: { fontWeight: '700', lineHeight: 22 },
+  meta: { fontSize: 13, lineHeight: 18 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     maxWidth: '100%',
   },
-  chipText: { ...typography.styles.caption, fontWeight: '600', maxWidth: 140 },
-  why: { ...typography.styles.bodySmall, fontWeight: '700' },
-  explanation: { ...typography.styles.bodySmall, lineHeight: 20 },
-  actions: { gap: spacing.sm },
+  chipText: { fontSize: 12, fontWeight: '600', maxWidth: 140 },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingLeft: 18,
+    paddingBottom: 8,
+  },
+  primary: {
+    flex: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  ghost: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 8,
+  },
+  why: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+    paddingTop: 4,
+  },
 });
 
 export default GroupedProposalCard;

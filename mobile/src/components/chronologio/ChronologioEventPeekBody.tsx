@@ -14,7 +14,7 @@ import { chronologioDetailKind } from '../../chronologio/detailKind';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { detailAccentToken } from '../../chronologio/detailKind';
 import { resolveFieldColor } from '../../utils/fieldColors';
-import WeatherReviewSummary from './WeatherReviewSummary';
+import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
@@ -158,12 +158,13 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
       ) : null}
 
       {kind === 'weatherPeriod' && weather ? (
-        <WeatherReviewSummary
+        <WeatherMonthSnapshot
           weather={weather}
           eventType={entry.eventType}
           numberLocale={numberLocale}
           locale={i18n.language}
-          showSource
+          fieldId={entry.fieldId}
+          variant="detail"
         />
       ) : null}
 
@@ -351,6 +352,7 @@ export const eventPeekFooterActions = (
     openField: () => void;
     openPhoto?: () => void;
     createTask?: () => void;
+    addNote?: () => void;
     edit?: () => void;
     remove?: () => void;
   },
@@ -388,6 +390,12 @@ export const eventPeekFooterActions = (
     if (caps?.canEdit && navigate.edit) {
       actions.push({ label: t('common:edit'), onPress: navigate.edit });
     }
+    if (navigate.addNote) {
+      actions.push({
+        label: t('chronologio:drawer.addNote', { defaultValue: 'Add a note' }),
+        onPress: navigate.addNote,
+      });
+    }
     if (caps?.removeAction && navigate.remove) {
       actions.push({ label: removeLabel, onPress: navigate.remove });
     }
@@ -423,19 +431,20 @@ export const eventPeekFooterActions = (
     });
   } else if (kind === 'observation') {
     if (entry.sourceType === 'Note' || entry.category === 'note') {
-      if (caps?.canEdit && navigate.edit) {
-        actions.push({
-          label: t('common:edit'),
-          onPress: navigate.edit,
-          primary: true,
-        });
-      } else if (navigate.createTask) {
+      if (navigate.createTask) {
         actions.push({
           label: t('chronologio:drawer.createTask', {
             defaultValue: 'Create work from this observation',
           }),
           onPress: navigate.createTask,
           primary: true,
+        });
+      }
+      if (caps?.canEdit && navigate.edit) {
+        actions.push({
+          label: t('common:edit'),
+          onPress: navigate.edit,
+          primary: !navigate.createTask,
         });
       }
       if (caps?.removeAction && navigate.remove) {

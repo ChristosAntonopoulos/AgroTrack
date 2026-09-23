@@ -1,7 +1,8 @@
-import type { ChronologioPeriodSummary } from '../services/chronologioService';
-import { agriculturalYearFor } from './agriculturalYear';
+import type { ChronologioMonthSummary, ChronologioPeriodSummary } from '../services/chronologioService';
+import { agriculturalYearFor, agriculturalYearMonths } from './agriculturalYear';
 import { harvestHasResult, isMeaningfulHighlight } from './monthPresentation';
 import { periodEventCount } from '../utils/summaryFacts';
+import { athensParts } from '../utils/athensDate';
 
 export type AgriculturalYearState =
   | 'upcoming'
@@ -28,7 +29,7 @@ export const agriculturalYearState = (
 };
 
 export const seasonStageIndex = (now = new Date()): number => {
-  const month = now.getMonth() + 1;
+  const month = athensParts(now).month;
   if (month >= 2 && month <= 3) return 0;
   if (month >= 4 && month <= 6) return 1;
   if (month >= 7 && month <= 9) return 2;
@@ -62,36 +63,222 @@ export const percentChange = (current: number, previous?: number | null): number
   return Math.round(((current - previous) / Math.abs(previous)) * 100);
 };
 
-export type YearComparisonKind = 'oil' | 'olives' | 'expenses';
+export type YearComparisonKind = 'oil' | 'olives' | 'expenses' | 'yield';
+
+/** `full` = closed years; `ytd` = same calendar span through today. */
+export type YearComparisonScope = 'full' | 'ytd';
 
 export type YearComparison = {
   kind: YearComparisonKind;
   percent: number;
   previousYear: number;
+  scope: YearComparisonScope;
+};
+
+type ComparableYear = Pick<
+  ChronologioPeriodSummary,
+  'periodYear' | 'oliveKg' | 'oilKg' | 'expenseTotal' | 'oilYieldPercent'
+>;
+
+export type YearComparisonOptions = {
+  currentMonths?: ChronologioMonthSummary[];
+  previousMonths?: ChronologioMonthSummary[];
+  now?: Date;
+};
+
+const monthOrdinal = (year: number, month: number) => year * 12 + month;
+
+export const monthsThroughInclusive = (
+  months: ChronologioMonthSummary[],
+  throughYear: number,
+  throughMonth: number
+): ChronologioMonthSummary[] => {
+  const limit = monthOrdinal(throughYear, throughMonth);
+  return months.filter((m) => monthOrdinal(m.year, m.month) <= limit);
+};
+
+export const sumMonthComparable = (
+  months: ChronologioMonthSummary[]
+): Pick<ChronologioPeriodSummary, 'oliveKg' | 'oilKg' | 'expenseTotal'> =>
+  months.reduce(
+    (acc, m) => ({
+      oliveKg: acc.oliveKg + (m.oliveKg || 0),
+      oilKg: acc.oilKg + (m.oilKg || 0),
+      expenseTotal: acc.expenseTotal + (m.expenseTotal || 0),
+    }),
+    { oliveKg: 0, oilKg: 0, expenseTotal: 0 }
+  );
+
+const yieldFromMass = (row: ComparableYear): number | null => {
+  if (row.oliveKg > 0 && row.oilKg > 0) return (row.oilKg / row.oliveKg) * 100;
+  return row.oilYieldPercent != null && row.oilYieldPercent > 0 ? row.oilYieldPercent : null;
+};
+
+const collectComparisons = (
+  current: ComparableYear,
+  previous: ComparableYear,
+  scope: YearComparisonScope
+): YearComparison[] => {
+  const insights: YearComparison[] = [];
+  const push = (kind: YearComparisonKind, percent: number | null) => {
+    if (percent == null || !Number.isFinite(percent)) return;
+    insights.push({ kind, percent, previousYear: previous.periodYear, scope });
+  };
+
+  if (harvestHasResult(current) && harvestHasResult(previous) && previous.oilKg > 0 && current.oilKg > 0) {
+    push('oil', percentChange(current.oilKg, previous.oilKg));
+  }
+  if (harvestHasResult(current) && harvestHasResult(previous) && previous.oliveKg > 0 && current.oliveKg > 0) {
+    push('olives', percentChange(current.oliveKg, previous.oliveKg));
+  }
+  if (current.expenseTotal > 0 && previous.expenseTotal > 0) {
+    push('expenses', percentChange(current.expenseTotal, previous.expenseTotal));
+  }
+  const currentYield = yieldFromMass(current);
+  const previousYield = yieldFromMass(previous);
+  if (currentYield != null && previousYield != null) {
+    const points = Math.round((currentYield - previousYield) * 10) / 10;
+    if (Math.abs(points) >= 0.5) push('yield', points);
+  }
+  return insights;
+};
+
+const alignedYears = (
+  a: ComparableYear,
+  b: ComparableYear,
+  options?: YearComparisonOptions
+): { current: ComparableYear; previous: ComparableYear; scope: YearComparisonScope } | null => {
+  const [current, previous] = a.periodYear >= b.periodYear ? [a, b] : [b, a];
+  const now = options?.now ?? new Date();
+  const liveYear = agriculturalYearFor(now);
+  if (current.periodYear !== liveYear) {
+    return { current, previous, scope: 'full' };
+  }
+
+  const prevMonths = options?.previousMonths;
+  if (!prevMonths?.length) return null;
+
+  const parts = athensParts(now);
+  const previousSlice = sumMonthComparable(
+    monthsThroughInclusive(prevMonths, parts.year - 1, parts.month)
+  );
+  const currentSlice = options?.currentMonths?.length
+    ? sumMonthComparable(monthsThroughInclusive(options.currentMonths, parts.year, parts.month))
+    : { oliveKg: current.oliveKg, oilKg: current.oilKg, expenseTotal: current.expenseTotal };
+
+  const withSliceYield = (
+    base: ComparableYear,
+    slice: Pick<ChronologioPeriodSummary, 'oliveKg' | 'oilKg' | 'expenseTotal'>
+  ): ComparableYear => ({
+    ...base,
+    ...slice,
+    oilYieldPercent:
+      slice.oliveKg > 0 && slice.oilKg > 0 ? (slice.oilKg / slice.oliveKg) * 100 : null,
+  });
+
+  return {
+    current: withSliceYield(current, currentSlice),
+    previous: withSliceYield(previous, previousSlice),
+    scope: 'ytd',
+  };
+};
+
+export const yearComparisonInsights = (
+  a?: ComparableYear | null,
+  b?: ComparableYear | null,
+  options?: YearComparisonOptions
+): YearComparison[] => {
+  if (!a || !b) return [];
+  const aligned = alignedYears(a, b, options);
+  if (!aligned) return [];
+  return collectComparisons(aligned.current, aligned.previous, aligned.scope);
 };
 
 export const yearComparison = (
-  a?: Pick<ChronologioPeriodSummary, 'periodYear' | 'oliveKg' | 'oilKg' | 'expenseTotal'> | null,
-  b?: Pick<ChronologioPeriodSummary, 'periodYear' | 'oliveKg' | 'oilKg' | 'expenseTotal'> | null
-): YearComparison | null => {
+  a?: ComparableYear | null,
+  b?: ComparableYear | null,
+  options?: YearComparisonOptions
+): YearComparison | null => yearComparisonInsights(a, b, options)[0] ?? null;
+
+export const fairYearPair = (
+  a?: ComparableYear | null,
+  b?: ComparableYear | null,
+  options?: YearComparisonOptions
+): { current: ComparableYear; previous: ComparableYear; scope: YearComparisonScope } | null => {
   if (!a || !b) return null;
-  const [current, previous] = a.periodYear >= b.periodYear ? [a, b] : [b, a];
-  if (harvestHasResult(current) && harvestHasResult(previous) && previous.oilKg > 0 && current.oilKg > 0) {
-    const percent = percentChange(current.oilKg, previous.oilKg);
-    if (percent == null) return null;
-    return { kind: 'oil', percent, previousYear: previous.periodYear };
+  return alignedYears(a, b, options);
+};
+
+export const costPerOilKg = (expenseTotal: number, oilKg: number): number | null => {
+  if (!(expenseTotal > 0) || !(oilKg > 0)) return null;
+  return expenseTotal / oilKg;
+};
+
+export type ComparisonMonthLink = {
+  year: number;
+  month: number;
+  metric: 'oil' | 'expenses';
+  amount: number;
+};
+
+const monthValue = (row: ChronologioMonthSummary | undefined, metric: 'oil' | 'expenses'): number => {
+  if (!row) return 0;
+  return metric === 'oil' ? row.oilKg || 0 : row.expenseTotal || 0;
+};
+
+export const comparisonDriverMonths = (
+  newerMonths: ChronologioMonthSummary[],
+  olderMonths: ChronologioMonthSummary[],
+  newerYear: number,
+  olderYear: number,
+  options?: { now?: Date; limit?: number }
+): ComparisonMonthLink[] => {
+  const metric: 'oil' | 'expenses' =
+    newerMonths.some((row) => row.oilKg > 0) || olderMonths.some((row) => row.oilKg > 0)
+      ? 'oil'
+      : 'expenses';
+  const yearDelta = newerYear - olderYear;
+  const now = options?.now ?? new Date();
+  const liveYear = agriculturalYearFor(now);
+  const cap = newerYear === liveYear ? athensParts(now) : null;
+  const capOrdinal = cap ? monthOrdinal(cap.year, cap.month) : Number.POSITIVE_INFINITY;
+
+  const ranked = agriculturalYearMonths(newerYear)
+    .filter((slot) => monthOrdinal(slot.year, slot.month) <= capOrdinal)
+    .map((slot) => {
+      const olderSlot = { year: slot.year - yearDelta, month: slot.month };
+      const newer = newerMonths.find((row) => row.year === slot.year && row.month === slot.month);
+      const older = olderMonths.find((row) => row.year === olderSlot.year && row.month === olderSlot.month);
+      const newerValue = monthValue(newer, metric);
+      const olderValue = monthValue(older, metric);
+      return {
+        delta: newerValue - olderValue,
+        links: [
+          newerValue > 0
+            ? { year: slot.year, month: slot.month, metric, amount: newerValue }
+            : null,
+          olderValue > 0
+            ? { year: olderSlot.year, month: olderSlot.month, metric, amount: olderValue }
+            : null,
+        ].filter((link): link is ComparisonMonthLink => link != null),
+      };
+    })
+    .filter((slot) => Math.abs(slot.delta) > 0.5 && slot.links.length > 0)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+  const links: ComparisonMonthLink[] = [];
+  for (const slot of ranked) {
+    for (const link of slot.links) {
+      if (links.length >= (options?.limit ?? 4)) return links;
+      links.push(link);
+    }
   }
-  if (harvestHasResult(current) && harvestHasResult(previous) && previous.oliveKg > 0) {
-    const percent = percentChange(current.oliveKg, previous.oliveKg);
-    if (percent == null) return null;
-    return { kind: 'olives', percent, previousYear: previous.periodYear };
-  }
-  if (current.expenseTotal > 0 && previous.expenseTotal > 0) {
-    const percent = percentChange(current.expenseTotal, previous.expenseTotal);
-    if (percent == null) return null;
-    return { kind: 'expenses', percent, previousYear: previous.periodYear };
-  }
-  return null;
+  return links;
+};
+
+export const yearComparisonCopyKey = (comparison: YearComparison): string => {
+  if (comparison.kind === 'yield') return 'yearView.compare.yield';
+  return `yearView.compare.${comparison.kind}${comparison.percent >= 0 ? 'Up' : 'Down'}`;
 };
 
 export type YearChapterFact =

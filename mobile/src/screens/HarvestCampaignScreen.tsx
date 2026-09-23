@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert, DeviceEventEmitter } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,7 +77,6 @@ import {
   findPostedHarvestRecord,
   harvestRecordsForDay,
   resolveHistoricalHarvestLink,
-  summarizeHistoricalDay,
 } from '../harvestCampaign/historicalDay';
 import type {
   HarvestCaptureKind,
@@ -87,6 +86,9 @@ import type {
   HarvestPeopleHours,
 } from '../harvestCampaign/types';
 import { HarvestFlowView } from '../harvestCampaign/components/HarvestFlowView';
+import { getHarvestCapabilities } from '../harvestCampaign/harvestCapabilities';
+import { harvestSeatFromFields, resolveFieldGates } from '../utils/fieldGates';
+import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../hooks/useFamilyMembershipModules';
 import {
   HarvestAddMenu,
   HarvestCompleteSheet,
@@ -97,11 +99,20 @@ import {
   HarvestMillSheet,
   HarvestOilSheet,
   HarvestPeopleSheet,
+  HarvestProductionWizard,
   HarvestRecordSheet,
   HarvestSacksSheet,
   type HarvestSheetKind,
 } from '../harvestCampaign/HarvestSheets';
 import { HarvestCard } from '../harvestCampaign/components/HarvestCard';
+import { HistoricalHarvestDayBoard } from '../harvestCampaign/components/HistoricalHarvestDayBoard';
+import {
+  campaignFromHarvestRecords,
+  fetchHarvestRecordsForFields,
+  filterSeasonHarvestRecords,
+  mergeCampaignWithHydrated,
+} from '../harvestCampaign/hydrateFromRecords';
+import { resolveHarvestTotalsLifecycle } from '../harvestCampaign/lifecycleActions';
 import {
   HarvestDayActivity,
   type DayActivityEditTarget,
@@ -112,11 +123,19 @@ import { spacing, radii, typography } from '../theme';
 import type { FieldsStackParamList } from '../navigation/types';
 import { openChronologioHome } from '../navigation/intents';
 
+type HarvestAddPrefill = {
+  preferredKind?: HarvestCaptureKind;
+  sackIds?: string[];
+  millIds?: string[];
+};
+
 const HarvestCampaignScreen = () => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const { t, i18n } = useTranslation(['fields', 'common', 'chronologio']);
   const locale = i18n.language || 'en';
   const { user, isFieldOwner } = useAuth();
+  const familyModules = useFamilyMembershipModules();
+  const accessLevel = useActiveFieldAccessLevel();
   const { fields, loading: fieldsLoading } = useFields();
   const { campaign, seasonStartYear, isLive, start, stop, pause, resume, markGroveDone, patch } =
     useHarvestCampaign();
@@ -128,6 +147,7 @@ const HarvestCampaignScreen = () => {
   const [linkMillFieldIds, setLinkMillFieldIds] = useState<string[]>([]);
   const [prefillSackIds, setPrefillSackIds] = useState<string[]>([]);
   const [prefillMillIds, setPrefillMillIds] = useState<string[]>([]);
+  const [addPrefill, setAddPrefill] = useState<HarvestAddPrefill | null>(null);
   const [postMillId, setPostMillId] = useState<string | null>(null);
   const [sackSavedHint, setSackSavedHint] = useState<string | null>(null);
   const [reviewDate, setReviewDate] = useState<string | null>(null);
@@ -167,6 +187,57 @@ const HarvestCampaignScreen = () => {
     () => fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived'),
     [fields]
   );
+  const harvestCaps = useMemo(() => {
+    const seat = harvestSeatFromFields(fields, preferredFieldId);
+    if (seat) {
+      return getHarvestCapabilities({
+        hasAnyFieldAccess: fields.length > 0,
+        canOwn: seat.canOwn,
+        canWork: seat.canWork,
+        familyModules,
+        accessLevel: seat.accessLevel ?? accessLevel,
+        harvestModuleGranted: seat.harvestModuleGranted,
+      });
+    }
+    return getHarvestCapabilities({
+      hasAnyFieldAccess: fields.length > 0,
+      canOwn:
+        isFieldOwner() ||
+        user?.role === 'Administrator' ||
+        fields.some((field) => field.ownerId === user?.id),
+      canWork:
+        user?.role === 'Producer' ||
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        accessLevel === 'work' ||
+        accessLevel === 'help',
+      familyModules,
+      accessLevel,
+    });
+  }, [fields, preferredFieldId, isFieldOwner, user?.id, user?.role, familyModules, accessLevel]);
+  const patchRef = useRef(patch);
+  patchRef.current = patch;
+
+  useEffect(() => {
+    if (harvestable.length === 0) return;
+    let cancelled = false;
+    const fieldIds = harvestable.map((field) => field.id);
+    void (async () => {
+      try {
+        const rows = await fetchHarvestRecordsForFields(fieldIds);
+        if (cancelled) return;
+        const seasonRows = filterSeasonHarvestRecords(rows, seasonStartYear);
+        if (seasonRows.length === 0) return;
+        const hydrated = campaignFromHarvestRecords(seasonRows, seasonStartYear);
+        patchRef.current((current) => mergeCampaignWithHydrated(current, hydrated));
+      } catch {
+        // Local campaign stays as-is if hydrate fails.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [harvestable, seasonStartYear]);
 
   useEffect(() => {
     if (setupStep !== 1) return;
@@ -228,7 +299,11 @@ const HarvestCampaignScreen = () => {
           t('fields:harvestCampaign.dayNav.lockedBody')
         );
       } else {
-        setSheet('add');
+        setAddPrefill(null);
+        const canProduce = harvestCaps.captureKinds.some(
+          (item) => item === 'sacks' || item === 'mill' || item === 'oil'
+        );
+        setSheet(canProduce ? 'produce' : 'add');
       }
     }
     if (evening) {
@@ -303,6 +378,7 @@ const HarvestCampaignScreen = () => {
     setPrefillMillIds([]);
     setPostMillId(null);
     setEditTarget(null);
+    setAddPrefill(null);
   };
 
   const openMillCapture = (sackIds?: string[]) => {
@@ -374,13 +450,32 @@ const HarvestCampaignScreen = () => {
     );
   };
 
-  const requestAdd = () => {
+  const requestAdd = (prefill?: HarvestAddPrefill) => {
     if (dayClosed) {
       alertDayLocked();
       return;
     }
+    if (harvestCaps.captureKinds.length === 0) return;
     setEditTarget(null);
-    setSheet('add');
+    if (prefill?.preferredKind === 'expense') {
+      openHarvestExpense();
+      return;
+    }
+    if (prefill?.preferredKind === 'note') {
+      openHarvestNote();
+      return;
+    }
+    if (prefill?.preferredKind === 'people') {
+      if (!harvestCaps.canAddPeople) return;
+      setAddPrefill(null);
+      setSheet('people');
+      return;
+    }
+    setAddPrefill(prefill || null);
+    const canProduce = harvestCaps.captureKinds.some(
+      (item) => item === 'sacks' || item === 'mill' || item === 'oil'
+    );
+    setSheet(canProduce ? 'produce' : 'add');
   };
 
   const openCapture = (kind: HarvestCaptureKind) => {
@@ -388,23 +483,32 @@ const HarvestCampaignScreen = () => {
       alertDayLocked();
       return;
     }
+    const sackIds = addPrefill?.sackIds;
+    const millIds = addPrefill?.millIds;
+    setAddPrefill(null);
     setEditTarget(null);
     if (kind === 'expense') {
+      if (!harvestCaps.canAddExpense) return;
       openHarvestExpense();
       return;
     }
     if (kind === 'note') {
+      if (!harvestCaps.canAddNote) return;
       openHarvestNote();
       return;
     }
     if (kind === 'mill') {
-      openMillCapture();
+      if (!harvestCaps.canAddMill) return;
+      openMillCapture(sackIds);
       return;
     }
     if (kind === 'oil') {
-      openOilCapture();
+      if (!harvestCaps.canAddOil) return;
+      openOilCapture(millIds);
       return;
     }
+    if (kind === 'sacks' && !harvestCaps.canAddSacks) return;
+    if (kind === 'people' && !harvestCaps.canAddPeople) return;
     setPrefillSackIds([]);
     setPrefillMillIds([]);
     setSheet(kind);
@@ -418,7 +522,7 @@ const HarvestCampaignScreen = () => {
   };
 
   const openDayEdit = (target: DayActivityEditTarget) => {
-    if (dayClosed) {
+    if (dayClosed || !harvestCaps.canMutateDay) {
       alertDayLocked();
       return;
     }
@@ -492,17 +596,21 @@ const HarvestCampaignScreen = () => {
     return () => sub.remove();
   }, [isLive, workingDay, patch]);
 
-  const saveSacks = async (input: { sacks: number; fieldId: string; kgPerSack?: number }) => {
-    if (editTarget?.kind === 'sack') {
+  const saveSacks = async (
+    input: { sacks: number; fieldId: string; kgPerSack?: number },
+    opts?: { existingId?: string; keepOpen?: boolean }
+  ): Promise<string> => {
+    const sackId = opts?.existingId || (editTarget?.kind === 'sack' ? editTarget.entry.id : undefined);
+    if (sackId) {
       await patch((current) =>
-        updateSack(current, editTarget.entry.id, {
+        updateSack(current, sackId, {
           sacks: input.sacks,
           fieldId: input.fieldId,
           kgPerSack: input.kgPerSack,
         })
       );
-      closeSheet();
-      return;
+      if (!opts?.keepOpen) closeSheet();
+      return sackId;
     }
     const entry = {
       id: newHarvestEntryId(),
@@ -515,6 +623,7 @@ const HarvestCampaignScreen = () => {
     const harvestRecordId = await persistSackRecord(campaign, entry);
     await patch((current) => addSack(current, { ...entry, harvestRecordId }));
     clearPreferredField();
+    if (opts?.keepOpen) return entry.id;
     const otherPending = unconfirmedSacks(campaign).filter((s) => s.date < workingDay);
     const otherCount = otherPending.reduce((sum, s) => sum + s.sacks, 0);
     setSackSavedHint(
@@ -524,28 +633,36 @@ const HarvestCampaignScreen = () => {
     );
     setTimeout(() => setSackSavedHint(null), 4200);
     closeSheet();
+    return entry.id;
   };
 
-  const saveMill = async (input: {
-    kg: number;
-    fieldIds: string[];
-    fieldShares?: HarvestFieldShare[];
-    sackIds: string[];
-    note?: string;
-  }) => {
-    if (editTarget?.kind === 'mill') {
+  const saveMill = async (
+    input: {
+      kg: number;
+      fieldIds: string[];
+      fieldShares?: HarvestFieldShare[];
+      sackIds: string[];
+      receiptRef?: string;
+      note?: string;
+    },
+    opts?: { existingId?: string; keepOpen?: boolean }
+  ): Promise<string> => {
+    const millId = opts?.existingId || (editTarget?.kind === 'mill' ? editTarget.entry.id : undefined);
+    if (millId) {
+      const previous = campaign.millWeights.find((row) => row.id === millId);
       await patch((current) =>
-        updateMillWeight(current, editTarget.entry.id, {
-          date: editTarget.entry.date,
+        updateMillWeight(current, millId, {
+          date: previous?.date || (editTarget?.kind === 'mill' ? editTarget.entry.date : workingDay),
           kg: input.kg,
           fieldIds: input.fieldIds,
           fieldShares: input.fieldShares,
           sackIds: input.sackIds,
+          receiptRef: input.receiptRef,
           note: input.note,
         })
       );
-      closeSheet();
-      return;
+      if (!opts?.keepOpen) closeSheet();
+      return millId;
     }
     const entry = {
       id: newHarvestEntryId(),
@@ -554,6 +671,7 @@ const HarvestCampaignScreen = () => {
       fieldIds: input.fieldIds,
       fieldShares: input.fieldShares,
       sackIds: input.sackIds,
+      receiptRef: input.receiptRef,
       note: input.note,
       createdAt: new Date().toISOString(),
     };
@@ -567,9 +685,11 @@ const HarvestCampaignScreen = () => {
       })
     );
     clearPreferredField();
+    if (opts?.keepOpen) return entry.id;
     setPrefillSackIds([]);
     setPostMillId(entry.id);
     setSheet('mill-next');
+    return entry.id;
   };
 
   const saveMillLink = (sackIds: string[]) => {
@@ -584,20 +704,36 @@ const HarvestCampaignScreen = () => {
     closeSheet();
   };
 
-  const saveOil = async (input: {
-    amount: number;
-    unit: HarvestOilUnit;
-    millWeightIds: string[];
-    fieldIds: string[];
-    fieldShares?: HarvestFieldShare[];
-    acidity?: number;
-    note?: string;
-  }) => {
-    if (editTarget?.kind === 'oil') {
+  const saveOil = async (
+    input: {
+      amount: number;
+      unit: HarvestOilUnit;
+      millKept?: number;
+      tin16Count?: number;
+      tin17Count?: number;
+      tinSizeLitres?: 16 | 17;
+      tinCount?: number;
+      extraLitres?: number;
+      millWeightIds: string[];
+      fieldIds: string[];
+      fieldShares?: HarvestFieldShare[];
+      acidity?: number;
+      note?: string;
+    },
+    opts?: { existingId?: string; keepOpen?: boolean }
+  ): Promise<string> => {
+    const oilId = opts?.existingId || (editTarget?.kind === 'oil' ? editTarget.entry.id : undefined);
+    if (oilId) {
       await patch((current) =>
-        updateOil(current, editTarget.entry.id, {
+        updateOil(current, oilId, {
           amount: input.amount,
           unit: input.unit,
+          millKept: input.millKept,
+          tin16Count: input.tin16Count,
+          tin17Count: input.tin17Count,
+          tinSizeLitres: input.tinSizeLitres,
+          tinCount: input.tinCount,
+          extraLitres: input.extraLitres,
           millWeightIds: input.millWeightIds,
           fieldIds: input.fieldIds,
           fieldShares: input.fieldShares,
@@ -605,8 +741,8 @@ const HarvestCampaignScreen = () => {
           note: input.note,
         })
       );
-      closeSheet();
-      return;
+      if (!opts?.keepOpen) closeSheet();
+      return oilId;
     }
     const related = campaign.millWeights
       .filter((row) => input.millWeightIds.includes(row.id))
@@ -619,6 +755,12 @@ const HarvestCampaignScreen = () => {
       millWeightIds: input.millWeightIds,
       fieldIds: input.fieldIds,
       fieldShares: input.fieldShares,
+      millKept: input.millKept,
+      tin16Count: input.tin16Count,
+      tin17Count: input.tin17Count,
+      tinSizeLitres: input.tinSizeLitres,
+      tinCount: input.tinCount,
+      extraLitres: input.extraLitres,
       acidity: input.acidity,
       note: input.note,
       createdAt: new Date().toISOString(),
@@ -632,7 +774,8 @@ const HarvestCampaignScreen = () => {
         harvestRecordIds: persisted?.harvestRecordIds,
       })
     );
-    closeSheet();
+    if (!opts?.keepOpen) closeSheet();
+    return entry.id;
   };
 
   const savePeople = async (input: {
@@ -669,7 +812,7 @@ const HarvestCampaignScreen = () => {
   const sheetTitle =
     editTarget != null
       ? t('fields:harvestCampaign.dayActivity.editTitle')
-      : sheet === 'add'
+      : sheet === 'add' || sheet === 'produce'
         ? t('fields:harvestCampaign.home.whatAdd')
         : sheet === 'mill-link'
           ? t('fields:harvestCampaign.millKg.linkTitle')
@@ -680,7 +823,7 @@ const HarvestCampaignScreen = () => {
               : '';
 
   const sheetKicker =
-    sheet && sheet !== 'complete' && sheet !== 'add'
+    sheet && sheet !== 'complete' && sheet !== 'add' && sheet !== 'produce'
       ? new Date(`${workingDay}T12:00:00`).toLocaleDateString(locale, {
           weekday: 'long',
           day: 'numeric',
@@ -714,7 +857,7 @@ const HarvestCampaignScreen = () => {
         title={t('fields:harvestCampaign.title')}
         subtitle={headerSubtitle || t('fields:harvestCampaign.leadIdle')}
         action={
-          isLive && !dayClosed ? (
+          isLive && !dayClosed && harvestCaps.captureKinds.length > 0 ? (
             <HeaderIconButton
               icon="add"
               accessibilityLabel={t('fields:harvestCampaign.home.whatAdd')}
@@ -741,110 +884,30 @@ const HarvestCampaignScreen = () => {
         }
       />
       {!isLive && showHistoricalDay ? (
-        <View style={styles.block}>
-          <Text style={[styles.overline, { color: colors.textTertiary }]}>
-            {t('fields:harvestCampaign.historical.kicker', { defaultValue: 'From Chronologio' })}
-          </Text>
-          <Text style={[styles.h2, { color: colors.textPrimary }]}>
-            {t('fields:harvestCampaign.historical.title', { defaultValue: 'Harvest day' })}
-          </Text>
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>
-            {labelOf(
-              historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
-                ? historicalLink.fieldId || route.params?.fieldId || ''
-                : route.params?.fieldId || ''
-            )}{' '}
-            ·{' '}
-            {new Date(
-              `${
-                historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
-                  ? historicalLink.day
-                  : workingDay
-              }T12:00:00`
-            ).toLocaleDateString(locale, {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </Text>
-          <Button
-            title={t('fields:thisHarvest.openChronologio', { defaultValue: 'Chronologio' })}
-            variant="ghost"
-            onPress={() => openChronologioHome(navigation)}
-            fullWidth
-          />
-          {historicalDayLoading ? <LoadingSpinner /> : null}
-          {!historicalDayLoading && historicalDayRecords.length === 0 ? (
-            <HarvestCard>
-              <Text style={[styles.lead, { color: colors.textSecondary }]}>
-                {t('fields:harvestCampaign.historical.missing', {
-                  defaultValue: 'No harvest records were found for this day.',
-                })}
-              </Text>
-            </HarvestCard>
-          ) : null}
-          {!historicalDayLoading && historicalDayRecords.length > 0 ? (
-            <>
-              {(() => {
-                const totals = summarizeHistoricalDay(historicalDayRecords);
-                return (
-                  <View style={styles.dayMetrics}>
-                    {totals.sacks > 0 ? (
-                      <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
-                        <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                          {t('fields:harvestCampaign.sacks.unit')}
-                        </Text>
-                        <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                          {totals.sacks}
-                        </Text>
-                      </View>
-                    ) : null}
-                    {totals.oliveKg > 0 ? (
-                      <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
-                        <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                          {t('fields:harvestCampaign.record.olives')}
-                        </Text>
-                        <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                          {formatKg(totals.oliveKg, locale)}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                );
-              })()}
-              {historicalDayRecords.map((record) => (
-                <Pressable
-                  key={record.id}
-                  onPress={() => {
-                    setDeepLinkRecord(record);
-                    setDeepLinkRecordMissing(false);
-                    navigation.setParams({
-                      fieldId: record.fieldId,
-                      harvestId: record.id,
-                      day: athensCalendarDateKey(record.harvestDate),
-                    });
-                  }}
-                  style={[styles.historicalRow, { backgroundColor: colors.surface }]}
-                >
-                  <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                    {record.sackCount && record.sackCount > 0
-                      ? t('fields:harvestCampaign.historical.sacksRow', {
-                          count: record.sackCount,
-                          defaultValue: `${record.sackCount} sacks`,
-                        })
-                      : formatKg(record.oliveKg, locale)}
-                  </Text>
-                  {record.millName ? (
-                    <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                      {record.millName}
-                    </Text>
-                  ) : null}
-                </Pressable>
-              ))}
-            </>
-          ) : null}
-        </View>
+        <HistoricalHarvestDayBoard
+          fieldLabel={labelOf(
+            historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
+              ? historicalLink.fieldId || route.params?.fieldId || ''
+              : route.params?.fieldId || ''
+          )}
+          day={
+            historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
+              ? historicalLink.day
+              : workingDay
+          }
+          records={historicalDayRecords}
+          loading={historicalDayLoading}
+          onOpenChronologio={() => openChronologioHome(navigation)}
+          onOpenRecord={(record) => {
+            setDeepLinkRecord(record);
+            setDeepLinkRecordMissing(false);
+            navigation.setParams({
+              fieldId: record.fieldId,
+              harvestId: record.id,
+              day: athensCalendarDateKey(record.harvestDate),
+            });
+          }}
+        />
       ) : null}
 
       {!isLive && !showHistoricalDay && deepLinkRecordMissing ? (
@@ -888,6 +951,7 @@ const HarvestCampaignScreen = () => {
           <Text style={[styles.lead, { color: colors.textSecondary }]}>
             {t('fields:harvestCampaign.leadIdle')}
           </Text>
+          {harvestCaps.canStart ? (
           <Button
             title={
               doneBanner
@@ -902,6 +966,7 @@ const HarvestCampaignScreen = () => {
             }}
             fullWidth
           />
+          ) : null}
         </View>
       ) : null}
 
@@ -1241,6 +1306,7 @@ const HarvestCampaignScreen = () => {
                   )}
 
                   {dayClosed ? (
+                    harvestCaps.canReopenDay ? (
                     <Button
                       title={t('fields:harvestCampaign.dayNav.reopen')}
                       variant="outline"
@@ -1249,7 +1315,8 @@ const HarvestCampaignScreen = () => {
                         void patch((current) => reopenHarvestDay(current, workingDay))
                       }
                     />
-                  ) : (
+                    ) : null
+                  ) : harvestCaps.canCloseDay ? (
                     <>
                       <Button
                         title={
@@ -1279,7 +1346,7 @@ const HarvestCampaignScreen = () => {
                         </Text>
                       ) : null}
                     </>
-                  )}
+                  ) : null}
                 </HarvestCard>
 
                 <HarvestDayActivity
@@ -1290,9 +1357,10 @@ const HarvestCampaignScreen = () => {
                   onEdit={openDayEdit}
                   onRemove={removeDayEntry}
                   onAdd={openDayAdd}
+                  allowedKinds={harvestCaps.captureKinds}
                 />
 
-                {!dayClosed ? (
+                {!dayClosed && harvestCaps.captureKinds.length > 0 ? (
                   <HarvestCard tone="pending" onPress={requestAdd}>
                     <View style={styles.addCueInner}>
                       <View style={[styles.addCueIcon, { backgroundColor: colors.surface }]}>
@@ -1421,21 +1489,29 @@ const HarvestCampaignScreen = () => {
                 </View>
 
                 {campaign.status === 'paused' ? (
+                  harvestCaps.canPause ? (
                   <Button title={t('fields:harvestCampaign.resume')} onPress={() => void resume()} fullWidth />
-                ) : (
+                  ) : null
+                ) : harvestCaps.canPause ? (
                   <Button
                     title={t('fields:harvestCampaign.pause')}
                     variant="outline"
-                    onPress={() => void pause()}
+                    onPress={() => {
+                      if (resolveHarvestTotalsLifecycle('pause') === 'pause') void pause();
+                    }}
                     fullWidth
                   />
-                )}
+                ) : null}
+                {harvestCaps.canCompleteSeason ? (
                 <Button
                   title={t('fields:harvestCampaign.stop')}
                   variant="outline"
-                  onPress={() => setSheet('complete')}
+                  onPress={() => {
+                    if (resolveHarvestTotalsLifecycle('stop') === 'openComplete') setSheet('complete');
+                  }}
                   fullWidth
                 />
+                ) : null}
               </View>
             ) : null}
 
@@ -1574,18 +1650,47 @@ const HarvestCampaignScreen = () => {
         title={sheetTitle}
         kicker={sheetKicker}
         subtitle={
-          sheet && sheet !== 'add' && sheet !== 'complete'
+          sheet && sheet !== 'add' && sheet !== 'produce' && sheet !== 'complete'
             ? t('fields:harvestCampaign.home.day', { day: days })
             : undefined
         }
         edge="bottom"
         accent
+        maxHeightPercent={sheet === 'produce' ? 100 : 92}
+        fullScreen={sheet === 'produce'}
+        scrollable={
+          sheet !== 'sacks' &&
+          sheet !== 'mill' &&
+          sheet !== 'oil' &&
+          sheet !== 'people' &&
+          sheet !== 'produce'
+        }
         footer={undefined}
       >
+        {sheet === 'produce' ? (
+          <HarvestProductionWizard
+            campaign={campaign}
+            fields={shared.fields}
+            today={workingDay}
+            locale={locale}
+            preferredFieldId={preferredFieldId}
+            preferredKind={addPrefill?.preferredKind}
+            prefillSackIds={addPrefill?.sackIds}
+            prefillMillIds={addPrefill?.millIds}
+            allowedKinds={harvestCaps.captureKinds}
+            onClose={closeSheet}
+            onSaveSacks={(input, existingId) => saveSacks(input, { existingId, keepOpen: true })}
+            onSaveMill={(input, existingId) => saveMill(input, { existingId, keepOpen: true })}
+            onSaveOil={(input, existingId) => saveOil(input, { existingId, keepOpen: true })}
+            onOther={(kind) => openCapture(kind)}
+          />
+        ) : null}
         {sheet === 'add' ? (
           <HarvestAddMenu
             key={`sheet-add-${workingDay}`}
             campaign={campaign}
+            allowedKinds={harvestCaps.captureKinds}
+            preferredKind={addPrefill?.preferredKind}
             onPick={openCapture}
           />
         ) : null}
@@ -1661,7 +1766,7 @@ const HarvestCampaignScreen = () => {
             people={reviewRow.people}
             expenseEur={reviewRow.expenseEur}
             fieldNames={reviewFieldNames}
-            onAdd={(kind) => openCapture(kind)}
+            onAdd={(kind) => requestAdd({ preferredKind: kind })}
             onCloseDay={() => {
               void patch((current) => closeHarvestDay(current, reviewDate || workingDay));
               closeSheet();
@@ -1679,7 +1784,7 @@ const HarvestCampaignScreen = () => {
             expenseEur={totals.expenseEur}
             unweighedSacks={totals.unweighedSacks}
             locale={locale}
-            onFill={() => setSheet('mill')}
+            onFill={() => requestAdd({ preferredKind: 'mill' })}
             onFinish={() => {
               void stop().then(() => {
                 setDoneBanner(true);
@@ -1706,7 +1811,13 @@ const HarvestCampaignScreen = () => {
             record={deepLinkRecord}
             fieldName={labelOf(deepLinkRecord.fieldId)}
             locale={locale}
-            canVoid={isFieldOwner() || user?.role === 'Administrator'}
+            canVoid={
+              resolveFieldGates({
+                field: fields.find((field) => field.id === deepLinkRecord.fieldId),
+                userId: user?.id,
+                userRole: user?.role,
+              }).canOwn
+            }
             onVoid={() => {
               Alert.alert(
                 t('chronologio:drawer.voidConfirm', {

@@ -6,13 +6,17 @@ export type {
   DayActivityEditTarget,
   DayActivityKind,
 } from './components/HarvestDayActivity';
-export { HarvestActionGrid } from './components/HarvestActionGrid';
+export { HistoricalHarvestDayBoard } from './components/HistoricalHarvestDayBoard';
+export { OilPackBars } from './components/OilPackBars';
 export { HarvestAddMenu } from './sheets/HarvestAddMenu';
+export { HarvestProductionWizard } from './components/HarvestProductionWizard';
+export { HarvestCarryPicker } from './components/HarvestCarryPicker';
 export { HarvestNumberInput } from './components/HarvestNumberInput';
 export { HarvestNumberStepper, NumberStepper } from './components/HarvestNumberStepper';
 export { HarvestSegmentedControl } from './components/HarvestSegmentedControl';
 export { HarvestFieldPicker } from './components/HarvestFieldPicker';
 export { HarvestSheetShell } from './components/HarvestSheetShell';
+export { HarvestFormPager, HarvestQuickChips } from './components/HarvestFormPager';
 
 export { HarvestSacksSheet } from './sheets/HarvestSacksSheet';
 export { HarvestMillSheet } from './sheets/HarvestMillSheet';

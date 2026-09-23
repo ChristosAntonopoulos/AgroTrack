@@ -10,6 +10,7 @@ import {
   unassignedFieldLabel,
 } from '../../finance/display';
 import { formatOfficialAmount } from '../../finance/format';
+import { formatQuantityLine } from '../../finance/moneyUi';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { radii, spacing, typography, createElevation, motion } from '../../theme';
 
@@ -47,6 +48,7 @@ const MoneyTransactionRow: React.FC<Props> = ({
   const field = item.fieldId
     ? fieldNames[item.fieldId] || friendlyFieldLabel(item.fieldId)
     : unassignedFieldLabel(locale);
+  const qty = formatQuantityLine(item.quantity, item.quantityUnit, item.unitPrice, locale);
   const date = new Date(item.occurredOn).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
@@ -94,6 +96,11 @@ const MoneyTransactionRow: React.FC<Props> = ({
         <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
           {[category, field].filter(Boolean).join(' · ')}
         </Text>
+        {qty ? (
+          <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
+            {qty}
+          </Text>
+        ) : null}
         {showStatus ? (
           <View
             style={[

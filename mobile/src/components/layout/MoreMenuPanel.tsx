@@ -40,9 +40,9 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-/** More tab body — identity, experience mode, grouped destinations. */
+/** More tab body — identity and grouped destinations. */
 const MoreMenuPanel: React.FC = () => {
-  const { user, isFieldOwner } = useAuth();
+  const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
@@ -57,8 +57,7 @@ const MoreMenuPanel: React.FC = () => {
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
   const showPartners = familyModules === null;
   const showMoney = canMoney && (familyModules === null || Boolean(familyModules.has('money')));
-  const showHarvest =
-    isFieldOwner() && (familyModules === null || Boolean(familyModules.has('harvest')));
+  const showHarvest = familyModules === null || Boolean(familyModules.has('harvest'));
   const showPhotos = familyModules === null || Boolean(familyModules.has('photos'));
   const collaboratorBadge = collaboratorOwnerLabel
     ? t('common:familyCollaboratorBadge', { owner: collaboratorOwnerLabel })

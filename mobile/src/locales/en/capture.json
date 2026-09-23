@@ -10,7 +10,8 @@
     "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" },
     "money": { "title": "Money", "description": "Income or expense" },
     "voice": { "title": "Voice message", "description": "A recording saved on the timeline" },
-    "document": { "title": "Document", "description": "Upload a file with a name" }
+    "document": { "title": "Document", "description": "Upload a file with a name" },
+    "photo": { "title": "Photo", "description": "A photo from the grove" }
   },
   "fieldLabel": "Grove",
   "fieldPrompt": "Which grove?",
@@ -27,6 +28,10 @@
     "placeholder": "What did you notice?",
     "addPhoto": "Add photo",
     "saved": "Observation recorded."
+  },
+  "photo": {
+    "saved": "{{count}} photo(s) uploaded.",
+    "harvestHint": "Photos are saved to the Photos hub for this field."
   },
   "voice": {
     "hint": "Tap record and speak. The message appears on the timeline.",
@@ -45,6 +50,7 @@
   },
   "work": {
     "whatWork": "What work was done?",
+    "chooseType": "Choose the kind of work.",
     "optionalCost": "Cost (optional)",
     "optionalNote": "Note (optional)",
     "saved": "Work recorded."
@@ -73,6 +79,7 @@
     "workTypeRequired": "Choose the work that was done.",
     "amountRequired": "Enter an amount.",
     "oliveRequired": "Enter olive kilograms.",
+    "photoRequired": "Choose at least one photo.",
     "saveFailed": "Could not save. Try again."
   },
   "income": {
@@ -104,6 +111,44 @@
     "undo": "Undo",
     "addAnother": "Add another",
     "undoReason": "Undo entry",
-    "noPermission": "You cannot record money here."
+    "noPermission": "You cannot record money here.",
+    "fromThisOil": "Which oil?",
+    "oilSold": "Sold",
+    "oilSaleHint": "Tap every oil that was sold",
+    "packTitle": "What are you selling?",
+    "packHint": "Mix bulk and tins if you want.",
+    "packAll": "All",
+    "packBulk": "Bulk",
+    "packTin16": "16 L tins",
+    "packTin17": "17 L tins",
+    "packTinValue_one": "{{count}} tin",
+    "packTinValue_other": "{{count}} tins",
+    "packAvailable": "you have {{amount}}",
+    "noHarvestOil": "There is no oil in the harvest yet. Enter the litres and the price.",
+    "unitPrice": "Price per {{unit}}",
+    "litresSold": "Litres sold",
+    "qtyTimesPrice": "Quantity × price",
+    "totalOnly": "Total only",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "total": "Total",
+    "yearLine": "Harvest year {{span}}",
+    "harvestYearOverride": "This entry is counted in a different harvest year than the date suggests.",
+    "oilHarvestYearHint": "The harvest year follows the oil (1 Feb – 31 Jan), not the sale date.",
+    "splitOne": "One field",
+    "splitAcross": "Split across fields",
+    "splitEqual": "Equally",
+    "splitByArea": "By area",
+    "splitNeedTwo": "Choose at least two fields.",
+    "splitMissingArea": "{{name}} has no area, so it stays out of a split by area.",
+    "splitMissingAreaShort": "A split by area needs at least two fields with area.",
+    "splitNote": "Split across {{count}} fields",
+    "repeatOnce": "Once",
+    "repeatMonthly": "Each month this harvest year",
+    "repeatNote": "Repeated {{count}} times this harvest year",
+    "seriesPreview": "This records {{count}} entries, {{amount}} € in total.",
+    "seriesSaved": "{{count}} entries recorded.",
+    "seriesPartial": "Saved {{saved}} of {{total}}. The rest did not save.",
+    "seriesTooMany": "That is too many entries at once."
   }
 }

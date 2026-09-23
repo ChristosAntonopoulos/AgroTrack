@@ -1,24 +1,25 @@
 import React, { useEffect, useMemo, useLayoutEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { getFieldService, getFieldWorkService, getPartnerService } from '../services/serviceFactory';
 import { fieldPeopleService, type FieldMembership } from '../services/fieldPeopleService';
-import { weatherService } from '../services/weatherService';
 import type { SavedContact } from '../services/partnerService';
 import type { Field } from '../services/fieldService';
 import type { TaskProposal } from '../services/fieldWorkService';
 import { templateTitle } from '../data/fieldWorkCatalogueLabels';
 import { readStashedProposal, toDateInputValue } from '../utils/proposalPresentation';
-import { typeFromTemplate } from '../utils/taskFormTypes';
 import { assigneeOptionKey, suggestAssigneeFromProfile } from '../utils/fieldWorkLearning';
+import { getApiErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import TaskForm, { type AssigneeOption, type TaskFormSubmitPayload } from '../components/tasks/TaskForm';
-import type { FieldWeather } from '../services/geospatialService';
+import TaskComposer, {
+  type AssigneeOption,
+  type ComposerPayload,
+} from '../components/tasks/form/TaskComposer';
 import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 
@@ -33,6 +34,7 @@ const CreateTaskScreen = () => {
   const { t, i18n } = useTranslation(['tasks', 'common']);
   const fieldIdParam = route.params?.fieldId || '';
   const proposalIdParam = route.params?.proposalId || '';
+  const templateCodeParam = route.params?.templateCode || '';
   const scheduledStart = route.params?.scheduledStart
     ? toDateInputValue(route.params.scheduledStart)
     : '';
@@ -45,7 +47,6 @@ const CreateTaskScreen = () => {
   const [fields, setFields] = useState<Field[]>([]);
   const [people, setPeople] = useState<FieldMembership[]>([]);
   const [contacts, setContacts] = useState<SavedContact[]>([]);
-  const [weather, setWeather] = useState<FieldWeather | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,24 +92,21 @@ const CreateTaskScreen = () => {
     if (!fieldId) {
       setPeople([]);
       setContacts([]);
-      setWeather(null);
       setSuggestedAssigneeKey(meKey);
       return;
     }
     let cancelled = false;
     (async () => {
-      const [memberships, saved, fieldWeather, workProfile] = await Promise.all([
+      const [memberships, saved, workProfile] = await Promise.all([
         fieldPeopleService.getPeople(fieldId).catch(() => [] as FieldMembership[]),
         getPartnerService()
           .getContacts({ fieldId, includeUnassigned: true })
           .catch(() => [] as SavedContact[]),
-        weatherService.getFieldWeather(fieldId).catch(() => null),
         getFieldWorkService().getWorkProfile(fieldId).catch(() => null),
       ]);
       if (cancelled) return;
       setPeople(Array.isArray(memberships) ? memberships : []);
       setContacts(Array.isArray(saved) ? saved : []);
-      setWeather(fieldWeather);
       if (mode === 'proposal' && proposal?.templateCode) {
         const suggestion = suggestAssigneeFromProfile(workProfile, proposal.templateCode, user?.id);
         setSuggestedAssigneeKey(assigneeOptionKey(suggestion, user?.id));
@@ -124,11 +122,11 @@ const CreateTaskScreen = () => {
   const capacityHint = (
     person: FieldMembership
   ): { group: AssigneeOption['group']; hint: string } => {
+    if (person.role === 'Family' || person.accessLevel === 'help') {
+      return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
+    }
     if (person.role === 'Partner' || person.accessLevel === 'work') {
       return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
-    }
-    if (person.accessLevel === 'help') {
-      return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
     }
     return { group: 'partner', hint: t('fieldWork.form.collaborator') };
   };
@@ -143,6 +141,7 @@ const CreateTaskScreen = () => {
     ];
     people.forEach((person) => {
       if (person.userId && person.userId === user?.id) return;
+      if (person.role === 'Admin') return;
       const meta = capacityHint(person);
       options.push({
         key: `user:${person.userId}`,
@@ -171,13 +170,17 @@ const CreateTaskScreen = () => {
   }, [people, contacts, user?.id, t]);
 
   const selectedField = fields.find((field) => field.id === fieldId);
-  const initialTitle = proposal ? templateTitle(proposal.templateCode, i18n.language) : '';
+  const initialTitle = proposal
+    ? templateTitle(proposal.templateCode, i18n.language)
+    : templateCodeParam
+      ? templateTitle(templateCodeParam, i18n.language)
+      : '';
 
   const goToPlanned = (createdId: string, year: number, nextFieldId: string) => {
     navigation.navigate('Main', {
       screen: 'Tasks',
       params: {
-        view: 'upcoming',
+        view: 'todo',
         year: String(year),
         fieldId: nextFieldId,
         created: createdId,
@@ -185,11 +188,13 @@ const CreateTaskScreen = () => {
     });
   };
 
-  const handleSubmit = async (payload: TaskFormSubmitPayload) => {
+  const handleSubmit = async (payload: ComposerPayload) => {
     setSaving(true);
     setError(null);
     try {
       const fw = getFieldWorkService();
+      const primaryField = payload.fieldIds[0];
+      if (!primaryField) throw new Error(t('fieldWork.form.needField'));
       if (mode === 'proposal' && proposal) {
         const accepted = await fw.acceptProposal(proposal.id, {
           plannedStart: payload.plannedStart,
@@ -197,30 +202,39 @@ const CreateTaskScreen = () => {
           assignedUserId: payload.assignedUserId,
           assignedCollaboratorId: payload.assignedCollaboratorId,
           notes: payload.notes,
-          resultYear: payload.resultYear,
         });
         const createdId = accepted.acceptedTaskId;
         if (!createdId) throw new Error(t('fieldWork.form.failedSave'));
-        goToPlanned(createdId, payload.resultYear, payload.fieldId);
+        goToPlanned(createdId, proposal.resultYear, primaryField);
         return;
       }
 
-      const created = await fw.createFieldTask({
-        fieldId: payload.fieldId,
-        title: payload.title,
-        templateCode: payload.templateCode,
-        plannedStart: payload.plannedStart,
-        plannedEnd: payload.plannedEnd,
-        preferredTimeWindow: payload.preferredTimeWindow,
-        assignedUserId: payload.assignedUserId,
-        assignedCollaboratorId: payload.assignedCollaboratorId,
-        notes: payload.notes,
-        estimatedCost: payload.estimatedCost,
-        resultYear: payload.resultYear,
-      });
-      goToPlanned(created.id, created.resultYear || payload.resultYear, payload.fieldId);
+      const workGroupId =
+        payload.fieldIds.length > 1
+          ? (globalThis.crypto?.randomUUID?.() ?? `group-${Date.now()}`)
+          : undefined;
+      let lastId = '';
+      let year = new Date().getFullYear();
+      for (const nextFieldId of payload.fieldIds) {
+        const created = await fw.createFieldTask({
+          fieldId: nextFieldId,
+          title: payload.title,
+          description: payload.description,
+          templateCode: payload.templateCode,
+          plannedStart: payload.plannedStart,
+          plannedEnd: payload.plannedEnd,
+          assignedUserId: payload.assignedUserId,
+          assignedCollaboratorId: payload.assignedCollaboratorId,
+          notes: payload.notes,
+          estimatedCost: payload.estimatedCost,
+          workGroupId,
+        });
+        lastId = created.id;
+        year = created.resultYear || year;
+      }
+      goToPlanned(lastId, year, primaryField);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('fieldWork.form.failedSave'));
+      setError(getApiErrorMessage(err, t('fieldWork.form.failedSave')));
     } finally {
       setSaving(false);
     }
@@ -231,45 +245,42 @@ const CreateTaskScreen = () => {
   const subtitle =
     mode === 'proposal'
       ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ')
-      : t('fieldWork.form.manualSubtitle');
+      : templateCodeParam
+        ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ') ||
+          t('fieldWork.form.manualSubtitle')
+        : t('fieldWork.form.manualSubtitle');
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScreenLayout scroll contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>
-        {mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle')}
-      </Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
-      <TaskForm
-        key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}`}
+      <TaskComposer
+        key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}-${fieldId}-${templateCodeParam}`}
         mode={mode}
         fields={fields}
         proposal={proposal}
-        weather={weather}
         assigneeOptions={assigneeOptions}
-        initialTitle={initialTitle}
         initialFieldId={fieldId}
-        initialType={proposal ? typeFromTemplate(proposal.templateCode) : ''}
-        initialStart={proposal ? toDateInputValue(proposal.recommendedWindowStart) : scheduledStart}
-        initialEnd=""
         initialAssigneeKey={suggestedAssigneeKey}
+        initialTemplateCode={templateCodeParam}
+        initialStart={scheduledStart}
         saving={saving}
         error={error}
         onFieldChange={setFieldId}
         onCancel={() => navigation.goBack()}
         onSubmit={(payload) => {
-          setFieldId(payload.fieldId);
+          setFieldId(payload.fieldIds[0] || fieldId);
           void handleSubmit(payload);
         }}
       />
     </ScreenLayout>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
-  title: { ...typography.styles.h3, fontWeight: '700' },
-  subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.lg },
+  subtitle: { ...typography.styles.bodySmall, marginBottom: spacing.md },
 });
 
 export default CreateTaskScreen;

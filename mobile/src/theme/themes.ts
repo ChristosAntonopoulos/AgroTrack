@@ -141,9 +141,6 @@ export const darkColors: AppColors = {
 
   domainTask: '#3A6EA5',
 
-  experienceEveryday: '#5BA3D0',
-  experienceFull: '#E6B84A',
-
   bannerErrorBg: 'rgba(201, 102, 86, 0.22)',
   bannerErrorBorder: '#C96656',
   bannerWarningBg: 'rgba(200, 146, 78, 0.22)',

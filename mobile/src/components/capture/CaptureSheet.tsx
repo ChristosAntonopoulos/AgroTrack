@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../../capture/types';
 import { getAvailableCaptureActions } from '../../capture/permissions';
+import { capturePermissionsFromCapabilities } from '../../utils/fieldGates';
 import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/photos';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -23,30 +24,44 @@ import { useOfflineMode } from '../../context/OfflineContext';
 import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../../hooks/useFamilyMembershipModules';
 import Button from '../ui/Button';
 import Sheet from '../ui/Sheet';
+import FormDateField from '../forms/FormDateField';
 import MoneyCaptureForm from './MoneyCaptureForm';
+import PhotoCaptureForm from './PhotoCaptureForm';
 import {
   getFieldService,
   getHarvestService,
   getNoteService,
-  getFieldWorkService,
   getFileService,
 } from '../../services/serviceFactory';
 import type { Field } from '../../services/fieldService';
 import type { RootStackParamList } from '../../navigation/types';
 import { radii } from '../../theme';
 import { readLastMoneyFieldId } from '../../finance/lastField';
+import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
 
 const MAX_PHOTOS = 5;
 
 type DocPick = { uri: string; name: string; mimeType: string };
 
-const FALLBACK_WORK = [
-  { id: 'pruning', type: 'pruning', title: 'Κλάδεμα' },
-  { id: 'spraying', type: 'spraying', title: 'Ψεκασμός' },
-  { id: 'fertilization', type: 'fertilization', title: 'Λίπανση' },
-  { id: 'irrigation', type: 'irrigation', title: 'Άρδευση' },
-  { id: 'cleaning', type: 'cleaning', title: 'Καθαρισμός' },
-];
+const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17', 'T21'] as const;
+
+const toDateKey = (iso?: string): string => {
+  const d = iso ? new Date(iso) : new Date();
+  if (Number.isNaN(d.getTime())) {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const applyDateKey = (currentIso: string, ymd: string): string => {
+  const [year, month, day] = ymd.split('-').map(Number);
+  const current = new Date(currentIso);
+  const next = Number.isNaN(current.getTime()) ? new Date() : new Date(current);
+  if (!year || !month || !day) return next.toISOString();
+  next.setFullYear(year, month - 1, day);
+  return next.toISOString();
+};
 
 type Props = {
   open: boolean;
@@ -63,7 +78,7 @@ const CaptureSheet: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t } = useTranslation(['capture', 'fields', 'common']);
+  const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio']);
   const { colors, tapMin } = useTheme();
   const { user, isFieldOwner } = useAuth();
   const familyModules = useFamilyMembershipModules();
@@ -75,15 +90,13 @@ const CaptureSheet: React.FC<Props> = ({
   const [step, setStep] = useState<'choose' | CaptureType>('choose');
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldId, setFieldId] = useState(context.fieldId || '');
-  const [occurredAt] = useState(new Date().toISOString());
+  const [occurredAt, setOccurredAt] = useState(context.occurredAt || new Date().toISOString());
   const [submitting, setSubmitting] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
 
   const [body, setBody] = useState('');
-  const [workId, setWorkId] = useState('');
-  const [workCost, setWorkCost] = useState('');
-  const [workNote, setWorkNote] = useState('');
+  const [workTemplate, setWorkTemplate] = useState('');
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
@@ -92,22 +105,26 @@ const CaptureSheet: React.FC<Props> = ({
   const [documentName, setDocumentName] = useState('');
   const [documentFile, setDocumentFile] = useState<DocPick | null>(null);
 
-  const permissions = useMemo(
-    () =>
-      getAvailableCaptureActions({
-        hasAnyFieldAccess: fields.length > 0,
-        canOwn: isFieldOwner() || fields.some((f) => f.ownerId === user?.id),
-        canWork: true,
-        familyModules,
-        accessLevel,
-      }),
-    [fields, isFieldOwner, user?.id, familyModules, accessLevel]
-  );
-
-  const workOptions = useMemo(
-    () => FALLBACK_WORK.map((w) => ({ ...w, templateId: w.type as string | undefined })),
-    []
-  );
+  const permissions = useMemo(() => {
+    const selected = fields.find((field) => field.id === fieldId);
+    if (selected?.capabilities) {
+      return capturePermissionsFromCapabilities(selected.capabilities, accessLevel);
+    }
+    return getAvailableCaptureActions({
+      hasAnyFieldAccess: fields.length > 0,
+      canOwn:
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator' ||
+        isFieldOwner() ||
+        fields.some((field) => field.ownerId === user?.id),
+      canWork:
+        user?.role === 'Producer' ||
+        user?.role === 'FieldOwner' ||
+        user?.role === 'Administrator',
+      familyModules,
+      accessLevel,
+    });
+  }, [fields, fieldId, isFieldOwner, user?.id, user?.role, familyModules, accessLevel]);
 
   const yieldPct = useMemo(() => {
     const olives = Number(oliveKg.replace(',', '.'));
@@ -126,11 +143,10 @@ const CaptureSheet: React.FC<Props> = ({
         : null;
     setStep(moneyStep || context.preferredType || 'choose');
     setFieldId(context.fieldId || '');
-    setBody('');
+    setOccurredAt(context.occurredAt || new Date().toISOString());
+    setBody(context.description || '');
     setPhotos([]);
-    setWorkId('');
-    setWorkCost('');
-    setWorkNote('');
+    setWorkTemplate('');
     setOliveKg('');
     setOilKg('');
     setHarvestNotes('');
@@ -152,7 +168,7 @@ const CaptureSheet: React.FC<Props> = ({
     } else {
       setFields([]);
     }
-  }, [open, context.preferredType, context.fieldId, context.harvestId, context.category, context.description, user?.id, user?.role]);
+  }, [open, context.preferredType, context.fieldId, context.harvestId, context.category, context.description, context.occurredAt, user?.id, user?.role]);
 
   useEffect(() => {
     return () => {
@@ -275,7 +291,7 @@ const CaptureSheet: React.FC<Props> = ({
         const note = await getNoteService().createNote({
           body: body.trim(),
           fieldId,
-          pinned: true,
+          pinned: false,
           occurredAt,
           mediaUrls,
         });
@@ -287,27 +303,18 @@ const CaptureSheet: React.FC<Props> = ({
           harvestCampaignLink: context.harvestCampaignLink,
         }, t('capture:observation.saved'));
       } else if (step === 'work') {
-        const work = workOptions.find((w) => w.id === workId);
-        if (!work) {
-          Alert.alert('', t('capture:errors.workTypeRequired'));
+        if (!workTemplate) {
+          Alert.alert('', t('capture:work.chooseType'));
           setSubmitting(false);
           return;
         }
-        const cost = workCost.trim() ? Number(workCost.replace(',', '.')) : undefined;
-        const now = new Date();
-        const task = await getFieldWorkService().createFieldTask({
-          fieldId,
-          title: work.title,
-          description: workNote.trim() || undefined,
-          templateCode: work.templateId || work.type,
-          plannedStart: occurredAt || now.toISOString(),
-          plannedEnd: occurredAt || now.toISOString(),
-          notes: workNote.trim() || undefined,
-          estimatedCost: cost && !Number.isNaN(cost) ? cost : undefined,
-        });
-        onSaved({ type: 'work', fieldId, sourceId: task.id }, t('capture:work.saved'));
         onClose();
-        navigation.navigate('TaskDetail', { taskId: task.id });
+        navigation.navigate('CreateTask', {
+          fieldId: fieldId || undefined,
+          templateCode: workTemplate,
+          scheduledStart: occurredAt,
+        });
+        return;
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
         if (!olives || Number.isNaN(olives)) {
@@ -338,7 +345,7 @@ const CaptureSheet: React.FC<Props> = ({
         const note = await getNoteService().createNote({
           body: t('capture:voice.noteBody'),
           fieldId,
-          pinned: true,
+          pinned: false,
           occurredAt,
           mediaUrls: [mediaUrl],
         });
@@ -362,7 +369,7 @@ const CaptureSheet: React.FC<Props> = ({
         const note = await getNoteService().createNote({
           body: documentName.trim(),
           fieldId,
-          pinned: true,
+          pinned: false,
           occurredAt,
           mediaUrls: [mediaUrl],
         });
@@ -376,16 +383,19 @@ const CaptureSheet: React.FC<Props> = ({
   };
 
   const typeCards: Array<{ type: CaptureType; icon: keyof typeof Ionicons.glyphMap; enabled: boolean }> = [
-    { type: 'observation', icon: 'eye-outline', enabled: permissions.canRecordObservation },
     { type: 'work', icon: 'checkmark-done-outline', enabled: permissions.canRecordWork },
     { type: 'money', icon: 'wallet-outline', enabled: permissions.canRecordMoney },
     { type: 'harvest', icon: 'leaf-outline', enabled: permissions.canRecordHarvest },
+    { type: 'photo', icon: 'camera-outline', enabled: permissions.canRecordPhoto },
+    { type: 'observation', icon: 'eye-outline', enabled: permissions.canRecordObservation },
     { type: 'voice', icon: 'mic-outline', enabled: permissions.canRecordVoice },
     { type: 'document', icon: 'document-text-outline', enabled: permissions.canRecordDocument },
   ];
 
   const fieldLocked = Boolean(context.fieldId);
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
+  const isPhotoStep = step === 'photo';
+  const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
 
   const sheetTitle =
     step === 'choose'
@@ -403,7 +413,7 @@ const CaptureSheet: React.FC<Props> = ({
       maxHeightPercent={step === 'choose' ? 70 : 92}
       scrollable={false}
       footer={
-        step !== 'choose' && !isMoneyStep ? (
+        step !== 'choose' && !isMoneyStep && !isPhotoStep ? (
           <Button
             title={submitting ? t('capture:saving') : t('capture:save')}
             onPress={() => void save()}
@@ -420,10 +430,23 @@ const CaptureSheet: React.FC<Props> = ({
             ...context,
             fieldId: context.fieldId || fieldId || undefined,
             preferredType: step === 'money' ? 'money' : step,
+            occurredAt,
           }}
           fields={fields}
           canRecordIncome={permissions.canRecordIncome}
           canRecordExpense={permissions.canRecordExpense}
+          onSaved={onSaved}
+        />
+      ) : isPhotoStep ? (
+        <PhotoCaptureForm
+          context={context}
+          fields={fields}
+          fieldId={fieldId}
+          fieldLocked={fieldLocked}
+          onFieldChange={(id) => {
+            setFieldId(id);
+            onContextChange({ ...context, fieldId: id });
+          }}
           onSaved={onSaved}
         />
       ) : (
@@ -441,6 +464,7 @@ const CaptureSheet: React.FC<Props> = ({
                       card.type === 'work'
                         ? colors.eventWorkSoft
                         : card.type === 'observation' ||
+                            card.type === 'photo' ||
                             card.type === 'voice' ||
                             card.type === 'document'
                           ? colors.eventObservationSoft
@@ -453,6 +477,7 @@ const CaptureSheet: React.FC<Props> = ({
                       card.type === 'work'
                         ? colors.eventWork
                         : card.type === 'observation' ||
+                            card.type === 'photo' ||
                             card.type === 'voice' ||
                             card.type === 'document'
                           ? colors.eventObservation
@@ -517,19 +542,49 @@ const CaptureSheet: React.FC<Props> = ({
                 </View>
               )}
 
+              {selectedFieldName || context.periodLabel ? (
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                  {[selectedFieldName, context.periodLabel].filter(Boolean).join(' · ')}
+                </Text>
+              ) : null}
+
+              <FormDateField
+                label={t('capture:dateLabel')}
+                value={toDateKey(occurredAt)}
+                onValueChange={(ymd) => setOccurredAt(applyDateKey(occurredAt, ymd))}
+              />
+              {context.dateNeedsChoice ? (
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                  {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                </Text>
+              ) : context.dateDefaultedToToday ? (
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                  {t('chronologio:captureDateUsesToday')}
+                </Text>
+              ) : null}
+
               {step === 'observation' ? (
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.textarea,
-                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
-                  ]}
-                  placeholder={t('capture:observation.placeholder')}
-                  placeholderTextColor={colors.textTertiary}
-                  multiline
-                  value={body}
-                  onChangeText={setBody}
-                />
+                <>
+                  {context.harvestCampaignLink ? (
+                    <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                      {t('fields:harvestCampaign.note.chronologioHint', {
+                        defaultValue: t('capture:photo.harvestHint'),
+                      })}
+                    </Text>
+                  ) : null}
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.textarea,
+                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                    ]}
+                    placeholder={t('capture:observation.placeholder')}
+                    placeholderTextColor={colors.textTertiary}
+                    multiline
+                    value={body}
+                    onChangeText={setBody}
+                  />
+                </>
               ) : null}
 
               {step === 'voice' ? (
@@ -633,56 +688,28 @@ const CaptureSheet: React.FC<Props> = ({
                 <>
                   <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:work.whatWork')}</Text>
                   <View style={styles.chipRow}>
-                    {workOptions.map(w => (
-                      <Pressable
-                        key={w.id}
-                        style={[
-                          styles.chip,
-                          {
-                            borderColor: workId === w.id ? colors.oliveBorder : colors.border,
-                            backgroundColor: workId === w.id ? colors.primaryLight : colors.surface,
-                            minHeight: tapMin,
-                          },
-                        ]}
-                        onPress={() => setWorkId(w.id)}
-                      >
-                        <Text style={{ color: workId === w.id ? colors.primary : colors.textPrimary }}>{w.title}</Text>
-                      </Pressable>
-                    ))}
+                    {WORK_CHOICES.map((code) => {
+                      const selected = workTemplate === code;
+                      return (
+                        <Pressable
+                          key={code}
+                          style={[
+                            styles.chip,
+                            {
+                              borderColor: selected ? colors.oliveBorder : colors.border,
+                              backgroundColor: selected ? colors.primaryLight : colors.surface,
+                              minHeight: tapMin,
+                            },
+                          ]}
+                          onPress={() => setWorkTemplate(code)}
+                        >
+                          <Text style={{ color: selected ? colors.primary : colors.textPrimary }}>
+                            {templateTitle(code, i18n.language)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
-                    ]}
-                    placeholder={t('capture:work.optionalCost')}
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="decimal-pad"
-                    value={workCost}
-                    onChangeText={setWorkCost}
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.textarea,
-                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
-                    ]}
-                    placeholder={t('capture:work.optionalNote')}
-                    placeholderTextColor={colors.textTertiary}
-                    multiline
-                    value={workNote}
-                    onChangeText={setWorkNote}
-                  />
-                  <Pressable
-                    onPress={() => {
-                      onClose();
-                      navigation.navigate('CreateTask', { fieldId: fieldId || undefined });
-                    }}
-                  >
-                    <Text style={{ color: colors.link, fontWeight: '700', marginTop: 8 }}>
-                      {t('capture:scheduleLater')}
-                    </Text>
-                  </Pressable>
                 </>
               ) : null}
 
@@ -739,7 +766,7 @@ const CaptureSheet: React.FC<Props> = ({
                 </>
               ) : null}
 
-              {(step === 'observation' || step === 'work' || step === 'harvest') && (
+              {(step === 'observation' || step === 'harvest') && (
                 <View style={{ marginTop: 12, gap: 8 }}>
                   <View style={styles.photoRow}>
                     {photos.map(uri => (
@@ -788,6 +815,7 @@ const styles = StyleSheet.create({
   typeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   typeTitle: { fontSize: 15, fontWeight: '650' as '600' },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
+  hint: { fontSize: 13, marginBottom: 10 },
   lockedField: { borderWidth: 1, borderRadius: radii.lg, padding: 12, fontWeight: '700', marginBottom: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   chip: { borderWidth: 1, borderRadius: radii.full, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },

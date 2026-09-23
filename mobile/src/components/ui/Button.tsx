@@ -20,6 +20,8 @@ export interface ButtonProps {
   fullWidth?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
+  /** Overrides the variant label color. Auth screens use the login palette. */
+  textColor?: string;
   style?: ViewStyle;
 }
 
@@ -33,6 +35,7 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   icon,
   iconPosition = 'left',
+  textColor,
   style,
 }) => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
@@ -149,14 +152,14 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={motion.pressOpacity}
     >
       {loading ? (
-        <ActivityIndicator color={variantStyles.textColor} size="small" />
+        <ActivityIndicator color={textColor ?? variantStyles.textColor} size="small" />
       ) : (
         <View style={styles.inner}>
           {icon && iconPosition === 'left' ? <View style={styles.iconLeft}>{icon}</View> : null}
           <Text
             style={[
               styles.text,
-              { color: variantStyles.textColor, fontSize: sizeStyles.fontSize },
+              { color: textColor ?? variantStyles.textColor, fontSize: sizeStyles.fontSize },
             ]}
           >
             {title}

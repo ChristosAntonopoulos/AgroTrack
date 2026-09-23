@@ -9,7 +9,10 @@ export type MoneyKindFilter = 'all' | 'income' | 'expense' | 'draft';
 
 type Props = {
   year: number;
+  yearSpan: string;
   yearRangeLabel?: string;
+  yearStatus: 'current' | 'closed' | 'upcoming';
+  seasonLine?: string | null;
   kind: MoneyKindFilter;
   hideIncome?: boolean;
   tapMin: number;
@@ -20,7 +23,10 @@ type Props = {
 /** Year stepper + kind chips — mirrors web MoneyContextBar. */
 const MoneyContextBar: React.FC<Props> = ({
   year,
+  yearSpan,
   yearRangeLabel,
+  yearStatus,
+  seasonLine,
   kind,
   hideIncome,
   tapMin,
@@ -29,6 +35,12 @@ const MoneyContextBar: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation('money');
   const { colors, fontScaleMultiplier } = useTheme();
+  const statusLabel =
+    yearStatus === 'upcoming'
+      ? t('harvestYearUpcoming')
+      : yearStatus === 'closed'
+        ? t('harvestYearClosed')
+        : t('harvestYearCurrent');
 
   const kinds: Array<{ id: MoneyKindFilter; icon: React.ComponentProps<typeof Ionicons>['name']; label: string }> = [
     { id: 'all', icon: 'grid-outline', label: t('kindAll') },
@@ -62,13 +74,19 @@ const MoneyContextBar: React.FC<Props> = ({
         </Pressable>
         <View style={styles.yearLabel}>
           <Text
+            style={[styles.status, { color: colors.textTertiary, fontSize: 10 * fontScaleMultiplier }]}
+            numberOfLines={1}
+          >
+            {statusLabel}
+          </Text>
+          <Text
             style={[
               styles.year,
               { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier },
             ]}
             accessibilityLiveRegion="polite"
           >
-            {t('agriculturalYearShort', { year })}
+            {yearSpan}
           </Text>
           {yearRangeLabel ? (
             <Text
@@ -87,6 +105,12 @@ const MoneyContextBar: React.FC<Props> = ({
           <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
         </Pressable>
       </View>
+
+      {seasonLine ? (
+        <Text style={[styles.season, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}>
+          {seasonLine}
+        </Text>
+      ) : null}
 
       <ScrollView
         horizontal
@@ -138,18 +162,27 @@ const styles = StyleSheet.create({
   yearTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
   yearBtn: { alignItems: 'center', justifyContent: 'center' },
   yearLabel: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-    minWidth: 96,
+    paddingHorizontal: spacing.md,
+    minWidth: 0,
+    paddingVertical: 6,
   },
+  status: {
+    fontWeight: '600',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  season: { fontWeight: '500' },
   year: {
     fontWeight: '700',
     letterSpacing: -0.4,

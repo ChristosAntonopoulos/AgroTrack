@@ -1,5 +1,28 @@
-import type { ChronologioMonthSummary } from '../services/chronologioService';
+import type { ChronologioEntry, ChronologioMonthSummary } from '../services/chronologioService';
 import { periodEventCount } from '../utils/summaryFacts';
+
+export type MonthChapterFocus = 'work' | 'money' | 'harvest' | 'observation';
+
+export const monthFocusApiCategory = (
+  focus?: MonthChapterFocus
+): 'task' | 'note' | 'harvest' | undefined => {
+  if (focus === 'work') return 'task';
+  if (focus === 'observation') return 'note';
+  if (focus === 'harvest') return 'harvest';
+  return undefined;
+};
+
+export const entryMatchesMonthFocus = (
+  entry: ChronologioEntry,
+  focus?: MonthChapterFocus
+): boolean => {
+  if (!focus) return true;
+  const category = (entry.category || '').toLowerCase();
+  if (focus === 'work') return category === 'task' || category === 'work';
+  if (focus === 'money') return category === 'expense' || category === 'income' || category === 'money';
+  if (focus === 'harvest') return category === 'harvest';
+  return category === 'note' || category === 'photo' || category === 'observation';
+};
 
 export type SeasonStage = 'afterHarvest' | 'spring' | 'summer' | 'harvest';
 

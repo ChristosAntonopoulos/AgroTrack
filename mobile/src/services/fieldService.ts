@@ -55,6 +55,10 @@ export interface Field {
   latitude?: number;
   longitude?: number;
   area: number;
+  /** Canonical area in square metres when the API sends it. */
+  areaSqm?: number;
+  /** Canonical area in hectares when the API sends it. */
+  areaHectares?: number;
   variety?: string;
   treeAge?: number;
   groundType?: string;
@@ -62,6 +66,7 @@ export interface Field {
   currentLifecycleYear: string;
   currentLifecycleStage?: string;
   assignedProducerIds?: string[];
+  memberships?: import('./fieldPeopleService').FieldMembership[];
   createdAt: string;
   updatedAt: string;
   status?: FieldStatus;
@@ -80,6 +85,7 @@ export interface Field {
   greekCadastre?: GreekCadastreInfo;
   documents?: FieldDocumentAttachment[];
   advisorComments?: import('./fieldPeopleService').AdvisorComment[];
+  capabilities?: import('./fieldPeopleService').FieldCapabilities;
 }
 
 export interface CreateFieldDto {

@@ -1,0 +1,23 @@
+{
+  "disclaimer": "Draft text for alpha. The final policy will be legally reviewed.",
+  "contact": "Contact:",
+  "back": "Back",
+  "privacy": {
+    "title": "Privacy policy",
+    "points": [
+      "Oleachron stores your account, fields, records and photos you upload.",
+      "Photos and field data are visible only to people who can access that field.",
+      "We do not sell your data.",
+      "You can request access or deletion at hello@oleachron.com."
+    ]
+  },
+  "terms": {
+    "title": "Terms of use",
+    "points": [
+      "Oleachron is in alpha. Features and limits may change.",
+      "You are responsible for what you record and who you invite to your field.",
+      "Do not share your account. If you lose access, contact us.",
+      "Using the service means you accept these terms."
+    ]
+  }
+}

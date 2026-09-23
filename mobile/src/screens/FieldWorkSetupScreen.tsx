@@ -29,6 +29,7 @@ import type {
 import { getApiErrorMessage } from '../services/api';
 import { athensCalendarYear } from '../utils/athensDate';
 import { formatFieldArea } from '../utils/fieldGeo';
+import { resolveFieldGates } from '../utils/fieldGates';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { isDeviceOnline, isNetworkError } from '../utils/networkStatus';
 import { OfflineQueue } from '../utils/offlineQueue';
@@ -64,7 +65,7 @@ const FieldWorkSetupScreen = () => {
   const navigation = useNavigation<Nav>();
   const { fieldId, edit } = route.params;
   const allowActiveEdit = Boolean(edit);
-  const { user, isAdministrator, isFieldOwner } = useAuth();
+  const { user } = useAuth();
   const { isOnline, syncGeneration } = useOfflineMode();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -84,9 +85,11 @@ const FieldWorkSetupScreen = () => {
   const [analysisKinds, setAnalysisKinds] = useState<AnalysisKindEntry[]>([]);
   const [fertilisationAnnual, setFertilisationAnnual] = useState(false);
 
-  const canOwn = Boolean(
-    isFieldOwner() || isAdministrator() || (field && user?.id && field.ownerId === user.id)
-  );
+  const canOwn = resolveFieldGates({
+    field,
+    userId: user?.id,
+    userRole: user?.role,
+  }).canOwn;
   const resultYear = profile?.resultYearCreated ?? athensCalendarYear(new Date());
 
   const sequence = useMemo(
@@ -254,10 +257,11 @@ const FieldWorkSetupScreen = () => {
         if (cancelled) return;
         setField(fieldData);
 
-        const own =
-          fieldData.ownerId === user?.id ||
-          user?.role === 'FieldOwner' ||
-          user?.role === 'Administrator';
+        const own = resolveFieldGates({
+          field: fieldData,
+          userId: user?.id,
+          userRole: user?.role,
+        }).canOwn;
         if (fieldData.status === 'Draft') {
           setBlocked('draft');
           return;

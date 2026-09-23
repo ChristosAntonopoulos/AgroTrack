@@ -23,6 +23,8 @@ import TaskDetailScreen from '../screens/TaskDetailScreen';
 import TaskCompletionScreen from '../screens/TaskCompletionScreen';
 import FieldFormScreen from '../screens/FieldFormScreen';
 import FieldWorkSetupScreen from '../screens/FieldWorkSetupScreen';
+import FieldWorkProfileScreen from '../screens/FieldWorkProfileScreen';
+import LegalScreen from '../screens/LegalScreen';
 import FieldMapBoundaryScreen from '../screens/FieldMapBoundaryScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -33,8 +35,6 @@ import PhotoHubScreen from '../screens/PhotoHubScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import ReportsScreen from '../screens/ReportsScreen';
 import InviteAcceptScreen from '../screens/InviteAcceptScreen';
-import FamilyInviteAcceptScreen from '../screens/FamilyInviteAcceptScreen';
-import PartnerInviteAcceptScreen from '../screens/PartnerInviteAcceptScreen';
 import PartnersHomeScreen from '../screens/PartnersHomeScreen';
 import PartnerSearchScreen from '../screens/PartnerSearchScreen';
 import PartnerProfileScreen from '../screens/PartnerProfileScreen';
@@ -70,14 +70,10 @@ const RootNavigator = () => {
       firstGroveChecked.current = false;
       return;
     }
-    const token = takePendingInviteToken();
-    const familyToken = takePendingFamilyInviteToken();
-    const partnerToken = takePendingPartnerInviteToken();
-    if (!token && !familyToken && !partnerToken) return;
+    const token = takePendingInviteToken() || takePendingFamilyInviteToken() || takePendingPartnerInviteToken();
+    if (!token) return;
     const id = setTimeout(() => {
-      if (token) navRef.current?.navigate('InviteAccept', { token });
-      else if (familyToken) navRef.current?.navigate('FamilyInviteAccept', { token: familyToken });
-      else if (partnerToken) navRef.current?.navigate('PartnerInviteAccept', { token: partnerToken });
+      navRef.current?.navigate('InviteAccept', { token });
     }, 0);
     return () => clearTimeout(id);
   }, [isAuthenticated]);
@@ -154,9 +150,10 @@ const RootNavigator = () => {
               screens: {
                 Login: 'login',
                 Register: 'register',
+                ForgotPassword: 'forgot-password',
+                ResetPassword: 'reset-password',
+                Legal: 'legal/:kind',
                 InviteAccept: 'invite/:token',
-                FamilyInviteAccept: 'family-invite/:token',
-                PartnerInviteAccept: 'partner-invite/:token',
                 SessionExpired: 'expired',
               },
             },
@@ -220,7 +217,7 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="TaskCompletion"
                 component={TaskCompletionScreen}
-                options={{ title: t('tasks') }}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="Chronologio"
@@ -250,6 +247,11 @@ const RootNavigator = () => {
                 }}
               />
               <Stack.Screen
+                name="FieldWorkProfile"
+                component={FieldWorkProfileScreen}
+                options={{ title: t('tasks:fieldWork.profile.title') }}
+              />
+              <Stack.Screen
                 name="FieldMapBoundary"
                 component={FieldMapBoundaryScreen}
                 options={{ title: t('fields'), presentation: 'modal' }}
@@ -260,6 +262,7 @@ const RootNavigator = () => {
                 options={{ title: t('tasks'), presentation: 'modal' }}
               />
               <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('notifications') }} />
+              <Stack.Screen name="Legal" component={LegalScreen} />
               <Stack.Screen
                 name="NotesList"
                 component={LegacyHomeRedirect}
@@ -272,12 +275,12 @@ const RootNavigator = () => {
               />
               <Stack.Screen
                 name="FamilyInviteAccept"
-                component={FamilyInviteAcceptScreen}
+                component={InviteAcceptScreen}
                 options={{ title: t('partners:family.acceptTitle', { defaultValue: 'Family invite' }) }}
               />
               <Stack.Screen
                 name="PartnerInviteAccept"
-                component={PartnerInviteAcceptScreen}
+                component={InviteAcceptScreen}
                 options={{ title: t('partners:ownerPartner.acceptTitle', { defaultValue: 'Partner invite' }) }}
               />
               <Stack.Screen
@@ -340,7 +343,7 @@ const RootNavigator = () => {
                 component={ServiceRequestsScreen}
                 options={{ title: t('nav:partners', { defaultValue: 'Partners' }) }}
               />
-              <Stack.Screen name="Calendar" component={CalendarScreen} options={{ title: t('calendar') }} />
+              <Stack.Screen name="Calendar" component={CalendarScreen} options={{ headerShown: false }} />
               <Stack.Screen
                 name="Settings"
                 component={SettingsScreen}

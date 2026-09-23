@@ -7,7 +7,7 @@ import type { RootStackParamList } from '../navigation/types';
 const CalendarScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   useEffect(() => {
-    navigation.replace('Main', { screen: 'Tasks', params: { view: 'upcoming' } });
+    navigation.replace('Main', { screen: 'Tasks', params: { view: 'todo' } });
   }, [navigation]);
   return null;
 };

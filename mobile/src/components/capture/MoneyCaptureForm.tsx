@@ -15,6 +15,7 @@ import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/phot
 import { useTheme } from '../../context/ThemeContext';
 import { useOfflineMode } from '../../context/OfflineContext';
 import Button from '../ui/Button';
+import FormDateField from '../forms/FormDateField';
 import type { Field } from '../../services/fieldService';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { HarvestRecord } from '../../services/harvestService';
@@ -33,10 +34,49 @@ import {
   PAYMENT_METHODS,
   resultYearHelp,
   unassignedFieldLabel,
+  type FinancialCategory,
   type FinancialTransactionType,
 } from '../../finance/display';
 import { rememberLastMoneyFieldId } from '../../finance/lastField';
+import {
+  clearMoneyEntryDraft,
+  isMoneyEntryPartial,
+  readMoneyEntryDraft,
+  writeMoneyEntryDraft,
+} from '../../finance/moneyEntryDraft';
+import {
+  categorySupportsQuantity,
+  defaultModeForCategory,
+  suggestedUnitsForCategory,
+} from '../../finance/moneyUi';
+import { harvestYearSpan } from '../../finance/harvestYear';
+import { planMoneySeries, type MoneyRepeat, type MoneySplitMode } from '../../finance/moneySeries';
+import {
+  defaultQuantityUnit,
+  parseDecimal,
+  resolveQuantityCalculation,
+  type FinancialCalculationMode,
+  type FinancialQuantityUnit,
+} from '../../finance/quantityCalculator';
+import { QuantityPriceCalculator } from '../money/QuantityPriceCalculator';
 import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
+import { formatFieldAreaSqm } from '../../utils/fieldGeo';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { carryColor, HarvestCarryPicker } from '../../harvestCampaign/components/HarvestCarryPicker';
+import { OilPackBars } from '../../harvestCampaign/components/OilPackBars';
+import {
+  allocateSoldPack,
+  applyOilSale,
+  combineOilPacks,
+  emptyOilPack,
+  oilSaleFieldId,
+  packLitres,
+  saleableOilLots,
+  type OilPackStock,
+} from '../../harvestCampaign/oilSaleLots';
+import { formatHarvestOilAmount } from '../../harvestCampaign/utils/harvestCalculations';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { spacing, typography } from '../../theme';
 
 const LARGE_AMOUNT = 2000;
@@ -65,10 +105,13 @@ const yearFromDate = (isoDate: string): number => {
   return agriculturalYearFor(parsed);
 };
 
-const parseAmount = (raw: string): number => {
-  const value = Number(raw.replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(value) ? value : NaN;
-};
+const parseAmount = (raw: string): number => parseDecimal(raw) ?? NaN;
+
+const formatMoney = (value: number, locale: string) =>
+  value.toLocaleString(locale.toLowerCase().startsWith('en') ? 'en-GB' : 'el-GR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 const newIdempotencyKey = (): string =>
   `money-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -80,10 +123,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
   canRecordExpense,
   onSaved,
 }) => {
-  const { t, i18n } = useTranslation(['capture']);
+  const { t, i18n } = useTranslation(['capture', 'chronologio', 'common']);
   const language = i18n.language || 'el';
   const { colors, tapMin } = useTheme();
   const { isOnline } = useOfflineMode();
+  const harvestCampaign = useHarvestCampaignOptional();
 
   const preferredKind: FinancialTransactionType | null =
     context.preferredType === 'income' && canRecordIncome
@@ -110,6 +154,16 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedOilIds, setSelectedOilIds] = useState<string[]>([]);
+  const [soldPack, setSoldPack] = useState<OilPackStock>(() => emptyOilPack());
+  const [unitPrice, setUnitPrice] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [unit, setUnit] = useState<FinancialQuantityUnit>('litre');
+  const [mode, setMode] = useState<FinancialCalculationMode>('total_only');
+  const [splitMode, setSplitMode] = useState<MoneySplitMode>('single');
+  const [splitFieldIds, setSplitFieldIds] = useState<string[]>([]);
+  const [repeat, setRepeat] = useState<MoneyRepeat>('once');
+  const [draftReady, setDraftReady] = useState(false);
 
   const usableFields = useMemo(
     () => fields.filter((f) => (f.status || 'Active') !== 'Draft'),
@@ -140,6 +194,13 @@ const MoneyCaptureForm: React.FC<Props> = ({
   }, [context.fieldId, context.taskId, context.harvestId, context.category, context.description]);
 
   useEffect(() => {
+    if (!context.occurredAt) return;
+    const next = todayIsoDate(context.occurredAt);
+    setOccurredOn(next);
+    if (!resultYearTouched) setResultYear(yearFromDate(next));
+  }, [context.occurredAt, resultYearTouched]);
+
+  useEffect(() => {
     if (!fieldId) {
       setTasks([]);
       setHarvests([]);
@@ -161,9 +222,111 @@ const MoneyCaptureForm: React.FC<Props> = ({
     };
   }, [fieldId]);
 
-  const selectKind = (next: FinancialTransactionType) => {
+  const oilLots = useMemo(
+    () => (harvestCampaign ? saleableOilLots(harvestCampaign.campaign) : []),
+    [harvestCampaign]
+  );
+  const isOil = kind === 'income' && category === 'olive_oil_sale';
+  const oilPath = isOil && oilLots.length > 0;
+  const selectedLots = useMemo(
+    () => oilLots.filter((lot) => selectedOilIds.includes(lot.id) && !lot.sold),
+    [oilLots, selectedOilIds]
+  );
+  const oilStock = combineOilPacks(selectedLots);
+  const selectedOilLitres = Math.round(selectedLots.reduce((sum, lot) => sum + lot.litres, 0) * 10) / 10;
+  const soldLitres = oilPath ? packLitres(soldPack) : 0;
+  const oilSeasonYear = harvestCampaign?.campaign.seasonStartYear ?? null;
+
+  useEffect(() => {
+    if (!isOil) {
+      setSelectedOilIds([]);
+      setSoldPack(emptyOilPack());
+    }
+  }, [isOil]);
+
+  useEffect(() => {
+    if (!oilPath || oilSeasonYear == null) return;
+    if (!resultYearTouched) setResultYear(oilSeasonYear);
+  }, [oilPath, oilSeasonYear, resultYearTouched]);
+
+  useEffect(() => {
+    if (!oilPath) return;
+    setQuantity(soldLitres > 0 ? String(soldLitres) : '');
+    setUnit('litre');
+    setMode('quantity_times_unit_price');
+  }, [oilPath, soldLitres]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const draft = await readMoneyEntryDraft();
+      if (cancelled) return;
+      if (draft && !context.preferredType && !context.category) {
+        setKind(draft.kind);
+        setCategory(draft.category);
+        setMode(draft.mode);
+        setQuantity(draft.quantity);
+        setUnit(draft.unit);
+        setUnitPrice(draft.unitPrice);
+        setAmount(draft.amount);
+        if (!context.fieldId) setFieldId(draft.fieldId);
+        if (!context.occurredAt) setOccurredOn(draft.occurredOn);
+        if (!context.description) setDescription(draft.description);
+        setRelatedTaskId(draft.relatedTaskId);
+        setRelatedHarvestId(draft.relatedHarvestId);
+        setPaymentMethod(draft.paymentMethod);
+        setCounterpartyName(draft.counterpartyName);
+        setNotes(draft.notes);
+        setResultYear(draft.resultYear);
+        setMoreOpen(draft.moreOpen);
+        setSplitMode(draft.splitMode ?? 'single');
+        setSplitFieldIds(draft.splitFieldIds ?? []);
+        setRepeat(draft.repeat ?? 'once');
+      }
+      setDraftReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [context.preferredType, context.category, context.fieldId, context.occurredAt, context.description]);
+
+  const applyCategory = (next: FinancialCategory) => {
+    setCategory(next);
+    setMode(defaultModeForCategory(next));
+    const nextUnit = defaultQuantityUnit(next);
+    if (nextUnit) setUnit(nextUnit);
+    if (next !== 'olive_oil_sale') {
+      setSelectedOilIds([]);
+      setSoldPack(emptyOilPack());
+    }
+  };
+
+  const toggleOilLot = (id: string) => {
+    const lot = oilLots.find((row) => row.id === id);
+    if (lot?.sold) return;
+    const next = selectedOilIds.includes(id)
+      ? selectedOilIds.filter((row) => row !== id)
+      : [...selectedOilIds, id];
+    setSelectedOilIds(next);
+    setSoldPack(emptyOilPack());
+    setQuantity('');
+    const chosen = oilLots.filter((row) => next.includes(row.id) && !row.sold);
+    const harvestIds = [...new Set(chosen.flatMap((row) => row.harvestRecordIds))];
+    setRelatedHarvestId(harvestIds.length === 1 ? harvestIds[0] : '');
+    setFieldId(oilSaleFieldId(chosen));
+  };
+
+  const applySoldPack = (next: OilPackStock) => {
+    setSoldPack(next);
+    const litres = packLitres(next);
+    setQuantity(litres > 0 ? String(litres) : '');
+    setUnit('litre');
+    setMode('quantity_times_unit_price');
+  };
+
+  const applyCategoryKind = (next: FinancialTransactionType) => {
     setKind(next);
-    setCategory(defaultCategoryForType(next));
+    applyCategory(defaultCategoryForType(next));
   };
 
   const addPhotos = async (camera: boolean) => {
@@ -178,8 +341,126 @@ const MoneyCaptureForm: React.FC<Props> = ({
     if (uris.length) setPhotos((prev) => [...prev, ...uris]);
   };
 
+  const qtyValue = parseDecimal(quantity);
+  const priceValue = parseDecimal(unitPrice);
+  const amountValue = parseDecimal(amount);
+  const supportsQty = categorySupportsQuantity(category);
+  const activeMode: FinancialCalculationMode = isOil
+    ? mode === 'total_only'
+      ? 'total_only'
+      : 'quantity_times_unit_price'
+    : supportsQty
+      ? mode
+      : 'total_only';
+  let resolvedAmount: number | null = null;
+  let resolvedUnitPrice: number | null = null;
+  try {
+    const resolved = resolveQuantityCalculation({
+      mode:
+        activeMode === 'quantity_times_unit_price' && qtyValue && priceValue
+          ? 'quantity_times_unit_price'
+          : activeMode === 'quantity_and_total' && qtyValue && amountValue
+            ? 'quantity_and_total'
+            : 'total_only',
+      quantity: qtyValue,
+      quantityUnit: unit,
+      unitPrice: priceValue,
+      amount: amountValue,
+    });
+    resolvedAmount = resolved.amount;
+    resolvedUnitPrice = resolved.unitPrice;
+  } catch {
+    resolvedAmount = amountValue && amountValue > 0 ? amountValue : null;
+  }
+
+  const allowSeries = !oilPath && !context.harvestCampaignLink;
+  const areaHectares = Object.fromEntries(
+    usableFields.map((item) => {
+      const sqm = formatFieldAreaSqm(item);
+      return [item.id, sqm != null && sqm > 0 ? sqm / 10000 : null];
+    })
+  );
+  const seriesPlan =
+    allowSeries && resolvedAmount && (splitMode !== 'single' || repeat === 'monthly')
+      ? planMoneySeries({
+          amount: resolvedAmount,
+          occurredOn,
+          resultYear,
+          fieldIds: splitMode === 'single' ? [fieldId] : splitFieldIds,
+          areaHectares,
+          splitMode,
+          repeat,
+        })
+      : null;
+
+  useEffect(() => {
+    if (!draftReady || !kind) return;
+    const partial = isMoneyEntryPartial({
+      amount,
+      quantity,
+      unitPrice,
+      description,
+      relatedTaskId,
+      relatedHarvestId,
+      paymentMethod,
+      counterpartyName,
+      notes,
+    });
+    if (!partial) {
+      void clearMoneyEntryDraft();
+      return;
+    }
+    void writeMoneyEntryDraft({
+      kind,
+      category,
+      mode,
+      quantity,
+      unit,
+      unitPrice,
+      amount,
+      fieldId,
+      occurredOn,
+      description,
+      relatedTaskId,
+      relatedHarvestId,
+      paymentMethod,
+      counterpartyName,
+      notes,
+      resultYear,
+      moreOpen,
+      splitMode,
+      splitFieldIds,
+      repeat,
+    });
+  }, [
+    draftReady,
+    kind,
+    category,
+    mode,
+    quantity,
+    unit,
+    unitPrice,
+    amount,
+    fieldId,
+    occurredOn,
+    description,
+    relatedTaskId,
+    relatedHarvestId,
+    paymentMethod,
+    counterpartyName,
+    notes,
+    resultYear,
+    moreOpen,
+    splitMode,
+    splitFieldIds,
+    repeat,
+  ]);
+
   const confirmIfNeeded = (value: number, type: FinancialTransactionType): Promise<boolean> => {
     const derivedYear = yearFromDate(occurredOn);
+    if (oilPath && oilSeasonYear != null && resultYear === oilSeasonYear && value < LARGE_AMOUNT) {
+      return Promise.resolve(true);
+    }
     if (value < LARGE_AMOUNT && resultYear === derivedYear) return Promise.resolve(true);
     const fieldName = usableFields.find((f) => f.id === fieldId)?.name || unassignedFieldLabel(language);
     const summary = t('capture:money.confirmSummary', {
@@ -199,52 +480,115 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   const save = async (saveAsDraft: boolean) => {
     if (!kind) return;
-    const value = parseAmount(amount);
+    const value = resolvedAmount;
     if (!value || value <= 0) {
       Alert.alert('', t('capture:errors.amountRequired'));
       return;
     }
-    if (!saveAsDraft && !description.trim()) {
+    if (oilPath && !saveAsDraft && soldLitres <= 0) {
+      Alert.alert('', t('capture:money.oilSaleHint'));
+      return;
+    }
+    if (!saveAsDraft && !description.trim() && !isOil) {
       Alert.alert('', t('capture:money.descriptionRequired'));
+      return;
+    }
+    if (seriesPlan && !seriesPlan.ok) {
+      Alert.alert(
+        '',
+        seriesPlan.reason === 'need-two'
+          ? t('capture:money.splitNeedTwo')
+          : seriesPlan.reason === 'missing-area'
+            ? t('capture:money.splitMissingAreaShort')
+            : t('capture:money.seriesTooMany')
+      );
       return;
     }
     if (!saveAsDraft && !(await confirmIfNeeded(value, kind))) return;
 
     const text = description.trim() || financialCategoryLabel(category, language);
+    const resolvedFieldId = oilPath ? oilSaleFieldId(selectedLots) : fieldId;
+    const harvestId = relatedHarvestId || undefined;
+    let entries = [
+      {
+        fieldId: resolvedFieldId,
+        amount: value,
+        occurredOn,
+        resultYear,
+      },
+    ];
+    if (allowSeries && (splitMode !== 'single' || repeat === 'monthly') && seriesPlan?.ok) {
+      entries = seriesPlan.entries;
+    }
+    const splitting = splitMode !== 'single' && entries.length > 1;
+    const seriesNotes = [
+      notes.trim(),
+      splitting ? t('capture:money.splitNote', { count: new Set(entries.map((entry) => entry.fieldId)).size }) : '',
+      repeat === 'monthly' && entries.length > 1 ? t('capture:money.repeatNote', { count: entries.length }) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
     setSubmitting(true);
     try {
       const attachmentIds = photos.length ? await uploadCapturePhotoUris(photos) : [];
-      const created = await getFinancialTransactionService().create({
-        type: kind,
-        amount: value,
-        currency: 'EUR',
-        occurredOn: `${occurredOn}T00:00:00`,
-        resultYear,
-        fieldId: fieldId || undefined,
-        category,
-        description: text,
-        paymentMethod: paymentMethod || undefined,
-        counterpartyName: counterpartyName.trim() || undefined,
-        relatedTaskId: relatedTaskId || undefined,
-        relatedHarvestId: relatedHarvestId || undefined,
-        sourceType: relatedHarvestId ? 'harvest' : relatedTaskId ? 'task' : 'manual',
-        sourceId: relatedHarvestId || relatedTaskId || undefined,
-        attachmentIds,
-        notes: notes.trim() || undefined,
-        saveAsDraft,
-        idempotencyKey: newIdempotencyKey(),
-      });
-      await rememberLastMoneyFieldId(fieldId || undefined);
-      const message = saveAsDraft
-        ? t('capture:money.draftSaved')
-        : kind === 'income'
-          ? t('capture:income.saved')
-          : t('capture:expense.saved');
+      if (oilPath && !saveAsDraft && soldLitres > 0 && harvestCampaign) {
+        const allocations = allocateSoldPack(selectedLots, soldPack);
+        if (allocations.length > 0) {
+          await harvestCampaign.patch((campaign) => applyOilSale(campaign, allocations));
+        }
+      }
+      let createdId = '';
+      let createdStatus: 'draft' | 'posted' = saveAsDraft ? 'draft' : 'posted';
+      let savedCount = 0;
+      const qty = qtyValue && qtyValue > 0 ? qtyValue : undefined;
+      const entryMode = activeMode;
+      for (const entry of entries) {
+        const created = await getFinancialTransactionService().create({
+          type: kind,
+          amount: entry.amount,
+          currency: 'EUR',
+          occurredOn: `${entry.occurredOn}T00:00:00`,
+          resultYear: entry.resultYear,
+          fieldId: entry.fieldId || undefined,
+          category,
+          description: text,
+          paymentMethod: paymentMethod || undefined,
+          counterpartyName: counterpartyName.trim() || undefined,
+          relatedTaskId: splitting ? undefined : relatedTaskId || undefined,
+          relatedHarvestId: splitting ? undefined : harvestId,
+          sourceType: harvestId ? 'harvest' : relatedTaskId ? 'task' : 'manual',
+          sourceId: harvestId || relatedTaskId || undefined,
+          attachmentIds,
+          notes: seriesNotes || undefined,
+          saveAsDraft,
+          idempotencyKey: newIdempotencyKey(),
+          productKind: isOil ? 'olive_oil' : undefined,
+          quantity: splitting ? undefined : qty,
+          quantityUnit: splitting || !qty ? undefined : unit,
+          unitPrice: splitting ? undefined : resolvedUnitPrice || undefined,
+          calculationMode: splitting ? 'total_only' : qty ? entryMode : 'total_only',
+        });
+        savedCount += 1;
+        createdId = created.id;
+        createdStatus = created.status === 'draft' ? 'draft' : 'posted';
+      }
+      await rememberLastMoneyFieldId(entries[0]?.fieldId || undefined);
+      await clearMoneyEntryDraft();
+      const message =
+        savedCount < entries.length
+          ? t('capture:money.seriesPartial', { saved: savedCount, total: entries.length })
+          : entries.length > 1
+            ? t('capture:money.seriesSaved', { count: entries.length })
+            : saveAsDraft
+              ? t('capture:money.draftSaved')
+              : kind === 'income'
+                ? t('capture:income.saved')
+                : t('capture:expense.saved');
       onSaved(
         {
           type: kind,
-          fieldId: fieldId || '',
-          sourceId: created.id,
+          fieldId: entries[0]?.fieldId || '',
+          sourceId: createdId,
           amount: value,
           occurredOn,
           description: text,
@@ -252,12 +596,12 @@ const MoneyCaptureForm: React.FC<Props> = ({
         },
         message,
         {
-          transactionId: created.id,
-          status: created.status === 'draft' ? 'draft' : 'posted',
+          transactionId: createdId,
+          status: createdStatus,
           reopen: {
-            fieldId: fieldId || undefined,
+            fieldId: entries[0]?.fieldId || undefined,
             taskId: relatedTaskId || undefined,
-            harvestId: relatedHarvestId || undefined,
+            harvestId,
             preferredType: kind,
             occurredAt: context.occurredAt,
             category,
@@ -291,7 +635,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
                     minHeight: Math.max(96, tapMin + 28),
                   },
                 ]}
-                onPress={() => selectKind('income')}
+                onPress={() => applyCategoryKind('income')}
                 accessibilityRole="button"
                 accessibilityLabel={`${financialTypeLabel('income', language)}. ${financialTypeHelp('income', language)}`}
               >
@@ -319,7 +663,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
                     minHeight: Math.max(96, tapMin + 28),
                   },
                 ]}
-                onPress={() => selectKind('expense')}
+                onPress={() => applyCategoryKind('expense')}
                 accessibilityRole="button"
                 accessibilityLabel={`${financialTypeLabel('expense', language)}. ${financialTypeHelp('expense', language)}`}
               >
@@ -375,36 +719,244 @@ const MoneyCaptureForm: React.FC<Props> = ({
           ) : null}
         </View>
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.amount')}</Text>
-        <View
-          style={[
-            styles.amountWrap,
-            {
-              borderColor: colors.borderLight,
-              backgroundColor: colors.surface,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.euro,
-              { color: kind === 'income' ? colors.eventIncome : colors.eventExpense },
-            ]}
-          >
-            €
-          </Text>
-          <TextInput
-            style={[styles.amount, { color: colors.textPrimary }]}
-            keyboardType="decimal-pad"
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="0,00"
-            placeholderTextColor={colors.textSecondary}
-            accessibilityLabel={t('capture:money.amount')}
+        {!oilPath && supportsQty ? (
+          <QuantityPriceCalculator
+            mode={mode}
+            onModeChange={setMode}
+            quantity={quantity}
+            onQuantityChange={setQuantity}
+            unit={unit}
+            units={suggestedUnitsForCategory(category)}
+            onUnitChange={setUnit}
+            unitPrice={unitPrice}
+            onUnitPriceChange={setUnitPrice}
+            amount={amount}
+            onAmountChange={setAmount}
+            calculatedAmount={resolvedAmount != null ? formatMoney(resolvedAmount, language) : null}
+            calculatedUnitPrice={resolvedUnitPrice != null ? formatMoney(resolvedUnitPrice, language) : null}
           />
-        </View>
+        ) : !oilPath ? (
+          <>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.amount')}</Text>
+            <View
+              style={[
+                styles.amountWrap,
+                {
+                  borderColor: colors.borderLight,
+                  backgroundColor: colors.surface,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.euro,
+                  { color: kind === 'income' ? colors.eventIncome : colors.eventExpense },
+                ]}
+              >
+                €
+              </Text>
+              <TextInput
+                style={[styles.amount, { color: colors.textPrimary }]}
+                keyboardType="decimal-pad"
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0,00"
+                placeholderTextColor={colors.textSecondary}
+                accessibilityLabel={t('capture:money.amount')}
+              />
+            </View>
+          </>
+        ) : null}
 
+        {isOil && oilLots.length === 0 ? (
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('capture:money.noHarvestOil')}</Text>
+        ) : null}
+        {oilPath ? (
+          <>
+            <HarvestCarryPicker
+              label={t('capture:money.fromThisOil')}
+              items={oilLots.map((lot) => {
+                const names = lot.fieldIds
+                  .map((id) => friendlyFieldLabel(usableFields.find((field) => field.id === id)?.name || id))
+                  .filter(Boolean);
+                return {
+                  id: lot.id,
+                  title: formatHarvestOilAmount(lot.sold ? lot.farmerLitres : lot.litres, 'litres', language),
+                  detail: names.join(' + ') || undefined,
+                  colors: lot.fieldIds.map((id) =>
+                    resolveFieldColor(usableFields.find((field) => field.id === id)?.color, id)
+                  ),
+                  group: lot.date,
+                  badge: lot.sold ? t('capture:money.oilSold') : undefined,
+                  disabled: lot.sold,
+                };
+              })}
+              selected={selectedOilIds}
+              onToggle={toggleOilLot}
+              hint={selectedOilIds.length ? undefined : t('capture:money.oilSaleHint')}
+              transfer={
+                selectedLots.length
+                  ? {
+                      from: formatHarvestOilAmount(selectedOilLitres, 'litres', language),
+                      to: t('capture:money.packTitle'),
+                      color: carryColor(
+                        selectedLots.flatMap((lot) =>
+                          lot.fieldIds.map((id) =>
+                            resolveFieldColor(usableFields.find((field) => field.id === id)?.color, id)
+                          )
+                        )
+                      ),
+                    }
+                  : null
+              }
+            />
+            {selectedLots.length > 0 ? (
+              <>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.packTitle')}</Text>
+                <OilPackBars
+                  stock={oilStock}
+                  value={soldPack}
+                  availableLitres={selectedOilLitres}
+                  onChange={applySoldPack}
+                />
+                <QuantityPriceCalculator
+                  mode="quantity_times_unit_price"
+                  onModeChange={setMode}
+                  quantity={quantity}
+                  onQuantityChange={setQuantity}
+                  unit="litre"
+                  units={['litre']}
+                  onUnitChange={setUnit}
+                  unitPrice={unitPrice}
+                  onUnitPriceChange={setUnitPrice}
+                  amount={amount}
+                  onAmountChange={setAmount}
+                  calculatedAmount={resolvedAmount != null ? formatMoney(resolvedAmount, language) : null}
+                  calculatedUnitPrice={resolvedUnitPrice != null ? formatMoney(resolvedUnitPrice, language) : null}
+                  hideModeToggle
+                  quantityLocked
+                />
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        {!oilPath ? (
+        <>
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:fieldLabel')}</Text>
+        {allowSeries && usableFields.length > 1 ? (
+          <View style={styles.chipRow}>
+            <Pressable
+              style={[
+                styles.chip,
+                {
+                  borderColor: splitMode === 'single' ? colors.primary : colors.border,
+                  backgroundColor: splitMode === 'single' ? colors.primary + '22' : 'transparent',
+                  minHeight: tapMin,
+                },
+              ]}
+              onPress={() => setSplitMode('single')}
+            >
+              <Text style={{ color: splitMode === 'single' ? colors.primary : colors.textPrimary }}>
+                {t('capture:money.splitOne')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.chip,
+                {
+                  borderColor: splitMode !== 'single' ? colors.primary : colors.border,
+                  backgroundColor: splitMode !== 'single' ? colors.primary + '22' : 'transparent',
+                  minHeight: tapMin,
+                },
+              ]}
+              onPress={() => {
+                if (splitMode === 'single') {
+                  setSplitMode('equal');
+                  if (!splitFieldIds.length && fieldId) setSplitFieldIds([fieldId]);
+                }
+              }}
+            >
+              <Text style={{ color: splitMode !== 'single' ? colors.primary : colors.textPrimary }}>
+                {t('capture:money.splitAcross')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {splitMode !== 'single' && allowSeries ? (
+          <>
+            <View style={styles.chipRow}>
+              <Pressable
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: splitMode === 'equal' ? colors.primary : colors.border,
+                    backgroundColor: splitMode === 'equal' ? colors.primary + '22' : 'transparent',
+                    minHeight: tapMin,
+                  },
+                ]}
+                onPress={() => setSplitMode('equal')}
+              >
+                <Text style={{ color: splitMode === 'equal' ? colors.primary : colors.textPrimary }}>
+                  {t('capture:money.splitEqual')}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: splitMode === 'area' ? colors.primary : colors.border,
+                    backgroundColor: splitMode === 'area' ? colors.primary + '22' : 'transparent',
+                    minHeight: tapMin,
+                  },
+                ]}
+                onPress={() => setSplitMode('area')}
+              >
+                <Text style={{ color: splitMode === 'area' ? colors.primary : colors.textPrimary }}>
+                  {t('capture:money.splitByArea')}
+                </Text>
+              </Pressable>
+            </View>
+            <View style={styles.chipRow}>
+              {usableFields.map((f) => {
+                const areaDisabled =
+                  splitMode === 'area' && !(areaHectares[f.id] != null && (areaHectares[f.id] || 0) > 0);
+                const on = splitFieldIds.includes(f.id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    disabled={areaDisabled}
+                    style={[
+                      styles.chip,
+                      {
+                        borderColor: on ? colors.primary : colors.border,
+                        backgroundColor: on ? colors.primary + '22' : 'transparent',
+                        minHeight: tapMin,
+                        opacity: areaDisabled ? 0.45 : 1,
+                      },
+                    ]}
+                    onPress={() =>
+                      setSplitFieldIds((current) =>
+                        current.includes(f.id) ? current.filter((id) => id !== f.id) : [...current, f.id]
+                      )
+                    }
+                  >
+                    <Text style={{ color: on ? colors.primary : colors.textPrimary }}>{f.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {splitMode === 'area'
+              ? usableFields
+                  .filter((item) => !(areaHectares[item.id] != null && (areaHectares[item.id] || 0) > 0))
+                  .map((item) => (
+                    <Text key={item.id} style={[styles.hint, { color: colors.textSecondary }]}>
+                      {t('capture:money.splitMissingArea', { name: friendlyFieldLabel(item.name) })}
+                    </Text>
+                  ))
+              : null}
+          </>
+        ) : (
         <View style={styles.chipRow}>
           <Pressable
             style={[
@@ -438,18 +990,94 @@ const MoneyCaptureForm: React.FC<Props> = ({
             </Pressable>
           ))}
         </View>
+        )}
+        </>
+        ) : null}
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:dateLabel')}</Text>
-        <TextInput
-          style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
+        <FormDateField
+          label={t('capture:dateLabel')}
           value={occurredOn}
-          onChangeText={(value) => {
+          onValueChange={(value) => {
             setOccurredOn(value);
             if (!resultYearTouched) setResultYear(yearFromDate(value));
           }}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={colors.textSecondary}
         />
+        {oilPath ? (
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('capture:money.oilHarvestYearHint')}</Text>
+        ) : (
+          <>
+            <Text style={[styles.hint, { color: colors.textSecondary }]}>
+              {t('capture:money.yearLine', { span: harvestYearSpan(resultYear) })}
+            </Text>
+            {resultYear !== yearFromDate(occurredOn) ? (
+              <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                {t('capture:money.harvestYearOverride')}
+              </Text>
+            ) : null}
+          </>
+        )}
+        {context.dateNeedsChoice && !oilPath ? (
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+          </Text>
+        ) : context.dateDefaultedToToday && !oilPath ? (
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('chronologio:captureDateUsesToday')}
+          </Text>
+        ) : null}
+        {allowSeries ? (
+          <View style={styles.chipRow}>
+            <Pressable
+              style={[
+                styles.chip,
+                {
+                  borderColor: repeat === 'once' ? colors.primary : colors.border,
+                  backgroundColor: repeat === 'once' ? colors.primary + '22' : 'transparent',
+                  minHeight: tapMin,
+                },
+              ]}
+              onPress={() => setRepeat('once')}
+            >
+              <Text style={{ color: repeat === 'once' ? colors.primary : colors.textPrimary }}>
+                {t('capture:money.repeatOnce')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.chip,
+                {
+                  borderColor: repeat === 'monthly' ? colors.primary : colors.border,
+                  backgroundColor: repeat === 'monthly' ? colors.primary + '22' : 'transparent',
+                  minHeight: tapMin,
+                },
+              ]}
+              onPress={() => setRepeat('monthly')}
+            >
+              <Text style={{ color: repeat === 'monthly' ? colors.primary : colors.textPrimary }}>
+                {t('capture:money.repeatMonthly')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {seriesPlan?.ok && seriesPlan.entries.length > 1 ? (
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('capture:money.seriesPreview', {
+              count: seriesPlan.entries.length,
+              amount: formatMoney(
+                seriesPlan.entries.reduce((sum, entry) => sum + entry.amount, 0),
+                language
+              ),
+            })}
+          </Text>
+        ) : seriesPlan && !seriesPlan.ok ? (
+          <Text style={[styles.hint, { color: colors.eventExpense }]}>
+            {seriesPlan.reason === 'need-two'
+              ? t('capture:money.splitNeedTwo')
+              : seriesPlan.reason === 'missing-area'
+                ? t('capture:money.splitMissingAreaShort')
+                : t('capture:money.seriesTooMany')}
+          </Text>
+        ) : null}
 
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.category')}</Text>
         <View style={styles.chipRow}>
@@ -464,7 +1092,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   minHeight: tapMin,
                 },
               ]}
-              onPress={() => setCategory(c)}
+              onPress={() => applyCategory(c)}
             >
               <Text style={{ color: category === c ? colors.primary : colors.textPrimary }}>
                 {financialCategoryLabel(c, language)}
@@ -506,7 +1134,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   </Pressable>
                 ))
               : null}
-            {fieldId
+            {fieldId && !oilPath
               ? harvests.map((harvest) => (
                   <Pressable
                     key={harvest.id}
