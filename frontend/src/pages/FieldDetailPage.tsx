@@ -40,8 +40,8 @@ import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
 import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
+import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import '../components/fields/FieldPageShell.css';
-import './FieldWorkSetupPage.css';
 
 const DISMISS_KEY = (fieldId: string) => `oleachron.workSetupBanner.dismissed.${fieldId}`;
 
@@ -357,44 +357,16 @@ const FieldDetailPage: React.FC = () => {
           </p>
         ) : null}
 
-        {showWorkSetupBanner ? (
-          <div
-            className="fw-setup-banner"
-            role="region"
-            aria-label={t('tasks:fieldWork.onboarding.banner.title')}
-          >
-            <h2>{t('tasks:fieldWork.onboarding.banner.title')}</h2>
-            <p>{t('tasks:fieldWork.onboarding.banner.body')}</p>
-            <div className="fw-setup-banner-actions">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => navigate(`/fields/${id}/work-setup`)}
-              >
-                {hasLocalDraft || workProfile?.status === 'draft'
-                  ? t('tasks:fieldWork.onboarding.banner.resume')
-                  : t('tasks:fieldWork.onboarding.banner.start')}
-              </Button>
-              <Button variant="outline" size="md" onClick={dismissBanner}>
-                {t('tasks:fieldWork.onboarding.banner.later')}
-              </Button>
-            </div>
-          </div>
+        {showWorkSetupBanner && id ? (
+          <WorkSetupBanner
+            fieldId={id}
+            resume={hasLocalDraft || workProfile?.status === 'draft'}
+            onDismiss={dismissBanner}
+          />
         ) : null}
 
         {canOwn && workProfile?.status === 'active' && id ? (
-          <div className="fw-setup-banner fw-setup-banner--quiet" role="region">
-            <p>{t('tasks:fieldWork.profile.title')}</p>
-            <div className="fw-setup-banner-actions">
-              <Button
-                variant="outline"
-                size="md"
-                onClick={() => navigate(`/fields/${id}/work-profile`)}
-              >
-                {t('tasks:fieldWork.profile.open')}
-              </Button>
-            </div>
-          </div>
+          <WorkSetupBanner fieldId={id} quiet />
         ) : null}
 
         <FieldLocalNavigation

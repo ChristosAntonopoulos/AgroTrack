@@ -10,6 +10,7 @@ export type HarvestCapabilities = {
   canAddOil: boolean;
   canAddPeople: boolean;
   canAddExpense: boolean;
+  canAddIncome: boolean;
   canAddNote: boolean;
   canCloseDay: boolean;
   canReopenDay: boolean;
@@ -62,6 +63,7 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
   const canPause = canOwn && canView && !viewOnly;
   const canCloseDay = canProduce || (canOwn && !viewOnly);
   const canAddExpense = canView && !viewOnly && capture.canRecordExpense;
+  const canAddIncome = canView && !viewOnly && capture.canRecordIncome;
   const canAddNote = canView && !viewOnly && capture.canRecordObservation;
 
   const captureKinds: HarvestCaptureKind[] = [];
@@ -69,6 +71,7 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
     captureKinds.push('sacks', 'mill', 'oil', 'people');
   }
   if (canAddExpense) captureKinds.push('expense');
+  if (canAddIncome) captureKinds.push('income');
   if (canAddNote) captureKinds.push('note');
 
   const isViewOnly = canView && !canProduce && captureKinds.length === 0;
@@ -87,6 +90,7 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
     canAddOil: canProduce,
     canAddPeople: canProduce,
     canAddExpense,
+    canAddIncome,
     canAddNote,
     canCloseDay,
     canReopenDay: canCloseDay,

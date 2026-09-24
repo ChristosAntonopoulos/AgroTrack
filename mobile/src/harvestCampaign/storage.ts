@@ -253,6 +253,9 @@ export const parseCampaign = (raw: unknown, seasonStartYear: number): HarvestCam
     expenses: Array.isArray(raw.expenses)
       ? raw.expenses.map(parseExpense).filter((row): row is HarvestExpenseEntry => Boolean(row))
       : [],
+    incomes: Array.isArray(raw.incomes)
+      ? raw.incomes.map(parseExpense).filter((row): row is HarvestExpenseEntry => Boolean(row))
+      : [],
     notes: Array.isArray(raw.notes)
       ? raw.notes.map(parseNote).filter((row): row is HarvestNoteEntry => Boolean(row))
       : [],
@@ -406,6 +409,11 @@ export const addPeople = (campaign: HarvestCampaign, entry: HarvestPeopleEntry):
 export const addExpense = (campaign: HarvestCampaign, entry: HarvestExpenseEntry): HarvestCampaign => ({
   ...campaign,
   expenses: [...campaign.expenses, entry],
+});
+
+export const addIncome = (campaign: HarvestCampaign, entry: HarvestExpenseEntry): HarvestCampaign => ({
+  ...campaign,
+  incomes: [...(campaign.incomes || []), entry],
 });
 
 export const addNote = (campaign: HarvestCampaign, entry: HarvestNoteEntry): HarvestCampaign => ({

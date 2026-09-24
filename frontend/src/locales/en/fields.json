@@ -1315,6 +1315,15 @@
       "fieldsLine": "Fields: {{fields}}",
       "noFieldsWarn": "No fields selected — you can add them later, but totals by field will stay empty until you do."
     },
+    "opening": {
+      "title": "A good harvest",
+      "body": "It’s time to gather a whole year of work.",
+      "story": "From today you can keep it here, day by day: sacks, kilos, people, expenses, and oil.",
+      "promiseKeep": "This year’s harvest begins.",
+      "promiseYours": "Its story stays here.",
+      "blessing": "Strength for the work, and a good crop.",
+      "cta": "Let’s begin"
+    },
     "fieldLockedLabel": "Field",
     "serverActivityHint": "Harvest records already exist for your fields (for example in Chronologio), but this device has no shared live harvest yet. Starting here creates a local season until shared harvest sync is available.",
     "historical": {
@@ -1391,6 +1400,7 @@
       "millShort": "Mill",
       "oil": "Oil",
       "expense": "Expenses",
+      "income": "Income",
       "people": "People",
       "note": "Note or photo"
     },
@@ -1399,6 +1409,7 @@
       "mill": "at the mill",
       "oil": "from the weighing",
       "expense": "Cost for the day",
+      "income": "Income for the day",
       "people": "How many people worked",
       "note": "Text or a photo"
     },
@@ -1507,6 +1518,9 @@
       "prompt": "How much did it cost?",
       "save": "Record {{amount}} €",
       "moneyDescription": "Harvest expenses"
+    },
+    "income": {
+      "moneyDescription": "Harvest income"
     },
     "note": {
       "prompt": "Note or photo",

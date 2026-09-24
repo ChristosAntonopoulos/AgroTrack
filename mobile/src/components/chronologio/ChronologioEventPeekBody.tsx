@@ -32,6 +32,7 @@ import { athensCalendarDateKey } from '../../utils/athensDate';
 import { openHarvestCampaign } from '../../navigation/intents';
 import type { RootStackParamList } from '../../navigation/types';
 import { getFieldService } from '../../services/serviceFactory';
+import { useAuth } from '../../context/AuthContext';
 import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
@@ -55,14 +56,21 @@ const isRealMedia = (url?: string | null) => {
   return u.includes('/uploads/') || u.startsWith('file:') || u.startsWith('content:') || u.startsWith('http');
 };
 
-const Fact: React.FC<{ label: string; value?: string | null; colors: { textTertiary: string; textPrimary: string } }> = ({
-  label,
-  value,
-  colors,
-}) => {
+const Fact: React.FC<{
+  label: string;
+  value?: string | null;
+  colors: { textTertiary: string; textPrimary: string; surfaceMuted: string; borderLight?: string };
+  wide?: boolean;
+}> = ({ label, value, colors, wide }) => {
   if (!value) return null;
   return (
-    <View style={styles.fact}>
+    <View
+      style={[
+        styles.factCard,
+        wide ? styles.factWide : null,
+        { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight || colors.surfaceMuted },
+      ]}
+    >
       <Text style={[styles.factLabel, { color: colors.textTertiary }]}>{label}</Text>
       <Text style={[styles.factValue, { color: colors.textPrimary }]}>{value}</Text>
     </View>
@@ -73,6 +81,7 @@ const Fact: React.FC<{ label: string; value?: string | null; colors: { textTerti
 const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
   const { t, i18n } = useTranslation(['chronologio', 'common', 'money', 'photos', 'fields']);
   const { colors } = useTheme();
+  const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const harvestCampaign = useHarvestCampaignOptional();
   const kind = chronologioDetailKind(entry);
@@ -121,8 +130,13 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
 
   useEffect(() => {
     let cancelled = false;
+    const userId = user?.id || '';
+    if (!userId) {
+      setFields([]);
+      return;
+    }
     void getFieldService()
-      .getFields()
+      .getFields(userId, user?.role || '')
       .then((rows) => {
         if (!cancelled) setFields(rows);
       })
@@ -132,7 +146,7 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     if (!harvest || kind !== 'harvest') return;
@@ -251,11 +265,20 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
             {entry.category === 'income' ? '+' : '−'}
             {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
           </Text>
-          {expenseChip ? (
-            <Text style={{ color: colors.textSecondary, fontWeight: '600', marginTop: 4 }}>
-              {expenseChip}
-            </Text>
-          ) : null}
+          <View style={styles.chipRow}>
+            <View style={[styles.chip, { backgroundColor: colors.surface }]}>
+              <Text style={{ color: accent, fontWeight: '700', fontSize: 12 }}>
+                {presented.shortLabel}
+              </Text>
+            </View>
+            {expenseChip ? (
+              <View style={[styles.chip, { backgroundColor: colors.surface }]}>
+                <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 12 }}>
+                  {expenseChip}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       ) : null}
 
@@ -369,16 +392,53 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
 
       {kind === 'task' ? (
         <View style={styles.section}>
-          {entry.summary ? (
-            <Text style={[styles.bodyText, { color: colors.textPrimary }]}>{entry.summary}</Text>
+          <View style={styles.chipRow}>
+            {task?.status ? (
+              <View style={[styles.chip, { backgroundColor: soft }]}>
+                <Text style={{ color: accent, fontWeight: '700', fontSize: 12 }}>
+                  {t(`common:taskStatus.${String(task.status).toLowerCase()}`, {
+                    defaultValue: String(task.status),
+                  })}
+                </Text>
+              </View>
+            ) : null}
+            {task?.taskType ? (
+              <View style={[styles.chip, { backgroundColor: colors.surfaceMuted }]}>
+                <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 12 }}>
+                  {task.taskType}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {(task?.startDate || task?.endDate) ? (
+            <View style={styles.factGrid}>
+              {task.startDate ? (
+                <Fact
+                  label={t('chronologio:drawer.actualStart', { defaultValue: 'Started' })}
+                  value={new Date(task.startDate).toLocaleString(i18n.language, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    hour12: false,
+                  })}
+                  colors={colors}
+                />
+              ) : null}
+              {task.endDate ? (
+                <Fact
+                  label={t('chronologio:drawer.actualEnd', { defaultValue: 'Ended' })}
+                  value={new Date(task.endDate).toLocaleString(i18n.language, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    hour12: false,
+                  })}
+                  colors={colors}
+                />
+              ) : null}
+            </View>
           ) : null}
-          {task?.status ? (
-            <View style={[styles.chip, { backgroundColor: soft }]}>
-              <Text style={{ color: accent, fontWeight: '700', fontSize: 12 }}>
-                {t(`common:taskStatus.${String(task.status).toLowerCase()}`, {
-                  defaultValue: String(task.status),
-                })}
-              </Text>
+          {entry.summary ? (
+            <View style={[styles.noteCard, { backgroundColor: soft, borderColor: accent }]}>
+              <Text style={[styles.bodyText, { color: colors.textPrimary }]}>{entry.summary}</Text>
             </View>
           ) : null}
           {entry.amount ? (
@@ -394,16 +454,18 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
       {kind === 'observation' ? (
         <View style={styles.section}>
           {note?.pinned ? (
-            <View style={styles.pinRow}>
+            <View style={[styles.pinRow, { backgroundColor: soft }]}>
               <Ionicons name="pin" size={14} color={accent} />
               <Text style={{ color: accent, fontWeight: '700' }}>
                 {t('chronologio:pinned', { defaultValue: 'Pinned' })}
               </Text>
             </View>
           ) : null}
-          <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
-            {note?.bodyPreview || entry.summary || presented.label}
-          </Text>
+          <View style={[styles.noteCard, { backgroundColor: soft, borderColor: accent }]}>
+            <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
+              {note?.bodyPreview || entry.summary || presented.label}
+            </Text>
+          </View>
         </View>
       ) : null}
 
@@ -441,19 +503,39 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
       ) : null}
 
       <View style={styles.facts}>
-        <Fact label={t('chronologio:living.actor')} value={actor} colors={colors} />
+        {kind !== 'observation' && kind !== 'task' && kind !== 'money' ? (
+          <Fact label={t('chronologio:living.actor')} value={actor} colors={colors} />
+        ) : null}
+        {kind === 'observation' ? (
+          <>
+            <Fact label={t('chronologio:living.actor')} value={actor} colors={colors} />
+            <Fact
+              label={t('chronologio:drawer.exactTime', { defaultValue: 'Time' })}
+              value={when}
+              colors={colors}
+            />
+          </>
+        ) : null}
+        {kind === 'task' && (task?.assigneeName || actor) ? (
+          <Fact
+            label={t('chronologio:drawer.personOnce', { defaultValue: t('chronologio:living.actor') })}
+            value={task?.assigneeName || actor}
+            colors={colors}
+          />
+        ) : null}
         {kind === 'money' ? (
           <>
+            {expense?.description ? (
+              <View style={[styles.noteCard, { backgroundColor: soft, borderColor: accent, marginBottom: 4, width: '100%' }]}>
+                <Text style={[styles.bodyText, { color: colors.textPrimary }]}>{expense.description}</Text>
+              </View>
+            ) : null}
             <Fact
               label={t('chronologio:drawer.moneyCategory', { defaultValue: 'Category' })}
-              value={expenseChip || expense?.expenseCategoryLabel || expense?.expenseCategory}
+              value={expense?.expenseCategoryLabel || expense?.expenseCategory}
               colors={colors}
             />
-            <Fact
-              label={t('chronologio:drawer.quantity', { defaultValue: 'Description' })}
-              value={expense?.description}
-              colors={colors}
-            />
+            <Fact label={t('chronologio:living.actor')} value={actor} colors={colors} />
           </>
         ) : null}
         {kind === 'harvest' ? (
@@ -736,26 +818,57 @@ const styles = StyleSheet.create({
   },
   extremeFactValue: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   moneyHero: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
-  section: { gap: 8, marginBottom: 14 },
+  section: { gap: 10, marginBottom: 14 },
   sectionTitle: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
   bodyText: { fontSize: 16, lineHeight: 24 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     alignSelf: 'flex-start',
     borderRadius: radii.full,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  pinRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  noteCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  pinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    borderRadius: radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
   warningPanel: {
     borderRadius: radii.card,
     padding: 14,
     borderLeftWidth: 2,
     marginBottom: 12,
   },
-  facts: { gap: 12, marginBottom: 8 },
+  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  factCard: {
+    minWidth: '42%',
+    flexGrow: 1,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  factWide: { minWidth: '100%', flexBasis: '100%' },
   fact: { gap: 2 },
-  factLabel: { ...typography.styles.overline },
-  factValue: { fontSize: 15, fontWeight: '600' },
+  factLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  factValue: { fontSize: 15, fontWeight: '600', lineHeight: 20 },
   photo: { width: 140, height: 100, borderRadius: radii.card, marginRight: 8 },
   docLink: {
     marginTop: 10,

@@ -10,7 +10,7 @@ export type HarvestFieldStatus = 'not_started' | 'in_progress' | 'done';
 
 export type HarvestModeView = 'today' | 'fields' | 'totals' | 'log';
 
-export type HarvestCaptureKind = 'sacks' | 'mill' | 'oil' | 'people' | 'expense' | 'note';
+export type HarvestCaptureKind = 'sacks' | 'mill' | 'oil' | 'people' | 'expense' | 'income' | 'note';
 
 /** @deprecated Kept so older localStorage campaigns still parse. */
 export type HarvestDayLog = {
@@ -135,6 +135,7 @@ export type HarvestCampaign = {
   oils: HarvestOilEntry[];
   peopleLogs: HarvestPeopleEntry[];
   expenses: HarvestExpenseEntry[];
+  incomes: HarvestExpenseEntry[];
   notes: HarvestNoteEntry[];
   closedDays: string[];
 };
@@ -153,6 +154,7 @@ export const emptyCampaign = (seasonStartYear: number): HarvestCampaign => ({
   oils: [],
   peopleLogs: [],
   expenses: [],
+  incomes: [],
   notes: [],
   closedDays: [],
 });

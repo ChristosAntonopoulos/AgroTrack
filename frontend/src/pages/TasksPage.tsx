@@ -38,6 +38,8 @@ import TodoNotebook from '../components/Tasks/TodoNotebook';
 import type { NotebookMenuAction } from '../components/Tasks/TaskNotebookCard';
 import { notebookStatus, type NotebookAction } from '../utils/taskNotebook';
 import CreatedTaskBanner from '../components/Tasks/CreatedTaskBanner';
+import WorkSetupBanner from '../components/fields/WorkSetupBanner';
+import { readWorkProfileDraft } from '../utils/fieldWorkProfileDraft';
 import RescheduleTaskSheet from '../components/Tasks/RescheduleTaskSheet';
 import ScheduleGroupSheet from '../components/Tasks/ScheduleGroupSheet';
 import { formatLongTaskDate } from '../utils/taskFormDates';
@@ -85,6 +87,7 @@ const TasksPage: React.FC = () => {
   const [scheduleGroup, setScheduleGroup] = useState<ProposalTemplateGroup | null>(null);
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<'mine' | 'everyone'>('everyone');
+  const [workSetup, setWorkSetup] = useState<{ resume: boolean } | null>(null);
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
@@ -121,6 +124,34 @@ const TasksPage: React.FC = () => {
       yearFilter,
     ]
   );
+
+  useEffect(() => {
+    if (!fieldFilter) {
+      setWorkSetup(null);
+      return;
+    }
+    const dismissKey = `oleachron.workSetupBanner.dismissed.${fieldFilter}`;
+    if (localStorage.getItem(dismissKey) === '1') {
+      setWorkSetup(null);
+      return;
+    }
+    let cancelled = false;
+    void getFieldWorkService()
+      .getWorkProfile(fieldFilter)
+      .then((profile) => {
+        if (cancelled) return;
+        const resume =
+          profile?.status === 'draft' || Boolean(readWorkProfileDraft(fieldFilter)?.stepId);
+        if (profile == null || profile.status === 'draft') setWorkSetup({ resume });
+        else setWorkSetup(null);
+      })
+      .catch(() => {
+        if (!cancelled) setWorkSetup(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldFilter, refreshGeneration]);
 
   const loadData = useCallback(async () => {
     try {
@@ -609,6 +640,17 @@ const TasksPage: React.FC = () => {
         />
 
         {error && <div className="tasks-error">{error}</div>}
+
+        {fieldFilter && workSetup ? (
+          <WorkSetupBanner
+            fieldId={fieldFilter}
+            resume={workSetup.resume}
+            onDismiss={() => {
+              localStorage.setItem(`oleachron.workSetupBanner.dismissed.${fieldFilter}`, '1');
+              setWorkSetup(null);
+            }}
+          />
+        ) : null}
 
         {undoStartIds.length > 0 ? (
           <div className="tasks-undo-toast" role="status">

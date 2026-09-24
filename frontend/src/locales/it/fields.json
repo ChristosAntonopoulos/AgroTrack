@@ -687,6 +687,15 @@
       "fieldsLine": "Campi: {{fields}}",
       "noFieldsWarn": "Nessun campo selezionato — puoi aggiungerli dopo, ma i totali per campo resteranno vuoti."
     },
+    "opening": {
+      "title": "Buona raccolta",
+      "body": "È il momento di raccogliere il lavoro di un anno intero.",
+      "story": "Da oggi puoi tenerlo qui, giorno per giorno: sacchi, chili, persone, spese e olio.",
+      "promiseKeep": "La raccolta di quest’anno inizia.",
+      "promiseYours": "La sua storia resta qui.",
+      "blessing": "Buon lavoro e buon raccolto.",
+      "cta": "Iniziamo"
+    },
     "fieldLockedLabel": "Campo",
     "serverActivityHint": "Esistono già registrazioni di raccolta sui tuoi campi (ad es. in Cronologio), ma questo dispositivo non ha ancora una raccolta condivisa attiva. Avviare qui crea una stagione locale finché non c’è la sincronizzazione.",
     "historical": {
@@ -763,6 +772,7 @@
       "millShort": "Frantoio",
       "oil": "Olio",
       "expense": "Spese",
+      "income": "Entrate",
       "people": "Persone",
       "note": "Nota o foto"
     },
@@ -771,6 +781,7 @@
       "mill": "al frantoio",
       "oil": "dalla pesata",
       "expense": "Costo della giornata",
+      "income": "Entrata della giornata",
       "people": "Quante persone hanno lavorato",
       "note": "Testo o una foto"
     },
@@ -879,6 +890,9 @@
       "prompt": "Quanto è costato?",
       "save": "Registra {{amount}} €",
       "moneyDescription": "Spese di raccolta"
+    },
+    "income": {
+      "moneyDescription": "Entrata di raccolta"
     },
     "note": {
       "prompt": "Nota o foto",

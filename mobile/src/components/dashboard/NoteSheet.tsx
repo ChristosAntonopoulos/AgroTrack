@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
-  Switch,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import FieldColorMark from '../fields/FieldColorMark';
@@ -16,7 +16,8 @@ import Button from '../ui/Button';
 import { getNoteService } from '../../services/serviceFactory';
 import { Note } from '../../services/noteService';
 import { getApiErrorMessage } from '../../services/api';
-import { spacing, typography } from '../../theme';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { radii, spacing, typography } from '../../theme';
 
 type FieldOption = { id: string; name: string; color?: string | null };
 
@@ -28,15 +29,28 @@ type Props = {
   onChanged?: () => void | Promise<void>;
 };
 
+const NOTE_MAX = 4000;
+
 const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged }) => {
-  const { t } = useTranslation(['dashboard', 'common']);
-  const { colors } = useTheme();
+  const { t } = useTranslation(['dashboard', 'common', 'chronologio']);
+  const { colors, tapMin } = useTheme();
   const [body, setBody] = useState(note?.body || '');
   const [fieldId, setFieldId] = useState(note?.fieldId || '');
   const [pinned, setPinned] = useState(Boolean(note?.pinned));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    setBody(note?.body || '');
+    setFieldId(note?.fieldId || '');
+    setPinned(Boolean(note?.pinned));
+    setError(null);
+  }, [visible, note?.id, note?.body, note?.fieldId, note?.pinned]);
+
+  const accent = colors.eventObservation;
+  const accentSoft = colors.eventObservationSoft;
 
   const save = async () => {
     const trimmed = body.trim();
@@ -81,6 +95,10 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]}>
+          <View style={[styles.accentBar, { backgroundColor: accent }]} />
+          <Text style={[styles.kicker, { color: accent }]}>
+            {t('chronologio:categoryLabel.note', { defaultValue: 'Observation' })}
+          </Text>
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             {note ? t('dashboard:notes.editTitle') : t('dashboard:notes.newTitle')}
           </Text>
@@ -89,42 +107,45 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
           </Text>
 
           <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-            <Text style={[styles.label, { color: colors.textPrimary }]}>
-              {t('dashboard:notes.bodyLabel')}
-            </Text>
+            <Text style={[styles.legend, { color: accent }]}>{t('dashboard:notes.bodyLabel')}</Text>
             <TextInput
               value={body}
               onChangeText={setBody}
               multiline
-              maxLength={4000}
+              maxLength={NOTE_MAX}
               placeholder={t('dashboard:notes.placeholder')}
               placeholderTextColor={colors.textSecondary}
               style={[
                 styles.textarea,
                 {
                   color: colors.textPrimary,
-                  borderColor: colors.border,
-                  backgroundColor: colors.surfaceMuted,
+                  borderColor: accent,
+                  backgroundColor: accentSoft,
                 },
               ]}
             />
-
-            <Text style={[styles.label, { color: colors.textPrimary }]}>
-              {t('dashboard:notes.pinField')}
+            <Text style={[styles.count, { color: colors.textTertiary }]}>
+              {t('dashboard:notes.charCount', { count: body.length, max: NOTE_MAX })}
             </Text>
-            <View style={styles.chipRow}>
+
+            <Text style={[styles.legend, { color: accent }]}>{t('dashboard:notes.pinField')}</Text>
+            <Text style={[styles.hint, { color: colors.textSecondary }]}>
+              {t('dashboard:notes.fieldHint')}
+            </Text>
+            <View style={styles.fieldList}>
               <Pressable
                 onPress={() => setFieldId('')}
                 style={[
-                  styles.chip,
+                  styles.fieldRow,
                   {
-                    borderColor: !fieldId ? colors.primary : colors.border,
-                    backgroundColor: !fieldId ? colors.primary : 'transparent',
+                    minHeight: tapMin,
+                    borderColor: !fieldId ? accent : colors.border,
+                    backgroundColor: !fieldId ? accentSoft : colors.surface,
                   },
                 ]}
               >
                 <FieldColorMark hollow size={10} />
-                <Text style={{ color: !fieldId ? colors.onOlive : colors.textPrimary }}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '600', flex: 1 }}>
                   {t('dashboard:notes.noField')}
                 </Text>
               </Pressable>
@@ -135,26 +156,53 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
                     key={f.id}
                     onPress={() => setFieldId(f.id)}
                     style={[
-                      styles.chip,
+                      styles.fieldRow,
                       {
-                        borderColor: active ? colors.primary : colors.border,
-                        backgroundColor: active ? colors.primary : 'transparent',
+                        minHeight: tapMin,
+                        borderColor: active ? accent : colors.border,
+                        backgroundColor: active ? accentSoft : colors.surface,
                       },
                     ]}
                   >
                     <FieldColorMark color={f.color} fieldId={f.id} size={10} />
-                    <Text style={{ color: active ? colors.onOlive : colors.textPrimary }}>
-                      {f.name}
+                    <Text style={{ color: colors.textPrimary, fontWeight: '600', flex: 1 }}>
+                      {friendlyFieldLabel(f.name)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <View style={styles.switchRow}>
-              <Text style={{ color: colors.textPrimary, flex: 1 }}>{t('dashboard:notes.pinTop')}</Text>
-              <Switch value={pinned} onValueChange={setPinned} />
-            </View>
+            <Pressable
+              onPress={() => setPinned((v) => !v)}
+              style={[
+                styles.pinToggle,
+                {
+                  minHeight: Math.max(56, tapMin),
+                  borderColor: pinned ? accent : colors.border,
+                  backgroundColor: pinned ? accentSoft : colors.surface,
+                },
+              ]}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: pinned }}
+            >
+              <View
+                style={[
+                  styles.pinIcon,
+                  { backgroundColor: pinned ? accent : colors.surfaceMuted },
+                ]}
+              >
+                <Ionicons name="pin" size={16} color={pinned ? '#fff' : colors.textSecondary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                  {t('dashboard:notes.pinTop')}
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+                  {t('dashboard:notes.pinHint')}
+                </Text>
+              </View>
+            </Pressable>
 
             {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
           </ScrollView>
@@ -162,7 +210,7 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
           <View style={styles.footer}>
             {note ? (
               <Button
-                variant="outline"
+                variant="ghost"
                 onPress={() => void remove()}
                 disabled={deleting || saving}
                 title={t('common:delete', { defaultValue: 'Delete' })}
@@ -171,7 +219,7 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
               <View />
             )}
             <View style={styles.footerActions}>
-              <Button variant="ghost" onPress={onClose} title={t('common:cancel', { defaultValue: 'Cancel' })} />
+              <Button variant="outline" onPress={onClose} title={t('common:cancel', { defaultValue: 'Cancel' })} />
               <Button
                 onPress={() => void save()}
                 disabled={saving || !body.trim()}
@@ -192,40 +240,82 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   sheet: {
-    maxHeight: '88%',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    maxHeight: '92%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: spacing.lg,
+    overflow: 'hidden',
   },
-  title: { ...typography.styles.h5, fontSize: 18, fontWeight: '700' },
-  subtitle: { marginTop: 4, marginBottom: spacing.md, fontSize: 13 },
-  scroll: { maxHeight: 420 },
-  label: { fontWeight: '600', marginBottom: 6, marginTop: 8 },
+  accentBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+  },
+  kicker: {
+    marginTop: 6,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  title: { ...typography.styles.h5, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  subtitle: { marginTop: 4, marginBottom: spacing.md, fontSize: 13, lineHeight: 18 },
+  scroll: { maxHeight: 460 },
+  legend: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  hint: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
   textarea: {
     borderWidth: 1,
-    borderRadius: 12,
-    minHeight: 120,
-    padding: 12,
+    borderRadius: 16,
+    minHeight: 140,
+    padding: 14,
     textAlignVertical: 'top',
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 24,
   },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  chip: {
+  count: {
+    alignSelf: 'flex-end',
+    fontSize: 12,
+    marginTop: 6,
+    marginBottom: 12,
+    fontVariant: ['tabular-nums'],
+  },
+  fieldList: { gap: 8, marginBottom: 12 },
+  fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
-  switchRow: {
+  pinToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 8,
   },
-  error: { marginTop: 8, fontSize: 13 },
+  pinIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  error: { marginTop: 8, fontSize: 13, fontWeight: '600' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

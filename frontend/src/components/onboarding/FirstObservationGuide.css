@@ -3,11 +3,17 @@
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 12px 16px;
-  margin: 0 0 16px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(47, 93, 56, 0.28);
-  background: linear-gradient(135deg, rgba(47, 93, 56, 0.1), rgba(255, 253, 248, 0.95));
+  margin: 0 0 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--event-observation, var(--olive-primary, #2f5d38)) 32%, var(--border-subtle, var(--color-border)));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--event-observation, var(--olive-primary, #2f5d38)) 14%, transparent) 0%,
+      color-mix(in srgb, var(--surface-1, #fffdf8) 92%, transparent) 55%
+    );
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
 }
 
 .first-observation-guide.is-mandatory {
@@ -21,11 +27,11 @@
 .first-observation-guide-icon {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
-  background: rgba(47, 93, 56, 0.14);
-  color: #2f5d38;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--event-observation-soft, rgba(117, 93, 140, 0.16));
+  color: var(--event-observation, var(--olive-primary, #2f5d38));
   flex-shrink: 0;
 }
 
@@ -36,16 +42,18 @@
 
 .first-observation-guide-copy strong {
   display: block;
-  font-size: 0.95rem;
-  color: #1e261c;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, var(--color-text-primary));
   margin-bottom: 4px;
 }
 
 .first-observation-guide-copy p {
   margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: #3d4a38;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--text-secondary, var(--color-text-secondary));
 }
 
 .first-observation-guide-actions {
@@ -58,15 +66,16 @@
 
 .first-observation-guide-primary {
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 14px;
+  min-height: var(--tap-min, 44px);
   font-weight: 700;
   font-size: 0.875rem;
   color: #fff;
-  background: #2f5d38;
+  background: var(--event-observation, var(--olive-primary, #2f5d38));
   cursor: pointer;
 }
 
 .first-observation-guide-primary:hover {
-  background: #254a2c;
+  filter: brightness(0.94);
 }

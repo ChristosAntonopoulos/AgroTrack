@@ -1,0 +1,65 @@
+.fw-setup-banner {
+  border: 1px solid color-mix(in srgb, var(--olive-primary, var(--color-primary)) 32%, var(--border-subtle, var(--color-border)));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--olive-primary, var(--color-primary)) 12%, transparent) 0%,
+      color-mix(in srgb, var(--surface-1, var(--bg-card)) 92%, transparent) 55%
+    );
+  border-radius: 16px;
+  padding: 1rem 1.15rem;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+
+.fw-setup-banner h2 {
+  margin: 0;
+  font-size: calc(1.05rem * var(--font-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, var(--color-text-primary));
+}
+
+.fw-setup-banner p {
+  margin: 0;
+  font-size: calc(0.92rem * var(--font-scale, 1));
+  line-height: 1.45;
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
+.fw-setup-banner--quiet {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.fw-setup-banner--quiet p {
+  margin: 0;
+  font-size: calc(1rem * var(--font-scale, 1));
+  font-weight: 650;
+  color: var(--text-primary, var(--color-text-primary));
+}
+
+.fw-setup-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fw-setup-banner-actions .btn {
+  min-height: var(--tap-min, 44px);
+}
+
+@media (max-width: 640px) {
+  .fw-setup-banner-actions {
+    flex-direction: column;
+  }
+
+  .fw-setup-banner-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

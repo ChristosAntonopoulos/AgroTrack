@@ -11,6 +11,7 @@ export const HARVEST_ACTION_ICONS: Record<
   oil: 'water-outline',
   people: 'people-outline',
   expense: 'wallet-outline',
+  income: 'cash-outline',
   note: 'camera-outline',
 };
 
@@ -19,6 +20,7 @@ export const HARVEST_HOME_ACTIONS: HarvestCaptureKind[] = [
   'mill',
   'oil',
   'expense',
+  'income',
   'people',
   'note',
 ];

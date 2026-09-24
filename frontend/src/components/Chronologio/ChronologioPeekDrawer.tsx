@@ -121,7 +121,7 @@ export type ChronologioPeekTarget =
       seed?: { fieldId: string; weather: FieldWeather };
     };
 
-type FieldOption = { id: string; name: string };
+type FieldOption = { id: string; name: string; color?: string | null };
 
 type Props = {
   peek: ChronologioPeekTarget | null;
@@ -884,6 +884,7 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
       ) : null}
     </ChronologioDetailShell>
     <NoteSheet
+      key={editingNote?.id || 'note-new'}
       open={Boolean(editingNote)}
       note={editingNote || undefined}
       fields={fieldOptions}

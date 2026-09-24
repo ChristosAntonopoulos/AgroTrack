@@ -8,6 +8,7 @@ export const filterCampaignToDay = (campaign: HarvestCampaign, date: string): Ha
   oils: campaign.oils.filter((row) => row.date === date),
   peopleLogs: campaign.peopleLogs.filter((row) => row.date === date),
   expenses: campaign.expenses.filter((row) => row.date === date),
+  incomes: (campaign.incomes || []).filter((row) => row.date === date),
   notes: campaign.notes.filter((row) => row.date === date),
   closedDays: campaign.closedDays.filter((d) => d === date),
 });

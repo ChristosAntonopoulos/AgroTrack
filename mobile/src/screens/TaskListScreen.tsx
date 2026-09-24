@@ -17,6 +17,7 @@ import TaskContextBar from '../components/tasks/TaskContextBar';
 import TodoNotebook from '../components/tasks/TodoNotebook';
 import HistoryTaskView from '../components/tasks/HistoryTaskView';
 import CreatedTaskBanner from '../components/tasks/CreatedTaskBanner';
+import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import LearningPromptSheet from '../components/tasks/LearningPromptSheet';
 import ScheduleGroupSheet from '../components/tasks/ScheduleGroupSheet';
 import RescheduleTaskSheet from '../components/tasks/RescheduleTaskSheet';
@@ -30,6 +31,11 @@ import {
   getFieldWorkService,
   getPartnerService,
 } from '../services/serviceFactory';
+import {
+  dismissWorkSetupBanner,
+  isWorkSetupBannerDismissed,
+  readWorkProfileDraft,
+} from '../utils/fieldWorkProfileDraft';
 import { fieldPeopleService } from '../services/fieldPeopleService';
 import type { DismissalLearningChoice, FieldTask, TaskProposal } from '../services/fieldWorkService';
 import type { Field } from '../services/fieldService';
@@ -91,6 +97,7 @@ const TaskListScreen = () => {
   const [rescheduleTask, setRescheduleTask] = useState<FieldTask | null>(null);
   const [scheduleGroup, setScheduleGroup] = useState<ProposalTemplateGroup | null>(null);
   const [undoStartIds, setUndoStartIds] = useState<string[]>([]);
+  const [workSetup, setWorkSetup] = useState<{ resume: boolean } | null>(null);
 
   useEffect(() => {
     if (route.params?.view || route.params?.filter) {
@@ -100,6 +107,35 @@ const TaskListScreen = () => {
     if (route.params?.fieldId !== undefined) setFieldFilter(parseTaskFieldId(route.params.fieldId));
     if (route.params?.created) setCreatedId(route.params.created);
   }, [route.params, defaultYear]);
+
+  useEffect(() => {
+    if (!fieldFilter) {
+      setWorkSetup(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      if (await isWorkSetupBannerDismissed(fieldFilter)) {
+        if (!cancelled) setWorkSetup(null);
+        return;
+      }
+      try {
+        const [profile, draft] = await Promise.all([
+          getFieldWorkService().getWorkProfile(fieldFilter).catch(() => null),
+          readWorkProfileDraft(fieldFilter),
+        ]);
+        if (cancelled) return;
+        const resume = profile?.status === 'draft' || Boolean(draft?.stepId);
+        if (profile == null || profile.status === 'draft') setWorkSetup({ resume });
+        else setWorkSetup(null);
+      } catch {
+        if (!cancelled) setWorkSetup(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldFilter]);
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
@@ -583,6 +619,17 @@ const TaskListScreen = () => {
           clearFieldLabel={t('fieldWork.context.clearField')}
           clearAssigneeLabel={t('fieldWork.context.clearAssignee')}
         />
+
+        {fieldFilter && workSetup ? (
+          <WorkSetupBanner
+            fieldId={fieldFilter}
+            resume={workSetup.resume}
+            onDismiss={() => {
+              void dismissWorkSetupBanner(fieldFilter);
+              setWorkSetup(null);
+            }}
+          />
+        ) : null}
 
         {error ? (
           <View style={[styles.errorBox, { backgroundColor: colors.errorLight }]}>

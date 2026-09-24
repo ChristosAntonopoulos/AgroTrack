@@ -29,6 +29,10 @@
     "addPhoto": "Add photo",
     "saved": "Observation recorded."
   },
+  "photos": {
+    "limit": "Up to {{count}} photos",
+    "remove": "Remove photo"
+  },
   "photo": {
     "saved": "{{count}} photo(s) uploaded.",
     "harvestHint": "Photos are saved to the Photos hub for this field."

@@ -633,6 +633,15 @@
       "confirmStart": "Iniziamo oggi",
       "goToFields": "Go to fields"
     },
+    "opening": {
+      "title": "Buona raccolta",
+      "body": "È il momento di raccogliere il lavoro di un anno intero.",
+      "story": "Da oggi puoi tenerlo qui, giorno per giorno: sacchi, chili, persone, spese e olio.",
+      "promiseKeep": "La raccolta di quest’anno inizia.",
+      "promiseYours": "La sua storia resta qui.",
+      "blessing": "Buon lavoro e buon raccolto.",
+      "cta": "Iniziamo"
+    },
     "dayNav": {
       "label": "Giorno di raccolta",
       "prev": "Giorno precedente",
@@ -666,6 +675,7 @@
       "mill": "Chili dal frantoio",
       "oil": "Olio",
       "expense": "Spesa",
+      "income": "Entrate",
       "people": "Persone",
       "note": "Nota o foto"
     },
@@ -674,6 +684,7 @@
       "mill": "al frantoio",
       "oil": "dalla pesata",
       "expense": "Costo della giornata",
+      "income": "Entrata della giornata",
       "people": "Quante persone hanno lavorato",
       "note": "Testo o una foto"
     },
@@ -778,6 +789,9 @@
       "prompt": "Quanto è costato?",
       "save": "Registra {{amount}} €",
       "moneyDescription": "Spesa di raccolta"
+    },
+    "income": {
+      "moneyDescription": "Entrata di raccolta"
     },
     "note": {
       "prompt": "Nota o foto",

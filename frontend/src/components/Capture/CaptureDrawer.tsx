@@ -9,7 +9,6 @@ import {
   Mic,
   StickyNote,
   Wallet,
-  Wheat,
   X,
 } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
@@ -26,6 +25,7 @@ import { readLastMoneyFieldId } from '../../finance/lastField';
 import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
 import { taskFormPath } from '../../navigation/intents';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import PhotoCaptureForm from './PhotoCaptureForm';
 import './Capture.css';
@@ -500,7 +500,6 @@ const CaptureDrawer: React.FC<Props> = ({
   const typeCards: Array<{ type: CaptureType; icon: React.ReactNode; enabled: boolean }> = [
     { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
     { type: 'money', icon: <Wallet size={22} />, enabled: permissions.canRecordMoney },
-    { type: 'harvest', icon: <Wheat size={22} />, enabled: permissions.canRecordHarvest },
     { type: 'photo', icon: <Camera size={22} />, enabled: permissions.canRecordPhoto },
     {
       type: 'observation',
@@ -508,7 +507,6 @@ const CaptureDrawer: React.FC<Props> = ({
       enabled: permissions.canRecordObservation,
     },
     { type: 'voice', icon: <Mic size={22} />, enabled: permissions.canRecordVoice },
-    { type: 'document', icon: <FileText size={22} />, enabled: permissions.canRecordDocument },
   ];
 
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
@@ -613,7 +611,7 @@ const CaptureDrawer: React.FC<Props> = ({
                 <div className="capture-type-list">
                   <p className="capture-prompt">{t('capture:whatToRecord')}</p>
                   {typeCards
-                    .filter((c) => c.enabled && (c.type === 'work' || c.type === 'money' || c.type === 'harvest'))
+                    .filter((c) => c.enabled && (c.type === 'work' || c.type === 'money'))
                     .map((card) => (
                       <button
                         key={card.type}
@@ -630,7 +628,7 @@ const CaptureDrawer: React.FC<Props> = ({
                     ))}
                   <p className="capture-prompt capture-prompt-more">{t('capture:alsoRecord')}</p>
                   {typeCards
-                    .filter((c) => c.enabled && c.type !== 'work' && c.type !== 'money' && c.type !== 'harvest')
+                    .filter((c) => c.enabled && c.type !== 'work' && c.type !== 'money')
                     .map((card) => (
                       <button
                         key={card.type}
@@ -647,40 +645,61 @@ const CaptureDrawer: React.FC<Props> = ({
                     ))}
                 </div>
               ) : (
-                <div className="capture-form">
-                  {selectedFieldName || context.periodLabel ? (
-                    <p className="capture-context">
-                      {[
-                        selectedFieldName ? friendlyFieldLabel(selectedFieldName) : null,
-                        context.periodLabel,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
+                <div className={`capture-form${step === 'observation' ? ' capture-form--observation' : ''}`}>
+                  {context.periodLabel ? (
+                    <p className="capture-context">{context.periodLabel}</p>
                   ) : null}
-                  <label className="capture-label">
-                    {t('capture:fieldLabel')}
+
+                  <fieldset className="capture-fieldset">
+                    <legend className="capture-legend">{t('capture:fieldLabel')}</legend>
                     {fieldLocked ? (
-                      <div className="capture-field-locked">{selectedFieldName || fieldId}</div>
+                      <div className="capture-field-locked">
+                        <span
+                          className="capture-field-dot"
+                          style={{
+                            background: resolveFieldColor(
+                              fields.find((f) => f.id === fieldId)?.color,
+                              fieldId
+                            ),
+                          }}
+                          aria-hidden
+                        />
+                        {friendlyFieldLabel(selectedFieldName || fieldId)}
+                      </div>
                     ) : (
-                      <select
-                        value={fieldId}
-                        onChange={(e) => onFieldChange(e.target.value)}
+                      <div
+                        className="capture-field-chips"
+                        role="radiogroup"
                         aria-label={t('capture:fieldPrompt')}
                       >
-                        <option value="">{t('capture:fieldPrompt')}</option>
-                        {fields.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.name}
-                          </option>
-                        ))}
-                      </select>
+                        {fields.map((f) => {
+                          const selected = fieldId === f.id;
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              className={selected ? 'is-selected' : ''}
+                              onClick={() => onFieldChange(f.id)}
+                            >
+                              <span
+                                className="capture-field-dot"
+                                style={{ background: resolveFieldColor(f.color, f.id) }}
+                                aria-hidden
+                              />
+                              {friendlyFieldLabel(f.name)}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                  </label>
+                  </fieldset>
 
-                  <label className="capture-label">
+                  <label className="capture-label" htmlFor="capture-occurred-at">
                     {t('capture:dateLabel')}
                     <input
+                      id="capture-occurred-at"
                       type="datetime-local"
                       value={occurredAt}
                       onChange={(e) => {
@@ -704,10 +723,12 @@ const CaptureDrawer: React.FC<Props> = ({
                           {t('fields:harvestCampaign.note.chronologioHint')}
                         </p>
                       ) : null}
-                      <label className="capture-label">
-                        {t('capture:types.observation.title')}
+                      <label className="capture-write" htmlFor="capture-observation-body">
+                        <span className="capture-legend">{t('capture:types.observation.title')}</span>
                         <textarea
-                          rows={4}
+                          id="capture-observation-body"
+                          rows={6}
+                          maxLength={4000}
                           placeholder={t('capture:observation.placeholder')}
                           value={body}
                           onChange={(e) => {
@@ -900,12 +921,12 @@ const CaptureDrawer: React.FC<Props> = ({
                             className="capture-add-photo"
                             onClick={() => fileRef.current?.click()}
                           >
-                            <Camera size={18} />
-                            {t('capture:observation.addPhoto')}
+                            <Camera size={20} />
+                            <span>{t('capture:observation.addPhoto')}</span>
+                            <small>{t('capture:photos.limit', { count: MAX_PHOTOS })}</small>
                           </button>
                         ) : null}
                       </div>
-                      <p className="capture-hint">{t('capture:photos.limit', { count: MAX_PHOTOS })}</p>
                       <input
                         ref={fileRef}
                         type="file"

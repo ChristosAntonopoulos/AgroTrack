@@ -1,6 +1,6 @@
 import { emptyCampaign } from './types';
 import { addMillWeight, addSack } from './storage';
-import { harvestExpenseCaptureContext, harvestNoteCaptureContext, shouldMirrorHarvestExpense, shouldMirrorHarvestNote } from './harvestMoneyCapture';
+import { harvestExpenseCaptureContext, harvestIncomeCaptureContext, harvestNoteCaptureContext, shouldMirrorHarvestExpense, shouldMirrorHarvestIncome, shouldMirrorHarvestNote } from './harvestMoneyCapture';
 
 describe('harvest money capture', () => {
   it('opens the money expense form prefilled from the live harvest', () => {
@@ -68,6 +68,33 @@ describe('harvest money capture', () => {
         harvestCampaignLink: true,
       })
     ).toBe(false);
+  });
+
+  it('opens the money income form for harvest income', () => {
+    let campaign = emptyCampaign(2026);
+    campaign = { ...campaign, fieldOrder: ['north'] };
+    expect(
+      harvestIncomeCaptureContext({
+        campaign,
+        today: '2026-11-12',
+        description: 'Έσοδο συγκομιδής',
+      })
+    ).toMatchObject({
+      preferredType: 'income',
+      fieldId: 'north',
+      category: 'olive_oil_sale',
+      description: 'Έσοδο συγκομιδής',
+      harvestCampaignLink: true,
+    });
+    expect(
+      shouldMirrorHarvestIncome({
+        type: 'income',
+        fieldId: 'north',
+        sourceId: 'tx-2',
+        amount: 120,
+        harvestCampaignLink: true,
+      })
+    ).toBe(true);
   });
 
   it('opens observation capture for a harvest note with session context', () => {

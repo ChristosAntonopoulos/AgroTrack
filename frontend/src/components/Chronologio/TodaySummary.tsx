@@ -50,10 +50,6 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, weatherScopeNote, onOpe
       else if (item.fieldId) navigate(fieldWeatherPath(item.fieldId));
       return;
     }
-    if (item.action === 'harvest_evening') {
-      navigate(harvestPath({ evening: true }));
-      return;
-    }
     if (item.action === 'harvest_add') {
       navigate(harvestPath({ add: true }));
       return;
@@ -98,9 +94,7 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, weatherScopeNote, onOpe
                 ? t('chronologio:living.openTask')
                 : today.attention.action === 'weather'
                   ? t('chronologio:today.seeConditions')
-                  : today.attention.action === 'harvest_evening'
-                    ? t('fields:harvestCampaign.today.close')
-                    : today.attention.action === 'harvest_add'
+                  : today.attention.action === 'harvest_add'
                       ? t('fields:harvestCampaign.today.add')
                       : t('chronologio:today.scheduleCheck')}
             </button>

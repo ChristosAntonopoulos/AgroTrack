@@ -30,6 +30,31 @@ export const shouldMirrorHarvestExpense = (detail: CaptureSavedDetail): boolean 
   Number.isFinite(detail.amount) &&
   detail.amount > 0;
 
+export const harvestIncomeCaptureContext = (input: {
+  campaign: HarvestCampaign;
+  fieldId?: string;
+  today: string;
+  description: string;
+}): CaptureContext => ({
+  preferredType: 'income',
+  fieldId:
+    input.fieldId ||
+    (input.campaign.fieldOrder.length === 1 ? input.campaign.fieldOrder[0] : undefined),
+  occurredAt: `${input.today}T12:00:00`,
+  harvestId: harvestLinkedRecordId(input.campaign),
+  category: 'olive_oil_sale',
+  description: input.description,
+  harvestCampaignLink: true,
+});
+
+export const shouldMirrorHarvestIncome = (detail: CaptureSavedDetail): boolean =>
+  detail.type === 'income' &&
+  detail.harvestCampaignLink === true &&
+  Boolean(detail.sourceId) &&
+  typeof detail.amount === 'number' &&
+  Number.isFinite(detail.amount) &&
+  detail.amount > 0;
+
 export const harvestNoteCaptureContext = (input: {
   campaign: HarvestCampaign;
   fieldId?: string;

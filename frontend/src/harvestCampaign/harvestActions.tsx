@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Droplets,
   Package,
   Scale,
@@ -15,6 +16,7 @@ export const HARVEST_ACTION_ICONS: Record<HarvestCaptureKind, LucideIcon> = {
   oil: Droplets,
   people: Users,
   expense: Wallet,
+  income: Banknote,
   note: StickyNote,
 };
 
@@ -23,6 +25,7 @@ export const HARVEST_HOME_ACTIONS: HarvestCaptureKind[] = [
   'mill',
   'oil',
   'expense',
+  'income',
   'people',
   'note',
 ];

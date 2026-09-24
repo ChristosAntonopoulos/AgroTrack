@@ -45,6 +45,6 @@ describe('getHarvestCapabilities', () => {
     expect(caps.canAddSacks).toBe(true);
     expect(caps.canAddExpense).toBe(true);
     expect(caps.canMutateDay).toBe(true);
-    expect(caps.captureKinds).toEqual(['sacks', 'mill', 'oil', 'people', 'expense', 'note']);
+    expect(caps.captureKinds).toEqual(['sacks', 'mill', 'oil', 'people', 'expense', 'income', 'note']);
   });
 });

@@ -38,10 +38,18 @@ import { useAuth } from '../context/AuthContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { spacing, radii } from '../theme';
 import { RootStackParamList } from '../navigation/types';
-import { getChronologioService, getFieldService } from '../services/serviceFactory';
+import { getChronologioService, getFieldService, getFieldWorkService } from '../services/serviceFactory';
+import WorkSetupBanner from '../components/fields/WorkSetupBanner';
+import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
+import {
+  dismissWorkSetupBanner,
+  isWorkSetupBannerDismissed,
+  readWorkProfileDraft,
+} from '../utils/fieldWorkProfileDraft';
 import type {
   ChronologioAxis,
   ChronologioEntry,
@@ -109,6 +117,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const { tapMin } = usePreferences();
   const { user } = useAuth();
   const capture = useCaptureOptional();
+  const activation = useOwnerActivationOptional();
   const harvestCampaign = useHarvestCampaignOptional();
   const navigation = useNavigation<Nav>();
   const route = useRoute();
@@ -143,6 +152,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const [loadingMore, setLoadingMore] = useState(false);
   const [peek, setPeek] = useState<ChronologioPeekTarget | null>(null);
   const [peekMonthsCache, setPeekMonthsCache] = useState<ChronologioMonthSummary[]>([]);
+  const [workSetup, setWorkSetup] = useState<{ resume: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [booted, setBooted] = useState(false);
   const bootedRef = useRef(false);
@@ -180,6 +190,36 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   }, [user?.id, user?.role]);
 
   const scopedFieldId = fieldMode ? fieldId : filterFieldId || undefined;
+
+  useEffect(() => {
+    if (!scopedFieldId) {
+      setWorkSetup(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      if (await isWorkSetupBannerDismissed(scopedFieldId)) {
+        if (!cancelled) setWorkSetup(null);
+        return;
+      }
+      try {
+        const [profile, draft] = await Promise.all([
+          getFieldWorkService().getWorkProfile(scopedFieldId).catch(() => null),
+          readWorkProfileDraft(scopedFieldId),
+        ]);
+        if (cancelled) return;
+        const resume = profile?.status === 'draft' || Boolean(draft?.stepId);
+        if (profile == null || profile.status === 'draft') setWorkSetup({ resume });
+        else setWorkSetup(null);
+      } catch {
+        if (!cancelled) setWorkSetup(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [scopedFieldId]);
+
   const filtersDirty =
     filterCategory !== 'all' || Boolean(lifecycleYear) || (!fieldMode && Boolean(filterFieldId));
 
@@ -911,6 +951,27 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         }))}
         onChange={(z) => setZoomAndPage(z)}
       />
+
+      {scopedFieldId &&
+      activation?.awaitingFirstObservation &&
+      !activation.completion.firstObservation ? (
+        <View style={{ paddingHorizontal: spacing.base }}>
+          <FirstObservationGuide fieldId={scopedFieldId} />
+        </View>
+      ) : null}
+
+      {scopedFieldId && workSetup ? (
+        <View style={{ paddingHorizontal: spacing.base }}>
+          <WorkSetupBanner
+            fieldId={scopedFieldId}
+            resume={workSetup.resume}
+            onDismiss={() => {
+              void dismissWorkSetupBanner(scopedFieldId);
+              setWorkSetup(null);
+            }}
+          />
+        </View>
+      ) : null}
 
       {zoom !== 'years' ? (
         <ChronologioDateRail

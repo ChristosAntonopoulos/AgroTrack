@@ -72,7 +72,6 @@ import SaleBuyerPicker from '../money/SaleBuyerPicker';
 import AddMoneyFooter from '../money/AddMoneyFooter';
 import '../money/Money.css';
 
-const MAX_PHOTOS = 5;
 type PhotoItem = { id: string; file: File; preview: string; url?: string };
 
 type Props = {
@@ -135,7 +134,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const { dateFormat, formatDate } = useLocaleFormatters();
   const harvestCampaign = useHarvestCampaignOptional();
   const amountRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const draftAppliedRef = useRef(false);
   const skipContextHydrationRef = useRef(false);
 
@@ -215,7 +213,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
     () => activeDraft?.resultYear ?? yearFromIsoDate(todayIsoDate(context.occurredAt))
   );
   const [resultYearTouched, setResultYearTouched] = useState(() => Boolean(activeDraft));
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photos] = useState<PhotoItem[]>([]);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -493,21 +491,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const goBack = () => {
     const prev = steps[stepIndex - 1];
     if (prev) goTo(prev);
-  };
-
-  const addPhotos = (files: FileList | null) => {
-    if (!files?.length) return;
-    const remaining = MAX_PHOTOS - photos.length;
-    const next: PhotoItem[] = [];
-    for (const file of Array.from(files).slice(0, remaining)) {
-      if (!file.type.startsWith('image/')) continue;
-      next.push({
-        id: `${file.name}-${file.size}-${file.lastModified}`,
-        file,
-        preview: URL.createObjectURL(file),
-      });
-    }
-    if (next.length) setPhotos((prev) => [...prev, ...next]);
   };
 
   const save = async (saveAsDraft: boolean): Promise<boolean> => {
@@ -1136,10 +1119,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
               <TransactionAdvancedDetails
                 open={moreOpen}
                 onToggle={() => setMoreOpen((open) => !open)}
-                paymentMethod={paymentMethod}
-                onPaymentMethod={setPaymentMethod}
-                counterpartyName={counterpartyName}
-                onCounterparty={setCounterpartyName}
                 notes={notes}
                 onNotes={setNotes}
                 resultYear={resultYear}
@@ -1148,15 +1127,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   setResultYearTouched(true);
                 }}
                 hideResultYear={oilPath}
-                hideCounterparty={oilPath}
-                photos={photos}
-                onAddPhotos={addPhotos}
-                onRemovePhoto={(id) => {
-                  const photo = photos.find((item) => item.id === id);
-                  if (photo) URL.revokeObjectURL(photo.preview);
-                  setPhotos((prev) => prev.filter((item) => item.id !== id));
-                }}
-                fileRef={fileRef}
               >
                 {oilPath ? null : isOil ? (
                   <label className="money-form-label">

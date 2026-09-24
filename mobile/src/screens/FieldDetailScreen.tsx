@@ -35,6 +35,7 @@ import { useCaptureOptional } from '../context/CaptureContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
 import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
+import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
@@ -226,11 +227,8 @@ const FieldDetailScreen = () => {
   useEffect(() => {
     if (focus !== 'harvest' && focus !== 'harvest-final') return;
     navigation.setParams({ focus: undefined });
-    capture?.openCapture({
-      preferredType: 'harvest',
-      fieldId,
-    });
-  }, [capture, fieldId, focus, navigation]);
+    openHarvestCampaign(navigation, { fieldId });
+  }, [fieldId, focus, navigation]);
 
   useEffect(() => {
     if (!field) {
@@ -463,38 +461,14 @@ const FieldDetailScreen = () => {
       {tab === 'overview' ? (
         <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
           {showWorkSetupBanner ? (
-            <View
-              style={[
-                styles.workBanner,
-                { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder },
-              ]}
-              accessibilityRole="header"
-            >
-              <Text style={[styles.workBannerTitle, { color: colors.textPrimary }]}>
-                {t('tasks:fieldWork.onboarding.banner.title')}
-              </Text>
-              <Text style={[styles.workBannerBody, { color: colors.textSecondary }]}>
-                {t('tasks:fieldWork.onboarding.banner.body')}
-              </Text>
-              <Button
-                title={
-                  hasLocalDraft || workProfile?.status === 'draft'
-                    ? t('tasks:fieldWork.onboarding.banner.resume')
-                    : t('tasks:fieldWork.onboarding.banner.start')
-                }
-                onPress={() => navigation.navigate('FieldWorkSetup', { fieldId: field.id })}
-                fullWidth
-              />
-              <Button
-                title={t('tasks:fieldWork.onboarding.banner.later')}
-                variant="outline"
-                fullWidth
-                onPress={() => {
-                  void dismissWorkSetupBanner(field.id);
-                  setBannerDismissed(true);
-                }}
-              />
-            </View>
+            <WorkSetupBanner
+              fieldId={field.id}
+              resume={hasLocalDraft || workProfile?.status === 'draft'}
+              onDismiss={() => {
+                void dismissWorkSetupBanner(field.id);
+                setBannerDismissed(true);
+              }}
+            />
           ) : null}
           <GroveEnrichmentCards field={field} canEdit={gates.canOwn} />
           {attention ? (
@@ -566,9 +540,7 @@ const FieldDetailScreen = () => {
               records={harvestRecords}
               canAdd={field.status !== 'Draft' && gates.canCapture}
               canVoid={gates.canOwn}
-              onLogHarvest={() =>
-                capture?.openCapture({ preferredType: 'harvest', fieldId: field.id })
-              }
+              onLogHarvest={() => openHarvestCampaign(navigation, { fieldId: field.id })}
               onOpenCampaign={() => openHarvestCampaign(navigation)}
               onVoid={async (id) => {
                 await getHarvestService().void(id);

@@ -8,7 +8,7 @@ describe('preferredCaptureTypeFromCategory', () => {
     expect(preferredCaptureTypeFromCategory('work')).toBe('work');
     expect(preferredCaptureTypeFromCategory('observation')).toBe('observation');
     expect(preferredCaptureTypeFromCategory('money')).toBe('money');
-    expect(preferredCaptureTypeFromCategory('harvest')).toBe('harvest');
+    expect(preferredCaptureTypeFromCategory('harvest')).toBeUndefined();
   });
 
   it('maps legacy API category aliases', () => {
@@ -21,6 +21,7 @@ describe('preferredCaptureTypeFromCategory', () => {
   it('returns undefined for non-capturable filters', () => {
     expect(preferredCaptureTypeFromCategory('weather')).toBeUndefined();
     expect(preferredCaptureTypeFromCategory('all')).toBeUndefined();
+    expect(preferredCaptureTypeFromCategory('harvest')).toBeUndefined();
   });
 });
 

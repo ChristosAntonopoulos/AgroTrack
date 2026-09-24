@@ -25,7 +25,8 @@ export const preferredCaptureTypeFromCategory = (
     case 'income':
       return 'money';
     case 'harvest':
-      return 'harvest';
+      // Harvest is recorded in the harvest campaign, not generic capture.
+      return undefined;
     default:
       return undefined;
   }

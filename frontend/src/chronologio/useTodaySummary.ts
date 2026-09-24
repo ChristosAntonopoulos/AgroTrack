@@ -15,9 +15,7 @@ import {
   type BriefProposal,
 } from '../today/buildDailyBrief';
 import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
-import { harvestEveningNudge } from '../harvestCampaign/eveningNudge';
 import { getDismissedProposalIds } from '../today/dismissStore';
-import { athensCalendarDateKey } from '../utils/athensDate';
 import { isActiveTask, isTaskOverdue } from '../utils/taskListUtils';
 import { normalizeTaskStatus } from '../utils/categoryNormalize';
 
@@ -221,22 +219,6 @@ export const useTodaySummary = (input: {
       rainConflictCount,
     });
     if (base.kind === 'warning' || !harvest?.isLive) return base;
-    const today = athensCalendarDateKey(new Date());
-    const nudge = harvestEveningNudge(harvest.campaign, today);
-    if (nudge) {
-      return {
-        kind: 'proposal' as const,
-        titleKey:
-          nudge.kind === 'yesterday'
-            ? 'fields:harvestCampaign.nudge.yesterdayTitle'
-            : 'fields:harvestCampaign.nudge.todayTitle',
-        reasonKey:
-          nudge.kind === 'yesterday'
-            ? 'fields:harvestCampaign.nudge.yesterdayReason'
-            : 'fields:harvestCampaign.nudge.todayReason',
-        action: 'harvest_evening' as const,
-      };
-    }
     return {
       kind: 'proposal' as const,
       titleKey: 'fields:harvestCampaign.status.active',

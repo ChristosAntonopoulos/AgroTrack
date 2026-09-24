@@ -11,9 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions } from '../../capture/types';
-import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/photos';
+import { uploadCapturePhotoUris } from '../../capture/photos';
 import { useTheme } from '../../context/ThemeContext';
-import { useOfflineMode } from '../../context/OfflineContext';
 import Button from '../ui/Button';
 import FormDateField from '../forms/FormDateField';
 import type { Field } from '../../services/fieldService';
@@ -30,8 +29,6 @@ import {
   financialCategoryLabel,
   financialTypeHelp,
   financialTypeLabel,
-  paymentMethodLabel,
-  PAYMENT_METHODS,
   resultYearHelp,
   unassignedFieldLabel,
   type FinancialCategory,
@@ -82,8 +79,6 @@ import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { spacing, typography } from '../../theme';
 
 const LARGE_AMOUNT = 2000;
-const MAX_PHOTOS = 5;
-
 type Props = {
   context: CaptureContext;
   fields: Field[];
@@ -128,7 +123,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const { t, i18n } = useTranslation(['capture', 'chronologio', 'common']);
   const language = i18n.language || 'el';
   const { colors, tapMin } = useTheme();
-  const { isOnline } = useOfflineMode();
   const harvestCampaign = useHarvestCampaignOptional();
 
   const preferredKind: FinancialTransactionType | null =
@@ -154,7 +148,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const [notes, setNotes] = useState('');
   const [resultYear, setResultYear] = useState(yearFromDate(todayIsoDate(context.occurredAt)));
   const [resultYearTouched, setResultYearTouched] = useState(false);
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos] = useState<string[]>([]);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -333,18 +327,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
     setKind(next);
     applyCategory(defaultCategoryForType(next));
     setStep('category');
-  };
-
-  const addPhotos = async (camera: boolean) => {
-    const uris = await pickCapturePhotoUris({
-      camera,
-      remainingSlots: MAX_PHOTOS - photos.length,
-      isOnline,
-      offlineMessage: t('common:offline.photosRequireConnection', {
-        defaultValue: 'Photos need a connection.',
-      }),
-    });
-    if (uris.length) setPhotos((prev) => [...prev, ...uris]);
   };
 
   const qtyValue = parseDecimal(quantity);
@@ -1211,29 +1193,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   </Pressable>
                 ))
               : null}
-            {PAYMENT_METHODS.map((method) => (
-              <Pressable
-                key={method}
-                style={[
-                  styles.chip,
-                  {
-                    borderColor: paymentMethod === method ? colors.primary : colors.border,
-                    minHeight: tapMin,
-                  },
-                ]}
-                onPress={() => setPaymentMethod(method)}
-              >
-                <Text style={{ color: colors.textPrimary }}>{paymentMethodLabel(method, language)}</Text>
-              </Pressable>
-            ))}
-            <TextInput
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-              value={counterpartyName}
-              onChangeText={setCounterpartyName}
-              placeholder={t('capture:money.counterparty')}
-              placeholderTextColor={colors.textSecondary}
-            />
-            <Button title={t('capture:money.addReceipt')} onPress={() => void addPhotos(true)} variant="outline" size="large" />
             <TextInput
               style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]}
               value={notes}

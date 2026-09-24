@@ -26,6 +26,7 @@ export type DayActivityEditTarget =
   | { kind: 'oil'; entry: HarvestOilEntry }
   | { kind: 'people'; entry: HarvestPeopleEntry }
   | { kind: 'expense'; entry: HarvestExpenseEntry }
+  | { kind: 'income'; entry: HarvestExpenseEntry }
   | { kind: 'note'; entry: HarvestNoteEntry };
 
 function oilStorageBits(
@@ -220,8 +221,9 @@ export const HarvestDayActivity: React.FC<Props> = ({
     const oils = campaign.oils.filter((row) => row.date === date);
     const people = campaign.peopleLogs.filter((row) => row.date === date);
     const expenses = campaign.expenses.filter((row) => row.date === date);
+    const incomes = campaign.incomes.filter((row) => row.date === date);
     const notes = campaign.notes.filter((row) => row.date === date);
-    return { sacks, mills, oils, people, expenses, notes };
+    return { sacks, mills, oils, people, expenses, incomes, notes };
   }, [campaign, date]);
 
   const groups = useMemo(() => {
@@ -360,6 +362,21 @@ export const HarvestDayActivity: React.FC<Props> = ({
       };
     });
 
+    const incomeRows: RowModel[] = day.incomes.map((entry) => {
+      const context: string[] = [];
+      pushTime(context, entry.createdAt);
+      if (entry.note) context.push(entry.note);
+      else context.push(t('harvestCampaign.income.moneyDescription'));
+      return {
+        id: entry.id,
+        target: { kind: 'income' as const, entry },
+        title: `${entry.amountEur} €`,
+        context,
+        canEdit: false,
+        moneyTransactionId: entry.transactionId,
+      };
+    });
+
     const noteRows: RowModel[] = day.notes.map((entry) => {
       const context: string[] = [];
       pushTime(context, entry.createdAt);
@@ -390,6 +407,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
       { key: 'oil', label: t('harvestCampaign.actions.oil'), rows: oilRows },
       { key: 'people', label: t('harvestCampaign.actions.people'), rows: peopleRows },
       { key: 'expense', label: t('harvestCampaign.actions.expense'), rows: expenseRows },
+      { key: 'income', label: t('harvestCampaign.actions.income'), rows: incomeRows },
       { key: 'note', label: t('harvestCampaign.actions.note'), rows: noteRows },
     ].filter((group) => group.rows.length > 0);
   }, [day, formatDateTime, labelOf, locale, t]);

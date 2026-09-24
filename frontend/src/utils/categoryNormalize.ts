@@ -27,6 +27,8 @@ const ALIASES: Record<string, TaskCategoryId> = {
   συγκομιδή: 'harvest',
   τρυγος: 'harvest',
   τρύγος: 'harvest',
+  ραβδος: 'harvest',
+  ράβδος: 'harvest',
   pruning: 'pruning',
   κλαδεμα: 'pruning',
   κλάδεμα: 'pruning',

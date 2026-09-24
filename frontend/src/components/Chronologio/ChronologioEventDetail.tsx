@@ -34,7 +34,7 @@ import {
   formatExtremeDateRange,
 } from '../../chronologio/weatherExtreme';
 import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
-import { taskStatusI18nKey } from '../../utils/categoryNormalize';
+import { normalizeTaskStatus, taskStatusI18nKey } from '../../utils/categoryNormalize';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { financialStatusLabel, financialTypeLabel } from '../../finance/display';
@@ -75,10 +75,14 @@ const formatWhen = (value?: string | null, language = 'el') => {
   return `${d.toLocaleDateString(language, { dateStyle: 'long' })}${clock}`;
 };
 
-const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
+const Fact: React.FC<{ label: string; wide?: boolean; children?: React.ReactNode }> = ({
+  label,
+  wide,
+  children,
+}) => {
   if (children == null || children === false || children === '') return null;
   return (
-    <div>
+    <div className={wide ? 'chrono-drawer-fact is-wide' : 'chrono-drawer-fact'}>
       <dt>{label}</dt>
       <dd>{children}</dd>
     </div>
@@ -289,8 +293,8 @@ const ChronologioEventDetail: React.FC<Props> = ({ entry, numberLocale, dayWeath
         <Fact label={t('drawer.source')}>{entry.isSystemGenerated ? 'OLEACHRON' : actor}</Fact>
         <Fact label={t('drawer.issued')}>{formatWhen(entry.occurredAt, i18n.language)}</Fact>
         <Fact label={t('living.field')}>{entry.field?.name}</Fact>
-        <Fact label={t('drawer.why')}>{intel?.message || entry.summary}</Fact>
-        <Fact label={t('drawer.response')}>{intel?.recommendation}</Fact>
+        <Fact wide label={t('drawer.why')}>{intel?.message || entry.summary}</Fact>
+        <Fact wide label={t('drawer.response')}>{intel?.recommendation}</Fact>
         {relatedTaskId ? (
           <Fact label={t('drawer.relatedTask')}>
             <button
@@ -321,11 +325,34 @@ const ChronologioEventDetail: React.FC<Props> = ({ entry, numberLocale, dayWeath
         <Fact label={t('drawer.next')}>
           {presentLifecycleStage(lifecycle?.newStage, i18n.language) || lifecycle?.newYear}
         </Fact>
-        <Fact label={t('common:description')}>{lifecycle?.message || entry.details.activity?.message}</Fact>
+        <Fact wide label={t('common:description')}>{lifecycle?.message || entry.details.activity?.message}</Fact>
       </dl>
       <MediaGallery entry={entry} title={t('living.photos')} />
     </>
   );
+};
+
+const checklistItemLabel = (
+  item: { label: string; greekLabel: string; englishLabel: string },
+  language: string
+) => {
+  if (language.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
+  return item.englishLabel || item.label;
+};
+
+const checklistItemAnswer = (
+  item: { textValue?: string; numberValue?: number; boolValue?: boolean; unit?: string },
+  yes: string,
+  no: string
+) => {
+  const text = item.textValue?.trim();
+  if (text) return text;
+  if (item.numberValue != null) {
+    return item.unit ? `${item.numberValue} ${item.unit}` : String(item.numberValue);
+  }
+  if (item.boolValue === true) return yes;
+  if (item.boolValue === false) return no;
+  return '';
 };
 
 const TaskDetail: React.FC<{
@@ -384,38 +411,59 @@ const TaskDetail: React.FC<{
     };
   }, [entry, full?.attachmentIds]);
 
+  const typeLabel = taskDisplayTitle(
+    task?.taskType || full?.templateCode || entry.title,
+    full?.templateCode || task?.taskType,
+    i18n.language
+  );
+  const statusLabel = task?.status ? t(taskStatusI18nKey(task.status)) : full?.statusLabel;
+  const statusSlug = normalizeTaskStatus(task?.status || full?.status) || 'pending';
+  const started = formatWhen(task?.startDate || full?.startedAt || full?.plannedStart, i18n.language);
+  const ended = formatWhen(task?.endDate || full?.updatedAt, i18n.language);
+  const notes = (full?.notes || entry.summary || '').trim();
+  const title = (entry.title || '').trim();
+  const showNotes = Boolean(notes) && notes !== title && notes !== typeLabel;
+  const assignee = (task?.assigneeName || '').trim();
+  const completedBy = (actor || '').trim();
+  const samePerson =
+    assignee &&
+    completedBy &&
+    assignee.localeCompare(completedBy, undefined, { sensitivity: 'accent' }) === 0;
+  const weatherDuring = weatherView.missing
+    ? t('today.weatherMissing')
+    : [weatherView.tempLabel, rainLabel].filter(Boolean).join(' · ');
+
   return (
-    <>
-      <dl className="chrono-drawer-facts">
-        <Fact label={t('drawer.taskName')}>{entry.title}</Fact>
-        <Fact label={t('drawer.taskCategory')}>
-          {taskDisplayTitle(
-            task?.taskType || full?.templateCode || entry.title,
-            full?.templateCode || task?.taskType,
-            i18n.language
-          )}
-        </Fact>
-        <Fact label={t('drawer.actualStart')}>
-          {formatWhen(task?.startDate || full?.startedAt || full?.plannedStart, i18n.language)}
-        </Fact>
-        <Fact label={t('drawer.actualEnd')}>
-          {formatWhen(task?.endDate || full?.updatedAt, i18n.language)}
-        </Fact>
-        <Fact label={t('common:status')}>
-          {task?.status ? t(taskStatusI18nKey(task.status)) : full?.statusLabel}
-        </Fact>
-        <Fact label={t('living.field')}>{entry.field?.name}</Fact>
-        {(() => {
-          const assignee = (task?.assigneeName || '').trim();
-          const completedBy = (actor || '').trim();
-          const same =
-            assignee &&
-            completedBy &&
-            assignee.localeCompare(completedBy, undefined, { sensitivity: 'accent' }) === 0;
-          if (same) {
-            return <Fact label={t('drawer.personOnce', { defaultValue: t('drawer.people') })}>{assignee}</Fact>;
-          }
-          return (
+    <div className="chrono-task">
+      <div className="chrono-task-head">
+        {statusLabel ? (
+          <span className={`chrono-task-status is-${statusSlug || 'pending'}`}>{statusLabel}</span>
+        ) : null}
+        {typeLabel && typeLabel !== title ? <span className="chrono-task-type">{typeLabel}</span> : null}
+      </div>
+
+      {started || ended ? (
+        <div className="chrono-task-span">
+          {started ? (
+            <div>
+              <span>{t('drawer.actualStart')}</span>
+              <strong>{started}</strong>
+            </div>
+          ) : null}
+          {ended ? (
+            <div>
+              <span>{t('drawer.actualEnd')}</span>
+              <strong>{ended}</strong>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {(samePerson || assignee || completedBy || entry.amount) ? (
+        <dl className="chrono-drawer-facts">
+          {samePerson ? (
+            <Fact label={t('drawer.personOnce', { defaultValue: t('drawer.people') })}>{assignee}</Fact>
+          ) : (
             <>
               {assignee ? (
                 <Fact label={t('drawer.assignedTo', { defaultValue: 'Assigned to' })}>{assignee}</Fact>
@@ -424,37 +472,49 @@ const TaskDetail: React.FC<{
                 <Fact label={t('drawer.completedBy', { defaultValue: 'Completed by' })}>{completedBy}</Fact>
               ) : null}
             </>
-          );
-        })()}
-        <Fact label={t('common:description')}>{full?.notes || entry.summary}</Fact>
-        <Fact label={t('drawer.correctRecordHintLabel')}>
-          {t('drawer.correctRecordHint')}
-        </Fact>
-        {entry.amount ? (
-          <Fact label={t('drawer.cost')}>
-            {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
-          </Fact>
-        ) : null}
-        <Fact label={t('drawer.weatherDuring')}>
-          {weatherView.missing
-            ? t('today.weatherMissing')
-            : [weatherView.tempLabel, rainLabel].filter(Boolean).join(' · ')}
-        </Fact>
-        <Fact label={t('drawer.weatherAfter')}>{full?.weatherSuitabilityLabel}</Fact>
-      </dl>
+          )}
+          {entry.amount ? (
+            <Fact label={t('drawer.cost')}>
+              {formatChronologioMoney(entry.amount.value, entry.amount.currency, numberLocale)}
+            </Fact>
+          ) : null}
+        </dl>
+      ) : null}
+
+      {showNotes ? <p className="chrono-drawer-notes">{notes}</p> : null}
+
       {checklist.length ? (
-        <section className="chrono-drawer-section">
+        <section className="chrono-task-checks">
           <h3>{t('drawer.checklist')}</h3>
-          <ul className="chrono-drawer-checklist">
-            {checklist.map((item) => (
-              <li key={item.key}>
-                {i18n.language.startsWith('el') ? item.greekLabel || item.label : item.englishLabel || item.label}
-                {item.textValue ? ` · ${item.textValue}` : ''}
-              </li>
-            ))}
+          <ul>
+            {checklist.map((item) => {
+              const answer = checklistItemAnswer(item, t('common:yes'), t('common:no'));
+              return (
+                <li key={item.key}>
+                  <span>{checklistItemLabel(item, i18n.language)}</span>
+                  {answer ? <strong>{answer}</strong> : null}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
+
+      <div className="chrono-task-weather">
+        <div>
+          <span>{t('drawer.weatherDuring')}</span>
+          <strong>{weatherDuring}</strong>
+        </div>
+        {full?.weatherSuitabilityLabel ? (
+          <div>
+            <span>{t('drawer.weatherAfter')}</span>
+            <strong>{full.weatherSuitabilityLabel}</strong>
+          </div>
+        ) : null}
+      </div>
+
+      <p className="chrono-task-hint">{t('drawer.correctRecordHint')}</p>
+
       <MediaGallery entry={mediaEntry} title={t('living.photos')} />
       {followUpTaskId ? (
         <Button
@@ -466,7 +526,7 @@ const TaskDetail: React.FC<{
           {t('drawer.relatedTask')}
         </Button>
       ) : null}
-    </>
+    </div>
   );
 };
 
@@ -495,6 +555,10 @@ const ObservationDetail: React.FC<{ entry: ChronologioEntry; actor: string }> = 
   }, [entry.fieldId, entry.sourceId, entry.sourceType, noteMeta?.noteId]);
 
   const body = note?.body || noteMeta?.bodyPreview || entry.summary || '';
+  const title = (entry.title || '').trim();
+  const text = body.trim();
+  const showBody = Boolean(text) && text !== title;
+  const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
   const mediaEntry = useMemo(() => {
     if ((entry.media || []).length > 0) return entry;
     const urls = note?.mediaUrls || [];
@@ -511,15 +575,23 @@ const ObservationDetail: React.FC<{ entry: ChronologioEntry; actor: string }> = 
   }, [entry, note?.mediaUrls]);
 
   return (
-    <>
-      {body ? <p className="chrono-drawer-notes">{body}</p> : null}
+    <div className="chrono-observation">
+      {showBody ? <p className="chrono-drawer-notes">{text}</p> : null}
+      {note?.pinned ? <p className="chrono-observation-pin">{t('drawer.pinned')}</p> : null}
       <dl className="chrono-drawer-facts">
-        <Fact label={t('living.field')}>{entry.field?.name}</Fact>
+        <Fact label={t('living.field')}>
+          {entry.field?.name ? (
+            <span className="chrono-drawer-field-inline">
+              <span className="chrono-drawer-field-dot" style={{ background: fieldAccent }} aria-hidden />
+              {friendlyFieldLabel(entry.field.name)}
+            </span>
+          ) : null}
+        </Fact>
         <Fact label={t('drawer.recordedBy', { defaultValue: 'Recorded by' })}>{actor}</Fact>
         <Fact label={t('drawer.exactTime')}>{formatWhen(entry.occurredAt, i18n.language)}</Fact>
       </dl>
       <MediaGallery entry={mediaEntry} title={t('living.photos')} />
-    </>
+    </div>
   );
 };
 
@@ -551,49 +623,71 @@ const MoneyDetail: React.FC<{
     };
   }, [entry.sourceId, expense?.expenseId]);
 
+  const isIncome = entry.category === 'income';
   const typeLabel =
-    tx?.typeLabel ||
-    financialTypeLabel(entry.category === 'income' ? 'income' : 'expense', i18n.language);
+    tx?.typeLabel || financialTypeLabel(isIncome ? 'income' : 'expense', i18n.language);
   const qty = tx
     ? formatQuantityLine(tx.quantity, tx.quantityUnit, tx.unitPrice, i18n.language)
     : null;
+  const categoryLabel = presentExpenseChip(entry, i18n.language) || tx?.categoryLabel || '';
+  const postingLabel = tx ? financialStatusLabel(tx.status, i18n.language) : null;
+  const postingSlug = tx?.status || '';
+  const person = (actor || tx?.counterpartyName || '').trim();
+  const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
+  const fieldLabel = entry.field?.name
+    ? friendlyFieldLabel(entry.field.name)
+    : t('drawer.generalOperation');
+  const description = (() => {
+    const text = (expense?.description || tx?.description || entry.summary || '').trim();
+    const title = (entry.title || '').trim();
+    if (!text || text === title || text === typeLabel || text === categoryLabel) return '';
+    return text;
+  })();
 
   return (
-    <>
-      {entry.amount ? (
-        <p className="chrono-drawer-amount">
-          {formatChronologioMoneySigned(
-            entry.amount.value,
-            entry.amount.currency,
-            numberLocale,
-            entry.category === 'income' ? 'income' : 'expense'
-          )}
-        </p>
-      ) : null}
+    <div className={`chrono-money is-${isIncome ? 'income' : 'expense'}`}>
+      <header className="chrono-money-hero">
+        {entry.amount ? (
+          <p className="chrono-drawer-amount">
+            {formatChronologioMoneySigned(
+              entry.amount.value,
+              entry.amount.currency,
+              numberLocale,
+              isIncome ? 'income' : 'expense'
+            )}
+          </p>
+        ) : null}
+        <div className="chrono-money-hero-meta">
+          {typeLabel ? <span className="chrono-money-type">{typeLabel}</span> : null}
+          {postingLabel ? (
+            <span className={`chrono-money-posting is-${postingSlug}`}>{postingLabel}</span>
+          ) : null}
+        </div>
+      </header>
+
+      {description ? <p className="chrono-drawer-notes">{description}</p> : null}
+
       <dl className="chrono-drawer-facts">
-        <Fact label={t('common:type')}>{typeLabel}</Fact>
+        <Fact label={t('drawer.moneyCategory')}>{categoryLabel}</Fact>
         <Fact label={t('drawer.quantity')}>{qty}</Fact>
-        <Fact label={t('drawer.moneyCategory')}>
-          {presentExpenseChip(entry, i18n.language) || tx?.categoryLabel}
+        <Fact label={t('living.field')}>
+          <span className="chrono-drawer-field-inline">
+            {entry.field?.name ? (
+              <span
+                className="chrono-drawer-field-dot"
+                style={{ background: fieldAccent }}
+                aria-hidden
+              />
+            ) : null}
+            {fieldLabel}
+          </span>
         </Fact>
-        <Fact label={t('living.field')}>{entry.field?.name || t('drawer.generalOperation')}</Fact>
         <Fact label={t('drawer.date')}>
           {new Date(entry.occurredAt).toLocaleDateString(i18n.language, { dateStyle: 'long' })}
         </Fact>
-        <Fact label={t('common:description')}>
-          {(() => {
-            const text = (expense?.description || tx?.description || entry.summary || '').trim();
-            const title = (entry.title || '').trim();
-            if (!text || text === title || text === typeLabel) return null;
-            return text;
-          })()}
-        </Fact>
-        <Fact label={t('drawer.posting')}>
-          {tx ? financialStatusLabel(tx.status, i18n.language) : null}
-        </Fact>
-        <Fact label={t('living.actor')}>{actor || tx?.counterpartyName}</Fact>
+        <Fact label={t('living.actor')}>{person}</Fact>
         {linkedTaskId && expense?.relatedTaskTitle ? (
-          <Fact label={t('relatedTask', { title: expense.relatedTaskTitle })}>
+          <Fact wide label={t('drawer.relatedTask')}>
             <button
               type="button"
               className="money-text-link"
@@ -605,12 +699,14 @@ const MoneyDetail: React.FC<{
             </button>
           </Fact>
         ) : null}
-        <Fact label={t('relatedHarvest', { title: expense?.relatedHarvestTitle || '' })}>
-          {expense?.relatedHarvestTitle}
-        </Fact>
+        {expense?.relatedHarvestTitle ? (
+          <Fact wide label={t('money:relatedHarvest')}>
+            {expense.relatedHarvestTitle}
+          </Fact>
+        ) : null}
       </dl>
       <MediaGallery entry={entry} title={t('drawer.receipt')} />
-    </>
+    </div>
   );
 };
 

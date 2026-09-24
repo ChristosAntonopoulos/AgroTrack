@@ -74,7 +74,7 @@
     "flowering": "Άνθηση",
     "fruit_set": "Δέσμευση καρπού",
     "fruit_growth": "Ανάπτυξη καρπού",
-    "harvest": "Τρύγος"
+    "harvest": "Ράβδος"
   },
   "severity": {
     "Low": "Χαμηλή",
@@ -107,7 +107,7 @@
     "types": {
       "taskAssignment": "Ανάθεση",
       "approval": "Έγκριση",
-      "harvest": "Τρύγος",
+      "harvest": "Ράβδος",
       "financial": "Οικονομικά",
       "satelliteWeather": "Καιρός",
       "marketingSystem": "Μήνυμα",

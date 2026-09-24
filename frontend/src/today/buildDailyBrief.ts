@@ -159,7 +159,7 @@ const isHarvestMonth = (month: number) => month >= 9 && month <= 12;
 
 const looksLikeHarvest = (task: FieldTask): boolean => {
   const hay = `${task.templateCode || ''} ${task.title}`.toLowerCase();
-  return hay.includes('harvest') || hay.includes('συγκομιδ') || hay.includes('τρύγ');
+  return hay.includes('harvest') || hay.includes('συγκομιδ') || hay.includes('τρύγ') || hay.includes('ράβδ');
 };
 
 /** Collect candidates, then rank + dedupe for presentation. */

@@ -51,10 +51,6 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, weatherScopeNote, onOpe
       onOpenWeather?.();
       return;
     }
-    if (item.action === 'harvest_evening') {
-      openHarvestCampaign(navigation, { evening: true });
-      return;
-    }
     if (item.action === 'harvest_add') {
       openHarvestCampaign(navigation, { add: true });
       return;
@@ -113,9 +109,7 @@ const TodaySummary: React.FC<Props> = ({ today, fieldId, weatherScopeNote, onOpe
                   ? t('chronologio:living.openTask')
                   : today.attention.action === 'weather'
                     ? t('chronologio:todayCard.seeConditions')
-                    : today.attention.action === 'harvest_evening'
-                      ? t('fields:harvestCampaign.today.close')
-                      : today.attention.action === 'harvest_add'
+                    : today.attention.action === 'harvest_add'
                         ? t('fields:harvestCampaign.today.add')
                         : t('chronologio:todayCard.scheduleCheck')}
               </Text>

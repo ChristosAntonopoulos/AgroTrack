@@ -29,7 +29,7 @@ import {
   mergeHarvestDayCards,
   mergeHarvestDayTimeline,
 } from '../../chronologio/harvestDayEntries';
-import { getChronologioService, getFieldService } from '../../services/serviceFactory';
+import { getChronologioService, getFieldService, getFieldWorkService } from '../../services/serviceFactory';
 import { geospatialService } from '../../services/geospatialService';
 import { useTodaySummary } from '../../chronologio/useTodaySummary';
 import { dayWeatherDateKey, entryMatchesDayWeather, fieldsSharingWeatherGrid, sharedPlaceLabel, type DayWeatherInput } from '../../chronologio/dayWeather';
@@ -70,6 +70,10 @@ import { getSeasonStartYear } from '../../utils/harvestSeason';
 import type { SupportedLocale } from '../../i18n/config';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import { CAPTURE_SAVED_EVENT } from '../../capture/types';
+import { readWorkProfileDraft } from '../../utils/fieldWorkProfileDraft';
+import WorkSetupBanner from '../fields/WorkSetupBanner';
+import FirstObservationGuide from '../onboarding/FirstObservationGuide';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import './Chronologio.css';
 
 type Props = {
@@ -88,6 +92,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
   const capture = useCaptureOptional();
+  const activation = useOwnerActivationOptional();
   const locale = (i18n.language?.slice(0, 2) || 'el') as SupportedLocale;
   const numberLocale = i18n.language?.startsWith('el')
     ? 'el-GR'
@@ -130,6 +135,8 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const [peekWeatherLoading, setPeekWeatherLoading] = useState(false);
   const [weatherEventPeek, setWeatherEventPeek] = useState<ChronologioEntry | null>(null);
   const [yearWeatherReviews, setYearWeatherReviews] = useState<ChronologioEntry[]>([]);
+  const [workSetup, setWorkSetup] = useState<{ resume: boolean } | null>(null);
+  const [workSetupDismissed, setWorkSetupDismissed] = useState(false);
   const journalLoadLock = useRef(false);
   const restoredFocusRef = useRef(false);
 
@@ -145,6 +152,40 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       fieldId: scopedFieldId,
     });
   }, [living.focusDate, living.zoom, scopedFieldId]);
+
+  useEffect(() => {
+    if (!scopedFieldId) {
+      setWorkSetup(null);
+      setWorkSetupDismissed(false);
+      return;
+    }
+    const dismissKey = `oleachron.workSetupBanner.dismissed.${scopedFieldId}`;
+    if (localStorage.getItem(dismissKey) === '1') {
+      setWorkSetup(null);
+      setWorkSetupDismissed(true);
+      return;
+    }
+    setWorkSetupDismissed(false);
+    let cancelled = false;
+    void getFieldWorkService()
+      .getWorkProfile(scopedFieldId)
+      .then((profile) => {
+        if (cancelled) return;
+        const resume =
+          profile?.status === 'draft' || Boolean(readWorkProfileDraft(scopedFieldId)?.stepId);
+        if (profile == null || profile.status === 'draft') {
+          setWorkSetup({ resume });
+        } else {
+          setWorkSetup(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setWorkSetup(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scopedFieldId]);
 
   useEffect(() => {
     if (restoredFocusRef.current) return;
@@ -1035,6 +1076,24 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         onJumpToDate={(isoDate) => living.jumpToDate(isoDate)}
       />
 
+      {scopedFieldId &&
+      activation?.awaitingFirstObservation &&
+      !activation.completion.firstObservation ? (
+        <FirstObservationGuide fieldId={scopedFieldId} />
+      ) : null}
+
+      {scopedFieldId && workSetup && !workSetupDismissed ? (
+        <WorkSetupBanner
+          fieldId={scopedFieldId}
+          resume={workSetup.resume}
+          onDismiss={() => {
+            localStorage.setItem(`oleachron.workSetupBanner.dismissed.${scopedFieldId}`, '1');
+            setWorkSetupDismissed(true);
+            setWorkSetup(null);
+          }}
+        />
+      ) : null}
+
       {!booted && loading ? <ChronologioSkeleton zoom={living.zoom} /> : null}
 
       {booted && error ? (
@@ -1234,7 +1293,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         peek={resolvedPeek}
         numberLocale={numberLocale}
         weatherByDate={weatherByDate}
-        fieldOptions={fields.map((f) => ({ id: f.id, name: f.name }))}
+        fieldOptions={fields.map((f) => ({ id: f.id, name: f.name, color: f.color }))}
         onClose={closePeek}
         onMutated={() => setReloadToken((n) => n + 1)}
         onDrillToMonths={(periodYear) => {

@@ -14,8 +14,10 @@ export const isHarvestTask = (task: FieldTask): boolean => {
   const haystack = `${typeKey} ${task.title} ${task.description ?? ''}`.toLowerCase();
   return (
     haystack.includes('harvest') ||
-    haystack.includes('τρύγος') ||
-    haystack.includes('τρυγος')
+    haystack.includes('τρύγ') ||
+    haystack.includes('τρυγ') ||
+    haystack.includes('ράβδ') ||
+    haystack.includes('ραβδ')
   );
 };
 

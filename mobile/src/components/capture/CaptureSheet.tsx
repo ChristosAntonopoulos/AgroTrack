@@ -26,6 +26,7 @@ import Button from '../ui/Button';
 import { HarvestNumberInput } from '../../harvestCampaign/components/HarvestNumberInput';
 import Sheet from '../ui/Sheet';
 import FormDateField from '../forms/FormDateField';
+import FieldColorMark from '../fields/FieldColorMark';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import PhotoCaptureForm from './PhotoCaptureForm';
 import {
@@ -388,11 +389,9 @@ const CaptureSheet: React.FC<Props> = ({
   const typeCards: Array<{ type: CaptureType; icon: keyof typeof Ionicons.glyphMap; enabled: boolean }> = [
     { type: 'work', icon: 'checkmark-done-outline', enabled: permissions.canRecordWork },
     { type: 'money', icon: 'wallet-outline', enabled: permissions.canRecordMoney },
-    { type: 'harvest', icon: 'leaf-outline', enabled: permissions.canRecordHarvest },
     { type: 'photo', icon: 'camera-outline', enabled: permissions.canRecordPhoto },
     { type: 'observation', icon: 'eye-outline', enabled: permissions.canRecordObservation },
     { type: 'voice', icon: 'mic-outline', enabled: permissions.canRecordVoice },
-    { type: 'document', icon: 'document-text-outline', enabled: permissions.canRecordDocument },
   ];
 
   useEffect(() => {
@@ -497,27 +496,21 @@ const CaptureSheet: React.FC<Props> = ({
                         ? colors.eventWorkSoft
                         : card.type === 'observation' ||
                             card.type === 'photo' ||
-                            card.type === 'voice' ||
-                            card.type === 'document'
+                            card.type === 'voice'
                           ? colors.eventObservationSoft
                           : card.type === 'money'
                             ? colors.eventExpenseSoft
-                            : card.type === 'harvest'
-                              ? colors.eventHarvestSoft
-                              : colors.primaryLight;
+                            : colors.primaryLight;
                     const accent =
                       card.type === 'work'
                         ? colors.eventWork
                         : card.type === 'observation' ||
                             card.type === 'photo' ||
-                            card.type === 'voice' ||
-                            card.type === 'document'
+                            card.type === 'voice'
                           ? colors.eventObservation
                           : card.type === 'money'
                             ? colors.eventExpense
-                            : card.type === 'harvest'
-                              ? colors.eventHarvest
-                              : colors.primary;
+                            : colors.primary;
                     return (
                       <Pressable
                         key={card.type}
@@ -588,6 +581,11 @@ const CaptureSheet: React.FC<Props> = ({
 
               {step === 'observation' ? (
                 <>
+                  {context.periodLabel ? (
+                    <Text style={[styles.hint, { color: colors.textSecondary, fontWeight: '600' }]}>
+                      {context.periodLabel}
+                    </Text>
+                  ) : null}
                   {context.harvestCampaignLink ? (
                     <Text style={[styles.hint, { color: colors.textSecondary }]}>
                       {t('fields:harvestCampaign.note.chronologioHint', {
@@ -595,15 +593,23 @@ const CaptureSheet: React.FC<Props> = ({
                       })}
                     </Text>
                   ) : null}
+                  <Text style={[styles.legend, { color: colors.eventObservation }]}>
+                    {t('capture:types.observation.title')}
+                  </Text>
                   <TextInput
                     style={[
                       styles.input,
-                      styles.textarea,
-                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                      styles.obsTextarea,
+                      {
+                        color: colors.textPrimary,
+                        borderColor: colors.eventObservation,
+                        backgroundColor: colors.eventObservationSoft,
+                      },
                     ]}
                     placeholder={t('capture:observation.placeholder')}
                     placeholderTextColor={colors.textTertiary}
                     multiline
+                    maxLength={4000}
                     value={body}
                     onChangeText={setBody}
                   />
@@ -807,16 +813,41 @@ const CaptureSheet: React.FC<Props> = ({
               )}
 
               {(step === 'observation' || (step === 'harvest' && harvestBeat === 'oil')) && (
-                <View style={{ marginTop: 12, gap: 8 }}>
+                <View style={{ marginTop: 12, gap: 10 }}>
                   <View style={styles.photoRow}>
-                    {photos.map(uri => (
+                    {photos.map((uri) => (
                       <Image key={uri} source={{ uri }} style={styles.thumb} />
                     ))}
+                    {photos.length < MAX_PHOTOS ? (
+                      <Pressable
+                        onPress={() => void pickPhoto(true)}
+                        style={[
+                          styles.addPhoto,
+                          {
+                            borderColor: colors.eventObservation,
+                            backgroundColor: colors.eventObservationSoft,
+                            minHeight: Math.max(88, tapMin),
+                          },
+                        ]}
+                      >
+                        <Ionicons name="camera-outline" size={22} color={colors.eventObservation} />
+                        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 14 }}>
+                          {t('capture:observation.addPhoto')}
+                        </Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                          {t('capture:photos.limit', { count: MAX_PHOTOS })}
+                        </Text>
+                      </Pressable>
+                    ) : null}
                   </View>
-                  <View style={styles.photoActions}>
-                    <Button title={t('capture:takePhoto')} onPress={() => void pickPhoto(true)} variant="outline" size="large" />
-                    <Button title={t('capture:chooseLibrary')} onPress={() => void pickPhoto(false)} variant="outline" size="large" />
-                  </View>
+                  {photos.length < MAX_PHOTOS ? (
+                    <Button
+                      title={t('capture:chooseLibrary')}
+                      onPress={() => void pickPhoto(false)}
+                      variant="outline"
+                      size="large"
+                    />
+                  ) : null}
                 </View>
               )}
               </>
@@ -857,6 +888,14 @@ const styles = StyleSheet.create({
   typeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   typeTitle: { fontSize: 15, fontWeight: '650' as '600' },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
+  legend: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginTop: 4,
+  },
   hint: { fontSize: 13, marginBottom: 10 },
   lockedField: {
     flexDirection: 'row',
@@ -889,8 +928,28 @@ const styles = StyleSheet.create({
   },
   input: { borderWidth: 1, borderRadius: radii.lg, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 10, fontSize: 16 },
   textarea: { minHeight: 96, textAlignVertical: 'top' },
+  obsTextarea: {
+    minHeight: 132,
+    textAlignVertical: 'top',
+    borderRadius: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 4,
+  },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   thumb: { width: 72, height: 72, borderRadius: radii.lg },
+  addPhoto: {
+    flexGrow: 1,
+    minWidth: 140,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
   photoActions: { gap: 8 },
 });
 
