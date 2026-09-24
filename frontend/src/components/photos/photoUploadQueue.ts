@@ -262,7 +262,7 @@ export const createPhotoUploadQueue = (deps?: {
     return { ...job, status: 'queued', error: null };
   };
 
-  const queue = {
+  const queue: PhotoUploadQueue = {
     jobs: () => jobs.slice(),
     subscribe: (listener) => {
       listener(jobs.slice());
