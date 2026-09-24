@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { OwnerActivationStepId } from '../onboarding/steps';
-import { spacing } from '../theme';
+import type { OwnerActivationStepId } from '../../onboarding/steps';
+import { spacing } from '../../theme';
 
 type Props = {
   step: OwnerActivationStepId;

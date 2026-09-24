@@ -1,6 +1,6 @@
 import React from 'react';
 import ActivationChecklist from './ActivationChecklist';
-import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 
 const OwnerActivationHost: React.FC = () => {
   const activation = useOwnerActivationOptional();
