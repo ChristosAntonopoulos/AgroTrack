@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions } from '../../capture/types';
@@ -8,6 +8,7 @@ import { useOfflineMode } from '../../context/OfflineContext';
 import { getPhotoService } from '../../services/serviceFactory';
 import type { Field } from '../../services/fieldService';
 import Button from '../ui/Button';
+import FieldColorMark from '../fields/FieldColorMark';
 import { radii } from '../../theme';
 
 type Props = {
@@ -30,6 +31,12 @@ const PhotoCaptureForm: React.FC<Props> = ({
   const { t } = useTranslation(['capture', 'photos', 'common']);
   const { colors, tapMin } = useTheme();
   const { isOnline } = useOfflineMode();
+  useEffect(() => {
+    if (fieldLocked || fieldId || fields.length !== 1) return;
+    onFieldChange(fields[0].id);
+  }, [fieldLocked, fieldId, fields, onFieldChange]);
+
+  const askField = !fieldLocked && fields.length > 1 && !fieldId;
   const [uris, setUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -87,31 +94,43 @@ const PhotoCaptureForm: React.FC<Props> = ({
 
   return (
     <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:fieldLabel')}</Text>
-      {fieldLocked ? (
-        <Text style={[styles.lockedField, { color: colors.textPrimary, borderColor: colors.border }]}>
-          {fields.find((f) => f.id === fieldId)?.name || fieldId}
-        </Text>
-      ) : (
-        <View style={styles.chipRow}>
-          {fields.map((f) => (
-            <Pressable
-              key={f.id}
-              style={[
-                styles.chip,
-                {
-                  borderColor: fieldId === f.id ? colors.oliveBorder : colors.border,
-                  backgroundColor: fieldId === f.id ? colors.primaryLight : colors.surface,
-                  minHeight: tapMin,
-                },
-              ]}
-              onPress={() => onFieldChange(f.id)}
-            >
-              <Text style={{ color: fieldId === f.id ? colors.primary : colors.textPrimary }}>{f.name}</Text>
-            </Pressable>
-          ))}
+      {askField ? (
+        <>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{t('capture:money.whichField')}</Text>
+          <View style={styles.chipRow}>
+            {fields.map((f) => (
+              <Pressable
+                key={f.id}
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                    minHeight: tapMin,
+                  },
+                ]}
+                onPress={() => onFieldChange(f.id)}
+              >
+                <FieldColorMark color={f.color} fieldId={f.id} size={10} />
+                <Text style={{ color: colors.textPrimary }}>{f.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : fieldId ? (
+        <View style={[styles.lockedField, { borderColor: colors.border }]}>
+          <FieldColorMark
+            color={fields.find((f) => f.id === fieldId)?.color}
+            fieldId={fieldId}
+            size={12}
+          />
+          <Text style={{ color: colors.textPrimary, fontWeight: '700', flex: 1 }}>
+            {fields.find((f) => f.id === fieldId)?.name || fieldId}
+          </Text>
         </View>
-      )}
+      ) : null}
+      {!askField ? (
+      <>
       {context.harvestCampaignLink ? (
         <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('capture:photo.harvestHint')}</Text>
       ) : null}
@@ -141,6 +160,8 @@ const PhotoCaptureForm: React.FC<Props> = ({
           size="large"
         />
       </View>
+      </>
+      ) : null}
     </ScrollView>
   );
 };
@@ -148,9 +169,26 @@ const PhotoCaptureForm: React.FC<Props> = ({
 const styles = StyleSheet.create({
   body: { paddingBottom: 24 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
-  lockedField: { borderWidth: 1, borderRadius: radii.lg, padding: 12, fontWeight: '700', marginBottom: 8 },
+  lockedField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: 12,
+    marginBottom: 8,
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  chip: { borderWidth: 1, borderRadius: radii.full, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
   hint: { fontSize: 13, marginBottom: 10 },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   thumb: { width: 72, height: 72, borderRadius: radii.lg },

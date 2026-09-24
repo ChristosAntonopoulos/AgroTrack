@@ -184,6 +184,7 @@ public class FieldService : IFieldService
         if (createdField.Boundary != null)
         {
             await QueueFieldIntelligenceAsync(createdField.Id, cancellationToken);
+            await QueueFieldHistoryBackfillAsync(createdField.Id, cancellationToken);
         }
         return ToDtoForUser(createdField, ownerId);
     }
@@ -231,7 +232,13 @@ public class FieldService : IFieldService
         ApplyUpdate(field, updateFieldDto);
         field.UpdatedAt = _dateTimeProvider.UtcNow;
 
+        var hadBoundaryInRequest = updateFieldDto.Boundary != null;
         var updatedField = await _fieldRepository.UpdateAsync(field, cancellationToken);
+        if (hadBoundaryInRequest && updatedField.Boundary != null)
+        {
+            await QueueFieldIntelligenceAsync(updatedField.Id, cancellationToken);
+            await QueueFieldHistoryBackfillAsync(updatedField.Id, cancellationToken);
+        }
         return ToDtoForUser(updatedField, userId);
     }
 
@@ -403,6 +410,12 @@ public class FieldService : IFieldService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         await QueueFieldIntelligenceAsync(updated.Id, cancellationToken);
+        // History (multi-year weather + Chronologio reviews + satellite archive) needs a
+        // boundary. Activate often runs first without one; start the pack here.
+        if (updated.Boundary != null)
+        {
+            await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+        }
         return ToDtoForUser(updated, userId);
     }
 
@@ -488,7 +501,12 @@ public class FieldService : IFieldService
             suggestLifecyclePlan = true;
         }
 
-        await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+        // Multi-year weather/satellite history needs coordinates from the boundary.
+        // If the grower activates first and draws later, UpdateBoundary queues this instead.
+        if (updated.Boundary != null)
+        {
+            await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+        }
 
         return new ActivateFieldResponse
         {
@@ -701,8 +719,8 @@ public class FieldService : IFieldService
     }
 
     /// <summary>
-    /// Starts the multi-year weather and satellite backfill only after activation
-    /// terms have been accepted and the field add is complete.
+    /// Starts the multi-year weather and satellite backfill once the field has a boundary
+    /// (on activation if already drawn, otherwise when the boundary is saved).
     /// </summary>
     private async Task QueueFieldHistoryBackfillAsync(string fieldId, CancellationToken cancellationToken)
     {

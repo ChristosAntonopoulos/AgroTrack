@@ -508,10 +508,10 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
         </>
       );
     }
-    if (peek?.mode === 'event' && kind === 'weatherPeriod') {
+    if (peek?.mode === 'event' && (kind === 'weatherPeriod' || kind === 'weatherExtreme')) {
       return (
         <Button variant="outline" icon={<ExternalLink size={14} />} onClick={openDestination}>
-          {t('weatherReview.openMap')}
+          {kind === 'weatherExtreme' ? t('weatherReview.openCharts') : t('weatherReview.openMap')}
         </Button>
       );
     }

@@ -28,6 +28,11 @@ import type { ChronologioEntry } from '../../services/chronologioService';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { FinancialTransaction } from '../../services/financialTransactionService';
 import type { Note } from '../../services/noteService';
+import {
+  extremeKindFromEventType,
+  extremeVisualTone,
+  formatExtremeDateRange,
+} from '../../chronologio/weatherExtreme';
 import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
 import { taskStatusI18nKey } from '../../utils/categoryNormalize';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
@@ -204,6 +209,73 @@ const ChronologioEventDetail: React.FC<Props> = ({ entry, numberLocale, dayWeath
       </div>
     ) : (
       <p className="chrono-drawer-notes">{entry.summary}</p>
+    );
+  }
+  if (kind === 'weatherExtreme') {
+    const weather = entry.details.weather;
+    const kindKey =
+      weather?.extremeKind || extremeKindFromEventType(entry.eventType) || 'heatwave';
+    const tone = extremeVisualTone(kindKey);
+    const period = formatExtremeDateRange(
+      weather?.extremeStartDate,
+      weather?.extremeEndDate,
+      i18n.language
+    );
+    return (
+      <div className="chrono-drawer-extreme">
+        <header className={`chrono-drawer-extreme-hero is-${tone}`}>
+          <h3 className="chrono-drawer-extreme-kind">
+            {t(`extremeWeather.kinds.${kindKey}`, { defaultValue: entry.title })}
+          </h3>
+          {entry.summary ? (
+            <p className="chrono-drawer-extreme-summary">{entry.summary}</p>
+          ) : null}
+        </header>
+        <dl className="chrono-drawer-extreme-facts">
+          {period ? (
+            <div className="chrono-drawer-extreme-fact">
+              <dt>{t('extremeWeather.period')}</dt>
+              <dd>{period}</dd>
+            </div>
+          ) : null}
+          {weather?.streakDays != null ? (
+            <div className="chrono-drawer-extreme-fact">
+              <dt>{t('extremeWeather.streak')}</dt>
+              <dd>{t('extremeWeather.days', { count: weather.streakDays })}</dd>
+            </div>
+          ) : null}
+          {weather?.temperatureMin != null ? (
+            <div className="chrono-drawer-extreme-fact">
+              <dt>{t('extremeWeather.minTemp')}</dt>
+              <dd>
+                {weather.temperatureMin.toLocaleString(numberLocale, { maximumFractionDigits: 1 })}°C
+              </dd>
+            </div>
+          ) : null}
+          {weather?.temperatureMax != null ? (
+            <div className="chrono-drawer-extreme-fact">
+              <dt>{t('extremeWeather.maxTemp')}</dt>
+              <dd>
+                {weather.temperatureMax.toLocaleString(numberLocale, { maximumFractionDigits: 1 })}°C
+              </dd>
+            </div>
+          ) : null}
+          {weather?.rainfallMm != null ? (
+            <div className="chrono-drawer-extreme-fact">
+              <dt>{t('extremeWeather.rain')}</dt>
+              <dd>
+                {weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} mm
+              </dd>
+            </div>
+          ) : null}
+          {entry.field?.name ? (
+            <div className="chrono-drawer-extreme-fact">
+              <dt>{t('living.field')}</dt>
+              <dd>{entry.field.name}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </div>
     );
   }
   if (kind === 'warning') {

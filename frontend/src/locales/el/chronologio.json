@@ -534,6 +534,24 @@
     "failedLoad": "Αδυναμία φόρτωσης καιρού και βλάστησης.",
     "sourceNote": "Καιρός από αρχείο Open-Meteo. Βλάστηση από Sentinel-2."
   },
+  "extremeWeather": {
+    "typeLabel": "Ακραίο καιρικό",
+    "period": "Περίοδος",
+    "streak": "Διάρκεια",
+    "days_one": "{{count}} ημέρα",
+    "days_other": "{{count}} ημέρες",
+    "minTemp": "Ελάχιστη",
+    "maxTemp": "Μέγιστη",
+    "rain": "Βροχή",
+    "kinds": {
+      "heatwave": "Καύσωνας",
+      "frost": "Παγετός",
+      "nearFrost": "Κοντά σε παγετό",
+      "heavyRain": "Έντονη βροχή",
+      "drought": "Ξηρασία",
+      "coldSpell": "Κρύο κύμα"
+    }
+  },
   "weatherReview": {
     "rainMm": "Βροχή mm",
     "rainfall": "Βροχόπτωση",

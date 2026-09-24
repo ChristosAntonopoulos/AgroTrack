@@ -1,0 +1,289 @@
+.grove-sequence {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  pointer-events: auto;
+}
+
+.grove-sequence-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 20%, rgba(62, 107, 70, 0.28), transparent 55%),
+    rgba(12, 16, 14, 0.72);
+}
+
+.grove-sequence-card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  background: #fffdf8;
+  border: 1px solid rgba(34, 40, 31, 0.14);
+  box-shadow: 0 24px 60px rgba(8, 12, 10, 0.35);
+  color: #1e261c;
+  animation: grove-sequence-in 0.45s ease-out;
+}
+
+.grove-sequence-card.is-welcome {
+  text-align: center;
+}
+
+@keyframes grove-sequence-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.grove-sequence-kicker {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2f5d38;
+}
+
+.grove-sequence-header h2,
+.grove-welcome h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  font-weight: 750;
+  line-height: 1.25;
+  color: #1e261c;
+}
+
+.grove-sequence-header p,
+.grove-welcome > p {
+  margin: 0 0 16px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #3d4a38;
+}
+
+.grove-sequence-hint {
+  margin: -8px 0 16px !important;
+  font-size: 0.84rem !important;
+  line-height: 1.4 !important;
+  color: #4a5746 !important;
+}
+
+.grove-sequence-stages {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.grove-sequence-stage {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(30, 50, 36, 0.04);
+  border: 1px solid transparent;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.grove-sequence-stage.is-active {
+  background: rgba(47, 93, 56, 0.1);
+  border-color: rgba(47, 93, 56, 0.35);
+  transform: translateY(-1px);
+}
+
+.grove-sequence-stage.is-done {
+  background: rgba(47, 93, 56, 0.08);
+}
+
+.grove-sequence-stage.is-pending {
+  opacity: 0.55;
+}
+
+.grove-sequence-stage-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(47, 93, 56, 0.12);
+  color: #2f5d38;
+}
+
+.grove-sequence-stage.is-done .grove-sequence-stage-icon {
+  background: #2f5d38;
+  color: #fff;
+}
+
+.grove-sequence-stage.is-active .grove-sequence-stage-icon {
+  animation: grove-stage-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes grove-stage-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.grove-sequence-stage-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.grove-sequence-stage-copy strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e261c;
+}
+
+.grove-sequence-stage-copy span {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #4a5746;
+}
+
+.grove-sequence-stage-status {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2f5d38;
+  white-space: nowrap;
+}
+
+.grove-sequence-pulse {
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(62, 107, 70, 0.12);
+  margin-bottom: 12px;
+}
+
+.grove-sequence-pulse::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 38%;
+  border-radius: inherit;
+  background: #2f5d38;
+  animation: spatial-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes spatial-pulse {
+  0% {
+    transform: translateX(-30%);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateX(140%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(280%);
+    opacity: 0.55;
+  }
+}
+
+.grove-sequence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.grove-sequence-btn {
+  appearance: none;
+  border: none;
+  background: #2f5d38;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.grove-sequence-btn--ghost {
+  background: transparent;
+  color: #2f5d38;
+  border: 1px solid rgba(62, 107, 70, 0.35);
+}
+
+.grove-sequence-btn:hover {
+  filter: brightness(1.05);
+}
+
+.grove-sequence-skip {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #4a5746;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 8px 0 0;
+  width: 100%;
+  text-align: center;
+}
+
+.grove-sequence-skip:hover {
+  color: #1e261c;
+  text-decoration: underline;
+}
+
+.grove-welcome-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(47, 93, 56, 0.18), rgba(47, 93, 56, 0.06));
+  color: #2f5d38;
+}
+
+.grove-welcome-points {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.grove-welcome-points li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(47, 93, 56, 0.08);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: #2a3528;
+}
+
+.grove-welcome-points li::before {
+  content: '✓ ';
+  color: #2f5d38;
+  font-weight: 700;
+}
+
+/* Legacy class kept for any external refs */
+.spatial-loading-panel {
+  display: none;
+}

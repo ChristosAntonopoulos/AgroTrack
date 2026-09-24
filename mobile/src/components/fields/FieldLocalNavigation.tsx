@@ -1,8 +1,8 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { spacing, typography } from '../../theme';
+import { spacing } from '../../theme';
 
 export type FieldTab = 'overview' | 'map' | 'chronologio' | 'details';
 
@@ -14,6 +14,7 @@ type Props = {
   tabs?: FieldTab[];
 };
 
+/** Segmented field tabs — same visual language as web FieldLocalNavigation. */
 const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_PAGE_TABS }) => {
   const { t } = useTranslation('fields');
   const { colors, tapMin } = useTheme();
@@ -22,15 +23,26 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_
     overview: t('detail.overview'),
     map: t('page.mapData'),
     chronologio: t('detail.timeline'),
+    details: t('page.tabDetails', { defaultValue: t('page.details') }),
+  };
+
+  const titles: Record<FieldTab, string> = {
+    overview: t('detail.overview'),
+    map: t('page.mapDataFull', { defaultValue: t('page.mapData') }),
+    chronologio: t('detail.timeline'),
     details: t('page.details'),
   };
 
   return (
-    <View style={[styles.wrap, { borderBottomColor: colors.borderLight }]}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
+    <View style={styles.outer}>
+      <View
+        style={[
+          styles.wrap,
+          {
+            borderColor: colors.borderLight,
+            backgroundColor: colors.surfaceElevated || colors.surface,
+          },
+        ]}
         accessibilityRole="tablist"
         accessibilityLabel={t('page.tabsAria')}
       >
@@ -42,22 +54,22 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_
               onPress={() => onTabChange(id)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
+              accessibilityLabel={titles[id]}
               style={[
                 styles.tab,
                 {
                   minHeight: Math.max(44, Math.min(tapMin, 48)),
-                  borderBottomColor: selected ? colors.primary : 'transparent',
-                  borderBottomWidth: 2,
+                  backgroundColor: selected ? colors.primary : 'transparent',
                 },
               ]}
             >
               <Text
+                numberOfLines={1}
                 style={[
                   styles.label,
                   {
-                    fontWeight: selected ? '700' : '600',
-                    fontSize: 15,
-                    color: selected ? colors.textPrimary : colors.textSecondary,
+                    color: selected ? '#fff' : colors.textSecondary,
+                    fontWeight: selected ? '800' : '700',
                   },
                 ]}
               >
@@ -66,28 +78,34 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrap: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  row: {
-    gap: 4,
+  outer: {
     paddingHorizontal: spacing.base,
+    paddingBottom: spacing.sm,
+  },
+  wrap: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   tab: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
+    flex: 1,
+    minWidth: 0,
+    borderRadius: 9,
+    paddingHorizontal: 6,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   label: {
-    ...typography.styles.body,
-    fontSize: 15,
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
 

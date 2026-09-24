@@ -353,6 +353,115 @@ public class FieldWeatherPeriodReviewRepository : IFieldWeatherPeriodReviewRepos
     };
 }
 
+public class FieldWeatherExtremeEventRepository : IFieldWeatherExtremeEventRepository
+{
+    private readonly IMongoCollection<FieldWeatherExtremeEventDocument> _collection;
+
+    public FieldWeatherExtremeEventRepository(MongoDbContext context)
+        => _collection = context.GetCollection<FieldWeatherExtremeEventDocument>("field_weather_extreme_events");
+
+    public async Task<IReadOnlyList<FieldWeatherExtremeEvent>> GetByFieldIdsAsync(
+        IReadOnlyList<string> fieldIds,
+        DateTime? from,
+        DateTime? to,
+        CancellationToken cancellationToken = default)
+    {
+        if (fieldIds.Count == 0) return Array.Empty<FieldWeatherExtremeEvent>();
+
+        var filter = Builders<FieldWeatherExtremeEventDocument>.Filter.In(x => x.FieldId, fieldIds);
+        if (from.HasValue)
+        {
+            filter &= Builders<FieldWeatherExtremeEventDocument>.Filter.Gte(x => x.OccurredAt, from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            filter &= Builders<FieldWeatherExtremeEventDocument>.Filter.Lte(x => x.OccurredAt, to.Value);
+        }
+
+        var docs = await _collection.Find(filter).SortByDescending(x => x.OccurredAt).ToListAsync(cancellationToken);
+        return docs.Select(ToEntity).ToList();
+    }
+
+    public async Task<FieldWeatherExtremeEvent?> GetByDedupKeyAsync(string dedupKey, CancellationToken cancellationToken = default)
+    {
+        var doc = await _collection.Find(x => x.DedupKey == dedupKey).FirstOrDefaultAsync(cancellationToken);
+        return doc == null ? null : ToEntity(doc);
+    }
+
+    public async Task<int> UpsertManyAsync(IReadOnlyList<FieldWeatherExtremeEvent> events, CancellationToken cancellationToken = default)
+    {
+        if (events.Count == 0) return 0;
+
+        var models = events.Select(evt =>
+        {
+            var doc = ToDocument(evt);
+            return new ReplaceOneModel<FieldWeatherExtremeEventDocument>(
+                Builders<FieldWeatherExtremeEventDocument>.Filter.Eq(x => x.Id, evt.Id),
+                doc)
+            {
+                IsUpsert = true
+            };
+        }).ToList();
+
+        var result = await _collection.BulkWriteAsync(models, new BulkWriteOptions { IsOrdered = false }, cancellationToken);
+        return (int)(result.InsertedCount + result.ModifiedCount + result.Upserts.Count);
+    }
+
+    public async Task DeleteByFieldAndEndDateRangeAsync(
+        string fieldId,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        var fromDt = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var toDt = to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        await _collection.DeleteManyAsync(
+            x => x.FieldId == fieldId && x.EndDate >= fromDt && x.EndDate <= toDt,
+            cancellationToken);
+    }
+
+    private static FieldWeatherExtremeEvent ToEntity(FieldWeatherExtremeEventDocument d) => new()
+    {
+        Id = d.Id,
+        FieldId = d.FieldId,
+        DedupKey = d.DedupKey,
+        Kind = d.Kind,
+        Severity = d.Severity,
+        StartDate = DateOnly.FromDateTime(DateTime.SpecifyKind(d.StartDate, DateTimeKind.Utc)),
+        EndDate = DateOnly.FromDateTime(DateTime.SpecifyKind(d.EndDate, DateTimeKind.Utc)),
+        OccurredAt = d.OccurredAt,
+        StreakDays = d.StreakDays,
+        MinTemperatureC = d.MinTemperatureC,
+        MaxTemperatureC = d.MaxTemperatureC,
+        RainTotalMm = d.RainTotalMm,
+        IsStronger = d.IsStronger,
+        WeatherProvider = d.WeatherProvider,
+        CreatedAt = d.CreatedAt,
+        UpdatedAt = d.UpdatedAt
+    };
+
+    private static FieldWeatherExtremeEventDocument ToDocument(FieldWeatherExtremeEvent e) => new()
+    {
+        Id = e.Id,
+        FieldId = e.FieldId,
+        DedupKey = e.DedupKey,
+        Kind = e.Kind,
+        Severity = e.Severity,
+        StartDate = e.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+        EndDate = e.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+        OccurredAt = e.OccurredAt,
+        StreakDays = e.StreakDays,
+        MinTemperatureC = e.MinTemperatureC,
+        MaxTemperatureC = e.MaxTemperatureC,
+        RainTotalMm = e.RainTotalMm,
+        IsStronger = e.IsStronger,
+        WeatherProvider = e.WeatherProvider,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt
+    };
+}
+
 public class FieldSatelliteObservationRepository : IFieldSatelliteObservationRepository
 {
     private readonly IMongoCollection<FieldSatelliteObservationDocument> _collection;

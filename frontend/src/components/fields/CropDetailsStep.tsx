@@ -32,7 +32,6 @@ const CropDetailsStep: React.FC<Props> = ({ formData, onChange, nested = false }
       <div className="crop-details-row">
         <div className="form-group crop-details-field">
           <label htmlFor="variety">{t('addField.oliveVariety')}</label>
-          <p className="field-form-hint">{t('createGrove.details.varietyHint')}</p>
           <VarietySelect
             id="variety"
             name="variety"
@@ -48,7 +47,6 @@ const CropDetailsStep: React.FC<Props> = ({ formData, onChange, nested = false }
         </div>
         <div className="form-group crop-details-field">
           <label htmlFor="treeCount">{t('createGrove.details.treeCountLabel')}</label>
-          <p className="field-form-hint">{t('createGrove.details.treeCountHint')}</p>
           <input
             type="number"
             id="treeCount"

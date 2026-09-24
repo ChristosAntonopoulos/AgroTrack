@@ -37,6 +37,9 @@ import FieldTabStatus from '../components/fields/FieldTabStatus';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import { readWorkProfileDraft } from '../utils/fieldWorkProfileDraft';
 import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
+import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
 import '../components/fields/FieldPageShell.css';
 import './FieldWorkSetupPage.css';
 
@@ -49,6 +52,7 @@ const FieldDetailPage: React.FC = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const activation = useOwnerActivationOptional();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const capture = useCaptureOptional();
   const currentYear = athensCalendarYear(new Date());
@@ -83,6 +87,22 @@ const FieldDetailPage: React.FC = () => {
     if (!id) return;
     setBannerDismissed(localStorage.getItem(DISMISS_KEY(id)) === '1');
   }, [id]);
+
+  useEffect(() => {
+    const activationParam = searchParams.get('activation');
+    // Spatial loading is a hard map landing while the panel is open.
+    // Observe is soft guidance — setTab clears activation so tabs stay free.
+    if (activationParam === 'spatial' && tab !== 'map') {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('tab', 'map');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [searchParams, tab, setSearchParams]);
 
   // Field record — required before any tab can render.
   useEffect(() => {
@@ -209,13 +229,43 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const setTab = (next: FieldPageTab) => {
+    const observationRequired =
+      activation?.awaitingFirstObservation && !activation.completion.firstObservation;
+    // Soft-lock on καρτέλα until the first Chronologio note is saved.
+    if (observationRequired && next !== 'details') {
+      replaceParams((params) => {
+        params.set('tab', 'details');
+        params.set('activation', 'observe');
+        params.delete('mode');
+      });
+      return;
+    }
     writeFieldViewPreferences({ lastTab: next });
     replaceParams((params) => {
       params.delete('mode');
+      if (observationRequired) {
+        params.set('activation', 'observe');
+      } else {
+        params.delete('activation');
+      }
       if (next === 'overview') params.delete('tab');
       else params.set('tab', next);
     });
   };
+
+  // Keep growers on details while the first note is required (page stays scrollable).
+  useEffect(() => {
+    if (!id) return;
+    if (!activation?.awaitingFirstObservation || activation.completion.firstObservation) return;
+    if (tab === 'details' && searchParams.get('activation') === 'observe') return;
+    replaceParams((params) => {
+      params.set('tab', 'details');
+      params.set('activation', 'observe');
+      params.delete('mode');
+    });
+    // Intentionally omit searchParams object — only react to tab / awaiting flag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, activation?.awaitingFirstObservation, activation?.completion.firstObservation, tab]);
 
   const setYear = (next: number) => {
     replaceParams((params) => {
@@ -278,6 +328,14 @@ const FieldDetailPage: React.FC = () => {
           onCapture={canCapture ? openCapture : undefined}
           phenology={phenology}
         />
+
+        {activation?.eligible &&
+        activation.completion.drawBoundary &&
+        id &&
+        (searchParams.get('activation') === 'spatial' ||
+          (!activation.completion.loadData && activation.celebrating)) ? (
+          <SpatialLoadingPanel fieldId={id} fieldName={field.name} />
+        ) : null}
 
         {grantedAccess ? (
           <p className="field-secondary-access-banner" role="status">
@@ -429,6 +487,7 @@ const FieldDetailPage: React.FC = () => {
             role="tabpanel"
             aria-labelledby="field-tab-details"
           >
+            {id ? <FirstObservationGuide fieldId={id} /> : null}
             <FieldDetailsTab
               field={field}
               year={year}

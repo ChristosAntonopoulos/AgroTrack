@@ -7,6 +7,7 @@ import ScreenHeader from '../components/layout/ScreenHeader';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/ui/Button';
+import FieldColorMark from '../components/fields/FieldColorMark';
 import Sheet from '../components/ui/Sheet';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { useTheme } from '../context/ThemeContext';
@@ -1016,12 +1017,17 @@ const HarvestCampaignScreen = () => {
                     )
                   }
                 >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 }}>
-                    {friendlyFieldLabel(field.name)}
-                  </Text>
-                  {meta ? (
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{meta}</Text>
-                  ) : null}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <FieldColorMark color={field.color} fieldId={field.id} size={14} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 }}>
+                        {friendlyFieldLabel(field.name)}
+                      </Text>
+                      {meta ? (
+                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{meta}</Text>
+                      ) : null}
+                    </View>
+                  </View>
                 </HarvestCard>
               );
             })
@@ -1818,6 +1824,7 @@ const HarvestCampaignScreen = () => {
           <HarvestRecordSheet
             record={deepLinkRecord}
             fieldName={labelOf(deepLinkRecord.fieldId)}
+            fieldColor={fields.find((field) => field.id === deepLinkRecord.fieldId)?.color}
             locale={locale}
             canVoid={
               resolveFieldGates({

@@ -27,6 +27,7 @@ type Props = {
   nextTaskTitle?: string;
   onRetry?: () => void;
   onMoveTask?: () => void;
+  onSeeCharts?: () => void;
 };
 
 /**
@@ -46,6 +47,7 @@ const FieldWeatherSection: React.FC<Props> = ({
   nextTaskTitle,
   onRetry,
   onMoveTask,
+  onSeeCharts,
 }) => {
   const { t } = useTranslation('fields');
   const { colors } = useTheme();
@@ -131,6 +133,12 @@ const FieldWeatherSection: React.FC<Props> = ({
           <Text style={[styles.moveText, { color: colors.primary }]}>
             {t('overview.attention.moveTask')}
           </Text>
+        </Pressable>
+      ) : null}
+
+      {onSeeCharts ? (
+        <Pressable onPress={onSeeCharts} hitSlop={4}>
+          <Text style={[styles.link, { color: colors.primary }]}>{t('weather.seeCharts')}</Text>
         </Pressable>
       ) : null}
 

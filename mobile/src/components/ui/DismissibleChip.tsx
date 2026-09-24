@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable, Text, StyleSheet, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { motion, radii } from '../../theme';
@@ -7,11 +7,12 @@ import { motion, radii } from '../../theme';
 type Props = {
   label: string;
   onDismiss: () => void;
+  dotColor?: string;
   style?: ViewStyle;
 };
 
 /** Soft olive dismissible pill — active filters / scoped month chips. */
-const DismissibleChip: React.FC<Props> = ({ label, onDismiss, style }) => {
+const DismissibleChip: React.FC<Props> = ({ label, onDismiss, dotColor, style }) => {
   const { colors, fontScaleMultiplier } = useTheme();
 
   return (
@@ -30,6 +31,7 @@ const DismissibleChip: React.FC<Props> = ({ label, onDismiss, style }) => {
       accessibilityRole="button"
       accessibilityLabel={label}
     >
+      {dotColor ? <View style={[styles.dot, { backgroundColor: dotColor }]} /> : null}
       <Text
         style={[
           styles.label,
@@ -60,6 +62,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flexShrink: 1,
   },
+  dot: { width: 8, height: 8, borderRadius: 4 },
 });
 
 export default DismissibleChip;

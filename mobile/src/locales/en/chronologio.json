@@ -71,7 +71,9 @@
   "emptyGlobalTitle": "Your Chronologio starts here.",
   "emptyGlobalDescription": "Tasks, notes, expenses, and harvests from your groves will appear here.",
   "emptyFieldTitle": "No story for this grove yet.",
-  "emptyFieldDescription": "The first task, note, or harvest will start its Chronologio.",
+  "emptyFieldDescription": "After you draw the grove boundary, weather history fills in here. Tasks, notes, and harvests you add will appear too.",
+  "historySeedingTitle": "Building this grove's history…",
+  "historySeedingDescription": "Pulling past weather and compiling month reviews. This can take a minute after the boundary is set.",
   "ctaNewTask": "New task",
   "ctaViewFields": "View fields",
   "fromActor": "By {{name}}",
@@ -209,6 +211,24 @@
     "vegetationEmptyDescription": "Monthly Sentinel-2 scenes are still being processed for this field.",
     "failedLoad": "Could not load weather and vegetation history.",
     "sourceNote": "Weather from Open-Meteo archive. Vegetation from Sentinel-2."
+  },
+  "extremeWeather": {
+    "typeLabel": "Extreme weather",
+    "period": "Period",
+    "streak": "Duration",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "minTemp": "Minimum",
+    "maxTemp": "Maximum",
+    "rain": "Rain",
+    "kinds": {
+      "heatwave": "Heatwave",
+      "frost": "Frost",
+      "nearFrost": "Near frost",
+      "heavyRain": "Heavy rain",
+      "drought": "Drought",
+      "coldSpell": "Cold spell"
+    }
   },
   "weatherReview": {
     "rainMm": "Rain mm",

@@ -114,6 +114,12 @@ export const usePhotoUploads = (library: Photo[]) => {
     [messages, queue]
   );
 
+  useEffect(() => {
+    jobs
+      .filter((job) => job.status === 'uploaded' && job.result?.photo.id)
+      .forEach((job) => queue.dismissConfirmed(job.result!.photo.id, false));
+  }, [jobs, queue]);
+
   const uploading = jobs.some((job) => job.status === 'uploading' || job.status === 'converting');
   const waitingOffline = jobs.some((job) => job.status === 'offline');
   const wave = jobs.filter((job) => job.status !== 'staged' && job.status !== 'converting');

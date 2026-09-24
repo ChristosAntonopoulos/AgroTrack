@@ -11,9 +11,11 @@ type Props = {
   value: string;
   onChange: (next: { locationText: string; latitude?: number; longitude?: number }) => void;
   disabled?: boolean;
+  /** Tighter layout for map screens — no long helper under the field. */
+  compact?: boolean;
 };
 
-const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled }) => {
+const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compact = false }) => {
   const { t } = useTranslation('fields');
   const { colors } = useTheme();
   const [suggestions, setSuggestions] = useState<GeocodedPlace[]>([]);
@@ -49,25 +51,35 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled }) => 
   return (
     <View>
       <FormField
-        label={t('addField.locationText')}
+        label={compact ? undefined : t('addField.locationText')}
         value={value}
         onChangeText={(locationText) => onChange({ locationText })}
         placeholder={t('createGrove.place.placeholder', {
           defaultValue: t('addField.locationPlaceholder'),
         })}
         editable={!disabled}
+        containerStyle={compact ? styles.compactField : undefined}
+        leftIcon={<Ionicons name="search-outline" size={18} color={colors.textSecondary} />}
       />
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        {t('createGrove.place.hint', { defaultValue: t('addField.locationHint') })}
-      </Text>
+      {!compact ? (
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          {t('createGrove.place.hint', { defaultValue: t('addField.locationHint') })}
+        </Text>
+      ) : null}
       {loading && suggestions.length === 0 ? (
         <Text style={[styles.status, { color: colors.textTertiary }]}>
           {t('addField.locationSearching')}
         </Text>
       ) : null}
       {suggestions.length > 0 ? (
-        <View style={[styles.list, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}>
-          {suggestions.map((place) => (
+        <View
+          style={[
+            styles.list,
+            compact && styles.listCompact,
+            { borderColor: colors.borderLight, backgroundColor: colors.surface },
+          ]}
+        >
+          {suggestions.slice(0, compact ? 4 : 6).map((place) => (
             <Pressable
               key={`${place.latitude},${place.longitude},${place.label}`}
               onPress={() => {
@@ -78,10 +90,12 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled }) => 
                 });
                 setSuggestions([]);
               }}
-              style={[styles.option, { borderBottomColor: colors.borderLight }]}
+              style={[styles.option, compact && styles.optionCompact, { borderBottomColor: colors.borderLight }]}
             >
               <Ionicons name="location-outline" size={16} color={colors.primary} />
-              <Text style={[styles.optionText, { color: colors.textPrimary }]}>{place.label}</Text>
+              <Text style={[styles.optionText, { color: colors.textPrimary }]} numberOfLines={1}>
+                {place.label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -91,6 +105,7 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled }) => 
 };
 
 const styles = StyleSheet.create({
+  compactField: { marginBottom: 0 },
   hint: { ...typography.styles.caption, marginTop: -spacing.xs, marginBottom: spacing.xs },
   status: { ...typography.styles.caption, marginBottom: spacing.xs },
   list: {
@@ -98,6 +113,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: spacing.sm,
+  },
+  listCompact: {
+    marginTop: spacing.xs,
+    marginBottom: 0,
   },
   option: {
     flexDirection: 'row',
@@ -107,6 +126,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     minHeight: 48,
+  },
+  optionCompact: {
+    minHeight: 40,
+    paddingVertical: 8,
   },
   optionText: { ...typography.styles.bodySmall, flex: 1 },
 });

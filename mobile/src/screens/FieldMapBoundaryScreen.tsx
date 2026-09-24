@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -11,13 +19,17 @@ import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { resolveFieldPolygon } from '../utils/fieldGeo';
 import { spacing, typography } from '../theme';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import FocusSpotlight from '../components/onboarding/FocusSpotlight';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FieldMapBoundary'>;
 
 const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
   const { fieldId } = route.params;
-  const { t } = useTranslation(['fields', 'common']);
+  const { t } = useTranslation(['fields', 'common', 'onboarding']);
   const { colors } = useTheme();
+  const activation = useOwnerActivationOptional();
+  const { height: windowHeight } = useWindowDimensions();
   const [points, setPoints] = useState<BoundaryPoint[]>([]);
   const [locationText, setLocationText] = useState('');
   const [latitude, setLatitude] = useState<number | undefined>();
@@ -26,6 +38,9 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  // Leave room for search + tools + save; keep the map the hero.
+  const mapHeight = Math.max(280, Math.min(420, Math.round(windowHeight * 0.48)));
 
   useEffect(() => {
     fieldService
@@ -77,6 +92,16 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       }
       await fieldService.updateBoundary(fieldId, boundary);
+      activation?.markFieldsDirty({ boundarySavedFieldId: fieldId });
+      const needsSpatial = activation?.eligible && !activation.completion.loadData;
+      if (needsSpatial) {
+        navigation.replace('FieldDetail', {
+          fieldId,
+          mode: 'map',
+          activation: 'spatial',
+        });
+        return;
+      }
       navigation.goBack();
     } catch {
       setError(t('form.failedSave'));
@@ -84,6 +109,18 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (!activation) return;
+    activation.setSpotlightScreen('boundary');
+    return () => activation.setSpotlightScreen(null);
+  }, [activation]);
+
+  const showSpotlight = activation?.spotlightStep === 'drawBoundary';
+  const placeChosen =
+    Boolean(locationText.trim()) ||
+    (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude));
+  const boundaryPhase: 'locate' | 'draw' = placeChosen ? 'draw' : 'locate';
 
   if (loading) return <LoadingSpinner fullScreen />;
 
@@ -101,19 +138,29 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={[styles.title, { color: colors.textPrimary }]}>
           {t('addField.steps.boundary')}
         </Text>
-        <Text style={[styles.desc, { color: colors.textSecondary }]}>
+        <Text style={[styles.desc, { color: colors.textSecondary }]} numberOfLines={2}>
           {t('addField.boundaryDescFriendly')}
         </Text>
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          {t('createGrove.enrich.boundaryBody')}
-        </Text>
 
-        {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
+        {showSpotlight ? (
+          <FocusSpotlight
+            step="drawBoundary"
+            boundaryPhase={boundaryPhase}
+            onSkip={
+              activation?.locked ? undefined : () => activation?.skipStep('drawBoundary')
+            }
+          />
+        ) : null}
+
+        {error ? (
+          <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+        ) : null}
 
         <View style={styles.searchBlock}>
           <LocationSearchField
             value={locationText}
             disabled={saving}
+            compact
             onChange={(next) => {
               void persistLocation(next);
             }}
@@ -126,7 +173,7 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
           locationQuery={locationText}
           latitude={latitude}
           longitude={longitude}
-          height={400}
+          height={mapHeight}
           onGestureActiveChange={(active) => setScrollEnabled(!active)}
         />
 
@@ -151,13 +198,12 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: spacing.base, paddingBottom: spacing['3xl'], gap: spacing.sm },
-  title: { ...typography.styles.h3, fontWeight: '700' },
-  desc: { ...typography.styles.bodySmall, lineHeight: 20 },
-  hint: { ...typography.styles.caption, marginBottom: spacing.xs },
+  content: { padding: spacing.base, paddingBottom: spacing['3xl'], gap: spacing.xs },
+  title: { ...typography.styles.h4, fontWeight: '700' },
+  desc: { ...typography.styles.caption, lineHeight: 18, marginBottom: spacing.xs },
   error: { marginBottom: spacing.xs },
-  searchBlock: { marginBottom: spacing.xs },
-  save: { marginTop: spacing.md },
+  searchBlock: { marginBottom: spacing.xs, zIndex: 2 },
+  save: { marginTop: spacing.sm },
 });
 
 export default FieldMapBoundaryScreen;

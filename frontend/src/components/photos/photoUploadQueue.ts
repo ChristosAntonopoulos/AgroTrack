@@ -276,9 +276,9 @@ export const createPhotoUploadQueue = (deps?: {
           const stored = await store.list();
           const restored = stored.map((job) => {
             const file = fileFrom(job);
-            let status = job.status;
-            if (status === 'uploading' || status === 'converting') status = 'queued';
-            if (status === 'offline' && online()) status = 'queued';
+          let status = job.status;
+          if (status === 'uploading' || status === 'converting' || status === 'staged') status = 'queued';
+          if (status === 'offline' && online()) status = 'queued';
             return {
               ...job,
               status,
@@ -310,7 +310,15 @@ export const createPhotoUploadQueue = (deps?: {
           blob: file,
           file,
           previewUrl: issue ? '' : previewFor(file),
-          status: issue ? 'failed' : isHeicFile(file) ? 'converting' : 'staged',
+          status: issue
+            ? 'failed'
+            : isHeicFile(file)
+              ? 'converting'
+              : options.autoStart
+                ? online()
+                  ? 'queued'
+                  : 'offline'
+                : 'staged',
           error: issue ? issueMessage(issue, options.messages) : null,
           progress: 0,
           uploadId: null,
@@ -328,6 +336,7 @@ export const createPhotoUploadQueue = (deps?: {
         jobs = [...jobs, base];
         persist(base);
         emit();
+        if (base.status === 'queued' || base.status === 'offline') queue.pump();
         if (issue) continue;
 
         try {
@@ -348,13 +357,20 @@ export const createPhotoUploadQueue = (deps?: {
           if (current?.previewUrl && current.previewUrl !== base.previewUrl) {
             revokePreview(current.previewUrl);
           }
-          const status: PhotoJobStatus = duplicate
-            ? 'duplicate'
-            : options.autoStart
-              ? online()
-                ? 'queued'
-                : 'offline'
-              : 'staged';
+          const inFlight =
+            current?.status === 'uploading' ||
+            current?.status === 'uploaded' ||
+            current?.status === 'failed';
+          const status: PhotoJobStatus =
+            duplicate && !inFlight
+              ? 'duplicate'
+              : inFlight
+                ? current.status
+                : options.autoStart
+                  ? online()
+                    ? 'queued'
+                    : 'offline'
+                  : 'staged';
           replace(localId, {
             name: prepared.file.name,
             type: prepared.file.type,
@@ -371,8 +387,12 @@ export const createPhotoUploadQueue = (deps?: {
             status,
             error: null,
           });
+          if (!inFlight && (status === 'queued' || status === 'offline')) queue.pump();
         } catch {
           const current = jobs.find((job) => job.localId === localId);
+          if (current?.status === 'uploading' || current?.status === 'uploaded' || current?.status === 'queued') {
+            continue;
+          }
           if (current?.previewUrl) revokePreview(current.previewUrl);
           replace(localId, {
             status: 'failed',

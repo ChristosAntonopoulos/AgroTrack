@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useOfflineMode } from '../../context/OfflineContext';
 import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../../hooks/useFamilyMembershipModules';
 import Button from '../ui/Button';
+import { HarvestNumberInput } from '../../harvestCampaign/components/HarvestNumberInput';
 import Sheet from '../ui/Sheet';
 import FormDateField from '../forms/FormDateField';
 import MoneyCaptureForm from './MoneyCaptureForm';
@@ -99,6 +100,7 @@ const CaptureSheet: React.FC<Props> = ({
   const [workTemplate, setWorkTemplate] = useState('');
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
+  const [harvestBeat, setHarvestBeat] = useState<'olives' | 'oil'>('olives');
   const [harvestNotes, setHarvestNotes] = useState('');
   const [recording, setRecording] = useState(false);
   const [voiceUri, setVoiceUri] = useState<string | null>(null);
@@ -149,6 +151,7 @@ const CaptureSheet: React.FC<Props> = ({
     setWorkTemplate('');
     setOliveKg('');
     setOilKg('');
+    setHarvestBeat('olives');
     setHarvestNotes('');
     setMoreOpen(false);
     setRecording(false);
@@ -392,7 +395,13 @@ const CaptureSheet: React.FC<Props> = ({
     { type: 'document', icon: 'document-text-outline', enabled: permissions.canRecordDocument },
   ];
 
+  useEffect(() => {
+    if (fieldId || fields.length !== 1) return;
+    setFieldId(fields[0].id);
+  }, [fieldId, fields]);
+
   const fieldLocked = Boolean(context.fieldId);
+  const askField = !fieldLocked && fields.length > 1 && !fieldId;
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
   const isPhotoStep = step === 'photo';
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
@@ -407,16 +416,39 @@ const CaptureSheet: React.FC<Props> = ({
   return (
     <Sheet
       open={open}
-      onClose={step === 'choose' ? onClose : () => setStep('choose')}
+      onClose={
+        step === 'choose'
+          ? onClose
+          : step === 'harvest' && harvestBeat === 'oil'
+            ? () => setHarvestBeat('olives')
+            : () => setStep('choose')
+      }
       edge="end"
       title={sheetTitle}
       maxHeightPercent={step === 'choose' ? 70 : 92}
       scrollable={false}
       footer={
-        step !== 'choose' && !isMoneyStep && !isPhotoStep ? (
+        step !== 'choose' && !isMoneyStep && !isPhotoStep && !askField ? (
           <Button
-            title={submitting ? t('capture:saving') : t('capture:save')}
-            onPress={() => void save()}
+            title={
+              submitting
+                ? t('capture:saving')
+                : step === 'harvest' && harvestBeat === 'olives'
+                  ? t('common:next')
+                  : t('capture:save')
+            }
+            onPress={() => {
+              if (step === 'harvest' && harvestBeat === 'olives') {
+                const olives = Number(oliveKg.replace(',', '.'));
+                if (!olives || Number.isNaN(olives)) {
+                  Alert.alert('', t('capture:errors.oliveRequired'));
+                  return;
+                }
+                setHarvestBeat('oil');
+                return;
+              }
+              void save();
+            }}
             loading={submitting}
             fullWidth
             size="large"
@@ -513,54 +545,45 @@ const CaptureSheet: React.FC<Props> = ({
             </>
           ) : (
             <>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:fieldLabel')}</Text>
-              {fieldLocked ? (
-                <Text style={[styles.lockedField, { color: colors.textPrimary, borderColor: colors.border }]}>
-                  {fields.find(f => f.id === fieldId)?.name || fieldId}
-                </Text>
+              {askField ? (
+                <>
+                  <Text style={[styles.prompt, { color: colors.textPrimary }]}>{t('capture:money.whichField')}</Text>
+                  <View style={styles.chipRow}>
+                    {fields.map(f => (
+                      <Pressable
+                        key={f.id}
+                        style={[
+                          styles.chip,
+                          {
+                            borderColor: colors.border,
+                            backgroundColor: colors.surface,
+                            minHeight: tapMin,
+                          },
+                        ]}
+                        onPress={() => {
+                          setFieldId(f.id);
+                          onContextChange({ ...context, fieldId: f.id });
+                        }}
+                      >
+                        <FieldColorMark color={f.color} fieldId={f.id} size={10} />
+                        <Text style={{ color: colors.textPrimary }}>{f.name}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
               ) : (
-                <View style={styles.chipRow}>
-                  {fields.map(f => (
-                    <Pressable
-                      key={f.id}
-                      style={[
-                        styles.chip,
-                        {
-                          borderColor: fieldId === f.id ? colors.oliveBorder : colors.border,
-                          backgroundColor: fieldId === f.id ? colors.primaryLight : colors.surface,
-                          minHeight: tapMin,
-                        },
-                      ]}
-                      onPress={() => {
-                        setFieldId(f.id);
-                        onContextChange({ ...context, fieldId: f.id });
-                      }}
-                    >
-                      <Text style={{ color: fieldId === f.id ? colors.primary : colors.textPrimary }}>{f.name}</Text>
-                    </Pressable>
-                  ))}
+              <>
+              {selectedFieldName ? (
+                <View style={[styles.lockedField, { borderColor: colors.border }]}>
+                  <FieldColorMark
+                    color={fields.find(f => f.id === fieldId)?.color}
+                    fieldId={fieldId}
+                    size={12}
+                  />
+                  <Text style={{ color: colors.textPrimary, fontWeight: '700', flex: 1 }}>
+                    {selectedFieldName}
+                  </Text>
                 </View>
-              )}
-
-              {selectedFieldName || context.periodLabel ? (
-                <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                  {[selectedFieldName, context.periodLabel].filter(Boolean).join(' · ')}
-                </Text>
-              ) : null}
-
-              <FormDateField
-                label={t('capture:dateLabel')}
-                value={toDateKey(occurredAt)}
-                onValueChange={(ymd) => setOccurredAt(applyDateKey(occurredAt, ymd))}
-              />
-              {context.dateNeedsChoice ? (
-                <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                  {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
-                </Text>
-              ) : context.dateDefaultedToToday ? (
-                <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                  {t('chronologio:captureDateUsesToday')}
-                </Text>
               ) : null}
 
               {step === 'observation' ? (
@@ -686,26 +709,27 @@ const CaptureSheet: React.FC<Props> = ({
 
               {step === 'work' ? (
                 <>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:work.whatWork')}</Text>
-                  <View style={styles.chipRow}>
+                  <Text style={[styles.prompt, { color: colors.textPrimary }]}>{t('capture:work.whatWork')}</Text>
+                  <View style={{ gap: 8 }}>
                     {WORK_CHOICES.map((code) => {
                       const selected = workTemplate === code;
                       return (
                         <Pressable
                           key={code}
                           style={[
-                            styles.chip,
+                            styles.choiceRow,
                             {
-                              borderColor: selected ? colors.oliveBorder : colors.border,
-                              backgroundColor: selected ? colors.primaryLight : colors.surface,
+                              borderColor: selected ? colors.oliveBorder : 'transparent',
+                              backgroundColor: selected ? colors.primaryLight : colors.surfaceMuted,
                               minHeight: tapMin,
                             },
                           ]}
                           onPress={() => setWorkTemplate(code)}
                         >
-                          <Text style={{ color: selected ? colors.primary : colors.textPrimary }}>
+                          <Text style={{ flex: 1, color: colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
                             {templateTitle(code, i18n.language)}
                           </Text>
+                          {selected ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
                         </Pressable>
                       );
                     })}
@@ -713,30 +737,28 @@ const CaptureSheet: React.FC<Props> = ({
                 </>
               ) : null}
 
-              {step === 'harvest' ? (
+              {step === 'harvest' && harvestBeat === 'olives' ? (
+                <HarvestNumberInput
+                  label={t('capture:harvest.olivesQuestion')}
+                  value={oliveKg}
+                  onChange={setOliveKg}
+                  suffix="kg"
+                  autoFocus
+                />
+              ) : null}
+
+              {step === 'harvest' && harvestBeat === 'oil' ? (
                 <>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
-                    ]}
-                    placeholder={t('capture:harvest.olives')}
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="decimal-pad"
-                    value={oliveKg}
-                    onChangeText={setOliveKg}
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
-                    ]}
-                    placeholder={t('capture:harvest.oil')}
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="decimal-pad"
+                  <HarvestNumberInput
+                    label={t('capture:harvest.oilQuestion')}
                     value={oilKg}
-                    onChangeText={setOilKg}
+                    onChange={setOilKg}
+                    suffix="kg"
+                    autoFocus
                   />
+                  <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                    {t('capture:harvest.oilOptional')}
+                  </Text>
                   {yieldPct != null ? (
                     <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
                       {t('capture:harvest.yield')}: {yieldPct}%
@@ -748,25 +770,43 @@ const CaptureSheet: React.FC<Props> = ({
                     </Text>
                   </Pressable>
                   {moreOpen ? (
-                    <>
-                      <TextInput
-                        style={[
-                          styles.input,
-                          styles.textarea,
-                          { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
-                        ]}
-                        placeholder={t('capture:harvest.notes')}
-                        placeholderTextColor={colors.textTertiary}
-                        multiline
-                        value={harvestNotes}
-                        onChangeText={setHarvestNotes}
-                      />
-                    </>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.textarea,
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
+                      ]}
+                      placeholder={t('capture:harvest.notes')}
+                      placeholderTextColor={colors.textTertiary}
+                      multiline
+                      value={harvestNotes}
+                      onChangeText={setHarvestNotes}
+                    />
                   ) : null}
                 </>
               ) : null}
 
-              {(step === 'observation' || step === 'harvest') && (
+              {step === 'harvest' && harvestBeat === 'olives' ? null : (
+              <>
+              <FormDateField
+                label={t('capture:dateLabel')}
+                value={toDateKey(occurredAt)}
+                onValueChange={(ymd) => setOccurredAt(applyDateKey(occurredAt, ymd))}
+              />
+              {context.dateNeedsChoice ? (
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                  {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                </Text>
+              ) : context.dateDefaultedToToday ? (
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                  {t('chronologio:captureDateUsesToday')}
+                </Text>
+              ) : null}
+
+              </>
+              )}
+
+              {(step === 'observation' || (step === 'harvest' && harvestBeat === 'oil')) && (
                 <View style={{ marginTop: 12, gap: 8 }}>
                   <View style={styles.photoRow}>
                     {photos.map(uri => (
@@ -778,6 +818,8 @@ const CaptureSheet: React.FC<Props> = ({
                     <Button title={t('capture:chooseLibrary')} onPress={() => void pickPhoto(false)} variant="outline" size="large" />
                   </View>
                 </View>
+              )}
+              </>
               )}
             </>
           )}
@@ -816,9 +858,35 @@ const styles = StyleSheet.create({
   typeTitle: { fontSize: 15, fontWeight: '650' as '600' },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
   hint: { fontSize: 13, marginBottom: 10 },
-  lockedField: { borderWidth: 1, borderRadius: radii.lg, padding: 12, fontWeight: '700', marginBottom: 8 },
+  lockedField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: 12,
+    marginBottom: 8,
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  chip: { borderWidth: 1, borderRadius: radii.full, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
+  choiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
   input: { borderWidth: 1, borderRadius: radii.lg, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 10, fontSize: 16 },
   textarea: { minHeight: 96, textAlignVertical: 'top' },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

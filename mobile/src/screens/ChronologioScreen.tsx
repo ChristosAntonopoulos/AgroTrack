@@ -985,6 +985,10 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
               label={
                 fields.find((f) => f.id === filterFieldId)?.name || t('chronologio:living.field')
               }
+              dotColor={resolveFieldColor(
+                fields.find((f) => f.id === filterFieldId)?.color,
+                filterFieldId
+              )}
               onDismiss={() => setFilterFieldId('')}
             />
           ) : null}
@@ -1426,7 +1430,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             : peek
         }
         numberLocale={numberLocale}
-        fieldOptions={fields.map((f) => ({ id: f.id, name: f.name }))}
+        fieldOptions={fields.map((f) => ({ id: f.id, name: f.name, color: f.color }))}
         onClose={() => setPeek(null)}
         onMutated={() => setReloadToken((n) => n + 1)}
         onDrillToMonths={(year) => {

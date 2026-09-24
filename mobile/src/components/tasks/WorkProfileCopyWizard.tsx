@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '../../services/api';
 import type { Field } from '../../services/fieldService';
 import type { CopyFieldWorkProfileResult, FieldWorkProfile } from '../../services/fieldWorkService';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import FieldColorMark from '../fields/FieldColorMark';
 import {
   buildCopyDiffPreview,
   selectableCopyTargets,
@@ -149,7 +150,8 @@ const WorkProfileCopyWizard: React.FC<Props> = ({ sourceFieldId, profile, onDone
                   },
                 ]}
               >
-                <Text style={[styles.choiceTitle, { color: colors.textPrimary }]}>
+                <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+                <Text style={[styles.choiceTitle, { color: colors.textPrimary, flex: 1 }]}>
                   {friendlyFieldLabel(field.name)}
                 </Text>
               </Pressable>
@@ -194,9 +196,12 @@ const WorkProfileCopyWizard: React.FC<Props> = ({ sourceFieldId, profile, onDone
             {t('tasks:fieldWork.profile.copy.reviewBody', { count: targets.length })}
           </Text>
           {targets.map((field) => (
-            <Text key={field.id} style={[styles.choiceTitle, { color: colors.textPrimary }]}>
-              {friendlyFieldLabel(field.name)}
-            </Text>
+            <View key={field.id} style={styles.choice}>
+              <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+              <Text style={[styles.choiceTitle, { color: colors.textPrimary, flex: 1 }]}>
+                {friendlyFieldLabel(field.name)}
+              </Text>
+            </View>
           ))}
           {diffRows.map((row) => (
             <View key={row.key} style={styles.diffRow}>
@@ -231,9 +236,16 @@ const WorkProfileCopyWizard: React.FC<Props> = ({ sourceFieldId, profile, onDone
           </Text>
           {result.results.map((row) => (
             <View key={row.fieldId} style={styles.diffRow}>
-              <Text style={[styles.choiceTitle, { color: colors.textPrimary }]}>
-                {friendlyFieldLabel(fields.find((field) => field.id === row.fieldId)?.name || row.fieldId)}
-              </Text>
+              <View style={styles.nameRow}>
+                <FieldColorMark
+                  color={fields.find((field) => field.id === row.fieldId)?.color}
+                  fieldId={row.fieldId}
+                  size={12}
+                />
+                <Text style={[styles.choiceTitle, { color: colors.textPrimary, flex: 1 }]}>
+                  {friendlyFieldLabel(fields.find((field) => field.id === row.fieldId)?.name || row.fieldId)}
+                </Text>
+              </View>
               <Text style={{ color: row.success ? colors.textSecondary : colors.error }}>
                 {row.success ? t('tasks:fieldWork.profile.copy.ok') : row.errorMessage || row.errorCode}
               </Text>
@@ -252,7 +264,15 @@ const styles = StyleSheet.create({
   block: { gap: spacing.sm },
   title: { fontSize: 20, fontWeight: '700' },
   hint: { fontSize: 14, lineHeight: 20 },
-  choice: { borderWidth: 1, borderRadius: 14, padding: spacing.md },
+  choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: spacing.md,
+  },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   choiceTitle: { fontSize: 15, fontWeight: '700' },
   switchRow: {
     flexDirection: 'row',

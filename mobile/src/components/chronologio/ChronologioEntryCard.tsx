@@ -18,6 +18,14 @@ import HarvestDayJourney from './HarvestDayJourney';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { createElevation, motion, radii, spacing } from '../../theme';
+import {
+  extremeKindFromEventType,
+  extremeMetricLine,
+  extremePalette,
+  extremeVisualTone,
+  formatExtremeDateRange,
+  isWeatherExtremeEventType,
+} from '../../chronologio/weatherExtreme';
 
 export type ChronologioEntryCardDensity = 'default' | 'compact';
 
@@ -112,12 +120,78 @@ const ChronologioEntryCard: React.FC<Props> = ({
   const { colors } = useTheme();
   const token = eventAccentToken(entry.category, String(entry.importance));
   const { accent: categoryAccent, soft: softBg } = accentColorsForToken(colors, token);
-  const size = weatherTile ? 'compact' : density === 'compact' ? 'compact' : eventCardSize(entry);
+  const isPeriodReview =
+    entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
+  const isExtreme = isWeatherExtremeEventType(entry.eventType);
+
+  if (isExtreme && !weatherTile) {
+    const weather = entry.details.weather;
+    const kind =
+      weather?.extremeKind || extremeKindFromEventType(entry.eventType) || 'heatwave';
+    const tone = extremeVisualTone(kind);
+    const palette = extremePalette(tone);
+    const kindLabel = t(`chronologio:extremeWeather.kinds.${kind}`, {
+      defaultValue: presented.label,
+    });
+    const period = formatExtremeDateRange(
+      weather?.extremeStartDate,
+      weather?.extremeEndDate,
+      i18n.language
+    );
+    const streak =
+      weather?.streakDays != null && weather.streakDays > 0
+        ? t('chronologio:extremeWeather.days', { count: weather.streakDays })
+        : null;
+    const metrics = extremeMetricLine(weather, numberLocale, kind);
+    const fieldChip =
+      showField && entry.field?.name ? friendlyFieldLabel(entry.field.name) : null;
+    const trail = [streak, metrics, period, fieldChip].filter(Boolean) as string[];
+    const iconName =
+      tone === 'heat'
+        ? 'flame'
+        : tone === 'drought'
+          ? 'sunny'
+          : tone === 'rain'
+            ? 'rainy'
+            : tone === 'frost'
+              ? 'snow'
+              : 'thermometer-outline';
+
+    return (
+      <View style={styles.extremeWrap} pointerEvents="none">
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={[kindLabel, ...trail].join(', ')}
+          style={[styles.extremePill, { backgroundColor: palette.fill }]}
+        >
+          <View style={[styles.extremeIcon, { backgroundColor: palette.iconBg }]}>
+            <Ionicons name={iconName} size={12} color="#fff" />
+          </View>
+          <Text style={[styles.extremeKind, { color: palette.ink }]} numberOfLines={1}>
+            {kindLabel}
+          </Text>
+          {trail.map((part) => (
+            <React.Fragment key={part}>
+              <Text style={[styles.extremeDot, { color: palette.ink }]}>·</Text>
+              <Text style={[styles.extremeMeta, { color: palette.ink }]} numberOfLines={1}>
+                {part}
+              </Text>
+            </React.Fragment>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  const size = weatherTile
+    ? 'compact'
+    : density === 'compact'
+      ? 'compact'
+      : eventCardSize(entry);
   const compact = size === 'compact' && !weatherTile;
   const featured = size === 'featured';
   const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
-  const isPeriodReview =
-    entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
   const harvest = entry.details.harvest;
   const note = entry.details.note;
   const weather = entry.details.weather;
@@ -601,6 +675,39 @@ const styles = StyleSheet.create({
   weatherPickField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   weatherPickTitle: { fontWeight: '700', fontSize: 15, flexShrink: 1 },
   weatherPickMetrics: { flexDirection: 'row', gap: 10 },
+  extremeWrap: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    marginVertical: 2,
+  },
+  extremePill: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    gap: 4,
+    paddingVertical: 5,
+    paddingLeft: 5,
+    paddingRight: 10,
+    borderRadius: 999,
+  },
+  extremeIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 99,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  extremeKind: { fontSize: 12, fontWeight: '700' },
+  extremeDot: { fontSize: 12, fontWeight: '600', opacity: 0.55 },
+  extremeMeta: {
+    fontSize: 11,
+    fontWeight: '600',
+    opacity: 0.95,
+    fontVariant: ['tabular-nums'],
+    maxWidth: 140,
+  },
   pickMetric: { gap: 1, minWidth: 44 },
   pickValue: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
   pickLabel: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },

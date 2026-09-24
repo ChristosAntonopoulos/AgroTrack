@@ -17,6 +17,7 @@ import ScreenLayout from '../components/layout/ScreenLayout';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import FilterChips from '../components/ui/FilterChips';
+import FieldColorMark from '../components/fields/FieldColorMark';
 import Sheet from '../components/ui/Sheet';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -483,7 +484,12 @@ const PhotoHubScreen: React.FC = () => {
               },
             ]}
           >
-            <Ionicons name="map-outline" size={16} color={colors.primary} />
+            <FieldColorMark
+              color={fields.find((field) => field.id === fieldId)?.color}
+              fieldId={fieldId || undefined}
+              hollow={!fieldId}
+              size={12}
+            />
             <Text
               style={{ color: colors.textPrimary, fontWeight: '600', flexShrink: 1 }}
               numberOfLines={1}
@@ -919,7 +925,8 @@ const PhotoHubScreen: React.FC = () => {
           }}
           style={[styles.pickerRow, { borderBottomColor: colors.border, minHeight: tapMin }]}
         >
-          <Text style={{ color: colors.textPrimary }}>{t('photos:filters.allFields')}</Text>
+          <FieldColorMark hollow size={12} />
+          <Text style={{ color: colors.textPrimary, flex: 1 }}>{t('photos:filters.allFields')}</Text>
         </Pressable>
         {fields.map((field) => (
           <Pressable
@@ -930,7 +937,8 @@ const PhotoHubScreen: React.FC = () => {
             }}
             style={[styles.pickerRow, { borderBottomColor: colors.border, minHeight: tapMin }]}
           >
-            <Text style={{ color: colors.textPrimary }}>{friendlyFieldLabel(field.name)}</Text>
+            <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+            <Text style={{ color: colors.textPrimary, flex: 1 }}>{friendlyFieldLabel(field.name)}</Text>
             {fieldId === field.id ? (
               <Ionicons name="checkmark" size={18} color={colors.primary} />
             ) : null}
@@ -1016,7 +1024,8 @@ const PhotoHubScreen: React.FC = () => {
                     },
                   ]}
                 >
-                  <Text style={{ color: colors.textPrimary }}>
+                  <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+                  <Text style={{ color: colors.textPrimary, flex: 1 }}>
                     {friendlyFieldLabel(field.name)}
                   </Text>
                   {(defaultField === field.id || photo.fieldId === field.id) ? (
@@ -1063,12 +1072,23 @@ const PhotoHubScreen: React.FC = () => {
               <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
                 {t('photos:detail.field')}
               </Text>
-              <Text style={{ color: colors.textPrimary }}>
-                {selected.fieldName ||
-                  (selected.fieldId
-                    ? fieldNames[selected.fieldId] || friendlyFieldLabel(selected.fieldId)
-                    : '—')}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {selected.fieldId ? (
+                  <FieldColorMark
+                    color={fields.find((field) => field.id === selected.fieldId)?.color}
+                    fieldId={selected.fieldId}
+                    size={12}
+                  />
+                ) : (
+                  <FieldColorMark hollow size={12} />
+                )}
+                <Text style={{ color: colors.textPrimary, flex: 1 }}>
+                  {selected.fieldName ||
+                    (selected.fieldId
+                      ? fieldNames[selected.fieldId] || friendlyFieldLabel(selected.fieldId)
+                      : '—')}
+                </Text>
+              </View>
               <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
                 {t('photos:detail.captured')}
               </Text>
@@ -1141,7 +1161,8 @@ const PhotoHubScreen: React.FC = () => {
                       { borderBottomColor: colors.border, minHeight: tapMin },
                     ]}
                   >
-                    <Text style={{ color: colors.textPrimary }}>
+                    <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+                    <Text style={{ color: colors.textPrimary, flex: 1 }}>
                       {friendlyFieldLabel(field.name)}
                     </Text>
                     {confirmFieldId === field.id ? (
@@ -1521,6 +1542,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.sm,
   },

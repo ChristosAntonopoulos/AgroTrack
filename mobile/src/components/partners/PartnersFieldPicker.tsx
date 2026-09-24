@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Field } from '../../services/fieldService';
 import { isListedGrove } from '../../utils/fieldDisplay';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { spacing, radii } from '../../theme';
 
 type Props = {
@@ -34,7 +35,14 @@ const PartnersFieldPicker: React.FC<Props> = ({ fields, value, onChange, counts 
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
     >
-      <View style={[styles.swatch, { backgroundColor: color || colors.oliveBorder }]} />
+      <View
+        style={[
+          styles.swatch,
+          color
+            ? { backgroundColor: color }
+            : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.textTertiary },
+        ]}
+      />
       <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{label}</Text>
       {typeof count === 'number' ? (
         <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t('peopleOnField', { count })}</Text>
@@ -50,14 +58,14 @@ const PartnersFieldPicker: React.FC<Props> = ({ fields, value, onChange, counts 
     <View style={styles.wrap}>
       <Text style={[styles.label, { color: colors.textTertiary }]}>{t('fieldScope')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {chip('', t('allFields'), allCount, !value, colors.oliveBorder)}
+        {chip('', t('allFields'), allCount, !value)}
         {options.map((field) =>
           chip(
             field.id,
             friendlyFieldLabel(field.name),
             counts[field.id],
             value === field.id,
-            field.color
+            resolveFieldColor(field.color, field.id)
           )
         )}
       </ScrollView>

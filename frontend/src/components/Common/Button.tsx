@@ -22,6 +22,7 @@ interface ButtonProps {
   form?: string;
   'aria-describedby'?: string;
   'aria-pressed'?: boolean | 'true' | 'false';
+  'data-onboarding-target'?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({

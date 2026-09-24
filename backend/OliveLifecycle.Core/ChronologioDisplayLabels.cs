@@ -228,6 +228,68 @@ public static class ChronologioDisplayLabels
     public static string WeatherYearTitle(int year, string language = "el") =>
         IsEnglish(language) ? $"{year} weather" : $"Καιρός {year}";
 
+    public static string WeatherExtremeTitle(
+        string kind,
+        int streakDays,
+        double? minTempC,
+        double? maxTempC,
+        double? rainMm,
+        bool isStronger,
+        string language = "el")
+    {
+        var culture = Culture(language);
+        var en = IsEnglish(language);
+        return kind switch
+        {
+            "heatwave" => en
+                ? (isStronger
+                    ? $"Severe heatwave — {streakDays} days above 37°C"
+                    : $"Prolonged heatwave — {streakDays} days above 37°C")
+                : $"Παρατεταμένος καύσωνας — {streakDays} ημέρες πάνω από 37°C",
+            "frost" => en
+                ? $"Frost in the grove — min {FormatTemp(minTempC, culture)}°C"
+                : $"Παγετός στον ελαιώνα — ελάχιστη {FormatTemp(minTempC, culture)}°C",
+            "nearFrost" => en
+                ? $"Near frost — min {FormatTemp(minTempC, culture)}°C"
+                : $"Κοντά σε παγετό — ελάχιστη {FormatTemp(minTempC, culture)}°C",
+            "heavyRain" => en
+                ? (isStronger
+                    ? $"Extreme rainfall — {FormatRain(rainMm, culture)} mm in one day"
+                    : $"Heavy rainfall — {FormatRain(rainMm, culture)} mm in one day")
+                : $"Έντονη βροχόπτωση — {FormatRain(rainMm, culture)} mm σε μία ημέρα",
+            "drought" => en
+                ? $"Prolonged dry period — {streakDays} days without meaningful rain"
+                : $"Παρατεταμένη ξηρασία — {streakDays} ημέρες χωρίς ουσιαστική βροχή",
+            "coldSpell" => en
+                ? "Unusually low temperatures for the season"
+                : "Ασυνήθιστα χαμηλές θερμοκρασίες για την εποχή",
+            _ => en ? "Weather event" : "Καιρικό φαινόμενο"
+        };
+    }
+
+    public static string WeatherExtremeSummary(
+        DateOnly start,
+        DateOnly end,
+        int streakDays,
+        string language = "el")
+    {
+        var culture = Culture(language);
+        if (start == end)
+        {
+            return start.ToString("d MMM yyyy", culture);
+        }
+
+        return IsEnglish(language)
+            ? $"{start.ToString("d MMM", culture)} – {end.ToString("d MMM yyyy", culture)} · {streakDays} days"
+            : $"{start.ToString("d MMM", culture)} – {end.ToString("d MMM yyyy", culture)} · {streakDays} ημέρες";
+    }
+
+    private static string FormatTemp(double? value, CultureInfo culture) =>
+        (value ?? 0).ToString("0.#", culture);
+
+    private static string FormatRain(double? value, CultureInfo culture) =>
+        (value ?? 0).ToString("0.#", culture);
+
     public static string HarvestQuality(string? quality, string language = "el")
     {
         if (string.IsNullOrWhiteSpace(quality))

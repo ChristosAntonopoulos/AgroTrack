@@ -14,6 +14,7 @@ import { getFieldShortLocation } from '../utils/shortLocation';
 import {
   countFieldListBuckets,
   countTasksToday,
+  fieldHasBoundary,
   fieldSearchHaystack,
   getFieldOpenPath,
   isOwnedField,
@@ -30,14 +31,16 @@ import FieldsMap from '../components/Field/FieldsMap';
 import FieldCard, { FieldCardStats } from '../components/Field/FieldCard';
 import { Plus, Layers, Map as MapIcon, List as ListIcon, Search } from 'lucide-react';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import './FieldsPage.css';
 
 type SortKey = 'name' | 'area' | 'activity' | 'distance';
 type ViewMode = 'list' | 'map';
 
 const FieldsPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common', 'errors']);
+  const { t } = useTranslation(['fields', 'common', 'errors', 'onboarding']);
   const { user } = useAuth();
+  const activation = useOwnerActivationOptional();
   const pageGuard = useModulePageGuard({ module: 'fields' });
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
@@ -293,6 +296,23 @@ const FieldsPage: React.FC = () => {
           <>
             {error && <div className="fields-error">{error}</div>}
 
+            {activation?.eligible &&
+            activation.primaryField &&
+            !fieldHasBoundary(activation.primaryField) ? (
+              <div className="fields-setup-nudge" role="status">
+                <div>
+                  <strong>{t('onboarding:checklist.continueTitle')}</strong>
+                  <p>{t('onboarding:checklist.continueBody')}</p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => activation.goToStep('drawBoundary')}
+                >
+                  {t('onboarding:checklist.continueCta')}
+                </Button>
+              </div>
+            ) : null}
+
             {fields.filter(isVisibleOnFieldsList).length === 0 ? (
               <EmptyState
                 icon={<Layers size={40} />}
@@ -300,7 +320,13 @@ const FieldsPage: React.FC = () => {
                 description={t('fields:emptyDescription')}
                 action={
                   canCreate ? (
-                    <Button to="/fields/new" icon={<Plus />}>
+                    <Button
+                      icon={<Plus />}
+                      onClick={() => {
+                        if (activation?.eligible) activation.goToStep('createGrove');
+                        else navigate('/fields/new');
+                      }}
+                    >
                       {t('fields:addFieldCta')}
                     </Button>
                   ) : undefined

@@ -8,6 +8,9 @@ import PhotoUploadRunner from '../photos/PhotoUploadRunner';
 import { CaptureProvider } from '../../context/CaptureContext';
 import { FeedbackProvider } from '../../context/FeedbackContext';
 import { HarvestCampaignProvider } from '../../context/HarvestCampaignContext';
+import { OwnerActivationProvider } from '../../onboarding/OwnerActivationContext';
+import OwnerActivationHost from '../onboarding/OwnerActivationHost';
+import ActivationGate from '../onboarding/ActivationGate';
 import { useIsMobile } from '../../hooks/useBreakpoint';
 import './MainLayout.css';
 
@@ -38,6 +41,7 @@ const MainLayout: React.FC = () => {
     <HarvestCampaignProvider>
     <CaptureProvider>
     <FeedbackProvider>
+    <OwnerActivationProvider>
       <div className="main-layout">
         <Header onMenuClick={toggleSidebar} hideMenuButton={isMobile} />
         <div className="layout-content">
@@ -53,7 +57,10 @@ const MainLayout: React.FC = () => {
           </main>
         </div>
         {isMobile && <MobileBottomNav onMoreClick={openSidebar} />}
+        <ActivationGate />
+        <OwnerActivationHost />
       </div>
+    </OwnerActivationProvider>
     </FeedbackProvider>
     </CaptureProvider>
     </HarvestCampaignProvider>

@@ -8,21 +8,39 @@ type Props = {
   fieldId?: string | null;
   onChange: (color: string) => void;
   disabled?: boolean;
+  /** Hide title/hint when the parent panel already explains colour. */
+  showLabel?: boolean;
 };
 
-const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled }) => {
+const FieldColorPicker: React.FC<Props> = ({
+  value,
+  fieldId,
+  onChange,
+  disabled,
+  showLabel = true,
+}) => {
   const { t } = useTranslation('fields');
   const selected = resolveFieldColor(value, fieldId);
 
   return (
     <div className="field-color-picker">
-      <span className="field-color-picker-label">{t('form.color', { defaultValue: 'Field color' })}</span>
-      <p className="field-color-picker-hint">
-        {t('form.colorHint', {
-          defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
-        })}
-      </p>
-      <div className="field-color-picker-swatches" role="radiogroup" aria-label={t('form.color')}>
+      {showLabel ? (
+        <>
+          <span className="field-color-picker-label">
+            {t('form.color', { defaultValue: 'Field color' })}
+          </span>
+          <p className="field-color-picker-hint">
+            {t('form.colorHint', {
+              defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
+            })}
+          </p>
+        </>
+      ) : null}
+      <div
+        className="field-color-picker-swatches"
+        role="radiogroup"
+        aria-label={t('form.color', { defaultValue: 'Field color' })}
+      >
         {FIELD_COLOR_PRESETS.map((color) => {
           const active = selected.toUpperCase() === color.toUpperCase();
           const name =

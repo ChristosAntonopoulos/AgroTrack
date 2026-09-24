@@ -30,6 +30,7 @@ public class ChronologioServiceTests
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IMediaAttachmentRepository> _media = new();
     private readonly Mock<IFieldWeatherPeriodReviewRepository> _weatherReviews = new();
+    private readonly Mock<IFieldWeatherExtremeEventRepository> _weatherExtremes = new();
     private readonly Mock<IGeospatialStorageService> _storage = new();
     private readonly Mock<IPhotoContentUrlSigner> _photoUrlSigner = new();
     private readonly ChronologioService _service;
@@ -38,6 +39,9 @@ public class ChronologioServiceTests
     {
         _media.Setup(m => m.GetByOwnersAsync(It.IsAny<MediaOwnerType>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<MediaAttachment>());
+        _weatherExtremes
+            .Setup(r => r.GetByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Core.Entities.Geospatial.FieldWeatherExtremeEvent>());
         _media.Setup(m => m.GetStandaloneByFieldIdsAsync(
                 It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<DateTime?>(),
@@ -77,6 +81,7 @@ public class ChronologioServiceTests
             _users.Object,
             _media.Object,
             _weatherReviews.Object,
+            _weatherExtremes.Object,
             _storage.Object,
             _photoUrlSigner.Object,
             NullLogger<ChronologioService>.Instance);

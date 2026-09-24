@@ -96,7 +96,7 @@ export const chronologioEntryCapabilities = (
   const own = isOwnActor(entry, opts.userId);
   const owner = isFieldOwnerRole(opts.role);
 
-  if (kind === 'weatherPeriod' || kind === 'warning' || kind === 'fieldChange') {
+  if (kind === 'weatherPeriod' || kind === 'weatherExtreme' || kind === 'warning' || kind === 'fieldChange') {
     return { canEdit: false, removeAction: null };
   }
 

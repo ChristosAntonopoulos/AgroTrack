@@ -1,0 +1,106 @@
+{
+  "checklist": {
+    "title": "Configura il tuo oliveto",
+    "progress": "{{done}} di {{total}}",
+    "collapse": "Nascondi",
+    "expand": "Mostra setup",
+    "dismiss": "Per ora basta",
+    "celebrateTitle": "Confine salvato — puoi esplorare",
+    "celebrateBody": "I confini sbloccano il resto di Oleachron. Meteo e satellite appariranno sulla mappa del campo.",
+    "continueTitle": "Completa la configurazione",
+    "continueBody": "Disegna i confini per sbloccare Chronologio, foto e il resto dell'app.",
+    "continueCta": "Continua setup"
+  },
+  "steps": {
+    "createGrove": {
+      "title": "Aggiungi il primo oliveto",
+      "body": "Dagli un nome che riconoscerai — poi scegli un colore."
+    },
+    "drawBoundary": {
+      "title": "Disegna il confine",
+      "body": "Cerca prima il luogo, poi segna gli angoli per area, pendenza e satellite."
+    },
+    "loadData": {
+      "title": "Carica i dati",
+      "body": "Stiamo recuperando suolo, pendenza e satellite per il tuo confine."
+    },
+    "firstObservation": {
+      "title": "Prima osservazione",
+      "body": "Lascia una breve nota — così inizia Chronologio."
+    }
+  },
+  "spotlight": {
+    "skip": "Più tardi",
+    "createGrove": {
+      "title": "Inizia dal nome",
+      "body": "Scrivi un nome breve e tocca Continua per il colore."
+    },
+    "locatePlace": {
+      "title": "Cerca il luogo",
+      "body": "Cerca un paese o una zona, oppure usa la tua posizione. Poi disegni il confine sulla mappa."
+    },
+    "drawBoundary": {
+      "title": "Disegna i confini",
+      "body": "Tocca gli angoli dell'oliveto sulla mappa. Salva quando la forma è corretta."
+    },
+    "firstObservation": {
+      "title": "Registra la prima nota",
+      "body": "Una breve osservazione avvia Chronologio — puoi pubblicare il testo suggerito così com'è."
+    }
+  },
+  "firstObservation": {
+    "title": "Inizia Chronologio con una nota",
+    "body": "I dettagli dell'oliveto sono pronti. Pubblica una prima osservazione — abbiamo preparato un messaggio di benvenuto che puoi inviare così com'è o modificare.",
+    "cta": "Salva una nota",
+    "prefill": "La mia prima osservazione nell'oliveto — qui inizia Chronologio."
+  },
+  "spatial": {
+    "kicker": "Prepariamo l'oliveto",
+    "title": "Raccogliamo i tuoi dati",
+    "body": "Confine salvato. Stiamo costruendo il quadro di questo oliveto per te.",
+    "bodyNamed": "“{{name}}” è sulla mappa. Portiamo meteo, satellite e profilo del campo.",
+    "firstDataHint": "Il meteo di solito arriva per primo; seguono satellite e profilo. Apriamo il benvenuto quando il primo pacchetto è pronto, così la mappa ha già qualcosa da mostrare.",
+    "area": "Area",
+    "slope": "Pendenza",
+    "satellite": "Satellite",
+    "waiting": "In corso…",
+    "ready": "Pronto",
+    "failed": "Non ancora caricato",
+    "retry": "Riprova",
+    "openMapAnyway": "Continua comunque",
+    "continueAnyway": "Continua comunque",
+    "successTitle": "I dati sono pronti",
+    "successBody": "Continua ai dettagli del campo e aggiungi la prima osservazione.",
+    "openChronologio": "Apri Chronologio",
+    "stay": "Resta qui",
+    "stages": {
+      "weather": {
+        "title": "Meteo per l'oliveto",
+        "body": "Temperatura, pioggia e vento intorno ai tuoi alberi."
+      },
+      "satellite": {
+        "title": "Vista satellitare",
+        "body": "Verdore e immagini chiare recenti sul confine."
+      },
+      "personalized": {
+        "title": "Profilo dell'oliveto",
+        "body": "Area, pendenza e suolo su misura per questo luogo."
+      }
+    }
+  },
+  "welcome": {
+    "kicker": "Benvenuto",
+    "groveFallback": "il tuo oliveto",
+    "title": "Benvenuto in “{{grove}}”",
+    "titleNamed": "{{name}}, benvenuto in “{{grove}}”",
+    "body": "Il tuo primo oliveto è pronto. Apri i dettagli del campo e lascia una prima osservazione — Chronologio cresce da qui.",
+    "pointWeather": "Il meteo appare sotto la mappa",
+    "pointSatellite": "I livelli satellitari sono pronti a cielo sereno",
+    "pointMap": "I tuoi confini definiscono cosa osserva Oleachron",
+    "openMap": "Continua al mio oliveto",
+    "openGrove": "Continua al mio oliveto"
+  },
+  "settings": {
+    "showTips": "Mostra suggerimenti setup oliveto"
+  }
+}

@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { formatKg } from '../../utils/harvestUtils';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { formatHarvestOilAmount } from '../utils/harvestCalculations';
+import FieldColorMark from '../../components/fields/FieldColorMark';
 
 type Props = {
   record: {
@@ -22,6 +23,7 @@ type Props = {
     notes?: string;
   };
   fieldName: string;
+  fieldColor?: string | null;
   locale: string;
   canVoid: boolean;
   busy?: boolean;
@@ -31,6 +33,7 @@ type Props = {
 export const HarvestRecordSheet: React.FC<Props> = ({
   record,
   fieldName,
+  fieldColor,
   locale,
   canVoid,
   busy,
@@ -60,9 +63,12 @@ export const HarvestRecordSheet: React.FC<Props> = ({
         ) : undefined
       }
     >
-      <Text style={[styles.prompt, { color: colors.textPrimary }]}>
-        {fieldName} · {dateLabel}
-      </Text>
+      <View style={styles.titleRow}>
+        <FieldColorMark color={fieldColor} fieldId={record.fieldId} size={14} />
+        <Text style={[styles.prompt, { color: colors.textPrimary, flex: 1 }]}>
+          {fieldName} · {dateLabel}
+        </Text>
+      </View>
       <View style={styles.facts}>
         <Text style={{ color: colors.textSecondary }}>{t('fields:harvestCampaign.record.olives')}</Text>
         <Text style={[styles.value, { color: colors.textPrimary }]}>{formatKg(record.oliveKg)}</Text>
@@ -102,6 +108,7 @@ export const HarvestRecordSheet: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   prompt: { fontWeight: '700', fontSize: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   facts: { gap: 6 },
   value: { fontSize: 18, fontWeight: '800', marginBottom: 8 },
 });

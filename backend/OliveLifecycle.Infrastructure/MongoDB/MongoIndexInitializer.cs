@@ -246,6 +246,15 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(r => r.Month),
             new CreateIndexOptions { Unique = true }));
 
+        var weatherExtremes = _context.GetCollection<FieldWeatherExtremeEventDocument>("field_weather_extreme_events");
+        weatherExtremes.Indexes.CreateOne(new CreateIndexModel<FieldWeatherExtremeEventDocument>(
+            Builders<FieldWeatherExtremeEventDocument>.IndexKeys
+                .Ascending(e => e.FieldId)
+                .Descending(e => e.OccurredAt)));
+        weatherExtremes.Indexes.CreateOne(new CreateIndexModel<FieldWeatherExtremeEventDocument>(
+            Builders<FieldWeatherExtremeEventDocument>.IndexKeys.Ascending(e => e.DedupKey),
+            new CreateIndexOptions { Unique = true }));
+
         var observations = _context.GetCollection<FieldSatelliteObservationDocument>("field_satellite_observations");
         observations.Indexes.CreateOne(new CreateIndexModel<FieldSatelliteObservationDocument>(
             Builders<FieldSatelliteObservationDocument>.IndexKeys

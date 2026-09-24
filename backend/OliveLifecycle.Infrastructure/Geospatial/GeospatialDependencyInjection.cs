@@ -47,6 +47,7 @@ public static class GeospatialDependencyInjection
         services.AddScoped<IWeatherCacheRepository, WeatherCacheRepository>();
         services.AddScoped<IFieldDailyWeatherSnapshotRepository, FieldDailyWeatherSnapshotRepository>();
         services.AddScoped<IFieldWeatherPeriodReviewRepository, FieldWeatherPeriodReviewRepository>();
+        services.AddScoped<IFieldWeatherExtremeEventRepository, FieldWeatherExtremeEventRepository>();
         services.AddScoped<IFieldSatelliteObservationRepository, FieldSatelliteObservationRepository>();
         services.AddScoped<IFieldEnvironmentalAlertRepository, FieldEnvironmentalAlertRepository>();
         services.AddScoped<IFireDetectionRepository, FireDetectionRepository>();
@@ -60,6 +61,7 @@ public static class GeospatialDependencyInjection
 
         services.AddScoped<IWeatherIntelligenceService, WeatherIntelligenceService>();
         services.AddScoped<IWeatherReviewCompiler, WeatherReviewCompiler>();
+        services.AddScoped<IWeatherExtremeEventScanner, WeatherExtremeEventScanner>();
         services.AddScoped<IFieldSpatialProfileService, FieldSpatialProfileService>();
         services.AddScoped<IFieldMapDataService, FieldMapDataService>();
         services.AddScoped<IFieldEnvironmentalAlertEvaluator, FieldEnvironmentalAlertEvaluator>();

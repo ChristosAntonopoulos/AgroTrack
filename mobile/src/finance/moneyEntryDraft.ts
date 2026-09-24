@@ -5,8 +5,11 @@ import type { FinancialCalculationMode, FinancialQuantityUnit } from './quantity
 
 export const MONEY_ENTRY_DRAFT_KEY = 'Oleachron.money.entryDraft.v1';
 
+export type MoneyEntryStep = 'kind' | 'category' | 'oil' | 'pack' | 'amount' | 'field' | 'when';
+
 export type MoneyEntryDraftSnapshot = {
   kind: FinancialTransactionType;
+  step?: MoneyEntryStep;
   category: FinancialCategory;
   mode: FinancialCalculationMode;
   quantity: string;

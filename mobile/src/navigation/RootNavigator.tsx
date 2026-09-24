@@ -53,6 +53,9 @@ import {
   takePendingPartnerInviteToken,
 } from '../utils/pendingInvite';
 import { View, StyleSheet } from 'react-native';
+import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
+import ActivationGate from '../components/onboarding/ActivationGate';
+import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -192,6 +195,7 @@ const RootNavigator = () => {
     >
       <CaptureProvider>
         <InAppMessageProvider>
+        <OwnerActivationProvider navRef={navRef}>
         <View style={styles.shell}>
           <Stack.Navigator
             screenOptions={{
@@ -358,7 +362,14 @@ const RootNavigator = () => {
             </>
           )}
         </Stack.Navigator>
+        {isAuthenticated ? (
+          <>
+            <ActivationGate navRef={navRef} />
+            <OwnerActivationHost />
+          </>
+        ) : null}
         </View>
+        </OwnerActivationProvider>
         </InAppMessageProvider>
       </CaptureProvider>
     </NavigationContainer>

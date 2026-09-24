@@ -1,5 +1,6 @@
 import type { ChronologioEntry } from '../services/chronologioService';
 import { eventAccentToken, type EventAccentToken } from './eventCardLayout';
+import { isWeatherExtremeEventType } from './weatherExtreme';
 
 export type ChronologioDetailKind =
   | 'task'
@@ -7,11 +8,15 @@ export type ChronologioDetailKind =
   | 'money'
   | 'harvest'
   | 'weatherPeriod'
+  | 'weatherExtreme'
   | 'warning'
   | 'fieldChange';
 
 export const chronologioDetailKind = (entry: ChronologioEntry): ChronologioDetailKind => {
   if (entry.category === 'intelligence') return 'warning';
+  if (isWeatherExtremeEventType(entry.eventType) || entry.sourceType === 'WeatherExtremeEvent') {
+    return 'weatherExtreme';
+  }
   if (
     entry.eventType === 'weather.monthReview' ||
     entry.eventType === 'weather.yearReview' ||

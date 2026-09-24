@@ -30,6 +30,7 @@ import { RootStackParamList } from '../navigation/types';
 import { changeAppLanguage } from '../i18n';
 import { isMockMode } from '../services/serviceFactory';
 import { NOTIFICATION_PREF_KEYS } from '../services/userPreferencesService';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -63,9 +64,10 @@ const initialsOf = (name: string, email?: string) => {
 type SheetOption = { value: string; label: string };
 
 const SettingsScreen = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isFieldOwner } = useAuth();
   const { colors } = useTheme();
-  const { t } = useTranslation(['settings', 'common', 'nav']);
+  const { t } = useTranslation(['settings', 'common', 'nav', 'onboarding']);
+  const activation = useOwnerActivationOptional();
   const {
     language,
     themeMode,
@@ -408,6 +410,19 @@ const SettingsScreen = () => {
             onChange={(v) => void setDefaultView(v as DefaultStartView).then(flashSaved)}
           />
         </FieldBlock>
+        {isFieldOwner() ? (
+          <View style={{ marginTop: spacing.sm }}>
+            <Button
+              title={t('onboarding:settings.showTips')}
+              variant="outline"
+              onPress={() => {
+                activation?.reopen();
+                flashSaved();
+              }}
+              fullWidth
+            />
+          </View>
+        ) : null}
       </Group>
 
       <Group title={t('settings:sections.legal')}>

@@ -34,6 +34,7 @@ interface Props {
   locationQuery?: string;
   latitude?: number;
   longitude?: number;
+  /** When set, map fills this height; otherwise uses a compact default. */
   height?: number;
 }
 
@@ -52,7 +53,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
   locationQuery,
   latitude,
   longitude,
-  height = 360,
+  height = 320,
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('fields');
@@ -62,7 +63,6 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
   const mapRef = useRef<AppMapViewRef>(null);
   const mapReadyRef = useRef(false);
   const suppressMapTapUntilRef = useRef(0);
-  /** True when the step opened with a saved polygon (edit) — frame once on load only. */
   const hadBoundaryOnMount = useRef(points.length >= 3);
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -86,10 +86,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
       );
     }
     if (points.length >= 1) {
-      return capRegionZoom(
-        regionForCenter(points[0], FIELD_HERO_MIN_DELTA),
-        FIELD_HERO_MAX_ZOOM
-      );
+      return capRegionZoom(regionForCenter(points[0], FIELD_HERO_MIN_DELTA), FIELD_HERO_MAX_ZOOM);
     }
     return region;
   }, [points, region]);
@@ -99,7 +96,10 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
   useEffect(() => {
     if (points.length >= 3) return;
     const goTo = (lat: number, lng: number) => {
-      const next = capRegionZoom(regionForCenter({ latitude: lat, longitude: lng }, FIELD_HERO_MIN_DELTA), FIELD_HERO_MAX_ZOOM);
+      const next = capRegionZoom(
+        regionForCenter({ latitude: lat, longitude: lng }, FIELD_HERO_MIN_DELTA),
+        FIELD_HERO_MAX_ZOOM
+      );
       setRegion(next);
       setLocationMissing(false);
       mapRef.current?.animateToRegion(next, FIELD_HERO_MAX_ZOOM);
@@ -182,10 +182,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
     try {
       const loc = await locationService.getCurrentLocation();
       const center = { latitude: loc.latitude, longitude: loc.longitude };
-      const next = capRegionZoom(
-        regionForCenter(center, FIELD_HERO_MIN_DELTA),
-        FIELD_HERO_MAX_ZOOM
-      );
+      const next = capRegionZoom(regionForCenter(center, FIELD_HERO_MIN_DELTA), FIELD_HERO_MAX_ZOOM);
       setRegion(next);
       setLocationMissing(false);
       mapRef.current?.animateToRegion(next, FIELD_HERO_MAX_ZOOM);
@@ -217,15 +214,14 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
             : t('addField.boundaryCoachFinish')
         : t('addField.boundaryCoachDone');
 
-  const overlayBg = colors.surfaceElevated + 'F2';
-  const overlayElevation = createElevation(colors, 'sm');
+  const chipBg = colors.surfaceElevated + 'F2';
+  const chipElevation = createElevation(colors, 'sm');
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.coach, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
-        <Ionicons name="location-outline" size={18} color={colors.primary} />
-        <Text style={[styles.coachText, { color: colors.primary }]}>{coachText}</Text>
-      </View>
+      <Text style={[styles.coach, { color: colors.textSecondary }]} numberOfLines={2}>
+        {coachText}
+      </Text>
 
       <View
         style={[
@@ -269,184 +265,182 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
             suppressMapTapUntilRef={suppressMapTapUntilRef}
             onDragActiveChange={setGestureActive}
           />
-          {points.length >= 3 ? (
-            <MapPolygonLayer id="draft-boundary" ring={points} />
-          ) : null}
+          {points.length >= 3 ? <MapPolygonLayer id="draft-boundary" ring={points} /> : null}
         </AppMapView>
 
-        <View style={styles.overlays} pointerEvents="box-none">
-          <View style={styles.overlayTop} pointerEvents="box-none">
-            <View style={styles.toggle} pointerEvents="box-none">
-              <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
-            </View>
-
-            <View
+        {/* Compact map chrome only — tools live under the map */}
+        <View style={styles.mapChrome} pointerEvents="box-none">
+          <View style={styles.mapChromeTop} pointerEvents="box-none">
+            <Pressable
               style={[
-                styles.actionBar,
-                { backgroundColor: overlayBg, borderColor: colors.borderLight, ...overlayElevation },
+                styles.iconChip,
+                { backgroundColor: chipBg, borderColor: colors.borderLight, ...chipElevation },
               ]}
+              onPress={centerOnUser}
+              accessibilityRole="button"
+              accessibilityLabel={t('addField.useCurrentLocation')}
             >
-              {phase === 'locate' ? (
-                <>
-                  <Pressable
-                    style={[styles.toolBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
-                    onPress={centerOnUser}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('addField.useCurrentLocation')}
-                  >
-                    <Ionicons name="navigate-outline" size={16} color={colors.textPrimary} />
-                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
-                      {t('addField.useCurrentLocation')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-                    onPress={() => setPhase('drawing')}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('addField.boundaryStartMarking')}
-                  >
-                    <Ionicons name="locate-outline" size={18} color={colors.onOlive} />
-                    <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-                      {t('addField.boundaryStartMarking')}
-                    </Text>
-                  </Pressable>
-                </>
-              ) : null}
-
-              {phase === 'drawing' ? (
-                <>
-                  <Pressable
-                    style={[
-                      styles.toolBtn,
-                      { borderColor: colors.borderLight, backgroundColor: colors.surface, opacity: points.length === 0 ? 0.45 : 1 },
-                    ]}
-                    onPress={() => onPointsChange(points.slice(0, -1))}
-                    disabled={points.length === 0}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="arrow-undo-outline" size={16} color={colors.textPrimary} />
-                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
-                      {t('addField.boundaryUndo')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.toolBtn,
-                      { borderColor: colors.borderLight, backgroundColor: colors.surface, opacity: points.length === 0 ? 0.45 : 1 },
-                    ]}
-                    onPress={clearBoundary}
-                    disabled={points.length === 0}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="trash-outline" size={16} color={colors.textPrimary} />
-                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
-                      {t('addField.boundaryClear')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.primaryBtn,
-                      { backgroundColor: colors.primary, opacity: points.length < 3 ? 0.45 : 1 },
-                    ]}
-                    onPress={finishShape}
-                    disabled={points.length < 3}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="checkmark" size={18} color={colors.onOlive} />
-                    <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-                      {t('addField.boundaryFinish')}
-                    </Text>
-                  </Pressable>
-                </>
-              ) : null}
-
-              {phase === 'done' ? (
-                <>
-                  <Pressable
-                    style={[styles.toolBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
-                    onPress={clearBoundary}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="refresh-outline" size={16} color={colors.textPrimary} />
-                    <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
-                      {t('addField.boundaryRedraw')}
-                    </Text>
-                  </Pressable>
-                  <Text style={[styles.doneNote, { color: colors.textSecondary }]}>
-                    {t('addField.boundarySavedHint')}
-                  </Text>
-                </>
-              ) : null}
-            </View>
+              <Ionicons name="navigate-outline" size={18} color={colors.textPrimary} />
+            </Pressable>
+            <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
           </View>
-        </View>
-
-        <View style={styles.zoom} pointerEvents="box-none">
-          <MapZoomControls
-            onZoomIn={() => mapRef.current?.zoomIn()}
-            onZoomOut={() => mapRef.current?.zoomOut()}
-          />
+          <View style={styles.zoom} pointerEvents="box-none">
+            <MapZoomControls
+              onZoomIn={() => mapRef.current?.zoomIn()}
+              onZoomOut={() => mapRef.current?.zoomOut()}
+            />
+          </View>
         </View>
       </View>
 
-      {points.length > 0 ? (
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          {t('addField.boundaryCornerCount', { count: points.length })}
-          {measuredSqm > 0 ? ` · ${measuredSqm} m²` : ''}
-        </Text>
-      ) : null}
+      <View style={styles.tools}>
+        {phase === 'locate' ? (
+          <Pressable
+            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setPhase('drawing')}
+            accessibilityRole="button"
+            accessibilityLabel={t('addField.boundaryStartMarking')}
+          >
+            <Ionicons name="locate-outline" size={18} color={colors.onOlive} />
+            <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
+              {t('addField.boundaryStartMarking')}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {phase === 'drawing' ? (
+          <View style={styles.toolRow}>
+            <Pressable
+              style={[
+                styles.toolBtn,
+                {
+                  borderColor: colors.borderLight,
+                  backgroundColor: colors.surface,
+                  opacity: points.length === 0 ? 0.45 : 1,
+                },
+              ]}
+              onPress={() => onPointsChange(points.slice(0, -1))}
+              disabled={points.length === 0}
+              accessibilityRole="button"
+            >
+              <Ionicons name="arrow-undo-outline" size={16} color={colors.textPrimary} />
+              <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                {t('addField.boundaryUndo')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.toolBtn,
+                {
+                  borderColor: colors.borderLight,
+                  backgroundColor: colors.surface,
+                  opacity: points.length === 0 ? 0.45 : 1,
+                },
+              ]}
+              onPress={clearBoundary}
+              disabled={points.length === 0}
+              accessibilityRole="button"
+            >
+              <Ionicons name="trash-outline" size={16} color={colors.textPrimary} />
+              <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                {t('addField.boundaryClear')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.primaryBtn,
+                styles.primaryBtnInline,
+                { backgroundColor: colors.primary, opacity: points.length < 3 ? 0.45 : 1 },
+              ]}
+              onPress={finishShape}
+              disabled={points.length < 3}
+              accessibilityRole="button"
+            >
+              <Ionicons name="checkmark" size={18} color={colors.onOlive} />
+              <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
+                {t('addField.boundaryFinish')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {phase === 'done' ? (
+          <View style={styles.toolRow}>
+            <Pressable
+              style={[styles.toolBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
+              onPress={clearBoundary}
+              accessibilityRole="button"
+            >
+              <Ionicons name="refresh-outline" size={16} color={colors.textPrimary} />
+              <Text style={[styles.toolBtnText, { color: colors.textPrimary }]}>
+                {t('addField.boundaryRedraw')}
+              </Text>
+            </Pressable>
+            <Text style={[styles.doneNote, { color: colors.textSecondary }]} numberOfLines={2}>
+              {t('addField.boundarySavedHint')}
+            </Text>
+          </View>
+        ) : null}
+
+        {points.length > 0 ? (
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('addField.boundaryCornerCount', { count: points.length })}
+            {measuredSqm > 0 ? ` · ${measuredSqm} m²` : ''}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm },
+  wrap: { gap: spacing.xs },
   coach: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-  },
-  coachText: {
-    ...typography.styles.bodySmall,
+    ...typography.styles.caption,
     fontWeight: '600',
-    flex: 1,
-    lineHeight: 20,
+    lineHeight: 18,
+    marginBottom: 2,
   },
   mapWrap: {
-    borderRadius: radii.xl,
+    borderRadius: radii.lg,
     overflow: 'hidden',
     borderWidth: 1,
     position: 'relative',
   },
   map: { flex: 1 },
-  overlays: {
+  mapChrome: {
     ...StyleSheet.absoluteFillObject,
     padding: spacing.sm,
+    justifyContent: 'space-between',
   },
-  overlayTop: {
-    gap: spacing.sm,
+  mapChromeTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  toggle: { alignSelf: 'flex-end' },
-  actionBar: {
-    borderRadius: radii.lg,
+  iconChip: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
-    padding: spacing.sm,
-    gap: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoom: { alignSelf: 'flex-end' },
+  tools: { gap: spacing.xs, marginTop: spacing.xs },
+  toolRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+    gap: spacing.xs,
   },
   toolBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    gap: 4,
+    minHeight: 40,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
     borderRadius: radii.md,
     borderWidth: 1,
   },
@@ -455,9 +449,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   primaryBtn: {
-    flexGrow: 1,
-    flexBasis: '100%',
-    minHeight: 48,
+    minHeight: 44,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
@@ -465,8 +457,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  primaryBtnInline: {
+    flexGrow: 1,
+    minWidth: 120,
+  },
   primaryBtnText: {
-    ...typography.styles.body,
+    ...typography.styles.bodySmall,
     fontWeight: '700',
   },
   doneNote: {
@@ -474,7 +470,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  zoom: { position: 'absolute', bottom: spacing.sm, right: spacing.sm },
   hint: { ...typography.styles.caption, fontWeight: '600' },
 });
 

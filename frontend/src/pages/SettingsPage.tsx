@@ -24,6 +24,7 @@ import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import PageHeader from '../components/Common/PageHeader';
 import Button from '../components/Common/Button';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import './SettingsPage.css';
 
 type SaveStatus = 'idle' | 'saved' | 'error';
@@ -45,8 +46,9 @@ const NOTIFICATION_PREF_KEYS: Array<keyof NotificationDevicePreferences> = [
 const APP_VERSION = '0.1.0';
 
 const SettingsPage: React.FC = () => {
-  const { t } = useTranslation(['settings', 'nav', 'common']);
+  const { t } = useTranslation(['settings', 'nav', 'common', 'onboarding']);
   const { user, logout } = useAuth();
+  const activation = useOwnerActivationOptional();
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
@@ -453,6 +455,21 @@ const SettingsPage: React.FC = () => {
               </select>
             </div>
             <p className="settings-autosave-hint">{t('autosaveHint')}</p>
+            {user?.role === 'FieldOwner' || !user?.role ? (
+              <div className="settings-row" style={{ marginTop: 12 }}>
+                <div className="settings-row-text">
+                  <p className="settings-label">{t('onboarding:settings.showTips')}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => activation?.reopen()}
+                >
+                  {t('onboarding:settings.showTips')}
+                </Button>
+              </div>
+            ) : null}
           </section>
 
           <DataRightsSettings />

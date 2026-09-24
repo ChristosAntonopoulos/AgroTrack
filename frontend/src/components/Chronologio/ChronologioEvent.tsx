@@ -15,11 +15,13 @@ import {
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import ChronologioEntryCard from './ChronologioEntryCard';
+import ChronologioExtremeBanner from './ChronologioExtremeBanner';
 import ChronologioThumbnail from './ChronologioThumbnail';
 import { pickRealMediaUrl } from '../../chronologio/mediaGuard';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { isWeatherExtremeEventType } from '../../chronologio/weatherExtreme';
 import type { SupportedLocale } from '../../i18n/config';
 import './Chronologio.css';
 
@@ -95,6 +97,10 @@ const ChronologioEvent: React.FC<Props> = ({
   );
   const thumb = resolvePublicAssetUrl(thumbRaw) || thumbRaw;
   const extraPhotos = Math.max(0, (entry.media?.length || 0) - 1);
+
+  if (isWeatherExtremeEventType(entry.eventType)) {
+    return <ChronologioExtremeBanner entry={entry} showField={showField} />;
+  }
 
   if (density === 'summary') {
     return (

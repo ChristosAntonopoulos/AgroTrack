@@ -106,6 +106,32 @@
   border-left: 4px solid var(--color-error);
 }
 
+.fields-setup-nudge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--spacing-md);
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--olive-primary, #2f5d38) 28%, transparent);
+  background: color-mix(in srgb, var(--olive-soft, #eef6ef) 80%, #fffdf8);
+}
+
+.fields-setup-nudge strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.fields-setup-nudge p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
 .fields-toolbar {
   display: flex;
   flex-wrap: wrap;

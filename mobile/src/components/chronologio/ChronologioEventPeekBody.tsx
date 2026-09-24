@@ -36,6 +36,12 @@ import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { radii, spacing, typography } from '../../theme';
+import {
+  extremeKindFromEventType,
+  extremePalette,
+  extremeVisualTone,
+  formatExtremeDateRange,
+} from '../../chronologio/weatherExtreme';
 
 type Props = {
   entry: ChronologioEntry;
@@ -262,6 +268,103 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
           fieldId={entry.fieldId}
           variant="detail"
         />
+      ) : null}
+
+      {kind === 'weatherExtreme' ? (
+        <View style={styles.section}>
+          {(() => {
+            const kindKey =
+              weather?.extremeKind || extremeKindFromEventType(entry.eventType) || 'heatwave';
+            const palette = extremePalette(extremeVisualTone(kindKey));
+            const period = formatExtremeDateRange(
+              weather?.extremeStartDate,
+              weather?.extremeEndDate,
+              i18n.language
+            );
+            return (
+              <>
+                <View
+                  style={[
+                    styles.extremeHero,
+                    { backgroundColor: palette.fill },
+                  ]}
+                >
+                  <Text style={[styles.extremeHeroKind, { color: palette.ink }]}>
+                    {t(`chronologio:extremeWeather.kinds.${kindKey}`, {
+                      defaultValue: entry.title,
+                    })}
+                  </Text>
+                  {entry.summary ? (
+                    <Text style={[styles.extremeHeroSummary, { color: palette.ink }]}>
+                      {entry.summary}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.extremeFactGrid}>
+                  {period ? (
+                    <View style={[styles.extremeFact, { backgroundColor: colors.surfaceMuted }]}>
+                      <Text style={[styles.extremeFactLabel, { color: colors.textTertiary }]}>
+                        {t('chronologio:extremeWeather.period')}
+                      </Text>
+                      <Text style={[styles.extremeFactValue, { color: colors.textPrimary }]}>
+                        {period}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {weather?.streakDays != null ? (
+                    <View style={[styles.extremeFact, { backgroundColor: colors.surfaceMuted }]}>
+                      <Text style={[styles.extremeFactLabel, { color: colors.textTertiary }]}>
+                        {t('chronologio:extremeWeather.streak')}
+                      </Text>
+                      <Text style={[styles.extremeFactValue, { color: colors.textPrimary }]}>
+                        {t('chronologio:extremeWeather.days', { count: weather.streakDays })}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {weather?.temperatureMin != null ? (
+                    <View style={[styles.extremeFact, { backgroundColor: colors.surfaceMuted }]}>
+                      <Text style={[styles.extremeFactLabel, { color: colors.textTertiary }]}>
+                        {t('chronologio:extremeWeather.minTemp')}
+                      </Text>
+                      <Text style={[styles.extremeFactValue, { color: colors.textPrimary }]}>
+                        {weather.temperatureMin.toLocaleString(numberLocale, {
+                          maximumFractionDigits: 1,
+                        })}
+                        °C
+                      </Text>
+                    </View>
+                  ) : null}
+                  {weather?.temperatureMax != null ? (
+                    <View style={[styles.extremeFact, { backgroundColor: colors.surfaceMuted }]}>
+                      <Text style={[styles.extremeFactLabel, { color: colors.textTertiary }]}>
+                        {t('chronologio:extremeWeather.maxTemp')}
+                      </Text>
+                      <Text style={[styles.extremeFactValue, { color: colors.textPrimary }]}>
+                        {weather.temperatureMax.toLocaleString(numberLocale, {
+                          maximumFractionDigits: 1,
+                        })}
+                        °C
+                      </Text>
+                    </View>
+                  ) : null}
+                  {weather?.rainfallMm != null ? (
+                    <View style={[styles.extremeFact, { backgroundColor: colors.surfaceMuted }]}>
+                      <Text style={[styles.extremeFactLabel, { color: colors.textTertiary }]}>
+                        {t('chronologio:extremeWeather.rain')}
+                      </Text>
+                      <Text style={[styles.extremeFactValue, { color: colors.textPrimary }]}>
+                        {weather.rainfallMm.toLocaleString(numberLocale, {
+                          maximumFractionDigits: 1,
+                        })}{' '}
+                        mm
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </>
+            );
+          })()}
+        </View>
       ) : null}
 
       {kind === 'task' ? (
@@ -519,7 +622,7 @@ export const eventPeekFooterActions = (
     if (caps?.removeAction && navigate.remove) {
       actions.push({ label: removeLabel, onPress: navigate.remove });
     }
-  } else if (kind === 'weatherPeriod') {
+  } else if (kind === 'weatherPeriod' || kind === 'weatherExtreme') {
     actions.push({
       label: t('chronologio:weatherReview.openCharts'),
       onPress: navigate.openWeather,
@@ -607,6 +710,31 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
+  extremeHero: {
+    borderRadius: radii.card,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 6,
+    marginBottom: 10,
+  },
+  extremeHeroKind: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  extremeHeroSummary: { fontSize: 13, lineHeight: 18, opacity: 0.92 },
+  extremeFactGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  extremeFact: {
+    minWidth: '42%',
+    flexGrow: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 3,
+  },
+  extremeFactLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  extremeFactValue: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   moneyHero: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
   section: { gap: 8, marginBottom: 14 },
   sectionTitle: { fontWeight: '700', fontSize: 14, marginBottom: 4 },

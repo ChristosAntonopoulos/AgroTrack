@@ -46,11 +46,13 @@ const SeatInviteSheet: React.FC<Props> = ({
   const [email, setEmail] = useState(initialEmail);
   const [modules, setModules] = useState<FieldModule[]>([...DEFAULT_FIELD_MODULES]);
   const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>(isPartner ? 'work' : 'view');
+  const [step, setStep] = useState<'who' | 'access'>('who');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invite, setInvite] = useState<FieldInvite | null>(null);
 
-  const canSubmit = Boolean(fieldId && name.trim() && email.trim() && modules.length > 0);
+  const whoReady = Boolean(name.trim() && email.trim());
+  const canSubmit = Boolean(fieldId && whoReady && modules.length > 0);
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -86,7 +88,16 @@ const SeatInviteSheet: React.FC<Props> = ({
       }
       onClose={onClose}
       footer={
-        invite ? undefined : (
+        invite ? undefined : step === 'who' ? (
+          <>
+            <Button
+              title={t('common:next')}
+              onPress={() => setStep('access')}
+              disabled={!whoReady}
+            />
+            <Button title={t('common:cancel')} variant="ghost" onPress={onClose} />
+          </>
+        ) : (
           <>
             <Button
               title={saving ? t('partners:inviteSending') : t(`partners:${ns}.sendInvite`)}
@@ -94,6 +105,7 @@ const SeatInviteSheet: React.FC<Props> = ({
               onPress={() => void submit()}
               disabled={!canSubmit}
             />
+            <Button title={t('common:back')} variant="outline" onPress={() => setStep('who')} />
             <Button title={t('common:cancel')} variant="ghost" onPress={onClose} />
           </>
         )
@@ -104,30 +116,35 @@ const SeatInviteSheet: React.FC<Props> = ({
       ) : (
         <>
           {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
-          <Input
-            label={t('partners:inviteName')}
-            value={name}
-            onChangeText={setName}
-            autoComplete="name"
-          />
-          <Input
-            label={t('partners:inviteEmail')}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
-          <AccessFields
-            modules={modules}
-            accessLevel={accessLevel}
-            onToggleModule={(module) =>
-              setModules((prev) =>
-                prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
-              )
-            }
-            onSetLevel={setAccessLevel}
-          />
+          {step === 'who' ? (
+            <>
+              <Input
+                label={t('partners:inviteName')}
+                value={name}
+                onChangeText={setName}
+                autoComplete="name"
+              />
+              <Input
+                label={t('partners:inviteEmail')}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </>
+          ) : (
+            <AccessFields
+              modules={modules}
+              accessLevel={accessLevel}
+              onToggleModule={(module) =>
+                setModules((prev) =>
+                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
+                )
+              }
+              onSetLevel={setAccessLevel}
+            />
+          )}
         </>
       )}
     </PartnersSheet>

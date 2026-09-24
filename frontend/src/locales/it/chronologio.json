@@ -500,6 +500,24 @@
     "failedLoad": "Impossibile caricare meteo e vegetazione.",
     "sourceNote": "Meteo dall’archivio Open-Meteo. Vegetazione da Sentinel-2."
   },
+  "extremeWeather": {
+    "typeLabel": "Meteo estremo",
+    "period": "Periodo",
+    "streak": "Durata",
+    "days_one": "{{count}} giorno",
+    "days_other": "{{count}} giorni",
+    "minTemp": "Minima",
+    "maxTemp": "Massima",
+    "rain": "Pioggia",
+    "kinds": {
+      "heatwave": "Ondata di caldo",
+      "frost": "Gelo",
+      "nearFrost": "Vicino al gelo",
+      "heavyRain": "Pioggia intensa",
+      "drought": "Siccità",
+      "coldSpell": "Ondata di freddo"
+    }
+  },
   "weatherReview": {
     "rainMm": "Pioggia mm",
     "hottest": "Massima",

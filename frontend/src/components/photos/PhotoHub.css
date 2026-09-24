@@ -972,6 +972,13 @@
   max-width: 100%;
 }
 
+.photo-card-needs-info {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--photo-warning, #c4a15a);
+}
+
 .photo-card-meta-filename:hover {
   color: var(--photo-accent);
   opacity: 1;

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -110,18 +110,24 @@ const TaskComposer = ({
   const [end, setEnd] = useState('');
   const [multiDay, setMultiDay] = useState(false);
   const [assigneeKey, setAssigneeKey] = useState(initialAssigneeKey);
-  const steps = useMemo<TaskStep[]>(
-    () =>
-      mode === 'proposal'
-        ? initialFieldId
-          ? ['when', 'who']
-          : ['where', 'when', 'who']
-        : seededTemplate
-          ? ['where', 'when', 'who']
-          : ['what', 'where', 'when', 'who'],
-    [initialFieldId, mode, seededTemplate]
-  );
+  const skipWhere = Boolean(initialFieldId) || fields.length <= 1;
+  const skipWho = assigneeOptions.length <= 1;
+  const steps = useMemo<TaskStep[]>(() => {
+    const where: TaskStep[] = skipWhere ? [] : ['where'];
+    const who: TaskStep[] = skipWho ? [] : ['who'];
+    if (mode === 'proposal') return [...where, 'when', ...who];
+    if (seededTemplate) return [...where, 'when', ...who];
+    return ['what', ...where, 'when', ...who];
+  }, [mode, seededTemplate, skipWhere, skipWho]);
   const [step, setStep] = useState<TaskStep>(steps[0]);
+
+  useEffect(() => {
+    if (fields.length === 1 && fieldIds.length === 0) setFieldIds([fields[0].id]);
+  }, [fields, fieldIds.length]);
+
+  useEffect(() => {
+    if (!steps.includes(step)) setStep(steps[0]);
+  }, [steps, step]);
   const [more, setMore] = useState(false);
   const [notes, setNotes] = useState('');
   const [description, setDescription] = useState('');

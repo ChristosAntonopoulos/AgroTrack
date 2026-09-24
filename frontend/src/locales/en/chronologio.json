@@ -544,6 +544,24 @@
     "failedLoad": "Could not load weather and vegetation history.",
     "sourceNote": "Weather from Open-Meteo archive. Vegetation from Sentinel-2."
   },
+  "extremeWeather": {
+    "typeLabel": "Extreme weather",
+    "period": "Period",
+    "streak": "Duration",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "minTemp": "Minimum",
+    "maxTemp": "Maximum",
+    "rain": "Rain",
+    "kinds": {
+      "heatwave": "Heatwave",
+      "frost": "Frost",
+      "nearFrost": "Near frost",
+      "heavyRain": "Heavy rain",
+      "drought": "Drought",
+      "coldSpell": "Cold spell"
+    }
+  },
   "weatherReview": {
     "rainMm": "Rain mm",
     "rainfall": "Rainfall",

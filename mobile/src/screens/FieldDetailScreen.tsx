@@ -32,6 +32,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
+import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
@@ -47,7 +50,8 @@ import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
 import GroveEnrichmentCards from '../components/fields/GroveEnrichmentCards';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
-import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
+import FieldMapDataPanel from '../components/fields/FieldMapDataPanel';
+import FieldPhotosStrip from '../components/fields/FieldPhotosStrip';
 import FieldHarvestCard from '../components/domain/FieldHarvestCard';
 import FieldLocalNavigation, { FIELD_PAGE_TABS, FieldTab } from '../components/fields/FieldLocalNavigation';
 import { resolveFieldGates } from '../utils/fieldGates';
@@ -87,11 +91,12 @@ const parseTab = (mode?: string): FieldTab => {
 const FieldDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { fieldId, focus, mode: modeParam } = route.params;
+  const { fieldId, focus, mode: modeParam, activation: activationParam } = route.params;
   const { user } = useAuth();
   const capture = useCaptureOptional();
+  const activation = useOwnerActivationOptional();
   const { colors, tapMin } = useTheme();
-  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks']);
+  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks', 'onboarding']);
   const insets = useSafeAreaInsets();
   const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
   const currentYear = agriculturalYearFor(new Date());
@@ -337,8 +342,29 @@ const FieldDetailScreen = () => {
   }, [field, fieldId, navigation, gates, t]);
 
   const setTab = (next: FieldTab) => {
-    navigation.setParams({ mode: next === 'overview' ? undefined : next });
+    const observationRequired =
+      activation?.awaitingFirstObservation && !activation.completion.firstObservation;
+    if (observationRequired && next !== 'details') {
+      navigation.setParams({ mode: 'details', activation: 'observe' });
+      return;
+    }
+    navigation.setParams({
+      mode: next === 'overview' ? undefined : next,
+      activation: observationRequired ? 'observe' : undefined,
+    });
   };
+
+  useEffect(() => {
+    if (!activation?.awaitingFirstObservation || activation.completion.firstObservation) return;
+    if (tab === 'details' && activationParam === 'observe') return;
+    navigation.setParams({ mode: 'details', activation: 'observe' });
+  }, [
+    activation?.awaitingFirstObservation,
+    activation?.completion.firstObservation,
+    activationParam,
+    navigation,
+    tab,
+  ]);
 
   useEffect(() => {
     if (tab === 'map' && !gates.canViewMap) setTab('overview');
@@ -404,8 +430,7 @@ const FieldDetailScreen = () => {
 
   const renderMapPanel = () => (
     <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
-      <FieldDetailMap field={field} height={360} />
-      {field.boundary ? <FieldIntelligenceCard fieldId={field.id} /> : null}
+      <FieldMapDataPanel field={field} weather={weather} />
     </ScrollView>
   );
 
@@ -420,6 +445,14 @@ const FieldDetailScreen = () => {
       </View>
 
       <FieldLocalNavigation tab={tab} tabs={visibleTabs} onTabChange={setTab} />
+
+      {activation?.eligible &&
+      activation.completion.drawBoundary &&
+      (activationParam === 'spatial' ||
+        (!activation.completion.loadData && activation.celebrating)) &&
+      field ? (
+        <SpatialLoadingPanel fieldId={fieldId} fieldName={field.name} />
+      ) : null}
 
       {tab === 'chronologio' ? (
         <View style={styles.flex}>
@@ -476,7 +509,40 @@ const FieldDetailScreen = () => {
               onOpenChronologio={() => setTab('chronologio')}
             />
           ) : null}
-          {gates.canViewMap ? <FieldDetailMap field={field} height={220} showDataLayers={false} /> : null}
+          {gates.canViewMap || gates.canViewEnvironmentalData ? (
+            <View style={styles.overviewMapBlock}>
+              {gates.canViewMap ? (
+                <FieldDetailMap
+                  field={field}
+                  height={240}
+                  showDataLayers={false}
+                  onOpenMapTab={() => setTab('map')}
+                />
+              ) : null}
+              {gates.canViewEnvironmentalData ? (
+                <FieldWeatherSection
+                  fieldId={field.id}
+                  fieldName={field.name}
+                  fieldColor={field.color}
+                  weather={weather}
+                  loading={weatherLoading}
+                  error={weatherError}
+                  year={year}
+                  isHistoricalYear={isHistoricalYear}
+                  allowRecommendation={field.status !== 'Draft'}
+                  attention={attention}
+                  nextTaskTitle={weatherNextTitle}
+                  onRetry={() => void loadWeather()}
+                  onSeeCharts={() => setTab('map')}
+                  onMoveTask={
+                    attention?.kind === 'weatherReschedule' && attention.taskId
+                      ? () => navigation.navigate('TaskDetail', { taskId: attention.taskId! })
+                      : undefined
+                  }
+                />
+              ) : null}
+            </View>
+          ) : null}
           {attention ? (
             <FieldAttentionCard
               attention={attention}
@@ -485,27 +551,6 @@ const FieldDetailScreen = () => {
                 setDismissedAttentionIds((ids) => (ids.includes(taskId) ? ids : [...ids, taskId]))
               }
             />
-          ) : null}
-          {gates.canViewEnvironmentalData ? (
-          <FieldWeatherSection
-            fieldId={field.id}
-            fieldName={field.name}
-            fieldColor={field.color}
-            weather={weather}
-            loading={weatherLoading}
-            error={weatherError}
-            year={year}
-            isHistoricalYear={isHistoricalYear}
-            allowRecommendation={field.status !== 'Draft'}
-            attention={attention}
-            nextTaskTitle={weatherNextTitle}
-            onRetry={() => void loadWeather()}
-            onMoveTask={
-              attention?.kind === 'weatherReschedule' && attention.taskId
-                ? () => navigation.navigate('TaskDetail', { taskId: attention.taskId! })
-                : undefined
-            }
-          />
           ) : null}
           <FieldYearGlance
             year={year}
@@ -516,24 +561,25 @@ const FieldDetailScreen = () => {
             onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
           />
           {gates.canViewHarvest ? (
-          <FieldHarvestCard
-            fieldId={field.id}
-            records={harvestRecords}
-            canAdd={field.status !== 'Draft' && gates.canCapture}
-            canVoid={gates.canOwn}
-            onLogHarvest={() =>
-              capture?.openCapture({ preferredType: 'harvest', fieldId: field.id })
-            }
-            onOpenCampaign={() => openHarvestCampaign(navigation)}
-            onVoid={async (id) => {
-              await getHarvestService().void(id);
-              await load();
-            }}
-          />
+            <FieldHarvestCard
+              fieldId={field.id}
+              records={harvestRecords}
+              canAdd={field.status !== 'Draft' && gates.canCapture}
+              canVoid={gates.canOwn}
+              onLogHarvest={() =>
+                capture?.openCapture({ preferredType: 'harvest', fieldId: field.id })
+              }
+              onOpenCampaign={() => openHarvestCampaign(navigation)}
+              onVoid={async (id) => {
+                await getHarvestService().void(id);
+                await load();
+              }}
+            />
           ) : null}
           {gates.canViewChronologio ? (
             <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
           ) : null}
+          {gates.canViewPhotos ? <FieldPhotosStrip fieldId={field.id} /> : null}
         </ScrollView>
       ) : null}
 
@@ -541,6 +587,7 @@ const FieldDetailScreen = () => {
 
       {tab === 'details' ? (
         <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
+          <FirstObservationGuide fieldId={fieldId} />
           <FieldFacts
             field={field}
             year={year}
@@ -554,9 +601,27 @@ const FieldDetailScreen = () => {
         </ScrollView>
       ) : null}
 
-      {capture && gates.canCapture && tab !== 'details' && tab !== 'map' ? (
+      {capture && gates.canCapture && (tab !== 'map' || activation?.awaitingFirstObservation) ? (
         <View style={[styles.stickyCapture, { bottom: dockHeight + bottomInset + spacing.sm }]}>
-          <Button title={t('fields:page.capture')} onPress={openCapture} fullWidth />
+          <Button
+            title={
+              activation?.awaitingFirstObservation && !activation.completion.firstObservation
+                ? t('onboarding:firstObservation.cta')
+                : t('fields:page.capture')
+            }
+            onPress={() => {
+              if (activation?.awaitingFirstObservation && !activation.completion.firstObservation) {
+                capture.openCapture({
+                  fieldId: field.id,
+                  preferredType: 'observation',
+                  description: t('onboarding:firstObservation.prefill'),
+                });
+                return;
+              }
+              openCapture();
+            }}
+            fullWidth
+          />
         </View>
       ) : null}
     </ScreenLayout>
@@ -579,6 +644,9 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: spacing['3xl'] + 56,
+  },
+  overviewMapBlock: {
+    gap: spacing.md,
   },
   workBanner: {
     borderWidth: 1,

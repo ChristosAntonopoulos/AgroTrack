@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing, typography, radii } from '../../theme';
 import Sheet from '../ui/Sheet';
+import FieldColorMark from '../fields/FieldColorMark';
 import type { Field } from '../../services/fieldService';
 import { harvestYearSpan } from '../../finance/harvestYear';
 
@@ -76,7 +77,12 @@ const TaskContextBar = ({
             },
           ]}
         >
-          <Ionicons name="location-outline" size={16} color={fieldChanged ? colors.primary : colors.textTertiary} />
+          <FieldColorMark
+            color={selectedField?.color}
+            fieldId={selectedField?.id}
+            hollow={!selectedField}
+            size={12}
+          />
           <Text
             style={[styles.controlValue, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}
             numberOfLines={1}
@@ -116,6 +122,7 @@ const TaskContextBar = ({
               style={[styles.filterChip, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}
               accessibilityLabel={clearFieldLabel}
             >
+              <FieldColorMark color={selectedField?.color} fieldId={selectedField?.id || fieldId} size={8} />
               <Text style={[styles.filterChipText, { color: colors.primary }]} numberOfLines={1}>
                 {selectedField?.name || fieldId}
               </Text>
@@ -163,9 +170,12 @@ const TaskContextBar = ({
             },
           ]}
         >
-          <Text style={{ color: colors.textPrimary, fontWeight: !fieldId ? '700' : '500' }}>
-            {allFieldsLabel}
-          </Text>
+          <View style={styles.sheetLabel}>
+            <FieldColorMark hollow size={12} />
+            <Text style={{ color: colors.textPrimary, fontWeight: !fieldId ? '700' : '500' }}>
+              {allFieldsLabel}
+            </Text>
+          </View>
         </Pressable>
         {fields.map((field) => (
           <Pressable
@@ -182,9 +192,12 @@ const TaskContextBar = ({
               },
             ]}
           >
-            <Text style={{ color: colors.textPrimary, fontWeight: field.id === fieldId ? '700' : '500' }}>
-              {field.name}
-            </Text>
+            <View style={styles.sheetLabel}>
+              <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+              <Text style={{ color: colors.textPrimary, fontWeight: field.id === fieldId ? '700' : '500' }}>
+                {field.name}
+              </Text>
+            </View>
             {field.id === fieldId ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
           </Pressable>
         ))}
@@ -325,6 +338,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
     borderRadius: radii.md,
+    gap: spacing.sm,
+  },
+  sheetLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
   },
 });
 

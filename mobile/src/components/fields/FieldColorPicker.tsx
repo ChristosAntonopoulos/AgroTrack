@@ -11,9 +11,16 @@ type Props = {
   fieldId?: string | null;
   onChange: (color: string) => void;
   disabled?: boolean;
+  showLabel?: boolean;
 };
 
-const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled }) => {
+const FieldColorPicker: React.FC<Props> = ({
+  value,
+  fieldId,
+  onChange,
+  disabled,
+  showLabel = true,
+}) => {
   const { t } = useTranslation('fields');
   const { colors } = useTheme();
   const { tapMin } = usePreferences();
@@ -21,14 +28,18 @@ const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled 
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.label, { color: colors.textPrimary }]}>
-        {t('form.color', { defaultValue: 'Field color' })}
-      </Text>
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        {t('form.colorHint', {
-          defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
-        })}
-      </Text>
+      {showLabel ? (
+        <>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
+            {t('form.color', { defaultValue: 'Field color' })}
+          </Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('form.colorHint', {
+              defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
+            })}
+          </Text>
+        </>
+      ) : null}
       <View style={styles.row} accessibilityRole="radiogroup">
         {FIELD_COLOR_PRESETS.map((color) => {
           const active = selected.toUpperCase() === color.toUpperCase();

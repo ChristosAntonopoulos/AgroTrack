@@ -19,6 +19,7 @@ import enMoney from '../locales/en/money.json';
 import enPhotos from '../locales/en/photos.json';
 import enFeedback from '../locales/en/feedback.json';
 import enLegal from '../locales/en/legal.json';
+import enOnboarding from '../locales/en/onboarding.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -38,8 +39,11 @@ import elMoney from '../locales/el/money.json';
 import elPhotos from '../locales/el/photos.json';
 import elFeedback from '../locales/el/feedback.json';
 import elLegal from '../locales/el/legal.json';
+import elOnboarding from '../locales/el/onboarding.json';
 
 import itFields from '../locales/it/fields.json';
+import itOnboarding from '../locales/it/onboarding.json';
+import itPhotos from '../locales/it/photos.json';
 
 /** Greek is the product default for Oleachron. */
 const defaultLng = 'el';
@@ -66,6 +70,7 @@ i18n.use(initReactI18next).init({
       photos: enPhotos,
       feedback: enFeedback,
       legal: enLegal,
+      onboarding: enOnboarding,
     },
     el: {
       auth: elAuth,
@@ -86,10 +91,13 @@ i18n.use(initReactI18next).init({
       photos: elPhotos,
       feedback: elFeedback,
       legal: elLegal,
+      onboarding: elOnboarding,
     },
     it: {
       // Harvest campaign Italian from FE; other namespaces fall back to English/Greek.
       fields: itFields,
+      onboarding: itOnboarding,
+      photos: itPhotos,
     },
   },
   lng: defaultLng,

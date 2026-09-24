@@ -43,6 +43,8 @@ interface Props {
   longitude?: number;
   onBoundaryChange: (boundary: GeoJsonPolygon | undefined, areaSqm?: number) => void;
   onSkipBoundary?: () => void;
+  /** First-run: locate via search, then auto-start marking when a place is chosen. */
+  activationGuide?: boolean;
 }
 
 type DrawPhase = 'locate' | 'drawing' | 'done';
@@ -132,6 +134,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   longitude,
   onBoundaryChange,
   onSkipBoundary,
+  activationGuide = false,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = normalizeLocale(i18n.language);
@@ -296,6 +299,14 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     setPhase('drawing');
   };
 
+  useEffect(() => {
+    if (!activationGuide) return;
+    if (locationStatus !== 'found' || phase !== 'locate') return;
+    if (zoomTooLow) return;
+    setDrawError(null);
+    setPhase('drawing');
+  }, [activationGuide, locationStatus, phase, zoomTooLow]);
+
   const handleSearch = async () => {
     await geocodeSearch(search);
   };
@@ -339,7 +350,11 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   const canDragCorners = phase === 'drawing' || phase === 'done';
 
   return (
-    <div className="field-form-panel field-boundary-step">
+    <div
+      className="field-form-panel field-boundary-step"
+      data-onboarding-boundary-phase={phase}
+      data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
+    >
       <h2>{t('addField.steps.boundary')}</h2>
       <p className="field-form-panel-desc">{t('addField.boundaryDescFriendly')}</p>
       <p className="field-form-panel-desc field-boundary-optional-hint">{t('addField.boundaryOptionalHint')}</p>
@@ -368,55 +383,67 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         </p>
       ) : null}
 
-      <div className="boundary-toolbar">
-        <input
-          type="search"
-          className="boundary-search-input"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              void handleSearch();
-            }
-          }}
-          placeholder={t('addField.searchLocation')}
-          aria-label={t('addField.searchLocation')}
-        />
-        <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleSearch}>
-          {t('addField.search')}
-        </button>
-        <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleCurrentLocation}>
-          <LocateFixed size={18} aria-hidden />
-          {t('addField.useCurrentLocation')}
-        </button>
+      <div
+        className={`boundary-search-block${placeSuggestions.length > 0 ? ' has-suggestions' : ''}`}
+        data-onboarding-target="boundary-search"
+      >
+        <div className="boundary-toolbar">
+          <input
+            type="search"
+            className="boundary-search-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handleSearch();
+              }
+            }}
+            placeholder={t('addField.searchLocation')}
+            aria-label={t('addField.searchLocation')}
+          />
+          <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleSearch}>
+            {t('addField.search')}
+          </button>
+          <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleCurrentLocation}>
+            <LocateFixed size={18} aria-hidden />
+            {t('addField.useCurrentLocation')}
+          </button>
+        </div>
+        {placeSuggestions.length > 0 ? (
+          <ul className="boundary-place-suggestions" role="listbox" aria-label={t('addField.searchLocation')}>
+            {placeSuggestions.map((place) => (
+              <li key={`${place.lat},${place.lng},${place.label}`} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  className="boundary-place-option"
+                  onClick={() => {
+                    setSearch(place.label);
+                    setPlaceSuggestions([]);
+                    setCenter([place.lat, place.lng]);
+                    setMapZoom(PLACE_ZOOM);
+                    setLocationStatus('found');
+                  }}
+                >
+                  <MapPin size={16} aria-hidden />
+                  <span>{place.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       {locationStatus === 'missing' && search.trim() ? (
         <p className="boundary-location-status" role="status">
           {t('addField.locationNotFound')}
         </p>
       ) : null}
-      {placeSuggestions.length > 0 ? (
-        <div className="boundary-place-suggestions">
-          {placeSuggestions.map((place) => (
-            <button
-              key={`${place.lat},${place.lng},${place.label}`}
-              type="button"
-              className="boundary-place-chip"
-              onClick={() => {
-                setSearch(place.label);
-                setCenter([place.lat, place.lng]);
-                setMapZoom(PLACE_ZOOM);
-                setLocationStatus('found');
-              }}
-            >
-              {place.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
-      <div className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}>
+      <div
+        className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}
+        data-onboarding-target="boundary-map"
+      >
         <MapContainer
           center={center}
           zoom={Math.min(mapZoom, MAP_MAX_ZOOM)}
@@ -509,69 +536,77 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="boundary-action-bar">
-        {phase === 'locate' ? (
-          <button type="button" className="btn btn-primary boundary-primary-action" onClick={startDrawing}>
-            <Crosshair size={16} aria-hidden />
-            {t('addField.boundaryStartMarking')}
-          </button>
-        ) : null}
-
-        {phase === 'drawing' ? (
-          <>
-            <button
-              type="button"
-              className="btn btn-secondary boundary-tool-btn"
-              onClick={undoCorner}
-              disabled={corners.length === 0}
-            >
-              <Undo2 size={16} aria-hidden />
-              {t('addField.boundaryUndo')}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary boundary-tool-btn"
-              onClick={clearCorners}
-              disabled={corners.length === 0}
-            >
-              <Trash2 size={16} aria-hidden />
-              {t('addField.boundaryClear')}
-            </button>
+        <div className="boundary-map-actions" role="toolbar" aria-label={t('addField.boundaryGuide2')}>
+          {phase === 'locate' ? (
             <button
               type="button"
               className="btn btn-primary boundary-primary-action"
-              onClick={finishShape}
-              disabled={corners.length < 3 || zoomTooLow}
-              title={
-                corners.length < 3
-                  ? t('addField.boundaryValidation.tooFewPoints')
-                  : zoomTooLow
-                    ? t('addField.boundaryValidation.zoomTooLow')
-                    : undefined
-              }
+              onClick={() => {
+                setPlaceSuggestions([]);
+                startDrawing();
+              }}
             >
-              <Check size={16} aria-hidden />
-              {t('addField.boundaryFinish')}
+              <Crosshair size={16} aria-hidden />
+              {t('addField.boundaryStartMarking')}
             </button>
-            {corners.length > 0 && corners.length < 3 ? (
-              <p className="boundary-location-status" role="status">
-                {t('addField.boundaryValidation.tooFewPoints')}
-              </p>
-            ) : null}
-          </>
-        ) : null}
+          ) : null}
 
-        {phase === 'done' ? (
-          <>
-            <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
-              <Trash2 size={16} aria-hidden />
-              {t('addField.boundaryRedraw')}
-            </button>
-            <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
-          </>
-        ) : null}
+          {phase === 'drawing' ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary boundary-tool-btn"
+                onClick={undoCorner}
+                disabled={corners.length === 0}
+              >
+                <Undo2 size={16} aria-hidden />
+                {t('addField.boundaryUndo')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary boundary-tool-btn"
+                onClick={clearCorners}
+                disabled={corners.length === 0}
+              >
+                <Trash2 size={16} aria-hidden />
+                {t('addField.boundaryClear')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary boundary-primary-action"
+                onClick={finishShape}
+                disabled={corners.length < 3 || zoomTooLow}
+                title={
+                  corners.length < 3
+                    ? t('addField.boundaryValidation.tooFewPoints')
+                    : zoomTooLow
+                      ? t('addField.boundaryValidation.zoomTooLow')
+                      : undefined
+                }
+              >
+                <Check size={16} aria-hidden />
+                {t('addField.boundaryFinish')}
+              </button>
+            </>
+          ) : null}
+
+          {phase === 'done' ? (
+            <>
+              <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
+                <Trash2 size={16} aria-hidden />
+                {t('addField.boundaryRedraw')}
+              </button>
+              <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
+            </>
+          ) : null}
+
+          {phase === 'drawing' && corners.length > 0 && corners.length < 3 ? (
+            <p className="boundary-location-status" role="status">
+              {t('addField.boundaryValidation.tooFewPoints')}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {corners.length > 0 ? (

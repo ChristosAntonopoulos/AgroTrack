@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import Button from '../Common/Button';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
-import { resolveFieldColor } from '../../utils/fieldColors';
 import type { Field } from '../../services/fieldService';
 import type { PhotoUploadResult } from '../../services/photoService';
 
@@ -50,37 +49,15 @@ const PhotoReviewQueue: React.FC<Props> = ({
   progress,
   onRemove,
   onRetry,
-  onConfirmField,
-  onUpdateCapturedAt,
   onDone,
   onUploadStaged,
   onKeepDuplicate,
 }) => {
   const { t } = useTranslation('photos');
   const { formatDateTime } = useLocaleFormatters();
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [picked, setPicked] = useState<Record<string, string>>({});
-
-  const defaults = useMemo(() => {
-    const map: Record<string, string> = {};
-    items.forEach((item) => {
-      const photo = item.result?.photo;
-      if (!photo) return;
-      map[photo.id] =
-        photo.fieldId || item.result?.candidates[0]?.fieldId || fields[0]?.id || '';
-    });
-    return map;
-  }, [fields, items]);
-
-  useEffect(() => {
-    return () => {
-      /* previews are revoked by the page when items leave the batch */
-    };
-  }, []);
 
   if (items.length === 0) return null;
 
-  const selectedFor = (photoId: string) => picked[photoId] ?? defaults[photoId] ?? '';
   const determinate =
     progress?.percent ??
     (progress && progress.total > 0
@@ -142,27 +119,9 @@ const PhotoReviewQueue: React.FC<Props> = ({
             (photo
               ? resolvePublicAssetUrl(photo.thumbnailUrl || photo.url) || photo.url
               : null) || item.previewUrl;
-          const selected = photo ? selectedFor(photo.id) : '';
-          const candidates = item.result?.candidates ?? [];
-          const candidateIds = new Set(candidates.map((c) => c.fieldId));
-          const colorFor = (id: string) =>
-            resolveFieldColor(fields.find((field) => field.id === id)?.color, id);
-          const chipFields =
-            candidates.length > 0
-              ? [
-                  ...candidates.map((c) => ({
-                    id: c.fieldId,
-                    name: c.fieldName || fields.find((f) => f.id === c.fieldId)?.name || c.fieldId,
-                    color: colorFor(c.fieldId),
-                  })),
-                  ...fields
-                    .filter((f) => !candidateIds.has(f.id))
-                    .map((f) => ({ id: f.id, name: f.name, color: resolveFieldColor(f.color, f.id) })),
-                ]
-              : fields.map((f) => ({ id: f.id, name: f.name, color: resolveFieldColor(f.color, f.id) }));
           const fieldName =
             photo?.fieldName ||
-            fields.find((f) => f.id === (photo?.fieldId || selected))?.name ||
+            (photo?.fieldId ? fields.find((f) => f.id === photo.fieldId)?.name : null) ||
             null;
           const statusLabel =
             item.status === 'converting'
@@ -298,80 +257,6 @@ const PhotoReviewQueue: React.FC<Props> = ({
                 </div>
               </div>
 
-              {photo && item.status === 'uploaded' ? (
-                <div className="photo-review-fields">
-                  <span className="photo-review-label">{t('review.pickField')}</span>
-                  <div
-                    className="photo-review-field-chips"
-                    role="group"
-                    aria-label={t('review.pickField')}
-                  >
-                    {chipFields.slice(0, 8).map((field) => (
-                      <button
-                        key={field.id}
-                        type="button"
-                        className={`photo-review-field-chip${
-                          candidateIds.has(field.id) ? ' is-candidate' : ''
-                        }${selected === field.id ? ' is-selected' : ''}`}
-                        style={{ '--swatch': field.color } as React.CSSProperties}
-                        aria-pressed={selected === field.id}
-                        disabled={busyId === photo.id}
-                        onClick={() =>
-                          setPicked((prev) => ({ ...prev, [photo.id]: field.id }))
-                        }
-                      >
-                        <span className="photo-hub-swatch" aria-hidden />
-                        <span className="photo-review-field-name">{field.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {photo && item.status === 'uploaded' ? (
-                <div className="photo-review-actions">
-                  <Button
-                    size="sm"
-                    disabled={busyId === photo.id || !selected}
-                    loading={busyId === photo.id}
-                    onClick={async () => {
-                      if (!selected) return;
-                      setBusyId(photo.id);
-                      try {
-                        await onConfirmField(photo.id, selected);
-                      } finally {
-                        setBusyId(null);
-                      }
-                    }}
-                  >
-                    {t('review.confirmField')}
-                  </Button>
-                  <label>
-                    {t('review.capturedAt')}
-                    <input
-                      type="datetime-local"
-                      defaultValue={
-                        photo.capturedAt
-                          ? photo.capturedAt.slice(0, 16)
-                          : photo.effectiveCapturedAt.slice(0, 16)
-                      }
-                      disabled={busyId === photo.id}
-                      onBlur={async (e) => {
-                        if (!e.target.value) return;
-                        setBusyId(photo.id);
-                        try {
-                          await onUpdateCapturedAt(
-                            photo.id,
-                            new Date(e.target.value).toISOString()
-                          );
-                        } finally {
-                          setBusyId(null);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              ) : null}
             </article>
           );
         })}

@@ -1,4 +1,5 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Loader2 } from 'lucide-react';
 import { searchPlaces, type GeocodedPlace } from '../../utils/geocodeLocation';
@@ -10,6 +11,8 @@ type Props = {
   hideHint?: boolean;
 };
 
+type MenuBox = { top: number; left: number; width: number };
+
 const splitPlaceLabel = (label: string): { primary: string; secondary?: string } => {
   const parts = label.split(',').map((p) => p.trim()).filter(Boolean);
   if (parts.length <= 1) return { primary: label };
@@ -20,11 +23,14 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
   const { t } = useTranslation('fields');
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<GeocodedPlace[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [searched, setSearched] = useState(false);
+  const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
 
   useEffect(() => {
     const q = value.trim();
@@ -70,11 +76,39 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
 
   useEffect(() => {
     const onPointer = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || listRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', onPointer);
     return () => document.removeEventListener('mousedown', onPointer);
   }, []);
+
+  const showList = open && value.trim().length >= 2 && (loading || searched);
+
+  useLayoutEffect(() => {
+    if (!showList) {
+      setMenuBox(null);
+      return;
+    }
+    const measure = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setMenuBox({
+        top: r.bottom + 6,
+        left: r.left,
+        width: r.width,
+      });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showList, suggestions.length, loading]);
 
   const pick = (place: GeocodedPlace) => {
     onChange({
@@ -86,9 +120,6 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
     setOpen(false);
     setActiveIndex(-1);
   };
-
-  const showList =
-    open && value.trim().length >= 2 && (loading || searched);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showList || (!loading && suggestions.length === 0 && !searched)) return;
@@ -103,7 +134,7 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
       e.preventDefault();
       setOpen(true);
       setActiveIndex((i) =>
-        suggestions.length === 0 ? -1 : (i <= 0 ? suggestions.length - 1 : i - 1)
+        suggestions.length === 0 ? -1 : i <= 0 ? suggestions.length - 1 : i - 1
       );
       return;
     }
@@ -118,41 +149,20 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
     }
   };
 
-  return (
-    <div className="location-search" ref={rootRef}>
-      <div className="location-search-label-row">
-        <label htmlFor="locationText">{t('addField.locationText')}</label>
-        <span className="location-search-optional">{t('createGrove.optional')}</span>
-      </div>
-      <div className={`location-search-input-wrap${showList ? ' is-open' : ''}`}>
-        <MapPin size={18} className="location-search-icon" aria-hidden />
-        <input
-          type="search"
-          id="locationText"
-          name="locationText"
-          autoComplete="off"
-          role="combobox"
-          aria-expanded={showList}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={
-            activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined
-          }
-          value={value}
-          onChange={(e) => {
-            onChange({ locationText: e.target.value });
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={onKeyDown}
-          placeholder={t('createGrove.place.placeholder')}
-        />
-        {loading ? (
-          <Loader2 size={16} className="location-search-spinner" aria-hidden />
-        ) : null}
-
-        {showList ? (
-          <ul id={listId} className="location-search-results" role="listbox">
+  const results =
+    showList && menuBox
+      ? createPortal(
+          <ul
+            id={listId}
+            ref={listRef}
+            className="location-search-results location-search-results--portal"
+            role="listbox"
+            style={{
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+            }}
+          >
             {loading && suggestions.length === 0 ? (
               <li className="location-search-status" role="presentation">
                 {t('addField.locationSearching')}
@@ -191,9 +201,45 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
                 </li>
               );
             })}
-          </ul>
+          </ul>,
+          document.body
+        )
+      : null;
+
+  return (
+    <div className={`location-search${showList ? ' is-open' : ''}`} ref={rootRef}>
+      <div className="location-search-label-row">
+        <label htmlFor="locationText">{t('addField.locationText')}</label>
+        <span className="location-search-optional">{t('createGrove.optional')}</span>
+      </div>
+      <div ref={wrapRef} className={`location-search-input-wrap${showList ? ' is-open' : ''}`}>
+        <MapPin size={18} className="location-search-icon" aria-hidden />
+        <input
+          type="search"
+          id="locationText"
+          name="locationText"
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined
+          }
+          value={value}
+          onChange={(e) => {
+            onChange({ locationText: e.target.value });
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder={t('createGrove.place.placeholder')}
+        />
+        {loading ? (
+          <Loader2 size={16} className="location-search-spinner" aria-hidden />
         ) : null}
       </div>
+      {results}
       {!hideHint ? (
         <p className="field-form-hint location-search-hint">{t('createGrove.place.canWait')}</p>
       ) : null}

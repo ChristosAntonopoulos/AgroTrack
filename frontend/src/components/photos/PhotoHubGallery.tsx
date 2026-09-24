@@ -121,6 +121,9 @@ const PhotoHubGallery: React.FC<Props> = ({
                   {photo.fileName}
                 </span>
               ) : null}
+              {!photo.latitude || !photo.fieldId || photo.fieldAssignment === 'unassigned' || photo.fieldAssignment === 'needsReview' ? (
+                <span className="photo-card-needs-info">{t('card.needsInfo')}</span>
+              ) : null}
             </div>
           </div>
         );

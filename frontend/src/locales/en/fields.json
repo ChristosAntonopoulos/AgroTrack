@@ -1744,12 +1744,15 @@
   "createGrove": {
     "title": "Add grove",
     "firstTitle": "Put your first grove in Oleachron",
-    "subtitle": "Give it a name so you can find it easily. Everything else can wait.",
-    "nameHeading": "Grove name",
-    "nameHelper": "Give it a name so you can find it easily. Everything else can wait.",
+    "subtitle": "Name first, then colour once. Boundary and details whenever you like.",
+    "nameHeading": "What shall we call it?",
+    "nameHelper": "A short name you’ll recognise — e.g. North grove or Lower vines.",
     "nameLabel": "Grove name",
-    "readyNudge": "Your grove is ready. You can add a place and details now or later.",
-    "createCta": "Create grove",
+    "colorHeading": "Pick a colour",
+    "colorHelper": "Shown on Chronologio so you can spot this grove quickly.",
+    "readyNudge": "Name and colour are set. Next you draw the grove boundary.",
+    "createCta": "Continue to boundary",
+    "continueToColor": "Continue",
     "continueLater": "Continue later",
     "addLocationFirst": "Add a place first",
     "backToGroves": "Back to groves",
@@ -1759,8 +1762,13 @@
     "setupLevelAria": "Grove setup level",
     "levels": {
       "name": "Name",
+      "color": "Colour",
       "location": "Place on the map",
-      "details": "Details"
+      "details": "Details",
+      "boundary": "Boundary"
+    },
+    "shared": {
+      "boundaryHint": "Find the grove on the map and tap the corners."
     },
     "placement": {
       "title": "How do you want to place the grove?",
@@ -1810,11 +1818,12 @@
       "waitHeading": "Can wait",
       "readyName": "Name",
       "readyTimeline": "Chronologio ready",
-      "readyWork": "You can record work",
+      "readyWork": "You can record an expense, income, or observation",
       "waitLocation": "Place on the map",
       "waitBoundary": "Boundary on the map",
       "waitDetails": "Variety and trees",
       "recordWork": "Record first work",
+      "recordFirst": "First entry",
       "addLocation": "Add a place on the map",
       "openChronologio": "Open Chronologio",
       "openGrove": "Open my grove"

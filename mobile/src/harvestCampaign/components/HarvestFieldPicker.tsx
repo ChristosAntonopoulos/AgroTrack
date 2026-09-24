@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import FieldColorMark from '../../components/fields/FieldColorMark';
 import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing, typography } from '../../theme';
 import type { FieldLocationGuess } from '../fieldGuess';
@@ -49,7 +50,13 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply confident guess once per mount
   }, [guessed?.id, props.mode, manual]);
 
-  const chip = (id: string, label: string, selected: boolean, onPress: () => void) => (
+  const chip = (
+    id: string,
+    label: string,
+    selected: boolean,
+    onPress: () => void,
+    color?: string | null
+  ) => (
     <Pressable
       key={id || 'none'}
       onPress={onPress}
@@ -64,6 +71,7 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
         },
       ]}
     >
+      <FieldColorMark color={color} fieldId={id || undefined} hollow={!id} size={10} />
       <Text style={{ color: selected ? colors.primary : colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
         {label}
       </Text>
@@ -79,7 +87,8 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
       ) : null}
       {showGuessCard ? (
         <View style={[styles.guess, { borderColor: colors.oliveBorder, backgroundColor: colors.primaryLight }]}>
-          <Text style={{ color: colors.textSecondary }}>
+          <FieldColorMark color={guessed.color} fieldId={guessed.id} size={12} />
+          <Text style={{ color: colors.textSecondary, flex: 1 }}>
             {t('harvestCampaign.sacks.nearField', { field: friendlyFieldLabel(guessed.name) })}
           </Text>
           <Pressable onPress={() => setManual(true)} hitSlop={8}>
@@ -103,7 +112,7 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
                   props.onChange(
                     selected ? props.value.filter((id) => id !== field.id) : [...props.value, field.id]
                   );
-              });
+              }, field.color);
             })}
             {props.mode === 'single' && props.allowNone
               ? chip('', props.noneLabel || t('harvestCampaign.millKg.split.none'), !props.value, () =>
@@ -122,10 +131,12 @@ const styles = StyleSheet.create({
   label: { ...typography.styles.bodySmall, fontWeight: '700' },
   chips: { gap: spacing.sm },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderRadius: radii.full,
     paddingHorizontal: spacing.md,
-    alignItems: 'center',
     justifyContent: 'center',
   },
   guess: {

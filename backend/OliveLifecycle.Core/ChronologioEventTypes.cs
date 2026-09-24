@@ -23,6 +23,9 @@ public static class ChronologioEventTypes
     public const string WeatherHeavyRain = "weather.heavyRain";
     public const string WeatherFrost = "weather.frost";
     public const string WeatherHeat = "weather.heat";
+    public const string WeatherDrought = "weather.drought";
+    public const string WeatherColdSpell = "weather.coldSpell";
+    public const string WeatherNearFrost = "weather.nearFrost";
     public const string WeatherMonthReview = "weather.monthReview";
     public const string WeatherYearReview = "weather.yearReview";
 
@@ -56,4 +59,5 @@ public static class ChronologioSourceTypes
     public const string Photo = "Photo";
     public const string Activity = "Activity";
     public const string WeatherReview = "WeatherReview";
+    public const string WeatherExtremeEvent = "WeatherExtremeEvent";
 }

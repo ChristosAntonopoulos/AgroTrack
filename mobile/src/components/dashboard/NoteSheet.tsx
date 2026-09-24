@@ -11,13 +11,14 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
+import FieldColorMark from '../fields/FieldColorMark';
 import Button from '../ui/Button';
 import { getNoteService } from '../../services/serviceFactory';
 import { Note } from '../../services/noteService';
 import { getApiErrorMessage } from '../../services/api';
 import { spacing, typography } from '../../theme';
 
-type FieldOption = { id: string; name: string };
+type FieldOption = { id: string; name: string; color?: string | null };
 
 type Props = {
   visible: boolean;
@@ -122,6 +123,7 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
                   },
                 ]}
               >
+                <FieldColorMark hollow size={10} />
                 <Text style={{ color: !fieldId ? colors.onOlive : colors.textPrimary }}>
                   {t('dashboard:notes.noField')}
                 </Text>
@@ -140,6 +142,7 @@ const NoteSheet: React.FC<Props> = ({ visible, note, fields, onClose, onChanged 
                       },
                     ]}
                   >
+                    <FieldColorMark color={f.color} fieldId={f.id} size={10} />
                     <Text style={{ color: active ? colors.onOlive : colors.textPrimary }}>
                       {f.name}
                     </Text>
@@ -208,6 +211,9 @@ const styles = StyleSheet.create({
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 12,

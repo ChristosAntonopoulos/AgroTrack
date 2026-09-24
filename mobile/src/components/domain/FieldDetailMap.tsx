@@ -36,6 +36,8 @@ export interface FieldDetailMapProps {
   onGestureActiveChange?: (active: boolean) => void;
   /** Set to false where only the boundary matters, such as compact previews. */
   showDataLayers?: boolean;
+  /** Overview peek — opens the Map tab (mirrors web FieldDetailMap). */
+  onOpenMapTab?: () => void;
 }
 
 const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
@@ -43,6 +45,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   height = 210,
   onGestureActiveChange,
   showDataLayers,
+  onOpenMapTab,
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation(['fields', 'common']);
@@ -232,6 +235,27 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
       </View>
 
+      {!allowDataLayers && onOpenMapTab ? (
+        <View style={styles.openTabWrap} pointerEvents="box-none">
+          <Pressable
+            onPress={onOpenMapTab}
+            style={[
+              styles.openTabBtn,
+              {
+                backgroundColor: colors.primary,
+                ...createElevation(colors, 'sm'),
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t('fields:mapWorkspace.openTab', { defaultValue: 'Open map' })}
+          >
+            <Text style={styles.openTabLabel}>
+              {t('fields:mapWorkspace.openTab', { defaultValue: 'Open map' })}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {allowDataLayers ? (
         <MapLayerSheet
           visible={sheetVisible}
@@ -338,6 +362,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: spacing.sm,
     right: spacing.sm,
+  },
+  openTabWrap: {
+    position: 'absolute',
+    left: spacing.sm,
+    bottom: spacing.sm,
+  },
+  openTabBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  openTabLabel: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
   },
   empty: {
     borderRadius: 12,

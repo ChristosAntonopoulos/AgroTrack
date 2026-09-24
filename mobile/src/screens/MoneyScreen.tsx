@@ -18,6 +18,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Sheet from '../components/ui/Sheet';
 import DismissibleChip from '../components/ui/DismissibleChip';
+import FieldColorMark from '../components/fields/FieldColorMark';
 import MoneyContextBar, { type MoneyKindFilter } from '../components/money/MoneyContextBar';
 import MoneySummaryCards from '../components/money/MoneySummaryCards';
 import MoneyTrustStrip from '../components/money/MoneyTrustStrip';
@@ -428,7 +429,12 @@ const MoneyScreen = () => {
                 },
               ]}
             >
-              <Ionicons name="map-outline" size={16} color={colors.primary} />
+              <FieldColorMark
+                color={fields.find((field) => field.id === fieldId)?.color}
+                fieldId={fieldId || undefined}
+                hollow={!fieldId || fieldId === UNASSIGNED_FIELD_QUERY}
+                size={12}
+              />
               <Text
                 style={{ color: colors.textPrimary, fontWeight: '600', flexShrink: 1 }}
                 numberOfLines={1}
@@ -652,7 +658,8 @@ const MoneyScreen = () => {
           }}
           style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.borderLight }]}
         >
-          <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{t('money:allFields')}</Text>
+          <FieldColorMark hollow size={12} />
+          <Text style={{ fontWeight: '700', color: colors.textPrimary, flex: 1 }}>{t('money:allFields')}</Text>
         </Pressable>
         {fields.map((field) => (
           <Pressable
@@ -663,7 +670,8 @@ const MoneyScreen = () => {
             }}
             style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.borderLight }]}
           >
-            <Text style={{ color: colors.textPrimary }}>{friendlyFieldLabel(field.name)}</Text>
+            <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+            <Text style={{ color: colors.textPrimary, flex: 1 }}>{friendlyFieldLabel(field.name)}</Text>
           </Pressable>
         ))}
         <Pressable
@@ -673,7 +681,8 @@ const MoneyScreen = () => {
           }}
           style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.borderLight }]}
         >
-          <Text style={{ color: colors.textPrimary }}>{unassignedFieldLabel(locale)}</Text>
+          <FieldColorMark hollow size={12} />
+          <Text style={{ color: colors.textPrimary, flex: 1 }}>{unassignedFieldLabel(locale)}</Text>
         </Pressable>
       </Sheet>
 
@@ -739,7 +748,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   pickerRow: {
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.sm,
   },

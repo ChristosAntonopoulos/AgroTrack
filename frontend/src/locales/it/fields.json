@@ -1116,12 +1116,15 @@
   "createGrove": {
     "title": "Aggiungi oliveto",
     "firstTitle": "Metti il tuo primo oliveto in Oleachron",
-    "subtitle": "Give it a name so you can find it easily. Everything else can wait.",
-    "nameHeading": "Grove name",
-    "nameHelper": "Give it a name so you can find it easily. Everything else can wait.",
-    "nameLabel": "Grove name",
-    "readyNudge": "Your grove is ready. You can add a place and details now or later.",
-    "createCta": "Crea oliveto",
+    "subtitle": "Prima il nome, poi il colore una sola volta. Confine e dettagli quando vuoi.",
+    "nameHeading": "Come lo chiamiamo?",
+    "nameHelper": "Un nome breve che riconoscerai — es. Nord o Vigne di sotto.",
+    "nameLabel": "Nome oliveto",
+    "colorHeading": "Scegli un colore",
+    "colorHelper": "Compare su Chronologio per riconoscere subito questo oliveto.",
+    "readyNudge": "Nome e colore pronti. Poi disegni subito i confini dell'oliveto.",
+    "createCta": "Continua ai confini",
+    "continueToColor": "Continua",
     "continueLater": "Continua più tardi",
     "addLocationFirst": "Aggiungi prima la posizione",
     "backToGroves": "Torna agli oliveti",
@@ -1130,9 +1133,14 @@
     "later": "later",
     "setupLevelAria": "Grove setup level",
     "levels": {
-      "name": "Name",
-      "location": "Place on the map",
-      "details": "Details"
+      "name": "Nome",
+      "color": "Colore",
+      "location": "Posizione sulla mappa",
+      "details": "Dettagli",
+      "boundary": "Confine"
+    },
+    "shared": {
+      "boundaryHint": "Trova l'oliveto sulla mappa e tocca gli angoli."
     },
     "placement": {
       "title": "How do you want to place the grove?",
@@ -1182,11 +1190,12 @@
       "waitHeading": "Can wait",
       "readyName": "Name",
       "readyTimeline": "Chronologio ready",
-      "readyWork": "You can record work",
+      "readyWork": "Puoi registrare un'uscita, un'entrata o un'osservazione",
       "waitLocation": "Place on the map",
       "waitBoundary": "Confine sulla mappa",
       "waitDetails": "Variety and trees",
       "recordWork": "Record first work",
+      "recordFirst": "Prima registrazione",
       "addLocation": "Add a place on the map",
       "openChronologio": "Open Chronologio",
       "openGrove": "Open my grove"

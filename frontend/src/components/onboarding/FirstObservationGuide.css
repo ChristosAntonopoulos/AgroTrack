@@ -1,0 +1,72 @@
+.first-observation-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 16px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(47, 93, 56, 0.28);
+  background: linear-gradient(135deg, rgba(47, 93, 56, 0.1), rgba(255, 253, 248, 0.95));
+}
+
+.first-observation-guide.is-mandatory {
+  position: sticky;
+  top: calc(var(--header-height, 56px) + 8px);
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(8, 12, 10, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.first-observation-guide-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: rgba(47, 93, 56, 0.14);
+  color: #2f5d38;
+  flex-shrink: 0;
+}
+
+.first-observation-guide-copy {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.first-observation-guide-copy strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #1e261c;
+  margin-bottom: 4px;
+}
+
+.first-observation-guide-copy p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #3d4a38;
+}
+
+.first-observation-guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-left: auto;
+}
+
+.first-observation-guide-primary {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #fff;
+  background: #2f5d38;
+  cursor: pointer;
+}
+
+.first-observation-guide-primary:hover {
+  background: #254a2c;
+}

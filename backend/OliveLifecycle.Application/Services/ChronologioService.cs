@@ -45,6 +45,7 @@ public class ChronologioService : IChronologioService
     private readonly IUserRepository _userRepository;
     private readonly IMediaAttachmentRepository _mediaAttachmentRepository;
     private readonly IFieldWeatherPeriodReviewRepository _weatherReviewRepository;
+    private readonly IFieldWeatherExtremeEventRepository _weatherExtremeRepository;
     private readonly IGeospatialStorageService _geospatialStorage;
     private readonly IPhotoContentUrlSigner _photoUrlSigner;
     private readonly ILogger<ChronologioService> _logger;
@@ -62,6 +63,7 @@ public class ChronologioService : IChronologioService
         IUserRepository userRepository,
         IMediaAttachmentRepository mediaAttachmentRepository,
         IFieldWeatherPeriodReviewRepository weatherReviewRepository,
+        IFieldWeatherExtremeEventRepository weatherExtremeRepository,
         IGeospatialStorageService geospatialStorage,
         IPhotoContentUrlSigner photoUrlSigner,
         ILogger<ChronologioService> logger)
@@ -78,6 +80,7 @@ public class ChronologioService : IChronologioService
         _userRepository = userRepository;
         _mediaAttachmentRepository = mediaAttachmentRepository;
         _weatherReviewRepository = weatherReviewRepository;
+        _weatherExtremeRepository = weatherExtremeRepository;
         _geospatialStorage = geospatialStorage;
         _photoUrlSigner = photoUrlSigner;
         _logger = logger;
@@ -649,6 +652,7 @@ public class ChronologioService : IChronologioService
         IReadOnlyList<Activity> activities;
         IReadOnlyList<Note> notes;
         IReadOnlyList<FieldWeatherPeriodReview> weatherReviews;
+        IReadOnlyList<FieldWeatherExtremeEvent> weatherExtremes;
 
         if (fieldIds.Count == 1)
         {
@@ -662,6 +666,8 @@ public class ChronologioService : IChronologioService
             activities = (await _activityRepository.GetByFieldIdAsync(fieldId, ActivityFetchLimit, cancellationToken)).ToList();
             notes = (await _noteRepository.GetByOwnerUserIdAsync(userId, fieldId, limit: 200, cancellationToken)).ToList();
             weatherReviews = await _weatherReviewRepository.GetByFieldIdsAsync(
+                fieldIds, query.From, query.To, cancellationToken);
+            weatherExtremes = await _weatherExtremeRepository.GetByFieldIdsAsync(
                 fieldIds, query.From, query.To, cancellationToken);
         }
         else
@@ -683,6 +689,8 @@ public class ChronologioService : IChronologioService
                 .Where(n => n.FieldId != null && fieldIds.Contains(n.FieldId, StringComparer.Ordinal))
                 .ToList();
             weatherReviews = await _weatherReviewRepository.GetByFieldIdsAsync(
+                fieldIds, query.From, query.To, cancellationToken);
+            weatherExtremes = await _weatherExtremeRepository.GetByFieldIdsAsync(
                 fieldIds, query.From, query.To, cancellationToken);
         }
 
@@ -813,6 +821,11 @@ public class ChronologioService : IChronologioService
             }
 
             entries.Add(MapWeatherReview(review, fieldLabels));
+        }
+
+        foreach (var extreme in weatherExtremes)
+        {
+            entries.Add(MapWeatherExtreme(extreme, fieldLabels));
         }
 
         foreach (var entry in entries)
@@ -1391,6 +1404,75 @@ public class ChronologioService : IChronologioService
                     CoverageSufficient = review.ExpectedDays <= 0
                         || review.DayCount >= review.ExpectedDays
                         || review.DayCount >= (isMonth ? 20 : 200)
+                }
+            }
+        };
+    }
+
+    private ChronologioEntryDto MapWeatherExtreme(
+        FieldWeatherExtremeEvent extreme,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels)
+    {
+        var eventType = extreme.Kind switch
+        {
+            WeatherExtremeKinds.Heatwave => ChronologioEventTypes.WeatherHeat,
+            WeatherExtremeKinds.Frost => ChronologioEventTypes.WeatherFrost,
+            WeatherExtremeKinds.NearFrost => ChronologioEventTypes.WeatherNearFrost,
+            WeatherExtremeKinds.HeavyRain => ChronologioEventTypes.WeatherHeavyRain,
+            WeatherExtremeKinds.Drought => ChronologioEventTypes.WeatherDrought,
+            WeatherExtremeKinds.ColdSpell => ChronologioEventTypes.WeatherColdSpell,
+            _ => ChronologioEventTypes.WeatherHeat
+        };
+
+        var importance = string.Equals(extreme.Severity, WeatherExtremeSeverity.Critical, StringComparison.OrdinalIgnoreCase)
+            ? ChronologioImportance.Critical
+            : ChronologioImportance.Warning;
+
+        var title = ChronologioDisplayLabels.WeatherExtremeTitle(
+            extreme.Kind,
+            extreme.StreakDays,
+            extreme.MinTemperatureC,
+            extreme.MaxTemperatureC,
+            extreme.RainTotalMm,
+            extreme.IsStronger);
+
+        var summary = ChronologioDisplayLabels.WeatherExtremeSummary(
+            extreme.StartDate,
+            extreme.EndDate,
+            extreme.StreakDays);
+
+        return new ChronologioEntryDto
+        {
+            Id = $"{ChronologioSourceTypes.WeatherExtremeEvent}:{extreme.Id}",
+            FieldId = extreme.FieldId,
+            Field = FieldRef(extreme.FieldId, fieldLabels),
+            CropCycleId = null,
+            LifecycleYear = YearLabel(null, extreme.OccurredAt),
+            ResultYear = ResolveResultYear(null, extreme.OccurredAt),
+            OccurredAt = EnsureUtc(extreme.OccurredAt),
+            CreatedAt = EnsureUtc(extreme.UpdatedAt),
+            Category = ChronologioCategory.Weather.ToApiString(),
+            EventType = eventType,
+            Title = title,
+            Summary = summary,
+            SourceType = ChronologioSourceTypes.WeatherExtremeEvent,
+            SourceId = extreme.Id,
+            IsSystemGenerated = true,
+            Actor = null,
+            Importance = importance.ToApiString(),
+            Details = new ChronologioDetailsDto
+            {
+                Weather = new ChronologioWeatherDetailsDto
+                {
+                    TemperatureMin = extreme.MinTemperatureC,
+                    TemperatureMax = extreme.MaxTemperatureC,
+                    RainfallMm = extreme.RainTotalMm,
+                    Source = string.IsNullOrWhiteSpace(extreme.WeatherProvider) ? null : extreme.WeatherProvider,
+                    ExtremeKind = extreme.Kind,
+                    StreakDays = extreme.StreakDays,
+                    IsStronger = extreme.IsStronger,
+                    ExtremeStartDate = extreme.StartDate,
+                    ExtremeEndDate = extreme.EndDate
                 }
             }
         };

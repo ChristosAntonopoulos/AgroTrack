@@ -171,7 +171,8 @@
     "sheetTitle": "Foto di questo giorno"
   },
   "card": {
-    "aria": "Foto {{index}} di {{total}}, {{field}}, {{date}} {{time}}"
+    "aria": "Foto {{index}} di {{total}}, {{field}}, {{date}} {{time}}",
+    "needsInfo": "Servono altri dettagli — nella foto non c'è posizione o campo."
   },
   "select": {
     "toggle": "Seleziona",

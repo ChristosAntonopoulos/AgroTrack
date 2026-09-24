@@ -1252,6 +1252,19 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
             setWeatherEventPeek(e);
             return;
           }
+          // Extreme weather is shown inline on the timeline — do not open a peek.
+          if (
+            e.eventType === 'weather.heat' ||
+            e.eventType === 'weather.frost' ||
+            e.eventType === 'weather.nearFrost' ||
+            e.eventType === 'weather.heavyRain' ||
+            e.eventType === 'weather.drought' ||
+            e.eventType === 'weather.coldSpell'
+          ) {
+            setWeatherEventPeek(null);
+            living.setSelectedEntry(null);
+            return;
+          }
           setWeatherEventPeek(null);
           living.setSelectedEntry(e.id);
         }}

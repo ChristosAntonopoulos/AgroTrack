@@ -116,6 +116,10 @@
   padding: 0;
 }
 
+.field-form-card.card {
+  overflow: visible;
+}
+
 .field-form-panel {
   padding: var(--spacing-lg);
 }
@@ -625,6 +629,10 @@
   z-index: 20;
 }
 
+.location-search.is-open {
+  z-index: 1400;
+}
+
 .location-search-label-row {
   display: flex;
   align-items: center;
@@ -679,6 +687,14 @@
     0 2px 8px color-mix(in srgb, #000 14%, transparent);
   max-height: 15.5rem;
   overflow-y: auto;
+}
+
+.location-search-results--portal {
+  position: fixed;
+  right: auto;
+  top: 0;
+  left: 0;
+  z-index: 12500;
 }
 
 .location-search-icon {
@@ -788,7 +804,7 @@
 
 .place-location-search {
   position: relative;
-  z-index: 25;
+  z-index: 1400;
   margin-bottom: var(--spacing-md);
 }
 
@@ -810,23 +826,6 @@
   margin: 0.5rem 0 0;
   color: var(--color-text-secondary);
   font-size: 0.95rem;
-}
-
-.boundary-place-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0.55rem 0 0;
-}
-
-.boundary-place-chip {
-  border: 1px solid var(--border-default);
-  background: var(--surface-1);
-  color: var(--color-text-primary);
-  border-radius: 999px;
-  padding: 0.4rem 0.8rem;
-  min-height: 40px;
-  cursor: pointer;
 }
 
 /* ——— Create grove flow ——— */
@@ -853,6 +852,43 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.grove-setup-level-item.is-clickable {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.15rem 0.25rem;
+  margin: -0.15rem -0.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.grove-setup-level-item.is-clickable:hover {
+  background: rgba(47, 93, 56, 0.08);
+}
+
+.grove-setup-level-item.is-clickable:focus-visible {
+  outline: 2px solid var(--olive-primary, #2f5d38);
+  outline-offset: 2px;
+}
+
+.grove-name-label-sr {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.form-group:has(.grove-name-label-sr) {
+  position: relative;
 }
 
 .grove-setup-level-mark {
@@ -908,6 +944,23 @@
   font-size: 0.95rem;
   line-height: 1.45;
   color: var(--text-secondary);
+}
+
+.grove-form-boundary-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin: var(--spacing-md) 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.grove-form-boundary-cta .field-form-hint {
+  margin: 0;
+  flex: 1 1 12rem;
 }
 
 .grove-create-nav {
@@ -1023,6 +1076,22 @@
 
 .grove-ready-panel .grove-ready-header h2 {
   font-size: 1.35rem;
+}
+
+.grove-ready-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.grove-ready-swatch {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--swatch, var(--olive-primary));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--swatch, var(--olive-primary)) 28%, transparent);
+  margin-bottom: 0.35rem;
 }
 
 .grove-ready-split {

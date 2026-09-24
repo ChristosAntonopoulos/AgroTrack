@@ -109,13 +109,23 @@ export const HarvestAddMenu: React.FC<{
           <Text style={[styles.section, { color: colors.textSecondary }]}>
             {waiting ? t('harvestCampaign.addMenu.next') : t('harvestCampaign.addMenu.start')}
           </Text>
-          <HarvestStepRail
-            current={pathCurrent}
-            facts={pathFacts}
-            caption={hintOf(pathCurrent)}
-            enabled={pathSteps}
-            onPick={onPick}
-          />
+          <View
+            style={[
+              styles.pathCard,
+              {
+                borderColor: colors.eventHarvest,
+                backgroundColor: colors.eventHarvestSoft,
+              },
+            ]}
+          >
+            <HarvestStepRail
+              current={pathCurrent}
+              facts={pathFacts}
+              caption={hintOf(pathCurrent)}
+              enabled={pathSteps}
+              onPick={onPick}
+            />
+          </View>
         </>
       ) : null}
       {other.length > 0 ? (
@@ -132,7 +142,14 @@ export const HarvestAddMenu: React.FC<{
 
 const styles = StyleSheet.create({
   list: { gap: spacing.sm },
-  section: { fontSize: 13, fontWeight: '700', marginBottom: spacing.sm },
+  section: { fontSize: 13, fontWeight: '700', marginBottom: spacing.sm, letterSpacing: 0.2 },
+  pathCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    marginBottom: spacing.sm,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

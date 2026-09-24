@@ -147,6 +147,7 @@
   border: 1px solid var(--border-default);
   box-shadow: var(--shadow-card);
   position: relative;
+  z-index: 1;
   height: min(62vh, 560px);
   min-height: 340px;
 }
@@ -183,6 +184,50 @@
   min-height: 32px;
   padding: 0 0.7rem;
   font-size: 0.82rem;
+}
+
+.boundary-map-actions {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1200;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.55rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.boundary-map-actions .btn,
+.boundary-map-actions .boundary-primary-action,
+.boundary-map-actions .boundary-tool-btn {
+  width: auto;
+  flex: 0 1 auto;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 10px;
+}
+
+.boundary-map-actions .boundary-location-status {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.boundary-map-actions .boundary-done-note {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .boundary-steps-guide {
@@ -266,7 +311,68 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
+  margin-bottom: 0;
+}
+
+.boundary-search-block {
+  position: relative;
+  z-index: 1300;
   margin-bottom: 0.55rem;
+}
+
+.boundary-search-block.has-suggestions {
+  z-index: 1400;
+}
+
+.boundary-place-suggestions {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.4rem;
+  position: absolute;
+  z-index: 1400;
+  left: 0;
+  right: 0;
+  top: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: 15.5rem;
+  overflow-y: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--olive-border);
+  border-radius: 14px;
+  box-shadow:
+    0 14px 32px color-mix(in srgb, #000 34%, transparent),
+    0 2px 8px color-mix(in srgb, #000 14%, transparent);
+}
+
+.boundary-place-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boundary-place-option svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--olive-primary);
+}
+
+.boundary-place-option:hover,
+.boundary-place-option:focus-visible {
+  background: var(--olive-soft);
+  outline: none;
 }
 
 .boundary-search-input {
@@ -290,38 +396,6 @@
 .boundary-tool-btn {
   min-height: 48px;
   gap: 0.4rem;
-}
-
-.boundary-action-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-  margin: 0 0 0.75rem;
-}
-
-.boundary-action-bar .btn,
-.boundary-action-bar .boundary-primary-action,
-.boundary-action-bar .boundary-tool-btn {
-  width: auto;
-  flex: 0 1 auto;
-  min-height: 36px;
-  padding: 0 0.7rem;
-  font-size: 0.85rem;
-  border-radius: 10px;
-}
-
-.boundary-action-bar .boundary-location-status {
-  flex: 1 1 100%;
-  margin: 0.15rem 0 0;
-  font-size: 0.82rem;
-}
-
-.boundary-done-note {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-secondary);
 }
 
 .boundary-corner-count {

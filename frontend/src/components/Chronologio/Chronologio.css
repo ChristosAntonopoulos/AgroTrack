@@ -580,6 +580,202 @@
   padding: 0.22rem 0.65rem;
 }
 
+.chronologio-event-card.is-weather-extreme {
+  padding-block: 0.65rem;
+}
+
+.chrono-extreme-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  margin-top: 0.15rem;
+}
+
+.chrono-extreme-card .chronologio-card-summary {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
+.chrono-extreme-chip {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+/* Extreme weather: solid alert pill (content-width) — high contrast on cream UI. */
+.chrono-extreme-wrap {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0.2rem 0 0.35rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+.chrono-extreme-pill {
+  --extreme-solid: #c2410c;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: min(100%, 28rem);
+  width: max-content;
+  padding: 0.28rem 0.7rem 0.28rem 0.48rem;
+  border-radius: 999px;
+  background: var(--extreme-solid);
+  color: #fff;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--extreme-solid) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent);
+  cursor: default;
+  line-height: 1.2;
+}
+
+.chrono-extreme-pill.is-heat {
+  --extreme-solid: #c2410c;
+}
+
+.chrono-extreme-pill.is-drought {
+  --extreme-solid: #a16207;
+}
+
+.chrono-extreme-pill.is-rain {
+  --extreme-solid: #1d4ed8;
+}
+
+.chrono-extreme-pill.is-frost {
+  --extreme-solid: #0e7490;
+}
+
+.chrono-extreme-pill.is-cold {
+  --extreme-solid: #475569;
+}
+
+.chrono-extreme-pill-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 22%, transparent);
+  color: #fff;
+}
+
+.chrono-extreme-pill-kind {
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.chrono-extreme-pill-dot {
+  opacity: 0.55;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.chrono-extreme-pill-meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.92;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9.5rem;
+}
+
+.chrono-drawer-extreme {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.chrono-drawer-extreme-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--extreme-solid, #c2410c);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--extreme-solid, #c2410c) 35%, transparent);
+}
+
+.chrono-drawer-extreme-hero.is-heat {
+  --extreme-solid: #c2410c;
+}
+
+.chrono-drawer-extreme-hero.is-drought {
+  --extreme-solid: #a16207;
+}
+
+.chrono-drawer-extreme-hero.is-rain {
+  --extreme-solid: #1d4ed8;
+}
+
+.chrono-drawer-extreme-hero.is-frost {
+  --extreme-solid: #0e7490;
+}
+
+.chrono-drawer-extreme-hero.is-cold {
+  --extreme-solid: #475569;
+}
+
+.chrono-drawer-extreme-kind {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.chrono-drawer-extreme-summary {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  opacity: 0.92;
+}
+
+.chrono-drawer-extreme-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.55rem;
+}
+
+.chrono-drawer-extreme-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface, #fff) 88%, var(--color-border, #ddd));
+}
+
+.chrono-drawer-extreme-fact dt {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.chrono-drawer-extreme-fact dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* Legacy soft strip (unused) kept inert so older classnames do not break. */
+.chrono-extreme-banner {
+  display: none;
+}
+
 .weather-review {
   margin-top: 0.65rem;
   display: flex;

@@ -47,6 +47,8 @@ export type RootStackParamList = {
     focus?: 'harvest' | 'harvest-final' | 'money';
     /** Local field page tab (web-aligned). Legacy `chronologio` / `overview` still accepted. */
     mode?: 'overview' | 'map' | 'details' | 'chronologio';
+    /** First-run spatial loading panel. */
+    activation?: 'spatial' | 'observe';
   };
   InviteAccept: { token: string };
   FamilyInviteAccept: { token: string };
@@ -67,7 +69,7 @@ export type RootStackParamList = {
   Chronologio: { fieldId?: string } | undefined;
   TaskDetail: { taskId: string };
   TaskCompletion: { taskId: string };
-  FieldForm: { fieldId?: string; focus?: 'details' | 'settings' };
+  FieldForm: { fieldId?: string; focus?: 'details' | 'settings' | 'appearance' };
   FieldWorkSetup: { fieldId: string; edit?: boolean };
   FieldWorkProfile: { fieldId: string };
   FieldMapBoundary: { fieldId: string };

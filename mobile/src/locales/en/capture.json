@@ -63,7 +63,10 @@
   },
   "harvest": {
     "olives": "Olives (kg)",
+    "olivesQuestion": "How many olives?",
     "oil": "Oil (kg)",
+    "oilQuestion": "How much oil?",
+    "oilOptional": "Leave this empty if it has not been pressed yet.",
     "yield": "Yield",
     "mill": "Mill",
     "notes": "Notes",
@@ -149,6 +152,15 @@
     "seriesPreview": "This records {{count}} entries, {{amount}} € in total.",
     "seriesSaved": "{{count}} entries recorded.",
     "seriesPartial": "Saved {{saved}} of {{total}}. The rest did not save.",
-    "seriesTooMany": "That is too many entries at once."
+    "seriesTooMany": "That is too many entries at once.",
+    "whichField": "Which field?",
+    "whenDidItHappen": "When did it happen?",
+    "whenSold": "When was it sold?",
+    "continue": "Continue",
+    "stepKind": "What are you recording?",
+    "stepCategoryExpense": "What expense?",
+    "stepCategoryIncome": "What income?",
+    "stepAmount": "How much?",
+    "stepProgress": "Step {{current}} of {{total}}"
   }
 }

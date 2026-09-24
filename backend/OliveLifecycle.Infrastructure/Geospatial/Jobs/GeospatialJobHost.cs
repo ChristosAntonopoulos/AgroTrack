@@ -139,20 +139,40 @@ public class GeospatialJobHost : BackgroundService
             {
                 var fieldRepository = provider.GetRequiredService<IFieldRepository>();
                 var field = await fieldRepository.GetByIdAsync(item.FieldId, ct);
-                if (field?.Boundary == null) return;
+                if (field?.Boundary == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Field {item.FieldId} has no boundary yet — history backfill will retry after the grower draws όρια.");
+                }
 
                 var weather = provider.GetRequiredService<IWeatherIntelligenceService>();
-                await weather.BackfillHistoryAsync(field, ct);
+                var writtenDays = await weather.BackfillHistoryAsync(field, ct);
 
-                // Chronologio's right-hand weather pane reads compiled month/year
-                // reviews. Build them as soon as daily snapshots exist so the
-                // journal is not empty while monthly Sentinel history downloads.
+                var extremes = provider.GetRequiredService<IWeatherExtremeEventScanner>();
+                var extremeCount = await extremes.ScanFieldAsync(item.FieldId, ct);
+
+                // Persist Chronologio month/year weather cards as soon as daily
+                // snapshots exist — do not wait on the slower satellite archive.
                 var reviews = provider.GetRequiredService<IWeatherReviewCompiler>();
-                await reviews.RebuildForFieldAsync(item.FieldId, ct);
+                var reviewCount = await reviews.RebuildForFieldAsync(item.FieldId, ct);
+                _logger.LogInformation(
+                    "Field {FieldId} history: {Days} daily snapshots, {Extremes} extreme events, {Reviews} weather reviews",
+                    item.FieldId, writtenDays, extremeCount, reviewCount);
 
-                var satellite = provider.GetRequiredService<ISatelliteProcessingService>();
-                await satellite.ProcessHistoricalAsync(item.FieldId, ct);
-                await reviews.RebuildForFieldAsync(item.FieldId, ct);
+                try
+                {
+                    var satellite = provider.GetRequiredService<ISatelliteProcessingService>();
+                    await satellite.ProcessHistoricalAsync(item.FieldId, ct);
+                    await reviews.RebuildForFieldAsync(item.FieldId, ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Weather Chronologio is already saved; satellite can retry later.
+                    _logger.LogWarning(
+                        ex,
+                        "Satellite history failed for field {FieldId} after weather backfill; weather reviews remain available",
+                        item.FieldId);
+                }
             }, ct);
         }
     }
@@ -313,6 +333,7 @@ public class GeospatialJobHost : BackgroundService
         var fieldRepository = provider.GetRequiredService<IFieldRepository>();
         var weather = provider.GetRequiredService<IWeatherIntelligenceService>();
         var reviews = provider.GetRequiredService<IWeatherReviewCompiler>();
+        var extremes = provider.GetRequiredService<IWeatherExtremeEventScanner>();
         var logger = provider.GetRequiredService<ILogger<GeospatialJobHost>>();
 
         var yesterday = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1));
@@ -323,6 +344,7 @@ public class GeospatialJobHost : BackgroundService
             {
                 await weather.CreateDailySnapshotAsync(field, yesterday, ct);
                 await reviews.RebuildCurrentAsync(field.Id, ct);
+                await extremes.ScanFieldAsync(field.Id, ct);
             }
             catch (Exception ex)
             {

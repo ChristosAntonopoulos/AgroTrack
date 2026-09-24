@@ -2,8 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateFieldDto } from '../../services/fieldService';
 import FieldColorPicker from './FieldColorPicker';
-import LocationSearchField from './LocationSearchField';
-import CropDetailsStep from './CropDetailsStep';
 
 type Mode = 'create' | 'edit' | 'appearance';
 
@@ -12,68 +10,68 @@ interface Props {
   fieldId?: string | null;
   mode?: Mode;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
-  onLocationChange?: (next: { locationText: string; latitude?: number; longitude?: number }) => void;
   onColorChange?: (color: string) => void;
 }
 
+/** Name-only create/edit, or colour-only appearance step. */
 const BasicFieldDetailsStep: React.FC<Props> = ({
   formData,
   fieldId,
   mode = 'create',
   onChange,
-  onLocationChange,
   onColorChange,
 }) => {
   const { t } = useTranslation('fields');
 
   if (mode === 'appearance' && onColorChange) {
     return (
-      <div className="field-form-panel">
-        <h2>{t('createGrove.appearance.title')}</h2>
-        <p className="field-form-panel-desc">{t('createGrove.appearance.subtitle')}</p>
-        <p className="grove-appearance-auto">{t('createGrove.appearance.autoHint')}</p>
-        <FieldColorPicker value={formData.color} fieldId={fieldId} onChange={onColorChange} />
+      <div className="field-form-panel" data-onboarding-target="grove-color">
+        <h2>{t('createGrove.colorHeading')}</h2>
+        <p className="field-form-panel-desc">{t('createGrove.colorHelper')}</p>
+        <FieldColorPicker
+          value={formData.color}
+          fieldId={fieldId}
+          onChange={onColorChange}
+          showLabel={false}
+        />
       </div>
     );
   }
 
+  const isCreate = mode === 'create';
+
   return (
     <div className="field-form-panel">
-      <h2>{mode === 'create' ? t('createGrove.nameHeading') : t('createGrove.levels.name')}</h2>
+      <h2>{isCreate ? t('createGrove.nameHeading') : t('form.editTitle')}</h2>
       <p className="field-form-panel-desc">
-        {mode === 'create' ? t('createGrove.nameHelper') : t('form.editSubtitle')}
+        {isCreate ? t('createGrove.nameHelper') : t('form.editSubtitle')}
       </p>
 
-      <div className="form-group">
-        <label htmlFor="name">{t('createGrove.nameLabel')} *</label>
+      <div className="form-group" data-onboarding-target="grove-name">
+        <label htmlFor="name" className="grove-name-label-sr">
+          {t('createGrove.nameLabel')}
+        </label>
         <input
           type="text"
           id="name"
           name="name"
           value={formData.name}
           onChange={onChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && formData.name.trim().length >= 2) {
+              e.preventDefault();
+              (e.currentTarget.form || e.currentTarget.closest('.field-form-card'))
+                ?.querySelector<HTMLButtonElement>('.grove-create-nav .btn-primary')
+                ?.click();
+            }
+          }}
           placeholder={t('form.namePlaceholder')}
           required
           aria-invalid={formData.name.trim().length > 0 && formData.name.trim().length < 2}
           aria-required="true"
+          autoComplete="off"
         />
       </div>
-
-      {mode === 'edit' && onLocationChange ? (
-        <div className="form-group">
-          <LocationSearchField value={formData.locationText || ''} onChange={onLocationChange} />
-        </div>
-      ) : null}
-
-      {mode === 'edit' ? <CropDetailsStep formData={formData} onChange={onChange} nested /> : null}
-
-      {mode === 'edit' && onColorChange ? (
-        <div className="form-group grove-appearance-inline">
-          <h3>{t('createGrove.appearance.title')}</h3>
-          <p className="field-form-hint">{t('createGrove.appearance.autoHint')}</p>
-          <FieldColorPicker value={formData.color} fieldId={fieldId} onChange={onColorChange} />
-        </div>
-      ) : null}
     </div>
   );
 };

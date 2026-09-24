@@ -63,7 +63,10 @@
   },
   "harvest": {
     "olives": "Ελιές (kg)",
+    "olivesQuestion": "Πόσες ελιές;",
     "oil": "Λάδι (kg)",
+    "oilQuestion": "Πόσο λάδι;",
+    "oilOptional": "Άφησέ το κενό αν δεν έχει πατηθεί ακόμη.",
     "yield": "Απόδοση",
     "mill": "Ελαιοτριβείο",
     "notes": "Σημειώσεις",
@@ -149,6 +152,15 @@
     "seriesPreview": "Θα καταχωρηθούν {{count}} εγγραφές, {{amount}} € συνολικά.",
     "seriesSaved": "Καταχωρήθηκαν {{count}} εγγραφές.",
     "seriesPartial": "Αποθηκεύτηκαν {{saved}} από {{total}}. Οι υπόλοιπες δεν αποθηκεύτηκαν.",
-    "seriesTooMany": "Είναι πάρα πολλές εγγραφές μαζί."
+    "seriesTooMany": "Είναι πάρα πολλές εγγραφές μαζί.",
+    "whichField": "Σε ποιο χωράφι;",
+    "whenDidItHappen": "Πότε έγινε;",
+    "whenSold": "Πότε πουλήθηκε;",
+    "continue": "Συνέχεια",
+    "stepKind": "Τι καταχωρείς;",
+    "stepCategoryExpense": "Τι έξοδο;",
+    "stepCategoryIncome": "Τι έσοδο;",
+    "stepAmount": "Πόσο;",
+    "stepProgress": "Βήμα {{current}} από {{total}}"
   }
 }

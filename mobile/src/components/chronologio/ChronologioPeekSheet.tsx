@@ -106,7 +106,7 @@ export type ChronologioPeekTarget =
       sharedWeatherGrid?: boolean;
     };
 
-type FieldOption = { id: string; name: string };
+type FieldOption = { id: string; name: string; color?: string | null };
 
 type Props = {
   peek: ChronologioPeekTarget | null;

@@ -208,6 +208,11 @@ const ServiceProfileScreen = () => {
               />
             ))}
           </View>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
           <View style={styles.row}>
             {['Available', 'Limited', 'Unavailable'].map((value) => (
               <Button
@@ -293,7 +298,7 @@ const ServiceProfileScreen = () => {
         </>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <>
           <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 18 }}>{displayName}</Text>
           <Text style={{ color: colors.textSecondary, marginVertical: spacing.sm }}>{shortDescription}</Text>
@@ -308,7 +313,7 @@ const ServiceProfileScreen = () => {
       {step > 1 ? (
         <Button title={t('back')} variant="outline" onPress={() => setStep((s) => s - 1)} />
       ) : null}
-      {step < 4 ? (
+      {step < 5 ? (
         <Button title={t('next')} onPress={() => setStep((s) => s + 1)} />
       ) : null}
       <Button

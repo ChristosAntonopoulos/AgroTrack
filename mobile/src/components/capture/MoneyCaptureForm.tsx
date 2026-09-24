@@ -43,6 +43,7 @@ import {
   isMoneyEntryPartial,
   readMoneyEntryDraft,
   writeMoneyEntryDraft,
+  type MoneyEntryStep,
 } from '../../finance/moneyEntryDraft';
 import {
   categorySupportsQuantity,
@@ -76,6 +77,7 @@ import {
 } from '../../harvestCampaign/oilSaleLots';
 import { formatHarvestOilAmount } from '../../harvestCampaign/utils/harvestCalculations';
 import { resolveFieldColor } from '../../utils/fieldColors';
+import FieldColorMark from '../fields/FieldColorMark';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { spacing, typography } from '../../theme';
 
@@ -137,6 +139,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
         : null;
 
   const [kind, setKind] = useState<FinancialTransactionType | null>(preferredKind);
+  const askKind = !preferredKind && canRecordIncome && canRecordExpense;
+  const [step, setStep] = useState<MoneyEntryStep>(askKind ? 'kind' : 'category');
   const [amount, setAmount] = useState('');
   const [fieldId, setFieldId] = useState(context.fieldId || '');
   const [occurredOn, setOccurredOn] = useState(todayIsoDate(context.occurredAt));
@@ -282,6 +286,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
         setSplitMode(draft.splitMode ?? 'single');
         setSplitFieldIds(draft.splitFieldIds ?? []);
         setRepeat(draft.repeat ?? 'once');
+        if (draft.step) setStep(draft.step);
       }
       setDraftReady(true);
     })();
@@ -327,6 +332,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const applyCategoryKind = (next: FinancialTransactionType) => {
     setKind(next);
     applyCategory(defaultCategoryForType(next));
+    setStep('category');
   };
 
   const addPhotos = async (camera: boolean) => {
@@ -431,6 +437,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
       splitMode,
       splitFieldIds,
       repeat,
+      step,
     });
   }, [
     draftReady,
@@ -454,6 +461,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
     splitMode,
     splitFieldIds,
     repeat,
+    step,
   ]);
 
   const confirmIfNeeded = (value: number, type: FinancialTransactionType): Promise<boolean> => {
@@ -617,10 +625,55 @@ const MoneyCaptureForm: React.FC<Props> = ({
     }
   };
 
-  if (!kind) {
+  const steps: MoneyEntryStep[] = [
+    ...(askKind ? (['kind'] as MoneyEntryStep[]) : []),
+    'category',
+    ...(oilPath ? (['oil', 'pack'] as MoneyEntryStep[]) : []),
+    'amount',
+    ...(!oilPath ? (['field'] as MoneyEntryStep[]) : []),
+    'when',
+  ];
+  const stepIndex = Math.max(0, steps.indexOf(step));
+  const activeStep = steps.includes(step) ? step : steps[0];
+  const goNext = () => {
+    const next = steps[steps.indexOf(activeStep) + 1];
+    if (next) setStep(next);
+  };
+  const goBack = () => {
+    const prev = steps[steps.indexOf(activeStep) - 1];
+    if (prev) setStep(prev);
+  };
+  const stepTitle =
+    activeStep === 'kind'
+      ? t('capture:money.stepKind')
+      : activeStep === 'category'
+        ? t(kind === 'income' ? 'capture:money.stepCategoryIncome' : 'capture:money.stepCategoryExpense')
+        : activeStep === 'oil'
+          ? t('capture:money.fromThisOil')
+          : activeStep === 'pack'
+            ? t('capture:money.packTitle')
+            : activeStep === 'amount'
+              ? t('capture:money.stepAmount')
+              : activeStep === 'field'
+                ? t('capture:money.whichField')
+                : oilPath
+                  ? t('capture:money.whenSold')
+                  : t('capture:money.whenDidItHappen');
+  const canContinue =
+    activeStep === 'oil'
+      ? selectedOilIds.length > 0
+      : activeStep === 'pack'
+        ? soldLitres > 0
+        : activeStep === 'amount'
+          ? Boolean(resolvedAmount && resolvedAmount > 0)
+          : activeStep === 'field'
+            ? splitMode === 'single' || Boolean(seriesPlan?.ok)
+            : true;
+
+  if (!kind || activeStep === 'kind') {
     return (
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.prompt, { color: colors.textSecondary }]}>{t('capture:money.chooserTitle')}</Text>
+        <Text style={[styles.prompt, { color: colors.textSecondary }]}>{t('capture:money.stepKind')}</Text>
         {!canRecordIncome && !canRecordExpense ? (
           <Text style={{ color: colors.textSecondary }}>{t('capture:money.noPermission')}</Text>
         ) : (
@@ -692,34 +745,22 @@ const MoneyCaptureForm: React.FC<Props> = ({
   return (
     <>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <View
-          style={[
-            styles.kindBanner,
-            {
-              backgroundColor: kind === 'income' ? colors.eventIncomeSoft : colors.eventExpenseSoft,
-              borderColor: kind === 'income' ? colors.eventIncome : colors.eventExpense,
-            },
-          ]}
-        >
-          <Ionicons
-            name={kind === 'income' ? 'trending-up' : 'trending-down'}
-            size={20}
-            color={kind === 'income' ? colors.eventIncome : colors.eventExpense}
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.kind, { color: colors.textPrimary, marginBottom: 0 }]}>
-              {financialTypeLabel(kind, language)}
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{financialTypeHelp(kind, language)}</Text>
-          </View>
-          {!preferredKind ? (
-            <Pressable onPress={() => setKind(null)} hitSlop={8}>
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('capture:money.changeType')}</Text>
+        <View style={styles.stepHead}>
+          {stepIndex > 0 ? (
+            <Pressable onPress={goBack} hitSlop={8} accessibilityLabel={t('common:back')}>
+              <Ionicons name="chevron-back" size={22} color={colors.primary} />
             </Pressable>
-          ) : null}
+          ) : (
+            <View style={{ width: 22 }} />
+          )}
+          <Text style={{ color: colors.textTertiary, fontWeight: '700', fontSize: 13 }}>
+            {t('capture:money.stepProgress', { current: stepIndex + 1, total: steps.length })}
+          </Text>
+          <View style={{ width: 22 }} />
         </View>
+        <Text style={[styles.kind, { color: colors.textPrimary }]}>{stepTitle}</Text>
 
-        {!oilPath && supportsQty ? (
+        {activeStep === 'amount' && !oilPath && supportsQty ? (
           <QuantityPriceCalculator
             mode={mode}
             onModeChange={setMode}
@@ -735,7 +776,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
             calculatedAmount={resolvedAmount != null ? formatMoney(resolvedAmount, language) : null}
             calculatedUnitPrice={resolvedUnitPrice != null ? formatMoney(resolvedUnitPrice, language) : null}
           />
-        ) : !oilPath ? (
+        ) : activeStep === 'amount' && !oilPath ? (
           <>
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.amount')}</Text>
             <View
@@ -768,10 +809,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
           </>
         ) : null}
 
-        {isOil && oilLots.length === 0 ? (
+        {activeStep === 'amount' && isOil && oilLots.length === 0 ? (
           <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('capture:money.noHarvestOil')}</Text>
         ) : null}
-        {oilPath ? (
+        {activeStep === 'oil' && oilPath ? (
           <>
             <HarvestCarryPicker
               label={t('capture:money.fromThisOil')}
@@ -810,38 +851,38 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   : null
               }
             />
-            {selectedLots.length > 0 ? (
-              <>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.packTitle')}</Text>
-                <OilPackBars
-                  stock={oilStock}
-                  value={soldPack}
-                  availableLitres={selectedOilLitres}
-                  onChange={applySoldPack}
-                />
-                <QuantityPriceCalculator
-                  mode="quantity_times_unit_price"
-                  onModeChange={setMode}
-                  quantity={quantity}
-                  onQuantityChange={setQuantity}
-                  unit="litre"
-                  units={['litre']}
-                  onUnitChange={setUnit}
-                  unitPrice={unitPrice}
-                  onUnitPriceChange={setUnitPrice}
-                  amount={amount}
-                  onAmountChange={setAmount}
-                  calculatedAmount={resolvedAmount != null ? formatMoney(resolvedAmount, language) : null}
-                  calculatedUnitPrice={resolvedUnitPrice != null ? formatMoney(resolvedUnitPrice, language) : null}
-                  hideModeToggle
-                  quantityLocked
-                />
-              </>
-            ) : null}
           </>
         ) : null}
 
-        {!oilPath ? (
+        {activeStep === 'pack' && oilPath ? (
+          <OilPackBars
+            stock={oilStock}
+            value={soldPack}
+            availableLitres={selectedOilLitres}
+            onChange={applySoldPack}
+          />
+        ) : null}
+        {activeStep === 'amount' && oilPath ? (
+          <QuantityPriceCalculator
+            mode="quantity_times_unit_price"
+            onModeChange={setMode}
+            quantity={quantity}
+            onQuantityChange={setQuantity}
+            unit="litre"
+            units={['litre']}
+            onUnitChange={setUnit}
+            unitPrice={unitPrice}
+            onUnitPriceChange={setUnitPrice}
+            amount={amount}
+            onAmountChange={setAmount}
+            calculatedAmount={resolvedAmount != null ? formatMoney(resolvedAmount, language) : null}
+            calculatedUnitPrice={resolvedUnitPrice != null ? formatMoney(resolvedUnitPrice, language) : null}
+            hideModeToggle
+            quantityLocked
+          />
+        ) : null}
+
+        {activeStep === 'field' && !oilPath ? (
         <>
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:fieldLabel')}</Text>
         {allowSeries && usableFields.length > 1 ? (
@@ -941,6 +982,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
                       )
                     }
                   >
+                    <FieldColorMark color={f.color} fieldId={f.id} size={10} />
                     <Text style={{ color: on ? colors.primary : colors.textPrimary }}>{f.name}</Text>
                   </Pressable>
                 );
@@ -969,6 +1011,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
             ]}
             onPress={() => setFieldId('')}
           >
+            <FieldColorMark hollow size={10} />
             <Text style={{ color: !fieldId ? colors.primary : colors.textPrimary }}>
               {unassignedFieldLabel(language)}
             </Text>
@@ -986,6 +1029,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
               ]}
               onPress={() => setFieldId(f.id)}
             >
+              <FieldColorMark color={f.color} fieldId={f.id} size={10} />
               <Text style={{ color: fieldId === f.id ? colors.primary : colors.textPrimary }}>{f.name}</Text>
             </Pressable>
           ))}
@@ -994,6 +1038,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
         </>
         ) : null}
 
+        {activeStep === 'when' ? (
+        <>
         <FormDateField
           label={t('capture:dateLabel')}
           value={occurredOn}
@@ -1025,40 +1071,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
             {t('chronologio:captureDateUsesToday')}
           </Text>
         ) : null}
-        {allowSeries ? (
-          <View style={styles.chipRow}>
-            <Pressable
-              style={[
-                styles.chip,
-                {
-                  borderColor: repeat === 'once' ? colors.primary : colors.border,
-                  backgroundColor: repeat === 'once' ? colors.primary + '22' : 'transparent',
-                  minHeight: tapMin,
-                },
-              ]}
-              onPress={() => setRepeat('once')}
-            >
-              <Text style={{ color: repeat === 'once' ? colors.primary : colors.textPrimary }}>
-                {t('capture:money.repeatOnce')}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.chip,
-                {
-                  borderColor: repeat === 'monthly' ? colors.primary : colors.border,
-                  backgroundColor: repeat === 'monthly' ? colors.primary + '22' : 'transparent',
-                  minHeight: tapMin,
-                },
-              ]}
-              onPress={() => setRepeat('monthly')}
-            >
-              <Text style={{ color: repeat === 'monthly' ? colors.primary : colors.textPrimary }}>
-                {t('capture:money.repeatMonthly')}
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
         {seriesPlan?.ok && seriesPlan.entries.length > 1 ? (
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
             {t('capture:money.seriesPreview', {
@@ -1078,7 +1090,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
                 : t('capture:money.seriesTooMany')}
           </Text>
         ) : null}
+        </>
+        ) : null}
 
+        {activeStep === 'category' ? (
+        <>
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('capture:money.category')}</Text>
         <View style={styles.chipRow}>
           {categories.map((c) => (
@@ -1092,7 +1108,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   minHeight: tapMin,
                 },
               ]}
-              onPress={() => applyCategory(c)}
+              onPress={() => {
+                applyCategory(c);
+                setStep(c === 'olive_oil_sale' && oilLots.length > 0 ? 'oil' : 'amount');
+              }}
             >
               <Text style={{ color: category === c ? colors.primary : colors.textPrimary }}>
                 {financialCategoryLabel(c, language)}
@@ -1100,7 +1119,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
             </Pressable>
           ))}
         </View>
+        </>
+        ) : null}
 
+        {activeStep === 'when' ? (
+        <>
         <TextInput
           style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
           value={description}
@@ -1117,6 +1140,40 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
         {moreOpen ? (
           <>
+            {allowSeries ? (
+              <View style={styles.chipRow}>
+                <Pressable
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: repeat === 'once' ? colors.primary : colors.border,
+                      backgroundColor: repeat === 'once' ? colors.primary + '22' : 'transparent',
+                      minHeight: tapMin,
+                    },
+                  ]}
+                  onPress={() => setRepeat('once')}
+                >
+                  <Text style={{ color: repeat === 'once' ? colors.primary : colors.textPrimary }}>
+                    {t('capture:money.repeatOnce')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: repeat === 'monthly' ? colors.primary : colors.border,
+                      backgroundColor: repeat === 'monthly' ? colors.primary + '22' : 'transparent',
+                      minHeight: tapMin,
+                    },
+                  ]}
+                  onPress={() => setRepeat('monthly')}
+                >
+                  <Text style={{ color: repeat === 'monthly' ? colors.primary : colors.textPrimary }}>
+                    {t('capture:money.repeatMonthly')}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
             {fieldId
               ? tasks.map((task) => (
                   <Pressable
@@ -1205,8 +1262,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
             />
           </>
         ) : null}
+        </>
+        ) : null}
       </ScrollView>
       <View style={styles.footer}>
+        {activeStep === 'when' ? (
         <Button
           title={
             submitting
@@ -1220,6 +1280,15 @@ const MoneyCaptureForm: React.FC<Props> = ({
           fullWidth
           size="large"
         />
+        ) : (
+        <Button
+          title={t('capture:money.continue')}
+          onPress={goNext}
+          disabled={!canContinue}
+          fullWidth
+          size="large"
+        />
+        )}
       </View>
     </>
   );
@@ -1257,7 +1326,22 @@ const styles = StyleSheet.create({
   kind: { ...typography.styles.h3, fontWeight: '700', marginBottom: 8 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
+  stepHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 10, fontSize: 16 },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
   amountWrap: {

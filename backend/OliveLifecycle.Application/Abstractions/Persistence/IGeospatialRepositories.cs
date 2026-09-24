@@ -39,6 +39,26 @@ public interface IFieldWeatherPeriodReviewRepository
     Task<int> UpsertManyAsync(IReadOnlyList<FieldWeatherPeriodReview> reviews, CancellationToken cancellationToken = default);
 }
 
+public interface IFieldWeatherExtremeEventRepository
+{
+    Task<IReadOnlyList<FieldWeatherExtremeEvent>> GetByFieldIdsAsync(
+        IReadOnlyList<string> fieldIds,
+        DateTime? from,
+        DateTime? to,
+        CancellationToken cancellationToken = default);
+
+    Task<FieldWeatherExtremeEvent?> GetByDedupKeyAsync(string dedupKey, CancellationToken cancellationToken = default);
+
+    Task<int> UpsertManyAsync(IReadOnlyList<FieldWeatherExtremeEvent> events, CancellationToken cancellationToken = default);
+
+    /// <summary>Removes events for a field whose end date falls in the scanned window (before re-upsert).</summary>
+    Task DeleteByFieldAndEndDateRangeAsync(
+        string fieldId,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IFieldSatelliteObservationRepository
 {
     Task<FieldSatelliteObservation?> GetByIdAsync(string id, CancellationToken cancellationToken = default);

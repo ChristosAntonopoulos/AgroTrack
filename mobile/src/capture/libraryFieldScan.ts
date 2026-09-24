@@ -74,19 +74,37 @@ const DEFAULT_MAX_ASSETS = 2500;
 let mediaLibraryCache: MediaLibraryModule | null | undefined;
 
 /**
+ * Expo modules are registered on expo-modules-core, not on React Native's
+ * NativeModules. Looking only at NativeModules made a linked library look
+ * missing and showed "needs an updated app build".
+ */
+const hasExpoMediaLibraryNative = (): boolean => {
+  if (
+    NativeModules.ExpoMediaLibrary ||
+    (NativeModules as Record<string, unknown>).ExponentMediaLibrary
+  ) {
+    return true;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const core = require('expo-modules-core') as {
+      requireOptionalNativeModule?: (name: string) => object | null;
+    };
+    return Boolean(core.requireOptionalNativeModule?.('ExpoMediaLibrary'));
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Lazy-load expo-media-library. Returns null when the native module is missing
- * (stale dev client) so Photo Hub can still open.
- *
- * Check NativeModules first — requiring the JS package when ExpoMediaLibrary is
- * absent still throws and can surface as an Uncaught Error redbox.
+ * so Photo Hub can still open. The require stays inside try/catch — a missing
+ * module throws, and an uncaught throw becomes a redbox.
  */
 export function getMediaLibrary(): MediaLibraryModule | null {
   if (mediaLibraryCache !== undefined) return mediaLibraryCache;
 
-  const native =
-    NativeModules.ExpoMediaLibrary ??
-    (NativeModules as Record<string, unknown>).ExponentMediaLibrary;
-  if (!native) {
+  if (!hasExpoMediaLibraryNative()) {
     mediaLibraryCache = null;
     return null;
   }

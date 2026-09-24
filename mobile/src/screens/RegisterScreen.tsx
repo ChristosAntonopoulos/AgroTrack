@@ -34,6 +34,7 @@ const RegisterScreen = () => {
   const [inviteCode, setInviteCode] = useState(route.params?.code || '');
   const [showInvite, setShowInvite] = useState(Boolean(route.params?.code || route.params?.token));
   const [showEmailForm, setShowEmailForm] = useState(Boolean(route.params?.code || route.params?.token));
+  const [accountStep, setAccountStep] = useState<'you' | 'password'>('you');
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -160,6 +161,8 @@ const RegisterScreen = () => {
             <View style={authLinkStyles.dividerLine} />
           </View>
 
+          {accountStep === 'you' ? (
+          <>
           <AuthTextField
             label={t('auth:register.firstName')}
             placeholder={t('auth:register.firstNamePlaceholder')}
@@ -197,6 +200,20 @@ const RegisterScreen = () => {
             required
             error={errors.email}
           />
+            <AuthButton
+              title={t('common:next')}
+              onPress={() => {
+                const next: Partial<Record<FieldKey, string>> = {};
+                if (!firstName.trim()) next.firstName = t('auth:register.firstNameRequired');
+                if (!email.trim()) next.email = t('auth:register.emailRequired');
+                else if (!isValidEmail(email)) next.email = t('auth:register.emailInvalid');
+                setErrors(next);
+                if (Object.keys(next).length === 0) setAccountStep('password');
+              }}
+            />
+          </>
+          ) : (
+          <>
           <AuthTextField
             label={t('auth:login.passwordLabel')}
             placeholder={t('auth:register.passwordPlaceholder')}
@@ -252,6 +269,14 @@ const RegisterScreen = () => {
             onPress={() => void handleRegister()}
             loading={loading}
           />
+          <AuthButton
+            title={t('common:back')}
+            variant="outline"
+            onPress={() => setAccountStep('you')}
+            disabled={loading}
+          />
+          </>
+          )}
         </>
       )}
 

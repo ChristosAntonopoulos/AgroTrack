@@ -171,7 +171,8 @@
     "sheetTitle": "Photos this day"
   },
   "card": {
-    "aria": "Photo {{index}} of {{total}}, {{field}}, {{date}} {{time}}"
+    "aria": "Photo {{index}} of {{total}}, {{field}}, {{date}} {{time}}",
+    "needsInfo": "Needs more detail — location or field was not in the photo."
   },
   "select": {
     "toggle": "Select",

@@ -17,6 +17,7 @@ public class GeospatialOptions
     public TaskRulesOptions TaskRules { get; set; } = new();
     public AlertOptions Alerts { get; set; } = new();
     public FieldWorkEventOptions FieldWorkEvents { get; set; } = new();
+    public ExtremeWeatherOptions ExtremeWeather { get; set; } = new();
 }
 
 public class WeatherOptions
@@ -231,3 +232,32 @@ public class FieldWorkEventOptions
     public int FertiliserRainLookbackHours { get; set; } = 48;
     public int TreatmentRainLookbackHours { get; set; } = 72;
 }
+
+/// <summary>Thresholds for Chronologio extreme weather timeline cards from daily history.</summary>
+public class ExtremeWeatherOptions
+{
+    public double HeatwaveTempC { get; set; } = 37;
+    public double HeatwaveStrongTempC { get; set; } = 40;
+    public int HeatwaveMinDays { get; set; } = 3;
+
+    public double FrostTempC { get; set; } = 0;
+    public double NearFrostTempC { get; set; } = 2;
+
+    public double HeavyRainMm { get; set; } = 30;
+    public double ExtremeRainMm { get; set; } = 50;
+
+    /// <summary>Minimum consecutive days for a drought event.</summary>
+    public int DroughtMinDays { get; set; } = 20;
+
+    /// <summary>Max total rain (mm) allowed across the drought streak.</summary>
+    public double DroughtMaxTotalRainMm { get; set; } = 5;
+
+    /// <summary>Max daytime temp (°C) for a cold spell outside deep winter.</summary>
+    public double ColdSpellMaxTempC { get; set; } = 8;
+
+    /// <summary>Max daytime temp (°C) for an exceptional cold spell in Dec–Feb.</summary>
+    public double ColdSpellWinterMaxTempC { get; set; } = 2;
+
+    public int ColdSpellMinDays { get; set; } = 3;
+}
+

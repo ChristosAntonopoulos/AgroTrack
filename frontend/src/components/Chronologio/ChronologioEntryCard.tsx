@@ -29,6 +29,8 @@ import {
   type ChronologioReturnState,
 } from '../../chronologio/chronologioViewState';
 import type { ChronologioZoom } from '../../chronologio/livingTypes';
+import { isWeatherExtremeEventType } from '../../chronologio/weatherExtreme';
+import ChronologioExtremeBanner from './ChronologioExtremeBanner';
 import './Chronologio.css';
 
 type Props = {
@@ -135,6 +137,13 @@ const ChronologioEntryCard: React.FC<Props> = ({
 
   const isPeriodReview =
     entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
+  const isExtreme = isWeatherExtremeEventType(entry.eventType);
+
+  // Extreme weather: compact colour strip only — not a selectable event card.
+  if (isExtreme && !weatherTile) {
+    return <ChronologioExtremeBanner entry={entry} showField={showField} />;
+  }
+
   const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
   const accent = eventAccentToken(category, String(entry.importance));
   const size = weatherTile ? 'compact' : eventCardSize(entry);

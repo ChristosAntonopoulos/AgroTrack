@@ -162,6 +162,11 @@ export interface ChronologioWeatherDetails {
   temperatureMaxSeries?: Array<number | null>;
   source?: string;
   vegetationNote?: string;
+  extremeKind?: string;
+  streakDays?: number;
+  isStronger?: boolean;
+  extremeStartDate?: string;
+  extremeEndDate?: string;
 }
 
 export interface ChronologioIntelligenceDetails {
