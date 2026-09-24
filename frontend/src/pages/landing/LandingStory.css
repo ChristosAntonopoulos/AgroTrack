@@ -796,6 +796,70 @@
   color: var(--lp-olive-deep);
 }
 
+.lp-harvest-steps {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-harvest-steps li {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.lp-harvest-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #3f5234;
+  color: #fff;
+  font-weight: 700;
+}
+
+.lp-harvest-steps h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.7rem;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.lp-harvest-steps h3 em {
+  font-style: normal;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--lp-harvest);
+}
+
+.lp-harvest-steps p {
+  margin: 0.15rem 0 0;
+  color: var(--lp-ink);
+}
+
+.lp-harvest-year {
+  display: grid;
+  gap: 0.2rem;
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(74, 52, 28, 0.18);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--lp-olive-deep);
+}
+
+.lp-harvest-year span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--lp-harvest);
+}
+
 /* Harvest phone */
 .lp-phone {
   width: min(100%, 380px);

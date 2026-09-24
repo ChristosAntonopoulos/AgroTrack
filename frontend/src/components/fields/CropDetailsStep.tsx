@@ -1,48 +1,70 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateFieldDto } from '../../services/fieldService';
+import VarietySelect from './VarietySelect';
 
 const VARIETY_OPTIONS = ['Koroneiki', 'Kalamon', 'Megaritiki', 'Manaki', 'Unknown', 'Other'];
 
 interface Props {
   formData: CreateFieldDto;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  /** When true, omit the outer panel heading (nested in edit form). */
+  nested?: boolean;
 }
 
-const CropDetailsStep: React.FC<Props> = ({ formData, onChange }) => {
+const CropDetailsStep: React.FC<Props> = ({ formData, onChange, nested = false }) => {
   const { t } = useTranslation('fields');
 
-  return (
-    <div className="field-form-panel">
-      <h2>{t('addField.steps.crop')}</h2>
-      <p className="field-form-panel-desc">{t('addField.cropDesc')}</p>
+  const varietyOptions = VARIETY_OPTIONS.map((v) => ({
+    value: v,
+    label: t(`addField.varietyOptions.${v}`, { defaultValue: v }),
+  }));
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="treeCount">{t('addField.treeCount')}</label>
+  const body = (
+    <>
+      {!nested ? (
+        <>
+          <h2>{t('createGrove.levels.details')}</h2>
+          <p className="field-form-panel-desc">{t('createGrove.details.subtitle')}</p>
+        </>
+      ) : null}
+
+      <div className="crop-details-row">
+        <div className="form-group crop-details-field">
+          <label htmlFor="variety">{t('addField.oliveVariety')}</label>
+          <p className="field-form-hint">{t('createGrove.details.varietyHint')}</p>
+          <VarietySelect
+            id="variety"
+            name="variety"
+            value={formData.variety || ''}
+            options={varietyOptions}
+            placeholder={t('addField.selectOption', { defaultValue: 'Select…' })}
+            onChange={(e) =>
+              onChange({
+                target: { name: e.target.name, value: e.target.value },
+              } as React.ChangeEvent<HTMLSelectElement>)
+            }
+          />
+        </div>
+        <div className="form-group crop-details-field">
+          <label htmlFor="treeCount">{t('createGrove.details.treeCountLabel')}</label>
+          <p className="field-form-hint">{t('createGrove.details.treeCountHint')}</p>
           <input
             type="number"
             id="treeCount"
             name="treeCount"
             min="0"
+            inputMode="numeric"
             value={formData.treeCount ?? ''}
             onChange={onChange}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="variety">{t('addField.oliveVariety')}</label>
-          <select id="variety" name="variety" value={formData.variety || ''} onChange={onChange}>
-            <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-            {VARIETY_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {t(`addField.varietyOptions.${v}`, { defaultValue: v })}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
-    </div>
+    </>
   );
+
+  if (nested) return <div className="crop-details-nested">{body}</div>;
+  return <div className="field-form-panel">{body}</div>;
 };
 
 export default CropDetailsStep;

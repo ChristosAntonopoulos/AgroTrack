@@ -52,10 +52,14 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled }) => 
         label={t('addField.locationText')}
         value={value}
         onChangeText={(locationText) => onChange({ locationText })}
-        placeholder={t('addField.locationPlaceholder')}
+        placeholder={t('createGrove.place.placeholder', {
+          defaultValue: t('addField.locationPlaceholder'),
+        })}
         editable={!disabled}
       />
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('addField.locationHint')}</Text>
+      <Text style={[styles.hint, { color: colors.textSecondary }]}>
+        {t('createGrove.place.hint', { defaultValue: t('addField.locationHint') })}
+      </Text>
       {loading && suggestions.length === 0 ? (
         <Text style={[styles.status, { color: colors.textTertiary }]}>
           {t('addField.locationSearching')}

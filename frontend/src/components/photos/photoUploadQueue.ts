@@ -237,7 +237,8 @@ export const createPhotoUploadQueue = (deps?: {
   let jobs: PhotoUploadJob[] = [];
   const listeners = new Set<(next: PhotoUploadJob[]) => void>();
   let pumpPromise: Promise<void> | null = null;
-  let hydrated = false;
+  let pumpAgain = false;
+  let hydratePromise: Promise<void> | null = null;
 
   const emit = () => {
     const snapshot = jobs.slice();
@@ -261,37 +262,39 @@ export const createPhotoUploadQueue = (deps?: {
     return { ...job, status: 'queued', error: null };
   };
 
-  return {
+  const queue = {
     jobs: () => jobs.slice(),
     subscribe: (listener) => {
       listener(jobs.slice());
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    hydrate: async () => {
-      if (hydrated) return;
-      hydrated = true;
-      try {
-        const stored = await store.list();
-        const restored = stored.map((job) => {
-          const file = fileFrom(job);
-          let status = job.status;
-          if (status === 'uploading' || status === 'converting') status = 'queued';
-          if (status === 'offline' && online()) status = 'queued';
-          return {
-            ...job,
-            status,
-            file,
-            blob: file,
-            previewUrl: previewFor(file),
-          };
-        });
-        const known = new Set(jobs.map((job) => job.localId));
-        jobs = [...jobs, ...restored.filter((job) => !known.has(job.localId))];
-        emit();
-      } catch {
-        hydrated = false;
-      }
+    hydrate: () => {
+      if (hydratePromise) return hydratePromise;
+      hydratePromise = (async () => {
+        try {
+          const stored = await store.list();
+          const restored = stored.map((job) => {
+            const file = fileFrom(job);
+            let status = job.status;
+            if (status === 'uploading' || status === 'converting') status = 'queued';
+            if (status === 'offline' && online()) status = 'queued';
+            return {
+              ...job,
+              status,
+              file,
+              blob: file,
+              previewUrl: previewFor(file),
+            };
+          });
+          const known = new Set(jobs.map((job) => job.localId));
+          jobs = [...jobs, ...restored.filter((job) => !known.has(job.localId))];
+          emit();
+        } catch {
+          hydratePromise = null;
+        }
+      })();
+      return hydratePromise;
     },
     stage: async (files, options) => {
       const ids: string[] = [];
@@ -479,7 +482,10 @@ export const createPhotoUploadQueue = (deps?: {
           emit();
         }
       }
-      if (pumpPromise) return;
+      if (pumpPromise) {
+        pumpAgain = true;
+        return;
+      }
       pumpPromise = (async () => {
         try {
           for (;;) {
@@ -490,7 +496,12 @@ export const createPhotoUploadQueue = (deps?: {
               return;
             }
             const next = jobs.find((job) => job.status === 'queued');
-            if (!next) return;
+            if (!next) {
+              if (!pumpAgain) return;
+              pumpAgain = false;
+              continue;
+            }
+            pumpAgain = false;
             replace(next.localId, { status: 'uploading', error: null });
             try {
               const uploaded = await upload(jobs.find((job) => job.localId === next.localId) || next, (received, total) => {
@@ -553,10 +564,15 @@ export const createPhotoUploadQueue = (deps?: {
           }
         } finally {
           pumpPromise = null;
+          if (pumpAgain) {
+            pumpAgain = false;
+            queueMicrotask(() => queue.pump());
+          }
         }
       })();
     },
   };
+  return queue;
 };
 
 let singleton: PhotoUploadQueue | null = null;

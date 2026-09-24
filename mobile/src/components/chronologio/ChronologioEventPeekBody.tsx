@@ -1,9 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../context/ThemeContext';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import type { ChronologioEntry } from '../../services/chronologioService';
+import type { Field } from '../../services/fieldService';
+import type { HarvestCampaign } from '../../harvestCampaign/types';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import {
   presentActorName,
@@ -15,6 +20,18 @@ import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { detailAccentToken } from '../../chronologio/detailKind';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import HarvestDayJourney from './HarvestDayJourney';
+import { HarvestFlowView } from '../../harvestCampaign/components/HarvestFlowView';
+import { campaignDayHasFlow, filterCampaignToDay } from '../../harvestCampaign/daySlice';
+import {
+  campaignFromHarvestRecords,
+  fetchHarvestRecordsForFields,
+} from '../../harvestCampaign/hydrateFromRecords';
+import { getSeasonStartYear } from '../../utils/harvestSeason';
+import { athensCalendarDateKey } from '../../utils/athensDate';
+import { openHarvestCampaign } from '../../navigation/intents';
+import type { RootStackParamList } from '../../navigation/types';
+import { getFieldService } from '../../services/serviceFactory';
 import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
@@ -48,8 +65,10 @@ const Fact: React.FC<{ label: string; value?: string | null; colors: { textTerti
 
 /** Kind-aware Chronologio event peek body — mirrors web ChronologioEventDetail richness. */
 const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'common', 'money', 'photos']);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'money', 'photos', 'fields']);
   const { colors } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const harvestCampaign = useHarvestCampaignOptional();
   const kind = chronologioDetailKind(entry);
   const token = detailAccentToken(entry);
   const { accent, soft } = accentColorsForToken(colors, token);
@@ -78,6 +97,8 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
     [photos]
   );
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [fields, setFields] = useState<Field[]>([]);
+  const [dayCampaign, setDayCampaign] = useState<HarvestCampaign | null>(null);
   const harvest = entry.details.harvest;
   const note = entry.details.note;
   const expense = entry.details.expense;
@@ -86,6 +107,86 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
   const lifecycle = entry.details.lifecycle;
   const task = entry.details.task;
   const expenseChip = presentExpenseChip(entry, i18n.language);
+
+  const isDay = /^Harvest:day:/i.test(entry.id);
+  const dayKey = isDay
+    ? entry.id.replace(/^Harvest:day:/i, '')
+    : athensCalendarDateKey(entry.occurredAt);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getFieldService()
+      .getFields()
+      .then((rows) => {
+        if (!cancelled) setFields(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setFields([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!harvest || kind !== 'harvest') return;
+    let cancelled = false;
+
+    const fromLive =
+      harvestCampaign && isDay
+        ? filterCampaignToDay(harvestCampaign.campaign, dayKey)
+        : null;
+    if (fromLive && campaignDayHasFlow(fromLive)) {
+      setDayCampaign(fromLive);
+      return;
+    }
+
+    const fieldIds = entry.fieldId
+      ? [entry.fieldId]
+      : fields.map((f) => f.id).filter(Boolean);
+    if (fieldIds.length === 0) {
+      setDayCampaign(null);
+      return;
+    }
+
+    void (async () => {
+      try {
+        const rows = await fetchHarvestRecordsForFields(fieldIds);
+        if (cancelled) return;
+        const season = getSeasonStartYear(`${dayKey}T12:00:00`);
+        const built = campaignFromHarvestRecords(rows, season, { ignoreSeason: true });
+        const slice = filterCampaignToDay(built, dayKey);
+        setDayCampaign(campaignDayHasFlow(slice) ? slice : null);
+      } catch {
+        if (!cancelled) setDayCampaign(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dayKey, entry.fieldId, fields, harvest, harvestCampaign, isDay, kind]);
+
+  const openFieldsTab = () => {
+    openHarvestCampaign(navigation, {
+      day: dayKey,
+      fieldId: entry.fieldId || undefined,
+      view: 'fields',
+    });
+  };
+
+  const flowFields =
+    fields.length > 0
+      ? fields
+      : entry.field
+        ? ([
+            {
+              id: entry.fieldId,
+              name: entry.field.name,
+              color: entry.field.color,
+            },
+          ] as Field[])
+        : [];
 
   return (
     <View style={styles.wrap}>
@@ -108,32 +209,27 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
       </View>
 
       {kind === 'harvest' && harvest ? (
-        <View style={[styles.heroPanel, { backgroundColor: soft }]}>
-          <View style={styles.harvestRow}>
-            <View style={styles.harvestStat}>
-              <Text style={[styles.heroValue, { color: colors.eventHarvest }]}>
-                {harvest.oliveKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
-              </Text>
-              <Text style={styles.heroLabel}>{t('chronologio:olivesUnit')}</Text>
-            </View>
-            {harvest.oilKg != null ? (
-              <View style={styles.harvestStat}>
-                <Text style={[styles.heroValue, { color: colors.textPrimary }]}>
-                  {harvest.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })}
-                </Text>
-                <Text style={styles.heroLabel}>{t('chronologio:oilUnit')}</Text>
-              </View>
-            ) : null}
-            {harvest.oilYieldPercent != null ? (
-              <View style={styles.harvestStat}>
-                <Text style={[styles.heroValue, { color: colors.textPrimary }]}>
-                  {harvest.oilYieldPercent}%
-                </Text>
-                <Text style={styles.heroLabel}>{t('chronologio:yieldUnit')}</Text>
-              </View>
-            ) : null}
+        dayCampaign && flowFields.length > 0 ? (
+          <View style={styles.flowEmbed}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 8 }]}>
+              {t('fields:harvestCampaign.flow.title')}
+            </Text>
+            <HarvestFlowView
+              campaign={dayCampaign}
+              fields={flowFields}
+              onMarkDone={openFieldsTab}
+              onOpenMill={openFieldsTab}
+              onOpenOil={openFieldsTab}
+            />
           </View>
-        </View>
+        ) : (
+          <HarvestDayJourney
+            harvest={harvest}
+            numberLocale={numberLocale}
+            fieldName={entry.field?.name}
+            fieldAccent={fieldAccent}
+          />
+        )
       ) : null}
 
       {kind === 'money' && entry.amount ? (
@@ -478,6 +574,7 @@ export const eventPeekFooterActions = (
 
 const styles = StyleSheet.create({
   wrap: { gap: 4 },
+  flowEmbed: { marginBottom: 12 },
   fieldChip: {
     flexDirection: 'row',
     alignItems: 'center',

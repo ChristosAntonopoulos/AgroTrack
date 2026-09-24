@@ -107,9 +107,11 @@ const GroveWeatherCard: React.FC<Props> = ({
         <p className="grove-weather-reading">{t(`weatherCard.${view.readingKey}`)}</p>
       ) : null}
 
-      {!embedded && view.mood !== 'missing' ? <GroveWeekForecast fieldWeather={fieldWeather} /> : null}
+      {!embedded && !compact && view.mood !== 'missing' ? (
+        <GroveWeekForecast fieldWeather={fieldWeather} />
+      ) : null}
 
-      {scopeNote || fieldName || updated ? (
+      {!compact && (scopeNote || fieldName || updated) ? (
         <p className="grove-weather-meta">
           {[
             scopeNote || (fieldName ? friendlyFieldLabel(fieldName) : null),

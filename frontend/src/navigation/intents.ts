@@ -74,6 +74,8 @@ export const harvestPath = (opts?: {
   fieldId?: string;
   harvestId?: string;
   day?: string;
+  /** Open the Fields journey tab (`Η διαδρομή`). */
+  view?: 'today' | 'fields' | 'totals' | 'log';
 }): string =>
   `/harvest${qs([
     ['add', opts?.add],
@@ -81,6 +83,7 @@ export const harvestPath = (opts?: {
     ['fieldId', opts?.fieldId],
     ['harvestId', opts?.harvestId],
     ['day', opts?.day],
+    ['view', opts?.view],
   ])}`;
 
 export const harvestReviewPath = (opts?: { season?: number }): string =>

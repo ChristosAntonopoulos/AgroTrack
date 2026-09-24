@@ -13,6 +13,7 @@ import FieldYearGlance from './FieldYearGlance';
 import FieldRecentChronologio from './FieldRecentChronologio';
 import FieldDetailMap from './FieldDetailMap';
 import FieldPhotosStrip from './FieldPhotosStrip';
+import GroveEnrichmentCards from './GroveEnrichmentCards';
 
 type Props = {
   field: Field;
@@ -32,6 +33,7 @@ type Props = {
   onOpenChronologio: (entry?: ChronologioEntry) => void;
   onOpenMap: () => void;
   canViewMoney?: boolean;
+  canEdit?: boolean;
 };
 
 const FieldOverview: React.FC<Props> = ({
@@ -52,6 +54,7 @@ const FieldOverview: React.FC<Props> = ({
   onOpenChronologio,
   onOpenMap,
   canViewMoney = true,
+  canEdit = false,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const isDraft = field.status === 'Draft';
@@ -94,6 +97,8 @@ const FieldOverview: React.FC<Props> = ({
 
   return (
     <div className="field-overview">
+      <GroveEnrichmentCards field={field} canEdit={canEdit} />
+
       <FieldStatusStrip
         phenology={phenology}
         currentLifecycleStage={field.currentLifecycleStage}

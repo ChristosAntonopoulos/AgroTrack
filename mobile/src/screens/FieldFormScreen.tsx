@@ -1,41 +1,30 @@
-import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, Switch, Pressable } from 'react-native';
+import React, { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import * as Location from 'expo-location';
 import { getFieldService } from '../services/serviceFactory';
 import { useTheme } from '../context/ThemeContext';
 import FormField from '../components/forms/FormField';
 import FormSelect from '../components/forms/FormSelect';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import InfoRow from '../components/ui/InfoRow';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import FieldPreviewHero from '../components/domain/FieldPreviewHero';
-import WizardStepIndicator, { WizardStepKey } from '../components/fields/WizardStepIndicator';
-import FieldBoundaryDrawMap, { BoundaryPoint } from '../components/fields/FieldBoundaryDrawMap';
 import FieldColorPicker from '../components/fields/FieldColorPicker';
 import LocationSearchField from '../components/fields/LocationSearchField';
-import { CreateFieldDto, Field, GeoJsonPolygon } from '../services/fieldService';
+import { CreateFieldDto, Field } from '../services/fieldService';
 import { resolveFieldColor } from '../utils/fieldColors';
-import { geoJsonToPoints, pointsToGeoJsonPolygon } from '../utils/polygonArea';
-import { resolveFieldCenter } from '../utils/fieldGeo';
-import {
-  VARIETY_OPTIONS,
-  toSelectOptions,
-} from '../constants/fieldFormOptions';
+import { VARIETY_OPTIONS, toSelectOptions } from '../constants/fieldFormOptions';
 import { typography, spacing } from '../theme';
-import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
+import { fieldHasBoundary, isListedGrove } from '../utils/fieldDisplay';
 import { RootStackParamList } from '../navigation/types';
 
 type Route = RouteProp<RootStackParamList, 'FieldForm'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
 
-type WizardStep = WizardStepKey | 'basics-edit';
-
-const NEW_DRAW_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
-const EDIT_STEPS: WizardStepKey[] = ['basics', 'boundary', 'crop', 'review'];
+type CreateScreen = 'name' | 'location-choose' | 'location-place' | 'draft-saved' | 'ready';
 
 const emptyForm = (): CreateFieldDto => ({
   name: '',
@@ -51,81 +40,39 @@ const emptyForm = (): CreateFieldDto => ({
 const FieldFormScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { fieldId } = route.params || {};
+  const { fieldId, focus } = route.params || {};
+  const editFocus = focus === 'details' ? 'details' : 'settings';
   const { colors } = useTheme();
   const { t } = useTranslation(['fields', 'common']);
   const isEdit = !!fieldId;
 
-  const [step, setStep] = useState<WizardStep>('basics');
+  const [createScreen, setCreateScreen] = useState<CreateScreen>('name');
   const [formData, setFormData] = useState<CreateFieldDto>(emptyForm);
-  const [boundaryPoints, setBoundaryPoints] = useState<BoundaryPoint[]>([]);
-  const [measuredAreaSqm, setMeasuredAreaSqm] = useState(0);
-  const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
   const [draftFieldId, setDraftFieldId] = useState<string | undefined>(fieldId);
   const [loadedField, setLoadedField] = useState<Field | null>(null);
+  const [isFirstGrove, setIsFirstGrove] = useState(true);
+  const [locationSkipped, setLocationSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
-  const [parentScrollEnabled, setParentScrollEnabled] = useState(true);
 
-  const activeSteps = useMemo(() => {
-    if (isEdit) return EDIT_STEPS;
-    return NEW_DRAW_STEPS;
-  }, [isEdit]);
-
-  const stepIndex = useMemo(() => {
-    const key = step === 'basics-edit' ? 'basics' : step;
-    return activeSteps.indexOf(key as WizardStepKey);
-  }, [step, activeSteps]);
-
-  const isFirst = stepIndex <= 0;
-  const isLast = stepIndex === activeSteps.length - 1;
-  const currentStepKey = (step === 'basics-edit' ? 'basics' : step) as WizardStepKey;
-
-  const previewField = useMemo((): Field | null => {
-    if (!isEdit || !loadedField) return null;
-    const boundary: GeoJsonPolygon | undefined =
-      boundaryPoints.length >= 3
-        ? pointsToGeoJsonPolygon(boundaryPoints)
-        : loadedField.boundary;
-    return {
-      ...loadedField,
-      name: formData.name || loadedField.name,
-      locationText: formData.locationText ?? loadedField.locationText,
-      variety: formData.variety ?? loadedField.oliveVariety ?? loadedField.variety,
-      oliveVariety: formData.variety ?? loadedField.oliveVariety,
-      boundary,
-      appMeasuredAreaSqm:
-        measuredAreaSqm > 0 ? measuredAreaSqm : loadedField.appMeasuredAreaSqm,
-    };
-  }, [isEdit, loadedField, formData.name, formData.locationText, formData.variety, boundaryPoints, measuredAreaSqm]);
-
-  const boundaryChanged = useMemo(() => {
-    if (!loadedField?.boundary || boundaryPoints.length < 3) {
-      return boundaryPoints.length >= 3 && !loadedField?.boundary;
-    }
-    const original = geoJsonToPoints(loadedField.boundary);
-    if (original.length !== boundaryPoints.length) return true;
-    return original.some(
-      (p, i) =>
-        p.latitude !== boundaryPoints[i]?.latitude ||
-        p.longitude !== boundaryPoints[i]?.longitude
-    );
-  }, [loadedField?.boundary, boundaryPoints]);
-
-  const goToBoundaryStep = useCallback(() => {
-    setError(null);
-    setStep('boundary');
-  }, []);
-
-  const showEditHero =
-    isEdit &&
-    previewField != null &&
-    resolveFieldCenter(previewField) != null &&
-    step !== 'boundary';
+  const isActiveEdit = isEdit && loadedField?.status === 'Active';
+  const nameValid = formData.name.trim().length >= 2;
+  const hasLocation = Boolean(
+    (formData.locationText && formData.locationText.trim()) ||
+      (formData.latitude != null && formData.longitude != null)
+  );
+  const hasDetails = Boolean(formData.variety?.trim()) || formData.treeCount != null;
+  const hasBoundary = fieldHasBoundary(loadedField || { boundary: undefined });
 
   useEffect(() => {
-    if (!fieldId) return;
+    if (!fieldId) {
+      getFieldService()
+        .getFields()
+        .then((fields) => setIsFirstGrove(fields.filter(isListedGrove).length === 0))
+        .catch(() => setIsFirstGrove(true));
+      return;
+    }
     getFieldService()
       .getField(fieldId)
       .then((f) => {
@@ -134,6 +81,8 @@ const FieldFormScreen = () => {
           name: f.name,
           cropType: f.cropType || 'Olive',
           locationText: f.locationText || '',
+          latitude: f.latitude,
+          longitude: f.longitude,
           area: f.appMeasuredAreaSqm ?? f.area,
           variety: f.oliveVariety || f.variety || '',
           treeCount: f.treeCount,
@@ -148,12 +97,7 @@ const FieldFormScreen = () => {
           color: resolveFieldColor(f.color, f.id),
         });
         setDraftFieldId(f.id);
-        if (f.boundary) {
-          setBoundaryPoints(geoJsonToPoints(f.boundary));
-          setBoundaryConfirmed(true);
-        }
-        if (f.appMeasuredAreaSqm) setMeasuredAreaSqm(f.appMeasuredAreaSqm);
-        setStep(getFieldSetupResumeStep(f));
+        setCreateScreen('name');
       })
       .catch(() => setError(t('fields:form.failedLoad')))
       .finally(() => setLoading(false));
@@ -165,78 +109,17 @@ const FieldFormScreen = () => {
 
   const ensureDraftField = async (): Promise<string> => {
     if (draftFieldId) return draftFieldId;
+    const color = resolveFieldColor(formData.color, undefined);
     const created = await getFieldService().createField({
       ...formData,
       name: formData.name.trim(),
+      color,
       area: formData.area || 0,
       status: 'Draft',
     });
     setDraftFieldId(created.id);
+    patchForm({ color: created.color || color });
     return created.id;
-  };
-
-  const validateStep = (): string | null => {
-    if (step === 'basics' || step === 'basics-edit') {
-      if (!formData.name.trim() || formData.name.trim().length < 2) {
-        return t('fields:form.errors.nameRequired');
-      }
-    }
-    if (step === 'boundary' && boundaryPoints.length < 3) {
-      return t('fields:addFieldWizard.errors.boundaryRequired');
-    }
-    if (step === 'review') {
-      if (!isEdit && boundaryPoints.length >= 3 && !boundaryConfirmed) {
-        return t('fields:addField.errors.confirmBoundary');
-      }
-      if (isEdit && boundaryChanged && !boundaryConfirmed) {
-        return t('fields:addField.errors.confirmBoundary');
-      }
-    }
-    return null;
-  };
-
-  const persistBoundary = async (fieldIdToUse: string) => {
-    const boundary = pointsToGeoJsonPolygon(boundaryPoints);
-    if (!boundary) return;
-    await getFieldService().updateBoundary(fieldIdToUse, boundary as GeoJsonPolygon);
-    patchForm({ area: measuredAreaSqm });
-    try {
-      await getFieldService().validateArea(fieldIdToUse);
-    } catch {
-      /* best-effort, same as web */
-    }
-  };
-
-  const goNext = async () => {
-    const err = validateStep();
-    if (err) {
-      setError(err);
-      return;
-    }
-    setError(null);
-
-    try {
-      setSaving(true);
-      if (step === 'basics') {
-        await ensureDraftField();
-      }
-      if (step === 'boundary' && draftFieldId) {
-        await persistBoundary(draftFieldId);
-      }
-      if (!isLast) {
-        setStep(activeSteps[stepIndex + 1] as WizardStep);
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const goBack = () => {
-    setError(null);
-    if (!isFirst) setStep(activeSteps[stepIndex - 1] as WizardStep);
-    else navigation.goBack();
   };
 
   useLayoutEffect(() => {
@@ -249,13 +132,61 @@ const FieldFormScreen = () => {
     });
   }, [navigation, colors.primary, t]);
 
-  const handleSaveEdit = async () => {
-    const err = validateStep();
-    if (err) {
-      setError(err);
+  const handleCreateGrove = async () => {
+    if (!nameValid) {
+      setError(t('fields:form.errors.nameRequired'));
       return;
     }
-    if (!draftFieldId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const id = await ensureDraftField();
+      await getFieldService().updateField(id, {
+        name: formData.name.trim(),
+        cropType: formData.cropType || 'Olive',
+        locationText: formData.locationText,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        variety: formData.variety,
+        treeCount: formData.treeCount,
+        color: formData.color || resolveFieldColor(undefined, id),
+      });
+      await getFieldService().activateField(id, {
+        boundaryConfirmed: true,
+        cadastreReferenceAcknowledged: true,
+      });
+      patchForm({ status: 'Active' });
+      setLoadedField((prev) => (prev ? { ...prev, status: 'Active', id } : prev));
+      setCreateScreen('ready');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleContinueLater = async () => {
+    if (!nameValid) {
+      setError(t('fields:form.errors.nameRequired'));
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await ensureDraftField();
+      setCreateScreen('draft-saved');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!nameValid || !draftFieldId) {
+      setError(t('fields:form.errors.nameRequired'));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -263,23 +194,12 @@ const FieldFormScreen = () => {
         name: formData.name.trim(),
         cropType: formData.cropType,
         locationText: formData.locationText,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
         variety: formData.variety,
         treeCount: formData.treeCount,
-        treeAge: formData.treeAge,
-        groundType: formData.soilType || formData.groundType,
-        soilType: formData.soilType,
-        irrigationType: formData.irrigationType,
-        irrigationStatus:
-          formData.irrigationStatus ||
-          Boolean(formData.irrigationType && formData.irrigationType !== 'Rainfed'),
-        slope: formData.slope,
-        accessNotes: formData.accessNotes,
-        area: measuredAreaSqm || formData.area,
         color: formData.color,
       });
-      if (boundaryPoints.length >= 3) {
-        await persistBoundary(draftFieldId);
-      }
       navigation.replace('FieldDetail', { fieldId: draftFieldId });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
@@ -288,36 +208,16 @@ const FieldFormScreen = () => {
     }
   };
 
-  const handleActivate = async () => {
-    const err = validateStep();
-    if (err) {
-      setError(err);
-      return;
-    }
+  const handleSaveDetailsOnly = async () => {
+    if (!draftFieldId) return;
     setSaving(true);
     setError(null);
     try {
-      const id = draftFieldId || (await ensureDraftField());
-      await getFieldService().updateField(id, {
-        name: formData.name.trim(),
-        cropType: formData.cropType,
-        locationText: formData.locationText,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
+      await getFieldService().updateField(draftFieldId, {
         variety: formData.variety,
         treeCount: formData.treeCount,
-        treeAge: formData.treeAge,
-        area: measuredAreaSqm || formData.area,
-        color: formData.color,
       });
-      if (boundaryPoints.length >= 3) {
-        await persistBoundary(id);
-      }
-      const result = await getFieldService().activateField(id, {
-        boundaryConfirmed: boundaryConfirmed || boundaryPoints.length >= 3,
-        cadastreReferenceAcknowledged: true,
-      });
-      navigation.replace('FieldWorkSetup', { fieldId: result.field.id });
+      navigation.replace('FieldDetail', { fieldId: draftFieldId });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
     } finally {
@@ -325,85 +225,116 @@ const FieldFormScreen = () => {
     }
   };
 
-  const handleSaveDraft = async () => {
+  const useMyLocation = useCallback(async () => {
+    setError(null);
     try {
-      setSaving(true);
-      const id = await ensureDraftField();
-      await getFieldService().updateField(id, {
-        ...formData,
-        name: formData.name.trim(),
-        area: measuredAreaSqm || formData.area,
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError(t('fields:createGrove.placement.geoDenied'));
+        setCreateScreen('location-place');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      patchForm({
+        locationText: formData.locationText || t('fields:createGrove.placement.nearMe'),
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
       });
-      if (boundaryPoints.length >= 3) await persistBoundary(id);
-      Alert.alert(t('fields:saved'));
-      navigation.replace('FieldDetail', { fieldId: id });
-    } catch (e: unknown) {
-      Alert.alert(t('common:save'), e instanceof Error ? e.message : t('fields:form.failedSave'));
-    } finally {
-      setSaving(false);
+      setLocationSkipped(false);
+      setCreateScreen('location-place');
+    } catch {
+      setError(t('fields:createGrove.placement.geoUnavailable'));
+      setCreateScreen('location-place');
     }
+  }, [formData.locationText, t]);
+
+  const setupMark = (key: 'name' | 'location' | 'details') => {
+    if (key === 'name') {
+      if (createScreen === 'name') return 'current';
+      return nameValid ? 'done' : 'upcoming';
+    }
+    if (key === 'location') {
+      if (createScreen === 'location-choose' || createScreen === 'location-place') return 'current';
+      if (hasLocation) return 'done';
+      if (locationSkipped || createScreen === 'ready' || createScreen === 'draft-saved') return 'skipped';
+      return 'upcoming';
+    }
+    if (hasDetails) return 'done';
+    if (createScreen === 'ready' || createScreen === 'draft-saved') return 'skipped';
+    return 'upcoming';
   };
 
-  const handleDelete = () => {
-    if (!fieldId) return;
-    Alert.alert(t('fields:deleteField'), t('fields:deleteConfirm'), [
-      { text: t('common:cancel'), style: 'cancel' },
-      {
-        text: t('common:delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setSaving(true);
-            await getFieldService().deleteField(fieldId);
-            navigation.navigate('Main', { screen: 'Fields' });
-          } catch (e: unknown) {
-            Alert.alert(
-              t('fields:deleteField'),
-              e instanceof Error ? e.message : t('fields:form.failedDelete')
-            );
-          } finally {
-            setSaving(false);
-          }
-        },
-      },
-    ]);
-  };
+  const detailsRow = (
+    <View style={styles.detailsRow}>
+      <View style={styles.detailsCol}>
+        <FormSelect
+          label={t('fields:addField.oliveVariety')}
+          helperText={t('fields:createGrove.details.varietyHint')}
+          value={formData.variety || ''}
+          options={toSelectOptions(VARIETY_OPTIONS)}
+          placeholder={t('fields:addField.selectOption')}
+          onValueChange={(variety) => patchForm({ variety })}
+          disabled={saving}
+          containerStyle={styles.detailsField}
+        />
+      </View>
+      <View style={styles.detailsCol}>
+        <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
+          {t('fields:createGrove.details.treeCountLabel')}
+        </Text>
+        <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>
+          {t('fields:createGrove.details.treeCountHint')}
+        </Text>
+        <FormField
+          value={formData.treeCount != null ? String(formData.treeCount) : ''}
+          onChangeText={(v) => patchForm({ treeCount: v ? parseInt(v, 10) : undefined })}
+          keyboardType="number-pad"
+          editable={!saving}
+          containerStyle={styles.detailsField}
+        />
+      </View>
+    </View>
+  );
 
   if (loading) return <LoadingSpinner fullScreen />;
 
+  const title = isActiveEdit
+    ? t('fields:editField')
+    : isFirstGrove
+      ? t('fields:createGrove.firstTitle')
+      : t('fields:createGrove.title');
+
   return (
-    <ScreenLayout
-      scroll
-      scrollEnabled={parentScrollEnabled}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={[styles.title, { color: colors.textPrimary }]}>
-        {isEdit ? t('fields:editField') : t('fields:addField.title')}
-      </Text>
-      {!isEdit ? (
+    <ScreenLayout scroll contentContainerStyle={styles.content}>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+      {!isActiveEdit && createScreen !== 'ready' && createScreen !== 'draft-saved' ? (
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {t('fields:addField.subtitle')}
+          {t('fields:createGrove.subtitle')}
         </Text>
       ) : null}
 
-      <WizardStepIndicator
-        steps={activeSteps}
-        current={currentStepKey}
-        currentIndex={stepIndex}
-        onStepPress={(next) => {
-          setError(null);
-          setStep(next);
-        }}
-      />
-
-      {showEditHero && previewField ? (
-        <View style={styles.heroBlock}>
-          <FieldPreviewHero
-            field={previewField}
-            mapHeight={220}
-            onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
-            onEditMapPress={goToBoundaryStep}
-          />
+      {!isActiveEdit && createScreen !== 'ready' && createScreen !== 'draft-saved' ? (
+        <View style={styles.setupRow} accessibilityLabel={t('fields:createGrove.setupLevelAria')}>
+          {(['name', 'location', 'details'] as const).map((key, idx) => {
+            const state = setupMark(key);
+            return (
+              <View key={key} style={styles.setupItem}>
+                {idx > 0 ? <Text style={{ color: colors.borderLight }}> · </Text> : null}
+                <Text
+                  style={{
+                    color:
+                      state === 'done' || state === 'current' ? colors.primary : colors.textSecondary,
+                    fontWeight: state === 'current' ? '700' : '500',
+                    fontSize: 13,
+                  }}
+                >
+                  {state === 'done' ? '✓ ' : state === 'skipped' ? '— ' : `${idx + 1}. `}
+                  {t(`fields:createGrove.levels.${key}`)}
+                  {state === 'skipped' ? ` (${t('fields:createGrove.later')})` : ''}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       ) : null}
 
@@ -413,231 +344,379 @@ const FieldFormScreen = () => {
         </View>
       ) : null}
 
-      <Card variant="outlined" style={styles.panel}>
-        {(step === 'basics' || step === 'basics-edit') ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('fields:addField.steps.basics')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('fields:addField.basicsDesc')}
-            </Text>
-            <FormField
-              label={`${t('fields:fieldName')} *`}
-              value={formData.name}
-              onChangeText={(name) => patchForm({ name })}
-              editable={!saving}
-            />
-            <LocationSearchField
-              value={formData.locationText || ''}
-              disabled={saving}
-              onChange={(next) =>
-                patchForm({
-                  locationText: next.locationText,
-                  latitude: next.latitude,
-                  longitude: next.longitude,
-                })
-              }
-            />
-            <FieldColorPicker
-              value={formData.color}
-              fieldId={draftFieldId || fieldId}
-              onChange={(color) => patchForm({ color })}
-              disabled={saving}
-            />
-          </View>
-        ) : null}
-
-        {step === 'boundary' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('fields:addField.steps.boundary')}
-            </Text>
-            <FieldBoundaryDrawMap
-              points={boundaryPoints}
-              onPointsChange={(pts) => {
-                setBoundaryPoints(pts);
-                setBoundaryConfirmed(false);
-              }}
-              onMeasuredAreaChange={setMeasuredAreaSqm}
-              onGestureActiveChange={(active) => setParentScrollEnabled(!active)}
-              locationQuery={formData.locationText}
-              latitude={formData.latitude}
-              longitude={formData.longitude}
-              height={360}
-            />
-          </View>
-        ) : null}
-
-        {step === 'crop' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('fields:addField.steps.crop')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {t('fields:addField.cropDesc')}
-            </Text>
-            <FormSelect
-              label={t('fields:addField.oliveVariety')}
-              value={formData.variety || ''}
-              options={toSelectOptions(VARIETY_OPTIONS)}
-              placeholder={t('fields:addField.selectOption')}
-              onValueChange={(variety) => patchForm({ variety })}
-              disabled={saving}
-            />
-            <FormField
-              label={t('fields:addField.treeCount')}
-              value={formData.treeCount != null ? String(formData.treeCount) : ''}
-              onChangeText={(v) => patchForm({ treeCount: v ? parseInt(v, 10) : undefined })}
-              keyboardType="number-pad"
-              editable={!saving}
-            />
-          </View>
-        ) : null}
-
-        {step === 'review' ? (
-          <View style={styles.stepBody}>
-            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-              {t('fields:addField.steps.review')}
-            </Text>
-            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-              {isEdit ? t('fields:editReviewDesc') : t('fields:addField.reviewDesc')}
-            </Text>
-            <InfoRow icon="leaf-outline" label={t('fields:fieldName')} value={formData.name} />
-            <InfoRow
-              icon="resize-outline"
-              label={t('fields:addField.measuredArea')}
-              value={measuredAreaSqm > 0 ? `${measuredAreaSqm} m²` : t('fields:addField.notDrawn')}
-            />
-            {formData.locationText ? (
-              <InfoRow
-                icon="location-outline"
-                label={t('fields:addField.locationText')}
-                value={formData.locationText}
-              />
-            ) : null}
-            {formData.variety ? (
-              <InfoRow
-                icon="nutrition-outline"
-                label={t('fields:addField.oliveVariety')}
-                value={formData.variety}
-              />
-            ) : null}
-            {(boundaryChanged || !isEdit) ? (
-              <View style={[styles.confirmRow, { borderTopColor: colors.borderLight }]}>
-                <Text style={[styles.confirmLabel, { color: colors.textPrimary }]}>
-                  {t('fields:addField.confirmBoundary')}
-                </Text>
-                <Switch
-                  value={boundaryConfirmed}
-                  onValueChange={setBoundaryConfirmed}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={colors.onOlive}
-                />
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-
-        <View style={styles.navRow}>
-          <Button
-            title={isFirst ? t('common:back') : t('fields:form.back')}
-            variant="outline"
-            onPress={goBack}
-            disabled={saving}
-            style={styles.navBtn}
+      {/* Create: name */}
+      {!isActiveEdit && createScreen === 'name' ? (
+        <Card variant="outlined" style={styles.panel}>
+          <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.nameHeading')}
+          </Text>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.nameHelper')}
+          </Text>
+          <FormField
+            label={`${t('fields:createGrove.nameLabel')} *`}
+            value={formData.name}
+            onChangeText={(name) => patchForm({ name })}
+            editable={!saving}
+            placeholder={t('fields:form.namePlaceholder', {
+              defaultValue: t('fields:createGrove.nameLabel'),
+            })}
           />
-          {!isLast ? (
-            <Button
-              title={t('fields:form.next')}
-              onPress={goNext}
-              loading={saving}
-              style={styles.navBtn}
-            />
-          ) : (
-            <Button
-              title={
-                isEdit
-                  ? t('fields:saveChanges')
-                  : t('fields:addField.activate')
-              }
-              onPress={isEdit ? handleSaveEdit : handleActivate}
-              loading={saving}
-              style={styles.navBtn}
-            />
-          )}
-        </View>
-      </Card>
-
-      {!isLast ? (
-        <Button
-          title={isEdit ? t('fields:saveChanges') : t('fields:addField.saveDraft')}
-          variant="ghost"
-          onPress={isEdit ? handleSaveEdit : handleSaveDraft}
-          loading={saving}
-          fullWidth
-          style={styles.draftBtn}
-        />
+          {nameValid ? (
+            <Text style={[styles.nudge, { color: colors.textSecondary }]}>
+              {t('fields:createGrove.readyNudge')}
+            </Text>
+          ) : null}
+          <Button
+            title={t('fields:createGrove.createCta')}
+            onPress={handleCreateGrove}
+            loading={saving}
+            disabled={!nameValid}
+            fullWidth
+            style={styles.cta}
+          />
+          <Button
+            title={t('fields:createGrove.continueLater')}
+            variant="outline"
+            onPress={handleContinueLater}
+            loading={saving}
+            disabled={!nameValid}
+            fullWidth
+            style={styles.cta}
+          />
+          <Pressable
+            onPress={() => {
+              setError(null);
+              setCreateScreen('location-choose');
+            }}
+            style={styles.textLink}
+          >
+            <Text style={{ color: colors.primary, fontWeight: '600', textAlign: 'center' }}>
+              {t('fields:createGrove.addLocationFirst')}
+            </Text>
+          </Pressable>
+        </Card>
       ) : null}
 
-      {isEdit && fieldId ? (
-        <Pressable
-          onPress={handleDelete}
-          disabled={saving}
-          style={[
-            styles.deleteBtn,
-            { borderColor: colors.error, opacity: saving ? 0.5 : 1 },
-          ]}
-        >
-          <Text style={[styles.deleteBtnText, { color: colors.error }]}>
-            {t('fields:deleteField')}
+      {/* Create: location chooser */}
+      {!isActiveEdit && createScreen === 'location-choose' ? (
+        <Card variant="outlined" style={styles.panel}>
+          <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.placement.title')}
           </Text>
-        </Pressable>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.placement.subtitle')}
+          </Text>
+          <Button
+            title={t('fields:createGrove.placement.searchTitle')}
+            onPress={() => {
+              setLocationSkipped(false);
+              setCreateScreen('location-place');
+            }}
+            fullWidth
+            style={styles.cta}
+          />
+          <Button
+            title={t('fields:createGrove.placement.myLocationTitle')}
+            variant="outline"
+            onPress={useMyLocation}
+            fullWidth
+            style={styles.cta}
+          />
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.placement.myLocationDesc')}
+          </Text>
+          <Button
+            title={t('fields:createGrove.placement.laterTitle')}
+            variant="ghost"
+            onPress={() => {
+              setLocationSkipped(true);
+              setCreateScreen('name');
+            }}
+            fullWidth
+          />
+          <Button
+            title={t('fields:form.back')}
+            variant="outline"
+            onPress={() => setCreateScreen('name')}
+            fullWidth
+            style={styles.cta}
+          />
+        </Card>
+      ) : null}
+
+      {/* Create: place search */}
+      {!isActiveEdit && createScreen === 'location-place' ? (
+        <Card variant="outlined" style={styles.panel}>
+          <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.place.title')}
+          </Text>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.place.subtitle')}
+          </Text>
+          <LocationSearchField
+            value={formData.locationText || ''}
+            disabled={saving}
+            onChange={(next) => {
+              setLocationSkipped(false);
+              patchForm({
+                locationText: next.locationText,
+                latitude: next.latitude,
+                longitude: next.longitude,
+              });
+            }}
+          />
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.place.canWait')}
+          </Text>
+          <Button
+            title={t('fields:createGrove.place.confirm')}
+            onPress={async () => {
+              if (draftFieldId && formData.status === 'Active') {
+                try {
+                  setSaving(true);
+                  await getFieldService().updateField(draftFieldId, {
+                    locationText: formData.locationText,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude,
+                  });
+                  setCreateScreen('ready');
+                } catch (e: unknown) {
+                  setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
+                } finally {
+                  setSaving(false);
+                }
+                return;
+              }
+              setCreateScreen('name');
+            }}
+            loading={saving}
+            fullWidth
+            style={styles.cta}
+          />
+          <Button
+            title={t('fields:createGrove.placement.laterTitle')}
+            variant="outline"
+            onPress={() => {
+              setLocationSkipped(true);
+              setCreateScreen('name');
+            }}
+            fullWidth
+          />
+        </Card>
+      ) : null}
+
+      {/* Draft saved */}
+      {!isActiveEdit && createScreen === 'draft-saved' ? (
+        <Card variant="outlined" style={styles.panel}>
+          <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.draftSavedTitle')}
+          </Text>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.draftSavedBody')}
+          </Text>
+          <Button
+            title={t('fields:createGrove.backToGroves')}
+            onPress={() => navigation.navigate('Main', { screen: 'Fields' })}
+            fullWidth
+            style={styles.cta}
+          />
+          <Button
+            title={t('fields:createGrove.continueSetup')}
+            variant="outline"
+            onPress={() => setCreateScreen('name')}
+            fullWidth
+          />
+        </Card>
+      ) : null}
+
+      {/* Ready — mirrors web GroveReadyPanel */}
+      {!isActiveEdit && createScreen === 'ready' && draftFieldId ? (
+        <Card variant="outlined" style={styles.panel}>
+          <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.ready.title', { name: formData.name.trim() })}
+          </Text>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.ready.body')}
+          </Text>
+          <View style={styles.readySplit}>
+            <View style={[styles.readyCol, { borderColor: colors.borderLight }]}>
+              <Text style={[styles.readyHead, { color: colors.textSecondary }]}>
+                {t('fields:createGrove.ready.readyHeading')}
+              </Text>
+              <Text style={{ color: colors.textPrimary }}>✓ {t('fields:createGrove.ready.readyName')}</Text>
+              <Text style={{ color: colors.textPrimary }}>
+                ✓ {t('fields:createGrove.ready.readyTimeline')}
+              </Text>
+              <Text style={{ color: colors.textPrimary }}>✓ {t('fields:createGrove.ready.readyWork')}</Text>
+            </View>
+            <View style={[styles.readyCol, { borderColor: colors.borderLight }]}>
+              <Text style={[styles.readyHead, { color: colors.textSecondary }]}>
+                {t('fields:createGrove.ready.waitHeading')}
+              </Text>
+              <Text style={{ color: colors.textSecondary }}>
+                {hasBoundary ? '✓' : '○'} {t('fields:createGrove.ready.waitBoundary')}
+              </Text>
+              <Text style={{ color: colors.textSecondary }}>
+                {hasDetails ? '✓' : '○'} {t('fields:createGrove.ready.waitDetails')}
+              </Text>
+            </View>
+          </View>
+          <Button
+            title={t('fields:createGrove.ready.recordWork')}
+            onPress={() => navigation.replace('CreateTask', { fieldId: draftFieldId })}
+            fullWidth
+            style={styles.cta}
+          />
+          {!hasBoundary ? (
+            <Button
+              title={t('fields:createGrove.enrich.boundaryAction')}
+              variant="outline"
+              onPress={() => navigation.replace('FieldMapBoundary', { fieldId: draftFieldId })}
+              fullWidth
+              style={styles.cta}
+            />
+          ) : null}
+          <Button
+            title={t('fields:createGrove.ready.openChronologio')}
+            variant="outline"
+            onPress={() =>
+              navigation.replace('FieldDetail', { fieldId: draftFieldId, mode: 'chronologio' })
+            }
+            fullWidth
+            style={styles.cta}
+          />
+          <Button
+            title={t('fields:createGrove.ready.openGrove')}
+            variant="ghost"
+            onPress={() => navigation.replace('FieldDetail', { fieldId: draftFieldId })}
+            fullWidth
+          />
+        </Card>
+      ) : null}
+
+      {/* Active edit: details only */}
+      {isActiveEdit && editFocus === 'details' ? (
+        <Card variant="outlined" style={styles.panel}>
+          <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.levels.details')}
+          </Text>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.details.subtitle')}
+          </Text>
+          {detailsRow}
+          <Button
+            title={t('fields:saveChanges')}
+            onPress={handleSaveDetailsOnly}
+            loading={saving}
+            fullWidth
+            style={styles.cta}
+          />
+          <Button
+            title={t('common:cancel')}
+            variant="outline"
+            onPress={() => navigation.goBack()}
+            fullWidth
+            style={styles.cta}
+          />
+        </Card>
+      ) : null}
+
+      {/* Active edit: full settings */}
+      {isActiveEdit && editFocus === 'settings' ? (
+        <Card variant="outlined" style={styles.panel}>
+          <FormField
+            label={`${t('fields:createGrove.nameLabel')} *`}
+            value={formData.name}
+            onChangeText={(name) => patchForm({ name })}
+            editable={!saving}
+          />
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.details.subtitle')}
+          </Text>
+          {detailsRow}
+          <Text style={[styles.stepTitle, { color: colors.textPrimary, marginTop: spacing.md }]}>
+            {t('fields:createGrove.appearance.title')}
+          </Text>
+          <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
+            {t('fields:createGrove.appearance.autoHint')}
+          </Text>
+          <FieldColorPicker
+            value={formData.color}
+            fieldId={draftFieldId || fieldId}
+            onChange={(color) => patchForm({ color })}
+            disabled={saving}
+          />
+          <Button
+            title={t('fields:saveChanges')}
+            onPress={handleSaveEdit}
+            loading={saving}
+            fullWidth
+            style={styles.cta}
+          />
+        </Card>
       ) : null}
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
-  heroBlock: { marginBottom: spacing.md },
   title: { ...typography.styles.h3, fontWeight: '700' },
   subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.sm },
+  setupRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: spacing.md,
+    alignItems: 'center',
+  },
+  setupItem: { flexDirection: 'row', alignItems: 'center' },
   panel: { padding: spacing.base, marginBottom: spacing.md },
-  stepBody: { gap: spacing.xs, marginBottom: spacing.md },
   stepTitle: { ...typography.styles.h4, fontWeight: '700', marginBottom: 2 },
   stepDesc: { ...typography.styles.bodySmall, marginBottom: spacing.sm },
+  nudge: { ...typography.styles.bodySmall, marginBottom: spacing.md },
+  cta: { marginTop: spacing.sm },
+  textLink: { paddingVertical: spacing.md },
   errorBox: {
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
-  navRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  navBtn: { flex: 1 },
-  draftBtn: { marginTop: spacing.xs },
-  deleteBtn: {
-    marginTop: spacing.md,
+  readySplit: { gap: spacing.sm, marginBottom: spacing.md },
+  readyCol: {
     borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
+    borderRadius: 12,
+    padding: spacing.sm,
+    gap: 4,
   },
-  deleteBtnText: { ...typography.styles.body, fontWeight: '600' },
-  confirmRow: {
+  readyHead: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  detailsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.md,
-    marginTop: spacing.sm,
-    borderTopWidth: 1,
     gap: spacing.sm,
+    alignItems: 'flex-start',
   },
-  confirmLabel: { ...typography.styles.bodySmall, flex: 1 },
+  detailsCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  detailsField: {
+    marginBottom: 0,
+  },
+  fieldLabel: {
+    ...typography.styles.bodySmall,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  fieldHint: {
+    ...typography.styles.caption,
+    marginBottom: spacing.xs,
+    lineHeight: 18,
+  },
 });
 
 export default FieldFormScreen;

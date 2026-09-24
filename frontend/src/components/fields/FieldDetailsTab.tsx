@@ -515,9 +515,14 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
           </p>
         </div>
         {canOwn ? (
-          <Link className="field-attention-secondary" to={`/fields/${field.id}/edit`}>
-            {t('fields:page.editField')}
-          </Link>
+          <div className="fd-lead-actions">
+            <Link className="field-attention-secondary" to={`/fields/${field.id}/edit`}>
+              {t('fields:page.editField')}
+            </Link>
+            <Link className="field-attention-secondary" to={`/fields/${field.id}/edit?focus=appearance`}>
+              {t('fields:createGrove.appearance.title')}
+            </Link>
+          </div>
         ) : null}
       </header>
 

@@ -285,6 +285,14 @@ const HarvestCampaignScreen = () => {
 
   useEffect(() => {
     if (!isLive) return;
+    const viewParam = route.params?.view;
+    if (viewParam === 'fields' || viewParam === 'today' || viewParam === 'totals' || viewParam === 'log') {
+      setView(viewParam);
+    }
+  }, [isLive, route.params?.view]);
+
+  useEffect(() => {
+    if (!isLive) return;
     const add = route.params?.add;
     const evening = route.params?.evening;
     if (!add && !evening) return;

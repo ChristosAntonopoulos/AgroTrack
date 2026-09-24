@@ -49,6 +49,8 @@ type Props = {
   weatherByDate?: Record<string, DayWeatherInput>;
   todayWeather?: DayWeatherInput | null;
   onOpenDayWeather?: (year: number, month: number, dateKey: string) => void;
+  /** When set, scroll the timeline to this calendar day (yyyy-MM-dd). */
+  focusDate?: string;
 };
 
 const isYearWeatherReview = (e: ChronologioEntry) => e.eventType === 'weather.yearReview';
@@ -69,12 +71,15 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
   weatherByDate = {},
   todayWeather,
   onOpenDayWeather,
+  focusDate,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'photos']);
   const { colors } = useTheme();
   const stickyMeta = useRef<{ label: string; year: number; month: number }[]>([]);
   const onVisibleMonthRef = useRef(onVisibleMonth);
   onVisibleMonthRef.current = onVisibleMonth;
+  const listRef = useRef<FlatList<ChronologioTimelineRow>>(null);
+  const jumpedFocusRef = useRef<string | null>(null);
   const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
   const [viewer, setViewer] = useState<{ items: PhotoViewerItem[]; index: number } | null>(null);
 
@@ -104,6 +109,20 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
       month: r.month,
     }));
   }, [rows]);
+
+  useEffect(() => {
+    const focusKey = (focusDate || '').slice(0, 10);
+    if (!focusKey || rows.length === 0) return;
+    if (jumpedFocusRef.current === focusKey) return;
+    const index = rows.findIndex(
+      (row) => row.kind === 'day' && row.dateKey === focusKey
+    );
+    if (index < 0) return;
+    jumpedFocusRef.current = focusKey;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+    });
+  }, [focusDate, rows]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
@@ -195,6 +214,7 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
   return (
     <>
       <FlatList
+        ref={listRef}
         data={rows}
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
@@ -209,6 +229,15 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         directionalLockEnabled
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => {
+            listRef.current?.scrollToIndex({
+              index: info.index,
+              animated: true,
+              viewPosition: 0,
+            });
+          }, 120);
+        }}
         ListFooterComponent={
           loadingMore ? (
             <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />

@@ -1,23 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { taskPeekPath } from '../../navigation/intents';
+import { harvestPath, taskPeekPath } from '../../navigation/intents';
 import Button from '../Common/Button';
 import HarvestMoneyPanel from '../money/HarvestMoneyPanel';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
-import PhotoLightbox from '../photos/PhotoLightbox';
-import { usePhotoLightbox } from '../photos/usePhotoLightbox';
+import HarvestDayJourney from './HarvestDayJourney';
+import { HarvestFlowView } from '../../harvestCampaign/components/HarvestFlowView';
+import { campaignDayHasFlow, filterCampaignToDay } from '../../harvestCampaign/daySlice';
 import {
+  campaignFromHarvestRecords,
+  fetchHarvestRecordsForFields,
+} from '../../harvestCampaign/hydrateFromRecords';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { getSeasonStartYear } from '../../utils/harvestSeason';
+import type { HarvestCampaign } from '../../harvestCampaign/types';
+import type { Field } from '../../services/fieldService';
+import {
+  getFieldService,
   getFieldWorkService,
   getFinancialTransactionService,
   getNoteService,
 } from '../../services/serviceFactory';
+import PhotoLightbox from '../photos/PhotoLightbox';
+import { usePhotoLightbox } from '../photos/usePhotoLightbox';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { FinancialTransaction } from '../../services/financialTransactionService';
 import type { Note } from '../../services/noteService';
 import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
-import { formatGroveMassKg } from '../../utils/groveTotals';
 import { taskStatusI18nKey } from '../../utils/categoryNormalize';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
 import { formatQuantityLine } from '../../finance/moneyUi';
@@ -34,8 +45,10 @@ import { buildDayWeatherView, type DayWeatherInput } from '../../chronologio/day
 import { EntityCache } from '../../utils/entityCache';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { ChronologioMediaImage } from './ChronologioThumbnail';
 import { isDateOnlyTimestamp } from '../../chronologio/clockLabel';
+import { athensCalendarDateKey } from '../../utils/athensDate';
 
 type Props = {
   entry: ChronologioEntry;
@@ -534,85 +547,135 @@ const HarvestDetail: React.FC<{
   numberLocale: string;
   actor: string;
 }> = ({ entry, numberLocale, actor }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'common']);
+  const { t, i18n } = useTranslation(['chronologio', 'common', 'fields']);
+  const navigate = useNavigate();
+  const harvestCampaign = useHarvestCampaignOptional();
   const harvest = entry.details.harvest;
-  if (!harvest) return null;
+  const [fields, setFields] = useState<Field[]>([]);
+  const [dayCampaign, setDayCampaign] = useState<HarvestCampaign | null>(null);
+
   const isDay = /^Harvest:day:/i.test(entry.id);
+  const dayKey = isDay
+    ? entry.id.replace(/^Harvest:day:/i, '')
+    : athensCalendarDateKey(entry.occurredAt);
+  const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
   const presented = presentChronologioEvent(entry, i18n.language);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getFieldService()
+      .getFields()
+      .then((rows) => {
+        if (!cancelled) setFields(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setFields([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!harvest) return;
+    let cancelled = false;
+
+    const fromLive =
+      harvestCampaign && isDay
+        ? filterCampaignToDay(harvestCampaign.campaign, dayKey)
+        : null;
+    if (fromLive && campaignDayHasFlow(fromLive)) {
+      setDayCampaign(fromLive);
+      return;
+    }
+
+    const fieldIds = entry.fieldId
+      ? [entry.fieldId]
+      : fields.map((f) => f.id).filter(Boolean);
+    if (fieldIds.length === 0) {
+      setDayCampaign(null);
+      return;
+    }
+
+    void (async () => {
+      try {
+        const rows = await fetchHarvestRecordsForFields(fieldIds);
+        if (cancelled) return;
+        const season = getSeasonStartYear(`${dayKey}T12:00:00`);
+        const built = campaignFromHarvestRecords(rows, season, { ignoreSeason: true });
+        const slice = filterCampaignToDay(built, dayKey);
+        setDayCampaign(campaignDayHasFlow(slice) ? slice : null);
+      } catch {
+        if (!cancelled) setDayCampaign(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dayKey, entry.fieldId, fields, harvest, harvestCampaign, isDay]);
+
+  if (!harvest) return null;
+
+  const openFieldsTab = () => {
+    navigate(harvestPath({ day: dayKey, fieldId: entry.fieldId || undefined, view: 'fields' }));
+  };
+
+  const flowFields =
+    fields.length > 0
+      ? fields
+      : entry.field
+        ? ([
+            {
+              id: entry.fieldId,
+              name: entry.field.name,
+              color: entry.field.color,
+            },
+          ] as Field[])
+        : [];
+
   return (
     <>
-      <div className={`chronologio-harvest-stats${isDay ? ' is-day-snapshot' : ''}`}>
-        {harvest.oliveKg > 0 ? (
-          <div className="chronologio-harvest-stat">
-            <strong>{formatGroveMassKg(harvest.oliveKg, numberLocale)}</strong>
-            <span>
-              {harvest.hasOfficialWeight === false
-                ? t('approxOlives', { defaultValue: 'περίπου kg' })
-                : t('drawer.officialWeightKg')}
-            </span>
-          </div>
+      <header className="chrono-harvest-peek-head">
+        <p className="chrono-harvest-peek-kicker">{t('fields:harvestCampaign.flow.title')}</p>
+        <p className="chrono-harvest-peek-date">
+          {new Date(`${dayKey}T12:00:00`).toLocaleDateString(i18n.language, {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
+        {entry.field?.name ? (
+          <p className="chrono-harvest-field">
+            <span className="chrono-field-dot" style={{ background: fieldAccent }} aria-hidden />
+            {friendlyFieldLabel(entry.field.name)}
+          </p>
         ) : null}
-        {(harvest.sackCount ?? 0) > 0 ? (
-          <div className="chronologio-harvest-stat">
-            <strong>{harvest.sackCount}</strong>
-            <span>{t('sacksUnit', { defaultValue: 'σακιά' })}</span>
-          </div>
-        ) : null}
-        {isDay && harvest.workers > 0 ? (
-          <div className="chronologio-harvest-stat">
-            <strong>{harvest.workers}</strong>
-            <span>{t('workers')}</span>
-          </div>
-        ) : null}
-        {harvest.oilKg != null && harvest.oilKg > 0 ? (
-          <div className="chronologio-harvest-stat">
-            <strong>{formatGroveMassKg(harvest.oilKg, numberLocale)}</strong>
-            <span>{t('oilUnit')}</span>
-          </div>
-        ) : null}
-        {harvest.oilLitres != null && harvest.oilLitres > 0 ? (
-          <div className="chronologio-harvest-stat">
-            <strong>
-              {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 3 }).format(harvest.oilLitres)}
-            </strong>
-            <span>{t('drawer.oilLitres')}</span>
-          </div>
-        ) : null}
-        {!isDay && harvest.oilYieldPercent != null ? (
-          <div className="chronologio-harvest-stat">
-            <strong>{formatGroveMassKg(harvest.oilYieldPercent, numberLocale)}%</strong>
-            <span>{t('yieldUnit')}</span>
-          </div>
-        ) : null}
-        {!harvest.oliveKg && !(harvest.sackCount ?? 0) ? (
-          <div className="chronologio-harvest-stat">
-            <strong>—</strong>
-            <span>{t('olivesUnit')}</span>
-          </div>
-        ) : null}
-      </div>
-      {(() => {
-        const chain = [
-          (harvest.sackCount ?? 0) > 0
-            ? t('drawer.sackChain', { count: harvest.sackCount })
-            : null,
-          harvest.oliveKg > 0
-            ? t('drawer.fruitChain', {
-                kg: formatGroveMassKg(harvest.oliveKg, numberLocale),
-              })
-            : null,
-          harvest.oilKg != null && harvest.oilKg > 0
-            ? t('drawer.oilChain', { kg: formatGroveMassKg(harvest.oilKg, numberLocale) })
-            : null,
-          harvest.oilYieldPercent != null && harvest.oilYieldPercent > 0
-            ? t('drawer.yieldChain', {
-                pct: formatGroveMassKg(harvest.oilYieldPercent, numberLocale),
-              })
-            : null,
-        ].filter(Boolean);
-        return chain.length ? <p className="chrono-harvest-chain">{chain.join(' → ')}</p> : null;
-      })()}
+      </header>
+
+      {dayCampaign && flowFields.length > 0 ? (
+        <div className="chrono-harvest-flow-embed">
+          <HarvestFlowView
+            campaign={dayCampaign}
+            fields={flowFields}
+            locale={i18n.language}
+            onMarkDone={openFieldsTab}
+            onOpenMill={openFieldsTab}
+            onOpenOil={openFieldsTab}
+          />
+        </div>
+      ) : (
+        <HarvestDayJourney
+          harvest={harvest}
+          numberLocale={numberLocale}
+          fieldName={entry.field?.name}
+          fieldAccent={fieldAccent}
+        />
+      )}
+
       {presented.description ? <p className="chronologio-harvest-day-summary">{presented.description}</p> : null}
+
       {!isDay ? (
         <HarvestMoneyPanel
           harvestId={harvest.harvestId}
@@ -620,19 +683,20 @@ const HarvestDetail: React.FC<{
           harvestDate={entry.occurredAt}
         />
       ) : null}
+
       <dl className="chrono-drawer-facts">
-        <Fact label={t('drawer.eventType')}>{presented.label}</Fact>
-        <Fact label={t('drawer.date')}>
-          {new Date(entry.occurredAt).toLocaleDateString(i18n.language, { dateStyle: 'long' })}
-        </Fact>
-        <Fact label={t('living.field')}>{entry.field?.name ? friendlyFieldLabel(entry.field.name) : null}</Fact>
-        <Fact label={t('living.actor')}>{actor}</Fact>
-        {!isDay && harvest.workers > 0 ? <Fact label={t('workers')}>{harvest.workers}</Fact> : null}
         {harvest.mill ? <Fact label={t('mill')}>{harvest.mill}</Fact> : null}
         {presentHarvestQuality(harvest.quality, i18n.language) ? (
           <Fact label={t('quality')}>{presentHarvestQuality(harvest.quality, i18n.language)}</Fact>
         ) : null}
+        {actor ? <Fact label={t('living.actor')}>{actor}</Fact> : null}
+        {harvest.oilLitres != null && harvest.oilLitres > 0 ? (
+          <Fact label={t('drawer.oilLitres')}>
+            {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 1 }).format(harvest.oilLitres)}
+          </Fact>
+        ) : null}
       </dl>
+
       <MediaGallery entry={entry} title={t('living.photos')} />
     </>
   );

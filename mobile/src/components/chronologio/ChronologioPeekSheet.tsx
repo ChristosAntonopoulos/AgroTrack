@@ -265,6 +265,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         fieldId: dest.fieldId,
         harvestId: dest.harvestId,
         day: dest.day,
+        view: dest.view,
       });
     } else if (dest.kind === 'FieldWeatherVegetation') {
       navigation.navigate('FieldWeatherVegetation', { fieldId: dest.fieldId });

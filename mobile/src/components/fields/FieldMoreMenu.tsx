@@ -80,6 +80,12 @@ const FieldMoreMenu: React.FC<Props> = ({
       icon: 'create-outline',
       onPress: () => run(() => navigation.navigate('FieldForm', { fieldId: field.id })),
     });
+    actions.push({
+      key: 'boundary',
+      label: t('fields:createGrove.enrich.boundaryAction'),
+      icon: 'map-outline',
+      onPress: () => run(() => navigation.navigate('FieldMapBoundary', { fieldId: field.id })),
+    });
   }
   if (canViewChronologio) {
     actions.push({

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet';
+import MapWheelZoom from '../maps/MapWheelZoom';
 import L from 'leaflet';
 import { useTranslation } from 'react-i18next';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -362,9 +363,10 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         zoom={13}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
-        scrollWheelZoom={false}
+        scrollWheelZoom
         className="fields-map-leaflet"
       >
+        <MapWheelZoom />
         {mapLayer === 'satellite' ? (
           <>
             <TileLayer

@@ -14,6 +14,7 @@ import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayo
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import HarvestDayJourney from './HarvestDayJourney';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { createElevation, motion, radii, spacing } from '../../theme';
@@ -305,39 +306,13 @@ const ChronologioEntryCard: React.FC<Props> = ({
           </Text>
 
           {category === 'harvest' && harvest ? (
-            <View style={styles.harvestStats}>
-              <View style={styles.harvestStat}>
-                <Text style={[styles.statValue, { color: colors.eventHarvest }]}>
-                  {harvest.oliveKg.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
-                </Text>
-                <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-                  {t('chronologio:olivesUnit')}
-                </Text>
-              </View>
-              {harvest.oilKg != null ? (
-                <View style={styles.harvestStat}>
-                  <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                    {harvest.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-                    {t('chronologio:oilUnit')}
-                  </Text>
-                </View>
-              ) : null}
-              {harvest.oilYieldPercent != null ? (
-                <View style={styles.harvestStat}>
-                  <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                    {harvest.oilYieldPercent.toLocaleString(numberLocale, {
-                      maximumFractionDigits: 1,
-                    })}
-                    %
-                  </Text>
-                  <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
-                    {t('chronologio:yieldUnit')}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            <HarvestDayJourney
+              compact
+              harvest={harvest}
+              numberLocale={numberLocale}
+              fieldName={entry.field?.name}
+              fieldAccent={fieldAccent}
+            />
           ) : null}
 
           {category === 'expense' ||

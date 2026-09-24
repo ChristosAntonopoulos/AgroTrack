@@ -5,7 +5,7 @@ export type ChronologioMobileDestination =
   | { kind: 'TaskDetail'; taskId: string }
   | { kind: 'Money'; fieldId: string; tx?: string }
   | { kind: 'Photos'; fieldId: string; photoId: string }
-  | { kind: 'HarvestCampaign'; fieldId?: string; harvestId?: string; day?: string }
+  | { kind: 'HarvestCampaign'; fieldId?: string; harvestId?: string; day?: string; view?: 'today' | 'fields' | 'totals' | 'log' }
   | { kind: 'FieldWeatherVegetation'; fieldId: string }
   | { kind: 'FieldDetail'; fieldId: string }
   | { kind: 'noteEdit'; noteId: string; fieldId: string }
@@ -20,6 +20,8 @@ export type ChronologioEntryCapabilities = {
 
 const isMergedHarvestDay = (entry: ChronologioEntry): boolean =>
   entry.sourceType === 'Harvest' && /^Harvest:day:/i.test(entry.id);
+
+export const isChronologioMergedHarvestDay = isMergedHarvestDay;
 
 export const chronologioHarvestId = (entry: ChronologioEntry): string | null => {
   if (entry.sourceType !== 'Harvest' || isMergedHarvestDay(entry)) return null;
@@ -140,7 +142,13 @@ export const chronologioMobileDestination = (entry: ChronologioEntry): Chronolog
   if (kind === 'harvest' || entry.sourceType === 'Harvest') {
     const harvestId = chronologioHarvestId(entry);
     const day = isMergedHarvestDay(entry) ? entry.id.replace(/^Harvest:day:/i, '') : undefined;
-    return { kind: 'HarvestCampaign', fieldId: fieldId || undefined, harvestId: harvestId || undefined, day };
+    return {
+      kind: 'HarvestCampaign',
+      fieldId: fieldId || undefined,
+      harvestId: harvestId || undefined,
+      day,
+      view: day ? 'fields' : undefined,
+    };
   }
 
   if (entry.sourceType === 'WeatherReview' || kind === 'weatherPeriod') {

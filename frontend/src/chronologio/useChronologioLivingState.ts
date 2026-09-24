@@ -114,6 +114,20 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     [patch]
   );
 
+  /** Open the Days journal on a specific calendar day (keeps the day, not mid-month). */
+  const jumpToDate = useCallback(
+    (iso: string) => {
+      patch({
+        view: 'days',
+        zoom: null,
+        date: iso,
+        focus: null,
+        axis: 'calendar',
+      });
+    },
+    [patch]
+  );
+
   const openPeriod = useCallback(
     (periodYear: number) => {
       patch({
@@ -254,6 +268,7 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     zoomBy,
     setAxis,
     setFocusDate,
+    jumpToDate,
     openPeriod,
     openSeasonYear,
     focusSeasonYear,

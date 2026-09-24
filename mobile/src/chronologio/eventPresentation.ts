@@ -257,12 +257,14 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
   }
 
   if (category === 'harvest') {
+    const isDay =
+      entry.sourceType === 'Harvest' && /^Harvest:day:/i.test(entry.id);
     return {
       label: presentCategory('harvest', language),
-      shortLabel,
+      shortLabel: isDay ? presentCategory('harvest', language) : shortLabel,
       icon,
       accent,
-      description: entry.summary || undefined,
+      description: isDay ? undefined : entry.summary || undefined,
     };
   }
 

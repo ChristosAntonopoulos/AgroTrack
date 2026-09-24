@@ -84,7 +84,7 @@ describe('chronologioWebDestination', () => {
     expect(chronologioHarvestId(entry)).toBeNull();
     expect(chronologioWebDestination(entry)).toEqual({
       kind: 'path',
-      path: '/harvest?fieldId=f1&day=2025-11-12',
+      path: '/harvest?fieldId=f1&day=2025-11-12&view=fields',
     });
   });
 });

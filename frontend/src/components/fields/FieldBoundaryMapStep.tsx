@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
+import MapWheelZoom from '../maps/MapWheelZoom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +10,7 @@ import AreaComparisonCard from './AreaComparisonCard';
 import { locationService } from '../../services/locationService';
 import {
   GREECE_CENTER,
-  GREECE_OVERVIEW_ZOOM,
+  GREECE_REGION_ZOOM,
   PLACE_ZOOM,
   searchPlaces,
 } from '../../utils/geocodeLocation';
@@ -141,7 +142,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   const [center, setCenter] = useState<[number, number]>(
     hasCoords(latitude, longitude) ? [latitude as number, longitude as number] : GREECE_CENTER
   );
-  const [mapZoom, setMapZoom] = useState(hasCoords(latitude, longitude) ? PLACE_ZOOM : GREECE_OVERVIEW_ZOOM);
+  const [mapZoom, setMapZoom] = useState(hasCoords(latitude, longitude) ? PLACE_ZOOM : GREECE_REGION_ZOOM);
   const [liveZoom, setLiveZoom] = useState(mapZoom);
   const [mapLayer, setMapLayer] = useState<MapLayerType>('satellite');
   const [corners, setCorners] = useState<Corner[]>(initialCorners);
@@ -161,7 +162,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
 
   const showGreece = useCallback(() => {
     setCenter(GREECE_CENTER);
-    setMapZoom(GREECE_OVERVIEW_ZOOM);
+    setMapZoom(GREECE_REGION_ZOOM);
     setLocationStatus('missing');
   }, []);
 
@@ -421,8 +422,10 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
           zoom={Math.min(mapZoom, MAP_MAX_ZOOM)}
           minZoom={MAP_MIN_ZOOM}
           maxZoom={MAP_MAX_ZOOM}
+          scrollWheelZoom
           style={{ height: '100%', width: '100%' }}
         >
+          <MapWheelZoom />
           {mapLayer === 'satellite' ? (
             <>
               <TileLayer

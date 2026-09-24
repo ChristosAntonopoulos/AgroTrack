@@ -226,7 +226,6 @@ const ChronologioChrome: React.FC<Props> = ({
             {onJumpToDate ? (
               <label className="chrono-jump-date">
                 <span className="chrono-control-label">{t('chronologio:living.jumpToDate')}</span>
-                <span className="chrono-control-hint">{t('chronologio:dateControl.jumpNavigates')}</span>
                 <input
                   type="date"
                   value={focusDate.slice(0, 10)}

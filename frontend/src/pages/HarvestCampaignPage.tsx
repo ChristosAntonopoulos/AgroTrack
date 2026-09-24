@@ -393,6 +393,22 @@ const HarvestCampaignPage: React.FC = () => {
 
   useEffect(() => {
     if (!isLive) return;
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'fields' || viewParam === 'today' || viewParam === 'totals' || viewParam === 'log') {
+      setView(viewParam);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('view');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [isLive, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!isLive) return;
     const add = searchParams.get('add');
     const evening = searchParams.get('evening');
     if (!add && !evening) return;

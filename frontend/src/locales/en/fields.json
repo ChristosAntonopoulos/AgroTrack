@@ -9,7 +9,7 @@
   "failedLoad": "Failed to load fields",
   "failedDelete": "Failed to delete field",
   "viewModeAria": "Fields view mode",
-  "addFieldCta": "Add field",
+  "addFieldCta": "Add grove",
   "mapLayerSatellite": "Satellite",
   "mapLayerStreet": "Map",
   "locationLabel": "Location",
@@ -103,9 +103,9 @@
     "partners": "Partners"
   },
   "addField": {
-    "title": "Add Field",
-    "subtitle": "Set up your operational field with map boundary and optional cadastre reference.",
-    "activate": "Activate field",
+    "title": "Add grove",
+    "subtitle": "Give it a name so you can find it easily. Everything else can wait.",
+    "activate": "Open my grove",
     "cropType": "Crop type",
     "cropTypes": {
       "Olive": "Olive"
@@ -126,8 +126,8 @@
       "Unknown": "Unknown"
     },
     "locationText": "Location",
-    "locationPlaceholder": "Village, area or address",
-    "locationHint": "Type a place we can find on the map. If we cannot find it, you will see all of Greece.",
+    "locationPlaceholder": "e.g. Gargalianoi, Messinia",
+    "locationHint": "You can leave this for later.",
     "locationSearching": "Searching the map…",
     "locationNotFound": "We could not find that place. The map shows Greece — zoom to your grove.",
     "kaek": "KAEK (optional)",
@@ -160,7 +160,7 @@
     "mapLayerStreet": "Street map",
     "confirmBoundary": "I confirm that the boundary drawn represents the field I want to manage in Oleachron.",
     "confirmCadastre": "I understand the cadastre extract is reference data only and not legal proof inside Oleachron.",
-    "basicsDesc": "Name and location. The name is enough to start.",
+    "basicsDesc": "Give it a name so you can find it easily. Everything else can wait.",
     "worksThisFieldMyself": "I work this field myself",
     "worksThisFieldMyselfHint": "This is not ownership — it means you take part in today’s tasks on this field (start and finish work).",
     "boundaryDesc": "Draw the real working boundary. This may differ from the legal parcel.",
@@ -199,8 +199,8 @@
       "warnLarge": "This area looks large for a typical olive grove. Double-check before continuing."
     },
     "mapLayerAria": "Map view",
-    "cropDesc": "Optional crop profile for planning and reports. Soil and slope are filled automatically from the map.",
-    "reviewDesc": "Review and activate when ready.",
+    "cropDesc": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+    "reviewDesc": "Your grove is almost ready.",
     "officialUnavailable": "Not available",
     "areaNoOfficial": "No official cadastre area available for comparison.",
     "areaClose": "The measured area is close to the official cadastre parcel.",
@@ -237,10 +237,10 @@
     "steps": {
       "method": "Method",
       "cadastre": "Cadastre",
-      "basics": "Details",
+      "basics": "Name",
       "boundary": "Map",
-      "crop": "Crop",
-      "review": "Review"
+      "crop": "Details",
+      "review": "Ready"
     },
     "statuses": {
       "Draft": "Draft",
@@ -264,8 +264,8 @@
     "selectOption": "Select…"
   },
   "searchPlaceholder": "Search fields...",
-  "emptyTitle": "You have not added a field yet.",
-  "emptyDescription": "Add your first field to start recording its story.",
+  "emptyTitle": "You have not added a grove yet.",
+  "emptyDescription": "Add your first grove to start recording its story.",
   "mapTitle": "Fields Map",
   "mapSubtitle": "Satellite view of your fields — boundaries, GPS points, or map centers",
   "mapEmptyTitle": "No fields to show on the map",
@@ -529,12 +529,12 @@
     "metaAria": "Field details"
   },
   "form": {
-    "newTitle": "Create New Field",
-    "editTitle": "Edit Field",
+    "newTitle": "Create a new grove",
+    "editTitle": "Edit grove",
     "subtitle": "Add your olive grove in a few quick steps.",
-    "name": "Field Name",
+    "name": "Grove name",
     "namePlaceholder": "e.g. North Grove",
-    "color": "Field color",
+    "color": "Grove colour",
     "colorHint": "Used on Chronologio cards so you can spot this grove quickly.",
     "area": "Area (stremmata)",
     "variety": "Olive variety",
@@ -554,7 +554,7 @@
     "update": "Update field",
     "back": "Back",
     "next": "Next",
-    "saveDraft": "Save as draft",
+    "saveDraft": "Continue later",
     "saveChanges": "Save changes",
     "cancelChanges": "Cancel changes",
     "editSubtitle": "Update this field’s details and save your changes.",
@@ -587,7 +587,7 @@
     "reviewDesc": "Confirm everything before saving.",
     "selectOption": "Select…",
     "errors": {
-      "nameRequired": "Field name is required.",
+      "nameRequired": "Grove name is required.",
       "areaRequired": "Area must be greater than zero.",
       "latInvalid": "Latitude must be between -90 and 90.",
       "lngInvalid": "Longitude must be between -180 and 180."
@@ -677,14 +677,24 @@
       "ndwi": "Puddles",
       "savi": "Sparse trees",
       "intensity": "How strong on the map",
-      "pickDate": "Pick a date to see greenness on the field."
+      "pickDate": "Pick a day to see how the trees looked then."
     },
     "noOverlays": "No data overlays available.",
     "unavailable": "No imagery for this layer yet.",
-    "observationDate": "Which pass?",
+    "observationDate": "Which day?",
+    "whichDayWhy": "The map shows the field on that day. Pick another to see if the trees looked greener or weaker.",
+    "treesGreen": "The trees look green",
+    "treesMixed": "Some trees look weaker",
+    "treesLow": "Low greenness — worth a walk through the grove",
+    "photoDay": "Photo of the field",
+    "conditionDay": "Condition of the field",
+    "clearSky": "Clear sky",
+    "someCloud": "A few clouds",
+    "olderDays": "Older days",
+    "fewerDays": "Recent days only",
     "compare": "Compare",
-    "singleDate": "One",
-    "compareDates": "Compare",
+    "singleDate": "One day",
+    "compareDates": "Compare two days",
     "dateA": "Left",
     "dateB": "Right",
     "compareHint": "Drag the handle on the map to wipe between the two dates.",
@@ -812,7 +822,7 @@
   "controlRoom": {
     "title": "Field Control Room",
     "subtitle": "What's happening now, what's next, and what needs attention.",
-    "backToFields": "Back to Fields",
+    "backToFields": "Back to groves",
     "edit": "Edit",
     "addTaskFromTemplate": "Add task from template",
     "noOverdue": "No overdue tasks",
@@ -1729,6 +1739,98 @@
       "viewOnly": "You can view this harvest. Editing is limited to the field owner.",
       "helpOnly": "You can view this harvest. Recording production is limited to field workers and owners.",
       "noProduce": "You can view this harvest. Editing is limited to the field owner."
+    }
+  },
+  "createGrove": {
+    "title": "Add grove",
+    "firstTitle": "Put your first grove in Oleachron",
+    "subtitle": "Give it a name so you can find it easily. Everything else can wait.",
+    "nameHeading": "Grove name",
+    "nameHelper": "Give it a name so you can find it easily. Everything else can wait.",
+    "nameLabel": "Grove name",
+    "readyNudge": "Your grove is ready. You can add a place and details now or later.",
+    "createCta": "Create grove",
+    "continueLater": "Continue later",
+    "addLocationFirst": "Add a place first",
+    "backToGroves": "Back to groves",
+    "continueSetup": "Continue setup",
+    "optional": "Optional",
+    "later": "later",
+    "setupLevelAria": "Grove setup level",
+    "levels": {
+      "name": "Name",
+      "location": "Place on the map",
+      "details": "Details"
+    },
+    "placement": {
+      "title": "How do you want to place the grove?",
+      "subtitle": "You can leave this for later.",
+      "searchTitle": "Search for a village or area",
+      "searchDesc": "Type a place and we open the map nearby.",
+      "myLocationTitle": "Use my location",
+      "myLocationDesc": "We only use your location to open the map near you.",
+      "laterTitle": "I will do it later",
+      "laterDesc": "The grove can be created without a place.",
+      "geoUnavailable": "Device location is not available in this browser.",
+      "geoDenied": "Location permission was not granted. You can search for a village or area.",
+      "nearMe": "Near me",
+      "pickedOnMap": "Point on the map"
+    },
+    "place": {
+      "title": "Place on the map",
+      "subtitle": "Type a village, area or address so we can find it faster on the map.",
+      "placeholder": "e.g. Gargalianoi, Messinia",
+      "hint": "You can leave this for later.",
+      "canWait": "You can leave this for later.",
+      "mapAria": "Grove place map",
+      "tapHint": "Tap the map to set the point.",
+      "confirm": "Yes, this is the place",
+      "noResults": "We could not find that place. Try another name or tap the map."
+    },
+    "details": {
+      "subtitle": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+      "varietyHint": "Helps organise harvest and observations.",
+      "treeCountLabel": "About how many trees does it have?",
+      "treeCountHint": "If you are not sure, leave it blank."
+    },
+    "appearance": {
+      "title": "Appearance in Chronologio",
+      "subtitle": "Colour helps you recognise the grove in Chronologio.",
+      "autoLabel": "Colour: chosen automatically",
+      "autoHint": "Colour: chosen automatically · Change",
+      "change": "Change"
+    },
+    "draftSavedTitle": "Saved as draft",
+    "draftSavedBody": "Saved as a draft. It does not appear in everyday records yet.",
+    "ready": {
+      "title": "“{{name}}” is ready.",
+      "body": "From here on, every task, expense, photo and harvest stays in its history.",
+      "splitAria": "What is ready and what can wait",
+      "readyHeading": "Ready",
+      "waitHeading": "Can wait",
+      "readyName": "Name",
+      "readyTimeline": "Chronologio ready",
+      "readyWork": "You can record work",
+      "waitLocation": "Place on the map",
+      "waitBoundary": "Boundary on the map",
+      "waitDetails": "Variety and trees",
+      "recordWork": "Record first work",
+      "addLocation": "Add a place on the map",
+      "openChronologio": "Open Chronologio",
+      "openGrove": "Open my grove"
+    },
+    "enrich": {
+      "aria": "Complete grove",
+      "locationTitle": "Add a place on the map",
+      "locationBody": "Type a village or area so you can find the grove easily.",
+      "locationAction": "Add place",
+      "boundaryTitle": "Want to draw the boundary?",
+      "boundaryBody": "Find the grove on the map and mark the corners. We will calculate area, slope and satellite data.",
+      "boundaryAction": "Draw boundary",
+      "boundaryLater": "Later",
+      "detailsTitle": "Add variety and trees",
+      "detailsBody": "A few details that help Oleachron give you more useful reminders.",
+      "detailsAction": "Add details"
     }
   }
 }

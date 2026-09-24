@@ -42,6 +42,9 @@ describe('deep-link intents', () => {
       '/harvest?fieldId=f1&harvestId=h1'
     );
     expect(harvestPath({ day: '2025-11-12' })).toBe('/harvest?day=2025-11-12');
+    expect(harvestPath({ day: '2025-11-12', view: 'fields' })).toBe(
+      '/harvest?day=2025-11-12&view=fields'
+    );
     expect(harvestPath({ evening: true })).toBe('/harvest?evening=1');
     expect(fieldWeatherPath('f1')).toBe('/fields/f1/weather');
   });

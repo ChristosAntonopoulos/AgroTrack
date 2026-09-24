@@ -48,7 +48,7 @@ const HarvestDayLedger: React.FC<Props> = ({ days, fields }) => {
         return (
           <Pressable
             key={day.date}
-            onPress={() => openHarvestCampaign(navigation, { day: day.date })}
+            onPress={() => openHarvestCampaign(navigation, { day: day.date, view: 'fields' })}
             style={[
               styles.row,
               {

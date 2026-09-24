@@ -45,6 +45,7 @@ import FieldWeatherSection from '../components/fields/FieldWeatherSection';
 import FieldRecentChronologio from '../components/fields/FieldRecentChronologio';
 import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
+import GroveEnrichmentCards from '../components/fields/GroveEnrichmentCards';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import FieldHarvestCard from '../components/domain/FieldHarvestCard';
@@ -462,6 +463,7 @@ const FieldDetailScreen = () => {
               />
             </View>
           ) : null}
+          <GroveEnrichmentCards field={field} canEdit={gates.canOwn} />
           {attention ? (
             <FieldStatusStrip
               phenology={phenology}

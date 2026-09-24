@@ -5,6 +5,7 @@ import type { ChronologioEntry } from '../../services/chronologioService';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { collectChronologioImages } from '../../utils/chronologioPhotoGroups';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { presentActorName } from '../../chronologio/eventPresentation';
 import { ChronologioMediaImage } from './ChronologioThumbnail';
 import ChronologioCategoryIcon from './ChronologioCategoryIcon';
@@ -17,8 +18,7 @@ type Props = {
 };
 
 /**
- * Same-day Photo Hub collage — shares Chronologio entry card slot anatomy:
- * type → title → field → date/time → owner → (linked/media) → primary action.
+ * Same-day Photo Hub collage — full-bleed mosaic under a short header.
  */
 const ChronologioPhotoStackCard: React.FC<Props> = ({
   entries,
@@ -33,6 +33,20 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
     return resolvePublicAssetUrl(raw) || raw;
   });
   const count = Math.max(images.length, entries.length);
+  const fieldIds = [
+    ...new Set(entries.map((e) => e.fieldId || e.field?.id).filter(Boolean) as string[]),
+  ];
+  const singleField =
+    fieldIds.length === 1
+      ? entries.find((e) => (e.fieldId || e.field?.id) === fieldIds[0])
+      : null;
+  const fieldCircle =
+    singleField != null
+      ? {
+          color: resolveFieldColor(singleField.field?.color, fieldIds[0]),
+          name: singleField.field?.name ? friendlyFieldLabel(singleField.field.name) : '',
+        }
+      : null;
   const fieldNames = showField
     ? [...new Set(entries.map((e) => e.field?.name).filter(Boolean))]
     : [];
@@ -63,58 +77,66 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
       onClick={onOpen}
       aria-label={t('photos:dayStack.openSheet', { defaultValue: 'Open photos' })}
     >
-      <div className="chronologio-card-top">
+      <div className="chrono-photo-stack-head">
         <div className="chronologio-card-icon is-note">
           <ChronologioCategoryIcon category="photo" />
         </div>
-        <div className="chronologio-card-body">
+        <div className="chrono-photo-stack-copy">
           <div className="chronologio-card-type chronologio-card-meta">
             <span>
               <Camera size={12} aria-hidden /> {t('photos:dayStack.title')}
             </span>
           </div>
           <h3 className="chronologio-card-title">{t('photos:dayStack.count', { count })}</h3>
+        </div>
+      </div>
 
-          <div className={`chrono-photo-stack-collage ${collageClass}`} aria-hidden>
-            {thumbs.length ? (
-              thumbs.map((src, i) => (
-                <ChronologioMediaImage
-                  key={`${src}-${i}`}
-                  src={src}
-                  className="chrono-photo-stack-cell"
-                  retryLabel={t('chronologio:drawer.mediaRetry')}
-                  unavailableLabel={t('chronologio:drawer.mediaUnavailable', { index: i + 1 })}
-                />
-              ))
-            ) : (
-              <span className="chrono-photo-stack-fallback">
-                <Camera size={28} />
-              </span>
-            )}
-            {count > 4 ? <span className="chrono-photo-stack-more">+{count - 4}</span> : null}
-          </div>
+      <div className={`chrono-photo-stack-collage ${collageClass}`} aria-hidden>
+        {thumbs.length ? (
+          thumbs.map((src, i) => (
+            <div key={`${src}-${i}`} className="chrono-photo-stack-cell">
+              <ChronologioMediaImage
+                src={src}
+                className="chrono-photo-stack-img"
+                retryLabel={t('chronologio:drawer.mediaRetry')}
+                unavailableLabel={t('chronologio:drawer.mediaUnavailable', { index: i + 1 })}
+              />
+            </div>
+          ))
+        ) : (
+          <span className="chrono-photo-stack-fallback">
+            <Camera size={28} />
+          </span>
+        )}
+        {fieldCircle ? (
+          <span
+            className="chrono-photo-stack-field"
+            title={fieldCircle.name || undefined}
+            style={{ background: fieldCircle.color }}
+          />
+        ) : null}
+        {count > 4 ? <span className="chrono-photo-stack-more">+{count - 4}</span> : null}
+      </div>
 
-          {(fieldNames.length > 0 || time || actorName) ? (
-            <div className="chronologio-card-foot">
-              {fieldNames.length > 0 ? (
-                <div className="chronologio-card-field">
-                  <span>{fieldNames.map((n) => friendlyFieldLabel(String(n))).join(' · ')}</span>
-                </div>
-              ) : null}
-              {time ? (
-                <time className="chronologio-card-when" dateTime={entries[0]?.occurredAt}>
-                  {time}
-                </time>
-              ) : null}
-              {actorName ? (
-                <div className="chronologio-card-owner chronologio-card-actor">
-                  {t('chronologio:fromActor', { name: actorName })}
-                </div>
-              ) : null}
+      {(fieldNames.length > 0 || time || actorName) ? (
+        <div className="chronologio-card-foot chrono-photo-stack-foot">
+          {fieldNames.length > 0 ? (
+            <div className="chronologio-card-field">
+              <span>{fieldNames.map((n) => friendlyFieldLabel(String(n))).join(' · ')}</span>
+            </div>
+          ) : null}
+          {time ? (
+            <time className="chronologio-card-when" dateTime={entries[0]?.occurredAt}>
+              {time}
+            </time>
+          ) : null}
+          {actorName ? (
+            <div className="chronologio-card-owner chronologio-card-actor">
+              {t('chronologio:fromActor', { name: actorName })}
             </div>
           ) : null}
         </div>
-      </div>
+      ) : null}
     </button>
   );
 };

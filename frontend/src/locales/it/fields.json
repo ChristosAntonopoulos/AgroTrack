@@ -6,7 +6,7 @@
   "viewMap": "Map",
   "viewModeAria": "Fields view mode",
   "addField": "Add Field",
-  "addFieldCta": "Add field",
+  "addFieldCta": "Aggiungi oliveto",
   "mapLayerSatellite": "Satellite",
   "mapLayerStreet": "Map",
   "locationLabel": "Location",
@@ -16,7 +16,7 @@
   "sortDistance": "Distance",
   "sortLabel": "Sort fields",
   "searchPlaceholder": "Search fields...",
-  "emptyTitle": "You have not added a field yet.",
+  "emptyTitle": "Non hai ancora aggiunto un oliveto.",
   "emptyDescription": "Add your first field to start recording its story.",
   "fieldStatus": {
     "Draft": "Draft",
@@ -1111,6 +1111,98 @@
       "viewOnly": "Puoi vedere questa raccolta. La modifica è riservata al proprietario del campo.",
       "helpOnly": "Puoi vedere questa raccolta. La registrazione della produzione è riservata a lavoratori e proprietari.",
       "noProduce": "Puoi vedere questa raccolta. La modifica è riservata al proprietario del campo."
+    }
+  },
+  "createGrove": {
+    "title": "Aggiungi oliveto",
+    "firstTitle": "Metti il tuo primo oliveto in Oleachron",
+    "subtitle": "Give it a name so you can find it easily. Everything else can wait.",
+    "nameHeading": "Grove name",
+    "nameHelper": "Give it a name so you can find it easily. Everything else can wait.",
+    "nameLabel": "Grove name",
+    "readyNudge": "Your grove is ready. You can add a place and details now or later.",
+    "createCta": "Crea oliveto",
+    "continueLater": "Continua più tardi",
+    "addLocationFirst": "Aggiungi prima la posizione",
+    "backToGroves": "Torna agli oliveti",
+    "continueSetup": "Continue setup",
+    "optional": "Optional",
+    "later": "later",
+    "setupLevelAria": "Grove setup level",
+    "levels": {
+      "name": "Name",
+      "location": "Place on the map",
+      "details": "Details"
+    },
+    "placement": {
+      "title": "How do you want to place the grove?",
+      "subtitle": "You can leave this for later.",
+      "searchTitle": "Search for a village or area",
+      "searchDesc": "Type a place and we open the map nearby.",
+      "myLocationTitle": "Use my location",
+      "myLocationDesc": "We only use your location to open the map near you.",
+      "laterTitle": "I will do it later",
+      "laterDesc": "The grove can be created without a place.",
+      "geoUnavailable": "Device location is not available in this browser.",
+      "geoDenied": "Location permission was not granted. You can search for a village or area.",
+      "nearMe": "Near me",
+      "pickedOnMap": "Point on the map"
+    },
+    "place": {
+      "title": "Place on the map",
+      "subtitle": "Scrivi un paese, una zona o un indirizzo per trovarlo più in fretta sulla mappa.",
+      "placeholder": "e.g. Gargalianoi, Messinia",
+      "hint": "Puoi lasciarlo per dopo.",
+      "canWait": "You can leave this for later.",
+      "mapAria": "Grove place map",
+      "tapHint": "Tap the map to set the point.",
+      "confirm": "Yes, this is the place",
+      "noResults": "Non abbiamo trovato quel luogo. Prova un altro nome o tocca la mappa."
+    },
+    "details": {
+      "subtitle": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+      "varietyHint": "Helps organise harvest and observations.",
+      "treeCountLabel": "About how many trees does it have?",
+      "treeCountHint": "If you are not sure, leave it blank."
+    },
+    "appearance": {
+      "title": "Appearance in Chronologio",
+      "subtitle": "Colour helps you recognise the grove in Chronologio.",
+      "autoLabel": "Colour: chosen automatically",
+      "autoHint": "Colour: chosen automatically · Change",
+      "change": "Change"
+    },
+    "draftSavedTitle": "Saved as draft",
+    "draftSavedBody": "Saved as a draft. It does not appear in everyday records yet.",
+    "ready": {
+      "title": "“{{name}}” is ready.",
+      "body": "From here on, every task, expense, photo and harvest stays in its history.",
+      "splitAria": "What is ready and what can wait",
+      "readyHeading": "Ready",
+      "waitHeading": "Can wait",
+      "readyName": "Name",
+      "readyTimeline": "Chronologio ready",
+      "readyWork": "You can record work",
+      "waitLocation": "Place on the map",
+      "waitBoundary": "Confine sulla mappa",
+      "waitDetails": "Variety and trees",
+      "recordWork": "Record first work",
+      "addLocation": "Add a place on the map",
+      "openChronologio": "Open Chronologio",
+      "openGrove": "Open my grove"
+    },
+    "enrich": {
+      "aria": "Complete grove",
+      "locationTitle": "Add a place on the map",
+      "locationBody": "Type a village or area so you can find the grove easily.",
+      "locationAction": "Add place",
+      "boundaryTitle": "Want to draw the boundary?",
+      "boundaryBody": "Trova loliveto sulla mappa e segna gli angoli. Calcoleremo superficie, pendenza e dati satellitari.",
+      "boundaryAction": "Draw boundary",
+      "boundaryLater": "Later",
+      "detailsTitle": "Add variety and trees",
+      "detailsBody": "A few details that help Oleachron give you more useful reminders.",
+      "detailsAction": "Add details"
     }
   }
 }

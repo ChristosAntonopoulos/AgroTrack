@@ -11,6 +11,7 @@ import {
   type DayWeatherInput,
 } from '../../chronologio/dayWeather';
 import { eventCardSpan } from '../../chronologio/eventCardLayout';
+import { isCompletedTaskEntry } from '../../chronologio/timelineRail';
 import {
   chronologioScrollKey,
   readChronologioJournalScroll,
@@ -57,7 +58,15 @@ type FlatRow =
       monthReviews: ChronologioEntry[];
     }
   | { kind: 'gap'; key: string; months: number }
-  | { kind: 'monthBreak'; key: string; label: string }
+  | {
+      kind: 'monthSummary';
+      key: string;
+      year: number;
+      month: number;
+      label: string;
+      records: number;
+      tasksCompleted: number;
+    }
   | { kind: 'yearBreak'; key: string; year: number }
   | { kind: 'status'; key: string; label: string };
 
@@ -89,6 +98,8 @@ const ChronologioMonthView: React.FC<Props> = ({
   const parentRef = useRef<HTMLDivElement>(null);
   const restoredScrollKey = useRef<string | null>(null);
   const [photoDayEntries, setPhotoDayEntries] = useState<ChronologioEntry[] | null>(null);
+  const [activeDayKey, setActiveDayKey] = useState<string | null>(null);
+  const jumpedFocusRef = useRef<string | null>(null);
   const scrollStorageKey = chronologioScrollKey({ zoom, focusDate, fieldId });
   const todayKey = dayWeatherDateKey(new Date());
   const numberLocale = i18n.language?.startsWith('el')
@@ -114,6 +125,7 @@ const ChronologioMonthView: React.FC<Props> = ({
   const rows = useMemo(() => {
     const model = groupChronologioEntries(entries);
     const days: Extract<FlatRow, { kind: 'day' }>[] = [];
+    const monthStats = new Map<string, { records: number; tasksCompleted: number }>();
     for (const month of model.months) {
       for (const day of month.days) {
         const visible = day.entries.filter(
@@ -123,6 +135,13 @@ const ChronologioMonthView: React.FC<Props> = ({
         const monthReviews = showField ? visible.filter(isMonthWeatherReview) : [];
         const rest = showField ? visible.filter((entry) => !isMonthWeatherReview(entry)) : visible;
         const agriYear = agriculturalYearFor(day.date);
+        const year = day.date.getFullYear();
+        const monthNumber = day.date.getMonth() + 1;
+        const statsKey = `${year}-${monthNumber}`;
+        const stats = monthStats.get(statsKey) ?? { records: 0, tasksCompleted: 0 };
+        stats.records += visible.length;
+        stats.tasksCompleted += visible.filter(isCompletedTaskEntry).length;
+        monthStats.set(statsKey, stats);
         days.push({
           kind: 'day',
           key: `d-${day.key}`,
@@ -135,8 +154,8 @@ const ChronologioMonthView: React.FC<Props> = ({
           }),
           monthLabel: day.date.toLocaleDateString(i18n.language, { month: 'long' }),
           agriLabel: agriculturalYearTitle(agriYear, i18n.language),
-          year: day.date.getFullYear(),
-          month: day.date.getMonth() + 1,
+          year,
+          month: monthNumber,
           entries: rest,
           monthReviews,
         });
@@ -146,25 +165,9 @@ const ChronologioMonthView: React.FC<Props> = ({
     const flat: FlatRow[] = [];
     let previous: Extract<FlatRow, { kind: 'day' }> | null = null;
     days.forEach((day) => {
+      const monthChanged = !previous || previous.year !== day.year || previous.month !== day.month;
       if (previous && previous.year !== day.year) {
         flat.push({ kind: 'yearBreak', key: `y-${day.year}-${day.dateKey}`, year: day.year });
-      } else if (previous && previous.month !== day.month) {
-        const gap = daysBetween(new Date(previous.dateKey), new Date(day.dateKey));
-        if (gap >= 45) {
-          flat.push({
-            kind: 'gap',
-            key: `g-${previous.dateKey}-${day.dateKey}`,
-            months: Math.max(2, Math.round(gap / 30)),
-          });
-        }
-        flat.push({
-          kind: 'monthBreak',
-          key: `m-${day.year}-${day.month}-${day.dateKey}`,
-          label: new Date(day.year, day.month - 1, 1).toLocaleDateString(i18n.language, {
-            month: 'long',
-            year: 'numeric',
-          }),
-        });
       } else if (previous) {
         const gap = daysBetween(new Date(previous.dateKey), new Date(day.dateKey));
         if (gap >= 45) {
@@ -174,6 +177,21 @@ const ChronologioMonthView: React.FC<Props> = ({
             months: Math.max(2, Math.round(gap / 30)),
           });
         }
+      }
+      if (monthChanged) {
+        const stats = monthStats.get(`${day.year}-${day.month}`) ?? { records: 0, tasksCompleted: 0 };
+        flat.push({
+          kind: 'monthSummary',
+          key: `m-${day.year}-${day.month}`,
+          year: day.year,
+          month: day.month,
+          label: new Date(day.year, day.month - 1, 1).toLocaleDateString(i18n.language, {
+            month: 'long',
+            year: 'numeric',
+          }),
+          records: stats.records,
+          tasksCompleted: stats.tasksCompleted,
+        });
       }
       flat.push(day);
       previous = day;
@@ -194,7 +212,7 @@ const ChronologioMonthView: React.FC<Props> = ({
     estimateSize: (i) => {
       const row = rows[i];
       if (row?.kind === 'status') return 48;
-      if (row?.kind === 'gap' || row?.kind === 'monthBreak') return 56;
+      if (row?.kind === 'gap' || row?.kind === 'monthSummary') return 56;
       if (row?.kind === 'yearBreak') return 72;
       if (row?.kind === 'day') {
         const display = groupSameDayPhotoEntries(row.entries);
@@ -223,6 +241,7 @@ const ChronologioMonthView: React.FC<Props> = ({
       return 168;
     },
     overscan: 8,
+    paddingStart: 20,
     paddingEnd: 32,
   });
 
@@ -238,23 +257,77 @@ const ChronologioMonthView: React.FC<Props> = ({
     const el = parentRef.current;
     if (!el) return undefined;
 
+    const focusKey = (focusDate || '').slice(0, 10);
+    const focusRowIndex =
+      focusKey.length === 10
+        ? rows.findIndex((row) => row.kind === 'day' && row.dateKey === focusKey)
+        : -1;
+
     if (restoredScrollKey.current !== scrollStorageKey && rows.length > 0) {
-      const saved = readChronologioJournalScroll(scrollStorageKey);
-      if (saved != null) {
+      if (focusRowIndex >= 0) {
         requestAnimationFrame(() => {
-          el.scrollTop = saved;
+          virtualizer.scrollToIndex(focusRowIndex, { align: 'start' });
+          setActiveDayKey(focusKey);
+          jumpedFocusRef.current = focusKey;
         });
+      } else {
+        const saved = readChronologioJournalScroll(scrollStorageKey);
+        if (saved != null) {
+          requestAnimationFrame(() => {
+            el.scrollTop = saved;
+          });
+        }
       }
       restoredScrollKey.current = scrollStorageKey;
+    } else if (
+      focusRowIndex >= 0 &&
+      focusKey &&
+      jumpedFocusRef.current !== focusKey
+    ) {
+      // Jump-to-date while already on this journal scope.
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(focusRowIndex, { align: 'start' });
+        setActiveDayKey(focusKey);
+        jumpedFocusRef.current = focusKey;
+      });
     }
 
-    const onScroll = () => saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
+    const syncActiveDay = () => {
+      const edge = el.getBoundingClientRect().top + 28;
+      let key: string | null = null;
+      el.querySelectorAll<HTMLElement>('[data-day-key]').forEach((node) => {
+        if (node.getBoundingClientRect().top <= edge) key = node.dataset.dayKey || key;
+      });
+      if (!key) {
+        const first = el.querySelector<HTMLElement>('[data-day-key]');
+        key = first?.dataset.dayKey || null;
+      }
+      if (key) setActiveDayKey((prev) => (prev === key ? prev : key));
+    };
+
+    const onScroll = () => {
+      saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
+      syncActiveDay();
+    };
     el.addEventListener('scroll', onScroll, { passive: true });
+    syncActiveDay();
     return () => {
       saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
       el.removeEventListener('scroll', onScroll);
     };
-  }, [rows.length, scrollStorageKey]);
+  }, [focusDate, rows, scrollStorageKey, virtualizer]);
+
+  const monthSummaryText = (row: Extract<FlatRow, { kind: 'monthSummary' }>) => {
+    const entriesLabel = t('timeline.entryCount', { count: row.records });
+    if (row.tasksCompleted <= 0) {
+      return t('timeline.monthSummary', { month: row.label, entries: entriesLabel });
+    }
+    return t('timeline.monthSummaryTasks', {
+      month: row.label,
+      entries: entriesLabel,
+      tasks: t('timeline.tasksCompleted', { count: row.tasksCompleted }),
+    });
+  };
 
   return (
     <div className="chrono-month-view chrono-journal-view chrono-day-timeline">
@@ -265,7 +338,6 @@ const ChronologioMonthView: React.FC<Props> = ({
             return (
               <div
                 key={row.key}
-                className="chrono-month-virtual-row"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -275,13 +347,25 @@ const ChronologioMonthView: React.FC<Props> = ({
                 }}
                 ref={virtualizer.measureElement}
                 data-index={vRow.index}
+                data-day-key={row.kind === 'day' ? row.dateKey : undefined}
+                className={`chrono-month-virtual-row${row.kind === 'status' ? '' : ' has-spine'}`}
               >
+                {row.kind === 'status' ? null : (
+                  <div
+                    className={`chrono-rail-track${
+                      row.kind === 'day' && row.dateKey === activeDayKey ? ' is-active' : ''
+                    }`}
+                    aria-hidden
+                  >
+                    {row.kind === 'day' ? <span className="chrono-day-node" /> : null}
+                  </div>
+                )}
                 {row.kind === 'status' ? (
                   <p className="chrono-journal-status">{row.label}</p>
                 ) : row.kind === 'gap' ? (
                   <p className="chrono-timeline-gap">{t('timeline.gapMonths', { count: row.months })}</p>
-                ) : row.kind === 'monthBreak' ? (
-                  <p className="chrono-timeline-month">{row.label}</p>
+                ) : row.kind === 'monthSummary' ? (
+                  <p className="chrono-timeline-month">{monthSummaryText(row)}</p>
                 ) : row.kind === 'yearBreak' ? (
                   <p className="chrono-timeline-year">{t('timeline.yearLandmark', { year: row.year })}</p>
                 ) : (

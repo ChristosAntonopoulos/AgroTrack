@@ -80,7 +80,7 @@ const ChronologioEvent: React.FC<Props> = ({
   weatherTile = false,
   onSelect,
 }) => {
-  const { t, i18n } = useTranslation('chronologio');
+  const { i18n } = useTranslation('chronologio');
   const numberLocale = i18n.language?.startsWith('el')
     ? 'el-GR'
     : i18n.language?.startsWith('it')

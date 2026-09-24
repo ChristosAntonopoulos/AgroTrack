@@ -120,8 +120,15 @@
     "june": "June 2026"
   },
   "harvest": {
-    "title": "Your harvest, clear from the first day to the final reckoning.",
-    "text": "Note sacks, kilos, oil and expenses as the harvest goes on. When the year closes, you know what each field gave — and you have the reference for the next one.",
+    "title": "The harvest goes in simply.",
+    "text": "In the field you write the sacks. At the mill, the kilos. Then the oil. Each day joins that field’s year on its own.",
+    "steps": [
+      { "label": "Sacks", "where": "In the field", "ask": "How many did you pick today?" },
+      { "label": "Kilos", "where": "At the mill", "ask": "What did the scale show?" },
+      { "label": "Oil", "where": "After weighing", "ask": "How much came out?" }
+    ],
+    "yearLabel": "The year, already added up",
+    "year": "42 sacks · 860 kg · 148 L oil",
     "sacks": "Sacks",
     "kilos": "Kilos",
     "litres": "Litres of oil",

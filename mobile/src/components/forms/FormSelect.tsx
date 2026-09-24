@@ -7,6 +7,8 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  ViewStyle,
+  StyleProp,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -18,7 +20,9 @@ export interface FormSelectProps {
   options: { label: string; value: string }[];
   onValueChange: (value: string) => void;
   placeholder?: string;
+  helperText?: string;
   disabled?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const FormSelect: React.FC<FormSelectProps> = ({
@@ -27,7 +31,9 @@ const FormSelect: React.FC<FormSelectProps> = ({
   options,
   onValueChange,
   placeholder = 'Select…',
+  helperText,
   disabled = false,
+  containerStyle,
 }) => {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
@@ -35,8 +41,11 @@ const FormSelect: React.FC<FormSelectProps> = ({
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+      {helperText ? (
+        <Text style={[styles.helper, { color: colors.textSecondary }]}>{helperText}</Text>
+      ) : null}
       <Pressable
         disabled={disabled}
         onPress={() => setOpen(true)}
@@ -113,6 +122,11 @@ const styles = StyleSheet.create({
     ...typography.styles.bodySmall,
     fontWeight: '600',
     marginBottom: spacing.xs,
+  },
+  helper: {
+    ...typography.styles.caption,
+    marginBottom: spacing.xs,
+    lineHeight: 18,
   },
   trigger: {
     flexDirection: 'row',

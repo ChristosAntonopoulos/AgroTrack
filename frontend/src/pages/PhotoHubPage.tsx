@@ -538,7 +538,7 @@ const PhotoHubPage: React.FC = () => {
               aria-hidden="true"
               className="photo-hidden-input"
               onChange={(e) => {
-                uploads.stageFiles(takeFiles(e.target.files));
+                uploads.stageFiles(takeFiles(e.target.files), { autoStart: true });
                 e.target.value = '';
               }}
             />
@@ -562,7 +562,7 @@ const PhotoHubPage: React.FC = () => {
           e.preventDefault();
           dragDepthRef.current = 0;
           setDragging(false);
-          uploads.stageFiles(takeFiles(e.dataTransfer.files));
+          uploads.stageFiles(takeFiles(e.dataTransfer.files), { autoStart: true });
         }}
       >
         {dragging ? (
@@ -981,7 +981,7 @@ const PhotoHubPage: React.FC = () => {
               }
             />
             {!hasActiveFilters ? (
-              <PhotoUploadDropzone onFiles={(files) => uploads.stageFiles(files)} />
+              <PhotoUploadDropzone onFiles={(files) => uploads.stageFiles(files, { autoStart: true })} />
             ) : null}
           </div>
         ) : null}

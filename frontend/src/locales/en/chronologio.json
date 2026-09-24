@@ -104,6 +104,7 @@
   "harvestOil": "{{kg}} kg oil",
   "harvestYield": "{{pct}}% yield",
   "olivesUnit": "kg olives",
+  "approxOlivesUnit": "≈ kg olives",
   "oilUnit": "kg oil",
   "sacksUnit": "sacks",
   "yieldUnit": "yield",
@@ -165,7 +166,7 @@
     "historyStartsHereAll": "This is where the recorded history of your fields begins.",
     "pinnedSection": "Pinned · {{count}}",
     "harvestDayOpen": "Open",
-    "jumpToDate": "Go to date",
+    "jumpToDate": "Day",
     "emptyPeriod": "No records yet",
     "emptyYear": "No records yet for {{year}}.",
     "loadingOlder": "Loading earlier records…",
@@ -228,7 +229,7 @@
     "photoCount_other": "{{count}} photos"
   },
   "dateControl": {
-    "jumpNavigates": "Opens that day in the journal",
+    "jumpNavigates": "Jump to this day",
     "railNavigates": "Opens that year in the journal",
     "railScrolls": "Scrolls to that year on this page",
     "viewTabs": "Changes how far you zoom — days, months, or years",
@@ -504,7 +505,13 @@
     "yearLandmark": "{{year}}",
     "monthLandmark": "{{month}} {{year}}",
     "entryCount_one": "{{count}} record",
-    "entryCount_other": "{{count}} records"
+    "entryCount_other": "{{count}} records",
+    "monthSummary": "{{month}} · {{entries}}",
+    "monthSummaryTasks": "{{month}} · {{entries}} · {{tasks}}",
+    "tasksCompleted_one": "{{count}} task completed",
+    "tasksCompleted_other": "{{count}} tasks completed",
+    "monthRail": "Nearby months",
+    "jumpToMonth": "Go to {{month}}"
   },
   "weatherVegetation": {
     "button": "Weather & vegetation",

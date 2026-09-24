@@ -48,7 +48,10 @@ const PhotoUploadDropzone: React.FC<Props> = ({
     <div
       id={id}
       className={`photo-dropzone${dragging ? ' is-dragging' : ''}${disabled ? ' is-uploading' : ''} ${className}`.trim()}
-      onClick={openPicker}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).tagName === 'INPUT') return;
+        openPicker();
+      }}
       onDragEnter={(e) => {
         e.preventDefault();
         if (!disabled) setDragging(true);

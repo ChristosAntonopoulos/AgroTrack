@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useBlocker } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useBlocker } from 'react-router-dom';
 import { getFieldService } from '../services/serviceFactory';
 import {
   CreateFieldDto,
-  FieldAreaValidationResponse,
   GeoJsonPolygon,
   UpdateFieldDto,
 } from '../services/fieldService';
@@ -16,31 +15,62 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import BasicFieldDetailsStep from '../components/fields/BasicFieldDetailsStep';
 import FieldBoundaryMapStep from '../components/fields/FieldBoundaryMapStep';
 import CropDetailsStep from '../components/fields/CropDetailsStep';
-import ReviewFieldStep from '../components/fields/ReviewFieldStep';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  MapPin,
-  Sprout,
-} from 'lucide-react';
+import GroveSetupLevel, {
+  SetupLevelKey,
+  SetupLevelState,
+} from '../components/fields/GroveSetupLevel';
+import LocationPlacementChooser, {
+  PlacementChoice,
+} from '../components/fields/LocationPlacementChooser';
+import PlaceLocationStep from '../components/fields/PlaceLocationStep';
+import GroveReadyPanel from '../components/fields/GroveReadyPanel';
+import { ArrowLeft, Check } from 'lucide-react';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
-import { getFieldSetupResumeStep } from '../utils/fieldDisplay';
+import { fieldHasBoundary, isListedGrove } from '../utils/fieldDisplay';
+import { resolveFieldColor } from '../utils/fieldColors';
 import { validateBoundaryPolygon } from '../utils/boundaryValidation';
+import { useCaptureOptional } from '../context/CaptureContext';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
-type WizardStep = 'basics' | 'boundary' | 'crop' | 'review';
-const WIZARD_STEPS: WizardStep[] = ['basics', 'boundary', 'crop', 'review'];
+type CreateScreen =
+  | 'name'
+  | 'location-choose'
+  | 'location-place'
+  | 'draft-saved'
+  | 'ready';
+
+type EditFocus = 'settings' | 'location' | 'boundary' | 'details' | 'appearance';
+
+const hasCoordsOnField = (field: { latitude?: number; longitude?: number }) =>
+  field.latitude != null &&
+  field.longitude != null &&
+  Number.isFinite(field.latitude) &&
+  Number.isFinite(field.longitude);
 
 const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const capture = useCaptureOptional();
   const isEdit = !!id;
 
-  const [step, setStep] = useState<WizardStep | 'basics-edit'>('basics');
+  const focusParam = searchParams.get('focus');
+  const editFocus: EditFocus =
+    focusParam === 'location' ||
+    focusParam === 'boundary' ||
+    focusParam === 'details' ||
+    focusParam === 'appearance'
+      ? focusParam
+      : 'settings';
+
+  const [createScreen, setCreateScreen] = useState<CreateScreen>('name');
+  const [placementMode, setPlacementMode] = useState<'search' | 'myLocation'>('search');
+  const [locationSkipped, setLocationSkipped] = useState(false);
+  const [detailsSkipped, setDetailsSkipped] = useState(false);
+  const [isFirstGrove, setIsFirstGrove] = useState(true);
   const [draftFieldId, setDraftFieldId] = useState<string | null>(null);
   const [fieldStatus, setFieldStatus] = useState<string | undefined>();
   const [initialBoundary, setInitialBoundary] = useState<GeoJsonPolygon | undefined>();
@@ -55,17 +85,24 @@ const FieldFormPage: React.FC = () => {
     worksThisFieldMyself: true,
   });
   const [boundary, setBoundary] = useState<GeoJsonPolygon | undefined>();
-  const [areaValidation, setAreaValidation] = useState<FieldAreaValidationResponse | null>(null);
   const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const allowLeaveRef = useRef(false);
 
   const isActiveEdit = isEdit && fieldStatus === 'Active';
+  const nameValid = formData.name.trim().length >= 2;
+  const hasLocation = Boolean(
+    (formData.locationText && formData.locationText.trim()) ||
+      (formData.latitude != null && formData.longitude != null)
+  );
+  const hasDetails = Boolean(formData.variety?.trim()) || formData.treeCount != null;
 
   useEffect(() => {
     if (isEdit && id) void loadField();
+    else void loadGroveCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
 
@@ -97,6 +134,15 @@ const FieldFormPage: React.FC = () => {
     }
   }, [blocker, t]);
 
+  const loadGroveCount = async () => {
+    try {
+      const fields = await getFieldService().getFields();
+      setIsFirstGrove(fields.filter(isListedGrove).length === 0);
+    } catch {
+      setIsFirstGrove(true);
+    }
+  };
+
   const loadField = async () => {
     try {
       setLoading(true);
@@ -119,6 +165,7 @@ const FieldFormPage: React.FC = () => {
         accessNotes: field.accessNotes,
         color: field.color,
         status: field.status,
+        worksThisFieldMyself: true,
       });
       setBoundary(field.boundary);
       setInitialBoundary(field.boundary);
@@ -126,9 +173,13 @@ const FieldFormPage: React.FC = () => {
       setFieldStatus(field.status);
       if (field.status === 'Active') {
         setBoundaryConfirmed(true);
-        setStep('basics-edit');
+        const focus = new URLSearchParams(window.location.search).get('focus');
+        if (focus === 'location') {
+          setCreateScreen(hasCoordsOnField(field) ? 'location-place' : 'location-choose');
+        }
       } else {
-        setStep(getFieldSetupResumeStep(field) as WizardStep);
+        // Named drafts resume on the name screen, not the map.
+        setCreateScreen('name');
       }
       setDirty(false);
     } catch {
@@ -137,14 +188,6 @@ const FieldFormPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const activeSteps = isEdit
-    ? (['basics-edit', 'boundary', 'crop', 'review'] as const)
-    : WIZARD_STEPS;
-
-  const stepIndex = activeSteps.indexOf(step as never);
-  const isFirst = stepIndex <= 0;
-  const isLast = stepIndex === activeSteps.length - 1;
 
   const markDirty = useCallback(() => setDirty(true), []);
 
@@ -167,15 +210,34 @@ const FieldFormPage: React.FC = () => {
     }));
   };
 
+  const patchLocation = (next: {
+    locationText: string;
+    latitude?: number;
+    longitude?: number;
+  }) => {
+    markDirty();
+    setLocationSkipped(false);
+    setFormData((prev) => ({
+      ...prev,
+      locationText: next.locationText,
+      latitude: next.latitude,
+      longitude: next.longitude,
+    }));
+  };
+
   const ensureDraftField = async (): Promise<string> => {
     if (draftFieldId) return draftFieldId;
+    const color = resolveFieldColor(formData.color, undefined);
     const created = await getFieldService().createField({
       ...formData,
+      color,
       appMeasuredAreaSqm: formData.area || undefined,
       area: formData.area ? hectaresFromSqm(formData.area) : 0,
       status: 'Draft',
+      worksThisFieldMyself: true,
     });
     setDraftFieldId(created.id);
+    setFormData((prev) => ({ ...prev, color: created.color || color }));
     return created.id;
   };
 
@@ -187,12 +249,9 @@ const FieldFormPage: React.FC = () => {
       setBoundaryConfirmed(false);
       return;
     }
-    // Only persist boundary when a draft already exists (explicit save/edit).
     if (draftFieldId) {
       try {
         await getFieldService().updateBoundary(draftFieldId, geo);
-        const validation = await getFieldService().validateArea(draftFieldId);
-        setAreaValidation(validation);
       } catch {
         /* best effort */
       }
@@ -203,69 +262,34 @@ const FieldFormPage: React.FC = () => {
     JSON.stringify(boundary?.coordinates ?? null) !==
     JSON.stringify(initialBoundary?.coordinates ?? null);
 
-  const validateStep = (): string | null => {
-    if (step === 'basics' || step === ('basics-edit' as WizardStep)) {
-      if (!formData.name.trim() || formData.name.length < 2) return t('fields:form.errors.nameRequired');
-    }
-    // Boundary is optional — unfinished drawing is cleared when skipping / continuing.
-    if (step === 'review') {
-      if (boundary && !boundaryConfirmed && (!isActiveEdit || boundaryChanged)) {
-        return t('fields:addField.errors.confirmBoundary');
-      }
-    }
-    return null;
-  };
-
-  const goNext = async () => {
-    const err = validateStep();
-    if (err) {
-      setError(err);
-      return;
-    }
-    setError(null);
-    // Boundary is optional: leaving the step without a finished polygon is fine.
-    // Unfinished local corners live only in the map step and are discarded on unmount.
-    if (!isLast) setStep(activeSteps[stepIndex + 1] as WizardStep);
-  };
-
-  const skipBoundary = () => {
-    setBoundary(undefined);
-    setFormData((prev) => ({ ...prev, area: 0 }));
-    setBoundaryConfirmed(false);
-    setError(null);
-    setStep('crop');
-  };
-
-  const goBack = () => {
-    setError(null);
-    if (!isFirst) setStep(activeSteps[stepIndex - 1] as WizardStep);
-  };
-
   const fieldPayload = (): UpdateFieldDto =>
     ({
-      name: formData.name,
-      cropType: formData.cropType,
+      name: formData.name.trim(),
+      cropType: formData.cropType || 'Olive',
       locationText: formData.locationText,
       latitude: formData.latitude,
       longitude: formData.longitude,
       variety: formData.variety,
       treeCount: formData.treeCount,
-      color: formData.color,
+      color: formData.color || resolveFieldColor(undefined, draftFieldId),
     }) as UpdateFieldDto;
 
-  const leaveClean = (path: string) => {
+  const leaveClean = (path: string, state?: object) => {
     allowLeaveRef.current = true;
     setDirty(false);
-    navigate(path);
+    navigate(path, state ? { state } : undefined);
   };
 
-  const handleSaveDraft = async () => {
+  const handleCreateGrove = async () => {
+    if (!nameValid) {
+      setError(t('fields:form.errors.nameRequired'));
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const fieldId = draftFieldId || (await ensureDraftField());
+      const fieldId = await ensureDraftField();
       await getFieldService().updateField(fieldId, fieldPayload());
-
       if (boundary) {
         const validation = validateBoundaryPolygon(boundary);
         if (!validation.ok) {
@@ -275,8 +299,34 @@ const FieldFormPage: React.FC = () => {
         }
         await getFieldService().updateBoundary(fieldId, boundary);
       }
+      await getFieldService().activateField(fieldId, {
+        boundaryConfirmed: boundary ? boundaryConfirmed || true : true,
+        cadastreReferenceAcknowledged: true,
+      });
+      allowLeaveRef.current = true;
+      setDirty(false);
+      setFieldStatus('Active');
+      setCreateScreen('ready');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      leaveClean(`/fields/${fieldId}`);
+  const handleContinueLater = async () => {
+    if (!nameValid) {
+      setError(t('fields:form.errors.nameRequired'));
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const fieldId = await ensureDraftField();
+      await getFieldService().updateField(fieldId, fieldPayload());
+      allowLeaveRef.current = true;
+      setDirty(false);
+      setCreateScreen('draft-saved');
     } catch {
       setError(t('fields:form.failedSave'));
     } finally {
@@ -285,9 +335,8 @@ const FieldFormPage: React.FC = () => {
   };
 
   const handleSaveActiveChanges = async () => {
-    const err = validateStep();
-    if (err) {
-      setError(err);
+    if (!nameValid) {
+      setError(t('fields:form.errors.nameRequired'));
       return;
     }
     setLoading(true);
@@ -295,7 +344,6 @@ const FieldFormPage: React.FC = () => {
     try {
       const fieldId = draftFieldId || id!;
       await getFieldService().updateField(fieldId, fieldPayload());
-
       if (boundary && boundaryChanged) {
         const validation = validateBoundaryPolygon(boundary);
         if (!validation.ok) {
@@ -304,8 +352,8 @@ const FieldFormPage: React.FC = () => {
           return;
         }
         await getFieldService().updateBoundary(fieldId, boundary);
+        setBoundaryConfirmed(true);
       }
-
       leaveClean(`/fields/${fieldId}`);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
@@ -314,70 +362,91 @@ const FieldFormPage: React.FC = () => {
     }
   };
 
-  const handleActivateWithState = async () => {
-    const err = validateStep();
-    if (err) {
-      setError(err);
-      return;
-    }
-    if (boundary) {
-      const validation = validateBoundaryPolygon(boundary);
-      if (!validation.ok) {
-        setError(t(`fields:addField.boundaryValidation.${validation.code}`));
+  const handlePlacementChoice = (choice: PlacementChoice) => {
+    setError(null);
+    if (choice === 'later') {
+      setLocationSkipped(true);
+      if (isActiveEdit) {
+        leaveClean(`/fields/${id}`);
         return;
       }
+      setCreateScreen('name');
+      return;
     }
-    setLoading(true);
-    setError(null);
-    try {
-      const fieldId = draftFieldId || (await ensureDraftField());
-      await getFieldService().updateField(fieldId, fieldPayload());
-
-      if (boundary) {
-        await getFieldService().updateBoundary(fieldId, boundary);
+    setLocationSkipped(false);
+    setPlacementMode(choice === 'myLocation' ? 'myLocation' : 'search');
+    if (choice === 'myLocation') {
+      setLocating(true);
+      if (!navigator.geolocation) {
+        setLocating(false);
+        setError(t('fields:createGrove.placement.geoUnavailable'));
+        setCreateScreen('location-place');
+        return;
       }
-
-      const result = await getFieldService().activateField(fieldId, {
-        boundaryConfirmed: boundary ? boundaryConfirmed : true,
-        cadastreReferenceAcknowledged: true,
-      });
-
-      allowLeaveRef.current = true;
-      setDirty(false);
-      navigate(`/fields/${result.field.id}/work-setup`, {
-        state: result.suggestLifecyclePlan ? { suggestLifecyclePlan: true } : undefined,
-      });
-    } catch {
-      setError(t('fields:form.failedSave'));
-    } finally {
-      setLoading(false);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          patchLocation({
+            locationText: formData.locationText || t('fields:createGrove.placement.nearMe'),
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+          setLocating(false);
+          setCreateScreen('location-place');
+        },
+        () => {
+          setLocating(false);
+          setError(t('fields:createGrove.placement.geoDenied'));
+          setCreateScreen('location-place');
+        },
+        { enableHighAccuracy: true, timeout: 12000 }
+      );
+      return;
     }
+    setCreateScreen('location-place');
   };
 
-  const stepIcon = (s: string) => {
-    switch (s) {
-      case 'basics':
-      case 'basics-edit':
-        return <Sprout size={16} />;
-      case 'boundary':
-        return <MapPin size={16} />;
-      case 'crop':
-        return <Sprout size={16} />;
-      case 'review':
-        return <Check size={16} />;
-      default:
-        return null;
+  const setupLevels = (): Array<{ key: SetupLevelKey; state: SetupLevelState }> => {
+    const nameState: SetupLevelState =
+      createScreen === 'name' ? 'current' : nameValid ? 'done' : 'upcoming';
+    let locationState: SetupLevelState = 'upcoming';
+    if (createScreen === 'location-choose' || createScreen === 'location-place') {
+      locationState = 'current';
+    } else if (hasLocation) {
+      locationState = 'done';
+    } else if (locationSkipped || createScreen === 'ready' || createScreen === 'draft-saved') {
+      locationState = 'skipped';
     }
+    let detailsState: SetupLevelState = 'upcoming';
+    if (hasDetails) detailsState = 'done';
+    else if (detailsSkipped || createScreen === 'ready' || createScreen === 'draft-saved') {
+      detailsState = 'skipped';
+    }
+    return [
+      { key: 'name', state: nameState },
+      { key: 'location', state: locationState },
+      { key: 'details', state: detailsState },
+    ];
   };
 
   if (loading && isEdit && !formData.name) {
     return <LoadingSpinner fullScreen />;
   }
 
-  const primaryLastAction = isActiveEdit ? handleSaveActiveChanges : handleActivateWithState;
-  const primaryLastLabel = isActiveEdit
-    ? t('fields:form.saveChanges')
-    : t('fields:addField.activate');
+  const pageTitle = isActiveEdit
+    ? t('fields:form.editTitle')
+    : isEdit
+      ? t('fields:form.editTitle')
+      : isFirstGrove
+        ? t('fields:createGrove.firstTitle')
+        : t('fields:createGrove.title');
+
+  const pageSubtitle = isActiveEdit
+    ? t('fields:form.editSubtitle')
+    : createScreen === 'ready'
+      ? ''
+      : t('fields:createGrove.subtitle');
+
+  const showCreateChrome = !isActiveEdit && createScreen !== 'ready' && createScreen !== 'draft-saved';
 
   return (
     <PageContainer>
@@ -385,151 +454,329 @@ const FieldFormPage: React.FC = () => {
         <Breadcrumbs />
         <header className="field-form-header">
           <Button to="/fields" variant="outline" size="sm" icon={<ArrowLeft />}>
-            {t('fields:controlRoom.backToFields')}
+            {t('fields:createGrove.backToGroves')}
           </Button>
           <div>
-            <h1>
-              {isActiveEdit
-                ? t('fields:form.editTitle')
-                : isEdit
-                  ? t('fields:form.editTitle')
-                  : t('fields:addField.title')}
-            </h1>
-            <p className="field-form-subtitle">
-              {isActiveEdit ? t('fields:form.editSubtitle') : t('fields:addField.subtitle')}
-            </p>
+            <h1>{pageTitle}</h1>
+            {pageSubtitle ? <p className="field-form-subtitle">{pageSubtitle}</p> : null}
           </div>
         </header>
 
-        <nav className="field-form-steps" aria-label={t('fields:form.stepsAria')}>
-          {activeSteps.map((s, idx) => (
-            <button
-              key={s}
-              type="button"
-              className={`field-form-step ${step === s ? 'active' : ''} ${idx < stepIndex ? 'done' : ''}`}
-              onClick={() => idx <= stepIndex && setStep(s as WizardStep)}
-              disabled={idx > stepIndex}
-            >
-              <span className="field-form-step-num">{idx < stepIndex ? <Check size={14} /> : idx + 1}</span>
-              {stepIcon(s)}
-              <span className="field-form-step-label">
-                {t(`fields:addField.steps.${s === 'basics-edit' ? 'basics' : s}`)}
-              </span>
-            </button>
-          ))}
-        </nav>
-
-        <p className="field-form-progress" aria-live="polite">
-          {t('fields:form.stepProgress', {
-            current: Math.max(stepIndex + 1, 1),
-            total: activeSteps.length,
-            name: t(`fields:addField.steps.${step === 'basics-edit' ? 'basics' : step}`),
-          })}
-        </p>
+        {showCreateChrome ? <GroveSetupLevel levels={setupLevels()} /> : null}
 
         {error && <div className="field-form-error">{error}</div>}
 
         <Card className="field-form-card">
-          {(step === 'basics' || step === ('basics-edit' as WizardStep)) && (
-            <BasicFieldDetailsStep
-              formData={formData}
-              fieldId={draftFieldId || id}
-              onChange={handleChange}
-              onLocationChange={(next) => {
-                markDirty();
-                setFormData((prev) => ({
-                  ...prev,
-                  locationText: next.locationText,
-                  latitude: next.latitude,
-                  longitude: next.longitude,
-                }));
-              }}
-              onColorChange={(color) => {
-                markDirty();
-                setFormData((prev) => ({ ...prev, color }));
-              }}
-            />
-          )}
-
-          {step === 'boundary' && (
-            <FieldBoundaryMapStep
-              boundary={boundary}
-              measuredAreaSqm={formData.area}
-              locationQuery={formData.locationText}
-              latitude={formData.latitude}
-              longitude={formData.longitude}
-              onBoundaryChange={handleBoundaryChange}
-              onSkipBoundary={skipBoundary}
-            />
-          )}
-
-          {step === 'crop' && <CropDetailsStep formData={formData} onChange={handleChange} />}
-
-          {step === 'review' && (
-            <ReviewFieldStep
-              formData={formData}
-              boundary={boundary}
-              areaValidation={areaValidation}
-              boundaryConfirmed={boundaryConfirmed}
-              onBoundaryConfirmedChange={(v) => {
-                markDirty();
-                setBoundaryConfirmed(v);
-              }}
-              onWorksMyselfChange={(v) => {
-                markDirty();
-                setFormData((prev) => ({ ...prev, worksThisFieldMyself: v }));
-              }}
-              isActiveEdit={isActiveEdit}
-              requireBoundaryConfirm={!isActiveEdit || boundaryChanged}
-            />
-          )}
-
-          <div className="field-form-nav">
-            {!isFirst ? (
-              <Button type="button" variant="outline" onClick={goBack} icon={<ArrowLeft />}>
-                {t('fields:form.back')}
-              </Button>
-            ) : (
-              <span />
-            )}
-            <div className="field-form-nav-actions">
-              {isActiveEdit && isLast ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => leaveClean(`/fields/${id}`)}
-                >
-                  {t('fields:form.cancelChanges')}
-                </Button>
+          {/* ——— Create: name ——— */}
+          {!isActiveEdit && createScreen === 'name' ? (
+            <>
+              <BasicFieldDetailsStep formData={formData} fieldId={draftFieldId || id} mode="create" onChange={handleChange} />
+              {nameValid ? (
+                <p className="grove-ready-nudge" role="status">
+                  {t('fields:createGrove.readyNudge')}
+                </p>
               ) : null}
-              {!isLast && !isActiveEdit ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleSaveDraft}
-                  loading={loading}
-                  className="field-form-draft-btn"
-                >
-                  {t('fields:form.saveDraft')}
-                </Button>
-              ) : null}
-              {!isLast ? (
-                <Button type="button" variant="primary" onClick={goNext} icon={<ArrowRight />}>
-                  {t('fields:form.next')}
-                </Button>
-              ) : (
+              <div className="field-form-nav grove-create-nav">
                 <Button
                   type="button"
                   variant="primary"
-                  onClick={primaryLastAction}
+                  onClick={handleCreateGrove}
+                  loading={loading}
+                  disabled={!nameValid}
+                  icon={<Check />}
+                >
+                  {t('fields:createGrove.createCta')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleContinueLater}
+                  loading={loading}
+                  disabled={!nameValid}
+                >
+                  {t('fields:createGrove.continueLater')}
+                </Button>
+                <button
+                  type="button"
+                  className="grove-text-link"
+                  onClick={() => {
+                    setError(null);
+                    setCreateScreen('location-choose');
+                  }}
+                >
+                  {t('fields:createGrove.addLocationFirst')}
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          {/* ——— Create: location chooser ——— */}
+          {!isActiveEdit && createScreen === 'location-choose' ? (
+            <>
+              <LocationPlacementChooser onChoose={handlePlacementChoice} locating={locating} />
+              <div className="field-form-nav">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateScreen('name')}
+                  icon={<ArrowLeft />}
+                >
+                  {t('fields:form.back')}
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {/* ——— Create: place on map ——— */}
+          {!isActiveEdit && createScreen === 'location-place' ? (
+            <>
+              <PlaceLocationStep
+                locationText={formData.locationText || ''}
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                mode={placementMode}
+                onChange={patchLocation}
+              />
+              <div className="field-form-nav">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateScreen('location-choose')}
+                  icon={<ArrowLeft />}
+                >
+                  {t('fields:form.back')}
+                </Button>
+                <div className="field-form-nav-actions">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setLocationSkipped(true);
+                      setCreateScreen('name');
+                    }}
+                  >
+                    {t('fields:createGrove.placement.laterTitle')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => {
+                      setLocationSkipped(false);
+                      setCreateScreen('name');
+                    }}
+                  >
+                    {t('fields:createGrove.place.confirm')}
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {/* ——— Create: draft saved ——— */}
+          {!isActiveEdit && createScreen === 'draft-saved' ? (
+            <div className="field-form-panel grove-draft-saved">
+              <h2>{t('fields:createGrove.draftSavedTitle')}</h2>
+              <p className="field-form-panel-desc">{t('fields:createGrove.draftSavedBody')}</p>
+              <div className="grove-ready-actions">
+                <Button type="button" variant="primary" onClick={() => leaveClean('/fields')}>
+                  {t('fields:createGrove.backToGroves')}
+                </Button>
+                {draftFieldId ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCreateScreen('name');
+                    }}
+                  >
+                    {t('fields:createGrove.continueSetup')}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {/* ——— Create: ready ——— */}
+          {!isActiveEdit && createScreen === 'ready' && draftFieldId ? (
+            <GroveReadyPanel
+              name={formData.name.trim()}
+              hasBoundary={fieldHasBoundary({ boundary })}
+              hasDetails={hasDetails}
+              onRecordWork={() => {
+                leaveClean(`/fields/${draftFieldId}`);
+                window.setTimeout(() => {
+                  capture?.openCapture({ fieldId: draftFieldId, preferredType: 'work' });
+                }, 0);
+              }}
+              onDrawBoundary={() => leaveClean(`/fields/${draftFieldId}/edit?focus=boundary`)}
+              onOpenChronologio={() => leaveClean(`/fields/${draftFieldId}?tab=chronologio`)}
+              onOpenGrove={() => leaveClean(`/fields/${draftFieldId}`)}
+            />
+          ) : null}
+
+          {/* ——— Active edit: settings / focused ——— */}
+          {isActiveEdit && editFocus === 'settings' ? (
+            <>
+              <BasicFieldDetailsStep
+                formData={formData}
+                fieldId={draftFieldId || id}
+                mode="edit"
+                onChange={handleChange}
+                onLocationChange={patchLocation}
+                onColorChange={(color) => {
+                  markDirty();
+                  setFormData((prev) => ({ ...prev, color }));
+                }}
+              />
+              <div className="field-form-nav">
+                <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
+                  {t('fields:form.cancelChanges')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveActiveChanges}
                   loading={loading}
                   icon={<Check />}
                 >
-                  {primaryLastLabel}
+                  {t('fields:form.saveChanges')}
                 </Button>
+              </div>
+            </>
+          ) : null}
+
+          {isActiveEdit && editFocus === 'location' ? (
+            <>
+              {createScreen === 'location-place' ? (
+                <>
+                  <PlaceLocationStep
+                    locationText={formData.locationText || ''}
+                    latitude={formData.latitude}
+                    longitude={formData.longitude}
+                    mode={placementMode}
+                    onChange={patchLocation}
+                  />
+                  <div className="field-form-nav">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCreateScreen('location-choose')}
+                      icon={<ArrowLeft />}
+                    >
+                      {t('fields:form.back')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleSaveActiveChanges}
+                      loading={loading}
+                    >
+                      {t('fields:form.saveChanges')}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <LocationPlacementChooser
+                    onChoose={(choice) => {
+                      if (choice === 'later') {
+                        leaveClean(`/fields/${id}`);
+                        return;
+                      }
+                      handlePlacementChoice(choice);
+                    }}
+                    locating={locating}
+                  />
+                  <div className="field-form-nav">
+                    <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
+                      {t('fields:form.back')}
+                    </Button>
+                  </div>
+                </>
               )}
-            </div>
-          </div>
+            </>
+          ) : null}
+
+          {isActiveEdit && editFocus === 'boundary' ? (
+            <>
+              <FieldBoundaryMapStep
+                boundary={boundary}
+                measuredAreaSqm={formData.area}
+                locationQuery={formData.locationText}
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                onBoundaryChange={handleBoundaryChange}
+                onSkipBoundary={() => leaveClean(`/fields/${id}`)}
+              />
+              <div className="field-form-nav">
+                <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
+                  {t('fields:form.cancelChanges')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveActiveChanges}
+                  loading={loading}
+                >
+                  {t('fields:form.saveChanges')}
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {isActiveEdit && editFocus === 'details' ? (
+            <>
+              <CropDetailsStep
+                formData={formData}
+                onChange={(e) => {
+                  handleChange(e);
+                  setDetailsSkipped(false);
+                }}
+              />
+              <div className="field-form-nav">
+                <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
+                  {t('fields:form.cancelChanges')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveActiveChanges}
+                  loading={loading}
+                >
+                  {t('fields:form.saveChanges')}
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {isActiveEdit && editFocus === 'appearance' ? (
+            <>
+              <BasicFieldDetailsStep
+                formData={formData}
+                fieldId={draftFieldId || id}
+                mode="appearance"
+                onChange={handleChange}
+                onColorChange={(color) => {
+                  markDirty();
+                  setFormData((prev) => ({ ...prev, color }));
+                }}
+              />
+              <div className="field-form-nav">
+                <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
+                  {t('fields:form.cancelChanges')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveActiveChanges}
+                  loading={loading}
+                >
+                  {t('fields:form.saveChanges')}
+                </Button>
+              </div>
+            </>
+          ) : null}
+
         </Card>
       </div>
     </PageContainer>

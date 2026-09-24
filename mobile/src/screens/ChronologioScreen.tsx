@@ -28,7 +28,6 @@ import ChronologioMonthChapterCard from '../components/chronologio/ChronologioMo
 import ChronologioYearChapterCard from '../components/chronologio/ChronologioYearChapterCard';
 import ChronologioZoomPager from '../components/chronologio/ChronologioZoomPager';
 import TodaySummary from '../components/chronologio/TodaySummary';
-import HarvestDayLedger from '../components/chronologio/HarvestDayLedger';
 import WeatherPeekSheet from '../components/weather/WeatherPeekSheet';
 import FilterChips from '../components/ui/FilterChips';
 import FormDateField from '../components/forms/FormDateField';
@@ -68,6 +67,18 @@ import {
 } from '../chronologio/dayWeather';
 import { geospatialService } from '../services/geospatialService';
 import { allDaySummaries } from '../harvestCampaign/totals';
+import {
+  campaignFromHarvestRecords,
+  fetchHarvestRecordsForFields,
+  filterSeasonHarvestRecords,
+  mergeCampaignWithHydrated,
+} from '../harvestCampaign/hydrateFromRecords';
+import {
+  chronologioEntriesFromHarvestDays,
+  mergeHarvestDayCards,
+  mergeHarvestDayTimeline,
+} from '../chronologio/harvestDayEntries';
+import { getSeasonStartYear } from '../utils/harvestSeason';
 import { athensCalendarDateKey, athensParts } from '../utils/athensDate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -585,9 +596,58 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     fieldId: scopedFieldId,
     fields,
   });
-  const harvestDays = useMemo(() => {
-    if (!harvestTab || !harvestCampaign) return [];
-    return allDaySummaries(harvestCampaign.campaign).filter(
+
+  const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
+  const [recordDayEntries, setRecordDayEntries] = useState<ChronologioEntry[]>([]);
+  const harvestPatchRef = useRef(harvestCampaign?.patch);
+  harvestPatchRef.current = harvestCampaign?.patch;
+
+  // Same as web: hydrate DB harvest-records into day cards (all seasons) + live campaign merge.
+  useEffect(() => {
+    if (fields.length === 0) return;
+    let cancelled = false;
+    const usable = fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived');
+    const fieldIds = (usable.length > 0 ? usable : fields).map((field) => field.id);
+    void (async () => {
+      try {
+        const rows = await fetchHarvestRecordsForFields(fieldIds);
+        if (cancelled) return;
+        const allPosted = campaignFromHarvestRecords(rows, seasonStartYear, { ignoreSeason: true });
+        const days = allDaySummaries(allPosted).filter(
+          (day) =>
+            (day.sacks > 0 ||
+              day.officialKg > 0 ||
+              day.estimatedKg > 0 ||
+              day.oilKg > 0 ||
+              day.people > 0 ||
+              day.expenseEur > 0) &&
+            (!scopedFieldId || day.fieldIds.includes(scopedFieldId))
+        );
+        setRecordDayEntries(chronologioEntriesFromHarvestDays(days, fields, scopedFieldId));
+
+        const patch = harvestPatchRef.current;
+        if (!patch) return;
+        const seasonRows = filterSeasonHarvestRecords(rows, seasonStartYear);
+        if (seasonRows.length === 0) return;
+        const hydrated = campaignFromHarvestRecords(seasonRows, seasonStartYear);
+        patch((current) => mergeCampaignWithHydrated(current, hydrated));
+      } catch {
+        /* keep local / empty */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fields, scopedFieldId, seasonStartYear]);
+
+  const wantsHarvestOnTimeline = useMemo(() => {
+    const selected = selectedChronologioTypes(filterCategory);
+    return selected.length === 0 || selected.includes('harvest');
+  }, [filterCategory]);
+
+  const campaignDayEntries = useMemo(() => {
+    if (!harvestCampaign || !wantsHarvestOnTimeline) return [];
+    const days = allDaySummaries(harvestCampaign.campaign).filter(
       (day) =>
         day.sacks > 0 ||
         day.officialKg > 0 ||
@@ -596,11 +656,23 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         day.people > 0 ||
         day.expenseEur > 0
     );
-  }, [harvestCampaign, harvestTab]);
+    const scoped = scopedFieldId
+      ? days.filter((day) => day.fieldIds.includes(scopedFieldId))
+      : days;
+    return chronologioEntriesFromHarvestDays(scoped, fields, scopedFieldId);
+  }, [fields, harvestCampaign, scopedFieldId, wantsHarvestOnTimeline]);
+
+  const harvestDayCards = useMemo(() => {
+    if (!wantsHarvestOnTimeline) return [];
+    return mergeHarvestDayCards(recordDayEntries, campaignDayEntries);
+  }, [campaignDayEntries, recordDayEntries, wantsHarvestOnTimeline]);
+
   const timelineEntries = useMemo(() => {
     const rows = entries.filter((entry) => entryMatchesChronologioTypes(entry, filterCategory));
-    return harvestTab ? rows.filter((entry) => !/^Harvest:day:/i.test(entry.id)) : rows;
-  }, [entries, filterCategory, harvestTab]);
+    if (harvestDayCards.length === 0) return rows;
+    return mergeHarvestDayTimeline(rows, harvestDayCards);
+  }, [entries, filterCategory, harvestDayCards]);
+
   const todayIso = athensCalendarDateKey(new Date());
 
   useEffect(() => {
@@ -960,6 +1032,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                 onPressEntry={(entry) => setPeek({ mode: 'event', entry })}
                 onScrollY={handleScrollY}
                 onVisibleMonth={handleVisibleMonth}
+                focusDate={focusDate}
                 weatherByDate={weatherByDate}
                 todayWeather={todayWeather}
                 onOpenDayWeather={(year, monthNum, dateKey) => {
@@ -979,20 +1052,17 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                   });
                 }}
                 listHeader={
-                  <>
-                    {harvestTab ? <HarvestDayLedger days={harvestDays} fields={fields} /> : null}
-                    {showTodaySummary ? (
-                      <TodaySummary
-                        today={today}
-                        fieldId={scopedFieldId || fieldId}
-                        weatherScopeNote={weatherScopeNote}
-                        onOpenWeather={() => setTodayWeatherPeek(true)}
-                      />
-                    ) : null}
-                  </>
+                  showTodaySummary ? (
+                    <TodaySummary
+                      today={today}
+                      fieldId={scopedFieldId || fieldId}
+                      weatherScopeNote={weatherScopeNote}
+                      onOpenWeather={() => setTodayWeatherPeek(true)}
+                    />
+                  ) : null
                 }
                 empty={
-                  showTodaySummary || harvestDays.length > 0 ? (
+                  showTodaySummary ? (
                     <View />
                   ) : (
                   <EmptyState

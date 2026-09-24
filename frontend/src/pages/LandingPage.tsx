@@ -265,9 +265,31 @@ const LandingPage: React.FC = () => {
 
         <section className="lp-section lp-section--harvest" aria-labelledby="harvest-title">
           <div className="landing-container lp-split">
-            <div className="lp-section-copy lp-section-copy--left lp-measure">
+            <div className="lp-section-copy lp-section-copy--left">
               <h2 id="harvest-title">{t('harvest.title')}</h2>
               <p>{t('harvest.text')}</p>
+              <ol className="lp-harvest-steps">
+                {(
+                  t('harvest.steps', { returnObjects: true }) as { label: string; where: string; ask: string }[]
+                )
+                  .filter((step) => step && step.label)
+                  .map((step, index) => (
+                    <li key={step.label}>
+                      <span>{index + 1}</span>
+                      <div>
+                        <h3>
+                          {step.label}
+                          <em>{step.where}</em>
+                        </h3>
+                        <p>{step.ask}</p>
+                      </div>
+                    </li>
+                  ))}
+              </ol>
+              <p className="lp-harvest-year">
+                <span>{t('harvest.yearLabel')}</span>
+                {t('harvest.year')}
+              </p>
             </div>
             <HarvestCapture />
           </div>

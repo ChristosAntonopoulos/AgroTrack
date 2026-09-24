@@ -16,14 +16,24 @@ import type { ChronologioPeekTarget } from './ChronologioPeekDrawer';
 import ChronologioDateRail from './ChronologioDateRail';
 import ChronologioCompare from './ChronologioCompare';
 import TodaySummary from './TodaySummary';
-import HarvestDayLedger from './HarvestDayLedger';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { allDaySummaries } from '../../harvestCampaign/totals';
+import {
+  campaignFromHarvestRecords,
+  fetchHarvestRecordsForFields,
+  filterSeasonHarvestRecords,
+  mergeCampaignWithHydrated,
+} from '../../harvestCampaign/hydrateFromRecords';
+import {
+  chronologioEntriesFromHarvestDays,
+  mergeHarvestDayCards,
+  mergeHarvestDayTimeline,
+} from '../../chronologio/harvestDayEntries';
 import { getChronologioService, getFieldService } from '../../services/serviceFactory';
 import { geospatialService } from '../../services/geospatialService';
 import { useTodaySummary } from '../../chronologio/useTodaySummary';
 import { dayWeatherDateKey, entryMatchesDayWeather, fieldsSharingWeatherGrid, sharedPlaceLabel, type DayWeatherInput } from '../../chronologio/dayWeather';
-import { apiCategoryParam, entryMatchesChronologioTypes } from '../../chronologio/categorySelection';
+import { apiCategoryParam, entryMatchesChronologioTypes, selectedChronologioTypes } from '../../chronologio/categorySelection';
 import type { MonthChapterFocus } from '../../chronologio/monthPresentation';
 import type {
   ChronologioEntry,
@@ -56,6 +66,7 @@ import { PAGE_SIZE } from '../../utils/chronologioGrouping';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { uniqueChronologioEntries } from '../../utils/chronologioUnique';
 import { useChronologioLivingState } from '../../chronologio/useChronologioLivingState';
+import { getSeasonStartYear } from '../../utils/harvestSeason';
 import type { SupportedLocale } from '../../i18n/config';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import { CAPTURE_SAVED_EVENT } from '../../capture/types';
@@ -439,15 +450,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     return map;
   }, [yearWeatherReviews]);
 
-  const selectedEntry = useMemo(
-    () =>
-      monthEntries.find((e) => e.id === living.selectedEntryId) ||
-      yearEntries.find((e) => e.id === living.selectedEntryId) ||
-      yearWeatherReviews.find((e) => e.id === living.selectedEntryId) ||
-      null,
-    [living.selectedEntryId, monthEntries, yearEntries, yearWeatherReviews]
-  );
-
   useEffect(() => {
     if (living.selectedEntryId) {
       setChapterPeek(null);
@@ -620,6 +622,96 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     };
   }, [fieldId, fieldMode, living.axis, living.periodYear, living.zoom, scopedFieldId]);
 
+  const harvestCampaign = useHarvestCampaignOptional();
+  const seasonStartYear = useMemo(() => getSeasonStartYear(), []);
+  /** DB harvest days across seasons — Chronologio must not depend on the live campaign season alone. */
+  const [recordDayEntries, setRecordDayEntries] = useState<ChronologioEntry[]>([]);
+  const harvestPatchRef = useRef(harvestCampaign?.patch);
+  harvestPatchRef.current = harvestCampaign?.patch;
+
+  // Same hydration as /harvest, plus all-season day cards for the timeline.
+  useEffect(() => {
+    if (fields.length === 0) return;
+    let cancelled = false;
+    const usable = fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived');
+    const fieldIds = (usable.length > 0 ? usable : fields).map((field) => field.id);
+    void (async () => {
+      try {
+        const rows = await fetchHarvestRecordsForFields(fieldIds);
+        if (cancelled) return;
+        const allPosted = campaignFromHarvestRecords(rows, seasonStartYear, { ignoreSeason: true });
+        const days = allDaySummaries(allPosted).filter(
+          (day) =>
+            (day.sacks > 0 ||
+              day.officialKg > 0 ||
+              day.estimatedKg > 0 ||
+              day.oilKg > 0 ||
+              day.people > 0 ||
+              day.expenseEur > 0) &&
+            (!scopedFieldId || day.fieldIds.includes(scopedFieldId))
+        );
+        setRecordDayEntries(chronologioEntriesFromHarvestDays(days, fields, scopedFieldId));
+
+        const patch = harvestPatchRef.current;
+        if (!patch) return;
+        const seasonRows = filterSeasonHarvestRecords(rows, seasonStartYear);
+        if (seasonRows.length === 0) return;
+        const hydrated = campaignFromHarvestRecords(seasonRows, seasonStartYear);
+        patch((current) => mergeCampaignWithHydrated(current, hydrated));
+      } catch {
+        /* keep local campaign / empty day cards */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fields, scopedFieldId, seasonStartYear]);
+
+  const wantsHarvestOnTimeline = useMemo(() => {
+    const selected = selectedChronologioTypes(living.filters.category);
+    return selected.length === 0 || selected.includes('harvest');
+  }, [living.filters.category]);
+
+  const campaignDayEntries = useMemo(() => {
+    if (!harvestCampaign || !wantsHarvestOnTimeline) return [];
+    const days = allDaySummaries(harvestCampaign.campaign).filter(
+      (day) =>
+        day.sacks > 0 ||
+        day.officialKg > 0 ||
+        day.estimatedKg > 0 ||
+        day.oilKg > 0 ||
+        day.people > 0 ||
+        day.expenseEur > 0
+    );
+    const scoped = scopedFieldId
+      ? days.filter((day) => day.fieldIds.includes(scopedFieldId))
+      : days;
+    return chronologioEntriesFromHarvestDays(scoped, fields, scopedFieldId);
+  }, [fields, harvestCampaign, scopedFieldId, wantsHarvestOnTimeline]);
+
+  const harvestDayCards = useMemo(() => {
+    if (!wantsHarvestOnTimeline) return [];
+    // Prefer campaign (local edits) over raw DB hydrate when both exist.
+    return mergeHarvestDayCards(recordDayEntries, campaignDayEntries);
+  }, [campaignDayEntries, recordDayEntries, wantsHarvestOnTimeline]);
+
+  const timelineEntries = useMemo(() => {
+    const rows = monthEntries.filter((entry) =>
+      entryMatchesChronologioTypes(entry, living.filters.category)
+    );
+    if (harvestDayCards.length === 0) return rows;
+    return mergeHarvestDayTimeline(rows, harvestDayCards);
+  }, [harvestDayCards, living.filters.category, monthEntries]);
+
+  const selectedEntry = useMemo(
+    () =>
+      timelineEntries.find((e) => e.id === living.selectedEntryId) ||
+      yearEntries.find((e) => e.id === living.selectedEntryId) ||
+      yearWeatherReviews.find((e) => e.id === living.selectedEntryId) ||
+      null,
+    [living.selectedEntryId, timelineEntries, yearEntries, yearWeatherReviews]
+  );
+
   const peekTarget: ChronologioPeekTarget | null = useMemo(() => {
     if (weatherEventPeek) return { mode: 'event', entry: weatherEventPeek };
     if (selectedEntry) return { mode: 'event', entry: selectedEntry };
@@ -725,25 +817,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     </Button>
   );
 
-  const harvestCampaign = useHarvestCampaignOptional();
-  const harvestDays = useMemo(() => {
-    if (!harvestTab || !harvestCampaign) return [];
-    return allDaySummaries(harvestCampaign.campaign).filter(
-      (day) =>
-        day.sacks > 0 ||
-        day.officialKg > 0 ||
-        day.estimatedKg > 0 ||
-        day.oilKg > 0 ||
-        day.people > 0 ||
-        day.expenseEur > 0
-    );
-  }, [harvestCampaign, harvestTab]);
-  const timelineEntries = useMemo(() => {
-    const rows = monthEntries.filter((entry) =>
-      entryMatchesChronologioTypes(entry, living.filters.category)
-    );
-    return harvestTab ? rows.filter((entry) => !/^Harvest:day:/i.test(entry.id)) : rows;
-  }, [harvestTab, living.filters.category, monthEntries]);
   const visibleYearEntries = useMemo(
     () => yearEntries.filter((entry) => entryMatchesChronologioTypes(entry, living.filters.category)),
     [living.filters.category, yearEntries]
@@ -959,15 +1032,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         onSetZoom={living.setZoom}
         onSetFilters={living.setFilters}
         onCompareToggle={() => living.setCompareOpen(!living.compareOpen)}
-        onJumpToDate={(isoDate) => {
-          const [y, m] = isoDate.split('-').map(Number);
-          if (y && m) {
-            living.openMonth(y, m);
-            living.setFocusDate(isoDate);
-          } else {
-            living.setFocusDate(isoDate);
-          }
-        }}
+        onJumpToDate={(isoDate) => living.jumpToDate(isoDate)}
       />
 
       {!booted && loading ? <ChronologioSkeleton zoom={living.zoom} /> : null}
@@ -1089,7 +1154,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                 ) : null}
                 {!panelBusy && living.zoom === 'month' ? (
                   <>
-                    {harvestTab ? <HarvestDayLedger days={harvestDays} fields={fields} /> : null}
                     {showTodaySummary ? (
                       <TodaySummary
                         today={today}
@@ -1103,7 +1167,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                       />
                     ) : null}
                     {timelineEntries.length === 0 ? (
-                      showTodaySummary || harvestDays.length > 0 ? null : (
+                      showTodaySummary ? null : (
                         <EmptyState
                           icon={<BookOpen size={28} />}
                           title={t('chronologio:living.emptyMonthTitle')}

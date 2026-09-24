@@ -391,6 +391,7 @@ const FieldDetailPage: React.FC = () => {
                 yearRollup={yearRollup}
                 recentEntries={recentEntries}
                 canViewMoney={Boolean(canViewMoney)}
+                canEdit={Boolean(canOwn)}
                 onOpenChronologio={(entry) => {
                   writeFieldViewPreferences({ lastTab: 'chronologio' });
                   replaceParams((params) => {

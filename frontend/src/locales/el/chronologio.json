@@ -101,6 +101,7 @@
   "harvestOil": "{{kg}} kg λάδι",
   "harvestYield": "{{pct}}% απόδοση",
   "olivesUnit": "kg ελιές",
+  "approxOlivesUnit": "≈ kg ελιές",
   "oilUnit": "kg λάδι",
   "sacksUnit": "σακιά",
   "yieldUnit": "απόδοση",
@@ -162,7 +163,7 @@
     "historyStartsHereAll": "Εδώ ξεκινά η καταγεγραμμένη ιστορία των ελαιώνων σου.",
     "pinnedSection": "Καρφιτσωμένα · {{count}}",
     "harvestDayOpen": "Ανοιχτή",
-    "jumpToDate": "Μετάβαση σε ημερομηνία",
+    "jumpToDate": "Ημέρα",
     "emptyPeriod": "Δεν υπάρχουν καταγραφές ακόμη",
     "emptyYear": "Δεν υπάρχουν ακόμη καταγραφές για το {{year}}.",
     "loadingOlder": "Φόρτωση παλαιότερων καταγραφών…",
@@ -494,7 +495,13 @@
     "yearLandmark": "{{year}}",
     "monthLandmark": "{{month}} {{year}}",
     "entryCount_one": "{{count}} καταγραφή",
-    "entryCount_other": "{{count}} καταγραφές"
+    "entryCount_other": "{{count}} καταγραφές",
+    "monthSummary": "{{month}} · {{entries}}",
+    "monthSummaryTasks": "{{month}} · {{entries}} · {{tasks}}",
+    "tasksCompleted_one": "{{count}} εργασία ολοκληρώθηκε",
+    "tasksCompleted_other": "{{count}} εργασίες ολοκληρώθηκαν",
+    "monthRail": "Κοντινοί μήνες",
+    "jumpToMonth": "Μετάβαση στον {{month}}"
   },
   "weatherVegetation": {
     "button": "Καιρός & βλάστηση",
@@ -608,7 +615,7 @@
   "clearAllFilters": "Καθαρισμός όλων",
   "removeFilter": "Αφαίρεση {{label}}",
   "dateControl": {
-    "jumpNavigates": "Ανοίγει εκείνη την ημέρα στο Χρονολόγιο",
+    "jumpNavigates": "Μετάβαση σε αυτή την ημέρα",
     "railNavigates": "Ανοίγει εκείνο το έτος στο Χρονολόγιο",
     "railScrolls": "Κυλάει σε εκείνο το έτος σε αυτή τη σελίδα",
     "viewTabs": "Αλλάζει το επίπεδο προβολής — ημέρες, μήνες ή χρόνια",

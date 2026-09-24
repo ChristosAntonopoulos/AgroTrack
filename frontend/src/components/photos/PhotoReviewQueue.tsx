@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import Button from '../Common/Button';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import type { Field } from '../../services/fieldService';
 import type { PhotoUploadResult } from '../../services/photoService';
 
@@ -144,18 +145,21 @@ const PhotoReviewQueue: React.FC<Props> = ({
           const selected = photo ? selectedFor(photo.id) : '';
           const candidates = item.result?.candidates ?? [];
           const candidateIds = new Set(candidates.map((c) => c.fieldId));
+          const colorFor = (id: string) =>
+            resolveFieldColor(fields.find((field) => field.id === id)?.color, id);
           const chipFields =
             candidates.length > 0
               ? [
                   ...candidates.map((c) => ({
                     id: c.fieldId,
                     name: c.fieldName || fields.find((f) => f.id === c.fieldId)?.name || c.fieldId,
+                    color: colorFor(c.fieldId),
                   })),
                   ...fields
                     .filter((f) => !candidateIds.has(f.id))
-                    .map((f) => ({ id: f.id, name: f.name })),
+                    .map((f) => ({ id: f.id, name: f.name, color: resolveFieldColor(f.color, f.id) })),
                 ]
-              : fields.map((f) => ({ id: f.id, name: f.name }));
+              : fields.map((f) => ({ id: f.id, name: f.name, color: resolveFieldColor(f.color, f.id) }));
           const fieldName =
             photo?.fieldName ||
             fields.find((f) => f.id === (photo?.fieldId || selected))?.name ||
@@ -176,6 +180,8 @@ const PhotoReviewQueue: React.FC<Props> = ({
                   : item.status === 'duplicate'
                     ? t('review.duplicateSkipped')
                     : t('review.statusUploaded');
+          const waiting =
+            item.status === 'queued' || item.status === 'uploading' || item.status === 'converting';
           const canRemove =
             item.status === 'staged' ||
             item.status === 'converting' ||
@@ -193,6 +199,11 @@ const PhotoReviewQueue: React.FC<Props> = ({
               <div className="photo-review-card-top">
                 <div className="photo-review-thumb-wrap">
                   {src ? <img src={src} alt="" /> : <span className="photo-review-thumb-missing" />}
+                  {waiting ? (
+                    <span className="photo-review-wait" role="status" aria-label={statusLabel}>
+                      <span className="photo-review-wait-ring" />
+                    </span>
+                  ) : null}
                   {canRemove ? (
                     <button
                       type="button"
@@ -209,16 +220,26 @@ const PhotoReviewQueue: React.FC<Props> = ({
                   <p className="photo-review-filename" title={item.file.name}>
                     {item.file.name}
                   </p>
-                  {item.status === 'uploading' && item.progress != null ? (
+                  {waiting ? (
                     <div
-                      className="photo-review-file-progress"
+                      className={`photo-review-file-progress${
+                        item.status === 'uploading' && item.progress != null ? ' is-determinate' : ''
+                      }`}
                       role="progressbar"
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-valuenow={item.progress}
-                      aria-label={t('uploading')}
+                      aria-valuenow={
+                        item.status === 'uploading' && item.progress != null ? item.progress : undefined
+                      }
+                      aria-label={statusLabel}
                     >
-                      <span style={{ width: `${item.progress}%` }} />
+                      <span
+                        style={
+                          item.status === 'uploading' && item.progress != null
+                            ? { width: `${item.progress}%` }
+                            : undefined
+                        }
+                      />
                     </div>
                   ) : null}
                   {item.error ? (
@@ -240,12 +261,12 @@ const PhotoReviewQueue: React.FC<Props> = ({
                   {photo && item.status === 'uploaded' && !photo.capturedAt ? (
                     <p className="photo-review-meta">{t('review.dateFallback')}</p>
                   ) : null}
-                  {fieldName ? (
+                  {fieldName && item.status !== 'uploaded' ? (
                     <p className="photo-review-meta">
                       {t('detail.field')}: {fieldName}
                     </p>
                   ) : null}
-                  {photo?.effectiveCapturedAt ? (
+                  {photo?.effectiveCapturedAt && item.status !== 'uploaded' ? (
                     <p className="photo-review-meta">
                       {t('review.capturedAt')}: {formatDateTime(photo.effectiveCapturedAt)}
                     </p>
@@ -274,40 +295,38 @@ const PhotoReviewQueue: React.FC<Props> = ({
                     </div>
                   ) : null}
 
-                  {photo && item.status === 'uploaded' ? (
-                    <>
-                      <span className="photo-review-label">{t('review.pickField')}</span>
-                      <div
-                        className="photo-review-field-chips"
-                        role="group"
-                        aria-label={t('review.pickField')}
-                      >
-                        {chipFields.slice(0, 8).map((field) => (
-                          <button
-                            key={field.id}
-                            type="button"
-                            className={`photo-review-field-chip${
-                              candidateIds.has(field.id) ? ' is-candidate' : ''
-                            }${selected === field.id ? ' is-selected' : ''}`}
-                            aria-pressed={selected === field.id}
-                            disabled={busyId === photo.id}
-                            onClick={() =>
-                              setPicked((prev) => ({ ...prev, [photo.id]: field.id }))
-                            }
-                          >
-                            {selected === field.id ? (
-                              <span className="photo-review-field-mark" aria-hidden>
-                                ✓
-                              </span>
-                            ) : null}
-                            {field.name}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
                 </div>
               </div>
+
+              {photo && item.status === 'uploaded' ? (
+                <div className="photo-review-fields">
+                  <span className="photo-review-label">{t('review.pickField')}</span>
+                  <div
+                    className="photo-review-field-chips"
+                    role="group"
+                    aria-label={t('review.pickField')}
+                  >
+                    {chipFields.slice(0, 8).map((field) => (
+                      <button
+                        key={field.id}
+                        type="button"
+                        className={`photo-review-field-chip${
+                          candidateIds.has(field.id) ? ' is-candidate' : ''
+                        }${selected === field.id ? ' is-selected' : ''}`}
+                        style={{ '--swatch': field.color } as React.CSSProperties}
+                        aria-pressed={selected === field.id}
+                        disabled={busyId === photo.id}
+                        onClick={() =>
+                          setPicked((prev) => ({ ...prev, [photo.id]: field.id }))
+                        }
+                      >
+                        <span className="photo-hub-swatch" aria-hidden />
+                        <span className="photo-review-field-name">{field.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {photo && item.status === 'uploaded' ? (
                 <div className="photo-review-actions">

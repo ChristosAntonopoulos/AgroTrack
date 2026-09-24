@@ -16,6 +16,7 @@ export type HarvestCampaignParams = {
   fieldId?: string;
   harvestId?: string;
   day?: string;
+  view?: 'today' | 'fields' | 'totals' | 'log';
 };
 
 export type FieldsStackParamList = {
@@ -66,7 +67,7 @@ export type RootStackParamList = {
   Chronologio: { fieldId?: string } | undefined;
   TaskDetail: { taskId: string };
   TaskCompletion: { taskId: string };
-  FieldForm: { fieldId?: string };
+  FieldForm: { fieldId?: string; focus?: 'details' | 'settings' };
   FieldWorkSetup: { fieldId: string; edit?: boolean };
   FieldWorkProfile: { fieldId: string };
   FieldMapBoundary: { fieldId: string };

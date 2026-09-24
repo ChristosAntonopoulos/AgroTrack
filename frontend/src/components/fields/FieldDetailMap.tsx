@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
+import MapWheelZoom from '../maps/MapWheelZoom';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import {
@@ -22,7 +23,7 @@ import {
   readPersistedOverlayIds,
 } from '../../utils/fieldMapPreferences';
 import { MapLayerData, MapLayerDefinition } from '../../services/geospatialService';
-import { useFieldMapLayers } from '../../hooks/useFieldMapLayers';
+import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
 import DataSourceInfoModal, { DataSourceInfo } from '../Common/DataSourceInfoModal';
 import FieldMapOverlay, { OverlayBounds } from './FieldMapOverlay';
 import MapLayerPanel from './MapLayerPanel';
@@ -186,7 +187,8 @@ const FieldDetailMap: React.FC<Props> = ({
   const overlayBounds = toLeafletBounds(activeLayer?.bounds);
   const compareBounds = toLeafletBounds(compareLayer?.bounds);
   const activeDefinition = definitions.find((d) => d.id === activeLayerId);
-  const showDateDock = isFull && dates.length > 0;
+  const satelliteLook = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
+  const showDateDock = isFull && satelliteLook && dates.length > 0;
 
   const frostLevel = String(weather?.frost?.level || '').toLowerCase();
   const showFrostNote = isFull && frostLevel && frostLevel !== 'none';
@@ -222,6 +224,9 @@ const FieldDetailMap: React.FC<Props> = ({
 
   const pickDate = (observationId: string) => {
     selectDate(observationId);
+    if (!activeLayerId || !SATELLITE_LAYER_IDS.includes(activeLayerId)) {
+      selectOverlay('ndvi');
+    }
   };
 
   if (!center) {
@@ -248,9 +253,10 @@ const FieldDetailMap: React.FC<Props> = ({
             zoom={Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM)}
             minZoom={MAP_MIN_ZOOM}
             maxZoom={MAP_MAX_ZOOM}
-            scrollWheelZoom={false}
+            scrollWheelZoom
             className="field-detail-map-leaflet"
           >
+            <MapWheelZoom />
             <EnsureMapPanes />
             {baseLayer === 'satellite' ? (
               <>
@@ -365,7 +371,6 @@ const FieldDetailMap: React.FC<Props> = ({
               onSelect={pickDate}
               compareId={compareDateId}
               onCompareSelect={selectCompareDate}
-              idleHint={!activeLayerId}
             />
           </div>
         ) : null}

@@ -17,7 +17,6 @@ interface Props {
   areaValidation?: FieldAreaValidationResponse | null;
   boundaryConfirmed: boolean;
   onBoundaryConfirmedChange: (v: boolean) => void;
-  onWorksMyselfChange: (v: boolean) => void;
   isActiveEdit?: boolean;
   requireBoundaryConfirm?: boolean;
 }
@@ -28,7 +27,6 @@ const ReviewFieldStep: React.FC<Props> = ({
   areaValidation,
   boundaryConfirmed,
   onBoundaryConfirmedChange,
-  onWorksMyselfChange,
   isActiveEdit = false,
   requireBoundaryConfirm = true,
 }) => {
@@ -135,17 +133,6 @@ const ReviewFieldStep: React.FC<Props> = ({
       />
 
       <div className="review-checkboxes">
-        <label className={`review-checkbox${formData.worksThisFieldMyself !== false ? ' is-checked' : ''}`}>
-          <input
-            type="checkbox"
-            checked={formData.worksThisFieldMyself !== false}
-            onChange={(e) => onWorksMyselfChange(e.target.checked)}
-          />
-          <span>
-            <strong>{t('addField.worksThisFieldMyself')}</strong>
-            <em>{t('addField.worksThisFieldMyselfHint')}</em>
-          </span>
-        </label>
         {showBoundaryConfirm ? (
           <label className={`review-checkbox${boundaryConfirmed ? ' is-checked' : ''}`}>
             <input

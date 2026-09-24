@@ -1,70 +1,63 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import AppMapView from '../components/maps/AppMapView';
-import MapPolygonLayer from '../components/maps/MapPolygonLayer';
-import BoundaryVertexPins from '../components/fields/BoundaryVertexPins';
-import MapLayerToggle from '../components/domain/MapLayerToggle';
 import { RootStackParamList } from '../navigation/types';
 import { fieldService, GeoJsonPolygon } from '../services/fieldService';
 import { useTheme } from '../context/ThemeContext';
-import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MapLayerType } from '../utils/mapLayers';
-import { resolveFieldCenter, resolveFieldPolygon, regionForCenter, regionForPolygon } from '../utils/fieldGeo';
-import type { MapRegion } from '../utils/maplibreGeo';
-import { radii, spacing, typography, createElevation } from '../theme';
+import FieldBoundaryDrawMap, { BoundaryPoint } from '../components/fields/FieldBoundaryDrawMap';
+import LocationSearchField from '../components/fields/LocationSearchField';
+import Button from '../components/ui/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { resolveFieldPolygon } from '../utils/fieldGeo';
+import { spacing, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FieldMapBoundary'>;
-type DrawPhase = 'locate' | 'drawing' | 'done';
 
 const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
   const { fieldId } = route.params;
-  const { t } = useTranslation('fields');
+  const { t } = useTranslation(['fields', 'common']);
   const { colors } = useTheme();
-  const [points, setPoints] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [points, setPoints] = useState<BoundaryPoint[]>([]);
+  const [locationText, setLocationText] = useState('');
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
-  const [phase, setPhase] = useState<DrawPhase>('locate');
-  const suppressMapTapUntilRef = useRef(0);
-  const [region, setRegion] = useState<MapRegion>({
-    latitude: 38.42,
-    longitude: 23.72,
-    latitudeDelta: 7.8,
-    longitudeDelta: 7.8,
-  });
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   useEffect(() => {
     fieldService
       .getField(fieldId)
       .then((field) => {
         const existing = resolveFieldPolygon(field);
-        if (existing?.length) {
-          setPoints(existing);
-          setRegion(regionForPolygon(existing));
-          setPhase('done');
-          return;
-        }
-        const center = resolveFieldCenter(field);
-        if (center) {
-          setRegion(regionForCenter(center));
-        }
+        if (existing?.length) setPoints(existing);
+        setLocationText(field.locationText || '');
+        setLatitude(field.latitude);
+        setLongitude(field.longitude);
       })
-      .catch(() => {});
-  }, [fieldId]);
+      .catch(() => setError(t('form.failedLoad')))
+      .finally(() => setLoading(false));
+  }, [fieldId, t]);
 
-  useEffect(() => {
-    if (points.length >= 3) {
-      setRegion(regionForPolygon(points));
-    } else if (points.length === 1) {
-      setRegion(regionForCenter(points[0], 0.008));
-    }
-  }, [points]);
-
-  const movePoint = useCallback((index: number, point: { latitude: number; longitude: number }) => {
-    setPoints((prev) => prev.map((p, i) => (i === index ? point : p)));
-  }, []);
+  const persistLocation = useCallback(
+    async (next: { locationText: string; latitude?: number; longitude?: number }) => {
+      setLocationText(next.locationText);
+      setLatitude(next.latitude);
+      setLongitude(next.longitude);
+      try {
+        await fieldService.updateField(fieldId, {
+          locationText: next.locationText,
+          latitude: next.latitude,
+          longitude: next.longitude,
+        });
+      } catch {
+        /* keep local map center even if save fails */
+      }
+    },
+    [fieldId]
+  );
 
   const saveBoundary = async () => {
     if (points.length < 3) {
@@ -76,6 +69,13 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
     setSaving(true);
     setError(null);
     try {
+      if (locationText.trim() || (latitude != null && longitude != null)) {
+        await fieldService.updateField(fieldId, {
+          locationText: locationText.trim() || undefined,
+          latitude,
+          longitude,
+        });
+      }
       await fieldService.updateBoundary(fieldId, boundary);
       navigation.goBack();
     } catch {
@@ -85,201 +85,79 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const overlayBg = colors.surfaceElevated + 'F2';
-  const overlayElevation = createElevation(colors, 'sm');
-
-  const coachText =
-    phase === 'locate'
-      ? t('addField.boundaryCoachLocate')
-      : phase === 'drawing'
-        ? points.length === 0
-          ? t('addField.boundaryCoachFirst')
-          : points.length < 3
-            ? t('addField.boundaryCoachMore', { count: points.length })
-            : t('addField.boundaryCoachFinish')
-        : t('addField.boundaryCoachDone');
+  if (loading) return <LoadingSpinner fullScreen />;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('addFieldWizard.steps.boundary')}</Text>
-      {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
-      <View style={[styles.coach, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
-        <Ionicons name="location-outline" size={18} color={colors.primary} />
-        <Text style={[styles.coachText, { color: colors.primary }]}>{coachText}</Text>
-      </View>
-      <View style={[styles.mapWrap, { borderColor: phase === 'drawing' ? colors.primary : colors.borderLight }]}>
-        <AppMapView
-          style={styles.map}
-          region={region}
-          mapLayer={mapLayer}
-          maxZoom={MAP_MAX_ZOOM}
-          onPress={({ coordinate }) => {
-            if (phase !== 'drawing') return;
-            if (Date.now() < suppressMapTapUntilRef.current) return;
-            setPoints((prev) => [...prev, coordinate]);
-          }}
-        >
-          <BoundaryVertexPins
-            points={points}
-            onMove={movePoint}
-            suppressMapTapUntilRef={suppressMapTapUntilRef}
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.content}
+        scrollEnabled={scrollEnabled}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          {t('addField.steps.boundary')}
+        </Text>
+        <Text style={[styles.desc, { color: colors.textSecondary }]}>
+          {t('addField.boundaryDescFriendly')}
+        </Text>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          {t('createGrove.enrich.boundaryBody')}
+        </Text>
+
+        {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
+
+        <View style={styles.searchBlock}>
+          <LocationSearchField
+            value={locationText}
+            disabled={saving}
+            onChange={(next) => {
+              void persistLocation(next);
+            }}
           />
-          {points.length >= 3 ? (
-            <MapPolygonLayer id="draft-boundary" ring={points} />
-          ) : null}
-        </AppMapView>
-        <View style={styles.overlays} pointerEvents="box-none">
-          <View style={styles.toggleOverlay} pointerEvents="box-none">
-            <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
-          </View>
-          <View
-            style={[
-              styles.actionBar,
-              { backgroundColor: overlayBg, borderColor: colors.borderLight, ...overlayElevation },
-            ]}
-          >
-            {phase === 'locate' ? (
-              <Pressable
-                style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-                onPress={() => setPhase('drawing')}
-                accessibilityRole="button"
-              >
-                <Ionicons name="locate-outline" size={18} color={colors.onOlive} />
-                <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-                  {t('addField.boundaryStartMarking')}
-                </Text>
-              </Pressable>
-            ) : null}
-            {phase === 'drawing' ? (
-              <>
-                <Pressable
-                  style={[styles.btnOutline, { borderColor: colors.borderLight }]}
-                  onPress={() => setPoints((prev) => prev.slice(0, -1))}
-                  disabled={points.length === 0}
-                >
-                  <Text style={{ color: colors.textPrimary }}>{t('addField.boundaryUndo')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.btnOutline, { borderColor: colors.borderLight }]}
-                  onPress={() => {
-                    setPoints([]);
-                    setPhase('drawing');
-                  }}
-                >
-                  <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.primaryBtn,
-                    { backgroundColor: colors.primary, opacity: points.length < 3 ? 0.45 : 1 },
-                  ]}
-                  onPress={() => {
-                    if (points.length < 3) return;
-                    setPhase('done');
-                  }}
-                  disabled={points.length < 3}
-                >
-                  <Ionicons name="checkmark" size={18} color={colors.onOlive} />
-                  <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-                    {t('addField.boundaryFinish')}
-                  </Text>
-                </Pressable>
-              </>
-            ) : null}
-            {phase === 'done' ? (
-              <>
-                <Pressable
-                  style={[styles.btnOutline, { borderColor: colors.borderLight }]}
-                  onPress={() => {
-                    setPoints([]);
-                    setPhase('drawing');
-                  }}
-                >
-                  <Text style={{ color: colors.textPrimary }}>{t('addField.boundaryRedraw')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-                  onPress={saveBoundary}
-                  disabled={saving}
-                >
-                  <Text style={[styles.primaryBtnText, { color: colors.onOlive }]}>
-                    {saving ? '…' : t('addFieldWizard.saveBoundary')}
-                  </Text>
-                </Pressable>
-              </>
-            ) : null}
-          </View>
         </View>
-      </View>
-    </ScrollView>
+
+        <FieldBoundaryDrawMap
+          points={points}
+          onPointsChange={setPoints}
+          locationQuery={locationText}
+          latitude={latitude}
+          longitude={longitude}
+          height={400}
+          onGestureActiveChange={(active) => setScrollEnabled(!active)}
+        />
+
+        <Button
+          title={t('addFieldWizard.saveBoundary')}
+          onPress={saveBoundary}
+          loading={saving}
+          disabled={points.length < 3}
+          fullWidth
+          style={styles.save}
+        />
+        <Button
+          title={t('common:cancel')}
+          variant="outline"
+          onPress={() => navigation.goBack()}
+          fullWidth
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  error: { marginBottom: 8 },
-  coach: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    marginBottom: spacing.sm,
-  },
-  coachText: {
-    ...typography.styles.bodySmall,
-    fontWeight: '600',
-    flex: 1,
-    lineHeight: 20,
-  },
-  mapWrap: {
-    height: 420,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 8,
-    borderWidth: 1,
-    position: 'relative',
-  },
-  map: { flex: 1 },
-  overlays: {
-    ...StyleSheet.absoluteFillObject,
-    padding: 10,
-    gap: 8,
-  },
-  toggleOverlay: {
-    alignSelf: 'flex-end',
-  },
-  actionBar: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.sm,
-    gap: spacing.sm,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  btnOutline: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-  },
-  primaryBtn: {
-    flexGrow: 1,
-    flexBasis: '100%',
-    borderRadius: 10,
-    minHeight: 48,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryBtnText: { fontWeight: '700' },
+  flex: { flex: 1 },
+  content: { padding: spacing.base, paddingBottom: spacing['3xl'], gap: spacing.sm },
+  title: { ...typography.styles.h3, fontWeight: '700' },
+  desc: { ...typography.styles.bodySmall, lineHeight: 20 },
+  hint: { ...typography.styles.caption, marginBottom: spacing.xs },
+  error: { marginBottom: spacing.xs },
+  searchBlock: { marginBottom: spacing.xs },
+  save: { marginTop: spacing.md },
 });
 
 export default FieldMapBoundaryScreen;

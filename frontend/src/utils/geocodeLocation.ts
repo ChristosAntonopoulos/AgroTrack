@@ -1,5 +1,8 @@
 export const GREECE_CENTER: [number, number] = [38.42, 23.72];
+/** Wide country view — avoid for first impression; neighbouring countries dominate. */
 export const GREECE_OVERVIEW_ZOOM = 6;
+/** Tighter Greece-centred view without showing all neighbours. */
+export const GREECE_REGION_ZOOM = 7.5;
 export const PLACE_ZOOM = 16;
 
 export type GeocodedPlace = {

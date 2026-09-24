@@ -67,8 +67,8 @@
 .field-detail-map--full {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  align-items: stretch;
-  width: min(100%, 48rem);
+  align-items: start;
+  width: 100%;
   background: var(--bg-card, var(--bg-elevated));
 }
 
@@ -80,33 +80,29 @@
   min-height: 0;
 }
 
+.field-detail-map--full .field-detail-map-stage {
+  height: auto;
+}
+
 .field-detail-map--full .field-detail-map-canvas {
   width: 100%;
-  max-width: min(30rem, 58vh);
-  height: min(30rem, 58vh);
-  min-height: 16rem;
-  margin-inline: auto;
+  max-width: none;
+  height: clamp(22rem, 52vh, 36rem);
+  min-height: 22rem;
+  margin: 0;
+  flex: 0 0 auto;
+  aspect-ratio: auto;
 }
 
 @media (min-width: 900px) {
   .field-detail-map--full {
-    width: min(100%, 54rem);
     grid-template-columns: minmax(0, 1fr) 18.5rem;
   }
 
   .field-detail-map--full .map-look {
     border-left: 1px solid var(--color-border);
+    border-top: none;
     max-height: none;
-    overflow-y: auto;
-  }
-
-  .field-detail-map--full .field-detail-map-canvas {
-    max-width: none;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    min-height: 0;
-    margin: 0;
   }
 }
 

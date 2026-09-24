@@ -66,12 +66,16 @@ const parseReceiptFromNotes = (
 /**
  * Map server harvest-records into a HarvestCampaign shape (best-effort FE hydrate).
  * Shared mill/oil lots are grouped by batchId.
+ * Pass `ignoreSeason: true` for Chronologio day cards across every result year.
  */
 export const campaignFromHarvestRecords = (
   rows: HarvestRecord[],
-  seasonStartYear: number
+  seasonStartYear: number,
+  options?: { ignoreSeason?: boolean }
 ): HarvestCampaign => {
-  const seasonRows = filterSeasonHarvestRecords(rows, seasonStartYear);
+  const seasonRows = options?.ignoreSeason
+    ? rows.filter((row) => row.status !== 'voided')
+    : filterSeasonHarvestRecords(rows, seasonStartYear);
   const base = emptyCampaign(seasonStartYear);
   if (seasonRows.length === 0) return base;
 

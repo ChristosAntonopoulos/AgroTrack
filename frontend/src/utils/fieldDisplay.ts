@@ -69,19 +69,10 @@ export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   return Boolean(ring && ring.length >= 4);
 };
 
-/** Best wizard step when resuming an incomplete field. Active fields start at basics. */
+/** Resume incomplete setup on the name screen — never force the map. */
 export const getFieldSetupResumeStep = (
-  field: Pick<Field, 'name' | 'status' | 'boundary'>
-): 'basics-edit' | 'boundary' | 'review' => {
-  if (field.status === 'Active') return 'basics-edit';
-
-  const hasName = Boolean(field.name?.trim());
-  const hasBoundary = fieldHasBoundary(field);
-
-  if (!hasName) return 'basics-edit';
-  if (!hasBoundary || field.status === 'NeedsBoundaryConfirmation') return 'boundary';
-  return 'review';
-};
+  _field: Pick<Field, 'name' | 'status' | 'boundary'>
+): 'basics-edit' | 'boundary' | 'review' => 'basics-edit';
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());

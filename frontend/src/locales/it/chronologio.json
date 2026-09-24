@@ -101,6 +101,7 @@
   "harvestOil": "{{kg}} kg olio",
   "harvestYield": "{{pct}}% resa",
   "olivesUnit": "kg olive",
+  "approxOlivesUnit": "≈ kg olive",
   "oilUnit": "kg olio",
   "sacksUnit": "sacchi",
   "yieldUnit": "resa",
@@ -218,7 +219,7 @@
     "emptyMonthTitle": "Non ci sono registrazioni in questo periodo.",
     "emptyMonthDescription": "Aggiungi lavoro, un’osservazione, una spesa o la raccolta.",
     "photoCount": "{{count}} foto",
-    "jumpToDate": "Vai alla data"
+    "jumpToDate": "Giorno"
   },
   "seasonRail": {
     "label": "Annate agricole",
@@ -464,7 +465,13 @@
     "yearLandmark": "{{year}}",
     "monthLandmark": "{{month}} {{year}}",
     "entryCount_one": "{{count}} registrazione",
-    "entryCount_other": "{{count}} registrazioni"
+    "entryCount_other": "{{count}} registrazioni",
+    "monthSummary": "{{month}} · {{entries}}",
+    "monthSummaryTasks": "{{month}} · {{entries}} · {{tasks}}",
+    "tasksCompleted_one": "{{count}} lavoro completato",
+    "tasksCompleted_other": "{{count}} lavori completati",
+    "monthRail": "Mesi vicini",
+    "jumpToMonth": "Vai a {{month}}"
   },
   "weatherVegetation": {
     "button": "Meteo e vegetazione",
@@ -567,7 +574,7 @@
   "clearAllFilters": "Cancella tutti",
   "removeFilter": "Rimuovi {{label}}",
   "dateControl": {
-    "jumpNavigates": "Apre quel giorno nel Cronologio",
+    "jumpNavigates": "Vai a questo giorno",
     "railNavigates": "Apre quell'anno nel Cronologio",
     "railScrolls": "Scorre fino a quell'anno in questa pagina",
     "viewTabs": "Cambia lo zoom — giorni, mesi o anni",
