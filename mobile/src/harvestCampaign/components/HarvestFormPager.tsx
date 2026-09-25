@@ -146,6 +146,8 @@ export const HarvestTextField: React.FC<{
     </View>
   );
 };
+
+export const HarvestQuickChips: React.FC<{
   values: number[];
   onPick: (value: number) => void;
   suffix?: string;
