@@ -17,7 +17,7 @@ export function HarvestSegmentedControl<T extends string>({
 }: Props<T>) {
   const { colors, tapMin } = useTheme();
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={ariaLabel} style={[styles.row, { backgroundColor: colors.surfaceMuted }]}>
+    <View accessibilityRole="radiogroup" accessibilityLabel={ariaLabel} style={[styles.row, { backgroundColor: colors.eventHarvestSoft }]}>
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -28,10 +28,10 @@ export function HarvestSegmentedControl<T extends string>({
             accessibilityState={{ selected }}
             style={[
               styles.option,
-              { minHeight: tapMin, borderColor: selected ? colors.primary : 'transparent', backgroundColor: selected ? colors.surface : 'transparent' },
+              { minHeight: tapMin, borderColor: selected ? colors.eventHarvest : 'transparent', backgroundColor: selected ? colors.surface : 'transparent' },
             ]}
           >
-            <Text style={{ color: selected ? colors.primary : colors.textSecondary, fontWeight: selected ? '800' : '600' }}>
+            <Text style={{ color: selected ? colors.eventHarvest : colors.textSecondary, fontWeight: selected ? '800' : '600', textAlign: 'center' }}>
               {option.label}
             </Text>
           </Pressable>

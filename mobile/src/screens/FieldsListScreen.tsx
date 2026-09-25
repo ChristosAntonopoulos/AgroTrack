@@ -139,7 +139,7 @@ const FieldsListScreen = () => {
 
   if (loading && fields.length === 0) {
     return (
-      <ScreenLayout>
+      <ScreenLayout dockInset={false}>
         <LoadingSpinner fullScreen />
       </ScreenLayout>
     );
@@ -261,7 +261,7 @@ const FieldsListScreen = () => {
 
   if (viewMode === 'map' && fields.length > 0) {
     return (
-      <ScreenLayout>
+      <ScreenLayout dockInset={false}>
         <View style={styles.flex}>
           {listHeader}
           {filteredFields.length === 0 ? (
@@ -306,7 +306,7 @@ const FieldsListScreen = () => {
   }
 
   return (
-    <ScreenLayout>
+    <ScreenLayout dockInset={false}>
       <FlatList
         style={styles.flex}
         data={filteredFields}

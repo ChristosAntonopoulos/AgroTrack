@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Crosshair, LocateFixed, Undo2, Trash2, Check, MapPin } from 'lucide-react';
 import { GeoJsonPolygon, GreekCadastreInfo } from '../../services/fieldService';
 import AreaComparisonCard from './AreaComparisonCard';
+import LocationSearchField from './LocationSearchField';
 import { locationService } from '../../services/locationService';
 import {
   GREECE_CENTER,
@@ -152,7 +153,6 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   const [phase, setPhase] = useState<DrawPhase>(initialCorners.length >= 3 ? 'done' : 'locate');
   const [localMeasured, setLocalMeasured] = useState<number | undefined>(measuredAreaSqm);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'found' | 'missing'>('idle');
-  const [placeSuggestions, setPlaceSuggestions] = useState<{ label: string; lat: number; lng: number }[]>([]);
   const [drawError, setDrawError] = useState<string | null>(null);
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
@@ -169,32 +169,6 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     setLocationStatus('missing');
   }, []);
 
-  const geocodeSearch = useCallback(
-    async (query: string) => {
-      if (!query.trim()) {
-        showGreece();
-        setPlaceSuggestions([]);
-        return;
-      }
-      try {
-        const places = await searchPlaces(query, 5);
-        if (places[0]) {
-          setCenter([places[0].latitude, places[0].longitude]);
-          setMapZoom(PLACE_ZOOM);
-          setLocationStatus('found');
-          setPlaceSuggestions(places.slice(1).map((p) => ({ label: p.label, lat: p.latitude, lng: p.longitude })));
-          return;
-        }
-        showGreece();
-        setPlaceSuggestions([]);
-      } catch {
-        showGreece();
-        setPlaceSuggestions([]);
-      }
-    },
-    [showGreece]
-  );
-
   useEffect(() => {
     if (hasCoords(latitude, longitude)) {
       setCenter([latitude as number, longitude as number]);
@@ -202,13 +176,43 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
       setLocationStatus('found');
       return;
     }
-    if (initialQuery.trim()) {
-      void geocodeSearch(initialQuery);
-      return;
+    // Cadastre-only: resolve once into the map. Free-text typing uses the dropdown pick.
+    if (cadastreSearch?.trim()) {
+      let cancelled = false;
+      void searchPlaces(cadastreSearch, 1).then((places) => {
+        if (cancelled) return;
+        if (places[0]) {
+          setCenter([places[0].latitude, places[0].longitude]);
+          setMapZoom(PLACE_ZOOM);
+          setLocationStatus('found');
+          setSearch(places[0].label);
+          return;
+        }
+        showGreece();
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     showGreece();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cadastre?.municipality, cadastre?.prefecture, cadastre?.postalCode, locationQuery, latitude, longitude]);
+  }, [cadastre?.municipality, cadastre?.prefecture, cadastre?.postalCode, latitude, longitude]);
+
+  const applyPlace = useCallback((label: string, lat: number, lng: number) => {
+    setSearch(label);
+    setCenter([lat, lng]);
+    setMapZoom(PLACE_ZOOM);
+    setLocationStatus('found');
+  }, []);
+
+  const handleCurrentLocation = async () => {
+    try {
+      const loc = await locationService.getCurrentLocation();
+      applyPlace(t('addField.useCurrentLocation'), loc.latitude, loc.longitude);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const publishPolygon = useCallback(
     (nextCorners: Corner[]) => {
@@ -307,21 +311,6 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     setPhase('drawing');
   }, [activationGuide, locationStatus, phase, zoomTooLow]);
 
-  const handleSearch = async () => {
-    await geocodeSearch(search);
-  };
-
-  const handleCurrentLocation = async () => {
-    try {
-      const loc = await locationService.getCurrentLocation();
-      setCenter([loc.latitude, loc.longitude]);
-      setMapZoom(PLACE_ZOOM);
-      setLocationStatus('found');
-    } catch {
-      /* ignore */
-    }
-  };
-
   const liveAreaLabel =
     corners.length >= 3
       ? formatAreaFromSqm(
@@ -383,56 +372,39 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         </p>
       ) : null}
 
-      <div
-        className={`boundary-search-block${placeSuggestions.length > 0 ? ' has-suggestions' : ''}`}
-        data-onboarding-target="boundary-search"
-      >
-        <div className="boundary-toolbar">
-          <input
-            type="search"
-            className="boundary-search-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void handleSearch();
-              }
-            }}
-            placeholder={t('addField.searchLocation')}
-            aria-label={t('addField.searchLocation')}
-          />
-          <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleSearch}>
-            {t('addField.search')}
-          </button>
-          <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleCurrentLocation}>
+      <div className="boundary-search-block boundary-search-block--typeahead" data-onboarding-target="boundary-search">
+        <div className="boundary-toolbar boundary-toolbar--typeahead">
+          <div className="boundary-typeahead">
+            <LocationSearchField
+              value={search}
+              hideHint
+              embed
+              onChange={(next) => {
+                setSearch(next.locationText);
+                if (
+                  next.latitude != null &&
+                  next.longitude != null &&
+                  Number.isFinite(next.latitude) &&
+                  Number.isFinite(next.longitude)
+                ) {
+                  applyPlace(next.locationText, next.latitude, next.longitude);
+                } else if (!next.locationText.trim()) {
+                  showGreece();
+                } else {
+                  setLocationStatus('idle');
+                }
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary boundary-tool-btn"
+            onClick={() => void handleCurrentLocation()}
+          >
             <LocateFixed size={18} aria-hidden />
             {t('addField.useCurrentLocation')}
           </button>
         </div>
-        {placeSuggestions.length > 0 ? (
-          <ul className="boundary-place-suggestions" role="listbox" aria-label={t('addField.searchLocation')}>
-            {placeSuggestions.map((place) => (
-              <li key={`${place.lat},${place.lng},${place.label}`} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  className="boundary-place-option"
-                  onClick={() => {
-                    setSearch(place.label);
-                    setPlaceSuggestions([]);
-                    setCenter([place.lat, place.lng]);
-                    setMapZoom(PLACE_ZOOM);
-                    setLocationStatus('found');
-                  }}
-                >
-                  <MapPin size={16} aria-hidden />
-                  <span>{place.label}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </div>
       {locationStatus === 'missing' && search.trim() ? (
         <p className="boundary-location-status" role="status">
@@ -543,7 +515,6 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
               type="button"
               className="btn btn-primary boundary-primary-action"
               onClick={() => {
-                setPlaceSuggestions([]);
                 startDrawing();
               }}
             >

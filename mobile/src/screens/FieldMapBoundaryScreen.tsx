@@ -59,13 +59,19 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
   const persistLocation = useCallback(
     async (next: { locationText: string; latitude?: number; longitude?: number }) => {
       setLocationText(next.locationText);
-      setLatitude(next.latitude);
-      setLongitude(next.longitude);
+      // Clear coords while typing so the map waits for a list pick.
+      const hasCoords =
+        next.latitude != null &&
+        next.longitude != null &&
+        Number.isFinite(next.latitude) &&
+        Number.isFinite(next.longitude);
+      setLatitude(hasCoords ? next.latitude : undefined);
+      setLongitude(hasCoords ? next.longitude : undefined);
       try {
         await fieldService.updateField(fieldId, {
           locationText: next.locationText,
-          latitude: next.latitude,
-          longitude: next.longitude,
+          latitude: hasCoords ? next.latitude : undefined,
+          longitude: hasCoords ? next.longitude : undefined,
         });
       } catch {
         /* keep local map center even if save fails */
@@ -118,8 +124,10 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const showSpotlight = activation?.spotlightStep === 'drawBoundary';
   const placeChosen =
-    Boolean(locationText.trim()) ||
-    (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude));
+    latitude != null &&
+    longitude != null &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
   const boundaryPhase: 'locate' | 'draw' = placeChosen ? 'draw' : 'locate';
 
   if (loading) return <LoadingSpinner fullScreen />;
@@ -202,7 +210,7 @@ const styles = StyleSheet.create({
   title: { ...typography.styles.h4, fontWeight: '700' },
   desc: { ...typography.styles.caption, lineHeight: 18, marginBottom: spacing.xs },
   error: { marginBottom: spacing.xs },
-  searchBlock: { marginBottom: spacing.xs, zIndex: 2 },
+  searchBlock: { marginBottom: spacing.xs, zIndex: 30, elevation: 30 },
   save: { marginTop: spacing.sm },
 });
 

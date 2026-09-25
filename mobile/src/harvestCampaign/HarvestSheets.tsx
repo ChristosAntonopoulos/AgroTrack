@@ -24,7 +24,6 @@ export { HarvestMillLinkSheet } from './sheets/HarvestMillLinkSheet';
 export { HarvestMillNextSheet } from './sheets/HarvestMillNextSheet';
 export { HarvestOilSheet } from './sheets/HarvestOilSheet';
 export { HarvestPeopleSheet } from './sheets/HarvestPeopleSheet';
-export { HarvestEveningSheet } from './sheets/HarvestEveningSheet';
 export { HarvestCompleteSheet } from './sheets/HarvestCompleteSheet';
 export { HarvestRecordSheet } from './sheets/HarvestRecordSheet';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,6 @@ type Props = {
   selectedDay: string;
   today: string;
   dayNumber: number;
-  closed: boolean;
   stripRows: HarvestDaySummary[];
   canPrev: boolean;
   canNext: boolean;
@@ -22,11 +21,12 @@ type Props = {
   onShift: (delta: -1 | 1) => void;
 };
 
+const CHIP_STRIDE = 48 + spacing.sm;
+
 const HarvestDayStrip: React.FC<Props> = ({
   selectedDay,
   today,
   dayNumber,
-  closed,
   stripRows,
   canPrev,
   canNext,
@@ -37,6 +37,19 @@ const HarvestDayStrip: React.FC<Props> = ({
   const { t } = useTranslation('fields');
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const yesterday = shiftAthensDateKey(today, -1);
+  const scrollRef = useRef<ScrollView>(null);
+  const viewportWidth = useRef(0);
+
+  const centerSelected = useCallback(() => {
+    const index = stripRows.findIndex((row) => row.date === selectedDay);
+    if (index < 0 || viewportWidth.current <= 0) return;
+    const x = index * CHIP_STRIDE - (viewportWidth.current - 48) / 2;
+    scrollRef.current?.scrollTo({ x: Math.max(0, x), animated: false });
+  }, [selectedDay, stripRows]);
+
+  useEffect(() => {
+    centerSelected();
+  }, [centerSelected]);
   const title = new Date(`${selectedDay}T12:00:00`).toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
@@ -83,7 +96,6 @@ const HarvestDayStrip: React.FC<Props> = ({
             <Text style={[styles.sub, { color: colors.textTertiary }]}>
               {t('harvestCampaign.home.day', { day: dayNumber })}
               {relative ? ` · ${relative}` : ''}
-              {closed ? ` · ${t('harvestCampaign.dayNav.closed')}` : ''}
             </Text>
           </View>
           <Pressable
@@ -107,7 +119,16 @@ const HarvestDayStrip: React.FC<Props> = ({
       </HarvestCard>
 
       {stripRows.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.strip}
+          onLayout={(event) => {
+            viewportWidth.current = event.nativeEvent.layout.width;
+            centerSelected();
+          }}
+        >
           {stripRows.map((row) => {
             const selected = row.date === selectedDay;
             const active = harvestWorkingDayHasActivity(row);
@@ -126,7 +147,6 @@ const HarvestDayStrip: React.FC<Props> = ({
                   {
                     borderColor: selected ? colors.oliveBorder : colors.borderLight,
                     backgroundColor: selected ? colors.primaryLight : colors.surface,
-                    opacity: row.closed && !selected ? 0.65 : 1,
                   },
                 ]}
               >

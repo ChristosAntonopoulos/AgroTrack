@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing } from '../../theme';
 import { getDockMetrics } from '../../navigation/dockMetrics';
+import { useDock } from '../../navigation/DockContext';
 import AppCanvas from './AppCanvas';
 
 interface ScreenLayoutProps {
@@ -26,6 +27,11 @@ interface ScreenLayoutProps {
   padded?: boolean;
   /** Extra bottom padding for floating dock (tab roots). Default false — enable on tab screens. */
   tabBarInset?: boolean;
+  /**
+   * Clear the persistent dock. Defaults on.
+   * Turn off when the screen already pads its own scroll content.
+   */
+  dockInset?: boolean;
   /**
    * Skip parchment (map / camera / full-bleed photo surfaces).
    * Default false — post-login screens should show the journal canvas.
@@ -45,13 +51,16 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   style,
   padded = false,
   tabBarInset = false,
+  dockInset = true,
   plain = false,
   canvasOpacity = 1,
 }) => {
   const { colors, tapMin } = useTheme();
   const insets = useSafeAreaInsets();
+  const dock = useDock();
   const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
-  const bottomPad = tabBarInset ? dockHeight + bottomInset + spacing.md : spacing['3xl'];
+  const clearDock = tabBarInset || (dockInset && dock.visible);
+  const bottomPad = clearDock ? dockHeight + bottomInset + spacing.md : spacing['3xl'];
 
   const body = scroll ? (
     <ScrollView
@@ -76,7 +85,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         styles.flex,
         styles.transparent,
         padded && styles.paddedBody,
-        tabBarInset && { paddingBottom: bottomPad },
+        clearDock && { paddingBottom: bottomPad },
         style,
       ]}
     >

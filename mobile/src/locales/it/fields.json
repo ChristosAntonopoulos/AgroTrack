@@ -630,6 +630,7 @@
       "later": "Aggiungerò i campi più tardi",
       "startTitle": "Pronto a iniziare?",
       "startHint": "Durante la raccolta puoi annotare sacchi, chili, persone, spese e olio.",
+      "readyLine": "Sacchi in campo. Chili al frantoio. Olio quando esce.",
       "confirmStart": "Iniziamo oggi",
       "goToFields": "Go to fields"
     },

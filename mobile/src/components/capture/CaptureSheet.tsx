@@ -20,6 +20,8 @@ import { capturePermissionsFromCapabilities } from '../../utils/fieldGates';
 import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/photos';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { openHarvestCampaign } from '../../navigation/intents';
 import { useOfflineMode } from '../../context/OfflineContext';
 import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../../hooks/useFamilyMembershipModules';
 import Button from '../ui/Button';
@@ -86,6 +88,7 @@ const CaptureSheet: React.FC<Props> = ({
   const familyModules = useFamilyMembershipModules();
   const accessLevel = useActiveFieldAccessLevel();
   const { isOnline } = useOfflineMode();
+  const harvestCampaign = useHarvestCampaignOptional();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const recordingRef = useRef<Audio.Recording | null>(null);
 
@@ -101,7 +104,6 @@ const CaptureSheet: React.FC<Props> = ({
   const [workTemplate, setWorkTemplate] = useState('');
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
-  const [harvestBeat, setHarvestBeat] = useState<'olives' | 'oil'>('olives');
   const [harvestNotes, setHarvestNotes] = useState('');
   const [recording, setRecording] = useState(false);
   const [voiceUri, setVoiceUri] = useState<string | null>(null);
@@ -152,7 +154,6 @@ const CaptureSheet: React.FC<Props> = ({
     setWorkTemplate('');
     setOliveKg('');
     setOilKg('');
-    setHarvestBeat('olives');
     setHarvestNotes('');
     setMoreOpen(false);
     setRecording(false);
@@ -391,19 +392,21 @@ const CaptureSheet: React.FC<Props> = ({
     { type: 'money', icon: 'wallet-outline', enabled: permissions.canRecordMoney },
     { type: 'photo', icon: 'camera-outline', enabled: permissions.canRecordPhoto },
     { type: 'observation', icon: 'eye-outline', enabled: permissions.canRecordObservation },
+    { type: 'harvest', icon: 'basket-outline', enabled: permissions.canRecordHarvest },
     { type: 'voice', icon: 'mic-outline', enabled: permissions.canRecordVoice },
   ];
+  const documentEnabled = permissions.canRecordDocument;
 
   useEffect(() => {
-    if (fieldId || fields.length !== 1) return;
+    if (fieldId || fields.length === 0) return;
     setFieldId(fields[0].id);
   }, [fieldId, fields]);
 
   const fieldLocked = Boolean(context.fieldId);
-  const askField = !fieldLocked && fields.length > 1 && !fieldId;
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
   const isPhotoStep = step === 'photo';
-  const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
+  const selectedField = fields.find((f) => f.id === fieldId);
+  const selectedFieldName = selectedField?.name;
 
   const sheetTitle =
     step === 'choose'
@@ -412,42 +415,36 @@ const CaptureSheet: React.FC<Props> = ({
         ? t('capture:types.money.title')
         : t(`capture:types.${step}.title`);
 
+  const chooseType = (type: CaptureType) => {
+    if (type === 'harvest' && harvestCampaign?.isLive) {
+      onClose();
+      openHarvestCampaign(navigation, { add: true, fieldId: fieldId || context.fieldId });
+      return;
+    }
+    setStep(type);
+  };
+
+  const tileTone = (type: CaptureType) => {
+    if (type === 'work') return { soft: colors.eventWorkSoft, accent: colors.eventWork };
+    if (type === 'money') return { soft: colors.eventExpenseSoft, accent: colors.eventExpense };
+    if (type === 'harvest') return { soft: colors.eventHarvestSoft, accent: colors.eventHarvest };
+    return { soft: colors.eventObservationSoft, accent: colors.eventObservation };
+  };
+
   return (
     <Sheet
       open={open}
-      onClose={
-        step === 'choose'
-          ? onClose
-          : step === 'harvest' && harvestBeat === 'oil'
-            ? () => setHarvestBeat('olives')
-            : () => setStep('choose')
-      }
+      onClose={step === 'choose' ? onClose : () => setStep('choose')}
       edge="end"
       title={sheetTitle}
-      maxHeightPercent={step === 'choose' ? 70 : 92}
+      subtitle={selectedFieldName}
+      maxHeightPercent={step === 'choose' ? 86 : 92}
       scrollable={false}
       footer={
-        step !== 'choose' && !isMoneyStep && !isPhotoStep && !askField ? (
+        step !== 'choose' && !isMoneyStep && !isPhotoStep ? (
           <Button
-            title={
-              submitting
-                ? t('capture:saving')
-                : step === 'harvest' && harvestBeat === 'olives'
-                  ? t('common:next')
-                  : t('capture:save')
-            }
-            onPress={() => {
-              if (step === 'harvest' && harvestBeat === 'olives') {
-                const olives = Number(oliveKg.replace(',', '.'));
-                if (!olives || Number.isNaN(olives)) {
-                  Alert.alert('', t('capture:errors.oliveRequired'));
-                  return;
-                }
-                setHarvestBeat('oil');
-                return;
-              }
-              void save();
-            }}
+            title={submitting ? t('capture:saving') : t('capture:save')}
+            onPress={() => void save()}
             loading={submitting}
             fullWidth
             size="large"
@@ -491,26 +488,7 @@ const CaptureSheet: React.FC<Props> = ({
                 {typeCards
                   .filter(c => c.enabled)
                   .map(card => {
-                    const soft =
-                      card.type === 'work'
-                        ? colors.eventWorkSoft
-                        : card.type === 'observation' ||
-                            card.type === 'photo' ||
-                            card.type === 'voice'
-                          ? colors.eventObservationSoft
-                          : card.type === 'money'
-                            ? colors.eventExpenseSoft
-                            : colors.primaryLight;
-                    const accent =
-                      card.type === 'work'
-                        ? colors.eventWork
-                        : card.type === 'observation' ||
-                            card.type === 'photo' ||
-                            card.type === 'voice'
-                          ? colors.eventObservation
-                          : card.type === 'money'
-                            ? colors.eventExpense
-                            : colors.primary;
+                    const { soft, accent } = tileTone(card.type);
                     return (
                       <Pressable
                         key={card.type}
@@ -519,11 +497,11 @@ const CaptureSheet: React.FC<Props> = ({
                           {
                             backgroundColor: soft,
                             borderColor: colors.borderLight,
-                            minHeight: Math.max(96, tapMin + 40),
+                            minHeight: Math.max(76, tapMin + 20),
                             opacity: pressed ? 0.88 : 1,
                           },
                         ]}
-                        onPress={() => setStep(card.type)}
+                        onPress={() => chooseType(card.type)}
                       >
                         <View style={[styles.typeIcon, { backgroundColor: colors.surface }]}>
                           <Ionicons name={card.icon} size={22} color={accent} />
@@ -535,21 +513,41 @@ const CaptureSheet: React.FC<Props> = ({
                     );
                   })}
               </View>
+              {documentEnabled ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.documentRow,
+                    {
+                      borderColor: colors.borderLight,
+                      backgroundColor: colors.surface,
+                      minHeight: tapMin,
+                      opacity: pressed ? 0.88 : 1,
+                    },
+                  ]}
+                  onPress={() => chooseType('document')}
+                >
+                  <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+                  <Text style={{ color: colors.textPrimary, fontWeight: '700', flex: 1 }}>
+                    {t('capture:types.document.title')}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                </Pressable>
+              ) : null}
             </>
           ) : (
             <>
-              {askField ? (
-                <>
-                  <Text style={[styles.prompt, { color: colors.textPrimary }]}>{t('capture:money.whichField')}</Text>
-                  <View style={styles.chipRow}>
-                    {fields.map(f => (
+              {!fieldLocked && fields.length > 1 ? (
+                <View style={styles.chipRow}>
+                  {fields.map(f => {
+                    const selected = f.id === fieldId;
+                    return (
                       <Pressable
                         key={f.id}
                         style={[
                           styles.chip,
                           {
-                            borderColor: colors.border,
-                            backgroundColor: colors.surface,
+                            borderColor: selected ? colors.oliveBorder : colors.border,
+                            backgroundColor: selected ? colors.primaryLight : colors.surface,
                             minHeight: tapMin,
                           },
                         ]}
@@ -559,20 +557,16 @@ const CaptureSheet: React.FC<Props> = ({
                         }}
                       >
                         <FieldColorMark color={f.color} fieldId={f.id} size={10} />
-                        <Text style={{ color: colors.textPrimary }}>{f.name}</Text>
+                        <Text style={{ color: colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
+                          {f.name}
+                        </Text>
                       </Pressable>
-                    ))}
-                  </View>
-                </>
-              ) : (
-              <>
-              {selectedFieldName ? (
+                    );
+                  })}
+                </View>
+              ) : selectedFieldName ? (
                 <View style={[styles.lockedField, { borderColor: colors.border }]}>
-                  <FieldColorMark
-                    color={fields.find(f => f.id === fieldId)?.color}
-                    fieldId={fieldId}
-                    size={12}
-                  />
+                  <FieldColorMark color={selectedField?.color} fieldId={fieldId} size={12} />
                   <Text style={{ color: colors.textPrimary, fontWeight: '700', flex: 1 }}>
                     {selectedFieldName}
                   </Text>
@@ -743,24 +737,20 @@ const CaptureSheet: React.FC<Props> = ({
                 </>
               ) : null}
 
-              {step === 'harvest' && harvestBeat === 'olives' ? (
-                <HarvestNumberInput
-                  label={t('capture:harvest.olivesQuestion')}
-                  value={oliveKg}
-                  onChange={setOliveKg}
-                  suffix="kg"
-                  autoFocus
-                />
-              ) : null}
-
-              {step === 'harvest' && harvestBeat === 'oil' ? (
+              {step === 'harvest' ? (
                 <>
+                  <HarvestNumberInput
+                    label={t('capture:harvest.olivesQuestion')}
+                    value={oliveKg}
+                    onChange={setOliveKg}
+                    suffix="kg"
+                    autoFocus
+                  />
                   <HarvestNumberInput
                     label={t('capture:harvest.oilQuestion')}
                     value={oilKg}
                     onChange={setOilKg}
                     suffix="kg"
-                    autoFocus
                   />
                   <Text style={[styles.hint, { color: colors.textSecondary }]}>
                     {t('capture:harvest.oilOptional')}
@@ -792,8 +782,6 @@ const CaptureSheet: React.FC<Props> = ({
                 </>
               ) : null}
 
-              {step === 'harvest' && harvestBeat === 'olives' ? null : (
-              <>
               <FormDateField
                 label={t('capture:dateLabel')}
                 value={toDateKey(occurredAt)}
@@ -809,10 +797,7 @@ const CaptureSheet: React.FC<Props> = ({
                 </Text>
               ) : null}
 
-              </>
-              )}
-
-              {(step === 'observation' || (step === 'harvest' && harvestBeat === 'oil')) && (
+              {(step === 'observation' || step === 'harvest') && (
                 <View style={{ marginTop: 12, gap: 10 }}>
                   <View style={styles.photoRow}>
                     {photos.map((uri) => (
@@ -850,8 +835,6 @@ const CaptureSheet: React.FC<Props> = ({
                   ) : null}
                 </View>
               )}
-              </>
-              )}
             </>
           )}
         </ScrollView>
@@ -887,6 +870,15 @@ const styles = StyleSheet.create({
   },
   typeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   typeTitle: { fontSize: 15, fontWeight: '650' as '600' },
+  documentRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.lg,
+    paddingHorizontal: 14,
+  },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 8 },
   legend: {
     fontSize: 11,

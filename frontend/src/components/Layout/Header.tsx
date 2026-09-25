@@ -13,6 +13,7 @@ import { useCaptureOptional } from '../../context/CaptureContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
 import { useActiveFieldCollaboratorLabel } from '../../hooks/useActiveFieldAccess';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import './Header.css';
 import '../Capture/Capture.css';
 
@@ -30,6 +31,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const capture = useCaptureOptional();
   const harvest = useHarvestCampaignOptional();
   const feedback = useFeedbackOptional();
+  const activation = useOwnerActivationOptional();
+  const hideChromeExtras = Boolean(activation?.locked);
   const collaboratorOwnerLabel = useActiveFieldCollaboratorLabel();
   const logoTone = resolvedTheme === 'dark' ? 'on-dark' : 'on-light';
   const navigate = useNavigate();
@@ -96,7 +99,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
           <Menu />
         </button>
         ) : null}
-        <Link to={roleHomePath(role)} className="header-brand" aria-label={tCommon('home')}>
+        <Link
+          to={hideChromeExtras ? location.pathname : roleHomePath(role)}
+          className="header-brand"
+          aria-label={tCommon('home')}
+          onClick={(e) => {
+            if (hideChromeExtras) e.preventDefault();
+          }}
+        >
           <BrandLogo
             className="header-logo-lockup"
             variant="horizontal"
@@ -111,8 +121,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
         {hidePageTitle ? null : <h1 className="page-title">{pageTitle}</h1>}
 
         <div className="header-right">
-          <HarvestHeaderButton />
-          {capture && !hideHeaderCapture ? (
+          {!hideChromeExtras ? <HarvestHeaderButton /> : null}
+          {capture && !hideHeaderCapture && !hideChromeExtras ? (
             <button
               type="button"
               className="capture-header-cta"
@@ -125,7 +135,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             </button>
           ) : null}
 
-          <NotificationBell />
+          {!hideChromeExtras ? <NotificationBell /> : null}
 
           <div className="user-menu u-hide-below-md">
             <div className="user-info">

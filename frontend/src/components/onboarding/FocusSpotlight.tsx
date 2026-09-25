@@ -83,7 +83,9 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
       focus === 'search'
         ? document.querySelector(`[data-onboarding-target="${ONBOARDING_TARGETS.boundarySearch}"]`)
         : document.querySelector(`[data-onboarding-target="${ONBOARDING_TARGETS.boundaryMap}"]`);
-    const menu = el?.querySelector('.boundary-place-suggestions, .location-search-results');
+    const menu = el?.querySelector(
+      '.boundary-place-suggestions, .location-search-results, .location-search.is-open'
+    );
     if (menu) parts.push(menu.getBoundingClientRect());
 
     if (focus === 'map') {

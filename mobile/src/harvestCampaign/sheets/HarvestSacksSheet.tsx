@@ -1,9 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../../context/ThemeContext';
 import { HarvestFieldPicker } from '../components/HarvestFieldPicker';
-import { HarvestFormPager, HarvestQuickChips } from '../components/HarvestFormPager';
+import { HarvestFormPager, HarvestHint, HarvestMoreToggle, HarvestQuickChips } from '../components/HarvestFormPager';
 import { HarvestNumberInput } from '../components/HarvestNumberInput';
 import { HarvestNumberStepper } from '../components/HarvestNumberStepper';
 import { harvestFieldSelectionMode, resolveHarvestCaptureFieldId } from '../fieldSelection';
@@ -21,7 +19,6 @@ export const HarvestSacksSheet: React.FC<
   }
 > = ({ campaign, fields, preferredFieldId, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const { colors } = useTheme();
   const editing = Boolean(initial);
   const [sacks, setSacks] = useState(initial?.sacks ?? 0);
   const [fieldId, setFieldId] = useState(
@@ -47,19 +44,6 @@ export const HarvestSacksSheet: React.FC<
       ? t('fields:harvestCampaign.sacks.prompt')
       : null;
 
-  type SackPhase = 'count' | 'field' | 'extras';
-  const sackPhases: SackPhase[] = useMemo(() => {
-    const next: SackPhase[] = ['count'];
-    if (fieldMode === 'required' || fields.length > 1) next.push('field');
-    next.push('extras');
-    return next;
-  }, [fieldMode, fields.length]);
-  const [phase, setPhase] = useState(0);
-  const phaseKey = sackPhases[Math.min(phase, sackPhases.length - 1)] ?? 'count';
-  const lastPhase = phase >= sackPhases.length - 1;
-  const canAdvance =
-    phaseKey === 'count' ? sacks > 0 : phaseKey === 'field' ? Boolean(fieldId) : canSave;
-
   const sackPayload = () => ({
     sacks,
     fieldId,
@@ -80,112 +64,64 @@ export const HarvestSacksSheet: React.FC<
 
   return (
     <HarvestFormPager
-      current={phase}
-      total={sackPhases.length}
-      title={
-        phaseKey === 'count'
-          ? t('fields:harvestCampaign.steps.sacksCount')
-          : phaseKey === 'field'
-            ? t('fields:harvestCampaign.steps.sacksField')
-            : t('fields:harvestCampaign.steps.review')
-      }
-      hint={
-        phaseKey === 'count'
-          ? t('fields:harvestCampaign.sacks.prompt')
-          : phaseKey === 'field'
-            ? t('fields:harvestCampaign.sacks.whichField')
-            : editing
-              ? t('fields:harvestCampaign.dayActivity.editSacks')
-              : t('fields:harvestCampaign.steps.reviewHint')
-      }
+      current={0}
+      total={1}
+      title={editing ? t('fields:harvestCampaign.dayActivity.editSacks') : t('fields:harvestCampaign.sacks.prompt')}
       nextLabel={
-        lastPhase
-          ? flow
-            ? flow.nextLabel
-            : editing
-              ? t('fields:harvestCampaign.dayActivity.saveChanges')
-              : t('fields:harvestCampaign.sacks.save', { count: sacks })
-          : t('fields:harvestCampaign.wizard.next')
+        editing
+          ? t('fields:harvestCampaign.dayActivity.saveChanges')
+          : t('fields:harvestCampaign.sacks.save', { count: sacks })
       }
-      nextDisabled={!canAdvance}
-      onNext={() => {
-        if (!lastPhase) {
-          setPhase((current) => current + 1);
-          return;
-        }
-        onSave(sackPayload());
-      }}
-      backLabel={flow?.backLabel || t('common:back')}
-      onBack={
-        phase > 0 || flow?.onBack
-          ? () => {
-              if (phase > 0) setPhase((current) => current - 1);
-              else flow?.onBack?.();
-            }
-          : undefined
-      }
+      nextDisabled={!canSave}
+      onNext={() => onSave(sackPayload())}
+      backLabel={flow?.backLabel}
+      onBack={flow?.onBack}
       cancelLabel={t('common:cancel')}
       onCancel={onClose}
       busy={flow?.busy}
-      error={!canAdvance ? saveHint : null}
+      error={!canSave ? saveHint : null}
     >
-      {phaseKey === 'count' ? (
-        <>
-          <HarvestNumberStepper
-            label={t('fields:harvestCampaign.sacks.unit')}
-            value={sacks}
-            onChange={setSacks}
-            min={0}
-            suffix={t('fields:harvestCampaign.sacks.unit')}
-          />
-          <HarvestQuickChips
-            values={[1, 5, 10, 12]}
-            suffix={t('fields:harvestCampaign.sacks.unit')}
-            onPick={(add) => setSacks((current) => current + add)}
-          />
-          {estimate > 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.sacks.estimateLine', { sacks, kg: Math.round(estimate) })}
-            </Text>
-          ) : null}
-        </>
+      <HarvestNumberStepper
+        label={t('fields:harvestCampaign.sacks.unit')}
+        value={sacks}
+        onChange={setSacks}
+        min={0}
+        suffix={t('fields:harvestCampaign.sacks.unit')}
+      />
+      <HarvestQuickChips
+        values={[1, 5, 10, 12]}
+        suffix={t('fields:harvestCampaign.sacks.unit')}
+        onPick={(add) => setSacks((current) => current + add)}
+      />
+      {estimate > 0 ? (
+        <HarvestHint>
+          {t('fields:harvestCampaign.sacks.estimateLine', { sacks, kg: Math.round(estimate) })}
+        </HarvestHint>
       ) : null}
-      {phaseKey === 'field' ? (
-        <HarvestFieldPicker
-          mode="single"
-          fields={fields}
-          value={fieldId}
-          onChange={setFieldId}
-          recommendation={recommendation}
-          locationUnavailable={!loading && !recommendation}
-          autoApplyGuess={!editing && fieldMode !== 'required'}
-          sectionLabel={t('fields:harvestCampaign.sacks.whichField')}
+      <HarvestFieldPicker
+        mode="single"
+        fields={fields}
+        value={fieldId}
+        onChange={setFieldId}
+        recommendation={recommendation}
+        locationUnavailable={!loading && !recommendation}
+        autoApplyGuess={!editing && fieldMode !== 'required'}
+        sectionLabel={t('fields:harvestCampaign.sacks.whichField')}
+      />
+      <HarvestMoreToggle
+        open={more}
+        onPress={() => setMore((v) => !v)}
+        openLabel={t('fields:harvestCampaign.less')}
+        closedLabel={t('fields:harvestCampaign.more')}
+      />
+      {more ? (
+        <HarvestNumberInput
+          label={t('fields:harvestCampaign.sacks.kgPerSack')}
+          value={kgPerSackDraft}
+          onChange={setKgPerSackDraft}
+          suffix="kg"
+          min={0}
         />
-      ) : null}
-      {phaseKey === 'extras' ? (
-        <>
-          {estimate > 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.sacks.estimateLine', { sacks, kg: Math.round(estimate) })}
-            </Text>
-          ) : null}
-          <Pressable onPress={() => setMore((v) => !v)}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              {more ? t('fields:harvestCampaign.less') : t('fields:harvestCampaign.more')}
-            </Text>
-          </Pressable>
-          {more ? (
-            <View style={{ gap: 8 }}>
-              <HarvestNumberInput
-                label={t('fields:harvestCampaign.sacks.kgPerSack')}
-                value={kgPerSackDraft}
-                onChange={setKgPerSackDraft}
-                suffix="kg"
-                min={0}
-              />
-            </View>
-          ) : null}
-        </>
       ) : null}
     </HarvestFormPager>
   );

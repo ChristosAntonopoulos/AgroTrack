@@ -7,9 +7,9 @@ import ScreenHeader from '../components/layout/ScreenHeader';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/ui/Button';
-import FieldColorMark from '../components/fields/FieldColorMark';
 import Sheet from '../components/ui/Sheet';
 import HarvestOpening from '../harvestCampaign/components/HarvestOpening';
+import { HarvestStart } from '../harvestCampaign/components/HarvestStart';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { useTheme } from '../context/ThemeContext';
 import { useHarvestCampaign } from '../context/HarvestCampaignContext';
@@ -69,9 +69,11 @@ import {
   harvestDayNumber,
 } from '../harvestCampaign/totals';
 import {
-  campaignStartDay,
-  clampHarvestWorkingDay,
+  clampHarvestNavDay,
   harvestDayStripRows,
+  harvestStripCeiling,
+  harvestStripFloor,
+  harvestStripWindow,
   isAthensDateKey,
   shiftHarvestWorkingDay,
 } from '../harvestCampaign/workingDay';
@@ -182,8 +184,7 @@ const HarvestCampaignScreen = () => {
     ? historicalLink.kind === 'day' || historicalLink.kind === 'dayMissing'
       ? historicalLink.day
       : today
-    : clampHarvestWorkingDay(selectedDay, campaign, today);
-  const startDay = campaignStartDay(campaign, today);
+    : clampHarvestNavDay(selectedDay, today);
   const harvestable = useMemo(
     () => fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived'),
     [fields]
@@ -255,13 +256,19 @@ const HarvestCampaignScreen = () => {
   // Do not mirror workingDay → params in a loop; selectWorkingDay writes params explicitly.
   const totals = useMemo(() => campaignTotals(campaign), [campaign]);
   const activeRow = useMemo(() => daySummary(campaign, workingDay), [campaign, workingDay]);
-  const dayClosed = false;
-  const stripRows = useMemo(() => harvestDayStripRows(campaign, today), [campaign, today]);
+  const stripBounds = useMemo(
+    () => harvestStripWindow(workingDay, campaign, today),
+    [workingDay, campaign, today]
+  );
+  const stripRows = useMemo(
+    () => harvestDayStripRows(campaign, today, stripBounds),
+    [campaign, today, stripBounds]
+  );
   const chainStatus = useMemo(() => harvestChainStatus(campaign), [campaign]);
   const showDayStrip = isLive;
   const days = harvestDayNumber(campaign, workingDay);
-  const canPrevDay = workingDay > startDay;
-  const canNextDay = workingDay < today;
+  const canPrevDay = workingDay > harvestStripFloor(today);
+  const canNextDay = workingDay < harvestStripCeiling(today);
   const logs = useMemo(() => allDaySummaries(campaign), [campaign]);
   const labelOf = useCallback(
     (id: string) => friendlyFieldLabel(harvestable.find((f) => f.id === id)?.name || id),
@@ -291,9 +298,9 @@ const HarvestCampaignScreen = () => {
     setView('today');
     setAddPrefill(null);
     setSheet('add');
-    navigation.setParams({ add: undefined, evening: undefined });
+    navigation.setParams({ add: undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot from params
-  }, [isLive, route.params?.add, route.params?.evening]);
+  }, [isLive, route.params?.add]);
 
   useEffect(() => {
     const harvestId = route.params?.harvestId;
@@ -361,10 +368,6 @@ const HarvestCampaignScreen = () => {
   };
 
   const openMillCapture = (sackIds?: string[]) => {
-    if (dayClosed) {
-      alertDayLocked();
-      return;
-    }
     setEditTarget(null);
     setPrefillMillIds([]);
     setPrefillSackIds(sackIds || []);
@@ -372,10 +375,6 @@ const HarvestCampaignScreen = () => {
   };
 
   const openOilCapture = (millIds?: string[]) => {
-    if (dayClosed) {
-      alertDayLocked();
-      return;
-    }
     setEditTarget(null);
     setPrefillSackIds([]);
     setPrefillMillIds(millIds || []);
@@ -390,7 +389,7 @@ const HarvestCampaignScreen = () => {
   };
 
   const selectWorkingDay = (day: string) => {
-    const clamped = clampHarvestWorkingDay(day, campaign, today);
+    const clamped = clampHarvestNavDay(day, today);
     setSelectedDay(clamped);
     navigation.setParams({ day: clamped === today ? undefined : clamped });
   };
@@ -437,18 +436,7 @@ const HarvestCampaignScreen = () => {
     );
   };
 
-  const alertDayLocked = () => {
-    Alert.alert(
-      t('fields:harvestCampaign.dayNav.lockedTitle'),
-      t('fields:harvestCampaign.dayNav.lockedBody')
-    );
-  };
-
   const requestAdd = (prefill?: HarvestAddPrefill) => {
-    if (dayClosed) {
-      alertDayLocked();
-      return;
-    }
     if (harvestCaps.captureKinds.length === 0) return;
     setEditTarget(null);
     if (prefill?.preferredKind === 'expense') {
@@ -478,10 +466,6 @@ const HarvestCampaignScreen = () => {
   };
 
   const openCapture = (kind: HarvestCaptureKind) => {
-    if (dayClosed) {
-      alertDayLocked();
-      return;
-    }
     const sackIds = addPrefill?.sackIds;
     const millIds = addPrefill?.millIds;
     setAddPrefill(null);
@@ -526,10 +510,7 @@ const HarvestCampaignScreen = () => {
   };
 
   const openDayEdit = (target: DayActivityEditTarget) => {
-    if (dayClosed || !harvestCaps.canMutateDay) {
-      alertDayLocked();
-      return;
-    }
+    if (!harvestCaps.canMutateDay) return;
     setEditTarget(target);
     setPrefillSackIds([]);
     setPrefillMillIds([]);
@@ -548,13 +529,6 @@ const HarvestCampaignScreen = () => {
   };
 
   const openPendingCapture = (kind: 'mill' | 'oil') => {
-    if (dayClosed) {
-      Alert.alert(
-        t('fields:harvestCampaign.dayNav.lockedTitle'),
-        t('fields:harvestCampaign.dashboard.pickOpenDay')
-      );
-      return;
-    }
     setView('today');
     setSheet(kind);
   };
@@ -687,20 +661,18 @@ const HarvestCampaignScreen = () => {
         harvestRecordIds: persisted?.harvestRecordIds,
       })
     );
+    setPrefillSackIds([]);
     clearPreferredField();
     if (opts?.keepOpen) return entry.id;
-    setPrefillSackIds([]);
-    setPostMillId(entry.id);
-    setSheet('mill-next');
+    closeSheet();
     return entry.id;
   };
 
   const saveMillLink = (sackIds: string[]) => {
     if (linkMillId) {
       void patch((current) => linkSacksToMill(current, linkMillId, sackIds));
-      setPostMillId(linkMillId);
       setLinkMillFieldIds([]);
-      setSheet('mill-next');
+      closeSheet();
       return;
     }
     setLinkMillFieldIds([]);
@@ -854,13 +826,27 @@ const HarvestCampaignScreen = () => {
     .filter(Boolean)
     .join(' · ');
 
+  const areaLocale: 'el' | 'en' | 'it' = locale.startsWith('en')
+    ? 'en'
+    : locale.startsWith('it')
+      ? 'it'
+      : 'el';
+  const startFields = harvestable.map((field) => ({
+    id: field.id,
+    name: friendlyFieldLabel(field.name),
+    color: field.color,
+    meta: [field.variety, formatFieldArea(field, areaLocale)]
+      .filter((part) => part && part !== '—')
+      .join(' · '),
+  }));
+
   return (
     <ScreenLayout tabBarInset>
       <ScreenHeader
         title={t('fields:harvestCampaign.title')}
-        subtitle={headerSubtitle || t('fields:harvestCampaign.leadIdle')}
+        subtitle={headerSubtitle || t('fields:harvestCampaign.opening.body')}
         action={
-          isLive && !dayClosed && harvestCaps.captureKinds.length > 0 ? (
+          isLive && harvestCaps.captureKinds.length > 0 ? (
             <HeaderIconButton
               icon="add"
               accessibilityLabel={t('fields:harvestCampaign.home.whatAdd')}
@@ -928,150 +914,66 @@ const HarvestCampaignScreen = () => {
         </View>
       ) : null}
 
-      {!isLive && !showHistoricalDay && setupStep === 0 ? (
+      {!isLive && !showHistoricalDay && setupStep === 0 && (doneBanner || campaign.status === 'closed') ? (
         <View style={styles.block}>
-          {doneBanner || campaign.status === 'closed' ? (
-            <HarvestCard tone="nudge">
-              <Text style={[styles.overline, { color: colors.textTertiary }]}>
-                {t('fields:harvestCampaign.complete.finishedTitle')}
-              </Text>
-              <Text style={[styles.lead, { color: colors.textPrimary }]}>
-                {t('fields:harvestCampaign.complete.done')}
-              </Text>
-              <Button
-                title={t('fields:harvestCampaign.complete.review')}
-                onPress={() => navigation.navigate('ThisHarvestReview')}
-                fullWidth
-              />
-              <Button
-                title={t('fields:harvestCampaign.complete.addNote')}
-                variant="ghost"
-                onPress={openHarvestNote}
-                fullWidth
-              />
-            </HarvestCard>
-          ) : null}
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>
-            {t('fields:harvestCampaign.leadIdle')}
-          </Text>
-          {harvestCaps.canStart ? (
-          <Button
-            title={
+          <HarvestCard tone="nudge">
+            <Text style={[styles.overline, { color: colors.textTertiary }]}>
+              {t('fields:harvestCampaign.complete.finishedTitle')}
+            </Text>
+            <Text style={[styles.lead, { color: colors.textPrimary }]}>
+              {t('fields:harvestCampaign.complete.done')}
+            </Text>
+            <Button
+              title={t('fields:harvestCampaign.complete.review')}
+              onPress={() => navigation.navigate('ThisHarvestReview')}
+              fullWidth
+            />
+            <Button
+              title={t('fields:harvestCampaign.complete.addNote')}
+              variant="ghost"
+              onPress={openHarvestNote}
+              fullWidth
+            />
+          </HarvestCard>
+        </View>
+      ) : null}
+
+      {!isLive && !showHistoricalDay ? (
+        <View style={styles.block}>
+          <HarvestStart
+            step={setupStep}
+            fields={startFields}
+            pickedIds={pickedIds}
+            canStart={harvestCaps.canStart}
+            startLabel={
               doneBanner
                 ? t('fields:harvestCampaign.complete.startAgain', {
                     defaultValue: t('fields:harvestCampaign.start'),
                   })
                 : t('fields:harvestCampaign.start')
             }
-            onPress={() => {
+            onBegin={() => {
               setDoneBanner(false);
               setSetupStep(1);
             }}
-            fullWidth
-          />
-          ) : null}
-        </View>
-      ) : null}
-
-      {!isLive && !showHistoricalDay && setupStep === 1 ? (
-        <View style={styles.block}>
-          <Text style={[styles.overline, { color: colors.textTertiary }]}>
-            {t('fields:harvestCampaign.setup.step', { step: 1 })}
-          </Text>
-          <Text style={[styles.h2, { color: colors.textPrimary }]}>
-            {t('fields:harvestCampaign.setupTitle')}
-          </Text>
-          {harvestable.length === 0 ? (
-            <>
-              <Text style={[styles.lead, { color: colors.textSecondary }]}>
-                {t('fields:harvestCampaign.noFields')}
-              </Text>
-              <Button
-                title={t('fields:harvestCampaign.setup.goToFields')}
-                onPress={() =>
-                  navigation.navigate('Main', { screen: 'Fields', params: { screen: 'FieldsHome' } })
-                }
-                fullWidth
-              />
-            </>
-          ) : (
-            harvestable.map((field) => {
-              const on = pickedIds.includes(field.id);
-              const areaLocale = locale.startsWith('en') ? 'en' : locale.startsWith('it') ? 'it' : 'el';
-              const meta = [field.variety, formatFieldArea(field, areaLocale)]
-                .filter((part) => part && part !== '—')
-                .join(' · ');
-              return (
-                <HarvestCard
-                  key={field.id}
-                  tone={on ? 'done' : 'default'}
-                  onPress={() =>
-                    setPickedIds((prev) =>
-                      prev.includes(field.id) ? prev.filter((id) => id !== field.id) : [...prev, field.id]
-                    )
-                  }
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <FieldColorMark color={field.color} fieldId={field.id} size={14} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16 }}>
-                        {friendlyFieldLabel(field.name)}
-                      </Text>
-                      {meta ? (
-                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{meta}</Text>
-                      ) : null}
-                    </View>
-                  </View>
-                </HarvestCard>
-              );
-            })
-          )}
-          {harvestable.length > 0 ? (
-            <>
-              <Button
-                title={t('fields:harvestCampaign.setup.selectAll')}
-                variant="outline"
-                onPress={() => setPickedIds(harvestable.map((f) => f.id))}
-              />
-              <Button
-                title={t('common:continue', { defaultValue: 'Continue' })}
-                onPress={() => setSetupStep(2)}
-              />
-              <Button
-                title={t('fields:harvestCampaign.setup.later')}
-                variant="ghost"
-                onPress={() => {
-                  setPickedIds([]);
-                  setSetupStep(2);
-                }}
-              />
-            </>
-          ) : (
-            <Button title={t('common:back')} variant="ghost" onPress={() => setSetupStep(0)} />
-          )}
-        </View>
-      ) : null}
-
-      {!isLive && !showHistoricalDay && setupStep === 2 ? (
-        <View style={styles.block}>
-          <Text style={[styles.overline, { color: colors.textTertiary }]}>
-            {t('fields:harvestCampaign.setup.step', { step: 2 })}
-          </Text>
-          <Text style={[styles.h2, { color: colors.textPrimary }]}>
-            {t('fields:harvestCampaign.setup.startTitle')}
-          </Text>
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>
-            {t('fields:harvestCampaign.setup.startHint')}
-          </Text>
-          <Button
-            title={t('fields:harvestCampaign.setup.confirmStart')}
-            onPress={() => {
+            onToggle={(id) =>
+              setPickedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
+            }
+            onSelectAll={() => setPickedIds(harvestable.map((field) => field.id))}
+            onContinue={() => setSetupStep(2)}
+            onLater={() => {
+              setPickedIds([]);
+              setSetupStep(2);
+            }}
+            onConfirm={() => {
               void start({ fieldOrder: pickedIds });
               setOpening(true);
             }}
-            fullWidth
+            onBack={() => setSetupStep(setupStep === 2 ? 1 : 0)}
+            onGoToFields={() =>
+              navigation.navigate('Main', { screen: 'Fields', params: { screen: 'FieldsHome' } })
+            }
           />
-          <Button title={t('common:back')} variant="ghost" onPress={() => setSetupStep(1)} />
         </View>
       ) : null}
 
@@ -1083,7 +985,6 @@ const HarvestCampaignScreen = () => {
                 selectedDay={workingDay}
                 today={today}
                 dayNumber={days}
-                closed={dayClosed}
                 stripRows={stripRows}
                 canPrev={canPrevDay}
                 canNext={canNextDay}
@@ -1218,23 +1119,17 @@ const HarvestCampaignScreen = () => {
                     <View
                       style={[
                         styles.statusPill,
-                        {
-                          backgroundColor: dayClosed
-                            ? colors.surfaceMuted
-                            : colors.eventHarvestSoft,
-                        },
+                        { backgroundColor: colors.eventHarvestSoft },
                       ]}
                     >
                       <Text
                         style={{
-                          color: dayClosed ? colors.textSecondary : colors.primary,
+                          color: colors.primary,
                           fontWeight: '700',
                           fontSize: 11,
                         }}
                       >
-                        {dayClosed
-                          ? t('fields:harvestCampaign.today.closed')
-                          : t('fields:harvestCampaign.status.active')}
+                        {t('fields:harvestCampaign.status.active')}
                       </Text>
                     </View>
                   </View>
@@ -1322,14 +1217,13 @@ const HarvestCampaignScreen = () => {
                   campaign={campaign}
                   date={workingDay}
                   labelOf={labelOf}
-                  closed={dayClosed}
                   onEdit={openDayEdit}
                   onRemove={removeDayEntry}
                   onAdd={openDayAdd}
                   allowedKinds={harvestCaps.captureKinds}
                 />
 
-                {!dayClosed && harvestCaps.captureKinds.length > 0 ? (
+                {harvestCaps.captureKinds.length > 0 ? (
                   <HarvestCard tone="pending" onPress={requestAdd}>
                     <View style={styles.addCueInner}>
                       <View style={[styles.addCueIcon, { backgroundColor: colors.surface }]}>
@@ -1524,7 +1418,7 @@ const HarvestCampaignScreen = () => {
                     <Text style={{ color: colors.textSecondary }}>
                       {t('fields:harvestCampaign.log.empty')}
                     </Text>
-                    {!dayClosed ? (
+                    {harvestCaps.captureKinds.length > 0 ? (
                       <Button
                         title={t('fields:harvestCampaign.home.whatAdd')}
                         variant="outline"

@@ -9,6 +9,8 @@ type Props = {
   onChange: (next: { locationText: string; latitude?: number; longitude?: number }) => void;
   /** Hide the field-level hint when the parent already explains optionality. */
   hideHint?: boolean;
+  /** Embed in a parent toolbar — no label/optional chrome. */
+  embed?: boolean;
 };
 
 type MenuBox = { top: number; left: number; width: number };
@@ -19,7 +21,7 @@ const splitPlaceLabel = (label: string): { primary: string; secondary?: string }
   return { primary: parts[0], secondary: parts.slice(1).join(', ') };
 };
 
-const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = false }) => {
+const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = false, embed = false }) => {
   const { t } = useTranslation('fields');
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -207,22 +209,25 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
       : null;
 
   return (
-    <div className={`location-search${showList ? ' is-open' : ''}`} ref={rootRef}>
-      <div className="location-search-label-row">
-        <label htmlFor="locationText">{t('addField.locationText')}</label>
-        <span className="location-search-optional">{t('createGrove.optional')}</span>
-      </div>
+    <div className={`location-search${showList ? ' is-open' : ''}${embed ? ' is-embed' : ''}`} ref={rootRef}>
+      {!embed ? (
+        <div className="location-search-label-row">
+          <label htmlFor={listId + '-input'}>{t('addField.locationText')}</label>
+          <span className="location-search-optional">{t('createGrove.optional')}</span>
+        </div>
+      ) : null}
       <div ref={wrapRef} className={`location-search-input-wrap${showList ? ' is-open' : ''}`}>
         <MapPin size={18} className="location-search-icon" aria-hidden />
         <input
           type="search"
-          id="locationText"
+          id={listId + '-input'}
           name="locationText"
           autoComplete="off"
           role="combobox"
           aria-expanded={showList}
           aria-controls={listId}
           aria-autocomplete="list"
+          aria-label={t('addField.searchLocation')}
           aria-activedescendant={
             activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined
           }
@@ -233,14 +238,16 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder={t('createGrove.place.placeholder')}
+          placeholder={t('createGrove.place.placeholder', {
+            defaultValue: t('addField.searchLocation'),
+          })}
         />
         {loading ? (
           <Loader2 size={16} className="location-search-spinner" aria-hidden />
         ) : null}
       </div>
       {results}
-      {!hideHint ? (
+      {!hideHint && !embed ? (
         <p className="field-form-hint location-search-hint">{t('createGrove.place.canWait')}</p>
       ) : null}
     </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useOwnerActivation } from '../../onboarding/OwnerActivationContext';
+import { canVisitActivationStep } from '../../onboarding/evaluate';
 import { OWNER_CHECKLIST_STEPS, type OwnerActivationStepId } from '../../onboarding/steps';
 import './ActivationChecklist.css';
 
@@ -55,7 +56,11 @@ const ActivationChecklist: React.FC = () => {
   if (!visible) return null;
 
   const total = OWNER_CHECKLIST_STEPS.length;
-  const tipKey = tipKeyFor(spotlightStep, boundaryLocate);
+  // Inline FocusSpotlight already coaches on create/boundary — avoid a second tip while locked.
+  const tipKey =
+    locked && (spotlightStep === 'createGrove' || spotlightStep === 'drawBoundary')
+      ? null
+      : tipKeyFor(spotlightStep, boundaryLocate);
   const resumeStep = activeStep || (completion.createGrove ? 'drawBoundary' : 'createGrove');
 
   if (celebrating) {
@@ -114,13 +119,16 @@ const ActivationChecklist: React.FC = () => {
           {OWNER_CHECKLIST_STEPS.map((step: OwnerActivationStepId, index) => {
             const done = completion[step];
             const current = activeStep === step;
+            const visit = canVisitActivationStep(step, completion);
             return (
               <button
                 key={step}
                 type="button"
-                className={`activation-bar-step${done ? ' is-done' : ''}${current ? ' is-current' : ''}`}
-                onClick={() => goToStep(step)}
+                className={`activation-bar-step${done ? ' is-done' : ''}${current ? ' is-current' : ''}${!visit ? ' is-disabled' : ''}`}
+                onClick={() => visit && goToStep(step)}
+                disabled={!visit}
                 aria-current={current ? 'step' : undefined}
+                aria-disabled={!visit}
                 title={t(`steps.${step}.title`)}
               >
                 <span className="activation-bar-step-num" aria-hidden>

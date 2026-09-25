@@ -93,7 +93,13 @@ export const HarvestNumberInput: React.FC<HarvestNumberInputProps> = ({
 
 const styles = StyleSheet.create({
   group: { gap: spacing.xs },
-  label: { ...typography.styles.bodySmall, fontWeight: '700', fontSize: 15 },
+  label: {
+    ...typography.styles.bodySmall,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
   inputRow: {
     minHeight: 72,
     borderRadius: radii.xl,

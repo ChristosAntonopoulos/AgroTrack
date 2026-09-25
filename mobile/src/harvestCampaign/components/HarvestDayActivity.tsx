@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
@@ -15,6 +16,7 @@ import type {
 } from '../types';
 import { formatHarvestOilAmountLabel, readOilTinCounts } from '../utils/harvestCalculations';
 import { HarvestCard } from './HarvestCard';
+import { HARVEST_ACTION_ICONS } from '../harvestActions';
 import { radii, spacing } from '../../theme';
 
 export type DayActivityKind = 'sack' | 'mill' | 'oil' | 'people';
@@ -29,7 +31,6 @@ type Props = {
   campaign: HarvestCampaign;
   date: string;
   labelOf: (fieldId: string) => string;
-  closed?: boolean;
   onEdit: (target: DayActivityEditTarget) => void;
   onRemove: (target: DayActivityEditTarget) => void;
   onAdd: (kind: DayActivityKind) => void;
@@ -37,19 +38,19 @@ type Props = {
 };
 
 type RowProps = {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   kindLabel: string;
   title: string;
   detail: string;
-  closed?: boolean;
   onEdit: () => void;
   onRemove: () => void;
 };
 
 const ActivityRow: React.FC<RowProps> = ({
+  icon,
   kindLabel,
   title,
   detail,
-  closed,
   onEdit,
   onRemove,
 }) => {
@@ -66,33 +67,45 @@ const ActivityRow: React.FC<RowProps> = ({
         },
       ]}
     >
-      <View style={styles.rowMain}>
-        <Text style={[styles.kind, { color: colors.textTertiary }]}>{kindLabel}</Text>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
-        {detail ? (
-          <Text style={[styles.detail, { color: colors.textSecondary }]}>{detail}</Text>
-        ) : null}
+      <View style={styles.rowTop}>
+        <View style={[styles.iconWell, { backgroundColor: colors.eventHarvestSoft }]}>
+          <Ionicons name={icon} size={18} color={colors.eventHarvest} />
+        </View>
+        <View style={styles.rowMain}>
+          <Text style={[styles.kind, { color: colors.eventHarvest }]}>{kindLabel}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          {detail ? (
+            <Text style={[styles.detail, { color: colors.textSecondary }]}>{detail}</Text>
+          ) : null}
+        </View>
       </View>
-      {!closed ? (
-        <View style={styles.actions}>
+      <View style={styles.actions}>
           <Pressable
             onPress={onEdit}
-            hitSlop={8}
             style={({ pressed }) => [
               styles.actionBtn,
-              { minHeight: Math.max(tapMin * 0.7, 36), opacity: pressed ? 0.7 : 1 },
+              {
+                minHeight: Math.max(tapMin * 0.7, 36),
+                borderColor: colors.borderLight,
+                backgroundColor: colors.surfaceMuted,
+                opacity: pressed ? 0.75 : 1,
+              },
             ]}
           >
-            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+            <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 13 }}>
               {t('harvestCampaign.dayActivity.edit')}
             </Text>
           </Pressable>
           <Pressable
             onPress={onRemove}
-            hitSlop={8}
             style={({ pressed }) => [
               styles.actionBtn,
-              { minHeight: Math.max(tapMin * 0.7, 36), opacity: pressed ? 0.7 : 1 },
+              {
+                minHeight: Math.max(tapMin * 0.7, 36),
+                borderColor: 'transparent',
+                backgroundColor: 'transparent',
+                opacity: pressed ? 0.75 : 1,
+              },
             ]}
           >
             <Text style={{ color: colors.error, fontWeight: '700', fontSize: 13 }}>
@@ -100,7 +113,6 @@ const ActivityRow: React.FC<RowProps> = ({
             </Text>
           </Pressable>
         </View>
-      ) : null}
     </View>
   );
 };
@@ -109,7 +121,6 @@ export const HarvestDayActivity: React.FC<Props> = ({
   campaign,
   date,
   labelOf,
-  closed,
   onEdit,
   onRemove,
   onAdd,
@@ -156,23 +167,34 @@ export const HarvestDayActivity: React.FC<Props> = ({
     return t('harvestCampaign.people.hours.skip');
   };
 
-  const addChip = (kind: DayActivityKind, label: string) => (
-    <Pressable
-      key={kind}
-      onPress={() => onAdd(kind)}
-      style={({ pressed }) => [
-        styles.addChip,
-        {
-          borderColor: colors.borderLight,
-          backgroundColor: colors.surface,
-          minHeight: Math.max(tapMin * 0.75, 36),
-          opacity: pressed ? 0.85 : 1,
-        },
-      ]}
-    >
-      <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>+ {label}</Text>
-    </Pressable>
-  );
+  const addChip = (kind: DayActivityKind, label: string) => {
+    const icon =
+      kind === 'sack'
+        ? HARVEST_ACTION_ICONS.sacks
+        : kind === 'mill'
+          ? HARVEST_ACTION_ICONS.mill
+          : kind === 'oil'
+            ? HARVEST_ACTION_ICONS.oil
+            : HARVEST_ACTION_ICONS.people;
+    return (
+      <Pressable
+        key={kind}
+        onPress={() => onAdd(kind)}
+        style={({ pressed }) => [
+          styles.addChip,
+          {
+            borderColor: colors.borderLight,
+            backgroundColor: colors.eventHarvestSoft,
+            minHeight: Math.max(tapMin * 0.75, 40),
+            opacity: pressed ? 0.85 : 1,
+          },
+        ]}
+      >
+        <Ionicons name={icon} size={16} color={colors.eventHarvest} />
+        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 14 }}>{label}</Text>
+      </Pressable>
+    );
+  };
 
   return (
     <HarvestCard tone="default" accent>
@@ -187,8 +209,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
         </View>
       </View>
 
-      {!closed ? (
-        <View style={styles.addRow}>
+      <View style={styles.addRow}>
           {(!allowedKinds || allowedKinds.includes('sacks'))
             ? addChip('sack', t('harvestCampaign.actions.sacks'))
             : null}
@@ -202,10 +223,9 @@ export const HarvestDayActivity: React.FC<Props> = ({
             ? addChip('people', t('harvestCampaign.actions.people'))
             : null}
         </View>
-      ) : null}
 
       {empty ? (
-        <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
+        <Text style={[styles.empty, { color: colors.textSecondary }]}>
           {t('harvestCampaign.dayActivity.empty')}
         </Text>
       ) : (
@@ -214,6 +234,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
             <ActivityRow
               key={entry.id}
               kindLabel={t('harvestCampaign.actions.sacks')}
+              icon={HARVEST_ACTION_ICONS.sacks}
               title={`${entry.sacks} ${t('harvestCampaign.sacks.unit')}`}
               detail={[
                 friendlyFieldLabel(labelOf(entry.fieldId)),
@@ -226,7 +247,6 @@ export const HarvestDayActivity: React.FC<Props> = ({
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              closed={closed}
               onEdit={() => onEdit({ kind: 'sack', entry })}
               onRemove={() => confirmRemove({ kind: 'sack', entry })}
             />
@@ -236,6 +256,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
             <ActivityRow
               key={entry.id}
               kindLabel={t('harvestCampaign.actions.mill')}
+              icon={HARVEST_ACTION_ICONS.mill}
               title={`${formatKg(entry.kg)} kg`}
               detail={[
                 entry.fieldIds.map((id) => friendlyFieldLabel(labelOf(id))).join(' · ') ||
@@ -247,7 +268,6 @@ export const HarvestDayActivity: React.FC<Props> = ({
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              closed={closed}
               onEdit={() => onEdit({ kind: 'mill', entry })}
               onRemove={() => confirmRemove({ kind: 'mill', entry })}
             />
@@ -273,6 +293,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
             <ActivityRow
               key={entry.id}
               kindLabel={t('harvestCampaign.actions.oil')}
+              icon={HARVEST_ACTION_ICONS.oil}
               title={
                 entry.unit === 'litres'
                   ? `${Math.round(entry.amount)} L`
@@ -292,7 +313,6 @@ export const HarvestDayActivity: React.FC<Props> = ({
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              closed={closed}
               onEdit={() => onEdit({ kind: 'oil', entry })}
               onRemove={() => confirmRemove({ kind: 'oil', entry })}
             />
@@ -303,9 +323,9 @@ export const HarvestDayActivity: React.FC<Props> = ({
             <ActivityRow
               key={entry.id}
               kindLabel={t('harvestCampaign.actions.people')}
+              icon={HARVEST_ACTION_ICONS.people}
               title={t('harvestCampaign.today.people', { count: entry.people })}
               detail={hoursLabel(entry)}
-              closed={closed}
               onEdit={() => onEdit({ kind: 'people', entry })}
               onRemove={() => confirmRemove({ kind: 'people', entry })}
             />
@@ -340,46 +360,70 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   addChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  empty: {
+    fontSize: 15,
+    lineHeight: 22,
   },
   list: {
     gap: spacing.sm,
   },
   row: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     padding: spacing.md,
     gap: spacing.sm,
   },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  iconWell: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
   rowMain: {
+    flex: 1,
     gap: 2,
   },
   kind: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.2,
+    letterSpacing: -0.4,
   },
   detail: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing.sm,
+    paddingLeft: 44,
   },
   actionBtn: {
     justifyContent: 'center',
-    paddingRight: spacing.xs,
+    paddingHorizontal: 14,
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });
 

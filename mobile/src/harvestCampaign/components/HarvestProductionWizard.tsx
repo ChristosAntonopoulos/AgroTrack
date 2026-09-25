@@ -110,9 +110,9 @@ export const HarvestProductionWizard: React.FC<{
   };
 
   const afterSave = (from: HarvestProduceStep) => {
-    const next = pending.current ?? nextOf(from);
+    const next = pending.current;
     pending.current = null;
-    if (next && enabled.includes(next)) setStep(next);
+    if (next && enabled.includes(next) && next !== from) setStep(next);
     else onClose();
   };
 

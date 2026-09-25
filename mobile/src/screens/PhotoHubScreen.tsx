@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenLayout from '../components/layout/ScreenLayout';
+import ScreenHeader from '../components/layout/ScreenHeader';
+import HeaderIconButton from '../components/layout/HeaderIconButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import FilterChips from '../components/ui/FilterChips';
@@ -97,6 +100,7 @@ const formatAthensCardDate = (value: string, locale: string) => {
 const PhotoHubScreen: React.FC = () => {
   const { t, i18n } = useTranslation(['photos', 'common', 'nav']);
   const { colors, tapMin } = useTheme();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isOnline } = useOfflineMode();
   const navigation = useNavigation<Nav>();
@@ -330,23 +334,6 @@ const PhotoHubScreen: React.FC = () => {
 
   const { refreshing, onRefresh } = useRefresh(load);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: t('nav:photos', { defaultValue: 'Photos' }),
-      headerRight: () => (
-        <Pressable
-          onPress={() => setUploadPickerOpen(true)}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={t('photos:upload')}
-          style={styles.headerAdd}
-        >
-          <Ionicons name="add" size={28} color={colors.primary} />
-        </Pressable>
-      ),
-    });
-  }, [navigation, t, colors.primary]);
-
   const refreshPhoto = (photo: Photo) => {
     setSelected(photo);
     setPhotos((prev) => prev.map((p) => (p.id === photo.id ? photo : p)));
@@ -468,8 +455,25 @@ const PhotoHubScreen: React.FC = () => {
   }
 
   return (
-    <ScreenLayout scroll padded refreshControl={{ refreshing, onRefresh }}>
-      <View style={styles.stack}>
+    <ScreenLayout scroll padded tabBarInset refreshControl={{ refreshing, onRefresh }}>
+      <View style={[styles.stack, { paddingTop: insets.top }]}>
+        {navigation.canGoBack() ? (
+          <HeaderIconButton
+            icon="chevron-back"
+            accessibilityLabel={t('common:back', { defaultValue: 'Back' })}
+            onPress={() => navigation.goBack()}
+          />
+        ) : null}
+        <ScreenHeader
+          title={t('nav:photos', { defaultValue: 'Photos' })}
+          subtitle={t('photos:subtitle')}
+        />
+        <Button
+          title={t('photos:upload')}
+          onPress={() => setUploadPickerOpen(true)}
+          fullWidth
+          icon={<Ionicons name="add" size={20} color={colors.onOlive} />}
+        />
         <View style={styles.scopeRow}>
           <Pressable
             onPress={() => setFieldPickerOpen(true)}
@@ -1343,11 +1347,6 @@ const PhotoHubScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  headerAdd: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 4,
-  },
   stack: {
     gap: spacing.md,
   },

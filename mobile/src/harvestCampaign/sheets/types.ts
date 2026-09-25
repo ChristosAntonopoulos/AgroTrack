@@ -27,6 +27,5 @@ export type HarvestSheetKind =
   | 'produce'
   | 'mill-link'
   | 'mill-next'
-  | 'evening'
   | 'complete'
   | null;

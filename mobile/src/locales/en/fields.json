@@ -791,8 +791,9 @@
       "step": "Step {{step}}",
       "selectAll": "Select all",
       "later": "I will add fields later",
-      "startTitle": "Start",
+      "startTitle": "Ready when you are",
       "startHint": "During harvest you can record sacks, kilograms, people, expenses, and oil.",
+      "readyLine": "Sacks in the grove. Kilograms at the mill. Oil when it is pressed.",
       "confirmStart": "Begin today",
       "goToFields": "Go to fields"
     },

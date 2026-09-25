@@ -19,7 +19,6 @@ import {
 import { capRegionZoom, type MapRegion } from '../../utils/maplibreGeo';
 import { estimatePolygonAreaSqm } from '../../utils/polygonArea';
 import { locationService } from '../../services/locationService';
-import { geocodeFirstPlace } from '../../utils/geocodeLocation';
 import { typography, spacing, radii, createElevation } from '../../theme';
 
 export type BoundaryPoint = { latitude: number; longitude: number };
@@ -104,31 +103,17 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
       setLocationMissing(false);
       mapRef.current?.animateToRegion(next, FIELD_HERO_MAX_ZOOM);
     };
+    // Only move the map when a place was picked (coords). Free-text typing must not jump the map.
     if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
       goTo(latitude, longitude);
       return;
     }
-    const query = (locationQuery || '').trim();
-    if (!query) {
+    if (!(locationQuery || '').trim()) {
       setRegion(GREECE_OVERVIEW);
       setLocationMissing(false);
       mapRef.current?.animateToRegion(GREECE_OVERVIEW);
-      return;
     }
-    let cancelled = false;
-    void geocodeFirstPlace(query).then((place) => {
-      if (cancelled) return;
-      if (place) goTo(place.latitude, place.longitude);
-      else {
-        setRegion(GREECE_OVERVIEW);
-        setLocationMissing(true);
-        mapRef.current?.animateToRegion(GREECE_OVERVIEW);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [locationQuery, latitude, longitude, points.length]);
+  }, [latitude, longitude, locationQuery, points.length]);
 
   useEffect(() => {
     if (points.length >= 3 && phase === 'locate') {

@@ -50,7 +50,7 @@ export const HarvestNumberStepper: React.FC<Props> = ({
             {
               minWidth: Math.max(52, tapMin),
               minHeight: Math.max(52, tapMin),
-              backgroundColor: colors.primary,
+              backgroundColor: colors.eventHarvest,
             },
           ]}
         >
@@ -76,7 +76,7 @@ export const HarvestNumberStepper: React.FC<Props> = ({
             {
               minWidth: Math.max(52, tapMin),
               minHeight: Math.max(52, tapMin),
-              backgroundColor: colors.primary,
+              backgroundColor: colors.eventHarvest,
             },
           ]}
         >
@@ -91,7 +91,13 @@ export const NumberStepper = HarvestNumberStepper;
 
 const styles = StyleSheet.create({
   group: { gap: spacing.xs },
-  label: { ...typography.styles.bodySmall, fontWeight: '700', fontSize: 15 },
+  label: {
+    ...typography.styles.bodySmall,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
   row: {
     borderWidth: 0,
     borderRadius: radii.xl,

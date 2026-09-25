@@ -5,7 +5,7 @@ import type { Field } from '../../services/fieldService';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import FieldColorMark from '../../components/fields/FieldColorMark';
 import { useTheme } from '../../context/ThemeContext';
-import { radii, spacing, typography } from '../../theme';
+import { radii, spacing } from '../../theme';
 import type { FieldLocationGuess } from '../fieldGuess';
 
 type SingleProps = {
@@ -66,13 +66,13 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
         styles.chip,
         {
           minHeight: tapMin,
-          borderColor: selected ? colors.primary : colors.border,
-          backgroundColor: selected ? colors.primaryLight : colors.surface,
+          borderColor: selected ? colors.eventHarvest : colors.borderLight,
+          backgroundColor: selected ? colors.eventHarvestSoft : colors.surface,
         },
       ]}
     >
       <FieldColorMark color={color} fieldId={id || undefined} hollow={!id} size={10} />
-      <Text style={{ color: selected ? colors.primary : colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
+      <Text style={{ color: selected ? colors.eventHarvest : colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
         {label}
       </Text>
     </Pressable>
@@ -86,13 +86,13 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
         <Text style={[styles.label, { color: colors.textPrimary }]}>{props.sectionLabel}</Text>
       ) : null}
       {showGuessCard ? (
-        <View style={[styles.guess, { borderColor: colors.oliveBorder, backgroundColor: colors.primaryLight }]}>
+        <View style={[styles.guess, { borderColor: colors.eventHarvest, backgroundColor: colors.eventHarvestSoft }]}>
           <FieldColorMark color={guessed.color} fieldId={guessed.id} size={12} />
-          <Text style={{ color: colors.textSecondary, flex: 1 }}>
+          <Text style={{ color: colors.textPrimary, flex: 1, fontWeight: '600' }}>
             {t('harvestCampaign.sacks.nearField', { field: friendlyFieldLabel(guessed.name) })}
           </Text>
           <Pressable onPress={() => setManual(true)} hitSlop={8}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
+            <Text style={{ color: colors.eventHarvest, fontWeight: '700' }}>
               {t('harvestCampaign.sacks.changeField')}
             </Text>
           </Pressable>
@@ -128,7 +128,12 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
 
 const styles = StyleSheet.create({
   group: { gap: spacing.sm },
-  label: { ...typography.styles.bodySmall, fontWeight: '700' },
+  label: {
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
   chips: { gap: spacing.sm },
   chip: {
     flexDirection: 'row',

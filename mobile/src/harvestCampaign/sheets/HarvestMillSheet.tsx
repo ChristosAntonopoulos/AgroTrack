@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { resolveFieldColor } from '../../utils/fieldColors';
@@ -8,13 +8,12 @@ import { formatKg } from '../../utils/harvestUtils';
 import { HarvestCarryPicker, carryColor } from '../components/HarvestCarryPicker';
 import { equalFieldShares, fieldIdsFromShares, sharesFromSacks } from '../allocation';
 import { pendingSacksByDay, suggestMillIncludes } from '../chain';
-import { HarvestFormPager, HarvestQuickChips } from '../components/HarvestFormPager';
+import { HarvestFormPager, HarvestHint, HarvestMoreToggle, HarvestQuickChips, HarvestTextField } from '../components/HarvestFormPager';
 import { HarvestFieldPicker } from '../components/HarvestFieldPicker';
 import { HarvestNumberInput } from '../components/HarvestNumberInput';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestFieldShare, HarvestMillWeightEntry } from '../types';
 import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
-import { radii } from '../../theme';
 
 function formatWeekday(date: string, locale: string): string {
   try {
@@ -136,23 +135,6 @@ export const HarvestMillSheet: React.FC<
   const canSave = isPositiveAmount(kgNumber);
   const saveHint = !canSave ? t('fields:harvestCampaign.validation.enterWeight') : null;
 
-  type MillPhase = 'fruit' | 'weight' | 'fields' | 'review';
-  const millPhases: MillPhase[] = useMemo(() => {
-    const next: MillPhase[] = [];
-    if (pendingPool.length > 0) next.push('fruit');
-    next.push('weight');
-    next.push('fields');
-    next.push('review');
-    return next;
-  }, [pendingPool.length]);
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    setPhase((current) => Math.min(current, Math.max(millPhases.length - 1, 0)));
-  }, [millPhases.length]);
-  const phaseKey = millPhases[Math.min(phase, millPhases.length - 1)] ?? 'weight';
-  const lastPhase = phase >= millPhases.length - 1;
-  const canAdvance = phaseKey === 'weight' ? canSave : true;
-
   const selectedSacks = useMemo(
     () => pendingPool.filter((s) => sackIds.includes(s.id)),
     [pendingPool, sackIds]
@@ -207,60 +189,24 @@ export const HarvestMillSheet: React.FC<
 
   return (
     <HarvestFormPager
-      current={phase}
-      total={millPhases.length}
-      title={
-        phaseKey === 'fruit'
-          ? t('fields:harvestCampaign.steps.millFruit')
-          : phaseKey === 'weight'
-            ? t('fields:harvestCampaign.steps.millWeight')
-            : phaseKey === 'fields'
-              ? t('fields:harvestCampaign.steps.millFields')
-              : t('fields:harvestCampaign.steps.review')
-      }
-      hint={
-        phaseKey === 'fruit'
-          ? t('fields:harvestCampaign.carry.pickSacks')
-          : phaseKey === 'weight'
-            ? t('fields:harvestCampaign.millKg.prompt')
-            : phaseKey === 'fields'
-              ? t('fields:harvestCampaign.millKg.whichField')
-              : editing
-                ? t('fields:harvestCampaign.dayActivity.editMill')
-                : t('fields:harvestCampaign.steps.reviewHint')
-      }
+      current={0}
+      total={1}
+      title={editing ? t('fields:harvestCampaign.dayActivity.editMill') : t('fields:harvestCampaign.millKg.prompt')}
       nextLabel={
-        lastPhase
-          ? flow
-            ? flow.nextLabel
-            : editing
-              ? t('fields:harvestCampaign.dayActivity.saveChanges')
-              : t('fields:harvestCampaign.millKg.save', { kg: formatKg(kgNumber || 0) })
-          : t('fields:harvestCampaign.wizard.next')
+        editing
+          ? t('fields:harvestCampaign.dayActivity.saveChanges')
+          : t('fields:harvestCampaign.millKg.save', { kg: formatKg(kgNumber || 0) })
       }
-      nextDisabled={!canAdvance}
-      onNext={() => {
-        if (!lastPhase) {
-          setPhase((current) => current + 1);
-          return;
-        }
-        onSave(millPayload());
-      }}
-      backLabel={flow?.backLabel || t('common:back')}
-      onBack={
-        phase > 0 || flow?.onBack
-          ? () => {
-              if (phase > 0) setPhase((current) => current - 1);
-              else flow?.onBack?.();
-            }
-          : undefined
-      }
+      nextDisabled={!canSave}
+      onNext={() => onSave(millPayload())}
+      backLabel={flow?.backLabel}
+      onBack={flow?.onBack}
       cancelLabel={t('common:cancel')}
       onCancel={onClose}
       busy={flow?.busy}
-      error={phaseKey === 'weight' || lastPhase ? saveHint : null}
+      error={!canSave ? saveHint : null}
     >
-      {phaseKey === 'fruit' ? (
+      {pendingPool.length > 0 ? (
         <HarvestCarryPicker
           label={t('fields:harvestCampaign.chain.includesTitle')}
           items={allPendingByDay.flatMap((group) =>
@@ -305,130 +251,94 @@ export const HarvestMillSheet: React.FC<
           hint={includeSummary ? undefined : t('fields:harvestCampaign.carry.pickSacks')}
         />
       ) : null}
-      {phaseKey === 'weight' ? (
-        <>
-          <HarvestNumberInput
-            label={t('fields:harvestCampaign.addMenu.title.mill')}
-            value={kg}
-            onChange={setKg}
-            suffix="kg"
-            autoFocus={!flow || Boolean(flow.active)}
-          />
-          <HarvestQuickChips
-            values={[50, 100, 200, 500]}
-            suffix="kg"
-            onPick={(add) =>
-              setKg(String(Math.round(((parseHarvestDecimal(kg) ?? 0) + add) * 100) / 100))
-            }
-          />
-        </>
+      <HarvestNumberInput
+        label={t('fields:harvestCampaign.addMenu.title.mill')}
+        value={kg}
+        onChange={setKg}
+        suffix="kg"
+        autoFocus={!flow || Boolean(flow.active)}
+      />
+      <HarvestQuickChips
+        values={[50, 100, 200, 500]}
+        suffix="kg"
+        onPick={(add) =>
+          setKg(String(Math.round(((parseHarvestDecimal(kg) ?? 0) + add) * 100) / 100))
+        }
+      />
+      <HarvestFieldPicker
+        mode="multiple"
+        fields={fields}
+        value={fieldIds}
+        onChange={(next) => {
+          setFieldIds(next);
+          setAdjustShares(false);
+        }}
+        sectionLabel={t('fields:harvestCampaign.millKg.whichField')}
+      />
+      {fieldIds.length === 0 ? (
+        <HarvestHint>{t('fields:harvestCampaign.millKg.split.none')}</HarvestHint>
+      ) : fieldIds.length > 1 ? (
+        <HarvestHint>{t('fields:harvestCampaign.shared.lotHint')}</HarvestHint>
       ) : null}
-      {phaseKey === 'fields' ? (
-        <>
-          <HarvestFieldPicker
-            mode="multiple"
-            fields={fields}
-            value={fieldIds}
-            onChange={(next) => {
-              setFieldIds(next);
-              setAdjustShares(false);
-            }}
-            sectionLabel={t('fields:harvestCampaign.millKg.whichField')}
-          />
-          {fieldIds.length === 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.millKg.split.none')}
-            </Text>
-          ) : fieldIds.length > 1 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.shared.lotHint')}
-            </Text>
-          ) : null}
-          {fieldIds.length > 1 ? (
-            <Pressable
-              onPress={() => {
-                setManualShares(defaultShares.map((s) => ({ ...s })));
-                setAdjustShares(true);
-              }}
-            >
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                {adjustShares
-                  ? t('fields:harvestCampaign.shared.editingShares')
-                  : t('fields:harvestCampaign.shared.adjustShares')}
-              </Text>
-            </Pressable>
-          ) : null}
-          {adjustShares
-            ? manualShares.map((share) => {
-                const field = fields.find((f) => f.id === share.fieldId);
-                return (
-                  <HarvestNumberInput
-                    key={share.fieldId}
-                    label={t('fields:harvestCampaign.shared.shareFor', {
-                      field: field?.name || share.fieldId,
-                    })}
-                    value={String(share.weight)}
-                    onChange={(raw) => {
-                      const weight = parseHarvestDecimal(raw) ?? 0;
-                      setManualShares((prev) =>
-                        prev.map((row) =>
-                          row.fieldId === share.fieldId ? { ...row, weight: Math.max(0, weight) } : row
-                        )
-                      );
-                    }}
-                    min={0}
-                  />
-                );
-              })
-            : null}
-        </>
+      {fieldIds.length > 1 ? (
+        <Pressable
+          onPress={() => {
+            setManualShares(defaultShares.map((s) => ({ ...s })));
+            setAdjustShares(true);
+          }}
+        >
+          <Text style={{ color: colors.eventHarvest, fontWeight: '700' }}>
+            {adjustShares
+              ? t('fields:harvestCampaign.shared.editingShares')
+              : t('fields:harvestCampaign.shared.adjustShares')}
+          </Text>
+        </Pressable>
       ) : null}
-      {phaseKey === 'review' ? (
-        <>
-          {includeSummary ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.flow.sackCount', { count: includeSummary.count })} ·{' '}
-              {formatKg(kgNumber || 0)} kg
-            </Text>
-          ) : (
-            <Text style={{ color: colors.textSecondary }}>{formatKg(kgNumber || 0)} kg</Text>
-          )}
-          <Pressable onPress={() => setMore((v) => !v)}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              {more ? t('fields:harvestCampaign.less') : t('fields:harvestCampaign.more')}
-            </Text>
-          </Pressable>
-          {more ? (
-            <View style={{ gap: 8 }}>
-              <Text style={{ color: colors.textSecondary }}>
-                {t('fields:harvestCampaign.millKg.tareHint')}
-              </Text>
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                {t('fields:harvestCampaign.millKg.receiptRef')}
-              </Text>
-              <TextInput
-                value={receiptRef}
-                onChangeText={setReceiptRef}
-                autoComplete="off"
-                style={[styles.note, { color: colors.textPrimary, borderColor: colors.border, minHeight: 48 }]}
+      {adjustShares
+        ? manualShares.map((share) => {
+            const field = fields.find((f) => f.id === share.fieldId);
+            return (
+              <HarvestNumberInput
+                key={share.fieldId}
+                label={t('fields:harvestCampaign.shared.shareFor', {
+                  field: field?.name || share.fieldId,
+                })}
+                value={String(share.weight)}
+                onChange={(raw) => {
+                  const weight = parseHarvestDecimal(raw) ?? 0;
+                  setManualShares((prev) =>
+                    prev.map((row) =>
+                      row.fieldId === share.fieldId ? { ...row, weight: Math.max(0, weight) } : row
+                    )
+                  );
+                }}
+                min={0}
               />
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                {t('fields:harvestCampaign.noteOptional')}
-              </Text>
-              <TextInput
-                value={note}
-                onChangeText={setNote}
-                multiline
-                style={[styles.note, { color: colors.textPrimary, borderColor: colors.border }]}
-              />
-            </View>
-          ) : null}
-        </>
+            );
+          })
+        : null}
+      <HarvestMoreToggle
+        open={more}
+        onPress={() => setMore((v) => !v)}
+        openLabel={t('fields:harvestCampaign.less')}
+        closedLabel={t('fields:harvestCampaign.more')}
+      />
+      {more ? (
+        <View style={{ gap: 8 }}>
+          <HarvestHint>{t('fields:harvestCampaign.millKg.tareHint')}</HarvestHint>
+          <HarvestTextField
+            label={t('fields:harvestCampaign.millKg.receiptRef')}
+            value={receiptRef}
+            onChange={setReceiptRef}
+          />
+          <HarvestTextField
+            label={t('fields:harvestCampaign.noteOptional')}
+            value={note}
+            onChange={setNote}
+            multiline
+          />
+        </View>
       ) : null}
     </HarvestFormPager>
   );
 };
-
-const styles = StyleSheet.create({
-  note: { borderWidth: 1, borderRadius: radii.lg, minHeight: 72, padding: 12, textAlignVertical: 'top' },
-});

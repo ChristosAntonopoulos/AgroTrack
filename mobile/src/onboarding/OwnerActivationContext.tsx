@@ -15,6 +15,7 @@ import { geospatialService } from '../services/geospatialService';
 import type { Field } from '../services/fieldService';
 import type { RootStackParamList } from '../navigation/types';
 import {
+  canVisitActivationStep,
   evaluateStepCompletion,
   ownerHasAnyBoundary,
   pickActivationField,
@@ -189,11 +190,11 @@ export const OwnerActivationProvider: React.FC<{
           next = spatialStatusFromProfiles(p2, s2);
         }
         setSpatialStatus(next);
-        if ((next === 'waiting' || next === 'idle') && polls < 12) {
+        if ((next === 'waiting' || next === 'idle') && polls < 16) {
           polls += 1;
           pollTimer.current = setTimeout(() => {
             void load();
-          }, 4000);
+          }, 2000);
         }
       } catch {
         if (!cancelled) setSpatialStatus('failed');
@@ -319,6 +320,7 @@ export const OwnerActivationProvider: React.FC<{
 
   const goToStep = useCallback(
     (step: OwnerActivationStepId) => {
+      if (!canVisitActivationStep(step, completion)) return;
       if (laterSnoozed) {
         persist({
           ...persisted,
@@ -357,7 +359,7 @@ export const OwnerActivationProvider: React.FC<{
         });
       }
     },
-    [navRef, primaryField, laterSnoozed, persist, persisted]
+    [navRef, primaryField, laterSnoozed, persist, persisted, completion]
   );
 
   const clearCelebration = useCallback(() => {

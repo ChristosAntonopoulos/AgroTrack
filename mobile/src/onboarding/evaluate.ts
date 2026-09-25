@@ -5,9 +5,21 @@ import type {
   SpatialProcessingStatus,
 } from '../services/geospatialService';
 import { fieldHasBoundary, isFieldSetupIncomplete } from '../utils/fieldDisplay';
-import type { OwnerActivationStepId } from './steps';
+import { OWNER_ACTIVATION_STEPS, type OwnerActivationStepId } from './steps';
 
 export type SpatialReadiness = 'idle' | 'waiting' | 'ready' | 'failed';
+
+/** Only current + completed steps — blocks jumping ahead into Chronologio/tasks mid-setup. */
+export const canVisitActivationStep = (
+  step: OwnerActivationStepId,
+  completion: Record<OwnerActivationStepId, boolean>
+): boolean => {
+  if (completion[step]) return true;
+  for (const s of OWNER_ACTIVATION_STEPS) {
+    if (!completion[s]) return s === step;
+  }
+  return true;
+};
 
 const isOwnerRole = (role?: string | null): boolean =>
   !role || role === 'FieldOwner' || role === '';

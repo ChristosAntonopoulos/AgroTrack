@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 type Props = {
@@ -31,12 +32,12 @@ const HarvestOpening: React.FC<Props> = ({ visible, seasonLabel, onClose }) => {
           style={[styles.card, { opacity: veil, transform: [{ translateY: rise }] }]}
           accessibilityViewIsModal
         >
+          <View style={styles.mark}>
+            <Ionicons name="leaf" size={28} color="#3f4a32" />
+          </View>
           {seasonLabel ? <Text style={styles.kicker}>{seasonLabel}</Text> : null}
           <Text style={styles.title}>{t('harvestCampaign.opening.title')}</Text>
           <Text style={styles.body}>{t('harvestCampaign.opening.body')}</Text>
-          <Text style={styles.body}>{t('harvestCampaign.opening.story')}</Text>
-          <Text style={styles.promiseKeep}>{t('harvestCampaign.opening.promiseKeep')}</Text>
-          <Text style={styles.promiseYours}>{t('harvestCampaign.opening.promiseYours')}</Text>
           <Text style={styles.blessing}>{t('harvestCampaign.opening.blessing')}</Text>
           <Pressable
             style={({ pressed }) => [styles.go, pressed && styles.goPressed]}
@@ -73,6 +74,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fbf7f0',
     alignItems: 'center',
   },
+  mark: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#efe6d4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
   kicker: {
     color: '#8a7358',
     fontSize: 12,
@@ -93,23 +103,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     textAlign: 'center',
-    marginBottom: 10,
-  },
-  promiseKeep: {
-    marginTop: 8,
-    color: '#5c564c',
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  promiseYours: {
-    fontFamily: 'serif',
-    fontStyle: 'italic',
-    color: '#2c3426',
-    fontSize: 18,
-    lineHeight: 26,
-    textAlign: 'center',
-    marginTop: 2,
     marginBottom: 10,
   },
   blessing: {

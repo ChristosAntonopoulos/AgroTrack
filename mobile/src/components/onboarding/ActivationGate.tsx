@@ -32,7 +32,7 @@ const ActivationGate: React.FC<{ navRef: NavRef }> = ({ navRef }) => {
       // Spatial welcome right after boundary save.
       if (name === 'FieldDetail') {
         const params = route.params as RootStackParamList['FieldDetail'] | undefined;
-        if (params?.activation === 'spatial') return;
+        if (params?.activation === 'spatial' || params?.activation === 'observe') return;
       }
 
       const step =

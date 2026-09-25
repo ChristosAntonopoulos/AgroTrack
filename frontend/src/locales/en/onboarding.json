@@ -37,10 +37,10 @@
     },
     "locatePlace": {
       "title": "Find the place",
-      "body": "Search for a village or area, or use your current location. Then we open the map to draw."
+      "body": "Type a village or area and pick from the list. Then draw the boundary on the map."
     },
     "drawBoundary": {
-      "title": "Draw the όρια",
+      "title": "Draw the boundary",
       "body": "Tap the corners of the grove on the map. Save when the shape looks right."
     },
     "firstObservation": {

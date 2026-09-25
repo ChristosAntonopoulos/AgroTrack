@@ -41,7 +41,7 @@
     },
     "locatePlace": {
       "title": "Cerca il luogo",
-      "body": "Cerca un paese o una zona, oppure usa la tua posizione. Poi disegni il confine sulla mappa."
+      "body": "Scrivi paese o zona e scegli dalla lista. Poi disegni il confine sulla mappa."
     },
     "drawBoundary": {
       "title": "Disegna i confini",

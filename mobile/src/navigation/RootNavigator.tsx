@@ -56,6 +56,9 @@ import { View, StyleSheet } from 'react-native';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
 import ActivationGate from '../components/onboarding/ActivationGate';
 import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
+import AppDock from './AppDock';
+import { DockProvider } from './DockContext';
+import { dockHiddenForRoute, getFocusedRoute, type FocusedRoute } from './dockRoute';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -67,6 +70,7 @@ const RootNavigator = () => {
   const [sessionExpired, setSessionExpired] = useState(false);
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const firstGroveChecked = useRef(false);
+  const [focusedRoute, setFocusedRoute] = useState<FocusedRoute>({ name: '' });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -141,6 +145,8 @@ const RootNavigator = () => {
   return (
     <NavigationContainer
       ref={navRef}
+      onReady={() => setFocusedRoute(getFocusedRoute(navRef.current?.getRootState()))}
+      onStateChange={(state) => setFocusedRoute(getFocusedRoute(state))}
       theme={navTheme}
       linking={{
         prefixes: ['oleachron://', 'https://app.oleachron.app'],
@@ -196,6 +202,7 @@ const RootNavigator = () => {
       <CaptureProvider>
         <InAppMessageProvider>
         <OwnerActivationProvider navRef={navRef}>
+        <DockProvider visible={isAuthenticated && !dockHiddenForRoute(focusedRoute.name)}>
         <View style={styles.shell}>
           <Stack.Navigator
             screenOptions={{
@@ -310,7 +317,7 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="Photos"
                 component={PhotoHubScreen}
-                options={{ title: t('nav:photos', { defaultValue: 'Photos' }) }}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="Analytics"
@@ -368,7 +375,11 @@ const RootNavigator = () => {
             <OwnerActivationHost />
           </>
         ) : null}
+        {isAuthenticated && !dockHiddenForRoute(focusedRoute.name) ? (
+          <AppDock route={focusedRoute} />
+        ) : null}
         </View>
+        </DockProvider>
         </OwnerActivationProvider>
         </InAppMessageProvider>
       </CaptureProvider>

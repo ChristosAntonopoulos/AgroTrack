@@ -1,8 +1,8 @@
 import { shouldRouteCaptureToHarvest } from './routeCapture';
 
 describe('shouldRouteCaptureToHarvest', () => {
-  it('sends generic plus and harvest capture into the harvest add menu', () => {
-    expect(shouldRouteCaptureToHarvest()).toBe(true);
+  it('opens the live harvest only when harvest was chosen', () => {
+    expect(shouldRouteCaptureToHarvest()).toBe(false);
     expect(shouldRouteCaptureToHarvest('harvest')).toBe(true);
   });
 

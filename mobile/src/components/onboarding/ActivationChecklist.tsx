@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOwnerActivation } from '../../onboarding/OwnerActivationContext';
+import { canVisitActivationStep } from '../../onboarding/evaluate';
 import { OWNER_CHECKLIST_STEPS, type OwnerActivationStepId } from '../../onboarding/steps';
 
 /** Top horizontal setup bar — Later snoozes hard lock until όρια. */
@@ -17,6 +18,7 @@ const ActivationChecklist: React.FC = () => {
     completion,
     activeStep,
     spotlightStep,
+    locked,
     laterSnoozed,
     setupUnlocked,
     setCollapsed,
@@ -33,6 +35,15 @@ const ActivationChecklist: React.FC = () => {
   const resumeStep = activeStep || (completion.createGrove ? 'drawBoundary' : 'createGrove');
   const resumeTarget =
     resumeStep === 'firstObservation' || resumeStep === 'loadData' ? 'loadData' : resumeStep;
+  // FocusSpotlight already coaches on create/boundary — skip duplicate tip while locked.
+  const tipKey =
+    locked && (spotlightStep === 'createGrove' || spotlightStep === 'drawBoundary')
+      ? null
+      : spotlightStep === 'createGrove'
+        ? 'createGrove'
+        : spotlightStep === 'drawBoundary'
+          ? 'drawBoundary'
+          : null;
 
   if (celebrating) {
     return (
@@ -62,13 +73,6 @@ const ActivationChecklist: React.FC = () => {
     );
   }
 
-  const tipKey =
-    spotlightStep === 'createGrove'
-      ? 'createGrove'
-      : spotlightStep === 'drawBoundary'
-        ? 'drawBoundary'
-        : null;
-
   return (
     <View style={[styles.bar, { top }]} accessibilityLabel={t('checklist.title')}>
       <View style={styles.brand}>
@@ -85,11 +89,18 @@ const ActivationChecklist: React.FC = () => {
         {OWNER_CHECKLIST_STEPS.map((step: OwnerActivationStepId, index) => {
           const done = completion[step];
           const current = activeStep === step;
+          const visit = canVisitActivationStep(step, completion);
           return (
             <Pressable
               key={step}
-              onPress={() => goToStep(step)}
-              style={[styles.step, current ? styles.stepCurrent : null, done ? styles.stepDone : null]}
+              disabled={!visit}
+              onPress={() => visit && goToStep(step)}
+              style={[
+                styles.step,
+                current ? styles.stepCurrent : null,
+                done ? styles.stepDone : null,
+                !visit ? styles.stepDisabled : null,
+              ]}
             >
               <View style={[styles.stepNum, done || current ? styles.stepNumActive : null]}>
                 {done ? (
@@ -100,7 +111,7 @@ const ActivationChecklist: React.FC = () => {
                   </Text>
                 )}
               </View>
-              <Text style={styles.stepLabel} numberOfLines={1}>
+              <Text style={[styles.stepLabel, !visit ? styles.stepLabelMuted : null]} numberOfLines={1}>
                 {t(`steps.${step}.title`)}
               </Text>
             </Pressable>
@@ -185,6 +196,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderColor: 'rgba(47, 93, 56, 0.22)',
   },
+  stepDisabled: {
+    opacity: 0.45,
+  },
   stepNum: {
     width: 20,
     height: 20,
@@ -197,6 +211,7 @@ const styles = StyleSheet.create({
   stepNumText: { fontSize: 11, fontWeight: '800', color: '#2f5d38' },
   stepNumTextActive: { color: '#fff' },
   stepLabel: { fontSize: 12, fontWeight: '600', color: '#1e261c', flexShrink: 1 },
+  stepLabelMuted: { color: '#6b7568' },
   tip: {
     flexDirection: 'row',
     alignItems: 'center',

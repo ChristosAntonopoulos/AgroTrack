@@ -12,7 +12,6 @@ export type AuthStackParamList = {
 
 export type HarvestCampaignParams = {
   add?: boolean;
-  evening?: boolean;
   fieldId?: string;
   harvestId?: string;
   day?: string;

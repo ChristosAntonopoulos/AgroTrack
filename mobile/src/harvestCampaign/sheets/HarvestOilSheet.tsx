@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { resolveFieldColor } from '../../utils/fieldColors';
@@ -17,7 +17,7 @@ import { HarvestFieldPicker } from '../components/HarvestFieldPicker';
 import { HarvestNumberInput } from '../components/HarvestNumberInput';
 import { HarvestNumberStepper } from '../components/HarvestNumberStepper';
 import { HarvestSegmentedControl } from '../components/HarvestSegmentedControl';
-import { HarvestFormPager, HarvestQuickChips } from '../components/HarvestFormPager';
+import { HarvestFormPager, HarvestHint, HarvestMoreToggle, HarvestQuickChips, HarvestTextField } from '../components/HarvestFormPager';
 import {
   extractionYieldPercent,
   formatHarvestOilAmountLabel,
@@ -148,33 +148,6 @@ export const HarvestOilSheet: React.FC<
           })
         : null;
 
-  type OilPhase = 'source' | 'amount' | 'kept' | 'stored' | 'review';
-  const oilPhases: OilPhase[] = useMemo(() => {
-    const next: OilPhase[] = [];
-    if (millChipOrder.length > 0 || campaign.fieldOrder.length > 1) next.push('source');
-    next.push('amount');
-    if (isPositiveAmount(value)) {
-      next.push('kept');
-      next.push('stored');
-    }
-    next.push('review');
-    return next;
-  }, [millChipOrder.length, campaign.fieldOrder.length, value]);
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    setPhase((current) => Math.min(current, Math.max(oilPhases.length - 1, 0)));
-  }, [oilPhases.length]);
-  const phaseKey = oilPhases[Math.min(phase, oilPhases.length - 1)] ?? 'amount';
-  const lastPhase = phase >= oilPhases.length - 1;
-  const canAdvance =
-    phaseKey === 'amount'
-      ? isPositiveAmount(value)
-      : phaseKey === 'kept'
-        ? !settlement?.millOver
-        : phaseKey === 'stored' || phaseKey === 'review'
-          ? canSave
-          : true;
-
   const inferredShares = useMemo(() => {
     if (selectedMills.length > 0) {
       const byField = new Map<string, number>();
@@ -257,74 +230,29 @@ export const HarvestOilSheet: React.FC<
     });
   }, [flow?.bind, canSave]);
 
-  const phaseTitle =
-    phaseKey === 'source'
-      ? t('fields:harvestCampaign.steps.oilSource')
-      : phaseKey === 'amount'
-        ? t('fields:harvestCampaign.steps.oilAmount')
-        : phaseKey === 'kept'
-          ? t('fields:harvestCampaign.steps.oilKept')
-          : phaseKey === 'stored'
-            ? t('fields:harvestCampaign.steps.oilStored')
-            : t('fields:harvestCampaign.steps.review');
-  const phaseHint =
-    phaseKey === 'source'
-      ? t('fields:harvestCampaign.steps.oilSourceHint')
-      : phaseKey === 'amount'
-        ? t('fields:harvestCampaign.oil.prompt')
-        : phaseKey === 'kept'
-          ? t('fields:harvestCampaign.oil.millHint')
-          : phaseKey === 'stored'
-            ? t('fields:harvestCampaign.oil.storedAllHint')
-            : editing
-              ? t('fields:harvestCampaign.dayActivity.editOil')
-              : t('fields:harvestCampaign.steps.reviewHint');
-  const nextLabel = lastPhase
-    ? flow
-      ? flow.nextLabel
-      : editing
-        ? t('fields:harvestCampaign.dayActivity.saveChanges')
-        : t('fields:harvestCampaign.oil.save', {
-            amount: formatKg(value || 0),
-            unit: unit === 'litres' ? t('fields:harvestCampaign.oil.litres') : 'kg',
-          })
-    : t('fields:harvestCampaign.wizard.next');
-  const footerError =
-    (phaseKey === 'amount' && !isPositiveAmount(value) && amount.trim()
-      ? t('fields:harvestCampaign.validation.enterAmount')
-      : null) ||
-    (lastPhase || phaseKey === 'stored' || phaseKey === 'kept' ? saveHint : null);
+  const saveLabel = editing
+    ? t('fields:harvestCampaign.dayActivity.saveChanges')
+    : t('fields:harvestCampaign.oil.save', {
+        amount: formatKg(value || 0),
+        unit: unit === 'litres' ? t('fields:harvestCampaign.oil.litres') : 'kg',
+      });
 
   return (
     <HarvestFormPager
-      current={phase}
-      total={oilPhases.length}
-      title={phaseTitle}
-      hint={phaseHint}
-      nextLabel={nextLabel}
-      nextDisabled={!canAdvance}
-      onNext={() => {
-        if (!lastPhase) {
-          setPhase((current) => current + 1);
-          return;
-        }
-        onSave(oilPayload());
-      }}
-      backLabel={flow?.backLabel || t('common:back')}
-      onBack={
-        phase > 0 || flow?.onBack
-          ? () => {
-              if (phase > 0) setPhase((current) => current - 1);
-              else flow?.onBack?.();
-            }
-          : undefined
-      }
+      current={0}
+      total={1}
+      title={editing ? t('fields:harvestCampaign.dayActivity.editOil') : t('fields:harvestCampaign.oil.prompt')}
+      nextLabel={saveLabel}
+      nextDisabled={!canSave}
+      onNext={() => onSave(oilPayload())}
+      backLabel={flow?.backLabel}
+      onBack={flow?.onBack}
       cancelLabel={t('common:cancel')}
       onCancel={onClose}
       busy={flow?.busy}
-      error={footerError}
+      error={!canSave ? saveHint : null}
     >
-      {phaseKey === 'source' ? (
+      {true ? (
         <>
           {millChipOrder.length > 0 ? (
             <HarvestCarryPicker
@@ -444,7 +372,7 @@ export const HarvestOilSheet: React.FC<
             : null}
         </>
       ) : null}
-      {phaseKey === 'amount' ? (
+      {true ? (
         <>
           <HarvestSegmentedControl
             value={unit}
@@ -477,7 +405,7 @@ export const HarvestOilSheet: React.FC<
           ) : null}
         </>
       ) : null}
-      {phaseKey === 'kept' ? (
+      {true ? (
         <>
           <HarvestNumberInput
             label={t('fields:harvestCampaign.oil.millTitle')}
@@ -509,7 +437,7 @@ export const HarvestOilSheet: React.FC<
           ) : null}
         </>
       ) : null}
-      {phaseKey === 'stored' ? (
+      {true ? (
         <>
           <HarvestSegmentedControl
             value={storageMode}
@@ -554,7 +482,7 @@ export const HarvestOilSheet: React.FC<
           ) : null}
         </>
       ) : null}
-      {phaseKey === 'review' ? (
+      {true ? (
         <>
           {settlement
             ? settlement.parts.map((part) => (
@@ -573,11 +501,12 @@ export const HarvestOilSheet: React.FC<
               })}
             </Text>
           ) : null}
-          <Pressable onPress={() => setMore((v) => !v)}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              {more ? t('fields:harvestCampaign.less') : t('fields:harvestCampaign.more')}
-            </Text>
-          </Pressable>
+          <HarvestMoreToggle
+            open={more}
+            onPress={() => setMore((v) => !v)}
+            openLabel={t('fields:harvestCampaign.less')}
+            closedLabel={t('fields:harvestCampaign.more')}
+          />
           {more ? (
             <View style={{ gap: 8 }}>
               <HarvestNumberInput
@@ -585,14 +514,11 @@ export const HarvestOilSheet: React.FC<
                 value={acidity}
                 onChange={setAcidity}
               />
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                {t('fields:harvestCampaign.noteOptional')}
-              </Text>
-              <TextInput
+              <HarvestTextField
+                label={t('fields:harvestCampaign.noteOptional')}
                 value={note}
-                onChangeText={setNote}
+                onChange={setNote}
                 multiline
-                style={[styles.note, { color: colors.textPrimary, borderColor: colors.border }]}
               />
             </View>
           ) : null}
@@ -601,7 +527,3 @@ export const HarvestOilSheet: React.FC<
     </HarvestFormPager>
   );
 };
-
-const styles = StyleSheet.create({
-  note: { borderWidth: 1, borderRadius: 12, minHeight: 72, padding: 12, textAlignVertical: 'top' },
-});

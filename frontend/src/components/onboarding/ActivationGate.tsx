@@ -6,12 +6,12 @@ import { stepPath } from '../../onboarding/steps';
 /** Paths allowed while hard-locked until first όρια. */
 export const isActivationAllowedPath = (pathname: string, search = ''): boolean => {
   if (pathname === '/settings' || pathname === '/access-denied') return true;
-  if (pathname === '/fields' || pathname === '/fields/new') return true;
+  if (pathname === '/fields/new') return true;
   if (/^\/fields\/[^/]+\/edit$/.test(pathname)) return true;
   // Post-boundary spatial welcome — allow during refresh race after save.
   if (/^\/fields\/[^/]+$/.test(pathname)) {
     const params = new URLSearchParams(search);
-    if (params.get('activation') === 'spatial') return true;
+    if (params.get('activation') === 'spatial' || params.get('activation') === 'observe') return true;
   }
   return false;
 };

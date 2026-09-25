@@ -415,8 +415,6 @@ const FieldDetailScreen = () => {
     );
   }
 
-  const openCapture = () => capture?.openCapture({ fieldId: field.id });
-
   const latestEntry = [...recentEntries].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
   )[0];
@@ -573,25 +571,20 @@ const FieldDetailScreen = () => {
         </ScrollView>
       ) : null}
 
-      {capture && gates.canCapture && (tab !== 'map' || activation?.awaitingFirstObservation) ? (
+      {capture &&
+      gates.canCapture &&
+      activation?.awaitingFirstObservation &&
+      !activation.completion.firstObservation ? (
         <View style={[styles.stickyCapture, { bottom: dockHeight + bottomInset + spacing.sm }]}>
           <Button
-            title={
-              activation?.awaitingFirstObservation && !activation.completion.firstObservation
-                ? t('onboarding:firstObservation.cta')
-                : t('fields:page.capture')
+            title={t('onboarding:firstObservation.cta')}
+            onPress={() =>
+              capture.openCapture({
+                fieldId: field.id,
+                preferredType: 'observation',
+                description: t('onboarding:firstObservation.prefill'),
+              })
             }
-            onPress={() => {
-              if (activation?.awaitingFirstObservation && !activation.completion.firstObservation) {
-                capture.openCapture({
-                  fieldId: field.id,
-                  preferredType: 'observation',
-                  description: t('onboarding:firstObservation.prefill'),
-                });
-                return;
-              }
-              openCapture();
-            }}
             fullWidth
           />
         </View>
@@ -615,7 +608,7 @@ const styles = StyleSheet.create({
   panel: {
     padding: spacing.base,
     gap: spacing.md,
-    paddingBottom: spacing['3xl'] + 56,
+    paddingBottom: spacing.xl,
   },
   overviewMapBlock: {
     gap: spacing.md,
