@@ -73,8 +73,10 @@ const MyOilPage: React.FC = () => {
 
   if (pageGuard.loading) {
     return (
-      <PageContainer>
-        <LoadingSpinner />
+      <PageContainer maxWidth="full" padding="none">
+        <div className="my-oil-page">
+          <LoadingSpinner />
+        </div>
       </PageContainer>
     );
   }
@@ -107,146 +109,146 @@ const MyOilPage: React.FC = () => {
       waiting.length > 0);
 
   return (
-    <PageContainer>
-      <Breadcrumbs />
-      <h1 className="my-oil-title">{t('title')}</h1>
-      <div className="my-oil">
-        {loading ? (
-          <LoadingSpinner />
-        ) : error ? (
-          <EmptyState
-            title={t('error')}
-            action={
-              <Button variant="secondary" onClick={() => void reload()}>
-                {t('common:retry', { defaultValue: 'Retry' })}
-              </Button>
-            }
-          />
-        ) : !hasStock ? (
-          <EmptyState title={t('empty')} description={t('emptyHint')} />
-        ) : (
-          <>
-            <header className="my-oil-hero">
-              <p className="my-oil-hero__label">{t('available')}</p>
-              <p className="my-oil-hero__litres">
-                {t('litresAvailable', {
-                  amount: Math.round((summary!.available.litres || 0) * 10) / 10,
-                })}
-              </p>
-              <p className="my-oil-hero__pack">{formatOilPack(summary!.available, packLabels)}</p>
-            </header>
-
-            <div className="my-oil-strip" aria-label={t('inCellar')}>
-              <div className="my-oil-strip__row">
-                <span>{t('inCellar')}</span>
-                <strong>{formatOilPack(summary!.physical, packLabels)}</strong>
-              </div>
-              <div className="my-oil-strip__row">
-                <span>{t('reserved')}</span>
-                <strong>{formatOilPack(summary!.reserved, packLabels)}</strong>
-              </div>
-              <div className="my-oil-strip__row">
-                <span>{t('pendingDelivery')}</span>
-                <strong>{formatOilPack(summary!.pendingDelivery, packLabels)}</strong>
-              </div>
-              <div className="my-oil-strip__row">
-                <span>{t('delivered')}</span>
-                <strong>{formatOilPack(summary!.delivered, packLabels)}</strong>
-              </div>
-            </div>
-
-            <div className="my-oil-actions">
-              <Button variant="primary" onClick={() => setShowGive(true)} disabled={busy}>
-                {t('giveSell')}
-              </Button>
-              <Button variant="secondary" onClick={() => setShowHistory((v) => !v)}>
-                {t('whyBalance')}
-              </Button>
-            </div>
-
-            {waiting.length > 0 ? (
-              <section className="my-oil-section">
-                <h2>{t('mustGive')}</h2>
-                <p className="my-oil-hero__pack">
-                  {t('personWaiting', { count: waiting.length })}
+    <PageContainer maxWidth="full" padding="none">
+      <div className="my-oil-page">
+        <Breadcrumbs />
+        <h1 className="my-oil-title">{t('title')}</h1>
+        <div className="my-oil">
+          {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <EmptyState
+              title={t('error')}
+              action={
+                <Button variant="secondary" onClick={() => void reload()}>
+                  {t('common:retry', { defaultValue: 'Retry' })}
+                </Button>
+              }
+            />
+          ) : !hasStock ? (
+            <EmptyState title={t('empty')} description={t('emptyHint')} />
+          ) : (
+            <>
+              <header className="my-oil-hero">
+                <p className="my-oil-hero__label">{t('available')}</p>
+                <p className="my-oil-hero__litres">
+                  {t('litresAvailable', {
+                    amount: Math.round((summary!.available.litres || 0) * 10) / 10,
+                  })}
                 </p>
-                <ul className="my-oil-waiting">
-                  {waiting.map((c) => (
-                    <li key={c.id} className="my-oil-waiting__item">
-                      <div className="my-oil-waiting__top">
-                        <span className="my-oil-waiting__name">{c.counterpartyName}</span>
-                        <span className="my-oil-waiting__status">
-                          {t(`status.${c.derivedStatus}`, { defaultValue: c.derivedStatus })}
-                        </span>
-                      </div>
-                      <div>{formatOilPack(c.remaining, packLabels)}</div>
-                      {c.isSale && c.amount != null ? <div>€{c.amount}</div> : null}
-                      <div className="my-oil-lot__actions">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => void onDeliver(c)}
-                        >
-                          {t('markDelivered')}
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+                <p className="my-oil-hero__pack">{formatOilPack(summary!.available, packLabels)}</p>
+              </header>
 
-            <section className="my-oil-section">
-              <h2>{t('lots')}</h2>
-              <ul className="my-oil-lots">
-                {summary!.lots.map((lot) => {
-                  const where = lot.fieldIds
-                    .map((id) => fieldNames[id])
-                    .filter(Boolean)
-                    .join(' · ');
-                  return (
-                    <li key={lot.id} className="my-oil-lot">
-                      <div className="my-oil-lot__when">
-                        <span>{formatWhen(lot.pressedOn)}</span>
-                        {where ? <span className="my-oil-lot__where">{where}</span> : null}
-                      </div>
-                      <div className="my-oil-lot__pack">{formatOilPack(lot.packing, packLabels)}</div>
-                      <div className="my-oil-lot__actions">
-                        <Button variant="ghost" size="sm" onClick={() => setRepackLot(lot)}>
-                          {t('repack')}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setAdjustLot(lot)}>
-                          {t('adjust')}
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+              <div className="my-oil-strip" aria-label={t('inCellar')}>
+                <div className="my-oil-strip__row">
+                  <span>{t('inCellar')}</span>
+                  <strong>{formatOilPack(summary!.physical, packLabels)}</strong>
+                </div>
+                <div className="my-oil-strip__row">
+                  <span>{t('reserved')}</span>
+                  <strong>{formatOilPack(summary!.reserved, packLabels)}</strong>
+                </div>
+                <div className="my-oil-strip__row">
+                  <span>{t('pendingDelivery')}</span>
+                  <strong>{formatOilPack(summary!.pendingDelivery, packLabels)}</strong>
+                </div>
+                <div className="my-oil-strip__row">
+                  <span>{t('delivered')}</span>
+                  <strong>{formatOilPack(summary!.delivered, packLabels)}</strong>
+                </div>
+              </div>
 
-            {showHistory ? (
+              <div className="my-oil-actions">
+                <Button variant="primary" onClick={() => setShowGive(true)} disabled={busy}>
+                  {t('giveSell')}
+                </Button>
+                <Button variant="secondary" onClick={() => setShowHistory((v) => !v)}>
+                  {t('whyBalance')}
+                </Button>
+              </div>
+
+              {waiting.length > 0 ? (
+                <section className="my-oil-section">
+                  <h2>{t('mustGive')}</h2>
+                  <p className="my-oil-hero__pack">{t('personWaiting', { count: waiting.length })}</p>
+                  <ul className="my-oil-waiting">
+                    {waiting.map((c) => (
+                      <li key={c.id} className="my-oil-waiting__item">
+                        <div className="my-oil-waiting__top">
+                          <span className="my-oil-waiting__name">{c.counterpartyName}</span>
+                          <span className="my-oil-waiting__status">
+                            {t(`status.${c.derivedStatus}`, { defaultValue: c.derivedStatus })}
+                          </span>
+                        </div>
+                        <div>{formatOilPack(c.remaining, packLabels)}</div>
+                        {c.isSale && c.amount != null ? <div>€{c.amount}</div> : null}
+                        <div className="my-oil-lot__actions">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => void onDeliver(c)}
+                          >
+                            {t('markDelivered')}
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
               <section className="my-oil-section">
-                <h2>{t('history')}</h2>
-                <ul className="my-oil-history">
-                  {movements.map((m) => (
-                    <li key={m.id}>
-                      <span>
-                        {t(`movement.${m.kind}`, { defaultValue: m.kind })}
-                        {m.notes ? ` — ${m.notes}` : ''}
-                      </span>
-                      <span className="my-oil-history__delta">
-                        {m.litresDelta > 0 ? '+' : ''}
-                        {Math.round(m.litresDelta * 10) / 10} L
-                      </span>
-                    </li>
-                  ))}
+                <h2>{t('lots')}</h2>
+                <ul className="my-oil-lots">
+                  {summary!.lots.map((lot) => {
+                    const where = lot.fieldIds
+                      .map((id) => fieldNames[id])
+                      .filter(Boolean)
+                      .join(' · ');
+                    return (
+                      <li key={lot.id} className="my-oil-lot">
+                        <div className="my-oil-lot__when">
+                          <span>{formatWhen(lot.pressedOn)}</span>
+                          {where ? <span className="my-oil-lot__where">{where}</span> : null}
+                        </div>
+                        <div className="my-oil-lot__pack">{formatOilPack(lot.packing, packLabels)}</div>
+                        <div className="my-oil-lot__actions">
+                          <Button variant="ghost" size="sm" onClick={() => setRepackLot(lot)}>
+                            {t('repack')}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setAdjustLot(lot)}>
+                            {t('adjust')}
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
-            ) : null}
-          </>
-        )}
+
+              {showHistory ? (
+                <section className="my-oil-section">
+                  <h2>{t('history')}</h2>
+                  <ul className="my-oil-history">
+                    {movements.map((m) => (
+                      <li key={m.id}>
+                        <span>
+                          {t(`movement.${m.kind}`, { defaultValue: m.kind })}
+                          {m.notes ? ` — ${m.notes}` : ''}
+                        </span>
+                        <span className="my-oil-history__delta">
+                          {m.litresDelta > 0 ? '+' : ''}
+                          {Math.round(m.litresDelta * 10) / 10} L
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
 
       {showGive ? (
