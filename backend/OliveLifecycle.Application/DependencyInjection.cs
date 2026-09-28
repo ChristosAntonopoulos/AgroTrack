@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
         services.AddScoped<IFieldYearSummaryService, FieldYearSummaryService>();
         services.AddScoped<IHarvestService, HarvestService>();
+        services.AddScoped<IOilStockService, OilStockService>();
         services.AddScoped<IPartnerService, PartnerService>();
         services.AddScoped<ISavedContactService, SavedContactService>();
         services.AddScoped<INoteService, NoteService>();

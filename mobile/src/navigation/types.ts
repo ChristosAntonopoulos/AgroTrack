@@ -48,6 +48,8 @@ export type RootStackParamList = {
     mode?: 'overview' | 'map' | 'details' | 'chronologio';
     /** First-run spatial loading panel. */
     activation?: 'spatial' | 'observe';
+    /** Shown after the first boundary is saved. */
+    groveReady?: boolean;
   };
   InviteAccept: { token: string };
   FamilyInviteAccept: { token: string };
@@ -56,6 +58,7 @@ export type RootStackParamList = {
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
   Money: { fieldId?: string; year?: number; tx?: string } | undefined;
+  MyOil: undefined;
   Photos: { fieldId?: string; photoId?: string; importNearby?: boolean } | undefined;
   Analytics: undefined;
   Reports: undefined;

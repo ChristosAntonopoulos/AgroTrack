@@ -407,6 +407,33 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(h => h.FieldId)
                 .Ascending(h => h.ResultYear)));
 
+        var oilLots = _context.GetCollection<OilLotDocument>("oil_lots");
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys
+                .Ascending(l => l.OwnerUserId)
+                .Ascending(l => l.BatchId),
+            new CreateIndexOptions { Unique = true, Name = "ix_oil_lots_owner_batch" }));
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys
+                .Ascending(l => l.OwnerUserId)
+                .Ascending(l => l.ResultYear)
+                .Ascending(l => l.PressedOn),
+            new CreateIndexOptions { Name = "ix_oil_lots_owner_year_pressed" }));
+
+        var oilCommitments = _context.GetCollection<OilCommitmentDocument>("oil_commitments");
+        oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
+            Builders<OilCommitmentDocument>.IndexKeys
+                .Ascending(c => c.OwnerUserId)
+                .Descending(c => c.CreatedAt),
+            new CreateIndexOptions { Name = "ix_oil_commitments_owner_created" }));
+
+        var stockMovements = _context.GetCollection<StockMovementDocument>("stock_movements");
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys
+                .Ascending(m => m.OwnerUserId)
+                .Descending(m => m.OccurredOn),
+            new CreateIndexOptions { Name = "ix_stock_movements_owner_occurred" }));
+
         var feedback = _context.GetCollection<UserFeedbackDocument>("user_feedback");
         feedback.Indexes.CreateOne(new CreateIndexModel<UserFeedbackDocument>(
             Builders<UserFeedbackDocument>.IndexKeys

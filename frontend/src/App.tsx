@@ -50,6 +50,7 @@ import PartnerProfilePage from './pages/PartnerProfilePage';
 import MyServiceProfilePage from './pages/MyServiceProfilePage';
 import ServiceRequestsPage from './pages/ServiceRequestsPage';
 import MoneyPage from './pages/MoneyPage';
+import MyOilPage from './pages/MyOilPage';
 import PhotoHubPage from './pages/PhotoHubPage';
 import HarvestCampaignPage from './pages/HarvestCampaignPage';
 import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
@@ -136,6 +137,7 @@ const router = createBrowserRouter(
         <Route path="partners/requests" element={<ServiceRequestsPage />} />
         <Route path="partners/:userId" element={<PartnerProfilePage />} />
         <Route path="money" element={<MoneyPage />} />
+        <Route path="my-oil" element={<MyOilPage />} />
         <Route path="photos" element={<PhotoHubPage />} />
         <Route path="harvest" element={<HarvestCampaignPage />} />
         <Route path="this-harvest" element={<Navigate to="/harvest" replace />} />

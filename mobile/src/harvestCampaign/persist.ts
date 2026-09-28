@@ -20,6 +20,7 @@ import type {
 } from './types';
 import { oilAmountToKg } from './totals';
 import { newHarvestEntryId } from './storage';
+import { upsertOilLotFromEntry } from '../myOil/syncOilLots';
 
 const firstFieldId = (campaign: HarvestCampaign, preferred?: string | null) =>
   preferred || campaign.fieldOrder[0];
@@ -172,6 +173,11 @@ export async function persistOilRecord(
       ids.push(created.id);
     }
     if (ids.length === 0) return undefined;
+    try {
+      await upsertOilLotFromEntry({ ...entry, batchId, harvestRecordIds: ids }, ids);
+    } catch {
+      /* packing sync can retry from My Oil */
+    }
     return { batchId, harvestRecordIds: ids, harvestRecordId: ids[0] };
   } catch {
     return ids.length > 0

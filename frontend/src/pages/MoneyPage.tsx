@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -51,7 +51,7 @@ const PAGE_SIZE = 20;
 
 /** Official totals come from GetYearFinancialSummary only. */
 const MoneyPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['money', 'capture', 'common']);
+  const { t, i18n } = useTranslation(['money', 'capture', 'common', 'myOil']);
   const { user } = useAuth();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const capture = useCaptureOptional();
@@ -329,6 +329,12 @@ const MoneyPage: React.FC = () => {
     }
   };
 
+  const myOilLink = !summaryForbidden ? (
+    <p className="money-my-oil-link">
+      <Link to="/my-oil">{t('myOil:seeMyOil')}</Link>
+    </p>
+  ) : null;
+
   const emptyYear =
     !summaryForbidden &&
     summary &&
@@ -406,15 +412,18 @@ const MoneyPage: React.FC = () => {
         {summaryForbidden ? (
           <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
         ) : emptyYear ? (
-          <EmptyState
-            title={t('money:emptyTitle', { span: harvestYearSpan(year) })}
-            description={t('money:emptyHint')}
-            action={
-              <Button variant="primary" onClick={() => openCapture()}>
-                {t('capture:money.cta')}
-              </Button>
-            }
-          />
+          <>
+            {myOilLink}
+            <EmptyState
+              title={t('money:emptyTitle', { span: harvestYearSpan(year) })}
+              description={t('money:emptyHint')}
+              action={
+                <Button variant="primary" onClick={() => openCapture()}>
+                  {t('capture:money.cta')}
+                </Button>
+              }
+            />
+          </>
         ) : summary ? (
           <>
             <MoneySummaryGrid
@@ -428,6 +437,7 @@ const MoneyPage: React.FC = () => {
               fieldCount={summary.fieldResults.length || (fieldId ? 1 : 0)}
               onOpenDrafts={() => patch({ kind: 'draft' })}
             />
+            {myOilLink}
             {summary.dataAvailability.hasPostedRecords ? (
               <MonthlyFinancialTrend
                 year={year}

@@ -16,6 +16,7 @@ import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
+import enMyOil from '../locales/en/myOil.json';
 import enPhotos from '../locales/en/photos.json';
 import enFeedback from '../locales/en/feedback.json';
 import enLegal from '../locales/en/legal.json';
@@ -36,6 +37,7 @@ import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
+import elMyOil from '../locales/el/myOil.json';
 import elPhotos from '../locales/el/photos.json';
 import elFeedback from '../locales/el/feedback.json';
 import elLegal from '../locales/el/legal.json';
@@ -67,6 +69,7 @@ i18n.use(initReactI18next).init({
       chronologio: enChronologio,
       capture: enCapture,
       money: enMoney,
+      myOil: enMyOil,
       photos: enPhotos,
       feedback: enFeedback,
       legal: enLegal,
@@ -88,6 +91,7 @@ i18n.use(initReactI18next).init({
       chronologio: elChronologio,
       capture: elCapture,
       money: elMoney,
+      myOil: elMyOil,
       photos: elPhotos,
       feedback: elFeedback,
       legal: elLegal,

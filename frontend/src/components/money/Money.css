@@ -2234,6 +2234,97 @@
   margin-top: 0.55rem;
 }
 
+.money-stock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.money-stock-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.money-stock-head h2 {
+  margin: 0;
+}
+
+.money-stock-kicker {
+  margin: 4px 0 0;
+  max-width: 36rem;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--money-text-secondary);
+}
+
+.money-stock-total {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.money-stock-pack {
+  margin: -6px 0 0;
+  font-size: 15px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--money-text-secondary);
+}
+
+.money-stock-group h3 {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--money-text-muted);
+}
+
+.money-stock-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.money-stock-lot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--money-border);
+}
+
+.money-stock-group .money-stock-list .money-stock-lot:first-child {
+  border-top: 0;
+  padding-top: 8px;
+}
+
+.money-stock-lot__when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-weight: 650;
+}
+
+.money-stock-lot__where {
+  font-size: 14px;
+  font-weight: 450;
+  color: var(--money-text-secondary);
+}
+
+.money-stock-lot__pack {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .money-primary-action:hover,
   .transaction-row,
@@ -2242,3 +2333,8 @@
     transform: none;
   }
 }
+
+.money-my-oil-link { margin: 0.35rem 0 1rem; }
+.money-my-oil-link a { color: var(--money-accent, var(--olive-primary)); font-weight: 650; text-decoration: none; }
+.money-my-oil-link a:hover { text-decoration: underline; }
+

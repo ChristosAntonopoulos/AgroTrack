@@ -20,6 +20,7 @@ import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
+import enMyOil from '../locales/en/myOil.json';
 import enFeedback from '../locales/en/feedback.json';
 import enPhotos from '../locales/en/photos.json';
 import enOnboarding from '../locales/en/onboarding.json';
@@ -44,6 +45,7 @@ import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
+import elMyOil from '../locales/el/myOil.json';
 import elFeedback from '../locales/el/feedback.json';
 import elPhotos from '../locales/el/photos.json';
 import elOnboarding from '../locales/el/onboarding.json';
@@ -66,6 +68,7 @@ import itLegal from '../locales/it/legal.json';
 import itChronologio from '../locales/it/chronologio.json';
 import itCapture from '../locales/it/capture.json';
 import itMoney from '../locales/it/money.json';
+import itMyOil from '../locales/it/myOil.json';
 import itFeedback from '../locales/it/feedback.json';
 import itPhotos from '../locales/it/photos.json';
 import itOnboarding from '../locales/it/onboarding.json';
@@ -136,6 +139,7 @@ export const resources: Record<
       enCapture
     ),
     money: enMoney,
+    myOil: enMyOil,
     feedback: enFeedback,
     photos: enPhotos,
     onboarding: enOnboarding,
@@ -163,6 +167,7 @@ export const resources: Record<
       elCapture
     ),
     money: elMoney,
+    myOil: elMyOil,
     feedback: elFeedback,
     photos: elPhotos,
     onboarding: elOnboarding,
@@ -190,6 +195,7 @@ export const resources: Record<
       itCapture
     ),
     money: itMoney,
+    myOil: itMyOil,
     feedback: itFeedback,
     photos: itPhotos,
     onboarding: itOnboarding,

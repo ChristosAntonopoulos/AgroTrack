@@ -31,6 +31,7 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import HarvestCampaignRedirect from '../screens/HarvestCampaignRedirect';
 import ThisHarvestReviewScreen from '../screens/ThisHarvestReviewScreen';
 import MoneyScreen from '../screens/MoneyScreen';
+import MyOilScreen from '../screens/MyOilScreen';
 import PhotoHubScreen from '../screens/PhotoHubScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import ReportsScreen from '../screens/ReportsScreen';
@@ -183,6 +184,7 @@ const RootNavigator = () => {
             Chronologio: 'chronologio/:fieldId?',
             FieldWeatherVegetation: 'fields/:fieldId/weather-vegetation',
             Money: 'money',
+            MyOil: 'my-oil',
             Photos: 'photos',
             Analytics: 'analytics',
             Reports: 'reports',
@@ -313,6 +315,11 @@ const RootNavigator = () => {
                 name="Money"
                 component={MoneyScreen}
                 options={{ title: t('nav:money', { defaultValue: 'Costs' }) }}
+              />
+              <Stack.Screen
+                name="MyOil"
+                component={MyOilScreen}
+                options={{ title: t('nav:myOil', { defaultValue: 'My oil' }) }}
               />
               <Stack.Screen
                 name="Photos"

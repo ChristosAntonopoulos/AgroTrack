@@ -63,7 +63,7 @@ import { createElevation, radii, spacing, typography } from '../theme';
 const PAGE_SIZE = 20;
 
 const MoneyScreen = () => {
-  const { t, i18n } = useTranslation(['money', 'capture', 'common']);
+  const { t, i18n } = useTranslation(['money', 'capture', 'common', 'myOil']);
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const { user } = useAuth();
   const capture = useCaptureOptional();
@@ -244,6 +244,14 @@ const MoneyScreen = () => {
   }, [fields, locale, selected, t]);
 
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
+  const myOilLink = !summaryForbidden ? (
+    <Pressable
+      onPress={() => navigation.navigate('MyOil')}
+      style={{ paddingVertical: 10, marginBottom: 8 }}
+    >
+      <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('myOil:seeMyOil')}</Text>
+    </Pressable>
+  ) : null;
   const emptyYear =
     !summaryForbidden &&
     summary &&
@@ -463,11 +471,14 @@ const MoneyScreen = () => {
           {summaryForbidden ? (
             <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
           ) : emptyYear ? (
-            <EmptyState
-              title={t('money:emptyTitle', { span })}
-              description={t('money:emptyHint')}
-              action={capture ? { label: t('capture:money.cta'), onPress: () => openCapture('money') } : undefined}
-            />
+            <>
+              {myOilLink}
+              <EmptyState
+                title={t('money:emptyTitle', { span })}
+                description={t('money:emptyHint')}
+                action={capture ? { label: t('capture:money.cta'), onPress: () => openCapture('money') } : undefined}
+              />
+            </>
           ) : summary ? (
             <>
               <MoneySummaryCards
@@ -481,6 +492,8 @@ const MoneyScreen = () => {
                 fieldCount={trustFieldCount}
                 onOpenDrafts={() => setKind('draft')}
               />
+
+              {myOilLink}
 
               {summary.dataAvailability.hasPostedRecords ? (
                 <MoneyMonthStrip

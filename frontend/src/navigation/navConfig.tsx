@@ -15,6 +15,7 @@ import {
   Images,
   Megaphone,
   MessageSquareHeart,
+  Droplets,
 } from 'lucide-react';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
 import { CHRONOLOGIO_HOME } from './homePath';
@@ -78,6 +79,13 @@ export const navItems: NavItem[] = [
     labelKey: 'items.thisHarvest',
     icon: <Wheat />,
     roles: ['FieldOwner', 'Administrator'],
+    section: 'primary',
+  },
+  {
+    path: '/my-oil',
+    labelKey: 'items.myOil',
+    icon: <Droplets />,
+    roles: ['FieldOwner', 'Producer', 'Administrator'],
     section: 'primary',
   },
   {
@@ -194,6 +202,7 @@ export const filterNavItemsForUser = (
         return false;
       }
       if (item.path === '/money' && !modules!.has('money')) return false;
+      if (item.path === '/my-oil' && !modules!.has('money') && !modules!.has('harvest')) return false;
       if (item.path === '/harvest') {
         if (gate?.canViewHarvest === false) return false;
         if (!modules!.has('harvest')) return false;

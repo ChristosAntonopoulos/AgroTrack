@@ -109,6 +109,13 @@ const MoreMenuPanel: React.FC = () => {
       onPress: () => navigation.navigate('Money'),
       showArrow: true,
     });
+    workItems.push({
+      id: 'my-oil',
+      icon: 'water-outline',
+      label: t('nav:myOil', { defaultValue: 'My oil' }),
+      onPress: () => navigation.navigate('MyOil'),
+      showArrow: true,
+    });
   }
   if (showPhotos) {
     workItems.push({
