@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -41,6 +41,10 @@ export const HarvestCarryPicker: React.FC<{
   hint?: string;
   trailing?: React.ReactNode;
   hideHeading?: boolean;
+  /** One quiet selected row. The rest stay behind a single line. */
+  compact?: boolean;
+  moreLabel?: string;
+  lessLabel?: string;
 }> = ({
   label,
   items,
@@ -52,8 +56,18 @@ export const HarvestCarryPicker: React.FC<{
   hint,
   trailing,
   hideHeading = false,
+  compact = false,
+  moreLabel,
+  lessLabel,
 }) => {
   const { colors, tapMin } = useTheme();
+  const [showRest, setShowRest] = useState(false);
+  const restCount = compact ? items.filter((item) => !selected.includes(item.id)).length : 0;
+  const visible = compact && !showRest
+    ? items.filter((item) => selected.includes(item.id)).length > 0
+      ? items.filter((item) => selected.includes(item.id))
+      : items.slice(0, 1)
+    : items;
   let lastGroup = '';
 
   return (
@@ -69,7 +83,7 @@ export const HarvestCarryPicker: React.FC<{
         </View>
       )}
       <View style={styles.list} accessibilityLabel={label}>
-        {items.map((item) => {
+        {visible.map((item) => {
           const on = selected.includes(item.id);
           const showGroup = Boolean(item.group) && item.group !== lastGroup;
           if (item.group) lastGroup = item.group;
@@ -89,10 +103,12 @@ export const HarvestCarryPicker: React.FC<{
                 }}
                 style={({ pressed }) => [
                   styles.row,
+                  compact && styles.rowCompact,
                   {
-                    minHeight: Math.max(56, tapMin),
-                    backgroundColor: on ? lead : colors.surface,
+                    minHeight: compact ? 46 : Math.max(56, tapMin),
+                    backgroundColor: compact || !on ? colors.surface : lead,
                     borderColor: on ? lead : colors.border,
+                    borderWidth: on && compact ? 1 : StyleSheet.hairlineWidth,
                     opacity: item.disabled ? 0.5 : pressed ? 0.88 : 1,
                   },
                 ]}
@@ -103,24 +119,46 @@ export const HarvestCarryPicker: React.FC<{
                   ))}
                 </View>
                 <View style={styles.copy}>
-                  <Text style={[styles.title, { color: on ? inkOn(lead) : colors.textPrimary }]}>
+                  <Text
+                    style={[styles.title, { color: compact || !on ? colors.textPrimary : inkOn(lead) }]}
+                    numberOfLines={1}
+                  >
                     {item.title}
                   </Text>
                   {item.detail ? (
-                    <Text style={[styles.detail, { color: on ? inkOn(lead) : colors.textSecondary }]}>
+                    <Text
+                      style={[styles.detail, { color: compact || !on ? colors.textSecondary : inkOn(lead) }]}
+                      numberOfLines={1}
+                    >
                       {item.detail}
                     </Text>
                   ) : null}
                 </View>
                 {item.badge ? (
-                  <Text style={[styles.badge, { color: on ? inkOn(lead) : colors.primary }]}>{item.badge}</Text>
+                  <Text style={[styles.badge, { color: compact || !on ? colors.primary : inkOn(lead) }]}>
+                    {item.badge}
+                  </Text>
                 ) : null}
-                {on ? <Ionicons name="checkmark" size={18} color={inkOn(lead)} /> : null}
+                {on ? (
+                  <Ionicons name="checkmark" size={18} color={compact ? lead : inkOn(lead)} />
+                ) : null}
               </Pressable>
             </React.Fragment>
           );
         })}
       </View>
+      {compact && restCount > 0 && moreLabel ? (
+        <Pressable onPress={() => setShowRest((open) => !open)} hitSlop={8} style={styles.more}>
+          <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 13 }}>
+            {showRest && lessLabel ? lessLabel : moreLabel}
+          </Text>
+          <Ionicons
+            name={showRest ? 'chevron-up' : 'chevron-down'}
+            size={14}
+            color={colors.textSecondary}
+          />
+        </Pressable>
+      ) : null}
       {transfer ? (
         <Text style={[styles.transfer, { color: transfer.color || colors.textPrimary }]}>
           {transfer.from} → {transfer.to}
@@ -156,4 +194,6 @@ const styles = StyleSheet.create({
   detail: { fontSize: 13 },
   badge: { fontSize: 11, fontWeight: '700' },
   transfer: { fontSize: 13, fontWeight: '700' },
+  rowCompact: { paddingVertical: 8, borderRadius: 14 },
+  more: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
 });

@@ -110,6 +110,10 @@ public sealed class CreateOilCommitmentDto
     public bool AlreadyDelivered { get; set; }
     public DateTime? PromisedFor { get; set; }
     public string? Notes { get; set; }
+    /// <summary>
+    /// When set (e.g. income already posted via Money capture), link it and skip creating a second transaction.
+    /// </summary>
+    public string? FinancialTransactionId { get; set; }
     /// <summary>Optional manual lot picks. Empty = FIFO auto-allocate.</summary>
     public List<OilLotAllocationDto>? Allocations { get; set; }
 }

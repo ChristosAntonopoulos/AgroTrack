@@ -14,6 +14,12 @@ export const convertOliveOilLitresToKg = (litres: number): number => {
   return litres * OLIVE_OIL_KG_PER_LITRE;
 };
 
+/** Farmer-facing oil is always litres, even when the lot was stored in kilograms. */
+export const convertOliveOilKgToLitres = (kg: number): number => {
+  if (!Number.isFinite(kg) || kg <= 0) return 0;
+  return kg / OLIVE_OIL_KG_PER_LITRE;
+};
+
 export const oilKgFromAmount = (amount: number, unit: HarvestOilUnit): number => {
   if (!Number.isFinite(amount) || amount < 0) return 0;
   return unit === 'litres' ? convertOliveOilLitresToKg(amount) : amount;

@@ -26,6 +26,8 @@ export interface FormDateFieldProps {
   maximumDate?: Date;
   disabled?: boolean;
   placeholder?: string;
+  /** Icon and date only — no label, short height. */
+  compact?: boolean;
 }
 
 const toStorageDate = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -43,6 +45,7 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
   maximumDate,
   disabled = false,
   placeholder,
+  compact = false,
 }) => {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('common');
@@ -53,7 +56,7 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
   const parsedValue = useMemo(() => parseStorageDate(value), [value]);
 
   const displayText = value
-    ? format(parsedValue, 'EEE, d MMM yyyy', { locale })
+    ? format(parsedValue, compact ? 'd MMM yyyy' : 'EEE, d MMM yyyy', { locale })
     : placeholder ?? t('selectDate');
 
   const openPicker = () => {
@@ -74,15 +77,17 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+    <View style={compact ? styles.compactContainer : styles.container}>
+      {compact ? null : (
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+      )}
       <Pressable
         disabled={disabled}
         onPress={openPicker}
         style={[
-          styles.trigger,
+          compact ? styles.compactTrigger : styles.trigger,
           {
-            backgroundColor: colors.surfaceElevated,
+            backgroundColor: compact ? colors.surfaceMuted : colors.surfaceElevated,
             borderColor: colors.borderLight,
             opacity: disabled ? 0.6 : 1,
           },
@@ -90,17 +95,19 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+        <Ionicons name="calendar-outline" size={compact ? 15 : 18} color={colors.primary} />
         <Text
           style={[
-            styles.triggerText,
+            compact ? styles.compactTriggerText : styles.triggerText,
             { color: value ? colors.textPrimary : colors.textTertiary },
           ]}
           numberOfLines={1}
         >
           {displayText}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+        {compact ? null : (
+          <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+        )}
       </Pressable>
 
       {Platform.OS === 'android' && open ? (
@@ -153,6 +160,18 @@ const FormDateField: React.FC<FormDateFieldProps> = ({
 
 const styles = StyleSheet.create({
   container: { marginBottom: spacing.base },
+  compactContainer: { alignSelf: 'flex-start' },
+  compactTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    minHeight: 32,
+  },
+  compactTriggerText: { fontSize: 13, fontWeight: '600' },
   label: {
     ...typography.styles.bodySmall,
     fontWeight: '600',

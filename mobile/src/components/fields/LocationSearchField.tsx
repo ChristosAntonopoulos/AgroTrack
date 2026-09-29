@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -35,7 +35,7 @@ const splitPlaceLabel = (label: string): { primary: string; secondary?: string }
  * Typeahead place picker — suggestions appear as you type; map only moves after a pick.
  */
 const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compact = false }) => {
-  const { t } = useTranslation('fields');
+  const { t, i18n } = useTranslation('fields');
   const { colors } = useTheme();
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<GeocodedPlace[]>([]);
@@ -43,6 +43,8 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
   const [searched, setSearched] = useState(false);
   const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+  // A picked label must not re-run search and reopen the list over the map.
+  const committedQuery = useRef<string | null>(null);
 
   useEffect(() => {
     setQuery(value);
@@ -50,6 +52,13 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
 
   useEffect(() => {
     const q = query.trim();
+    if (committedQuery.current && q === committedQuery.current) {
+      setSuggestions([]);
+      setLoading(false);
+      setSearched(false);
+      setOpen(false);
+      return;
+    }
     if (q.length < 2) {
       setSuggestions([]);
       setLoading(false);
@@ -57,17 +66,19 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
       return;
     }
     let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setSearched(false);
     const timer = setTimeout(() => {
-      void searchPlaces(q, 7)
+      void searchPlaces(q, 7, { signal: controller.signal, language: i18n.language })
         .then((places) => {
           if (cancelled) return;
           setSuggestions(places);
           setOpen(true);
         })
-        .catch(() => {
-          if (!cancelled) setSuggestions([]);
+        .catch((error: unknown) => {
+          if (cancelled || (error instanceof Error && error.name === 'AbortError')) return;
+          setSuggestions([]);
         })
         .finally(() => {
           if (!cancelled) {
@@ -75,14 +86,16 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
             setSearched(true);
           }
         });
-    }, 220);
+    }, 400);
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, i18n.language]);
 
   const pick = (place: GeocodedPlace) => {
+    committedQuery.current = place.label.trim();
     setQuery(place.label);
     setSuggestions([]);
     setOpen(false);
@@ -101,6 +114,7 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
       const label = t('createGrove.placement.nearMe', {
         defaultValue: t('addField.useCurrentLocation', { defaultValue: 'Near me' }),
       });
+      committedQuery.current = label.trim();
       setQuery(label);
       setSuggestions([]);
       setOpen(false);
@@ -124,6 +138,8 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
         label={compact ? undefined : t('addField.locationText')}
         value={query}
         onChangeText={(text) => {
+          if (committedQuery.current && text.trim() === committedQuery.current) return;
+          if (committedQuery.current) committedQuery.current = null;
           setQuery(text);
           setOpen(true);
           // Text only — parent must not move the map until a list pick.
@@ -148,6 +164,7 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
             <Pressable
               hitSlop={8}
               onPress={() => {
+                committedQuery.current = null;
                 setQuery('');
                 setSuggestions([]);
                 setOpen(false);
@@ -165,6 +182,73 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
         </Text>
       ) : null}
 
+      {showMenu ? (
+        <View
+          style={[
+            styles.dropdown,
+            {
+              borderColor: colors.oliveBorder,
+              backgroundColor: colors.surfaceElevated,
+              ...createElevation(colors, 'md'),
+            },
+          ]}
+        >
+          {loading && suggestions.length === 0 ? (
+            <View style={styles.statusRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.status, { color: colors.textTertiary }]}>
+                {t('addField.locationSearching')}
+              </Text>
+            </View>
+          ) : null}
+          {!loading && searched && suggestions.length === 0 ? (
+            <Text style={[styles.status, styles.statusAlone, { color: colors.textSecondary }]}>
+              {t('createGrove.place.noResults', {
+                defaultValue: t('addField.locationNotFound', {
+                  defaultValue: 'No places found — try another name.',
+                }),
+              })}
+            </Text>
+          ) : null}
+          {suggestions.slice(0, compact ? 5 : 6).map((place, index, list) => {
+            const { primary, secondary } = splitPlaceLabel(place.label);
+            const last = index === list.length - 1;
+            return (
+              <Pressable
+                key={`${place.latitude},${place.longitude},${place.label}`}
+                onPress={() => pick(place)}
+                style={({ pressed }) => [
+                  styles.option,
+                  {
+                    borderBottomColor: colors.borderLight,
+                    backgroundColor: pressed ? colors.primaryLight : 'transparent',
+                    borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
+                  },
+                ]}
+              >
+                <View style={[styles.pin, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name="location" size={16} color={colors.primary} />
+                </View>
+                <View style={styles.optionCopy}>
+                  <Text style={[styles.optionPrimary, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {primary}
+                  </Text>
+                  {secondary ? (
+                    <Text
+                      style={[styles.optionSecondary, { color: colors.textSecondary }]}
+                      numberOfLines={1}
+                    >
+                      {secondary}
+                    </Text>
+                  ) : null}
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
       <Pressable
         onPress={() => void useNearMe()}
         disabled={disabled || locating}
@@ -180,59 +264,6 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
           })}
         </Text>
       </Pressable>
-
-      {showMenu ? (
-        <View
-          style={[
-            styles.dropdown,
-            {
-              borderColor: colors.borderLight,
-              backgroundColor: colors.surface,
-              ...createElevation(colors, 'md'),
-            },
-          ]}
-        >
-          {loading && suggestions.length === 0 ? (
-            <Text style={[styles.status, { color: colors.textTertiary }]}>
-              {t('addField.locationSearching')}
-            </Text>
-          ) : null}
-          {!loading && searched && suggestions.length === 0 ? (
-            <Text style={[styles.status, { color: colors.textSecondary }]}>
-              {t('createGrove.place.noResults', {
-                defaultValue: t('addField.locationNotFound', {
-                  defaultValue: 'No places found — try another name.',
-                }),
-              })}
-            </Text>
-          ) : null}
-          {suggestions.slice(0, compact ? 6 : 8).map((place) => {
-            const { primary, secondary } = splitPlaceLabel(place.label);
-            return (
-              <Pressable
-                key={`${place.latitude},${place.longitude},${place.label}`}
-                onPress={() => pick(place)}
-                style={[styles.option, { borderBottomColor: colors.borderLight }]}
-              >
-                <Ionicons name="location-outline" size={18} color={colors.primary} />
-                <View style={styles.optionCopy}>
-                  <Text style={[styles.optionPrimary, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {primary}
-                  </Text>
-                  {secondary ? (
-                    <Text
-                      style={[styles.optionSecondary, { color: colors.textSecondary }]}
-                      numberOfLines={1}
-                    >
-                      {secondary}
-                    </Text>
-                  ) : null}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
     </View>
   );
 };
@@ -257,30 +288,41 @@ const styles = StyleSheet.create({
   },
   nearMeText: { ...typography.styles.bodySmall, fontWeight: '700' },
   dropdown: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: '100%',
-    marginTop: 4,
+    marginTop: 8,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
-    maxHeight: 280,
     zIndex: 40,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
   status: {
     ...typography.styles.caption,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    flex: 1,
+  },
+  statusAlone: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    minHeight: 52,
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 56,
+  },
+  pin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionCopy: { flex: 1, minWidth: 0, gap: 2 },
   optionPrimary: { ...typography.styles.bodySmall, fontWeight: '700' },

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,86 @@ import { RootStackParamList } from '../navigation/types';
 import { spacing, radii } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+type AttachTileProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  hint: string;
+  attachedLabel: string;
+  uri: string | null;
+  onPress: () => void;
+  onRemove: () => void;
+  removeLabel: string;
+};
+
+const AttachTile = ({
+  icon,
+  label,
+  hint,
+  attachedLabel,
+  uri,
+  onPress,
+  onRemove,
+  removeLabel,
+}: AttachTileProps) => {
+  const { colors } = useTheme();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
+  const selected = Boolean(uri);
+
+  return (
+    <View
+      style={[
+        styles.attach,
+        {
+          borderColor: selected ? colors.oliveBorder : colors.border,
+          backgroundColor: selected ? colors.surfaceSelected : colors.surface,
+          minHeight: Math.max(tapMin, 72),
+        },
+      ]}
+    >
+      <Pressable
+        style={styles.attachMain}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        accessibilityLabel={label}
+      >
+        {uri ? (
+          <Image source={{ uri }} style={styles.thumb} />
+        ) : (
+          <View style={[styles.iconWell, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name={icon} size={20} color={colors.primary} />
+          </View>
+        )}
+        <View style={styles.attachCopy}>
+          <Text
+            style={[styles.attachLabel, { color: colors.textPrimary, fontSize: 15 * fontScaleMultiplier }]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+          <Text
+            style={[styles.attachHint, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
+            numberOfLines={2}
+          >
+            {selected ? attachedLabel : hint}
+          </Text>
+        </View>
+      </Pressable>
+      {uri ? (
+        <Pressable
+          style={[styles.remove, { backgroundColor: colors.charcoal }]}
+          onPress={onRemove}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={removeLabel}
+        >
+          <Ionicons name="close" size={14} color={colors.limestone} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+};
 
 const FeedbackScreen = () => {
   const { t } = useTranslation(['feedback', 'common', 'nav']);
@@ -61,13 +141,17 @@ const FeedbackScreen = () => {
     }
   };
 
+  const lead = (heartName: keyof typeof Ionicons.glyphMap) => (
+    <View style={[styles.leadMark, { backgroundColor: colors.primaryLight }]}>
+      <Ionicons name={heartName} size={22} color={colors.primary} />
+    </View>
+  );
+
   if (thanks) {
     return (
       <ScreenLayout scroll padded contentContainerStyle={styles.content}>
-        <View style={[styles.thanksIcon, { backgroundColor: colors.primaryLight }]}>
-          <Ionicons name="heart" size={28} color={colors.primary} />
-        </View>
-        <Text style={[styles.thanksTitle, { color: colors.textPrimary, fontSize: 24 * fontScaleMultiplier }]}>
+        {lead('heart')}
+        <Text style={[styles.thanksTitle, { color: colors.textPrimary, fontSize: 26 * fontScaleMultiplier }]}>
           {t('feedback:thanksTitle')}
         </Text>
         <Text style={[styles.intro, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
@@ -80,12 +164,17 @@ const FeedbackScreen = () => {
 
   return (
     <ScreenLayout scroll padded contentContainerStyle={styles.content}>
-      <Text style={[styles.kicker, { color: colors.primary, fontSize: 12 * fontScaleMultiplier }]}>
-        {t('feedback:kicker')}
-      </Text>
-      <Text style={[styles.intro, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
-        {t('feedback:intro')}
-      </Text>
+      <View style={styles.lead}>
+        {lead('chatbubble-ellipses-outline')}
+        <View style={styles.leadCopy}>
+          <Text style={[styles.kicker, { color: colors.accentGold, fontSize: 12 * fontScaleMultiplier }]}>
+            {t('feedback:kicker')}
+          </Text>
+          <Text style={[styles.intro, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
+            {t('feedback:intro')}
+          </Text>
+        </View>
+      </View>
 
       <Input
         label={t('feedback:commentLabel')}
@@ -95,56 +184,35 @@ const FeedbackScreen = () => {
         multiline
         numberOfLines={5}
         style={styles.comment}
+        containerStyle={styles.commentWrap}
         maxLength={4000}
       />
 
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.attach, { borderColor: colors.border, minHeight: tapMin }]}
+      <Text style={[styles.sectionLabel, { color: colors.textPrimary, fontSize: 14 * fontScaleMultiplier }]}>
+        {t('feedback:attachLabel')}
+      </Text>
+      <View style={styles.stack}>
+        <AttachTile
+          icon="camera-outline"
+          label={t('feedback:screenshot')}
+          hint={t('feedback:screenshotHint')}
+          attachedLabel={t('feedback:attached')}
+          uri={screenshotUri}
           onPress={() => void pickImage(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="camera-outline" size={20} color={colors.primary} />
-          <Text style={[styles.attachLabel, { color: colors.textPrimary }]}>{t('feedback:screenshot')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.attach, { borderColor: colors.border, minHeight: tapMin }]}
+          onRemove={() => setScreenshotUri(null)}
+          removeLabel={t('feedback:removeImage')}
+        />
+        <AttachTile
+          icon="images-outline"
+          label={t('feedback:photo')}
+          hint={t('feedback:photoHint')}
+          attachedLabel={t('feedback:attached')}
+          uri={photoUri}
           onPress={() => void pickImage(false)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="image-outline" size={20} color={colors.primary} />
-          <Text style={[styles.attachLabel, { color: colors.textPrimary }]}>{t('feedback:photo')}</Text>
-        </TouchableOpacity>
+          onRemove={() => setPhotoUri(null)}
+          removeLabel={t('feedback:removeImage')}
+        />
       </View>
-
-      {(screenshotUri || photoUri) && (
-        <View style={styles.previews}>
-          {screenshotUri ? (
-            <View style={styles.thumb}>
-              <Image source={{ uri: screenshotUri }} style={styles.thumbImage} />
-              <TouchableOpacity
-                style={styles.remove}
-                onPress={() => setScreenshotUri(null)}
-                accessibilityLabel={t('feedback:removeImage')}
-              >
-                <Ionicons name="close" size={14} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-          {photoUri ? (
-            <View style={styles.thumb}>
-              <Image source={{ uri: photoUri }} style={styles.thumbImage} />
-              <TouchableOpacity
-                style={styles.remove}
-                onPress={() => setPhotoUri(null)}
-                accessibilityLabel={t('feedback:removeImage')}
-              >
-                <Ionicons name="close" size={14} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      )}
 
       <Button
         title={t('feedback:submit')}
@@ -152,7 +220,11 @@ const FeedbackScreen = () => {
         loading={submitting}
         disabled={submitting}
         fullWidth
+        style={{ minHeight: Math.max(tapMin, 48) }}
       />
+      <Text style={[styles.submitHint, { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier }]}>
+        {t('feedback:submitHint')}
+      </Text>
     </ScreenLayout>
   );
 };
@@ -162,6 +234,23 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
   },
+  lead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  leadCopy: {
+    flex: 1,
+    gap: spacing.xs,
+    paddingTop: 2,
+  },
+  leadMark: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   kicker: {
     fontWeight: '700',
     letterSpacing: 0.6,
@@ -170,59 +259,73 @@ const styles = StyleSheet.create({
   intro: {
     lineHeight: 24,
   },
-  comment: {
-    minHeight: 120,
-    textAlignVertical: 'top',
+  commentWrap: {
+    marginBottom: 0,
   },
-  row: {
-    flexDirection: 'row',
+  comment: {
+    minHeight: 128,
+    textAlignVertical: 'top',
+    paddingTop: spacing.md,
+  },
+  sectionLabel: {
+    fontWeight: '600',
+    marginBottom: -4,
+  },
+  stack: {
     gap: spacing.sm,
   },
   attach: {
-    flex: 1,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  attachLabel: {
-    fontWeight: '600',
-  },
-  previews: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: radii.card,
+    paddingRight: spacing.sm,
+  },
+  attachMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.sm,
+  },
+  iconWell: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   thumb: {
-    width: 96,
-    height: 96,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
-  thumbImage: {
-    width: 96,
-    height: 96,
-    borderRadius: radii.lg,
+  attachCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  attachLabel: {
+    fontWeight: '650' as unknown as '600',
+  },
+  attachHint: {
+    lineHeight: 18,
   },
   remove: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#1a1a1a',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thanksIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
+  submitHint: {
+    textAlign: 'center',
+    marginTop: -4,
+    lineHeight: 18,
   },
   thanksTitle: {
     fontWeight: '700',
+    letterSpacing: -0.3,
+    lineHeight: 32,
   },
 });
 

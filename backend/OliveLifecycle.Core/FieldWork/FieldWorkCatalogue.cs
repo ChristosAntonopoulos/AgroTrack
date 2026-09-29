@@ -78,7 +78,7 @@ public static class FieldWorkCatalogue
                     "It is time to review the previous result year.", "previous_year_review")
             ]),
 
-        Entry("T02", "Χειμερινός έλεγχος χωραφιού", "Winter field inspection", "Inspection",
+        Entry("T02", "Χειμερινός έλεγχος ελαιώνα", "Winter field inspection", "Inspection",
             "Inspect after winter weather before pruning.",
             Month(1, 15, 2, 28), null, "inspection_complete", null, Weather: "winter_inspection",
             Checklist:
@@ -94,7 +94,7 @@ public static class FieldWorkCatalogue
             ],
             Rules:
             [
-                Seasonal("T02_SEASONAL", "Είναι καλή περίοδος για χειμερινό έλεγχο του χωραφιού.",
+                Seasonal("T02_SEASONAL", "Είναι καλή περίοδος για χειμερινό έλεγχο του ελαιώνα.",
                     "It is a good period for a winter field inspection.", "winter_inspection")
             ]),
 
@@ -139,7 +139,7 @@ public static class FieldWorkCatalogue
             [
                 Check("product", "Σωστό λίπασμα", "Correct fertiliser"),
                 Check("quantity", "Καταγράφηκε η ποσότητα", "Quantity recorded"),
-                Check("finished", "Ολοκληρώθηκε το χωράφι", "Field finished")
+                Check("finished", "Ολοκληρώθηκε ο ελαιώνας", "Field finished")
             ],
             Rules:
             [
@@ -303,7 +303,7 @@ public static class FieldWorkCatalogue
             ],
             Rules:
             [
-                Seasonal("T15_BALANCE", "Με τα σημερινά δεδομένα, το χωράφι μπορεί να χρειάζεται νερό σύντομα.",
+                Seasonal("T15_BALANCE", "Με τα σημερινά δεδομένα, ο ελαιώνας μπορεί να χρειάζεται νερό σύντομα.",
                     "With current data, the field may need water soon.", "irrigation_deficit",
                     confidence: ProposalConfidence.WorthChecking, requiresIrrigated: true, allowUnknownPhenology: true)
             ],
@@ -416,7 +416,7 @@ public static class FieldWorkCatalogue
             ],
             Rules:
             [
-                Seasonal("T21_SEASONAL", "Είναι η περίοδος συγκομιδής ανάλογα με το χωράφι και τον στόχο.",
+                Seasonal("T21_SEASONAL", "Είναι η περίοδος συγκομιδής ανάλογα με τον ελαιώνα και τον στόχο.",
                     "Harvest period depending on field and objective.", "harvest_window",
                     confidence: ProposalConfidence.WorthChecking, allowUnknownPhenology: true)
             ]),
@@ -441,7 +441,7 @@ public static class FieldWorkCatalogue
                     confidence: ProposalConfidence.WorthChecking)
             ]),
 
-        Entry("T23", "Μετασυλλεκτικός έλεγχος χωραφιού", "Post-harvest field inspection", "Inspection",
+        Entry("T23", "Μετασυλλεκτικός έλεγχος ελαιώνα", "Post-harvest field inspection", "Inspection",
             "Inspect within about 14 days after harvest. Failed items become proposals, not auto tasks.",
             Month(10, 1, 2, 28), null, "post_harvest_inspection", null,
             [
@@ -456,7 +456,7 @@ public static class FieldWorkCatalogue
                 Check("followup", "Εργασίες παρακολούθησης", "Follow-up work", type: ChecklistItemType.Text, essential: false)
             ],
             [
-                Seasonal("T23_SEASONAL", "Μετά τη συγκομιδή, κάντε έλεγχο του χωραφιού.",
+                Seasonal("T23_SEASONAL", "Μετά τη συγκομιδή, κάντε έλεγχο του ελαιώνα.",
                     "After harvest, inspect the field.", "post_harvest_inspection",
                     confidence: ProposalConfidence.WorthChecking)
             ]),

@@ -54,15 +54,17 @@ import { notePreviewTitle } from '../services/noteService';
 import { fieldHasGeo } from '../utils/fieldGeo';
 import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
 import { RootStackParamList } from '../navigation/types';
-import { spacing, typography, radii, createElevation } from '../theme';
+import { spacing, typography, radii } from '../theme';
 import PhotoViewer, { type PhotoViewerItem } from '../components/photos/PhotoViewer';
 
 type LinkOwner = 'task' | 'note' | 'harvest' | 'phenology';
 type LinkTarget = { id: string; label: string };
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type QuickFilter = 'all' | 'standalone' | 'linked' | 'needsReview' | 'unassigned';
 
 const MAX_UPLOAD = 12;
 const SCAN_SAMPLE = 6;
+const GRID_PAD = spacing.base;
 
 const badgeKey = (photo: Photo): string => {
   if (!photo.isLinked || photo.ownerType === 'field') return 'standalone';
@@ -109,10 +111,13 @@ const PhotoHubScreen: React.FC = () => {
     | { fieldId?: string; photoId?: string; importNearby?: boolean }
     | undefined;
   const { width } = useWindowDimensions();
-  const columns = width >= 720 ? 4 : width >= 360 ? 3 : 2;
-  const gap = spacing.xs;
-  const tile = (width - spacing.md * 2 - gap * (columns - 1)) / columns;
-  const sampleTile = Math.min(72, (width - spacing.md * 2 - spacing.sm * (SCAN_SAMPLE - 1)) / SCAN_SAMPLE);
+  const columns = width >= 900 ? 4 : width >= 600 ? 3 : 2;
+  const gap = spacing.sm;
+  const tile = (width - GRID_PAD * 2 - gap * (columns - 1)) / columns;
+  const sampleTile = Math.min(
+    72,
+    (width - GRID_PAD * 2 - spacing.sm * (SCAN_SAMPLE - 1)) / SCAN_SAMPLE
+  );
 
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -450,6 +455,50 @@ const PhotoHubScreen: React.FC = () => {
     ? fieldNames[fieldId] || friendlyFieldLabel(fieldId)
     : t('photos:filters.allFields');
 
+  const quickFilter: QuickFilter =
+    assignment === 'needsReview'
+      ? 'needsReview'
+      : assignment === 'unassigned'
+        ? 'unassigned'
+        : linkStatus === 'standalone'
+          ? 'standalone'
+          : linkStatus === 'linked'
+            ? 'linked'
+            : 'all';
+
+  const setQuickFilter = (value: QuickFilter) => {
+    switch (value) {
+      case 'standalone':
+        setLinkStatus('standalone');
+        setAssignment('');
+        break;
+      case 'linked':
+        setLinkStatus('linked');
+        setAssignment('');
+        break;
+      case 'needsReview':
+        setLinkStatus('all');
+        setAssignment('needsReview');
+        break;
+      case 'unassigned':
+        setLinkStatus('all');
+        setAssignment('unassigned');
+        break;
+      default:
+        setLinkStatus('all');
+        setAssignment('');
+        break;
+    }
+  };
+
+  const filtersActive = Boolean(fieldId || linkStatus !== 'all' || assignment);
+
+  const clearFilters = () => {
+    setFieldId('');
+    setLinkStatus('all');
+    setAssignment('');
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen />;
   }
@@ -457,34 +506,39 @@ const PhotoHubScreen: React.FC = () => {
   return (
     <ScreenLayout scroll padded tabBarInset refreshControl={{ refreshing, onRefresh }}>
       <View style={[styles.stack, { paddingTop: insets.top }]}>
-        {navigation.canGoBack() ? (
-          <HeaderIconButton
-            icon="chevron-back"
-            accessibilityLabel={t('common:back', { defaultValue: 'Back' })}
-            onPress={() => navigation.goBack()}
+        <View style={styles.stackTop}>
+          {navigation.canGoBack() ? (
+            <HeaderIconButton
+              icon="chevron-back"
+              accessibilityLabel={t('common:back', { defaultValue: 'Back' })}
+              onPress={() => navigation.goBack()}
+              compact
+            />
+          ) : null}
+          <ScreenHeader
+            title={t('nav:photos', { defaultValue: 'Photos' })}
+            subtitle={t('photos:subtitle')}
+            action={
+              <HeaderIconButton
+                icon="add"
+                accessibilityLabel={t('photos:upload')}
+                onPress={() => setUploadPickerOpen(true)}
+                active
+              />
+            }
           />
-        ) : null}
-        <ScreenHeader
-          title={t('nav:photos', { defaultValue: 'Photos' })}
-          subtitle={t('photos:subtitle')}
-        />
-        <Button
-          title={t('photos:upload')}
-          onPress={() => setUploadPickerOpen(true)}
-          fullWidth
-          icon={<Ionicons name="add" size={20} color={colors.onOlive} />}
-        />
-        <View style={styles.scopeRow}>
+        </View>
+
+        <View style={styles.toolbar}>
           <Pressable
             onPress={() => setFieldPickerOpen(true)}
             accessibilityLabel={t('photos:filters.field')}
             style={[
               styles.scopeChip,
               {
-                minHeight: Math.max(44, tapMin * 0.9),
-                backgroundColor: colors.surface,
-                borderColor: colors.borderLight,
-                ...createElevation(colors, 'flat'),
+                minHeight: Math.max(36, tapMin * 0.72),
+                backgroundColor: fieldId ? colors.primaryLight : colors.surface,
+                borderColor: fieldId ? colors.oliveBorder : colors.borderLight,
               },
             ]}
           >
@@ -492,15 +546,24 @@ const PhotoHubScreen: React.FC = () => {
               color={fields.find((field) => field.id === fieldId)?.color}
               fieldId={fieldId || undefined}
               hollow={!fieldId}
-              size={12}
+              size={10}
             />
             <Text
-              style={{ color: colors.textPrimary, fontWeight: '600', flexShrink: 1 }}
+              style={{
+                color: fieldId ? colors.primary : colors.textPrimary,
+                fontWeight: '600',
+                fontSize: 13,
+                flexShrink: 1,
+              }}
               numberOfLines={1}
             >
               {fieldScopeLabel}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={fieldId ? colors.primary : colors.textTertiary}
+            />
           </Pressable>
 
           {reviewItems.length > 0 ? (
@@ -509,7 +572,7 @@ const PhotoHubScreen: React.FC = () => {
               style={[
                 styles.reviewChip,
                 {
-                  minHeight: Math.max(44, tapMin * 0.9),
+                  minHeight: Math.max(36, tapMin * 0.72),
                   backgroundColor: colors.warningLight || colors.surface,
                   borderColor: colors.warning || colors.borderLight,
                 },
@@ -517,11 +580,25 @@ const PhotoHubScreen: React.FC = () => {
             >
               <Ionicons
                 name="alert-circle-outline"
-                size={16}
+                size={14}
                 color={colors.warning || colors.primary}
               />
-              <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
-                {t('photos:filters.needsReview')} ({reviewItems.length})
+              <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
+                {reviewItems.length}
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {filtersActive ? (
+            <Pressable
+              onPress={clearFilters}
+              accessibilityRole="button"
+              accessibilityLabel={t('photos:clearAllFilters')}
+              hitSlop={8}
+              style={styles.clearBtn}
+            >
+              <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>
+                {t('photos:clearAllFilters')}
               </Text>
             </Pressable>
           ) : null}
@@ -533,36 +610,12 @@ const PhotoHubScreen: React.FC = () => {
             { value: 'all', label: t('photos:filters.all') },
             { value: 'standalone', label: t('photos:filters.standalone') },
             { value: 'linked', label: t('photos:filters.linked') },
-          ]}
-          selected={linkStatus}
-          onSelect={(v) => setLinkStatus(v as PhotoLinkStatus)}
-        />
-        <FilterChips
-          compact
-          options={[
-            { value: '', label: t('photos:filters.all') },
             { value: 'needsReview', label: t('photos:filters.needsReview') },
             { value: 'unassigned', label: t('photos:filters.unassigned') },
           ]}
-          selected={assignment}
-          onSelect={setAssignment}
+          selected={quickFilter}
+          onSelect={(v) => setQuickFilter(v as QuickFilter)}
         />
-        {fieldId || linkStatus !== 'all' || assignment ? (
-          <Pressable
-            onPress={() => {
-              setFieldId('');
-              setLinkStatus('all');
-              setAssignment('');
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={t('photos:clearAllFilters')}
-            style={{ minHeight: 44, justifyContent: 'center' }}
-          >
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>
-              {t('photos:clearAllFilters')}
-            </Text>
-          </Pressable>
-        ) : null}
 
         {uploading ? (
           <View style={styles.uploading}>
@@ -588,7 +641,7 @@ const PhotoHubScreen: React.FC = () => {
           <EmptyState
             icon={<Ionicons name="images-outline" size={36} color={colors.textSecondary} />}
             title={
-              fieldId || linkStatus !== 'all' || assignment
+              filtersActive
                 ? t('photos:emptyFiltered', {
                     filters: [
                       fieldId
@@ -602,20 +655,12 @@ const PhotoHubScreen: React.FC = () => {
                   })
                 : t('photos:empty')
             }
-            description={
-              fieldId || linkStatus !== 'all' || assignment
-                ? undefined
-                : t('photos:emptyHint')
-            }
+            description={filtersActive ? undefined : t('photos:emptyHint')}
             action={
-              fieldId || linkStatus !== 'all' || assignment
+              filtersActive
                 ? {
                     label: t('photos:clearFilters'),
-                    onPress: () => {
-                      setFieldId('');
-                      setLinkStatus('all');
-                      setAssignment('');
-                    },
+                    onPress: clearFilters,
                   }
                 : {
                     label: t('photos:upload'),
@@ -658,41 +703,63 @@ const PhotoHubScreen: React.FC = () => {
                     {
                       width: tile,
                       backgroundColor: colors.surfaceElevated,
-                      borderColor: photo.isLinked ? colors.primary : colors.border,
-                      ...createElevation(colors, 'sm'),
+                      borderColor: colors.borderLight,
                     },
                   ]}
                 >
-                  <Image source={{ uri: src }} style={styles.thumb} />
-                  <View style={styles.overlay}>
-                    <Text style={styles.overlayPrimary} numberOfLines={1}>
-                      {[dateLabel, fieldLabel].filter(Boolean).join(' · ')}
-                    </Text>
-                    <Text style={styles.overlayStatus} numberOfLines={1}>
-                      {statusLabel}
-                    </Text>
-                  </View>
-                  {showReview ? (
-                    <View style={styles.badges}>
+                  <View style={styles.thumbWrap}>
+                    <Image source={{ uri: src }} style={styles.thumb} />
+                    {showReview ? (
                       <View
                         style={[
                           styles.badge,
-                          { backgroundColor: colors.warningLight || colors.surface },
+                          {
+                            backgroundColor: colors.warningLight || 'rgba(0,0,0,0.55)',
+                          },
                         ]}
                       >
                         <Text
-                          style={[styles.badgeText, { color: colors.warning || colors.textPrimary }]}
+                          style={[
+                            styles.badgeText,
+                            { color: colors.warning || colors.textPrimary },
+                          ]}
                           numberOfLines={1}
                         >
                           {t(
                             `photos:badges.${
-                              photo.fieldAssignment === 'unassigned' ? 'unassigned' : 'needsReview'
+                              photo.fieldAssignment === 'unassigned'
+                                ? 'unassigned'
+                                : 'needsReview'
                             }`
                           )}
                         </Text>
                       </View>
-                    </View>
-                  ) : null}
+                    ) : null}
+                    {photo.fieldId ? (
+                      <View style={styles.fieldDot}>
+                        <FieldColorMark
+                          color={fields.find((f) => f.id === photo.fieldId)?.color}
+                          fieldId={photo.fieldId}
+                          size={8}
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                  <View style={styles.meta}>
+                    <Text
+                      style={[styles.metaDate, { color: colors.textPrimary }]}
+                      numberOfLines={1}
+                    >
+                      {dateLabel}
+                      {fieldLabel ? ` · ${fieldLabel}` : ''}
+                    </Text>
+                    <Text
+                      style={[styles.metaStatus, { color: colors.textTertiary }]}
+                      numberOfLines={1}
+                    >
+                      {statusLabel}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -1348,29 +1415,38 @@ const PhotoHubScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  scopeRow: {
+  stackTop: {
+    gap: spacing.xs,
+  },
+  toolbar: {
     flexDirection: 'row',
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
   scopeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: spacing.md,
+    gap: 6,
+    paddingHorizontal: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.full,
-    maxWidth: '100%',
+    maxWidth: '70%',
   },
   reviewChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: spacing.md,
+    gap: 4,
+    paddingHorizontal: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.full,
+  },
+  clearBtn: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   uploading: {
     flexDirection: 'row',
@@ -1383,27 +1459,27 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: spacing.xs,
   },
   tile: {
-    borderRadius: radii.md,
-    borderWidth: 1.5,
+    borderRadius: radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
-  thumb: {
+  thumbWrap: {
     width: '100%',
     aspectRatio: 1,
     backgroundColor: '#ddd',
+    position: 'relative',
   },
-  badges: {
-    position: 'absolute',
-    left: spacing.xs,
-    right: spacing.xs,
-    top: spacing.xs,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
+  thumb: {
+    width: '100%',
+    height: '100%',
   },
   badge: {
+    position: 'absolute',
+    left: spacing.xs,
+    top: spacing.xs,
     borderRadius: radii.full,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -1411,28 +1487,27 @@ const styles = StyleSheet.create({
   badgeText: {
     ...typography.styles.caption,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  overlay: {
+  fieldDot: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: spacing.xs,
-    paddingTop: 28,
-    paddingBottom: spacing.xs,
-    backgroundColor: 'rgba(12,18,10,0.72)',
+    right: spacing.xs,
+    top: spacing.xs,
   },
-  overlayPrimary: {
+  meta: {
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs + 2,
+    paddingBottom: spacing.sm,
+    gap: 2,
+  },
+  metaDate: {
+    ...typography.styles.caption,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  metaStatus: {
     ...typography.styles.caption,
     fontSize: 11,
-    fontWeight: '700',
-    color: '#f7faf5',
-  },
-  overlayStatus: {
-    ...typography.styles.caption,
-    fontSize: 10,
-    color: '#d7e8cf',
   },
   linkedCard: {
     borderWidth: 1,

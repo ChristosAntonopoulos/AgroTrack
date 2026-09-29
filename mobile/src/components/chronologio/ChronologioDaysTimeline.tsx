@@ -23,15 +23,10 @@ import { resolvePublicAssetUrl } from '../../config/env';
 import ChronologioEntryCard, { ChronologioWeatherCluster } from './ChronologioEntryCard';
 import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
 import ChronologioTimelineRowView from './ChronologioTimelineRow';
-import DailyWeatherStrip from './DailyWeatherStrip';
 import PhotoViewer, { type PhotoViewerItem } from '../photos/PhotoViewer';
 import Sheet from '../ui/Sheet';
 import { radii, spacing } from '../../theme';
-import {
-  buildDayWeatherView,
-  type DayWeatherInput,
-} from '../../chronologio/dayWeather';
-import { athensCalendarDateKey } from '../../utils/athensDate';
+import type { DayWeatherInput } from '../../chronologio/dayWeather';
 
 type Props = {
   entries: ChronologioEntry[];
@@ -68,9 +63,6 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
   onScrollY,
   onVisibleMonth,
   listHeader,
-  weatherByDate = {},
-  todayWeather,
-  onOpenDayWeather,
   focusDate,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'photos']);
@@ -142,32 +134,14 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
     [onScrollY]
   );
 
-  const todayKey = athensCalendarDateKey(new Date());
-
   const renderItem = useCallback(
     ({ item, index }: { item: ChronologioTimelineRow; index: number }) => {
-      const dayWeather =
-        item.kind === 'day' && item.dateKey
-          ? item.dateKey === todayKey && todayWeather
-            ? todayWeather
-            : weatherByDate[item.dateKey]
-          : undefined;
       return (
       <ChronologioTimelineRowView
         row={item}
         isFirst={index === 0}
         isLast={index === rows.length - 1}
       >
-        {item.kind === 'day' && item.dateKey ? (
-          <DailyWeatherStrip
-            weather={buildDayWeatherView(dayWeather, numberLocale)}
-            onOpen={
-              onOpenDayWeather
-                ? () => onOpenDayWeather(item.year, item.month, item.dateKey!)
-                : undefined
-            }
-          />
-        ) : null}
         {item.kind === 'weatherCluster' && item.weatherReviews?.length ? (
           <ChronologioWeatherCluster
             entries={item.weatherReviews}
@@ -195,7 +169,7 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
       </ChronologioTimelineRowView>
       );
     },
-    [numberLocale, onOpenDayWeather, onPressEntry, rows.length, showField, tapMin, todayKey, todayWeather, weatherByDate]
+    [numberLocale, onPressEntry, rows.length, showField, tapMin]
   );
 
   if ((!Array.isArray(entries) || entries.length === 0 || rows.length === 0) && !listHeader) {
@@ -280,7 +254,7 @@ const ChronologioDaysTimeline: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 100, paddingTop: 2 },
+  list: { paddingBottom: spacing.lg, paddingTop: 2 },
   end: {
     textAlign: 'center',
     marginVertical: 20,

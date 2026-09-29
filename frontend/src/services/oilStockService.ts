@@ -99,6 +99,8 @@ export type CreateOilCommitmentInput = {
   alreadyDelivered?: boolean;
   promisedFor?: string;
   notes?: string;
+  /** Link an income already posted via Money capture — skips creating a second FT. */
+  financialTransactionId?: string;
   allocations?: { oilLotId: string; pack: { tin16: number; tin17: number; bulkLitres: number } }[];
 };
 

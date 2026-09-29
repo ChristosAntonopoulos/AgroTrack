@@ -9,11 +9,13 @@ import {
   Platform,
   StyleProp,
 } from 'react-native';
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing } from '../../theme';
-import { getDockMetrics } from '../../navigation/dockMetrics';
+import { EXTRA_SCROLL_SPACE } from '../../navigation/dockMetrics';
 import { useDock } from '../../navigation/DockContext';
+import { useContentBottomInset } from '../../navigation/useContentBottomInset';
 import AppCanvas from './AppCanvas';
 
 interface ScreenLayoutProps {
@@ -25,11 +27,11 @@ interface ScreenLayoutProps {
   style?: StyleProp<ViewStyle>;
   /** Horizontal inset + light top breathing room */
   padded?: boolean;
-  /** Extra bottom padding for floating dock (tab roots). Default false — enable on tab screens. */
+  /** Same as dockInset. Reserves space for the floating action dock. */
   tabBarInset?: boolean;
   /**
-   * Clear the persistent dock. Defaults on.
-   * Turn off when the screen already pads its own scroll content.
+   * When the dock is visible, reserve safe area + FAB height + 24px
+   * so the last item can scroll clear of the floating control. Defaults on.
    */
   dockInset?: boolean;
   /**
@@ -55,20 +57,25 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   plain = false,
   canvasOpacity = 1,
 }) => {
-  const { colors, tapMin } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const headerHeight = React.useContext(HeaderHeightContext) ?? 0;
   const dock = useDock();
-  const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
-  const clearDock = tabBarInset || (dockInset && dock.visible);
-  const bottomPad = clearDock ? dockHeight + bottomInset + spacing.md : spacing['3xl'];
+  const contentInset = useContentBottomInset();
+  const insetEnabled = tabBarInset || dockInset;
+  const bottomPad = !insetEnabled
+    ? 0
+    : dock.visible
+      ? contentInset
+      : Math.max(insets.bottom, 0) + EXTRA_SCROLL_SPACE;
 
   const body = scroll ? (
     <ScrollView
       style={[styles.flex, styles.transparent, style]}
       contentContainerStyle={[
         padded && styles.padded,
-        { paddingBottom: bottomPad },
         contentContainerStyle,
+        { paddingBottom: resolvePaddingBottom(bottomPad, contentContainerStyle) },
       ]}
       scrollEnabled={scrollEnabled}
       nestedScrollEnabled={Platform.OS === 'android'}
@@ -85,8 +92,8 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         styles.flex,
         styles.transparent,
         padded && styles.paddedBody,
-        clearDock && { paddingBottom: bottomPad },
         style,
+        { paddingBottom: resolvePaddingBottom(bottomPad, style) },
       ]}
     >
       {children}
@@ -95,7 +102,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 
   if (plain) {
     return (
-      <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      <View style={[styles.flex, { backgroundColor: colors.background, paddingTop: headerHeight }]}>
         {body}
       </View>
     );
@@ -104,9 +111,16 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   return (
     <View style={styles.flex}>
       <AppCanvas opacity={canvasOpacity} />
-      {body}
+      <View style={[styles.flex, headerHeight > 0 ? { paddingTop: headerHeight } : null]}>{body}</View>
     </View>
   );
+};
+
+/** Callers may set their own paddingBottom. The dock clearance is a minimum, never replaced. */
+const resolvePaddingBottom = (base: number, incoming?: StyleProp<ViewStyle>): number => {
+  const flat = StyleSheet.flatten(incoming);
+  const caller = typeof flat?.paddingBottom === 'number' ? flat.paddingBottom : 0;
+  return Math.max(base, caller);
 };
 
 const styles = StyleSheet.create({

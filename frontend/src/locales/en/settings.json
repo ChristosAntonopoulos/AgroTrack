@@ -84,7 +84,7 @@
     "label": "When I open OLEACHRON",
     "options": {
       "fields": "Fields",
-      "chronologio": "Chronologio"
+      "chronologio": "History"
     }
   },
   "profile": {
@@ -113,9 +113,9 @@
       "dashboard": "Dashboard",
       "fields": "Fields",
       "tasks": "Tasks",
-      "calendar": "Chronologio",
+      "calendar": "History",
       "today": "Today",
-      "chronologio": "Chronologio"
+      "chronologio": "History"
     },
     "language": "Language",
     "fontScale": "Text size",
@@ -196,7 +196,7 @@
     "largeControls": "Larger buttons",
     "largeControlsDesc": "Bigger tap targets for easier use.",
     "setupPhoneTitle": "Set up this phone",
-    "setupPhoneBody": "Large text · Larger buttons · Chronologio is home"
+    "setupPhoneBody": "Large text · Larger buttons · History is home"
   },
   "saveButton": "Save changes",
   "savedLegacy": "Changes saved"

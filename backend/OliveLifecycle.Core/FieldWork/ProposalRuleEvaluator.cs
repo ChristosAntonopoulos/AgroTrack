@@ -512,7 +512,7 @@ public static class ProposalRuleEvaluator
             SourceType = ProposalSourceType.OfficialWarning,
             Confidence = ProposalConfidence.StrongEvidence,
             GreekExplanation =
-                $"Υπάρχει επίσημη προειδοποίηση για το χωράφι: {warning.Title}. Αξιολογήστε με προσοχή — δεν είναι αυτόματη διάγνωση.",
+                $"Υπάρχει επίσημη προειδοποίηση για τον ελαιώνα: {warning.Title}. Αξιολογήστε με προσοχή — δεν είναι αυτόματη διάγνωση.",
             EnglishExplanation =
                 $"An official warning applies to this field: {warning.Title}. Review carefully — this is not an automatic diagnosis.",
             ReasonCodes = ["official_warning", entry.Code.ToLowerInvariant()],

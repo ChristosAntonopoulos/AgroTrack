@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type {
   ChronologioAxis,
   ChronologioEntry,
@@ -18,6 +17,10 @@ import {
   type MonthChapterFocus,
 } from '../../chronologio/monthPresentation';
 import { formatGroveMassKg } from '../../utils/groveTotals';
+import { monthFocusKey, type MonthRailItem } from '../../chronologio/timelineRail';
+import { useReadingMonthKey } from '../../chronologio/useReadingMonthKey';
+import { formatMonthHeading } from '../../utils/taskFormDates';
+import ChronologioTimelineFrame from './ChronologioTimelineFrame';
 import {
   monthSeasonStage,
   seasonStageIndex,
@@ -108,7 +111,6 @@ const ChronologioYearView: React.FC<Props> = ({
   onClearSelection,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
-  const parentRef = useRef<HTMLDivElement>(null);
   const restoredScrollKey = useRef<string | null>(null);
   const scrollStorageKey = chronologioScrollKey({ zoom, focusDate, fieldId });
   const now = new Date();
@@ -156,51 +158,54 @@ const ChronologioYearView: React.FC<Props> = ({
     return flat;
   }, [entriesByMonth, orderedMonths, reviewsByMonth]);
 
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => parentRef.current,
-    getItemKey: (i) => rows[i]?.key ?? i,
-    estimateSize: (i) => {
-      const row = rows[i];
-      if (!row) return 168;
-      if (row.kind === 'season') return 44;
-      const picks = showField ? row.reviews.length : 0;
-      const empty = !monthHasActivity(row.month) && row.entries.length === 0 && row.reviews.length === 0;
-      if (empty) return 88;
-      // Summary chips + optional spotlight + CTA (not a full journal grid).
-      return 168 + (picks > 1 ? 176 : 0) + 72;
-    },
-    overscan: 6,
-    paddingEnd: 32,
-  });
-
   const live = axis === 'agricultural' && periodYear === agriculturalYearFor(now);
   const oilKg = months.reduce((sum, month) => sum + month.oilKg, 0);
   const oliveKg = months.reduce((sum, month) => sum + month.oliveKg, 0);
   const range = axis === 'agricultural' ? agriculturalYearRangeLabel(periodYear, i18n.language) : '';
-  const virtualItems = virtualizer.getVirtualItems();
+  const monthMarks: MonthRailItem[] = useMemo(
+    () => orderedMonths.map((month) => ({ key: `${month.year}-${month.month}`, year: month.year, month: month.month })),
+    [orderedMonths]
+  );
+  const readingKey = useReadingMonthKey(scrollStorageKey);
+  const activeMonth =
+    orderedMonths.find((month) => `${month.year}-${month.month}` === readingKey) || orderedMonths[0];
+  const activeFocus = activeMonth
+    ? monthFocusKey({
+        harvest: activeMonth.harvestCount,
+        work: activeMonth.taskCount,
+        observation: activeMonth.noteCount,
+        money: activeMonth.expenseCount,
+      })
+    : null;
+  const readingLabel = activeMonth
+    ? activeFocus
+      ? `${formatMonthHeading(activeMonth.year, activeMonth.month, i18n.language)} · ${t(`primaryCategories.${activeFocus}`)}`
+      : formatMonthHeading(activeMonth.year, activeMonth.month, i18n.language)
+    : '';
+
+  useLayoutEffect(() => {
+    if (rows.length === 0 || restoredScrollKey.current === scrollStorageKey) return;
+    restoredScrollKey.current = scrollStorageKey;
+    const saved = readChronologioJournalScroll(scrollStorageKey);
+    window.scrollTo({ top: saved ?? 0, left: 0, behavior: 'auto' });
+  }, [rows.length, scrollStorageKey]);
 
   useEffect(() => {
-    const el = parentRef.current;
-    if (!el) return undefined;
-
-    if (restoredScrollKey.current !== scrollStorageKey && rows.length > 0) {
-      const saved = readChronologioJournalScroll(scrollStorageKey);
-      if (saved != null) {
-        requestAnimationFrame(() => {
-          el.scrollTop = saved;
-        });
-      }
-      restoredScrollKey.current = scrollStorageKey;
-    }
-
-    const onScroll = () => saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
-    el.addEventListener('scroll', onScroll, { passive: true });
+    const onScroll = () => saveChronologioJournalScroll(scrollStorageKey, window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      saveChronologioJournalScroll(scrollStorageKey, el.scrollTop);
-      el.removeEventListener('scroll', onScroll);
+      saveChronologioJournalScroll(scrollStorageKey, window.scrollY);
+      window.removeEventListener('scroll', onScroll);
     };
-  }, [rows.length, scrollStorageKey]);
+  }, [scrollStorageKey]);
+
+  const jumpToMonth = (month: MonthRailItem) => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(`chrono-chapter-${month.year}-${month.month}`)?.scrollIntoView({
+      behavior: reduce ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  };
 
   return (
     <div className="chrono-year-view chrono-year-feed chrono-journal-view chrono-day-timeline">
@@ -224,71 +229,61 @@ const ChronologioYearView: React.FC<Props> = ({
         ) : null}
       </header>
 
-      <div ref={parentRef} className="chrono-month-scroll chrono-journal-scroll">
-        <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
-          {virtualItems.map((vRow) => {
-            const row = rows[vRow.index];
-            return (
-              <div
+      <ChronologioTimelineFrame
+        label={readingLabel}
+        labelKey={activeMonth ? `${activeMonth.year}-${activeMonth.month}` : 'none'}
+        months={monthMarks}
+        activeKey={activeMonth ? `${activeMonth.year}-${activeMonth.month}` : null}
+        onJump={jumpToMonth}
+      >
+        <div className="chrono-month-chapters">
+          {rows.map((row) =>
+            row.kind === 'season' ? (
+              <p key={row.key} className="chrono-year-season-mark">
+                {t(`yearView.stages.${row.stage}`)}
+              </p>
+            ) : (
+              <ChronologioMonthSection
                 key={row.key}
-                className="chrono-month-virtual-row"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${vRow.start}px)`,
-                }}
-                ref={virtualizer.measureElement}
-                data-index={vRow.index}
-              >
-                {row.kind === 'season' ? (
-                  <p className="chrono-year-season-mark">{t(`yearView.stages.${row.stage}`)}</p>
-                ) : (
-                  <ChronologioMonthSection
-                    month={row.month}
-                    weather={
-                      row.reviews[0]?.details.weather ||
-                      weatherByMonth?.[monthWeatherKey(row.month.year, row.month.month)]
-                    }
-                    weatherReviews={row.reviews}
-                    entries={row.entries}
-                    numberLocale={numberLocale}
-                    locale={locale}
-                    fieldId={fieldId}
-                    showField={showField}
-                    missingWeatherFields={
-                      showField && groveNames.length > 0
-                        ? groveNames
-                            .filter(
-                              (g) =>
-                                !row.reviews.some(
-                                  (r) => r.fieldId === g.id || r.field?.id === g.id
-                                )
-                            )
-                            .map((g) => g.name)
-                        : []
-                    }
-                    selectedEntryId={selectedEntryId}
-                    active={row.month.month === focusMonth && row.month.year === focusMonthYear}
-                    isCurrent={row.month.month === nowMonth && row.month.year === nowYear}
-                    empty={
-                      !monthHasActivity(row.month) &&
-                      row.entries.length === 0 &&
-                      row.reviews.length === 0
-                    }
-                    onOpenMonth={(focus) => onPeekMonth(row.month.year, row.month.month, focus)}
-                    onOpenDays={() => onOpenMonthDays(row.month.year, row.month.month)}
-                    onSelect={onSelect}
-                    onClearSelection={onClearSelection}
-                    onPeekWeather={() => onPeekMonthWeather(row.month.year, row.month.month)}
-                  />
-                )}
-              </div>
-            );
-          })}
+                month={row.month}
+                weather={
+                  row.reviews[0]?.details.weather ||
+                  weatherByMonth?.[monthWeatherKey(row.month.year, row.month.month)]
+                }
+                weatherReviews={row.reviews}
+                entries={row.entries}
+                numberLocale={numberLocale}
+                locale={locale}
+                fieldId={fieldId}
+                showField={showField}
+                missingWeatherFields={
+                  showField && groveNames.length > 0
+                    ? groveNames
+                        .filter(
+                          (g) =>
+                            !row.reviews.some((r) => r.fieldId === g.id || r.field?.id === g.id)
+                        )
+                        .map((g) => g.name)
+                    : []
+                }
+                selectedEntryId={selectedEntryId}
+                active={row.month.month === focusMonth && row.month.year === focusMonthYear}
+                isCurrent={row.month.month === nowMonth && row.month.year === nowYear}
+                empty={
+                  !monthHasActivity(row.month) &&
+                  row.entries.length === 0 &&
+                  row.reviews.length === 0
+                }
+                onOpenMonth={(focus) => onPeekMonth(row.month.year, row.month.month, focus)}
+                onOpenDays={() => onOpenMonthDays(row.month.year, row.month.month)}
+                onSelect={onSelect}
+                onClearSelection={onClearSelection}
+                onPeekWeather={() => onPeekMonthWeather(row.month.year, row.month.month)}
+              />
+            )
+          )}
         </div>
-      </div>
+      </ChronologioTimelineFrame>
     </div>
   );
 };

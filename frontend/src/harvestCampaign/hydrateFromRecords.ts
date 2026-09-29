@@ -313,3 +313,60 @@ export const mergeCampaignWithHydrated = (
     peopleLogs,
   };
 };
+
+/**
+ * Drop retired / deleted field ids from a campaign (and their sacks / shares).
+ * Keeps the harvest journey aligned with the live Fields list after demo reseeds.
+ */
+export const pruneCampaignToKnownFields = (
+  campaign: HarvestCampaign,
+  knownFieldIds: readonly string[]
+): HarvestCampaign => {
+  const known = new Set(knownFieldIds);
+  if (known.size === 0) return campaign;
+
+  const fieldOrder = campaign.fieldOrder.filter((id) => known.has(id));
+  const groveDoneIds = campaign.groveDoneIds.filter((id) => known.has(id));
+  const dayLogs = campaign.dayLogs.filter((row) => !row.fieldId || known.has(row.fieldId));
+  const sacks = campaign.sacks.filter((row) => known.has(row.fieldId));
+  const keptSackIds = new Set(sacks.map((row) => row.id));
+
+  const millWeights = campaign.millWeights
+    .map((row) => {
+      const fieldIds = row.fieldIds.filter((id) => known.has(id));
+      const fieldShares = row.fieldShares?.filter((share) => known.has(share.fieldId));
+      if (row.fieldIds.length > 0 && fieldIds.length === 0) return null;
+      return {
+        ...row,
+        fieldIds,
+        fieldShares: fieldShares && fieldShares.length > 0 ? fieldShares : undefined,
+        sackIds: row.sackIds.filter((id) => keptSackIds.has(id)),
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
+
+  const keptMillIds = new Set(millWeights.map((row) => row.id));
+  const oils = campaign.oils
+    .map((row) => {
+      const fieldIds = row.fieldIds.filter((id) => known.has(id));
+      const fieldShares = row.fieldShares?.filter((share) => known.has(share.fieldId));
+      if (row.fieldIds.length > 0 && fieldIds.length === 0) return null;
+      return {
+        ...row,
+        fieldIds,
+        fieldShares: fieldShares && fieldShares.length > 0 ? fieldShares : undefined,
+        millWeightIds: row.millWeightIds.filter((id) => keptMillIds.has(id)),
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
+
+  return {
+    ...campaign,
+    fieldOrder,
+    groveDoneIds,
+    dayLogs,
+    sacks,
+    millWeights,
+    oils,
+  };
+};

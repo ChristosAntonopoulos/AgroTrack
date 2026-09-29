@@ -417,10 +417,7 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
             ? greenDate
             : metadataUpdated(meta),
         kind: sourceKindLabel(meta.valueType),
-        note:
-          (meta.isRegionalEstimate || (soil?.isRegionalEstimate && title === t('fields:details.soilTitle')))
-            ? t('fields:details.sources.regional')
-            : note || undefined,
+        note: note || undefined,
         info: metadataInfo(title, meta, note || undefined),
       });
     });
@@ -505,14 +502,7 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
       <header className="fd-lead">
         <div>
           <h2>{t('fields:page.details')}</h2>
-          <p>
-            {t('fields:details.leadApi')}
-            {spatial?.calculatedAt
-              ? ` ${t('fields:details.modelsUpdated', { when: formatRelativeTime(spatial.calculatedAt) })}`
-              : collecting
-                ? ` ${t('fields:details.collecting')}`
-                : ''}
-          </p>
+          {collecting && !spatial?.calculatedAt ? <p>{t('fields:details.collecting')}</p> : null}
         </div>
         {canOwn ? (
           <div className="fd-lead-actions">
@@ -673,9 +663,6 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
           </div>
           {soil ? (
             <>
-              {soil.isRegionalEstimate || soil.metadata?.isRegionalEstimate ? (
-                <p className="fd-banner">{t('fields:details.sources.regional')}</p>
-              ) : null}
               <div className="fd-stats">
                 <div className="fd-stat">
                   <span>{t('fields:intelligence.soilPh')}</span>
@@ -980,7 +967,6 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
                 </div>
                 <div className="fd-ledger-meta">
                   {source.kind ? <span>{source.kind}</span> : null}
-                  {source.updated ? <time>{formatDateTime(source.updated)}</time> : null}
                   {source.info ? (
                     <InfoButton label={sourceAria} onClick={() => openInfo(source.info)} />
                   ) : null}

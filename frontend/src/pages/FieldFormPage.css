@@ -11,14 +11,32 @@
 .field-form-header {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 0.35rem;
+}
+
+.field-form-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
 }
 
 .field-form-header h1 {
-  margin: 0 0 var(--spacing-xs);
+  margin: 0;
+  min-width: 0;
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text-primary);
+}
+
+.field-form-back.btn {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 8px;
+  gap: 0.3rem;
 }
 
 .field-form-subtitle {
@@ -830,6 +848,93 @@
 
 /* ——— Create grove flow ——— */
 
+.field-form-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-width: 0;
+}
+
+.field-form-stage-main {
+  min-width: 0;
+}
+
+.field-form-page:has(.field-form-stage.has-setup-rail) {
+  max-width: 980px;
+}
+
+.field-form-stage.has-setup-rail {
+  display: grid;
+  grid-template-columns: 9.25rem minmax(0, 1fr);
+  column-gap: 1.15rem;
+  align-items: start;
+}
+
+.field-form-stage.has-setup-rail .grove-setup-level {
+  position: sticky;
+  top: 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
+  padding-top: 0.35rem;
+}
+
+.field-form-stage.has-setup-rail .grove-setup-level-sep {
+  width: 1px;
+  height: 16px;
+  margin-left: 11px;
+}
+
+.field-form-stage.has-setup-rail .grove-setup-level-item {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.field-form-stage.has-setup-rail .field-boundary-map {
+  height: min(68vh, 620px);
+  min-height: 420px;
+}
+
+.field-form-stage.has-setup-rail .field-boundary-step.is-handoff .field-boundary-map {
+  height: min(520px, calc(100dvh - 30rem));
+  min-height: 380px;
+}
+
+.field-form-stage.has-setup-rail .boundary-continue-dock {
+  width: min(
+    calc(980px - 9.25rem - 1.15rem),
+    calc(100vw - var(--sidebar-width) - 8rem - 9.25rem - 1.15rem)
+  );
+  left: calc(
+    var(--sidebar-width) + (100vw - var(--sidebar-width)) / 2 + (9.25rem + 1.15rem) / 2
+  );
+}
+
+@media (max-width: 860px) {
+  .field-form-page:has(.field-form-stage.has-setup-rail) {
+    max-width: 720px;
+  }
+
+  .field-form-stage.has-setup-rail {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .field-form-stage.has-setup-rail .grove-setup-level {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 0;
+  }
+
+  .field-form-stage.has-setup-rail .grove-setup-level-sep {
+    width: 12px;
+    height: 1px;
+    margin-left: 0;
+  }
+}
+
 .grove-setup-level {
   display: flex;
   flex-wrap: wrap;
@@ -873,6 +978,93 @@
 .grove-setup-level-item.is-clickable:focus-visible {
   outline: 2px solid var(--olive-primary, #2f5d38);
   outline-offset: 2px;
+}
+
+.grove-name-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  background: var(--surface-1);
+}
+
+.grove-name-prompt {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+}
+
+.grove-name-field {
+  margin-top: 0.55rem;
+}
+
+.grove-name-box input[type='text'] {
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: none;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grove-name-box input[type='text']:hover {
+  border-color: var(--olive-border);
+}
+
+.grove-name-box input[type='text']:focus {
+  outline: none;
+  border-color: var(--olive-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 35%, transparent);
+}
+
+.grove-name-box input[type='text']::placeholder {
+  font-style: italic;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary);
+  opacity: 0.85;
+}
+
+.grove-name-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.grove-name-suggestion {
+  appearance: none;
+  border: 1px dashed var(--border-default);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.grove-name-suggestion:hover {
+  border-color: var(--olive-border);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--olive-primary) 8%, transparent);
+}
+
+.grove-name-suggestion.is-selected {
+  border-style: solid;
+  border-color: var(--olive-border);
+  background: color-mix(in srgb, var(--olive-primary) 14%, transparent);
+  color: var(--text-primary);
 }
 
 .grove-name-label-sr {

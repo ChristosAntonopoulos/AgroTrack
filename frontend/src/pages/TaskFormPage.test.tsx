@@ -122,7 +122,7 @@ describe('TaskFormPage Phase 4', () => {
     mockAcceptProposal.mockReset();
     mockGetFields.mockResolvedValue([
       field('field-1', 'Κτήμα Φιλιατρών'),
-      field('field-2', 'Κάτω χωράφι'),
+      field('field-2', 'Κάτω ελαιώνας'),
     ]);
     mockGetPeople.mockResolvedValue([]);
     mockGetContacts.mockResolvedValue([]);
@@ -146,7 +146,7 @@ describe('TaskFormPage Phase 4', () => {
     expect(screen.getByText('Τι θέλεις να γίνει και πότε;')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Τι χρειάζεται να γίνει;' })).toBeInTheDocument();
     expect(screen.getByLabelText('Τι χρειάζεται να γίνει;')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Σε ποιο χωράφι;' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Σε ποιον ελαιώνα;' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Πότε θέλεις να γίνει;' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Ποιος θα το κάνει;' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Επόμενο' })).toBeInTheDocument();
@@ -337,7 +337,7 @@ describe('TaskFormPage Phase 4', () => {
   it('opens capture work on the field step with the catalogue title', async () => {
     renderForm('fieldId=field-1&templateCode=T15');
 
-    expect(await screen.findByRole('heading', { name: 'Σε ποιο χωράφι;' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Σε ποιον ελαιώνα;' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Τι χρειάζεται να γίνει;' })).not.toBeInTheDocument();
     expect(screen.getByText(/Προγραμματισμός άρδευσης/)).toBeInTheDocument();
   });

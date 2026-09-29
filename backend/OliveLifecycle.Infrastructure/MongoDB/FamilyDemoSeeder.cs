@@ -7,11 +7,12 @@ using OliveLifecycle.Infrastructure.Persistence.Documents;
 namespace OliveLifecycle.Infrastructure.MongoDB;
 
 /// <summary>
-/// Ensures Eleni has Family seats on Giorgos's Filiatra fields (field-centric model).
-/// Legacy family_circles / family_members collections are no longer written.
+/// Phase 4: seat Eleni as Family (view) on both ελαιώνες and add her house-oil note.
 /// </summary>
 public static class FamilyDemoSeeder
 {
+    private const string HouseOilNoteId = "675555555555555555557e01";
+
     public static async Task SeedAsync(
         MongoDbContext context,
         IConfiguration configuration,
@@ -25,15 +26,12 @@ public static class FamilyDemoSeeder
 
         var fields = context.GetCollection<FieldDocument>("fields");
         var now = DateTime.UtcNow;
-        var updated = 0;
+        var seated = 0;
 
         foreach (var fieldId in DemoFarmDataSeeder.FieldIds)
         {
             var field = await fields.Find(f => f.Id == fieldId).FirstOrDefaultAsync(cancellationToken);
-            if (field == null)
-            {
-                continue;
-            }
+            if (field == null) continue;
 
             field.Memberships ??= new List<FieldMembershipDocument>();
             var existing = field.Memberships.FirstOrDefault(m =>
@@ -48,30 +46,48 @@ public static class FamilyDemoSeeder
                     UserId = DemoFarmDataSeeder.FamilyUserId,
                     Role = "Family",
                     Modules = DemoFarmDataSeeder.FamilySeatModules.ToList(),
-                    AccessLevel = FamilyAccessLevels.Work,
+                    AccessLevel = FamilyAccessLevels.View,
                     Status = FamilyMemberStatuses.Active,
                     InvitedBy = DemoFarmDataSeeder.OwnerId,
                     DisplayName = DemoFarmDataSeeder.FamilyDisplayName,
                     Email = "family@olivefarm.com",
                     CreatedAt = now.AddDays(-180),
                 });
-                updated++;
             }
             else
             {
                 existing.Role = "Family";
                 existing.UserId = DemoFarmDataSeeder.FamilyUserId;
                 existing.Modules = DemoFarmDataSeeder.FamilySeatModules.ToList();
-                existing.AccessLevel = FamilyAccessLevels.Work;
+                existing.AccessLevel = FamilyAccessLevels.View;
                 existing.DisplayName = DemoFarmDataSeeder.FamilyDisplayName;
                 existing.Status = FamilyMemberStatuses.Active;
             }
 
             await fields.ReplaceOneAsync(f => f.Id == fieldId, field, cancellationToken: cancellationToken);
+            seated++;
         }
 
+        var noteWhen = DateTime.UtcNow.Date.AddDays(-2).AddHours(16);
+        await context.GetCollection<NoteDocument>("notes").ReplaceOneAsync(
+            n => n.Id == HouseOilNoteId,
+            new NoteDocument
+            {
+                Id = HouseOilNoteId,
+                OwnerUserId = DemoFarmDataSeeder.FamilyUserId,
+                Body = "Κρατήσαμε λάδι για το σπίτι. Όπως κάθε χρόνο.",
+                FieldId = DemoFarmDataSeeder.FieldId,
+                Pinned = false,
+                OccurredAt = noteWhen,
+                CreatedAt = noteWhen,
+                UpdatedAt = noteWhen,
+            },
+            new ReplaceOptions { IsUpsert = true },
+            cancellationToken);
+
         logger.LogInformation(
-            "Seeded family seats: family@olivefarm.com keeps money, harvest, and papers on {Count} Filiatra fields.",
-            DemoFarmDataSeeder.FieldIds.Length);
+            "Phase 4: family seat for {Email} (view) on {Count} ελαιώνες, plus house-oil note.",
+            "family@olivefarm.com",
+            seated);
     }
 }

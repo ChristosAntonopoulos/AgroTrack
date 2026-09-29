@@ -585,45 +585,22 @@ const TasksPage: React.FC = () => {
           ]}
         />
 
-        <div className="tasks-context-bar">
-          <label className="tasks-context-control" style={{ flex: '1 1 220px' }}>
-            <span className="tasks-sr-only">{t('notebook.search')}</span>
-            <input
-              className="notebook-search"
-              type="search"
-              value={query}
-              placeholder={t('notebook.search')}
-              aria-label={t('notebook.search')}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <div className="notebook-scope" role="group" aria-label={t('notebook.scope')}>
-            <button
-              type="button"
-              className={scope === 'mine' ? 'is-active' : ''}
-              aria-pressed={scope === 'mine'}
-              onClick={() => setScope('mine')}
-            >
-              {t('notebook.mine')}
-            </button>
-            <button
-              type="button"
-              className={scope === 'everyone' ? 'is-active' : ''}
-              aria-pressed={scope === 'everyone'}
-              onClick={() => setScope('everyone')}
-            >
-              {t('notebook.everyone')}
-            </button>
-          </div>
-        </div>
-
         <TaskContextBar
+          searchLabel={t('notebook.search')}
+          searchPlaceholder={t('notebook.search')}
+          searchValue={query}
+          onSearchChange={setQuery}
+          scopeLabel={t('notebook.scope')}
+          scope={scope}
+          mineLabel={t('notebook.mine')}
+          everyoneLabel={t('notebook.everyone')}
+          onScopeChange={setScope}
           fieldLabel={t('fieldFilterLabel')}
           allFieldsLabel={t('fieldWork.allFields')}
           fieldId={fieldFilter}
           fields={fields}
           onFieldChange={(fieldId) => writeParams({ fieldId })}
-          assigneeLabel={t('fieldWork.allAssigneesLabel', { defaultValue: 'Υπεύθυνοι' })}
+          assigneeLabel={t('fieldWork.allAssigneesLabel')}
           allAssigneesLabel={t('fieldWork.allAssignees')}
           assigneeId={assigneeFilter}
           assignees={assignees}
@@ -727,6 +704,7 @@ const TasksPage: React.FC = () => {
       <ScheduleGroupSheet
         group={scheduleGroup}
         fieldNames={fieldNames}
+        fieldColors={Object.fromEntries(fields.map((field) => [field.id, field.color]))}
         open={Boolean(scheduleGroup)}
         busy={Boolean(busyId)}
         onClose={() => setScheduleGroup(null)}
@@ -742,12 +720,15 @@ const TasksPage: React.FC = () => {
           onClose={() => setDismissalPrompt(null)}
           onAction={(actionId) => void applyDismissalLearning(actionId as DismissalLearningChoice)}
           actions={[
-            { id: 'dont_propose', label: t('fieldWork.profile.learning.dontPropose') },
+            {
+              id: 'dont_propose',
+              label: t('fieldWork.profile.learning.dontPropose'),
+              variant: 'caution',
+            },
             { id: 'ask_when_indicated', label: t('fieldWork.profile.learning.askWhenIndicated') },
             {
               id: 'keep_proposing',
               label: t('fieldWork.profile.learning.keepProposing'),
-              variant: 'outline',
             },
           ]}
         />

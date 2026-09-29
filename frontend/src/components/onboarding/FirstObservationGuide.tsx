@@ -31,7 +31,7 @@ const FirstObservationGuide: React.FC<Props> = ({ fieldId }) => {
 
   const finish = React.useCallback(() => {
     completeFirstObservation();
-    navigate(`/fields/${fieldId}?tab=chronologio`, { replace: true });
+    navigate(`/chronologio?fieldId=${encodeURIComponent(fieldId)}`, { replace: true });
   }, [completeFirstObservation, fieldId, navigate]);
 
   const openObservation = React.useCallback(() => {

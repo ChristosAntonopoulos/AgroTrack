@@ -137,7 +137,9 @@ const LoginScreen = () => {
         }
       />
 
-      <AuthButton title={t('auth:login.button')} onPress={() => void handleLogin()} loading={loading} />
+      <View style={authLinkStyles.actions}>
+        <AuthButton title={t('auth:login.button')} onPress={() => void handleLogin()} loading={loading} />
+      </View>
 
       <TouchableOpacity
         onPress={() =>

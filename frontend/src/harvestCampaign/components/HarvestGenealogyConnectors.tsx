@@ -172,7 +172,7 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
           </linearGradient>
         ))}
       </defs>
-      {edges.map(({ link, d, lit, midX, midY, from, to, color }) => {
+      {edges.map(({ link, d, lit, from, to, color }) => {
         const gid = `hc-wire-${gradId}-${link.fromId}-${link.toId}-${link.fieldId || 'x'}`;
         return (
           <g
@@ -198,26 +198,6 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
               className="hc-gene-wire-port"
               stroke={color}
             />
-            {selectedId && lit && link.label ? (
-              <g transform={`translate(${midX}, ${midY})`}>
-                <rect
-                  x={-(Math.max(link.label.length, 2) * 3.6 + 12) / 2}
-                  y={-10}
-                  width={Math.max(link.label.length, 2) * 3.6 + 12}
-                  height={20}
-                  rx={10}
-                  className="hc-gene-wire-badge"
-                  stroke={color}
-                />
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  className="hc-gene-wire-badge-text"
-                >
-                  {link.label}
-                </text>
-              </g>
-            ) : null}
           </g>
         );
       })}

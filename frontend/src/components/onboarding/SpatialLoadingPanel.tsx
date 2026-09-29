@@ -18,6 +18,8 @@ import './SpatialLoadingPanel.css';
 type Props = {
   fieldId: string;
   fieldName: string;
+  /** After the grove is ready. Defaults to the field page. */
+  continuePath?: string;
 };
 
 const STAGES = ['weather', 'satellite', 'personalized'] as const;
@@ -29,7 +31,7 @@ const MIN_STAGE_MS = 900;
 const SATELLITE_SOFT_MS = 22000;
 const MAX_WAIT_MS = 90000;
 
-const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
+const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, continuePath }) => {
   const { t } = useTranslation('onboarding');
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -117,7 +119,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
   const continueToGrove = () => {
     beginFirstObservationGuide();
     markFieldsDirty();
-    navigate(`/fields/${fieldId}?tab=details&activation=observe`, { replace: true });
+    navigate(continuePath || `/fields/${fieldId}?tab=details&activation=observe`, { replace: true });
   };
 
   const retry = async () => {

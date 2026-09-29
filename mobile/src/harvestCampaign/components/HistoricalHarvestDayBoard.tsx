@@ -51,7 +51,7 @@ export const HistoricalHarvestDayBoard: React.FC<Props> = ({
         {fieldLabel} · {dated}
       </Text>
       <Button
-        title={t('fields:thisHarvest.openChronologio', { defaultValue: 'Chronologio' })}
+        title={t('fields:thisHarvest.openChronologio', { defaultValue: 'History' })}
         variant="ghost"
         onPress={onOpenChronologio}
         fullWidth

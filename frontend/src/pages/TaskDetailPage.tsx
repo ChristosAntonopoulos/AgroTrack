@@ -13,14 +13,16 @@ import type { TaskFinancialSummary } from '../services/financialSummaryService';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
-import { notebookStatus, requiredChecksRemaining } from '../utils/taskNotebook';
+import { checklistCount, notebookStatus, requiredChecksRemaining } from '../utils/taskNotebook';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { formatOfficialAmount } from '../finance/format';
 import { taskExpenseCaptureContext } from '../utils/taskExpenseContext';
+import { formatCompactTaskPeriod } from '../utils/taskDateRange';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import TaskCategoryMark from '../components/Tasks/TaskCategoryMark';
 import '../components/Tasks/form/TaskForm.css';
 import '../components/Tasks/TaskNotebookCard.css';
 import './TaskDetailPage.css';
@@ -139,11 +141,11 @@ const TaskDetailPage: React.FC = () => {
     if (!id) return;
     setBusy(true);
     try {
-      setTask(await getFieldWorkService().blockFieldTask(id, note.trim() || undefined));
+      setTask(await getFieldWorkService().blockFieldTask(id));
       setConfirming(false);
       setExplaining(false);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.complete'));
+      setError(getApiErrorMessage(err, t) || t('detail.failedStatus'));
     } finally {
       setBusy(false);
     }
@@ -180,8 +182,23 @@ const TaskDetailPage: React.FC = () => {
     : '';
   const locked = status === 'completed' || status === 'cancelled' || status === 'skipped';
   const checks = [...(task.checklist || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const checkProgress = checklistCount(task);
   const remaining = requiredChecksRemaining(task);
   const needsExplanation = confirming && remaining > 0 && !explaining;
+  const period = formatCompactTaskPeriod(
+    task.plannedStart,
+    task.plannedEnd,
+    i18n.language,
+    task.resultYear
+  );
+  const statusLabel =
+    status !== 'todo' ? t(`notebook.status.${status}`, { defaultValue: status }) : '';
+  const metaParts = [
+    fieldName,
+    period,
+    started ? t('notebook.work.started', { time: started }) : '',
+    statusLabel,
+  ].filter(Boolean);
   const actualCost = formatOfficialAmount(
     money?.actualCost,
     task.estimatedCostCurrency || 'EUR',
@@ -208,17 +225,26 @@ const TaskDetailPage: React.FC = () => {
           <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
             {t('detail.backToTasks')}
           </Button>
-          <h1>{title}</h1>
-          <p className="task-work-meta">
-            {fieldName}
-            {started ? ` · ${t('notebook.work.started', { time: started })}` : ''}
-            {status !== 'todo' ? ` · ${t(`notebook.status.${status}`)}` : ''}
-          </p>
+          <div className="task-work-head-row">
+            <TaskCategoryMark templateCode={task.templateCode} size={22} />
+            <div>
+              <h1>{title}</h1>
+              <p className="task-work-meta">{metaParts.join(' · ')}</p>
+            </div>
+          </div>
           {error ? <p role="alert">{error}</p> : null}
         </header>
 
-        <section aria-label={t('notebook.work.checks')}>
+        <section className="task-work-card" aria-label={t('notebook.work.checks')}>
           <h2>{t('notebook.work.checks')}</h2>
+          {checks.length > 0 ? (
+            <p className="task-work-progress">
+              {t('notebook.work.checksProgress', {
+                done: checkProgress.done,
+                total: checkProgress.total,
+              })}
+            </p>
+          ) : null}
           {checks.length === 0 ? (
             <p className="task-form-help">{t('notebook.work.noChecks')}</p>
           ) : (
@@ -240,7 +266,7 @@ const TaskDetailPage: React.FC = () => {
           )}
         </section>
 
-        <section>
+        <section className="task-work-card">
           <h2>{t('notebook.work.note')}</h2>
           <textarea
             className="task-work-note"
@@ -251,13 +277,13 @@ const TaskDetailPage: React.FC = () => {
           />
         </section>
 
-        <section>
+        <section className="task-work-card">
           <h2>{t('fieldWork.detail.money')}</h2>
-          <p>{t('fieldWork.detail.actual')}</p>
-          <p>{actualCost}</p>
-          <p>{t('fieldWork.detail.estimateHint')}</p>
+          <p className="task-work-money-hint">{t('fieldWork.detail.actual')}</p>
+          <p className="task-work-money-value">{actualCost}</p>
+          <p className="task-work-money-hint">{t('fieldWork.detail.estimateHint')}</p>
           {!locked ? (
-            <div className="task-detail-actions">
+            <div className="task-work-secondary">
               <Button
                 variant="outline"
                 size="lg"
@@ -274,9 +300,7 @@ const TaskDetailPage: React.FC = () => {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() =>
-                  capture?.openCapture(taskExpenseCaptureContext(task))
-                }
+                onClick={() => capture?.openCapture(taskExpenseCaptureContext(task))}
               >
                 {t('fieldWork.detail.addExpense')}
               </Button>
@@ -285,9 +309,9 @@ const TaskDetailPage: React.FC = () => {
         </section>
 
         {(task.activity || []).length > 0 ? (
-          <section>
+          <section className="task-work-card">
             <h2>{t('notebook.work.activity')}</h2>
-            <ul>
+            <ul className="task-work-activity">
               {task.activity?.map((event, index) => (
                 <li key={`${event.action}-${event.occurredAt}-${index}`}>
                   {activityLine(event.action, event.occurredAt)}
@@ -298,34 +322,42 @@ const TaskDetailPage: React.FC = () => {
         ) : null}
 
         {confirming ? (
-          <section>
+          <section className="task-work-confirm">
             <h2>{t('notebook.work.doneNow')}</h2>
             {needsExplanation ? (
-              <p role="status">{t('notebook.work.incomplete', { open: remaining })}</p>
-            ) : null}
-            {needsExplanation ? (
-              <div className="task-detail-actions">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => {
-                    setConfirming(false);
-                    setExplaining(false);
-                  }}
-                >
-                  {t('notebook.work.backToChecks')}
-                </Button>
-                <Button variant="outline" size="lg" onClick={() => setExplaining(true)}>
-                  {t('notebook.work.completeAnyway')}
-                </Button>
-                <Button variant="outline" size="lg" onClick={() => void blockTask()} disabled={busy}>
-                  {t('notebook.menu.block')}
-                </Button>
-              </div>
+              <>
+                <p role="status">{t('notebook.work.incomplete', { open: remaining })}</p>
+                <div className="task-work-confirm-choices">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={() => {
+                      setConfirming(false);
+                      setExplaining(false);
+                    }}
+                  >
+                    {t('notebook.work.backToChecks')}
+                  </Button>
+                  <Button variant="ghost" size="lg" fullWidth onClick={() => setExplaining(true)}>
+                    {t('notebook.work.completeAnyway')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    fullWidth
+                    onClick={() => void blockTask()}
+                    disabled={busy}
+                  >
+                    {t('notebook.menu.block')}
+                  </Button>
+                </div>
+              </>
             ) : (
               <Button
                 variant="primary"
                 size="lg"
+                fullWidth
                 disabled={busy}
                 onClick={() => void confirmComplete(remaining > 0)}
               >
@@ -335,8 +367,8 @@ const TaskDetailPage: React.FC = () => {
           </section>
         ) : null}
 
-        {!confirming ? (
-          <div className="task-detail-actions">
+        {!confirming && !locked ? (
+          <div className="task-work-sticky">
             {status === 'todo' ? (
               <Button variant="primary" size="lg" onClick={() => void handleStart()} disabled={busy}>
                 {t('fieldWork.actions.start')}

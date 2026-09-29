@@ -534,42 +534,44 @@ const TaskListScreen = () => {
           ]}
         />
 
-        <View
-          style={[
-            styles.searchBox,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.borderLight,
-              minHeight: Math.max(46, tapMin * 0.92),
-            },
-          ]}
-        >
-          <Ionicons name="search" size={18} color={colors.textTertiary} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('notebook.search')}
-            placeholderTextColor={colors.textTertiary}
-            accessibilityLabel={t('notebook.search')}
+        <View style={styles.toolbar}>
+          <View
             style={[
-              styles.search,
+              styles.searchBox,
               {
-                color: colors.textPrimary,
-                fontSize: 15 * fontScaleMultiplier,
+                backgroundColor: colors.surface,
+                borderColor: colors.borderLight,
+                minHeight: Math.max(46, tapMin * 0.92),
+                flex: 1,
               },
             ]}
-          />
-          {query ? (
-            <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel={t('common:clear', { defaultValue: 'Clear' })}>
-              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
-            </Pressable>
-          ) : null}
-        </View>
-        <View
-          style={[styles.scope, { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight }]}
-          accessibilityRole="tablist"
-          accessibilityLabel={t('notebook.scope')}
-        >
+          >
+            <Ionicons name="search" size={18} color={colors.textTertiary} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('notebook.search')}
+              placeholderTextColor={colors.textTertiary}
+              accessibilityLabel={t('notebook.search')}
+              style={[
+                styles.search,
+                {
+                  color: colors.textPrimary,
+                  fontSize: 15 * fontScaleMultiplier,
+                },
+              ]}
+            />
+            {query ? (
+              <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel={t('common:clear', { defaultValue: 'Clear' })}>
+                <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+              </Pressable>
+            ) : null}
+          </View>
+          <View
+            style={[styles.scope, { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight }]}
+            accessibilityRole="tablist"
+            accessibilityLabel={t('notebook.scope')}
+          >
             {(['mine', 'everyone'] as const).map((id) => {
               const selected = scope === id;
               return (
@@ -596,6 +598,7 @@ const TaskListScreen = () => {
                 </Pressable>
               );
             })}
+          </View>
         </View>
 
         <TaskContextBar
@@ -718,12 +721,15 @@ const TaskListScreen = () => {
         onClose={() => setDismissalPrompt(null)}
         onAction={(actionId) => void applyDismissalLearning(actionId as DismissalLearningChoice)}
         actions={[
-          { id: 'dont_propose', label: t('fieldWork.profile.learning.dontPropose') },
+          {
+            id: 'dont_propose',
+            label: t('fieldWork.profile.learning.dontPropose'),
+            variant: 'caution',
+          },
           { id: 'ask_when_indicated', label: t('fieldWork.profile.learning.askWhenIndicated') },
           {
             id: 'keep_proposing',
             label: t('fieldWork.profile.learning.keepProposing'),
-            variant: 'outline',
           },
         ]}
       />
@@ -734,6 +740,12 @@ const TaskListScreen = () => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: spacing.base, paddingBottom: spacing['2xl'], gap: spacing.md },
+  toolbar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -741,6 +753,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
+    minWidth: 160,
   },
   search: {
     flex: 1,
@@ -752,12 +765,13 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: 3,
     gap: 2,
+    flexShrink: 0,
   },
   scopeBtn: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 11,
+    paddingHorizontal: 12,
   },
   errorBox: { borderRadius: radii.md, padding: spacing.md },
   undoBanner: {

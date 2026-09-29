@@ -2,24 +2,29 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TaskProposal } from '../../services/fieldWorkService';
 import {
+  formatRecommendedPeriod,
   groupProposalsByTemplate,
   proposalExplanation,
+  proposalTitle,
   sectionProposalGroups,
   type ProposalTemplateGroup,
 } from '../../utils/proposalPresentation';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import GroupedProposalCard from './GroupedProposalCard';
+import TaskCategoryMark from './TaskCategoryMark';
 import TasksEmptyState from './TasksEmptyState';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
+import './TasksShell.css';
 
 export type ProposalDismissChoice = 'dont_do' | 'already_done' | 'remind_later';
 
 interface TaskProposalListProps {
   proposals: TaskProposal[];
   fieldNames: Record<string, string>;
+  fieldColors?: Record<string, string | undefined>;
   unknownField: string;
-  introTitle: string;
-  introSubtitle: string;
   emptyTitle: string;
   emptyDescription: string;
   busyId: string | null;
@@ -31,9 +36,8 @@ interface TaskProposalListProps {
 const TaskProposalList: React.FC<TaskProposalListProps> = ({
   proposals,
   fieldNames,
+  fieldColors,
   unknownField,
-  introTitle,
-  introSubtitle,
   emptyTitle,
   emptyDescription,
   busyId,
@@ -53,6 +57,8 @@ const TaskProposalList: React.FC<TaskProposalListProps> = ({
   const grouped = groupProposalsByTemplate(proposals, now);
   const sections = sectionProposalGroups(grouped);
 
+  const fieldLabel = (id: string) => friendlyFieldLabel(fieldNames[id]) || fieldNames[id] || unknownField;
+
   const renderSection = (
     id: string,
     label: string,
@@ -61,7 +67,10 @@ const TaskProposalList: React.FC<TaskProposalListProps> = ({
   ) => {
     if (items.length === 0) return null;
     return (
-      <section className="tasks-proposal-group" aria-labelledby={`tasks-group-${id}`}>
+      <section
+        className={`tasks-proposal-group${id === 'doNow' ? ' tasks-proposal-group--urgent' : ''}`}
+        aria-labelledby={`tasks-group-${id}`}
+      >
         <div className="tasks-proposal-group-header">
           <h3 id={`tasks-group-${id}`} className="tasks-proposal-group-title">
             {label}
@@ -85,6 +94,7 @@ const TaskProposalList: React.FC<TaskProposalListProps> = ({
                 key={group.key}
                 group={group}
                 fieldNames={fieldNames}
+                fieldColors={fieldColors}
                 unknownField={unknownField}
                 busy={group.proposals.some((p) => p.id === busyId)}
                 onSchedule={() => onScheduleGroup(group)}
@@ -98,13 +108,13 @@ const TaskProposalList: React.FC<TaskProposalListProps> = ({
     );
   };
 
+  const whyLead = whyGroup?.proposals[0];
+  const whyTitle = whyLead ? proposalTitle(whyLead, i18n.language) : '';
+  const whyPeriod = whyLead ? formatRecommendedPeriod(whyLead, i18n.language) : '';
+  const whyBusy = whyGroup ? whyGroup.proposals.some((p) => p.id === busyId) : false;
+
   return (
     <div className="tasks-proposal-list">
-      <header className="tasks-view-intro">
-        <h2 className="tasks-view-intro-title">{introTitle}</h2>
-        <p className="tasks-view-intro-copy">{introSubtitle}</p>
-      </header>
-
       {renderSection('doNow', t('fieldWork.proposalGroups.doNow'), sections.doNow)}
       {renderSection('canWait', t('fieldWork.proposalGroups.canWait'), sections.canWait)}
       {renderSection(
@@ -118,9 +128,79 @@ const TaskProposalList: React.FC<TaskProposalListProps> = ({
         open={Boolean(whyGroup)}
         onClose={() => setWhyGroup(null)}
         title={t('fieldWork.proposal.whyRecommended')}
+        footer={
+          whyGroup ? (
+            <div className="tasks-why-footer">
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={whyBusy}
+                onClick={() => {
+                  onScheduleGroup(whyGroup);
+                  setWhyGroup(null);
+                }}
+              >
+                {t('fieldWork.actions.schedule')}
+              </Button>
+              <button
+                type="button"
+                className="task-row-dismiss"
+                disabled={whyBusy}
+                onClick={() => {
+                  setDismissGroup(whyGroup);
+                  setWhyGroup(null);
+                }}
+              >
+                {t('fieldWork.actions.notRelevant')}
+              </button>
+            </div>
+          ) : null
+        }
       >
-        {whyGroup ? (
-          <p>{proposalExplanation(whyGroup.proposals[0], i18n.language)}</p>
+        {whyGroup && whyLead ? (
+          <div className="tasks-why-body">
+            <div className="tasks-why-hero">
+              <TaskCategoryMark templateCode={whyGroup.templateCode} size={22} />
+              <div>
+                <p className="tasks-why-kicker">{t('fieldWork.proposal.whyIntro')}</p>
+                <p className="tasks-why-title">{whyTitle}</p>
+              </div>
+            </div>
+
+            <div className="tasks-why-callout">
+              <p>{proposalExplanation(whyLead, i18n.language)}</p>
+            </div>
+
+            {whyPeriod ? (
+              <div className="tasks-why-fact">
+                <span className="tasks-why-label">{t('fieldWork.proposal.suitablePeriod')}</span>
+                <span className="tasks-why-chip">{whyPeriod}</span>
+              </div>
+            ) : null}
+
+            {whyGroup.fieldIds.length > 0 ? (
+              <div className="tasks-why-fact">
+                <span className="tasks-why-label">{t('fieldWork.proposal.fieldsLabel')}</span>
+                <ul className="task-row-field-pills">
+                  {whyGroup.fieldIds.map((id) => (
+                    <li key={id}>
+                      <span
+                        className="task-row-field-pill"
+                        style={{
+                          ['--field-dot' as string]: resolveFieldColor(fieldColors?.[id], id),
+                        }}
+                      >
+                        {fieldLabel(id)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <p className="tasks-why-hint">{t('fieldWork.proposal.whyScheduleHint')}</p>
+          </div>
         ) : null}
       </RightDrawer>
 
@@ -131,38 +211,41 @@ const TaskProposalList: React.FC<TaskProposalListProps> = ({
         footer={null}
       >
         {dismissGroup ? (
-          <div className="tasks-dismiss-choices">
+          <div className="tasks-choice-list">
             <p className="tasks-dismiss-copy">{t('fieldWork.dismiss.copy')}</p>
-            <Button
-              variant="primary"
-              size="lg"
+            <button
+              type="button"
+              className="tasks-choice-row tasks-choice-row--caution"
               onClick={() => {
                 onDismissChoice(dismissGroup, 'dont_do');
                 setDismissGroup(null);
               }}
             >
-              {t('fieldWork.dismiss.dontDo')}
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
+              <span className="tasks-choice-label">{t('fieldWork.dismiss.dontDo')}</span>
+              <span className="tasks-choice-hint">{t('fieldWork.dismiss.dontDoHint')}</span>
+            </button>
+            <button
+              type="button"
+              className="tasks-choice-row"
               onClick={() => {
                 onDismissChoice(dismissGroup, 'already_done');
                 setDismissGroup(null);
               }}
             >
-              {t('fieldWork.dismiss.alreadyDone')}
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
+              <span className="tasks-choice-label">{t('fieldWork.dismiss.alreadyDone')}</span>
+              <span className="tasks-choice-hint">{t('fieldWork.dismiss.alreadyDoneHint')}</span>
+            </button>
+            <button
+              type="button"
+              className="tasks-choice-row"
               onClick={() => {
                 onDismissChoice(dismissGroup, 'remind_later');
                 setDismissGroup(null);
               }}
             >
-              {t('fieldWork.dismiss.remindLater')}
-            </Button>
+              <span className="tasks-choice-label">{t('fieldWork.dismiss.remindLater')}</span>
+              <span className="tasks-choice-hint">{t('fieldWork.dismiss.remindLaterHint')}</span>
+            </button>
           </div>
         ) : null}
       </RightDrawer>

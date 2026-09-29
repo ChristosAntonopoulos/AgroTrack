@@ -301,19 +301,31 @@ const FieldsPage: React.FC = () => {
             !fieldHasBoundary(activation.primaryField) ? (
               <div className="fields-setup-nudge" role="status">
                 <div>
-                  <strong>{t('onboarding:checklist.continueTitle')}</strong>
-                  <p>{t('onboarding:checklist.continueBody')}</p>
+                  <strong>{t('fields:almostReady.title')}</strong>
+                  <p>{t('fields:almostReady.body', { name: activation.primaryField.name })}</p>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => activation.goToStep('drawBoundary')}
-                >
-                  {t('onboarding:checklist.continueCta')}
-                </Button>
+                <div className="fields-setup-nudge-actions">
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/fields/${activation.primaryField!.id}/edit?focus=boundary`)
+                    }
+                  >
+                    {t('fields:almostReady.continuePlace')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => navigate(`/fields/${activation.primaryField!.id}`)}
+                  >
+                    {t('fields:almostReady.viewGrove')}
+                  </Button>
+                </div>
               </div>
             ) : null}
 
             {fields.filter(isVisibleOnFieldsList).length === 0 ? (
+              activation?.primaryField && !fieldHasBoundary(activation.primaryField) ? null : (
               <EmptyState
                 icon={<Layers size={40} />}
                 title={t('fields:emptyTitle')}
@@ -332,6 +344,7 @@ const FieldsPage: React.FC = () => {
                   ) : undefined
                 }
               />
+              )
             ) : (
               <>
                 <div className="fields-toolbar">

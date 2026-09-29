@@ -1,6 +1,6 @@
 {
   "title": "Olive grove photos",
-  "subtitle": "Photos are organized by field and date. You confirm every automatic assignment.",
+  "subtitle": "By field and date — you confirm every placement.",
   "upload": "Add photos",
   "takePhoto": "Take a photo",
   "choosePhotos": "Choose from device",
@@ -53,7 +53,7 @@
     "linkStatus": "Link",
     "all": "All",
     "standalone": "Field only",
-    "linked": "Linked to a record",
+    "linked": "Linked",
     "assignment": "Assignment",
     "needsReview": "Needs review",
     "unassigned": "No field",

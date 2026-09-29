@@ -37,6 +37,39 @@ export const isOwnedField = (
   userId: string | undefined | null
 ): boolean => Boolean(userId && field.ownerId === userId);
 
+/**
+ * Partners page scope: every named field this person owns, including short names and drafts,
+ * plus finished groves shared with them. Short names are real fields, not leftover pins.
+ */
+export const isPartnerScopeField = (
+  field: Pick<Field, 'status' | 'name' | 'ownerId'>,
+  userId: string | undefined | null
+): boolean => {
+  if (!isVisibleOnFieldsList(field)) return false;
+  if (isOwnedField(field, userId)) return true;
+  return isListedGrove(field);
+};
+
+/** Seat the signed-in person holds on a field. Admin is the person who manages it. */
+export type ViewerFieldRole = 'Admin' | 'Partner' | 'Family';
+
+const isViewerFieldRole = (value: string | undefined): value is ViewerFieldRole =>
+  value === 'Admin' || value === 'Partner' || value === 'Family';
+
+export const viewerFieldRole = (
+  field: Pick<Field, 'ownerId' | 'memberships'>,
+  userId: string | undefined | null
+): ViewerFieldRole | null => {
+  if (!userId) return null;
+  const membership = field.memberships?.find(
+    (member) =>
+      member.userId === userId && member.status !== 'removed' && member.status !== 'revoked'
+  );
+  if (membership && isViewerFieldRole(membership.role)) return membership.role;
+  if (field.ownerId === userId) return 'Admin';
+  return null;
+};
+
 export type FieldListCounts = {
   active: number;
   draft: number;

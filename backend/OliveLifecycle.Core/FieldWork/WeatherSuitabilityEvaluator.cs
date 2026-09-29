@@ -323,7 +323,7 @@ public static class WeatherSuitabilityEvaluator
             || input.MaxWindKmhInWindow >= input.Thresholds.DefaultWindCautionKmh * 1.25)
         {
             reasons.Add(Msg(input.Language,
-                "Δύσκολες καιρικές συνθήκες για εργασία στο χωράφι.",
+                "Δύσκολες καιρικές συνθήκες για εργασία στον ελαιώνα.",
                 "Difficult weather for field work."));
             return WeatherSuitability.Unsuitable;
         }

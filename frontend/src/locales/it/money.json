@@ -132,5 +132,11 @@
   "exporting": "Esportazione…",
   "exportFailed": "Esportazione non riuscita. Riprova.",
   "harvestExpenseHere": "Registrata in Raccolta. L'importo si cambia qui.",
-  "openHarvestDay": "Apri la giornata di raccolta"
+  "openHarvestDay": "Apri la giornata di raccolta",
+  "unsoldTitle": "Ancora invenduto",
+  "unsoldHint": "È ancora in cantina. Diventa un'entrata quando viene venduto.",
+  "unsoldThisYear": "Questa annata",
+  "unsoldYear": "Annata {{span}}",
+  "unsoldTin": "{{count}} × {{size}} L",
+  "unsoldBulk": "{{amount}} sfuso"
 }

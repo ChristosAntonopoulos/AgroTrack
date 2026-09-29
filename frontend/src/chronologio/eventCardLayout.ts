@@ -1,4 +1,5 @@
 import type { ChronologioEntry } from '../services/chronologioService';
+import { isCompletedTaskEntry } from './timelineRail';
 
 export type EventCardSpan = 1 | 2;
 export type EventCardSize = 'compact' | 'standard' | 'featured';
@@ -44,22 +45,34 @@ export const eventAccentToken = (
 };
 
 export const isFeaturedChronologioCard = (entry: ChronologioEntry): boolean => {
+  if (isCompletedTaskEntry(entry)) return false;
   const importance = String(entry.importance || '').toLowerCase();
   if (FEATURED_IMPORTANCE.has(importance)) return true;
+  const category = (entry.category || '').toLowerCase();
+  if (category === 'note' || category === 'photo' || category === 'observation') return false;
   if (entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview') {
     return true;
   }
-  if (entry.category === 'harvest' && (entry.details.harvest?.oliveKg ?? 0) > 0) return true;
-  return Boolean(entry.category === 'task' && (entry.summary || '').length > 160);
+  if (category === 'weather') return false;
+  if (category === 'harvest') return true;
+  return Boolean(category === 'task' && (entry.summary || '').length > 160);
 };
 
 export const eventCardSpan = (entry: ChronologioEntry): EventCardSpan =>
   isFeaturedChronologioCard(entry) ? 2 : 1;
 
 export const eventCardSize = (entry: ChronologioEntry): EventCardSize => {
+  if (isCompletedTaskEntry(entry)) return 'compact';
   if (isFeaturedChronologioCard(entry)) return 'featured';
   const category = (entry.category || '').toLowerCase();
-  if (category === 'expense' || category === 'income' || category === 'note' || category === 'photo') {
+  if (
+    category === 'note' ||
+    category === 'photo' ||
+    category === 'observation' ||
+    category === 'expense' ||
+    category === 'income' ||
+    category === 'weather'
+  ) {
     return 'compact';
   }
   return 'standard';

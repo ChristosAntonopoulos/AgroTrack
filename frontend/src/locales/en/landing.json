@@ -2,7 +2,7 @@
   "brand": "Oleachron",
   "header": {
     "howItWorks": "How it works",
-    "chronologio": "Chronologio",
+    "chronologio": "History",
     "features": "What you can do",
     "signIn": "Sign in",
     "startFree": "Start free"
@@ -25,7 +25,7 @@
     "photoAlt": "An old notebook and notes, with the grove in afternoon light"
   },
   "chronologio": {
-    "title": "The Chronologio is your grove’s memory.",
+    "title": "History is your grove’s memory.",
     "text": "It doesn’t just keep records. It shows the thread: what happened, in which field, under what conditions, and what followed.",
     "points": [
       "Remember what you did last year",
@@ -64,7 +64,7 @@
     "detailNote": "A note with a photo, before harvest began.",
     "detailHarvest": "42 sacks, 860 kg of olives, 148 litres of oil.",
     "detailExpense": "€320 of labour, tied to this field.",
-    "shotAlt": "October Chronologio for Kato Alonia: a task, a note, weather, a harvest and an expense"
+    "shotAlt": "October History for Kato Alonia: a task, a note, weather, a harvest and an expense"
   },
   "capabilities": {
     "title": "From the field to the year’s reckoning.",
@@ -147,7 +147,7 @@
     "step2Title": "Record what you do",
     "step2Text": "A task, a note, an expense, or today’s harvest.",
     "step3Title": "Watch the year take on meaning",
-    "step3Text": "The Chronologio organises what happened, so you can find it again and use it."
+    "step3Text": "History organises what happened, so you can find it again and use it."
   },
   "trust": {
     "title": "Made for people who carry the grove in mind.",

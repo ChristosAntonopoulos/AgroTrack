@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import FieldCard from '../components/domain/FieldCard';
 import FieldsMap from '../components/domain/FieldsMap';
 import EmptyState from '../components/EmptyState';
+import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
@@ -28,7 +29,7 @@ import { spacing, typography, radii } from '../theme';
 import { getDockMetrics } from '../navigation/dockMetrics';
 import { RootStackParamList } from '../navigation/types';
 import { Field } from '../services/fieldService';
-import { fieldSearchHaystack, isFieldSetupIncomplete } from '../utils/fieldDisplay';
+import { fieldHasBoundary, fieldSearchHaystack, isFieldSetupIncomplete } from '../utils/fieldDisplay';
 import { getFieldShortLocation } from '../utils/shortLocation';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { locationService } from '../services/locationService';
@@ -44,8 +45,8 @@ const FieldsListScreen = () => {
   const { colors, tapMin } = useTheme();
   const { t } = useTranslation(['fields', 'common']);
   const insets = useSafeAreaInsets();
-  const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
-  const listBottomPad = dockHeight + bottomInset + spacing.md;
+  const { contentBottomInset } = getDockMetrics(tapMin, insets.bottom);
+  const listBottomPad = contentBottomInset;
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('name');
@@ -124,8 +125,17 @@ const FieldsListScreen = () => {
     return fields.reduce((sum, field) => sum + (fieldTodayTaskCounts[field.id] ?? 0), 0);
   }, [fields, fieldTodayTaskCounts, tasksReady]);
 
+  const almostReady = useMemo(
+    () =>
+      fields.find(
+        (field) =>
+          field.status !== 'Archived' && Boolean(field.name?.trim()) && !fieldHasBoundary(field)
+      ) ?? null,
+    [fields]
+  );
+
   const openField = (field: Field) => {
-    if (isFieldSetupIncomplete(field.status)) {
+    if (isFieldSetupIncomplete(field.status) && !field.name?.trim()) {
       navigation.navigate('FieldForm', { fieldId: field.id });
       return;
     }
@@ -169,7 +179,37 @@ const FieldsListScreen = () => {
           ) : undefined
         }
         context={
-          fields.length > 0 ? (
+          almostReady || fields.length > 0 ? (
+          <>
+            {almostReady ? (
+              <View
+                style={[
+                  styles.nudge,
+                  { backgroundColor: colors.surface, borderColor: colors.borderLight },
+                ]}
+              >
+                <Text style={[styles.nudgeTitle, { color: colors.textPrimary }]}>
+                  {t('fields:almostReady.title')}
+                </Text>
+                <Text style={[styles.nudgeBody, { color: colors.textSecondary }]}>
+                  {t('fields:almostReady.body', { name: almostReady.name })}
+                </Text>
+                <Button
+                  title={t('fields:almostReady.continuePlace')}
+                  onPress={() =>
+                    navigation.navigate('FieldMapBoundary', { fieldId: almostReady.id })
+                  }
+                  fullWidth
+                />
+                <Button
+                  title={t('fields:almostReady.viewGrove')}
+                  variant="outline"
+                  onPress={() => navigation.navigate('FieldDetail', { fieldId: almostReady.id })}
+                  fullWidth
+                />
+              </View>
+            ) : null}
+            {fields.length > 0 ? (
             <>
               <View style={styles.summaryRow}>
                 <View
@@ -253,6 +293,8 @@ const FieldsListScreen = () => {
                 ]}
               />
             </>
+          ) : null}
+          </>
           ) : undefined
         }
       />
@@ -327,7 +369,7 @@ const FieldsListScreen = () => {
         ListEmptyComponent={
           search.trim() ? (
             <EmptyState title={t('fields:emptySearchTitle')} description={t('fields:emptySearchDescription')} />
-          ) : (
+          ) : almostReady ? null : (
             <EmptyState
               icon={<Ionicons name="leaf-outline" size={36} color={colors.primary} />}
               title={t('fields:emptyTitle')}
@@ -370,6 +412,20 @@ const styles = StyleSheet.create({
   },
   summaryStrong: {
     fontWeight: '700',
+  },
+  nudge: {
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.base,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  nudgeTitle: {
+    ...typography.styles.h4,
+    fontWeight: '700',
+  },
+  nudgeBody: {
+    ...typography.styles.bodySmall,
   },
   searchWrap: {
     flexDirection: 'row',

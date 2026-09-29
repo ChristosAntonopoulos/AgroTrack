@@ -23,6 +23,18 @@ export const isListedGrove = (field: Pick<Field, 'status' | 'name'>): boolean =>
   return !leftover;
 };
 
+/** Owned fields with a name, including short names and drafts, plus shared finished groves. */
+export const isPartnerScopeField = (
+  field: Pick<Field, 'status' | 'name' | 'ownerId'>,
+  userId: string | undefined | null
+): boolean => {
+  if (field.status === 'Archived') return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  if (userId && field.ownerId === userId) return true;
+  return isListedGrove(field);
+};
+
 export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   const ring = field.boundary?.coordinates?.[0];
   return Boolean(ring && ring.length >= 4);

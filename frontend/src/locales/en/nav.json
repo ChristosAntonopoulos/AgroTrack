@@ -28,13 +28,13 @@
     "settings": "Settings",
     "thisHarvest": "Harvest",
     "myOil": "My oil",
-    "chronologio": "Chronologio"
+    "chronologio": "History"
   },
   "breadcrumb": {
     "new": "New",
     "edit": "Edit",
     "details": "Details",
-    "chronologio": "Chronologio",
+    "chronologio": "History",
     "notes": "Notes",
     "apologismos": "Year review",
     "workSetup": "Work setup",

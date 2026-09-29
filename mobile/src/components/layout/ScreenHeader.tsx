@@ -12,6 +12,8 @@ export interface ScreenHeaderProps {
   context?: React.ReactNode;
   /** Compact mode for collapse-on-scroll */
   compact?: boolean;
+  /** Shorter title block for dense screens such as harvest. */
+  dense?: boolean;
   /** @deprecated Prefer `action` with HeaderIconButton */
   actionLabel?: string;
   /** @deprecated Prefer `action` with HeaderIconButton */
@@ -25,12 +27,13 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   action,
   context,
   compact = false,
+  dense = false,
 }) => {
   const { colors, fontScaleMultiplier } = useTheme();
-  const titleSize = (compact ? 20 : 28) * fontScaleMultiplier;
+  const titleSize = (dense ? 22 : compact ? 20 : 28) * fontScaleMultiplier;
 
   return (
-    <View style={[styles.container, compact && styles.containerCompact]}>
+    <View style={[styles.container, dense && styles.containerDense, compact && styles.containerCompact]}>
       <View style={styles.topRow}>
         <View style={styles.textBlock}>
           <Text
@@ -43,6 +46,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
               },
             ]}
             numberOfLines={compact ? 1 : 2}
+            accessibilityRole="header"
           >
             {title}
           </Text>
@@ -52,8 +56,8 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 styles.subtitle,
                 {
                   color: colors.textSecondary,
-                  fontSize: 14 * fontScaleMultiplier,
-                  lineHeight: 20 * fontScaleMultiplier,
+                  fontSize: (dense ? 13 : 14) * fontScaleMultiplier,
+                  lineHeight: (dense ? 16 : 20) * fontScaleMultiplier,
                 },
               ]}
               numberOfLines={3}
@@ -78,6 +82,11 @@ const styles = StyleSheet.create({
   containerCompact: {
     paddingBottom: spacing.sm,
     minHeight: 44,
+  },
+  containerDense: {
+    paddingTop: 0,
+    paddingBottom: spacing.xs,
+    gap: 4,
   },
   topRow: {
     flexDirection: 'row',

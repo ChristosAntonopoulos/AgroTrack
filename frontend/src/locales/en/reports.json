@@ -109,8 +109,8 @@
     "dryStreak": "Longest dry spell: {{count}} days.",
     "wetter": "{{value}}% wetter than the same period last year.",
     "drier": "{{value}}% drier than the same period last year.",
-    "waterDeficit": "Rain was {{value}} mm below evapotranspiration.",
-    "waterSurplus": "Rain exceeded evapotranspiration by {{value}} mm.",
+    "waterDeficit": "Rain fell {{value}} mm short of what the field needed.",
+    "waterSurplus": "Rain fell {{value}} mm more than the field needed.",
     "overdueTasks": "{{count}} overdue task(s).",
     "loss": "The year closed at a loss.",
     "profit": "The year closed with a profit."

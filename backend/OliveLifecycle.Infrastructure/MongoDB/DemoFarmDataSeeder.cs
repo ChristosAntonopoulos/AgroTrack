@@ -10,9 +10,8 @@ using OliveLifecycle.Infrastructure.Persistence.Documents.Geospatial;
 namespace OliveLifecycle.Infrastructure.MongoDB;
 
 /// <summary>
-/// Three Filiatra parcels for Giorgos (owner), Kostas (συνεργάτης), and Eleni (family).
-/// History and upcoming work live in <see cref="ChronologioDemoSeeder"/>;
-/// curated live tasks in <see cref="FieldWorkDemoSeeder"/>.
+/// Phase 0–1: wipe operational lists, then create Giorgos's two groves.
+/// Timeline story lives in <see cref="SimpleFarmerStorySeeder"/>.
 /// </summary>
 public static class DemoFarmDataSeeder
 {
@@ -24,13 +23,14 @@ public static class DemoFarmDataSeeder
     [
         "675555555555555555555101",
         "675555555555555555555102",
-        "675555555555555555555103",
     ];
 
-    /// <summary>Retired extra grove once owned by Kostas. The household story is the three Filiatra parcels.</summary>
+    public const string FieldId = "675555555555555555555101";
+    public const string FieldIdLower = "675555555555555555555102";
+
+    /// <summary>Retired extra grove once owned by Kostas.</summary>
     public const string PartnerOwnedFieldId = "675555555555555555555201";
 
-    /// <summary>Kostas works the trees. He does not see the family's money or harvest books.</summary>
     public static readonly string[] PartnerSeatModules =
     [
         FamilyModules.Fields,
@@ -39,7 +39,6 @@ public static class DemoFarmDataSeeder
         FamilyModules.Chronologio,
     ];
 
-    /// <summary>Eleni keeps papers, mill tickets, and sales. She does not run field tasks.</summary>
     public static readonly string[] FamilySeatModules =
     [
         FamilyModules.Fields,
@@ -54,7 +53,9 @@ public static class DemoFarmDataSeeder
     public const string PartnerDisplayName = "Κώστας Μανούσακης";
     public const string FamilyDisplayName = "Ελένη Παπαδάκη";
 
-    /// <summary>24-hex ids shared by tasks, harvests, and money for one grove and year.</summary>
+    public const string FieldName = "Επάνω ελαιώνας";
+    public const string FieldNameLower = "Κάτω ελαιώνας";
+
     public static string SeasonTaskId(int year, int fieldNumber, int sequence) =>
         $"67555555555555555556{year % 10}{fieldNumber}{sequence:00}";
 
@@ -69,6 +70,7 @@ public static class DemoFarmDataSeeder
 
     private static readonly string[] RetiredFieldIds =
     [
+        "675555555555555555555103",
         "675555555555555555555104",
         "675555555555555555555105",
         "6a99a31f0679dcfac8fa6aed",
@@ -113,25 +115,53 @@ public static class DemoFarmDataSeeder
             .DeleteManyAsync(
                 n => n.UserId == OwnerId || n.UserId == ProducerId || n.UserId == FamilyUserId,
                 cancellationToken);
-        logger.LogInformation("Cleared demo household data before reseeding the Filiatra story.");
+        logger.LogInformation("Phase 0: cleared demo household operational data.");
 
         var now = DateTime.UtcNow;
         var planted = new DateTime(2011, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var harvestEnd = now.Date.AddDays(-7);
+        var harvestYear = harvestEnd.Year;
+        var cycleStart = new DateTime(harvestYear - 1, 10, 15, 8, 0, 0, DateTimeKind.Utc);
 
         var fields = BuildFields(planted, now);
         await fieldsCol.InsertManyAsync(fields, cancellationToken: cancellationToken);
 
-        var lifecycles = BuildLifecycles(now);
+        var lifecycles = new List<LifecycleDocument>
+        {
+            new()
+            {
+                Id = "675555555555555555552001",
+                FieldId = FieldId,
+                CurrentYear = "high",
+                CurrentStage = OliveLifecycleStage.Harvest,
+                CycleStartDate = cycleStart,
+                LastProgressionDate = harvestEnd.AddHours(8),
+                CreatedAt = planted,
+                UpdatedAt = now,
+            },
+            new()
+            {
+                Id = "675555555555555555552002",
+                FieldId = FieldIdLower,
+                CurrentYear = "high",
+                CurrentStage = OliveLifecycleStage.Harvest,
+                CycleStartDate = cycleStart,
+                LastProgressionDate = harvestEnd.AddHours(10),
+                CreatedAt = planted,
+                UpdatedAt = now,
+            },
+        };
         await context.GetCollection<LifecycleDocument>("lifecycles")
             .InsertManyAsync(lifecycles, cancellationToken: cancellationToken);
 
-        logger.LogInformation("Seeded demo farm: {FieldCount} Filiatra fields for owner + partner.", fields.Count);
+        logger.LogInformation(
+            "Phase 1: seeded {Count} fields ({Upper}, {Lower}) for {Owner}.",
+            fields.Count,
+            FieldName,
+            FieldNameLower,
+            OwnerDisplayName);
     }
 
-    /// <summary>
-    /// Matches frontend leftover pin heuristic: short single-token names without digits,
-    /// plus explicit Draft / incomplete setup statuses.
-    /// </summary>
     private static async Task<List<string>> FindJunkOwnerFieldIdsAsync(
         IMongoCollection<FieldDocument> fieldsCol,
         CancellationToken cancellationToken)
@@ -158,7 +188,6 @@ public static class DemoFarmDataSeeder
         var name = (field.Name ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(name)) return true;
 
-        // Leftover short draft names: e.g. "Τεστ", "Grove", "Αγρός"
         return name.Length < 8 && !name.Contains(' ') && !name.Any(char.IsDigit);
     }
 
@@ -203,7 +232,7 @@ public static class DemoFarmDataSeeder
         return deleted.DeletedCount;
     }
 
-    private static List<FieldMembershipDocument> Memberships(DateTime created) =>
+    private static List<FieldMembershipDocument> OwnerOnlyMembership(DateTime created) =>
     [
         new()
         {
@@ -214,30 +243,6 @@ public static class DemoFarmDataSeeder
             Status = "active",
             DisplayName = OwnerDisplayName,
             Email = "owner@olivefarm.com",
-            CreatedAt = created,
-        },
-        new()
-        {
-            UserId = ProducerId,
-            Role = "Partner",
-            Modules = PartnerSeatModules.ToList(),
-            AccessLevel = "work",
-            Status = "active",
-            InvitedBy = OwnerId,
-            DisplayName = PartnerDisplayName,
-            Email = "producer1@olivefarm.com",
-            CreatedAt = created,
-        },
-        new()
-        {
-            UserId = FamilyUserId,
-            Role = "Family",
-            Modules = FamilySeatModules.ToList(),
-            AccessLevel = FamilyAccessLevels.Work,
-            Status = "active",
-            InvitedBy = OwnerId,
-            DisplayName = FamilyDisplayName,
-            Email = "family@olivefarm.com",
             CreatedAt = created,
         },
     ];
@@ -260,9 +265,9 @@ public static class DemoFarmDataSeeder
     [
         new()
         {
-            Id = FieldIds[0],
+            Id = FieldId,
             OwnerId = OwnerId,
-            Name = "Φιλιατρών 088",
+            Name = FieldName,
             Location = new LocationDocument { Latitude = 37.193787613627592, Longitude = 21.593640833820832 },
             CenterPoint = Center(37.193787613627592, 21.593640833820832),
             Boundary = Polygon(
@@ -277,10 +282,10 @@ public static class DemoFarmDataSeeder
                 [21.592979700273794, 37.193878954968561],
                 [21.593982799448597, 37.193400347668451],
             ]),
-            Area = 3191.4388526537591,
-            AppMeasuredAreaSqm = 3191.4388526537591,
-            Variety = "Μεγαρίτικη",
-            TreeAge = 28,
+            Area = 3200.0,
+            AppMeasuredAreaSqm = 3200.0,
+            Variety = "Κορωνέικη",
+            TreeAge = 15,
             TreeCount = 92,
             GroundType = "Loam",
             SoilType = "Loam",
@@ -288,13 +293,13 @@ public static class DemoFarmDataSeeder
             IrrigationType = "Drip irrigation",
             Slope = "Slight slope",
             CurrentLifecycleYear = "high",
-            CurrentLifecycleStage = OliveLifecycleStage.FruitGrowth,
-            Memberships = Memberships(created),
+            CurrentLifecycleStage = OliveLifecycleStage.Harvest,
+            Memberships = OwnerOnlyMembership(created),
             Status = FieldStatus.Active,
             CropType = "Olive",
-            LocationText = "Φιλιατρών, Μεσσηνία",
+            LocationText = "Φιλιατρά, Μεσσηνία",
             Color = "#E8C547",
-            AccessNotes = "Είσοδος από το χωματόδρομο βόρεια του ΚΑΕΚ. Χώρος για τρακτέρ δίπλα στο κανάλι.",
+            AccessNotes = "Από τον χωματόδρομο.",
             GreekCadastre = new GreekCadastreInfoDocument
             {
                 Kaek = "362621142088/0/0",
@@ -310,9 +315,9 @@ public static class DemoFarmDataSeeder
         },
         new()
         {
-            Id = FieldIds[1],
+            Id = FieldIdLower,
             OwnerId = OwnerId,
-            Name = "Φιλιατρών 089",
+            Name = FieldNameLower,
             Location = new LocationDocument { Latitude = 37.193794307275581, Longitude = 21.593644047696579 },
             CenterPoint = Center(37.193794307275581, 21.593644047696579),
             Boundary = Polygon(
@@ -327,8 +332,8 @@ public static class DemoFarmDataSeeder
                 [21.593226313214025, 37.19410946058975],
                 [21.592995654045499, 37.193912890701618],
             ]),
-            Area = 2968.439166266176,
-            AppMeasuredAreaSqm = 2968.439166266176,
+            Area = 2968.0,
+            AppMeasuredAreaSqm = 2968.0,
             Variety = "Κορωνέικη",
             TreeAge = 18,
             TreeCount = 58,
@@ -338,13 +343,13 @@ public static class DemoFarmDataSeeder
             IrrigationType = "Drip irrigation",
             Slope = "Flat",
             CurrentLifecycleYear = "high",
-            CurrentLifecycleStage = OliveLifecycleStage.FruitGrowth,
-            Memberships = Memberships(created),
+            CurrentLifecycleStage = OliveLifecycleStage.Harvest,
+            Memberships = OwnerOnlyMembership(created),
             Status = FieldStatus.Active,
             CropType = "Olive",
-            LocationText = "Φιλιατρών, Μεσσηνία",
-            Color = "#B54422",
-            AccessNotes = "Ίδια είσοδος με το 088. Τα νεότερα δέντρα είναι στην κάτω πλευρά.",
+            LocationText = "Φιλιατρά, Μεσσηνία",
+            Color = "#5B7C4D",
+            AccessNotes = "Ίδια είσοδος.",
             GreekCadastre = new GreekCadastreInfoDocument
             {
                 Kaek = "362621142089/0/0",
@@ -357,90 +362,6 @@ public static class DemoFarmDataSeeder
             },
             CreatedAt = created,
             UpdatedAt = updated,
-        },
-        new()
-        {
-            Id = FieldIds[2],
-            OwnerId = OwnerId,
-            Name = "Φιλιατρών 090",
-            Location = new LocationDocument { Latitude = 37.19412, Longitude = 21.59405 },
-            CenterPoint = Center(37.19412, 21.59405),
-            Boundary = Polygon(
-            [
-                [21.59420, 37.19395],
-                [21.59455, 37.19415],
-                [21.59435, 37.19435],
-                [21.59395, 37.19428],
-                [21.59380, 37.19405],
-                [21.59420, 37.19395],
-            ]),
-            Area = 2480.0,
-            AppMeasuredAreaSqm = 2480.0,
-            Variety = "Καλαμών",
-            TreeAge = 22,
-            TreeCount = 64,
-            GroundType = "Sandy Loam",
-            SoilType = "Sandy Loam",
-            IrrigationStatus = true,
-            IrrigationType = "Drip irrigation",
-            Slope = "Slight slope",
-            CurrentLifecycleYear = "high",
-            CurrentLifecycleStage = OliveLifecycleStage.FruitGrowth,
-            Memberships = Memberships(created),
-            Status = FieldStatus.Active,
-            CropType = "Olive",
-            LocationText = "Φιλιατρών, Μεσσηνία",
-            Color = "#5B7C4D",
-            AccessNotes = "Μικρότερο αγροτεμάχιο ανατολικά του 089. Πρόσβαση από το ίδιο χωματόδρομο.",
-            GreekCadastre = new GreekCadastreInfoDocument
-            {
-                Kaek = "362621142090/0/0",
-                NormalizedKaek = "362621142090/0/0",
-                LocationFromCadastre = "ΦΙΛΙΑΤΡΩΝ, 11206, Μεσσηνίας",
-                Prefecture = "Μεσσηνίας",
-                Municipality = "Φιλιατρών",
-                Source = "Manual",
-                VerificationStatus = "Confirmed",
-            },
-            CreatedAt = created,
-            UpdatedAt = updated,
-        },
-    ];
-
-    private static List<LifecycleDocument> BuildLifecycles(DateTime now) =>
-    [
-        new()
-        {
-            Id = "675555555555555555552001",
-            FieldId = FieldIds[0],
-            CurrentYear = "high",
-            CurrentStage = OliveLifecycleStage.FruitGrowth,
-            CycleStartDate = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
-            LastProgressionDate = now.AddDays(-12),
-            CreatedAt = new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-            UpdatedAt = now,
-        },
-        new()
-        {
-            Id = "675555555555555555552002",
-            FieldId = FieldIds[1],
-            CurrentYear = "high",
-            CurrentStage = OliveLifecycleStage.FruitGrowth,
-            CycleStartDate = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
-            LastProgressionDate = now.AddDays(-10),
-            CreatedAt = new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-            UpdatedAt = now,
-        },
-        new()
-        {
-            Id = "675555555555555555552003",
-            FieldId = FieldIds[2],
-            CurrentYear = "high",
-            CurrentStage = OliveLifecycleStage.FruitGrowth,
-            CycleStartDate = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
-            LastProgressionDate = now.AddDays(-8),
-            CreatedAt = new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-            UpdatedAt = now,
         },
     ];
 }

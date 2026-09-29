@@ -10,6 +10,8 @@ type Props = {
   tone?: HarvestCardTone;
   /** Left accent stripe (grove / harvest fruit). */
   accent?: boolean;
+  /** Tighter padding for rows that should not dominate the page. */
+  compact?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -22,6 +24,7 @@ export const HarvestCard: React.FC<Props> = ({
   children,
   tone = 'default',
   accent = false,
+  compact = false,
   onPress,
   style,
 }) => {
@@ -90,7 +93,9 @@ export const HarvestCard: React.FC<Props> = ({
       ]}
     >
       {accent ? <View style={[styles.accent, { backgroundColor: palette.accentColor }]} /> : null}
-      <View style={[styles.inner, accent && styles.innerAccent]}>{children}</View>
+      <View style={[styles.inner, compact && styles.innerCompact, accent && styles.innerAccent]}>
+        {children}
+      </View>
     </View>
   );
 
@@ -119,6 +124,11 @@ const styles = StyleSheet.create({
   inner: {
     padding: spacing.base,
     gap: spacing.sm,
+  },
+  innerCompact: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: 0,
   },
   innerAccent: {
     flex: 1,

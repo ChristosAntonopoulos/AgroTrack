@@ -31,7 +31,7 @@ const FieldColorPicker: React.FC<Props> = ({
           </span>
           <p className="field-color-picker-hint">
             {t('form.colorHint', {
-              defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
+              defaultValue: 'Used on History cards so you can spot this grove quickly.',
             })}
           </p>
         </>

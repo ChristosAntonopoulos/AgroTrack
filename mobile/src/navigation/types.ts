@@ -23,8 +23,9 @@ export type FieldsStackParamList = {
   HarvestCampaign: HarvestCampaignParams | undefined;
 };
 
-/** Visible bottom tabs: Chronologio · Fields · Capture · Tasks · More */
+/** Phone home is the launcher. The dock shows only the record button. */
 export type MainTabParamList = {
+  Launcher: undefined;
   ChronologioTab: undefined;
   Fields: NavigatorScreenParams<FieldsStackParamList> | undefined;
   Capture: undefined;
@@ -88,6 +89,7 @@ export type RootStackParamList = {
   /** Secondary destinations previously hidden tabs — now root stack. */
   Calendar: { date?: string; fieldId?: string } | undefined;
   Settings: undefined;
+  Help: undefined;
   Legal: { kind: 'privacy' | 'terms' };
   Feedback: undefined;
   /** Deep-link alias; redirects to Chronologio. */

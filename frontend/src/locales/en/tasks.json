@@ -205,7 +205,7 @@
     "allFields": "All fields",
     "person": "Who",
     "unknownField": "Field",
-    "seeCompletedInChronologio": "See completed work in Chronologio →",
+    "seeCompletedInChronologio": "See completed work in History →",
     "plannedGroups": {
       "today": "Today",
       "thisWeek": "This week",
@@ -293,6 +293,9 @@
       "forFields": "Suggested for {{count}} fields",
       "moreFields": "+{{count}} more",
       "whyRecommended": "Why is this suggested?",
+      "whyIntro": "What this suggestion means",
+      "whyScheduleHint": "If it fits, schedule it on your fields.",
+      "fieldsLabel": "Fields",
       "showLater": "Show",
       "hideLater": "Hide"
     },
@@ -336,6 +339,7 @@
       "newTitle": "New task",
       "scheduleTitle": "Schedule task",
       "manualSubtitle": "What needs to happen, and when?",
+      "fromSuggestion": "From suggestion · {{title}}{{field}}",
       "subtitle": "What needs to happen, and when?",
       "whatQuestion": "What needs to be done?",
       "fieldQuestion": "Which field?",
@@ -560,7 +564,7 @@
       "completion": {
         "title": "The field is ready",
         "body": "Your work profile is active. Here are a few useful next steps.",
-        "openChronologio": "Open Chronologio",
+        "openChronologio": "Open History",
         "reviewProposal": "Review the first proposal",
         "addCollaborator": "Add a collaborator",
         "backToField": "Back to field"
@@ -838,13 +842,13 @@
       "resultLead": "Fill in the fields for this task.",
       "whatHappened": "What happened?",
       "confirm": "Confirm",
-      "chronologioConfirm": "This will be saved to Chronologio for {{field}}, on {{date}}.",
+      "chronologioConfirm": "This will be saved to History for {{field}}, on {{date}}.",
       "save": "Save",
       "saveYes": "Yes, completed",
       "return": "Back",
       "createFollowUp": "Create a follow-up for the remainder",
       "savedTitle": "Task completed",
-      "savedBody": "Saved to Chronologio.",
+      "savedBody": "Saved to History.",
       "undo": "Undo",
       "undoFailed": "Could not undo.",
       "openFollowUp": "Open follow-up",
@@ -917,8 +921,8 @@
       }
     },
     "history": {
-      "banner": "Completed tasks also appear in Chronologio with weather, money, and harvest.",
-      "openChronologio": "Open full Chronologio",
+      "banner": "Completed tasks also appear in History with weather, money, and harvest.",
+      "openChronologio": "Open full History",
       "search": "Search",
       "searchPlaceholder": "Title or field",
       "type": "Type",
@@ -930,16 +934,23 @@
       "title": "Not relevant",
       "copy": "Choose what applies to this proposal.",
       "dontDo": "I do not do this task",
+      "dontDoHint": "We will stop suggesting it for these fields.",
       "alreadyDone": "I already did it",
-      "remindLater": "Remind me later"
+      "alreadyDoneHint": "We will close it for this year.",
+      "remindLater": "Remind me later",
+      "remindLaterHint": "It will come back in a few days."
     },
     "scheduleGroup": {
       "title": "Schedule proposal",
-      "copy": "Choose fields and a date.",
+      "copy": "Choose which fields and when to do the work.",
       "allFields": "All recommended fields",
+      "whenLabel": "When",
       "differentDates": "Different date per field",
+      "differentDatesHint": "Pick a day for each field.",
       "sameDate": "Same date for all",
-      "sharedDate": "Date"
+      "sameDateHint": "One day for every selected field.",
+      "sharedDate": "Work day",
+      "selectedCount": "{{selected}} of {{total}}"
     },
     "pause": {
       "title": "Pause task",
@@ -1020,6 +1031,7 @@
     "work": {
       "started": "Started {{time}}",
       "checks": "Checks",
+      "checksProgress": "{{done}} of {{total}}",
       "note": "Note",
       "saveNote": "Save note",
       "complete": "Complete",

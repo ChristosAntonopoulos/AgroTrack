@@ -8,13 +8,13 @@
     "celebrateTitle": "Confine salvato — puoi esplorare",
     "celebrateBody": "I confini sbloccano il resto di Oleachron. Meteo e satellite appariranno sulla mappa del campo.",
     "continueTitle": "Completa la configurazione",
-    "continueBody": "Disegna i confini per sbloccare Chronologio, foto e il resto dell'app.",
+    "continueBody": "Il nome conta già. Senza confine non si calcola la superficie e non si aprono meteo e satellite.",
     "continueCta": "Continua setup"
   },
   "steps": {
     "createGrove": {
       "title": "Aggiungi il primo oliveto",
-      "body": "Dagli un nome che riconoscerai — poi scegli un colore."
+      "body": "Dagli un nome che riconoscerai. Poi trova dov’è e disegna il confine."
     },
     "drawBoundary": {
       "title": "Disegna il confine",
@@ -33,7 +33,7 @@
     "skip": "Più tardi",
     "createGrove": {
       "title": "Inizia dal nome",
-      "body": "Scrivi un nome breve e tocca Continua per il colore."
+      "body": "Scrivi un nome breve e tocca Continua. Poi chiediamo dov’è."
     },
     "createColor": {
       "title": "Scegli un colore",
@@ -45,7 +45,7 @@
     },
     "drawBoundary": {
       "title": "Disegna i confini",
-      "body": "Tocca gli angoli dell'oliveto sulla mappa. Salva quando la forma è corretta."
+      "body": "Tocca 3–6 punti intorno all’oliveto. Quando la forma è giusta, continua su Chronologio."
     },
     "firstObservation": {
       "title": "Registra la prima nota",
@@ -53,7 +53,7 @@
     }
   },
   "firstObservation": {
-    "title": "Inizia Chronologio con una nota",
+    "title": "Inizia Cronologia con una nota",
     "body": "I dettagli dell'oliveto sono pronti. Pubblica una prima osservazione — abbiamo preparato un messaggio di benvenuto che puoi inviare così com'è o modificare.",
     "cta": "Salva una nota",
     "prefill": "La mia prima osservazione nell'oliveto — qui inizia Chronologio."
@@ -75,7 +75,7 @@
     "continueAnyway": "Continua comunque",
     "successTitle": "I dati sono pronti",
     "successBody": "Continua ai dettagli del campo e aggiungi la prima osservazione.",
-    "openChronologio": "Apri Chronologio",
+    "openChronologio": "Apri Cronologia",
     "stay": "Resta qui",
     "stages": {
       "weather": {
@@ -95,14 +95,14 @@
   "welcome": {
     "kicker": "Benvenuto",
     "groveFallback": "il tuo oliveto",
-    "title": "Benvenuto in “{{grove}}”",
-    "titleNamed": "{{name}}, benvenuto in “{{grove}}”",
-    "body": "Il tuo primo oliveto è pronto. Apri i dettagli del campo e lascia una prima osservazione — Chronologio cresce da qui.",
+    "title": "“{{grove}}” è pronto per la sua storia",
+    "titleNamed": "{{name}}, “{{grove}}” è pronto per la sua storia",
+    "body": "La forma è salvata. Una breve nota è la prima pagina — puoi inviarla così com'è.",
     "pointWeather": "Il meteo appare sotto la mappa",
     "pointSatellite": "I livelli satellitari sono pronti a cielo sereno",
     "pointMap": "I tuoi confini definiscono cosa osserva Oleachron",
     "openMap": "Continua al mio oliveto",
-    "openGrove": "Continua al mio oliveto"
+    "openGrove": "Apri Cronologia"
   },
   "settings": {
     "showTips": "Mostra suggerimenti setup oliveto"

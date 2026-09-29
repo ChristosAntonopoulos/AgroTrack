@@ -45,7 +45,7 @@ public class FieldWorkDisplayLabelsTests
     {
         Assert.Equal("Προγραμμάτισέ την", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.Accept, "el"));
         Assert.Equal("Θύμισέ μου αργότερα", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.RemindLater, "el"));
-        Assert.Equal("Δεν αφορά αυτό το χωράφι", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.NotForThisField, "el"));
+        Assert.Equal("Δεν αφορά αυτόν τον ελαιώνα", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.NotForThisField, "el"));
         Assert.Equal("Όχι φέτος", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.DismissForYear, "el"));
     }
 

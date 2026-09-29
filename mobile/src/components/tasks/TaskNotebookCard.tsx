@@ -21,7 +21,7 @@ import {
   type TaskUnit,
 } from '../../utils/taskNotebook';
 import { resolveWeatherKind } from '../../utils/taskWeather';
-import { createElevation, motion, radii, spacing } from '../../theme';
+import { radii, spacing } from '../../theme';
 import TaskCategoryGlyph from './TaskCategoryGlyph';
 
 export type NotebookMenuAction = 'reschedule' | 'block' | 'skip' | 'cancel' | 'reopen';
@@ -79,9 +79,10 @@ const TaskNotebookCard: React.FC<Props> = ({
       : null;
   const showWeather = weatherChangesDecision(task);
   const weatherKind = resolveWeatherKind(task.weatherSuitability);
-  const groveColor = resolveFieldColor(fieldColor?.(task.fieldId), task.fieldId);
   const accent = resolveTaskCategoryAccent(task.templateCode);
-  const rail = tone === 'overdue' ? colors.warning : groveColor || accent;
+  const colorsDots = unit.tasks
+    .slice(0, 3)
+    .map((item) => resolveFieldColor(fieldColor?.(item.fieldId), item.fieldId));
 
   const actionLabel =
     action === 'start'
@@ -93,10 +94,16 @@ const TaskNotebookCard: React.FC<Props> = ({
           : t('fieldWork.actions.viewResult');
 
   const statusLabel = status === 'todo' ? null : t(`notebook.status.${status}` as const);
+  const who = personName || t('notebook.unassigned');
+  const metaParts = [where, when, who, progress].filter(Boolean);
   const strongPrimary = action === 'start' || action === 'continue' || action === 'resolve';
+  const urgent = tone === 'overdue';
 
-  const menuItems: Array<{ id: NotebookMenuAction; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> =
-    [];
+  const menuItems: Array<{
+    id: NotebookMenuAction;
+    label: string;
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+  }> = [];
   if (status !== 'completed' && status !== 'cancelled' && status !== 'skipped') {
     menuItems.push({ id: 'reschedule', label: t('notebook.menu.reschedule'), icon: 'calendar-outline' });
   }
@@ -113,45 +120,24 @@ const TaskNotebookCard: React.FC<Props> = ({
     menuItems.push({ id: 'reopen', label: t('notebook.menu.reopen'), icon: 'refresh-outline' });
   }
 
-  const pills: Array<{ label: string; bg: string; fg: string }> = [];
-  if (tone === 'overdue') {
-    pills.push({ label: when, bg: hexToRgba(colors.warning, 0.18), fg: colors.warning });
-  } else if (tone === 'today' || tone === 'progress') {
-    pills.push({ label: when, bg: colors.primaryLight, fg: colors.primary });
-  }
-  if (statusLabel) {
-    pills.push({ label: statusLabel, bg: colors.surfaceMuted, fg: colors.textSecondary });
-  }
-  if (showWeather) {
-    pills.push({
-      label:
-        weatherKind === 'unsuitable' ? t('notebook.weather.unsuitable') : t('notebook.weather.caution'),
-      bg: hexToRgba(colors.warning, 0.16),
-      fg: colors.warning,
-    });
-  }
-  if (progress) {
-    pills.push({ label: progress, bg: colors.surfaceMuted, fg: colors.textSecondary });
-  }
-
   return (
     <View
       style={[
         styles.card,
         {
-          backgroundColor: colors.surface,
-          borderColor: tone === 'overdue' ? hexToRgba(colors.warning, 0.45) : colors.borderLight,
-          ...createElevation(colors, 'sm'),
+          backgroundColor: urgent ? hexToRgba(colors.warning, 0.06) : colors.surface,
+          borderColor: urgent ? hexToRgba(colors.warning, 0.4) : colors.borderLight,
+          borderLeftWidth: urgent ? 3 : StyleSheet.hairlineWidth,
+          borderLeftColor: urgent ? colors.warning : colors.borderLight,
         },
       ]}
     >
-      <View style={[styles.rail, { backgroundColor: rail }]} />
       <Pressable
         onPress={() => onOpen(task)}
-        style={({ pressed }) => [styles.hit, { opacity: pressed ? motion.pressOpacity : 1 }]}
+        style={styles.hit}
         accessibilityRole="button"
       >
-        <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} />
+        <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} size={40} />
         <View style={styles.copy}>
           <Text
             style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
@@ -159,31 +145,37 @@ const TaskNotebookCard: React.FC<Props> = ({
           >
             {title}
           </Text>
-          <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
-            <Text
-              style={[styles.meta, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
-              numberOfLines={1}
-            >
-              {where}
-            </Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="person-outline" size={14} color={colors.textTertiary} />
-            <Text
-              style={[styles.meta, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
-              numberOfLines={1}
-            >
-              {personName || t('notebook.unassigned')}
-              {tone !== 'overdue' && tone !== 'today' && tone !== 'progress' ? ` · ${when}` : ''}
-            </Text>
-          </View>
-          {pills.length ? (
-            <View style={styles.pills}>
-              {pills.map((pill) => (
-                <View key={pill.label} style={[styles.pill, { backgroundColor: pill.bg }]}>
-                  <Text style={[styles.pillText, { color: pill.fg }]}>{pill.label}</Text>
-                </View>
+          <Text
+            style={[styles.meta, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
+            numberOfLines={2}
+          >
+            {metaParts.map((part, index) => (
+              <Text key={`${part}-${index}`}>
+                {index > 0 ? ' · ' : ''}
+                <Text style={index === 1 && urgent ? { fontWeight: '700', color: colors.textPrimary } : undefined}>
+                  {part}
+                </Text>
+              </Text>
+            ))}
+          </Text>
+          {(statusLabel || showWeather) ? (
+            <View style={styles.statusRow}>
+              {statusLabel ? (
+                <Text style={[styles.statusText, { color: colors.textSecondary }]}>{statusLabel}</Text>
+              ) : null}
+              {showWeather ? (
+                <Text style={[styles.statusText, { color: colors.warning }]}>
+                  {weatherKind === 'unsuitable'
+                    ? t('notebook.weather.unsuitable')
+                    : t('notebook.weather.caution')}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          {colorsDots.length > 0 ? (
+            <View style={styles.dots}>
+              {colorsDots.map((color, index) => (
+                <View key={`${color}-${index}`} style={[styles.dot, { backgroundColor: color }]} />
               ))}
             </View>
           ) : null}
@@ -249,39 +241,25 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    position: 'relative',
-  },
-  rail: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
   },
   hit: {
     flexDirection: 'row',
     gap: 12,
     paddingTop: 14,
-    paddingHorizontal: 16,
-    paddingLeft: 18,
+    paddingHorizontal: 14,
   },
-  copy: { flex: 1, minWidth: 0, gap: 4 },
+  copy: { flex: 1, minWidth: 0, gap: 2 },
   title: { fontWeight: '700', lineHeight: 22, letterSpacing: -0.2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  meta: { flex: 1, lineHeight: 18 },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  pill: {
-    borderRadius: radii.full,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  pillText: { fontSize: 11, fontWeight: '700' },
+  meta: { lineHeight: 18 },
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  statusText: { fontSize: 12, fontWeight: '700' },
+  dots: { flexDirection: 'row', gap: 4, marginTop: 6 },
+  dot: { width: 8, height: 8, borderRadius: 99 },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
-    paddingLeft: 18,
     paddingBottom: 12,
     paddingTop: 10,
   },

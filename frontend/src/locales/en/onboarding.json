@@ -8,13 +8,13 @@
     "celebrateTitle": "Boundary saved — you can explore",
     "celebrateBody": "Your όρια unlock the rest of Oleachron. Weather and satellite will appear on the field map.",
     "continueTitle": "Finish grove setup",
-    "continueBody": "Draw the όρια to unlock Chronologio, photos and the rest of the app.",
+    "continueBody": "Draw the όρια to unlock History, photos and the rest of the app.",
     "continueCta": "Continue setup"
   },
   "steps": {
     "createGrove": {
       "title": "Add your first grove",
-      "body": "Give it a name you will recognise — then pick a colour."
+      "body": "Give it a name you will recognise. Then find where it is and draw the boundary."
     },
     "drawBoundary": {
       "title": "Draw the boundary",
@@ -26,14 +26,14 @@
     },
     "firstObservation": {
       "title": "First observation",
-      "body": "Leave a short note — it starts your Chronologio."
+      "body": "Leave a short note — it starts your History."
     }
   },
   "spotlight": {
     "skip": "Later",
     "createGrove": {
-      "title": "Start with a name",
-      "body": "Type a short name, then tap Continue for the colour."
+      "title": "What shall we call it?",
+      "body": "Write the name inside the field. Next we find where it is."
     },
     "locatePlace": {
       "title": "Find the place",
@@ -41,64 +41,64 @@
     },
     "drawBoundary": {
       "title": "Draw the boundary",
-      "body": "Tap the corners of the grove on the map. Save when the shape looks right."
+      "body": "Tap 3–6 points around the grove. When the shape looks right, continue to History."
     },
     "firstObservation": {
       "title": "Record your first note",
-      "body": "A short observation starts Chronologio — you can post the suggested text as-is."
+      "body": "A short observation starts History — you can post the suggested text as-is."
     }
   },
   "firstObservation": {
-    "title": "Start Chronologio with a note",
+    "title": "Start History with a note",
     "body": "Your grove details are ready. Post a first observation — we prepared a warm starter message you can send as-is or edit.",
     "cta": "Save a note",
-    "prefill": "My first observation in the grove — Chronologio begins here."
+    "prefill": "My first observation in the grove — History begins here."
   },
   "spatial": {
-    "kicker": "Preparing your grove",
-    "title": "Gathering your field data",
-    "body": "Boundary saved. We are building a picture of this grove for you.",
-    "bodyNamed": "“{{name}}” is on the map. We are building its weather, satellite and field picture.",
-    "firstDataHint": "Weather usually arrives first; satellite and the grove profile follow. We open the welcome when the first pack is ready so the map already has something to show.",
+    "kicker": "Just before History",
+    "title": "Getting its first page ready",
+    "body": "The boundary is in. We are bringing the weather and how the trees look.",
+    "bodyNamed": "“{{name}}” has a boundary. We are bringing the weather and how the trees look.",
+    "firstDataHint": "When this is ready, you write a short note and History begins.",
     "area": "Area",
     "slope": "Slope",
     "satellite": "Satellite",
-    "waiting": "Working…",
+    "waiting": "On its way…",
     "ready": "Ready",
     "failed": "Could not load yet",
     "retry": "Try again",
     "openMapAnyway": "Continue anyway",
     "continueAnyway": "Continue anyway",
     "successTitle": "Your grove data is ready",
-    "successBody": "Continue to field details, then add your first observation.",
-    "openChronologio": "Open Chronologio",
+    "successBody": "Next you write a short note and History begins.",
+    "openChronologio": "Open History",
     "stay": "Stay here",
     "stages": {
       "weather": {
-        "title": "Weather for this grove",
-        "body": "Temperature, rain and wind around your trees."
+        "title": "The weather",
+        "body": "Rain, heat and wind around the trees."
       },
       "satellite": {
-        "title": "Satellite view",
-        "body": "Greenness and recent clear images over the boundary."
+        "title": "The trees from above",
+        "body": "How green they look, when the sky is clear."
       },
       "personalized": {
-        "title": "Your grove profile",
-        "body": "Area, slope and soil notes tailored to this place."
+        "title": "The place",
+        "body": "Area, slope and soil of this grove."
       }
     }
   },
   "welcome": {
-    "kicker": "Welcome",
+    "kicker": "Ready",
     "groveFallback": "your grove",
-    "title": "Welcome to “{{grove}}”",
-    "titleNamed": "{{name}}, welcome to “{{grove}}”",
-    "body": "Your first grove is ready. Next, open field details and leave a first observation — Chronologio grows from here.",
-    "pointWeather": "Live weather sits under the map",
-    "pointSatellite": "Satellite layers are ready when the sky is clear",
-    "pointMap": "Your όρια define what Oleachron watches",
-    "openMap": "Continue to my grove",
-    "openGrove": "Continue to my grove"
+    "title": "History for “{{grove}}” can begin",
+    "titleNamed": "{{name}}, History for “{{grove}}” can begin",
+    "body": "A short note is the first page. You can send it as it is.",
+    "pointWeather": "Its weather is already here",
+    "pointSatellite": "The trees show when the sky is clear",
+    "pointMap": "Every record stays in its story",
+    "openMap": "Write the first note",
+    "openGrove": "Write the first note"
   },
   "settings": {
     "showTips": "Show grove setup tips"

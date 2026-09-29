@@ -1,0 +1,72 @@
+{
+  "title": "Help",
+  "kicker": "Find your way",
+  "intro": "Short answers for the grove — search, open a topic, or jump straight to a place in the app.",
+  "searchLabel": "Search help",
+  "searchPlaceholder": "e.g. harvest, oil, settings…",
+  "searchEmpty": "Nothing matched. Try another word, or send feedback.",
+  "quickTitle": "Go there",
+  "topicsTitle": "Guides",
+  "openSettings": "Open settings",
+  "sendFeedback": "Send feedback",
+  "stillStuck": "Still stuck?",
+  "stillStuckBody": "A short note or picture helps us fix what gets in the way.",
+  "quick": {
+    "record": "Record",
+    "chronologio": "History",
+    "fields": "Fields",
+    "tasks": "Tasks",
+    "feedback": "Feedback",
+    "settings": "Settings"
+  },
+  "topics": {
+    "workspace": {
+      "title": "Your workspace",
+      "body": "The home grid is your grove menu. Tap a card to open that part of the app. Settings, feedback, and help sit under Account at the bottom."
+    },
+    "record": {
+      "title": "The + button",
+      "body": "Use Record to leave a note, photo, work, money, or harvest entry. It saves on History for the field you chose."
+    },
+    "chronologio": {
+      "title": "History",
+      "body": "Your grove story over time — weather, work, observations, and harvest days in one place. Open a month to read what happened."
+    },
+    "fields": {
+      "title": "Fields & boundaries",
+      "body": "Each grove needs a name and a drawn boundary. The map unlocks area, weather, and satellite. Open a field for details, map, and History."
+    },
+    "tasks": {
+      "title": "Tasks",
+      "body": "See what is due, overdue, or coming up. Open a task to complete it, reschedule, or add a note. Proposals suggest work when the grove needs attention."
+    },
+    "harvest": {
+      "title": "Harvest season",
+      "body": "When harvest is live, log sacks by day and field, then mill and oil. The harvest flow keeps the season’s numbers in one place."
+    },
+    "myOil": {
+      "title": "My oil",
+      "body": "Track bulk oil and tins, commitments, and movements. Fill tins from stock and record gifts or sales without leaving the oil ledger."
+    },
+    "money": {
+      "title": "Money",
+      "body": "Log expenses and income for the grove. Filter by year or field. You can also record money from the + button."
+    },
+    "partners": {
+      "title": "Partners & family",
+      "body": "Invite people who help on the field, set how much they can do, and find nearby services when you need extra hands."
+    },
+    "photos": {
+      "title": "Photos",
+      "body": "Photos from the grove live in one hub. Add from the camera or library; they can also appear on History."
+    },
+    "settings": {
+      "title": "Settings",
+      "body": "Language, theme, text size, notifications, and where the app opens. Changes save as you go."
+    },
+    "feedback": {
+      "title": "Tell us what you saw",
+      "body": "If something is unclear or broken, send a short note or picture. That is how Oleachron gets clearer in the grove."
+    }
+  }
+}

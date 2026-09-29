@@ -583,6 +583,109 @@
   text-underline-offset: 0.15em;
 }
 
+.contact-sheet-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.contact-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1, #fff);
+}
+
+.contact-panel-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.contact-panel h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.contact-panel .partners-form {
+  max-width: none;
+}
+
+.contact-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.contact-optional {
+  font-style: normal;
+  font-weight: 650;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.contact-details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  text-decoration: none;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2, #f7f6ef);
+  color: var(--text-primary, var(--color-text-primary));
+}
+
+.contact-details-toggle svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.contact-details-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.contact-field-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.contact-field-pick select {
+  min-height: var(--tap-min, 44px);
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border, #d5d8d0);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.partners-choice-card.is-static {
+  cursor: default;
+}
+
+.partners-choice-card.is-static:hover {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-card);
+}
+
+.team-access-section .contact-app-actions {
+  margin: 0.35rem 0 0.85rem;
+}
+
 .partners-form-details {
   display: grid;
   gap: 0.85rem;

@@ -14,7 +14,7 @@ public class ChronologioDisplayLabelsTests
         Assert.Equal("Χρήματα", ChronologioDisplayLabels.PrimaryCategory(ChronologioPrimaryCategory.Money));
         Assert.Equal("Συγκομιδή", ChronologioDisplayLabels.PrimaryCategory(ChronologioPrimaryCategory.Harvest));
         Assert.Equal("Καιρός & προειδοποιήσεις", ChronologioDisplayLabels.PrimaryCategory(ChronologioPrimaryCategory.Weather));
-        Assert.Equal("Αλλαγές χωραφιού", ChronologioDisplayLabels.PrimaryCategory(ChronologioPrimaryCategory.FieldChange));
+        Assert.Equal("Αλλαγές ελαιώνα", ChronologioDisplayLabels.PrimaryCategory(ChronologioPrimaryCategory.FieldChange));
         Assert.Equal("Παρατήρηση", ChronologioDisplayLabels.Category(ChronologioCategory.Note));
         Assert.DoesNotContain("Observation", ChronologioDisplayLabels.Category(ChronologioCategory.Note));
         Assert.DoesNotContain("fuel_and_energy", ChronologioDisplayLabels.HarvestSummary(100, null, null, null));

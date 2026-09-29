@@ -41,7 +41,7 @@
     "allFields": "Tutti i campi",
     "person": "Chi",
     "unknownField": "Campo",
-    "seeCompletedInChronologio": "Vedi i lavori completati nel Chronologio →",
+    "seeCompletedInChronologio": "Vedi i lavori completati nella Cronologia →",
     "plannedGroups": {
       "today": "Oggi",
       "thisWeek": "Questa settimana",
@@ -349,7 +349,7 @@
       "completion": {
         "title": "Il campo è pronto",
         "body": "Il profilo lavori è attivo. Alcuni passi utili:",
-        "openChronologio": "Apri Chronologio",
+        "openChronologio": "Apri Cronologia",
         "reviewProposal": "Rivedi la prima proposta",
         "addCollaborator": "Aggiungi un collaboratore",
         "backToField": "Torna al campo"
@@ -607,13 +607,13 @@
       "resultLead": "Compila i campi di questo lavoro.",
       "whatHappened": "Cosa è successo?",
       "confirm": "Conferma",
-      "chronologioConfirm": "Verrà salvato nel Chronologio per {{field}}, il {{date}}.",
+      "chronologioConfirm": "Verrà salvato nella Cronologia per {{field}}, il {{date}}.",
       "save": "Salva",
       "saveYes": "Sì, completato",
       "return": "Indietro",
       "createFollowUp": "Crea lavoro per il resto",
       "savedTitle": "Lavoro completato",
-      "savedBody": "Salvato nel Chronologio.",
+      "savedBody": "Salvato nella Cronologia.",
       "undo": "Annulla",
       "undoFailed": "Annullamento non riuscito.",
       "openFollowUp": "Apri il seguito",

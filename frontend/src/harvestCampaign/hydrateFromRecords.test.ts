@@ -3,6 +3,7 @@ import {
   campaignFromHarvestRecords,
   filterSeasonHarvestRecords,
   mergeCampaignWithHydrated,
+  pruneCampaignToKnownFields,
 } from './hydrateFromRecords';
 import { emptyCampaign } from './types';
 
@@ -136,5 +137,59 @@ describe('mergeCampaignWithHydrated', () => {
     const merged = mergeCampaignWithHydrated(local, hydrated);
     expect(merged.status).toBe('closed');
     expect(merged.millWeights).toHaveLength(1);
+  });
+});
+
+describe('pruneCampaignToKnownFields', () => {
+  it('drops retired field ids and their sacks from the journey', () => {
+    const local = {
+      ...emptyCampaign(2026),
+      status: 'active' as const,
+      fieldOrder: ['101', '102', '103'],
+      groveDoneIds: ['102'],
+      sacks: [
+        {
+          id: 's1',
+          date: '2026-09-19',
+          fieldId: '101',
+          sacks: 17,
+          createdAt: '2026-09-19',
+        },
+        {
+          id: 's2',
+          date: '2026-09-19',
+          fieldId: '102',
+          sacks: 40,
+          createdAt: '2026-09-19',
+        },
+      ],
+      millWeights: [
+        {
+          id: 'm1',
+          date: '2026-09-21',
+          kg: 500,
+          fieldIds: ['101', '102'],
+          sackIds: ['s1', 's2'],
+          createdAt: '2026-09-21',
+        },
+        {
+          id: 'm2',
+          date: '2026-09-22',
+          kg: 200,
+          fieldIds: ['103'],
+          sackIds: [],
+          createdAt: '2026-09-22',
+        },
+      ],
+    };
+
+    const pruned = pruneCampaignToKnownFields(local, ['101']);
+    expect(pruned.fieldOrder).toEqual(['101']);
+    expect(pruned.groveDoneIds).toEqual([]);
+    expect(pruned.sacks).toHaveLength(1);
+    expect(pruned.sacks[0].fieldId).toBe('101');
+    expect(pruned.millWeights).toHaveLength(1);
+    expect(pruned.millWeights[0].fieldIds).toEqual(['101']);
+    expect(pruned.millWeights[0].sackIds).toEqual(['s1']);
   });
 });

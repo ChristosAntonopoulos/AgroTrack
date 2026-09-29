@@ -326,6 +326,7 @@ public class OilStockService : IOilStockService
             IsSale = dto.IsSale,
             Amount = dto.IsSale ? dto.Amount : null,
             Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "EUR" : dto.Currency.Trim().ToUpperInvariant(),
+            FinancialTransactionId = NullIfEmpty(dto.FinancialTransactionId),
             Allocations = allocations,
             PromisedFor = dto.PromisedFor,
             Notes = NullIfEmpty(dto.Notes),
@@ -346,7 +347,8 @@ public class OilStockService : IOilStockService
             now,
             cancellationToken);
 
-        if (dto.IsSale && dto.Amount is > 0)
+        // Capture/Money already posted income — do not create a second transaction.
+        if (dto.IsSale && dto.Amount is > 0 && string.IsNullOrEmpty(commitment.FinancialTransactionId))
         {
             var litres = OilPackMath.PackLitres(requested);
             var fieldId = ResolveFieldId(lots, allocations);

@@ -43,10 +43,10 @@ const CATEGORY_EL: Record<string, string> = {
   observation: 'Παρατήρηση',
   weather: 'Καιρός',
   intelligence: 'OLEACHRON',
-  lifecycle: 'Αλλαγές χωραφιού',
-  collaborator: 'Αλλαγές χωραφιού',
-  activity: 'Αλλαγές χωραφιού',
-  field_change: 'Αλλαγές χωραφιού',
+  lifecycle: 'Αλλαγές ελαιώνα',
+  collaborator: 'Αλλαγές ελαιώνα',
+  activity: 'Αλλαγές ελαιώνα',
+  field_change: 'Αλλαγές ελαιώνα',
   photo: 'Παρατήρηση',
 };
 

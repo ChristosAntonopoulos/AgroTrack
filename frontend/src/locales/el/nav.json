@@ -12,7 +12,7 @@
   "items": {
     "dashboard": "Πίνακας ελέγχου",
     "today": "Πρωινή ματιά",
-    "fields": "Χωράφια",
+    "fields": "Ελαιώνες",
     "tasks": "Εργασίες",
     "partners": "Συνεργάτες",
     "money": "Χρήματα",
@@ -28,13 +28,13 @@
     "settings": "Ρυθμίσεις",
     "thisHarvest": "Συγκομιδή",
     "myOil": "Το λάδι μου",
-    "chronologio": "Χρονολόγιο"
+    "chronologio": "Ιστορικό"
   },
   "breadcrumb": {
     "new": "Νέο",
     "edit": "Επεξεργασία",
     "details": "Λεπτομέρειες",
-    "chronologio": "Χρονολόγιο",
+    "chronologio": "Ιστορικό",
     "notes": "Σημειώσεις",
     "apologismos": "Απολογισμός",
     "workSetup": "Ρύθμιση εργασιών",

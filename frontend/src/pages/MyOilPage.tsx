@@ -4,9 +4,25 @@ import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Button from '../components/Common/Button';
+import RightDrawer from '../components/Common/RightDrawer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import EmptyState from '../components/Common/EmptyState';
+import { OilStockTabs } from '../components/myOil/OilStockTabs';
+import { OilStockHero } from '../components/myOil/OilStockHero';
+import { OilStockActivityBar, OilStockPageHeader } from '../components/myOil/OilStockChrome';
+import {
+  OilForOthersSummary,
+  OilHouseholdAside,
+  OilInventorySummary,
+  OilPendingSection,
+} from '../components/myOil/OilOverviewSections';
+import { CommitmentsTab } from '../components/myOil/CommitmentsTab';
+import { LotsTab } from '../components/myOil/LotsTab';
+import { MovementsTab } from '../components/myOil/MovementsTab';
+import { GiveOilSheet, type GiveOilSaveInput } from '../components/myOil/GiveOilSheet';
+import { FillTinsDrawer } from '../components/myOil/FillTinsDrawer';
 import { useAuth } from '../context/AuthContext';
+import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { getFieldService } from '../services/serviceFactory';
 import {
@@ -17,10 +33,12 @@ import {
   type StockMovement,
 } from '../services/oilStockService';
 import { migrateLocalOilPackingOnce } from '../myOil/syncOilLots';
-import { formatOilPack } from '../myOil/formatOilPack';
+import { formatOilNumber, formatOilPack } from '../myOil/formatOilPack';
+import { tinCount, type OilStockTab, type PackFilter, isHouseholdCommitment } from '../myOil/commitmentCopy';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../myOil/packInput';
 import { fieldLabelMap } from '../utils/fieldLabels';
-import SaleBuyerPicker from '../components/money/SaleBuyerPicker';
+import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import './MyOilPage.css';
 
 const MyOilPage: React.FC = () => {
@@ -31,20 +49,36 @@ const MyOilPage: React.FC = () => {
   const [error, setError] = useState(false);
   const [summary, setSummary] = useState<OilStockSummary | null>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [closedCommitments, setClosedCommitments] = useState<OilCommitment[]>([]);
   const [fieldNames, setFieldNames] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<OilStockTab>('overview');
+  const [packFilter, setPackFilter] = useState<PackFilter>('all');
   const [showGive, setShowGive] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [repackLot, setRepackLot] = useState<OilLot | null>(null);
+  const [giveWho, setGiveWho] = useState<'someone' | 'home' | 'unnamed'>('someone');
+  const [showFill, setShowFill] = useState(false);
+  const [fillLot, setFillLot] = useState<OilLot | null>(null);
   const [adjustLot, setAdjustLot] = useState<OilLot | null>(null);
+  const [adjustKind, setAdjustKind] = useState('home_use');
+  const [partialFor, setPartialFor] = useState<OilCommitment | null>(null);
+  const [partialPack, setPartialPack] = useState<OilPackInput>(emptyOilPackInput());
   const [busy, setBusy] = useState(false);
+  const giveDrawer = useDrawerPresence(showGive || null);
+  const fillDrawer = useDrawerPresence(showFill || null);
+  const partialDrawer = useDrawerPresence(partialFor);
+  const adjustDrawer = useDrawerPresence(adjustLot);
+
+  const seasonStart = agriculturalYearFor(new Date());
+  const seasonLabel = `${seasonStart}/${String(seasonStart + 1).slice(-2)}`;
 
   const packLabels = useMemo(
     () => ({
       tin: (count: number, size: number) => t('tin', { count, size }),
-      bulk: (amount: number) => t('bulk', { amount }),
-      litres: (amount: number) => t('litres', { amount }),
+      bulk: (amount: number) =>
+        t('bulk', { amount: formatOilNumber(amount, i18n.language) }),
+      litres: (amount: number) =>
+        t('litres', { amount: formatOilNumber(amount, i18n.language) }),
     }),
-    [t]
+    [t, i18n.language]
   );
 
   const reload = useCallback(async () => {
@@ -52,14 +86,18 @@ const MyOilPage: React.FC = () => {
     setError(false);
     try {
       await migrateLocalOilPackingOnce(user.userId);
-      const [next, moves, fields] = await Promise.all([
+      const [next, moves, fields, allCommitments] = await Promise.all([
         oilStockService.getSummary(),
-        oilStockService.listMovements(40),
+        oilStockService.listMovements(80),
         getFieldService().getFields().catch(() => []),
+        oilStockService.listCommitments(false).catch(() => [] as OilCommitment[]),
       ]);
       setSummary(next);
       setMovements(moves);
       setFieldNames(fieldLabelMap(fields));
+      setClosedCommitments(
+        allCommitments.filter((c) => c.derivedStatus === 'delivered' || c.cancelled)
+      );
     } catch {
       setError(true);
     } finally {
@@ -70,6 +108,78 @@ const MyOilPage: React.FC = () => {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    const onSaved = () => void reload();
+    window.addEventListener(CAPTURE_SAVED_EVENT, onSaved);
+    return () => window.removeEventListener(CAPTURE_SAVED_EVENT, onSaved);
+  }, [reload]);
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const deliverFully = async (commitment: OilCommitment) => {
+    setBusy(true);
+    try {
+      await oilStockService.deliver(commitment.id);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDeliverTap = (commitment: OilCommitment) => {
+    const rem = commitment.remaining;
+    if (rem.tin16 + rem.tin17 > 1 || rem.bulkLitres > 0.05) {
+      setPartialFor(commitment);
+      setPartialPack(emptyOilPackInput());
+      return;
+    }
+    void deliverFully(commitment);
+  };
+
+  const saveGive = async (input: GiveOilSaveInput) => {
+    setBusy(true);
+    try {
+      if (input.forHome && input.alreadyDelivered && summary?.lots.length) {
+        const lot =
+          summary.lots.find((l) => l.available.tin16 + l.available.tin17 + l.available.bulkLitres > 0.05) ||
+          summary.lots[0];
+        await oilStockService.adjust({
+          oilLotId: lot.id,
+          kind: 'home_use',
+          pack: input.requested,
+        });
+      } else {
+        await oilStockService.createCommitment({
+          counterpartyName: input.counterpartyName,
+          requested: input.requested,
+          isSale: input.isSale,
+          amount: input.isSale && input.alreadyPaid ? input.amount : input.amount,
+          alreadyDelivered: input.alreadyDelivered,
+        });
+      }
+      setShowGive(false);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openGive = (who: 'someone' | 'home' | 'unnamed' = 'someone') => {
+    setGiveWho(who);
+    setShowGive(true);
+  };
+
+  const openAdjust = (kind: string) => {
+    const lot = summary?.lots.find((l) => l.available.litres > 0.05) || summary?.lots[0] || null;
+    if (!lot) return;
+    setAdjustKind(kind);
+    setAdjustLot(lot);
+  };
 
   if (pageGuard.loading) {
     return (
@@ -84,203 +194,220 @@ const MyOilPage: React.FC = () => {
     return <Navigate to="/access-denied?module=money" replace />;
   }
 
-  const formatWhen = (iso: string) => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
-  };
-
-  const onDeliver = async (commitment: OilCommitment, partial?: OilPackInput) => {
-    setBusy(true);
-    try {
-      await oilStockService.deliver(commitment.id, partial);
-      await reload();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const waiting = summary?.openCommitments || [];
+  const waitingAll = summary?.openCommitments || [];
+  const waiting = waitingAll.filter((c) => !isHouseholdCommitment(c));
   const hasStock =
     !!summary &&
     (summary.physical.litres > 0.05 ||
       summary.lots.length > 0 ||
       summary.delivered.litres > 0.05 ||
-      waiting.length > 0);
+      waitingAll.length > 0);
+
+  const goLotsFiltered = (kind: 'tin16' | 'tin17' | 'bulk') => {
+    setPackFilter(kind);
+    setTab('lots');
+  };
 
   return (
     <PageContainer maxWidth="full" padding="none">
       <div className="my-oil-page">
         <Breadcrumbs />
-        <h1 className="my-oil-title">{t('title')}</h1>
-        <div className="my-oil">
-          {loading ? (
-            <LoadingSpinner />
-          ) : error ? (
-            <EmptyState
-              title={t('error')}
-              action={
-                <Button variant="secondary" onClick={() => void reload()}>
-                  {t('common:retry', { defaultValue: 'Retry' })}
-                </Button>
-              }
-            />
-          ) : !hasStock ? (
-            <EmptyState title={t('empty')} description={t('emptyHint')} />
-          ) : (
-            <>
-              <header className="my-oil-hero">
-                <p className="my-oil-hero__label">{t('available')}</p>
-                <p className="my-oil-hero__litres">
-                  {t('litresAvailable', {
-                    amount: Math.round((summary!.available.litres || 0) * 10) / 10,
-                  })}
-                </p>
-                <p className="my-oil-hero__pack">{formatOilPack(summary!.available, packLabels)}</p>
-              </header>
+        <OilStockPageHeader season={seasonLabel} />
 
-              <div className="my-oil-strip" aria-label={t('inCellar')}>
-                <div className="my-oil-strip__row">
-                  <span>{t('inCellar')}</span>
-                  <strong>{formatOilPack(summary!.physical, packLabels)}</strong>
+        <OilStockTabs
+          active={tab}
+          onChange={(next) => {
+            setTab(next);
+            if (next !== 'lots') setPackFilter('all');
+          }}
+        />
+
+        {loading ? (
+          <LoadingSpinner />
+        ) : error ? (
+          <EmptyState
+            title={t('error')}
+            action={
+              <Button variant="secondary" onClick={() => void reload()}>
+                {t('common:retry', { defaultValue: 'Retry' })}
+              </Button>
+            }
+          />
+        ) : !hasStock ? (
+          <EmptyState title={t('empty')} description={t('emptyHint')} />
+        ) : (
+          <>
+            {tab === 'overview' ? (
+              <>
+                <OilStockActivityBar
+                  summary={summary!}
+                  waiting={waiting}
+                  latestMove={movements[0] || null}
+                  packLabels={packLabels}
+                  formatDate={formatDate}
+                />
+                <OilStockHero
+                  summary={summary!}
+                  busy={busy}
+                  onGive={() => openGive('someone')}
+                  onFill={() => {
+                    setFillLot(null);
+                    setShowFill(true);
+                  }}
+                  onCorrect={() => openAdjust('correction')}
+                  onHomeUse={() => openGive('home')}
+                  onLoss={() => openAdjust('consumed')}
+                />
+
+                <div className="my-oil-overview-grid">
+                  <OilInventorySummary summary={summary!} onSelectPack={goLotsFiltered} />
+                  <OilHouseholdAside
+                    summary={summary!}
+                    packLabels={packLabels}
+                    onSetAside={() => openGive('home')}
+                    onOpenHolds={() => setTab('others')}
+                  />
                 </div>
-                <div className="my-oil-strip__row">
-                  <span>{t('reserved')}</span>
-                  <strong>{formatOilPack(summary!.reserved, packLabels)}</strong>
+
+                {waiting.length > 0 ? (
+                  <OilPendingSection
+                    waiting={waiting}
+                    busy={busy}
+                    packLabels={packLabels}
+                    onDeliver={onDeliverTap}
+                    onDetails={() => setTab('others')}
+                    formatDate={formatDate}
+                  />
+                ) : null}
+
+                <OilForOthersSummary
+                  summary={summary!}
+                  packLabels={packLabels}
+                  onSeeAll={() => setTab('others')}
+                  onOpen={() => setTab('others')}
+                  formatDate={formatDate}
+                />
+
+                <div className="my-oil-overview-grid my-oil-overview-grid--lower">
+                  <section className="my-oil-panel">
+                    <MovementsTab
+                      movements={movements}
+                      lots={summary!.lots}
+                      fieldNames={fieldNames}
+                      packLabels={packLabels}
+                      preview
+                      onSeeAll={() => setTab('movements')}
+                    />
+                  </section>
+                  <section className="my-oil-panel">
+                    <LotsTab
+                      lots={summary!.lots}
+                      fieldNames={fieldNames}
+                      packLabels={packLabels}
+                      busy={busy}
+                      formatDate={formatDate}
+                      preview
+                      onSeeAll={() => setTab('lots')}
+                      onFill={(lot) => {
+                        setFillLot(lot);
+                        setShowFill(true);
+                      }}
+                      onAdjust={(lot, kind) => {
+                        setAdjustKind(kind);
+                        setAdjustLot(lot);
+                      }}
+                    />
+                  </section>
                 </div>
-                <div className="my-oil-strip__row">
-                  <span>{t('pendingDelivery')}</span>
-                  <strong>{formatOilPack(summary!.pendingDelivery, packLabels)}</strong>
-                </div>
-                <div className="my-oil-strip__row">
-                  <span>{t('delivered')}</span>
-                  <strong>{formatOilPack(summary!.delivered, packLabels)}</strong>
-                </div>
-              </div>
+              </>
+            ) : null}
 
-              <div className="my-oil-actions">
-                <Button variant="primary" onClick={() => setShowGive(true)} disabled={busy}>
-                  {t('giveSell')}
-                </Button>
-                <Button variant="secondary" onClick={() => setShowHistory((v) => !v)}>
-                  {t('whyBalance')}
-                </Button>
-              </div>
+            {tab === 'others' ? (
+              <CommitmentsTab
+                open={waitingAll}
+                closed={closedCommitments}
+                lots={summary!.lots}
+                fieldNames={fieldNames}
+                busy={busy}
+                packLabels={packLabels}
+                formatDate={formatDate}
+                onDeliver={onDeliverTap}
+                onCancel={(c) => {
+                  setBusy(true);
+                  void oilStockService
+                    .cancelCommitment(c.id)
+                    .then(() => reload())
+                    .finally(() => setBusy(false));
+                }}
+                onGive={() => openGive('someone')}
+              />
+            ) : null}
 
-              {waiting.length > 0 ? (
-                <section className="my-oil-section">
-                  <h2>{t('mustGive')}</h2>
-                  <p className="my-oil-hero__pack">{t('personWaiting', { count: waiting.length })}</p>
-                  <ul className="my-oil-waiting">
-                    {waiting.map((c) => (
-                      <li key={c.id} className="my-oil-waiting__item">
-                        <div className="my-oil-waiting__top">
-                          <span className="my-oil-waiting__name">{c.counterpartyName}</span>
-                          <span className="my-oil-waiting__status">
-                            {t(`status.${c.derivedStatus}`, { defaultValue: c.derivedStatus })}
-                          </span>
-                        </div>
-                        <div>{formatOilPack(c.remaining, packLabels)}</div>
-                        {c.isSale && c.amount != null ? <div>€{c.amount}</div> : null}
-                        <div className="my-oil-lot__actions">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() => void onDeliver(c)}
-                          >
-                            {t('markDelivered')}
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
+            {tab === 'lots' ? (
+              <LotsTab
+                lots={summary!.lots}
+                fieldNames={fieldNames}
+                packLabels={packLabels}
+                packFilter={packFilter}
+                busy={busy}
+                formatDate={formatDate}
+                onFill={(lot) => {
+                  setFillLot(lot);
+                  setShowFill(true);
+                }}
+                onAdjust={(lot, kind) => {
+                  setAdjustKind(kind);
+                  setAdjustLot(lot);
+                }}
+              />
+            ) : null}
 
-              <section className="my-oil-section">
-                <h2>{t('lots')}</h2>
-                <ul className="my-oil-lots">
-                  {summary!.lots.map((lot) => {
-                    const where = lot.fieldIds
-                      .map((id) => fieldNames[id])
-                      .filter(Boolean)
-                      .join(' · ');
-                    return (
-                      <li key={lot.id} className="my-oil-lot">
-                        <div className="my-oil-lot__when">
-                          <span>{formatWhen(lot.pressedOn)}</span>
-                          {where ? <span className="my-oil-lot__where">{where}</span> : null}
-                        </div>
-                        <div className="my-oil-lot__pack">{formatOilPack(lot.packing, packLabels)}</div>
-                        <div className="my-oil-lot__actions">
-                          <Button variant="ghost" size="sm" onClick={() => setRepackLot(lot)}>
-                            {t('repack')}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setAdjustLot(lot)}>
-                            {t('adjust')}
-                          </Button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
+            {tab === 'movements' ? (
+              <MovementsTab
+                movements={movements}
+                lots={summary!.lots}
+                fieldNames={fieldNames}
+                packLabels={packLabels}
+              />
+            ) : null}
+          </>
+        )}
 
-              {showHistory ? (
-                <section className="my-oil-section">
-                  <h2>{t('history')}</h2>
-                  <ul className="my-oil-history">
-                    {movements.map((m) => (
-                      <li key={m.id}>
-                        <span>
-                          {t(`movement.${m.kind}`, { defaultValue: m.kind })}
-                          {m.notes ? ` — ${m.notes}` : ''}
-                        </span>
-                        <span className="my-oil-history__delta">
-                          {m.litresDelta > 0 ? '+' : ''}
-                          {Math.round(m.litresDelta * 10) / 10} L
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
-            </>
-          )}
+        <div className="my-oil-sticky-cta">
+          <Button variant="primary" onClick={() => openGive('someone')} disabled={busy || !hasStock}>
+            {t('actions.give')}
+          </Button>
         </div>
       </div>
 
-      {showGive ? (
+      {giveDrawer.mounted ? (
         <GiveOilSheet
+          open={giveDrawer.open}
           available={summary?.available}
           busy={busy}
+          initialWho={giveWho}
           onClose={() => setShowGive(false)}
-          onSave={async (input) => {
-            setBusy(true);
-            try {
-              await oilStockService.createCommitment(input);
-              setShowGive(false);
-              await reload();
-            } catch (err) {
-              throw err;
-            } finally {
-              setBusy(false);
-            }
-          }}
+          onSave={saveGive}
         />
       ) : null}
 
-      {repackLot ? (
-        <RepackSheet
-          lot={repackLot}
+      {fillDrawer.mounted ? (
+        <FillTinsDrawer
+          open={fillDrawer.open}
+          lots={summary?.lots || []}
+          preferredLot={fillLot}
+          fieldNames={fieldNames}
           busy={busy}
-          onClose={() => setRepackLot(null)}
-          onSave={async (add16, add17) => {
+          onClose={() => {
+            setShowFill(false);
+            setFillLot(null);
+          }}
+          onSave={async (lotId, add16, add17) => {
             setBusy(true);
             try {
-              await oilStockService.repack(repackLot.id, add16, add17);
-              setRepackLot(null);
+              await oilStockService.repack(lotId, add16, add17);
+              setShowFill(false);
+              setFillLot(null);
               await reload();
             } finally {
               setBusy(false);
@@ -289,19 +416,43 @@ const MyOilPage: React.FC = () => {
         />
       ) : null}
 
-      {adjustLot ? (
+      {partialDrawer.mounted && partialDrawer.value ? (
+        <DeliverSheet
+          open={partialDrawer.open}
+          commitment={partialDrawer.value}
+          pack={partialPack}
+          setPack={setPartialPack}
+          packLabels={packLabels}
+          busy={busy}
+          onClose={() => setPartialFor(null)}
+          onDeliverAll={() => {
+            const c = partialDrawer.value!;
+            setPartialFor(null);
+            void deliverFully(c);
+          }}
+          onDeliverPartial={() => {
+            const c = partialDrawer.value!;
+            setPartialFor(null);
+            setBusy(true);
+            void oilStockService
+              .deliver(c.id, partialPack)
+              .then(() => reload())
+              .finally(() => setBusy(false));
+          }}
+        />
+      ) : null}
+
+      {adjustDrawer.mounted && adjustDrawer.value ? (
         <AdjustSheet
-          lot={adjustLot}
+          open={adjustDrawer.open}
+          lot={adjustDrawer.value}
+          kind={adjustKind}
           busy={busy}
           onClose={() => setAdjustLot(null)}
           onSave={async (kind, pack) => {
             setBusy(true);
             try {
-              await oilStockService.adjust({
-                oilLotId: adjustLot.id,
-                kind,
-                pack,
-              });
+              await oilStockService.adjust({ oilLotId: adjustDrawer.value!.id, kind, pack });
               setAdjustLot(null);
               await reload();
             } finally {
@@ -314,282 +465,142 @@ const MyOilPage: React.FC = () => {
   );
 };
 
-type GiveProps = {
-  available?: OilStockSummary['available'];
+const DeliverSheet: React.FC<{
+  open: boolean;
+  commitment: OilCommitment;
+  pack: OilPackInput;
+  setPack: (p: OilPackInput) => void;
+  packLabels: {
+    tin: (count: number, size: number) => string;
+    bulk: (amount: number) => string;
+    litres: (amount: number) => string;
+  };
   busy: boolean;
   onClose: () => void;
-  onSave: (input: {
-    counterpartyName: string;
-    requested: OilPackInput;
-    isSale: boolean;
-    amount?: number;
-    alreadyDelivered: boolean;
-  }) => Promise<void>;
-};
-
-const GiveOilSheet: React.FC<GiveProps> = ({ available, busy, onClose, onSave }) => {
-  const { t } = useTranslation('myOil');
-  const [name, setName] = useState('');
-  const [pack, setPack] = useState<OilPackInput>(emptyOilPackInput());
-  const [isSale, setIsSale] = useState(true);
-  const [amount, setAmount] = useState('');
-  const [already, setAlready] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const canSave =
-    name.trim().length > 0 && packLitresOf(pack) > 0.05 && (!isSale || Number(amount) > 0);
-
+  onDeliverAll: () => void;
+  onDeliverPartial: () => void;
+}> = ({ open, commitment, pack, setPack, packLabels, busy, onClose, onDeliverAll, onDeliverPartial }) => {
+  const { t } = useTranslation(['myOil', 'common']);
   return (
-    <div className="my-oil-sheet" role="dialog" aria-modal="true">
-      <div className="my-oil-sheet__panel">
-        <h2>{t('sheet.title')}</h2>
+    <RightDrawer
+      open={open}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+      size="md"
+      title={t('deliverAllPrompt')}
+      subtitle={formatOilPack(commitment.remaining, packLabels)}
+      closeDisabled={busy}
+      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={busy || packLitresOf(pack) <= 0.05}
+            onClick={onDeliverPartial}
+          >
+            {t('deliverPartialSave')}
+          </Button>
+        </>
+      }
+    >
+      <div className="my-oil-flow">
+        <Button variant="primary" disabled={busy} onClick={onDeliverAll}>
+          {t('deliverAll', {
+            count: tinCount(commitment.remaining) || Math.round(commitment.remaining.bulkLitres),
+          })}
+        </Button>
+        <p className="my-oil-flow__step">{t('deliverPartial')}</p>
         <div className="my-oil-field">
-          <span>{t('sheet.who')}</span>
-          <SaleBuyerPicker value={name} onChange={setName} />
-        </div>
-        <p>{t('sheet.what')}</p>
-        <div className="my-oil-field">
-          <label htmlFor="my-oil-t16">{t('sheet.tin16')}</label>
+          <label htmlFor="deliver-tin16">{t('sheet.tin16')}</label>
           <input
-            id="my-oil-t16"
+            id="deliver-tin16"
             type="number"
             min={0}
+            max={commitment.remaining.tin16}
             value={pack.tin16 || ''}
             onChange={(e) =>
               setPack(
                 clampPackInput(
                   { ...pack, tin16: Number(e.target.value) || 0 },
-                  available
+                  commitment.remaining
                 )
               )
             }
           />
         </div>
         <div className="my-oil-field">
-          <label htmlFor="my-oil-t17">{t('sheet.tin17')}</label>
+          <label htmlFor="deliver-tin17">{t('sheet.tin17')}</label>
           <input
-            id="my-oil-t17"
+            id="deliver-tin17"
             type="number"
             min={0}
+            max={commitment.remaining.tin17}
             value={pack.tin17 || ''}
             onChange={(e) =>
               setPack(
                 clampPackInput(
                   { ...pack, tin17: Number(e.target.value) || 0 },
-                  available
+                  commitment.remaining
                 )
               )
             }
           />
         </div>
-        <div className="my-oil-field">
-          <label htmlFor="my-oil-bulk">{t('sheet.bulk')}</label>
-          <input
-            id="my-oil-bulk"
-            type="number"
-            min={0}
-            step="0.1"
-            value={pack.bulkLitres || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, bulkLitres: Number(e.target.value) || 0 },
-                  available
-                )
-              )
-            }
-          />
-        </div>
-        <div className="my-oil-field">
-          <span>{t('sheet.isSale')}</span>
-          <div className="my-oil-toggle">
-            <button type="button" className={isSale ? 'is-on' : ''} onClick={() => setIsSale(true)}>
-              {t('sheet.yes')}
-            </button>
-            <button type="button" className={!isSale ? 'is-on' : ''} onClick={() => setIsSale(false)}>
-              {t('sheet.no')}
-            </button>
-          </div>
-        </div>
-        {isSale ? (
+        {commitment.remaining.bulkLitres > 0.05 ? (
           <div className="my-oil-field">
-            <label htmlFor="my-oil-eur">{t('sheet.amount')}</label>
+            <label htmlFor="deliver-bulk">{t('sheet.bulk')}</label>
             <input
-              id="my-oil-eur"
+              id="deliver-bulk"
               type="number"
               min={0}
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              step="0.1"
+              max={commitment.remaining.bulkLitres}
+              value={pack.bulkLitres || ''}
+              onChange={(e) =>
+                setPack(
+                  clampPackInput(
+                    { ...pack, bulkLitres: Number(e.target.value) || 0 },
+                    commitment.remaining
+                  )
+                )
+              }
             />
           </div>
         ) : null}
-        <div className="my-oil-field">
-          <span>{t('sheet.alreadyTaken')}</span>
-          <div className="my-oil-toggle">
-            <button type="button" className={already ? 'is-on' : ''} onClick={() => setAlready(true)}>
-              {t('sheet.yes')}
-            </button>
-            <button type="button" className={!already ? 'is-on' : ''} onClick={() => setAlready(false)}>
-              {t('sheet.no')}
-            </button>
-          </div>
-        </div>
-        {saveError ? <p className="my-oil-sheet__error">{saveError}</p> : null}
-        <div className="my-oil-sheet__actions">
-          <Button variant="secondary" onClick={onClose} disabled={busy}>
-            {t('sheet.cancel')}
-          </Button>
-          <Button
-            variant="primary"
-            disabled={!canSave || busy}
-            onClick={() => {
-              setSaveError(null);
-              void onSave({
-                counterpartyName: name.trim(),
-                requested: pack,
-                isSale,
-                amount: isSale ? Number(amount) : undefined,
-                alreadyDelivered: already,
-              }).catch(() => setSaveError(t('error')));
-            }}
-          >
-            {busy ? t('sheet.saving') : t('sheet.save')}
-          </Button>
-        </div>
       </div>
-    </div>
-  );
-};
-
-const RepackSheet: React.FC<{
-  lot: OilLot;
-  busy: boolean;
-  onClose: () => void;
-  onSave: (add16: number, add17: number) => Promise<void>;
-}> = ({ lot, busy, onClose, onSave }) => {
-  const { t } = useTranslation('myOil');
-  const [add16, setAdd16] = useState(0);
-  const [add17, setAdd17] = useState(0);
-  const need = add16 * 16 + add17 * 17;
-  const left = Math.round((lot.packing.bulkLitres - need) * 10) / 10;
-
-  return (
-    <div className="my-oil-sheet" role="dialog" aria-modal="true">
-      <div className="my-oil-sheet__panel">
-        <h2>{t('repackSheet.title')}</h2>
-        <p>{t('repackHint')}</p>
-        <div className="my-oil-field">
-          <label>{t('repackSheet.add16')}</label>
-          <input
-            type="number"
-            min={0}
-            value={add16 || ''}
-            onChange={(e) => setAdd16(Math.max(0, Math.round(Number(e.target.value) || 0)))}
-          />
-        </div>
-        <div className="my-oil-field">
-          <label>{t('repackSheet.add17')}</label>
-          <input
-            type="number"
-            min={0}
-            value={add17 || ''}
-            onChange={(e) => setAdd17(Math.max(0, Math.round(Number(e.target.value) || 0)))}
-          />
-        </div>
-        <p>{t('repackSheet.bulkLeft', { amount: left })}</p>
-        <div className="my-oil-sheet__actions">
-          <Button variant="secondary" onClick={onClose} disabled={busy}>
-            {t('sheet.cancel')}
-          </Button>
-          <Button
-            variant="primary"
-            disabled={busy || need <= 0 || left < -0.05}
-            onClick={() => void onSave(add16, add17)}
-          >
-            {t('repackSheet.save')}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </RightDrawer>
   );
 };
 
 const AdjustSheet: React.FC<{
+  open: boolean;
   lot: OilLot;
+  kind: string;
   busy: boolean;
   onClose: () => void;
   onSave: (kind: string, pack: OilPackInput) => Promise<void>;
-}> = ({ lot, busy, onClose, onSave }) => {
-  const { t } = useTranslation('myOil');
-  const [kind, setKind] = useState('gifted');
+}> = ({ open, lot, kind: initialKind, busy, onClose, onSave }) => {
+  const { t } = useTranslation(['myOil', 'common']);
+  const [kind, setKind] = useState(initialKind);
   const [pack, setPack] = useState<OilPackInput>(emptyOilPackInput());
   const additive = kind === 'correction' || kind === 'returned';
 
   return (
-    <div className="my-oil-sheet" role="dialog" aria-modal="true">
-      <div className="my-oil-sheet__panel">
-        <h2>{t('adjustSheet.title')}</h2>
-        <div className="my-oil-field">
-          <label>{t('adjustSheet.kind')}</label>
-          <select value={kind} onChange={(e) => setKind(e.target.value)}>
-            <option value="gifted">{t('adjustSheet.gifted')}</option>
-            <option value="home_use">{t('adjustSheet.home_use')}</option>
-            <option value="consumed">{t('adjustSheet.consumed')}</option>
-            <option value="correction">{t('adjustSheet.correction')}</option>
-            <option value="returned">{t('adjustSheet.returned')}</option>
-          </select>
-        </div>
-        <div className="my-oil-field">
-          <label>{t('sheet.tin16')}</label>
-          <input
-            type="number"
-            min={0}
-            value={pack.tin16 || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, tin16: Number(e.target.value) || 0 },
-                  additive ? undefined : lot.packing
-                )
-              )
-            }
-          />
-        </div>
-        <div className="my-oil-field">
-          <label>{t('sheet.tin17')}</label>
-          <input
-            type="number"
-            min={0}
-            value={pack.tin17 || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, tin17: Number(e.target.value) || 0 },
-                  additive ? undefined : lot.packing
-                )
-              )
-            }
-          />
-        </div>
-        <div className="my-oil-field">
-          <label>{t('sheet.bulk')}</label>
-          <input
-            type="number"
-            min={0}
-            step="0.1"
-            value={pack.bulkLitres || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, bulkLitres: Number(e.target.value) || 0 },
-                  additive ? undefined : lot.packing
-                )
-              )
-            }
-          />
-        </div>
-        <div className="my-oil-sheet__actions">
+    <RightDrawer
+      open={open}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+      size="md"
+      title={t('adjustSheet.title')}
+      closeDisabled={busy}
+      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+      footer={
+        <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             {t('sheet.cancel')}
           </Button>
@@ -600,9 +611,74 @@ const AdjustSheet: React.FC<{
           >
             {t('adjustSheet.save')}
           </Button>
+        </>
+      }
+    >
+      <div className="my-oil-flow">
+        <div className="my-oil-field">
+          <label htmlFor="adjust-kind">{t('adjustSheet.kind')}</label>
+          <select id="adjust-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="gifted">{t('adjustSheet.gifted')}</option>
+            <option value="home_use">{t('adjustSheet.home_use')}</option>
+            <option value="consumed">{t('adjustSheet.consumed')}</option>
+            <option value="correction">{t('adjustSheet.correction')}</option>
+            <option value="returned">{t('adjustSheet.returned')}</option>
+          </select>
+        </div>
+        <div className="my-oil-field">
+          <label htmlFor="adjust-tin16">{t('sheet.tin16')}</label>
+          <input
+            id="adjust-tin16"
+            type="number"
+            min={0}
+            value={pack.tin16 || ''}
+            onChange={(e) =>
+              setPack(
+                clampPackInput(
+                  { ...pack, tin16: Number(e.target.value) || 0 },
+                  additive ? undefined : lot.available
+                )
+              )
+            }
+          />
+        </div>
+        <div className="my-oil-field">
+          <label htmlFor="adjust-tin17">{t('sheet.tin17')}</label>
+          <input
+            id="adjust-tin17"
+            type="number"
+            min={0}
+            value={pack.tin17 || ''}
+            onChange={(e) =>
+              setPack(
+                clampPackInput(
+                  { ...pack, tin17: Number(e.target.value) || 0 },
+                  additive ? undefined : lot.available
+                )
+              )
+            }
+          />
+        </div>
+        <div className="my-oil-field">
+          <label htmlFor="adjust-bulk">{t('sheet.bulk')}</label>
+          <input
+            id="adjust-bulk"
+            type="number"
+            min={0}
+            step="0.1"
+            value={pack.bulkLitres || ''}
+            onChange={(e) =>
+              setPack(
+                clampPackInput(
+                  { ...pack, bulkLitres: Number(e.target.value) || 0 },
+                  additive ? undefined : lot.available
+                )
+              )
+            }
+          />
         </div>
       </div>
-    </div>
+    </RightDrawer>
   );
 };
 

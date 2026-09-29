@@ -105,6 +105,12 @@
   "viewMap": "Map",
   "locationLabel": "Location",
   "searchPlaceholder": "Search fields...",
+  "almostReady": {
+    "title": "Your first grove is almost ready",
+    "body": "“{{name}}” has a name. Without a place and a boundary, area, weather and Chronologio stay closed.",
+    "continuePlace": "Continue the place",
+    "viewGrove": "View the grove"
+  },
   "sortLabel": "Sort fields",
   "sortName": "Name",
   "sortArea": "Area",
@@ -119,7 +125,7 @@
   "subtitleDefault": "Fields you own or work on",
   "detail": {
     "overview": "Overview",
-    "timeline": "Chronologio"
+    "timeline": "History"
   },
   "page": {
     "tabsAria": "Field sections",
@@ -270,8 +276,8 @@
       "noHarvest": "There is no harvest for {{year}}.",
       "noMoney": "There are no financial entries for {{year}}."
     },
-    "recentChronologio": "Recent Chronologio",
-    "seeAllChronologio": "See full Chronologio →",
+    "recentChronologio": "Recent History",
+    "seeAllChronologio": "See full History →",
     "needsAttention": "Needs attention",
     "needsNow": "What is needed now",
     "statusStrip": {
@@ -513,6 +519,9 @@
     "locationNotFound": "We could not find that place. The map shows Greece — zoom to your grove.",
     "boundaryDescFriendly": "Find your grove on the map, then tap each corner — like pinning the edges with your finger.",
     "boundaryCoachLocate": "First, find your grove. Zoom in or tap “My location”.",
+    "boundaryCoachFound": "The grove is on the map. Now place 3–6 points around its edge.",
+    "boundaryAreaExplained": "We measured about {{area}} from the outline you drew.",
+    "continueToChronologio": "Continue to History",
     "boundaryCoachFirst": "Tap the first corner of your grove on the map.",
     "boundaryCoachMore": "{{count}} corners marked. Drag a pin to nudge it, or keep tapping around the edge.",
     "boundaryCoachFinish": "Drag pins to fine-tune, then press Finish shape when you are happy.",
@@ -630,7 +639,8 @@
     "clearBoundary": "Clear",
     "saveBoundary": "Save boundary",
     "errors": {
-      "boundaryRequired": "Draw at least 3 boundary points."
+      "boundaryRequired": "A boundary is required before this grove can open.",
+      "boundaryRequiredNow": "Place at least 3 points around the grove before continuing."
     }
   },
   "costs": {
@@ -744,7 +754,8 @@
     "emptyHint": "As you add tasks and harvest, progress fills in here.",
     "reviewLink": "Reviews of past seasons",
     "olives": "Olives",
-    "net": "Balance"
+    "net": "Balance",
+    "openChronologio": "History"
   },
   "apologismos": {
     "title": "Year review",
@@ -769,7 +780,7 @@
     "title": "Harvest",
     "headerIdle": "Harvest",
     "headerLive": "Harvest",
-    "headerOpen": "On",
+    "headerOpen": "In progress",
     "leadIdle": "Start when picking begins. Record sacks in the field and official kilograms from the mill.",
     "leadLive": "Harvest in progress.",
     "status": {
@@ -991,6 +1002,8 @@
       },
       "relatedKg": "Related weighing",
       "noRelated": "No link",
+      "moreLots_one": "{{count}} other weighing",
+      "moreLots_other": "{{count}} other weighings",
       "acidity": "Acidity (optional)",
       "yieldLine": "{{olives}} kg olives → {{oil}} kg oil · Yield {{yield}}%",
       "estimatedKg": "About {{kg}} kg (density estimate)",
@@ -1035,6 +1048,10 @@
       "expense": "{{amount}} € expenses",
       "oil": "{{kg}} kg oil",
       "photos": "{{count}} photo",
+      "sacksLine": "{{count}} sacks",
+      "millLine": "{{kg}} kg mill",
+      "oilLine": "{{kg}} kg oil",
+      "peopleNotRecorded": "People not recorded",
       "add": "Add",
       "close": "Close the day",
       "closed": "Day closed"
@@ -1146,12 +1163,20 @@
       "unitOil": "kg oil",
       "unitOilLitres": "L oil",
       "empty": "Add sacks, mill kilograms, or oil to see how they connect.",
+      "emptyTitle": "No harvest flow yet",
+      "emptyBody": "When you record sacks, weighing and oil, their journey will appear here.",
+      "addFirst": "Add a record",
       "needsMill": "Needs mill weight",
       "needsOil": "Needs oil",
       "linked": "Linked",
-      "tapHint": "Tap a node to see where it came from and where it went.",
+      "tapHint": "Tap a card to highlight its path from field to oil.",
+      "showing": "Showing {{label}}",
+      "clear": "Clear",
+      "seasonLine": "Season {{years}}",
       "fieldsCount": "{{count}} fields",
-      "daysCount": "{{count}} days",
+      "daysCount_one": "{{count}} day",
+      "daysCount_other": "{{count}} days",
+      "days": "Days",
       "yieldBadge": "{{yield}}% yield",
       "oliveLine": "{{kg}} kg olives",
       "oilLine": "{{kg}} kg oil",
@@ -1208,15 +1233,32 @@
       "saveChanges": "Save changes",
       "weighed": "weighed",
       "open": "not weighed yet",
+      "openBadge": "Not weighed yet",
+      "recorded": "Recorded today",
+      "more": "Actions",
+      "millWeight": "Mill weight",
+      "millKept": "Mill kept: {{amount}}",
+      "short": {
+        "sacks": "Sacks",
+        "mill": "Mill",
+        "oil": "Oil",
+        "people": "People"
+      },
       "fromMills": "from {{count}} mill weighings"
     }
   },
   "createGrove": {
     "title": "Add grove",
     "firstTitle": "Put your first grove in Oleachron",
-    "subtitle": "Name → colour → boundary. Details can wait.",
+    "subtitle": "A name first. Then where it is, and its boundary.",
+    "placeHeading": "Where is it?",
+    "continueToPlace": "Continue",
+    "readyTitle": "This grove has a place now",
+    "readyBody": "The shape is on the map. A short note is the first page of its story.",
     "nameHeading": "What shall we call it?",
     "nameHelper": "A short name you’ll recognise — e.g. North grove or Lower vines.",
+    "nameSuggestionsLabel": "Name ideas",
+    "nameSuggestions": ["North grove", "Lower grove"],
     "nameLabel": "Grove name",
     "colorHeading": "Pick a colour",
     "colorHelper": "Shown on Chronologio so you can spot this grove quickly.",
@@ -1272,7 +1314,7 @@
       "treeCountHint": "If you are not sure, leave it blank."
     },
     "appearance": {
-      "title": "Appearance in Chronologio",
+      "title": "Appearance in History",
       "subtitle": "Colour helps you recognise the grove in Chronologio.",
       "autoLabel": "Colour: chosen automatically",
       "autoHint": "Colour: chosen automatically · Change",
@@ -1287,7 +1329,7 @@
       "readyHeading": "Ready",
       "waitHeading": "Can wait",
       "readyName": "Name",
-      "readyTimeline": "Chronologio ready",
+      "readyTimeline": "History ready",
       "readyWork": "You can record an expense, income, or observation",
       "waitLocation": "Place on the map",
       "waitBoundary": "Boundary on the map",
@@ -1295,7 +1337,7 @@
       "recordWork": "Record first work",
       "recordFirst": "First entry",
       "addLocation": "Add a place on the map",
-      "openChronologio": "Open Chronologio",
+      "openChronologio": "Open History",
       "openGrove": "Open my grove"
     },
     "enrich": {

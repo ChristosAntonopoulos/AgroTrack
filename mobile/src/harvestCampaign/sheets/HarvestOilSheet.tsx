@@ -257,11 +257,19 @@ export const HarvestOilSheet: React.FC<
           {millChipOrder.length > 0 ? (
             <HarvestCarryPicker
               hideHeading
+              compact
+              moreLabel={t('fields:harvestCampaign.oil.moreLots', {
+                count: Math.max(millChipOrder.length - millWeightIds.length, 1),
+              })}
+              lessLabel={t('fields:harvestCampaign.less')}
               label={t('fields:harvestCampaign.oil.relatedKg')}
               items={millChipOrder.map((row) => {
                 const fieldNames = row.fieldIds
-                  .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
-                  .filter(Boolean);
+                  .map((id) => {
+                    const name = fields.find((f) => f.id === id)?.name;
+                    return name ? friendlyFieldLabel(name) : '';
+                  })
+                  .filter((name) => name && name !== '—');
                 const needsOil = uncovered.some((m) => m.id === row.id);
                 return {
                   id: row.id,

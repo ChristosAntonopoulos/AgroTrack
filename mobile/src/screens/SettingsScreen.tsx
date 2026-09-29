@@ -66,7 +66,7 @@ type SheetOption = { value: string; label: string };
 const SettingsScreen = () => {
   const { user, logout, isFieldOwner } = useAuth();
   const { colors } = useTheme();
-  const { t } = useTranslation(['settings', 'common', 'nav', 'onboarding']);
+  const { t } = useTranslation(['settings', 'common', 'nav', 'onboarding', 'auth']);
   const activation = useOwnerActivationOptional();
   const {
     language,
@@ -423,6 +423,20 @@ const SettingsScreen = () => {
             />
           </View>
         ) : null}
+      </Group>
+
+      <Group title={t('nav:help', { defaultValue: 'Help' })}>
+        <SelectRow
+          title={t('nav:help', { defaultValue: 'Help' })}
+          valueLabel=""
+          onPress={() => navigation.navigate('Help')}
+        />
+        <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
+        <SelectRow
+          title={t('nav:feedback', { defaultValue: 'Feedback' })}
+          valueLabel=""
+          onPress={() => navigation.navigate('Feedback')}
+        />
       </Group>
 
       <Group title={t('settings:sections.legal')}>

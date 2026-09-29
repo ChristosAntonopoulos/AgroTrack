@@ -92,7 +92,7 @@ function ensureAssignmentAndApprovalSamples(items: InboxItem[], userId: string):
       source: 'transactional',
       type: 'task_assigned',
       title: 'Νέα ανάθεση εργασίας',
-      message: 'Σας ανατέθηκε εργασία στο χωράφι. Ανοίξτε τις εργασίες για λεπτομέρειες.',
+      message: 'Σας ανατέθηκε εργασία στον ελαιώνα. Ανοίξτε τις εργασίες για λεπτομέρειες.',
       actionUrl: '/tasks',
       isRead: false,
       isCompleted: false,

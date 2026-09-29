@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { useTheme } from '../context/ThemeContext';
 
 interface LoadingSpinnerProps {
@@ -14,13 +15,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   fullScreen = false,
 }) => {
   const { colors } = useTheme();
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
   const spinnerColor = color ?? colors.primary;
 
   return (
     <View
       style={[
         fullScreen ? styles.fullScreen : styles.container,
-        fullScreen ? { backgroundColor: colors.background } : null,
+        fullScreen ? { backgroundColor: colors.background, paddingTop: headerHeight } : null,
       ]}
     >
       <ActivityIndicator size={size} color={spinnerColor} />

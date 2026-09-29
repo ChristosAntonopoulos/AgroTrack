@@ -178,7 +178,7 @@
     "moreFilters": "More filters",
     "person": "Who",
     "unknownField": "Field",
-    "seeCompletedInChronologio": "See completed work in Chronologio →",
+    "seeCompletedInChronologio": "See completed work in History →",
     "plannedGroups": {
       "today": "Today",
       "thisWeek": "This week",
@@ -243,7 +243,7 @@
     },
     "history": {
       "banner": "Completed tasks also appear in Chronologio with weather, money, and harvest.",
-      "openChronologio": "Open full Chronologio"
+      "openChronologio": "Open full History"
     },
     "pause": {
       "title": "Pause task",
@@ -260,16 +260,23 @@
       "title": "Not relevant",
       "copy": "Choose what applies to this proposal.",
       "dontDo": "I do not do this task",
+      "dontDoHint": "We will stop suggesting it for these fields.",
       "alreadyDone": "I already did it",
-      "remindLater": "Remind me later"
+      "alreadyDoneHint": "We will close it for this year.",
+      "remindLater": "Remind me later",
+      "remindLaterHint": "It will come back in a few days."
     },
     "scheduleGroup": {
       "title": "Schedule proposal",
-      "copy": "Choose fields and a date.",
+      "copy": "Choose which fields and when to do the work.",
       "allFields": "All recommended fields",
+      "whenLabel": "When",
       "differentDates": "Different date per field",
+      "differentDatesHint": "Pick a day for each field.",
       "sameDate": "Same date for all",
-      "sharedDate": "Date"
+      "sameDateHint": "One day for every selected field.",
+      "sharedDate": "Work day",
+      "selectedCount": "{{selected}} of {{total}}"
     },
     "reschedule": {
       "title": "Change date",
@@ -317,6 +324,9 @@
       "forFields": "Suggested for {{count}} fields",
       "moreFields": "+{{count}} more",
       "whyRecommended": "Why is this suggested?",
+      "whyIntro": "What this suggestion means",
+      "whyScheduleHint": "If it fits, schedule it on your fields.",
+      "fieldsLabel": "Fields",
       "showLater": "Show",
       "hideLater": "Hide",
       "more": "More actions",
@@ -369,6 +379,7 @@
       "newTitle": "New task",
       "scheduleTitle": "Schedule task",
       "manualSubtitle": "What needs to happen, and when?",
+      "fromSuggestion": "From suggestion · {{title}}{{field}}",
       "whatQuestion": "What needs to be done?",
       "fieldQuestion": "Which field?",
       "whenQuestion": "When should it happen?",
@@ -841,6 +852,7 @@
     "work": {
       "started": "Started {{time}}",
       "checks": "Checks",
+      "checksProgress": "{{done}} of {{total}}",
       "note": "Note",
       "saveNote": "Save note",
       "complete": "Complete",

@@ -69,15 +69,28 @@ const FieldIdentity: React.FC<Props> = ({
   // Variety lives on the field page only — list cards keep the grove name clean.
   if (isPage && variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
 
+  const tint = accent.length === 7 ? `${accent}22` : colors.primaryLight;
+
   return (
     <View style={[styles.wrap, !isPage && styles.wrapFlex]} accessibilityLabel={t('fields:card.metaAria')}>
+      {isPage && shortLocation ? (
+        <Text style={[styles.placePage, { color: colors.textSecondary }]} numberOfLines={1}>
+          {shortLocation}
+        </Text>
+      ) : null}
       {!hideTitle ? (
-        <View style={styles.titleRow}>
+        <View
+          style={[
+            styles.titleRow,
+            isPage && styles.namePlate,
+            isPage && { backgroundColor: tint, borderColor: accent },
+          ]}
+        >
           <View
             style={[
               styles.swatch,
               isPage && styles.swatchPage,
-              { backgroundColor: accent, borderColor: colors.surface },
+              { backgroundColor: accent, borderColor: isPage ? accent : colors.surface },
             ]}
             accessibilityElementsHidden
           />
@@ -91,23 +104,10 @@ const FieldIdentity: React.FC<Props> = ({
             {displayName}
           </Text>
         </View>
-      ) : (
-        <View style={styles.metaLead}>
-          <View style={[styles.swatchTiny, { backgroundColor: accent }]} />
-          {shortLocation ? (
-            <Text style={[styles.placeInline, { color: colors.textSecondary }]} numberOfLines={1}>
-              {shortLocation}
-            </Text>
-          ) : null}
-        </View>
-      )}
-      {!hideTitle && shortLocation ? (
+      ) : null}
+      {!isPage && shortLocation ? (
         <Text
-          style={[
-            styles.place,
-            isPage && styles.placePage,
-            { color: colors.textSecondary, marginLeft: isPage ? 24 : 22 },
-          ]}
+          style={[styles.place, { color: colors.textSecondary, marginLeft: hideTitle ? 0 : 22 }]}
           numberOfLines={1}
         >
           {shortLocation}
@@ -158,11 +158,12 @@ const styles = StyleSheet.create({
     gap: 10,
     maxWidth: '100%',
   },
-  metaLead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
+  namePlate: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radii.lg,
+    borderWidth: 1,
   },
   swatch: {
     width: 12,
@@ -172,14 +173,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   swatchPage: {
-    width: 14,
-    height: 14,
-  },
-  swatchTiny: {
-    width: 8,
-    height: 8,
-    borderRadius: 99,
-    flexShrink: 0,
+    width: 18,
+    height: 18,
+    borderWidth: 0,
   },
   pageName: {
     ...typography.styles.h2,
@@ -198,8 +194,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   place: { ...typography.styles.bodySmall, marginTop: 6 },
-  placePage: { fontSize: 16, marginTop: 8 },
-  placeInline: { ...typography.styles.bodySmall, flex: 1, fontSize: 13 },
+  placePage: { ...typography.styles.bodySmall, fontSize: 15, fontWeight: '600' },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',

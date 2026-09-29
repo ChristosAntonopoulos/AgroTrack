@@ -11,7 +11,6 @@ export const DEMO_PRODUCER_ID = '675555555555555555555502';
 export const DEMO_FIELD_IDS = [
   '675555555555555555555101',
   '675555555555555555555102',
-  '675555555555555555555103',
 ] as const;
 
 const DEMO_IMAGES = [
@@ -48,16 +47,16 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
     {
       id: DEMO_FIELD_IDS[0],
       ownerId: DEMO_OWNER_ID,
-      name: 'Φιλιατρών 088 — Μεγαρίτικη',
+      name: 'Επάνω ελαιώνας',
       latitude: 37.193787613627592,
       longitude: 21.593640833820832,
-      area: 3191.44,
-      variety: 'Μεγαρίτικη',
-      treeAge: 28,
+      area: 3200,
+      variety: 'Κορωνέικη',
+      treeAge: 15,
       groundType: 'Loam',
       irrigationStatus: true,
       currentLifecycleYear: 'high',
-      currentLifecycleStage: 'fruit_growth',
+      currentLifecycleStage: 'harvest',
       status: 'Active',
       createdAt: toIso(oneYearAgo),
       updatedAt: toIso(now),
@@ -65,33 +64,16 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
     {
       id: DEMO_FIELD_IDS[1],
       ownerId: DEMO_OWNER_ID,
-      name: 'Φιλιατρών 089 — Κορωνέικη',
+      name: 'Κάτω ελαιώνας',
       latitude: 37.193794307275581,
       longitude: 21.593644047696579,
-      area: 2968.44,
+      area: 2968,
       variety: 'Κορωνέικη',
       treeAge: 18,
       groundType: 'Clay Loam',
       irrigationStatus: true,
       currentLifecycleYear: 'high',
-      currentLifecycleStage: 'fruit_growth',
-      status: 'Active',
-      createdAt: toIso(oneYearAgo),
-      updatedAt: toIso(now),
-    },
-    {
-      id: DEMO_FIELD_IDS[2],
-      ownerId: DEMO_OWNER_ID,
-      name: 'Φιλιατρών 090 — Καλαμών',
-      latitude: 37.19412,
-      longitude: 21.59405,
-      area: 2480,
-      variety: 'Καλαμών',
-      treeAge: 22,
-      groundType: 'Sandy Loam',
-      irrigationStatus: true,
-      currentLifecycleYear: 'high',
-      currentLifecycleStage: 'fruit_growth',
+      currentLifecycleStage: 'harvest',
       status: 'Active',
       createdAt: toIso(oneYearAgo),
       updatedAt: toIso(now),
@@ -161,7 +143,7 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
   const issues: DemoIssue[] = [
     {
       id: '675555555555555555555301',
-      fieldId: DEMO_FIELD_IDS[1],
+      fieldId: DEMO_FIELD_IDS[0],
       type: 'Leak',
       severity: 'High',
       title: 'Διαρροή κύριας γραμμής άρδευσης κοντά στο φρεάτιο',
@@ -261,7 +243,7 @@ export function getPinnedDemoTasks(now = new Date()): DemoTask[] {
     // Suitable today
     base({
       id: '675555555555555555556002',
-      fieldId: DEMO_FIELD_IDS[1],
+      fieldId: DEMO_FIELD_IDS[0],
       templateCode: 'T14',
       title: 'Έλεγχος παγίδων δάκου και καρπών',
       description: 'Καταμέτρηση συλλήψεων και δειγματοληψία καρπών — καλές συνθήκες σήμερα.',
@@ -276,7 +258,7 @@ export function getPinnedDemoTasks(now = new Date()): DemoTask[] {
     // Weather-blocked
     base({
       id: '675555555555555555556003',
-      fieldId: DEMO_FIELD_IDS[2],
+      fieldId: DEMO_FIELD_IDS[0],
       templateCode: 'T09',
       title: 'Διαχείριση ζιζανίων / κάλυψης εδάφους',
       description: 'Αναβολή λόγω βροχής και υγρασίας — ακατάλληλες συνθήκες.',
@@ -309,7 +291,7 @@ export function getPinnedDemoTasks(now = new Date()): DemoTask[] {
     // Completed with cost + photos
     base({
       id: '675555555555555555556005',
-      fieldId: DEMO_FIELD_IDS[1],
+      fieldId: DEMO_FIELD_IDS[0],
       templateCode: 'T06',
       title: 'Κλάδεμα',
       description: 'Ολοκληρώθηκε το κλάδεμα στη βόρεια πλευρά.',

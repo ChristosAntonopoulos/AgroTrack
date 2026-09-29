@@ -14,6 +14,7 @@ import { CaptureProvider } from '../context/CaptureContext';
 import { InAppMessageProvider } from '../context/InAppMessageContext';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from '../theme';
+import StackScreenHeader from './StackScreenHeader';
 import AuthNavigator from './AuthNavigator';
 import MainLayout from './MainLayout';
 import FieldDetailScreen from '../screens/FieldDetailScreen';
@@ -43,6 +44,7 @@ import ServiceProfileScreen from '../screens/ServiceProfileScreen';
 import ServiceRequestsScreen from '../screens/ServiceRequestsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import HelpScreen from '../screens/HelpScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import LegacyHomeRedirect from '../screens/LegacyHomeRedirect';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -65,9 +67,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   const { isAuthenticated, isLoading, logout, user, isFieldOwner } = useAuth();
-  const { colors, isDark, fontScaleMultiplier } = useTheme();
-  const headerTitleSize = 17 * fontScaleMultiplier;
-  const { t } = useTranslation(['nav', 'fields', 'partners', 'chronologio', 'settings', 'feedback', 'common', 'photos']);
+  const { colors, isDark } = useTheme();
+  const { t } = useTranslation(['nav', 'fields', 'partners', 'chronologio', 'settings', 'help', 'feedback', 'common', 'photos', 'legal']);
   const [sessionExpired, setSessionExpired] = useState(false);
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const firstGroveChecked = useRef(false);
@@ -127,18 +128,6 @@ const RootNavigator = () => {
     },
   };
 
-  const compactHeader = {
-    headerStyle: { backgroundColor: colors.headerBackground },
-    headerTintColor: colors.headerForeground,
-    headerTitleStyle: {
-      color: colors.headerForeground,
-      fontWeight: '600' as const,
-      fontSize: headerTitleSize,
-    },
-    headerShadowVisible: false,
-    headerBackButtonDisplayMode: 'minimal' as const,
-  };
-
   if (isLoading) {
     return <LoadingSpinner fullScreen />;
   }
@@ -169,6 +158,7 @@ const RootNavigator = () => {
             },
             Main: {
               screens: {
+                Launcher: 'workspace',
                 ChronologioTab: 'today',
                 Fields: {
                   screens: {
@@ -195,6 +185,7 @@ const RootNavigator = () => {
             NotesList: 'notes',
             Calendar: 'calendar',
             Settings: 'settings',
+            Help: 'help',
             Feedback: 'feedback',
             Dashboard: 'dashboard',
           },
@@ -208,7 +199,9 @@ const RootNavigator = () => {
         <View style={styles.shell}>
           <Stack.Navigator
             screenOptions={{
-              ...compactHeader,
+              header: (props) => <StackScreenHeader {...props} />,
+              headerTransparent: true,
+              headerShadowVisible: false,
               contentStyle: {
                 backgroundColor: isAuthenticated ? 'transparent' : colors.background,
               },
@@ -225,8 +218,8 @@ const RootNavigator = () => {
           ) : (
             <>
               <Stack.Screen name="Main" component={MainLayout} options={{ headerShown: false }} />
-              <Stack.Screen name="FieldDetail" component={FieldDetailScreen} options={{ title: t('fields') }} />
-              <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: t('tasks') }} />
+              <Stack.Screen name="FieldDetail" component={FieldDetailScreen} options={{ title: '' }} />
+              <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: '' }} />
               <Stack.Screen
                 name="TaskCompletion"
                 component={TaskCompletionScreen}
@@ -240,15 +233,15 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="FieldWeatherVegetation"
                 component={FieldWeatherVegetationScreen}
-                options={{ title: t('chronologio:weatherVegetation.button') }}
+                options={{ title: '' }}
               />
               <Stack.Screen
                 name="FieldForm"
                 component={FieldFormScreen}
-                options={({ route }) => ({
-                  title: route.params?.fieldId ? t('fields:editField') : t('fields:addField.title'),
+                options={{
+                  title: '',
                   presentation: 'modal',
-                })}
+                }}
               />
               <Stack.Screen
                 name="FieldWorkSetup"
@@ -267,15 +260,21 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="FieldMapBoundary"
                 component={FieldMapBoundaryScreen}
-                options={{ title: t('fields'), presentation: 'modal' }}
+                options={{ title: '', presentation: 'modal' }}
               />
               <Stack.Screen
                 name="CreateTask"
                 component={CreateTaskScreen}
-                options={{ title: t('tasks'), presentation: 'modal' }}
+                options={{ title: '', presentation: 'modal' }}
               />
               <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('notifications') }} />
-              <Stack.Screen name="Legal" component={LegalScreen} />
+              <Stack.Screen
+                name="Legal"
+                component={LegalScreen}
+                options={({ route }) => ({
+                  title: t(`legal:${route.params?.kind || 'privacy'}.title`),
+                })}
+              />
               <Stack.Screen
                 name="NotesList"
                 component={LegacyHomeRedirect}
@@ -366,6 +365,11 @@ const RootNavigator = () => {
                 name="Settings"
                 component={SettingsScreen}
                 options={{ title: t('settings:title', { defaultValue: t('settings') }) }}
+              />
+              <Stack.Screen
+                name="Help"
+                component={HelpScreen}
+                options={{ title: t('help:title', { defaultValue: t('help') }) }}
               />
               <Stack.Screen
                 name="Feedback"

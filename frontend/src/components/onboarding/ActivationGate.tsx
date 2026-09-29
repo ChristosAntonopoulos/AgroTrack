@@ -4,15 +4,12 @@ import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationCont
 import { stepPath } from '../../onboarding/steps';
 
 /** Paths allowed while hard-locked until first όρια. */
-export const isActivationAllowedPath = (pathname: string, search = ''): boolean => {
+export const isActivationAllowedPath = (pathname: string, _search = ''): boolean => {
   if (pathname === '/settings' || pathname === '/access-denied') return true;
-  if (pathname === '/fields/new') return true;
+  if (pathname === '/fields' || pathname === '/fields/new' || pathname === '/chronologio') return true;
   if (/^\/fields\/[^/]+\/edit$/.test(pathname)) return true;
-  // Post-boundary spatial welcome — allow during refresh race after save.
-  if (/^\/fields\/[^/]+$/.test(pathname)) {
-    const params = new URLSearchParams(search);
-    if (params.get('activation') === 'spatial' || params.get('activation') === 'observe') return true;
-  }
+  // Named grove can be opened while the boundary is still unfinished.
+  if (/^\/fields\/[^/]+$/.test(pathname)) return true;
   return false;
 };
 
@@ -25,20 +22,6 @@ const ActivationGate: React.FC = () => {
   useEffect(() => {
     if (!activation?.locked) return;
 
-    // Keep locked owners on the boundary step when editing an existing grove.
-    if (
-      /^\/fields\/[^/]+\/edit$/.test(location.pathname) &&
-      activation.completion.createGrove &&
-      !activation.completion.drawBoundary
-    ) {
-      const params = new URLSearchParams(location.search);
-      if (params.get('focus') !== 'boundary') {
-        params.set('focus', 'boundary');
-        navigate(`${location.pathname}?${params.toString()}`, { replace: true });
-        return;
-      }
-    }
-
     if (isActivationAllowedPath(location.pathname, location.search)) return;
 
     const step =
@@ -49,7 +32,6 @@ const ActivationGate: React.FC = () => {
     activation?.locked,
     activation?.activeStep,
     activation?.completion.createGrove,
-    activation?.completion.drawBoundary,
     activation?.primaryField?.id,
     location.pathname,
     location.search,

@@ -203,17 +203,20 @@ const Sheet: React.FC<SheetProps> = ({
         borderTopRightRadius: radii.lg,
       };
     }
+    const capped = Math.round(height * (maxHeightPercent / 100));
     return {
       position: 'absolute' as const,
       left: 0,
       right: 0,
       bottom: 0,
-      maxHeight: `${maxHeightPercent}%` as unknown as number,
+      maxHeight: capped,
+      // A content-sized sheet clips an inner scroller. Forms that scroll themselves need a real height.
+      height: scrollable ? undefined : capped,
       paddingBottom: Math.max(insets.bottom, spacing.base),
       borderTopLeftRadius: radii.sheet,
       borderTopRightRadius: radii.sheet,
     };
-  }, [placement, panelWidth, insets, maxHeightPercent, width, height, fullScreen]);
+  }, [placement, panelWidth, insets, maxHeightPercent, width, height, fullScreen, scrollable]);
 
   const accentBarStyle =
     placement === 'bottom' || placement === 'center'

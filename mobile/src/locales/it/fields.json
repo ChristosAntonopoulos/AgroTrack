@@ -40,8 +40,8 @@
     "seeFinance": "See finances →",
     "costPerKg": "Costo per chilo di olio",
     "completedWork": "Lavori completati",
-    "recentChronologio": "Recent Chronologio",
-    "seeAllChronologio": "Vedi tutto il Chronologio",
+    "recentChronologio": "Cronologia recente",
+    "seeAllChronologio": "Vedi tutta la Cronologia",
     "needsAttention": "Needs attention",
     "needsNow": "Cosa serve ora",
     "statusStrip": {
@@ -86,8 +86,8 @@
     "variety": "Variety",
     "status": "Status",
     "chronoTagline": "The story of this grove lives here.",
-    "openFullChronologio": "Open full Chronologio →",
-    "chronoModesAria": "Chronologio view",
+    "openFullChronologio": "Vedi tutta la Cronologia →",
+    "chronoModesAria": "Vista Cronologia",
     "recent": "Recent",
     "years": "Years"
   },
@@ -559,7 +559,7 @@
     "notesTitle": "Ricordi di quest'anno",
     "notesEmpty": "Nessuna nota per questa stagione.",
     "untitledNote": "Nota",
-    "seeChronologio": "Leggi l'annata nel Cronologio",
+    "seeChronologio": "Leggi l'annata nella Cronologia",
     "liveTitle": "Finora",
     "liveHint": "Numeri dal vivo — non ancora il bilancio.",
     "olivesSoFar": "Olive finora",
@@ -598,7 +598,7 @@
     "notesEmpty": "Nessuna nota.",
     "fieldsTitle": "Per campo",
     "openMoney": "Apri costi",
-    "openChronologio": "Cronologio",
+    "openChronologio": "Cronologia",
     "backToProgress": "Stagione corrente",
     "breadcrumb": "Bilancio"
   },
@@ -808,6 +808,10 @@
       "expense": "{{amount}} € spese",
       "oil": "{{kg}} kg olio",
       "photos": "{{count}} foto",
+      "sacksLine": "{{count}} sacchi",
+      "millLine": "{{kg}} kg frantoio",
+      "oilLine": "{{kg}} kg olio",
+      "peopleNotRecorded": "Persone non registrate",
       "add": "Aggiungi",
       "close": "Chiudi la giornata",
       "closed": "Giornata chiusa"
@@ -981,6 +985,17 @@
       "saveChanges": "Salva modifiche",
       "weighed": "pesati",
       "open": "non ancora pesati",
+      "openBadge": "Non ancora pesato",
+      "recorded": "Registrato oggi",
+      "more": "Azioni",
+      "millWeight": "Peso al frantoio",
+      "millKept": "Trattenuto dal frantoio: {{amount}}",
+      "short": {
+        "sacks": "Sacchi",
+        "mill": "Frantoio",
+        "oil": "Olio",
+        "people": "Persone"
+      },
       "fromMills": "da {{count}} pesate"
     },
     "validation": {
@@ -999,9 +1014,15 @@
   "createGrove": {
     "title": "Aggiungi oliveto",
     "firstTitle": "Metti il tuo primo oliveto in Oleachron",
-    "subtitle": "Nome → colore → confini. I dettagli possono aspettare.",
+    "subtitle": "Prima il nome. Poi dov’è e il suo confine.",
+    "placeHeading": "Dov’è?",
+    "continueToPlace": "Continua",
+    "readyTitle": "Questo oliveto ha un posto",
+    "readyBody": "La forma è sulla mappa. Una breve nota è la prima pagina della sua storia.",
     "nameHeading": "Come lo chiamiamo?",
     "nameHelper": "Un nome breve che riconoscerai — es. Nord o Vigne di sotto.",
+    "nameSuggestionsLabel": "Idee per il nome",
+    "nameSuggestions": ["Oliveto nord", "Vigne di sotto"],
     "nameLabel": "Nome oliveto",
     "colorHeading": "Scegli un colore",
     "colorHelper": "Compare su Chronologio per riconoscere subito questo oliveto.",
@@ -1057,7 +1078,7 @@
       "treeCountHint": "If you are not sure, leave it blank."
     },
     "appearance": {
-      "title": "Appearance in Chronologio",
+      "title": "Aspetto nella Cronologia",
       "subtitle": "Colour helps you recognise the grove in Chronologio.",
       "autoLabel": "Colour: chosen automatically",
       "autoHint": "Colour: chosen automatically · Change",
@@ -1072,7 +1093,7 @@
       "readyHeading": "Ready",
       "waitHeading": "Can wait",
       "readyName": "Name",
-      "readyTimeline": "Chronologio ready",
+      "readyTimeline": "Cronologia pronta",
       "readyWork": "Puoi registrare un'uscita, un'entrata o un'osservazione",
       "waitLocation": "Place on the map",
       "waitBoundary": "Confine sulla mappa",
@@ -1080,7 +1101,7 @@
       "recordWork": "Record first work",
       "recordFirst": "Prima registrazione",
       "addLocation": "Add a place on the map",
-      "openChronologio": "Open Chronologio",
+      "openChronologio": "Apri Cronologia",
       "openGrove": "Open my grove"
     },
     "enrich": {

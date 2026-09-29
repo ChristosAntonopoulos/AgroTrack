@@ -111,6 +111,8 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
     [userId]
   );
 
+  const refreshSeq = useRef(0);
+
   const refresh = useCallback(async () => {
     if (!isAuthenticated || !userId) {
       setFields([]);
@@ -118,18 +120,21 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       setFieldsHydrated(false);
       return;
     }
+    const seq = ++refreshSeq.current;
     try {
       const [list, access] = await Promise.all([
         getFieldService().getFields(),
         fieldPeopleService.getAccessContext().catch(() => null),
       ]);
+      if (seq !== refreshSeq.current) return;
       setFields(list);
       if (access) setOwnsAnyField(access.ownsAnyField);
       else setOwnsAnyField(list.some((f) => !f.ownerId || f.ownerId === userId));
     } catch {
-      setFields([]);
+      // Keep the last good list. Wiping it resets the ribbon to 0 of 3 and blanks Fields.
+      if (seq !== refreshSeq.current) return;
     } finally {
-      setFieldsHydrated(true);
+      if (seq === refreshSeq.current) setFieldsHydrated(true);
     }
   }, [isAuthenticated, userId]);
 
@@ -148,8 +153,16 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
         firstObservationDone:
           Boolean(persisted.firstObservationDoneAt) ||
           persisted.skippedSteps.includes('firstObservation'),
+        knownBoundaryFieldId: optimisticBoundaryFieldId,
       }),
-    [fields, primaryField, spatialStatus, persisted.firstObservationDoneAt, persisted.skippedSteps]
+    [
+      fields,
+      primaryField,
+      spatialStatus,
+      persisted.firstObservationDoneAt,
+      persisted.skippedSteps,
+      optimisticBoundaryFieldId,
+    ]
   );
 
   const doneCount = OWNER_ACTIVATION_STEPS.filter((s) => completion[s]).length;

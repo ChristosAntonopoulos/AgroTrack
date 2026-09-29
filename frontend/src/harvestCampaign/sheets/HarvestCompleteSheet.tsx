@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatGroveMassKg } from '../../utils/groveTotals';
+import { formatGroveLitres, formatGroveMassKg } from '../../utils/groveTotals';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
-import { formatHarvestYieldPercent } from '../utils/harvestCalculations';
+import { convertOliveOilKgToLitres, formatHarvestYieldPercent } from '../utils/harvestCalculations';
 
 export const HarvestCompleteSheet: React.FC<{
   officialKg: number;
@@ -66,7 +66,11 @@ export const HarvestCompleteSheet: React.FC<{
           <span>{t('harvestCampaign.complete.olives', { kg: formatGroveMassKg(officialKg, locale) })}</span>
         </div>
         <div className="hc-complete-metric" role="listitem">
-          <span>{t('harvestCampaign.complete.oil', { kg: formatGroveMassKg(oilKg, locale) })}</span>
+          <span>
+            {t('harvestCampaign.complete.oil', {
+              litres: formatGroveLitres(convertOliveOilKgToLitres(oilKg), locale),
+            })}
+          </span>
         </div>
         {yieldPct != null ? (
           <div className="hc-complete-metric hc-complete-metric--accent" role="listitem">

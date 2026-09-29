@@ -252,14 +252,9 @@ const FieldFacts: React.FC<Props> = ({
         </Pressable>
       ) : null}
 
-      <Text style={[styles.lead, { color: colors.textSecondary }]}>
-        {t('fields:details.leadApi')}
-        {spatial?.calculatedAt
-          ? ` ${t('fields:details.modelsUpdated', { when: formatRelativeTime(spatial.calculatedAt, numberLocale) })}`
-          : collecting
-            ? ` ${t('fields:details.collecting')}`
-            : ''}
-      </Text>
+      {collecting && !spatial?.calculatedAt ? (
+        <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('fields:details.collecting')}</Text>
+      ) : null}
 
       {draft ? (
         <FactCard title={t('fields:page.draftField')}>
@@ -325,11 +320,6 @@ const FieldFacts: React.FC<Props> = ({
       >
         {soil ? (
           <>
-            {soil.isRegionalEstimate || soil.metadata?.isRegionalEstimate ? (
-              <Text style={[styles.banner, { backgroundColor: colors.primaryLight, color: colors.textSecondary }]}>
-                {t('fields:details.sources.regional')}
-              </Text>
-            ) : null}
             <FactRow first label={t('fields:intelligence.soilTexture')} value={textureLabel} empty={!textureLabel} />
             <FactRow
               label={t('fields:intelligence.soilPh')}

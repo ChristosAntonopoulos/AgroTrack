@@ -21,7 +21,6 @@ const LegalScreen = () => {
     <ScreenLayout padded>
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>{t('disclaimer')}</Text>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${kind}.title`)}</Text>
         {items.map((item) => (
           <Text key={item} style={[styles.point, { color: colors.textPrimary }]}>
             {item}
@@ -42,7 +41,6 @@ const LegalScreen = () => {
 const styles = StyleSheet.create({
   body: { gap: spacing.md, paddingBottom: spacing.xl },
   disclaimer: { ...typography.styles.caption },
-  title: { ...typography.styles.h2, fontWeight: '800' },
   point: { ...typography.styles.body, lineHeight: 22 },
 });
 

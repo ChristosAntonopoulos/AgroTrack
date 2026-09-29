@@ -145,7 +145,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
     const metrics = extremeMetricLine(weather, numberLocale, kind);
     const fieldChip =
       showField && entry.field?.name ? friendlyFieldLabel(entry.field.name) : null;
-    const trail = [streak, metrics, period, fieldChip].filter(Boolean) as string[];
+    const detail = [streak, metrics, period].filter(Boolean).join(' · ');
     const iconName =
       tone === 'heat'
         ? 'flame'
@@ -162,23 +162,23 @@ const ChronologioEntryCard: React.FC<Props> = ({
         <View
           accessible
           accessibilityRole="text"
-          accessibilityLabel={[kindLabel, ...trail].join(', ')}
-          style={[styles.extremePill, { backgroundColor: palette.fill }]}
+          accessibilityLabel={[kindLabel, detail, fieldChip].filter(Boolean).join(', ')}
+          style={[styles.extremeCard, { backgroundColor: palette.fill }]}
         >
           <View style={[styles.extremeIcon, { backgroundColor: palette.iconBg }]}>
-            <Ionicons name={iconName} size={12} color="#fff" />
+            <Ionicons name={iconName} size={14} color="#fff" />
           </View>
-          <Text style={[styles.extremeKind, { color: palette.ink }]} numberOfLines={1}>
-            {kindLabel}
-          </Text>
-          {trail.map((part) => (
-            <React.Fragment key={part}>
-              <Text style={[styles.extremeDot, { color: palette.ink }]}>·</Text>
-              <Text style={[styles.extremeMeta, { color: palette.ink }]} numberOfLines={1}>
-                {part}
+          <View style={styles.extremeCopy}>
+            <Text style={[styles.extremeKind, { color: palette.ink }]}>{kindLabel}</Text>
+            {detail ? (
+              <Text style={[styles.extremeMeta, { color: palette.ink }]}>{detail}</Text>
+            ) : null}
+            {fieldChip ? (
+              <Text style={[styles.extremeField, { color: palette.ink }]} numberOfLines={1}>
+                {fieldChip}
               </Text>
-            </React.Fragment>
-          ))}
+            ) : null}
+          </View>
         </View>
       </View>
     );
@@ -249,21 +249,22 @@ const ChronologioEntryCard: React.FC<Props> = ({
           <View style={styles.weatherPickMetrics}>
             {weather.rainfallMm != null ? (
               <View style={styles.pickMetric}>
-                <Text style={[styles.pickValue, { color: colors.eventWeather }]}>
+                <Text style={[styles.pickValue, { color: colors.eventWeather }]} numberOfLines={1}>
                   {weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
+                  <Text style={styles.pickUnit}> mm</Text>
                 </Text>
-                <Text style={[styles.pickLabel, { color: colors.textTertiary }]}>
-                  {t('chronologio:weatherReview.rainMm')}
+                <Text style={[styles.pickLabel, { color: colors.textTertiary }]} numberOfLines={2}>
+                  {t('chronologio:weatherReview.rainfall')}
                 </Text>
               </View>
             ) : null}
             {weather.temperatureMin != null && weather.temperatureMax != null ? (
               <View style={styles.pickMetric}>
-                <Text style={[styles.pickValue, { color: colors.textPrimary }]}>
-                  {weather.temperatureMin.toFixed(0)}°–{weather.temperatureMax.toFixed(0)}°
+                <Text style={[styles.pickValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {weather.temperatureMin.toFixed(0)}–{weather.temperatureMax.toFixed(0)}°
                 </Text>
-                <Text style={[styles.pickLabel, { color: colors.textTertiary }]}>
-                  {t('chronologio:weatherReview.tempRange')}
+                <Text style={[styles.pickLabel, { color: colors.textTertiary }]} numberOfLines={2}>
+                  {t('chronologio:weatherReview.tempShort', { defaultValue: 'Temperature' })}
                 </Text>
               </View>
             ) : null}
@@ -280,17 +281,17 @@ const ChronologioEntryCard: React.FC<Props> = ({
                           : colors.eventIncome,
                   },
                 ]}
+                numberOfLines={1}
               >
                 {weather.waterBalanceMm == null
                   ? '—'
                   : `${weather.waterBalanceMm.toLocaleString(numberLocale, {
                       maximumFractionDigits: 0,
-                    })} mm`}
+                    })}`}
+                {weather.waterBalanceMm != null ? <Text style={styles.pickUnit}> mm</Text> : null}
               </Text>
-              <Text style={[styles.pickLabel, { color: colors.textTertiary }]}>
-                {t('chronologio:weatherReview.waterBalance', {
-                  defaultValue: 'Water balance',
-                })}
+              <Text style={[styles.pickLabel, { color: colors.textTertiary }]} numberOfLines={2}>
+                {t('chronologio:weatherReview.waterShort', { defaultValue: 'Water' })}
               </Text>
             </View>
           </View>
@@ -544,18 +545,22 @@ export const ChronologioWeatherCluster: React.FC<{
   const { t } = useTranslation('chronologio');
   const { colors } = useTheme();
   if (!entries.length) return null;
+  const several = entries.length > 1;
   return (
     <View style={styles.cluster}>
-      <Text style={[styles.clusterKicker, { color: colors.textTertiary }]}>
-        {t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })}
-      </Text>
+      {several ? (
+        <Text style={[styles.clusterKicker, { color: colors.textTertiary }]}>
+          {t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })}
+        </Text>
+      ) : null}
       <ScrollView
-        horizontal
+        horizontal={several}
+        scrollEnabled={several}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.clusterRow}
+        contentContainerStyle={several ? styles.clusterRow : undefined}
       >
         {entries.map(entry => (
-          <View key={entry.id} style={styles.clusterTile}>
+          <View key={entry.id} style={several ? styles.clusterTile : styles.clusterTileSolo}>
             <ChronologioEntryCard
               entry={entry}
               showField
@@ -668,49 +673,48 @@ const styles = StyleSheet.create({
   weatherTile: {
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 12,
-    minWidth: 148,
-    gap: 10,
+    padding: 14,
+    gap: 12,
+    alignSelf: 'stretch',
   },
   weatherPickField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  weatherPickTitle: { fontWeight: '700', fontSize: 15, flexShrink: 1 },
-  weatherPickMetrics: { flexDirection: 'row', gap: 10 },
+  weatherPickTitle: { fontWeight: '700', fontSize: 16, flexShrink: 1 },
+  weatherPickMetrics: { flexDirection: 'row', gap: 8 },
   extremeWrap: {
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     maxWidth: '100%',
     marginVertical: 2,
   },
-  extremePill: {
+  extremeCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+    gap: 10,
     maxWidth: '100%',
-    gap: 4,
-    paddingVertical: 5,
-    paddingLeft: 5,
-    paddingRight: 10,
-    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
   },
+  extremeCopy: { flex: 1, minWidth: 0, gap: 2 },
   extremeIcon: {
-    width: 22,
-    height: 22,
+    width: 26,
+    height: 26,
     borderRadius: 99,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 1,
   },
-  extremeKind: { fontSize: 12, fontWeight: '700' },
-  extremeDot: { fontSize: 12, fontWeight: '600', opacity: 0.55 },
+  extremeKind: { fontSize: 14, fontWeight: '700' },
   extremeMeta: {
-    fontSize: 11,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
     opacity: 0.95,
-    fontVariant: ['tabular-nums'],
-    maxWidth: 140,
   },
-  pickMetric: { gap: 1, minWidth: 44 },
-  pickValue: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  pickLabel: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  extremeField: { fontSize: 12, fontWeight: '600', opacity: 0.9, marginTop: 2 },
+  pickMetric: { flex: 1, minWidth: 0, gap: 2 },
+  pickValue: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  pickUnit: { fontSize: 12, fontWeight: '600' },
+  pickLabel: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
   cluster: { marginBottom: 12, gap: 8 },
   clusterKicker: {
     fontSize: 11,
@@ -720,7 +724,8 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
   },
   clusterRow: { gap: 10, paddingRight: 8 },
-  clusterTile: { width: 168 },
+  clusterTile: { width: 280 },
+  clusterTileSolo: { alignSelf: 'stretch', width: '100%' },
 });
 
 export default ChronologioEntryCard;

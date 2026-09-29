@@ -65,8 +65,13 @@ export type HarvestFlowGraph = {
   byKind: Record<HarvestFlowNodeKind, HarvestFlowNode[]>;
 };
 
-const labelOf = (fields: Field[], id: string) =>
-  fields.find((f) => f.id === id)?.name || id;
+const labelOf = (fields: Field[], id: string) => {
+  const name = fields.find((f) => f.id === id)?.name?.trim();
+  if (name) return name;
+  // Never show raw Mongo ids on the journey cards.
+  if (/^[a-f0-9]{24}$/i.test(id)) return '';
+  return id;
+};
 
 const shortNames = (fields: Field[], ids: string[]) =>
   ids.map((id) => labelOf(fields, id)).filter(Boolean);

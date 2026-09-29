@@ -52,6 +52,7 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
       pitchEnabled = false,
       onPress,
       onMapReady,
+      onCameraIdle,
       children,
     },
     ref
@@ -117,11 +118,41 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
           if (stop.zoomLevel != null) zoomRef.current = stop.zoomLevel;
           cameraRef.current.setCamera({ ...stop, animationDuration: 0 });
         },
+        flyTo: (latitude: number, longitude: number, zoomLevel: number) => {
+          if (!cameraRef.current) return;
+          const zoom = Math.min(Math.max(zoomLevel, MIN_ZOOM), zoomCeiling);
+          zoomRef.current = zoom;
+          cameraRef.current.setCamera({
+            centerCoordinate: [longitude, latitude],
+            zoomLevel: zoom,
+            animationDuration: 450,
+          });
+        },
         zoomIn: () => {
           applyZoom(zoomRef.current + 1);
         },
         zoomOut: () => {
           applyZoom(zoomRef.current - 1);
+        },
+        getPointInView: async (point: LatLng) => {
+          if (!mapRef.current) return null;
+          try {
+            const [x, y] = await mapRef.current.getPointInView([point.longitude, point.latitude]);
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+            return { x, y };
+          } catch {
+            return null;
+          }
+        },
+        getCoordinateFromView: async (x: number, y: number) => {
+          if (!mapRef.current) return null;
+          try {
+            const [longitude, latitude] = await mapRef.current.getCoordinateFromView([x, y]);
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+            return { latitude, longitude };
+          } catch {
+            return null;
+          }
         },
       }),
       [maxZoom, zoomCeiling]
@@ -141,6 +172,7 @@ const AppMapViewNative = React.forwardRef<AppMapViewRef, AppMapViewProps>(
         attributionPosition={{ bottom: 4, right: 4 }}
         onDidFinishLoadingMap={onMapReady}
         onRegionDidChange={(feature) => {
+          onCameraIdle?.();
           const zoom = readZoomFromRegionEvent(feature);
           if (zoom == null) return;
           if (zoom > zoomCeiling + 0.05) {

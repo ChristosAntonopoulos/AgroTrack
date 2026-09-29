@@ -233,11 +233,19 @@ const TaskFormPage: React.FC = () => {
 
   const subtitle =
     mode === 'proposal'
-      ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ')
+      ? t('fieldWork.form.manualSubtitle')
       : templateCodeParam
         ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ') ||
           t('fieldWork.form.manualSubtitle')
         : t('fieldWork.form.manualSubtitle');
+
+  const proposalSummary =
+    mode === 'proposal' && initialTitle
+      ? t('fieldWork.form.fromSuggestion', {
+          title: initialTitle,
+          field: selectedField?.name ? ` · ${selectedField.name}` : '',
+        })
+      : null;
 
   return (
     <PageContainer className="tasks-page-container">
@@ -247,7 +255,13 @@ const TaskFormPage: React.FC = () => {
           <h1>
             {mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle')}
           </h1>
-          <p className="task-form-subtitle">{subtitle}</p>
+          {proposalSummary ? (
+            <p className="task-form-proposal-summary">
+              <strong>{proposalSummary}</strong>
+            </p>
+          ) : (
+            <p className="task-form-subtitle">{subtitle}</p>
+          )}
         </header>
 
         <TaskComposer

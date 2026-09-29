@@ -18,13 +18,13 @@ import { VARIETY_OPTIONS, toSelectOptions } from '../constants/fieldFormOptions'
 import { typography, spacing } from '../theme';
 import { fieldHasBoundary, isListedGrove } from '../utils/fieldDisplay';
 import { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../context/AuthContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
-import FocusSpotlight from '../components/onboarding/FocusSpotlight';
 
 type Route = RouteProp<RootStackParamList, 'FieldForm'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
 
-type CreateScreen = 'name' | 'color';
+type CreateScreen = 'name';
 
 const emptyForm = (): CreateFieldDto => ({
   name: '',
@@ -45,6 +45,7 @@ const FieldFormScreen = () => {
     focus === 'details' ? 'details' : focus === 'appearance' ? 'appearance' : 'settings';
   const { colors } = useTheme();
   const { t } = useTranslation(['fields', 'common', 'onboarding']);
+  const { user } = useAuth();
   const activation = useOwnerActivationOptional();
   const isEdit = !!fieldId;
 
@@ -64,8 +65,12 @@ const FieldFormScreen = () => {
 
   useEffect(() => {
     if (!fieldId) {
+      if (!user?.id) {
+        setIsFirstGrove(true);
+        return;
+      }
       getFieldService()
-        .getFields()
+        .getFields(user.id, user.role || 'FieldOwner')
         .then((fields) => setIsFirstGrove(fields.filter(isListedGrove).length === 0))
         .catch(() => setIsFirstGrove(true));
       return;
@@ -98,7 +103,7 @@ const FieldFormScreen = () => {
       })
       .catch(() => setError(t('fields:form.failedLoad')))
       .finally(() => setLoading(false));
-  }, [fieldId, t]);
+  }, [fieldId, t, user?.id, user?.role]);
 
   const patchForm = (patch: Partial<CreateFieldDto>) => {
     setFormData((prev) => ({ ...prev, ...patch }));
@@ -132,6 +137,7 @@ const FieldFormScreen = () => {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: '',
       headerLeft: () => (
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ paddingHorizontal: 8 }}>
           <Text style={{ color: colors.primary, fontSize: 17 }}>{t('common:cancel')}</Text>
@@ -140,7 +146,7 @@ const FieldFormScreen = () => {
     });
   }, [navigation, colors.primary, t]);
 
-  const handleCreateGrove = async () => {
+  const continueToPlace = async () => {
     if (!nameValid) {
       setError(t('fields:form.errors.nameRequired'));
       return;
@@ -150,18 +156,7 @@ const FieldFormScreen = () => {
     try {
       const id = await ensureDraftField();
       await getFieldService().updateField(id, fieldPayload());
-      await getFieldService().activateField(id, {
-        boundaryConfirmed: true,
-        cadastreReferenceAcknowledged: true,
-      });
-      patchForm({ status: 'Active' });
-      setLoadedField((prev) =>
-        prev
-          ? { ...prev, status: 'Active', id }
-          : ({ id, name: formData.name.trim(), status: 'Active' } as Field)
-      );
       activation?.markFieldsDirty();
-      // Name + colour done → straight to όρια (no intermediate "ready" stop).
       navigation.replace('FieldMapBoundary', { fieldId: id });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
@@ -187,32 +182,10 @@ const FieldFormScreen = () => {
     }
   };
 
-  const setupMark = (key: 'name' | 'color' | 'boundary' | 'details') => {
-    if (key === 'name') {
-      if (createScreen === 'name') return 'current';
-      return nameValid ? 'done' : 'upcoming';
-    }
-    if (key === 'color') {
-      if (createScreen === 'color') return 'current';
-      if (nameValid && createScreen !== 'name') return 'done';
-      return 'upcoming';
-    }
-    if (key === 'boundary') {
-      return hasBoundary ? 'done' : 'upcoming';
-    }
+  const setupMark = (key: 'name' | 'boundary' | 'details') => {
+    if (key === 'name') return 'current';
+    if (key === 'boundary') return hasBoundary ? 'done' : 'upcoming';
     return hasDetails ? 'done' : 'upcoming';
-  };
-
-  const goToColorStep = () => {
-    if (!nameValid) {
-      setError(t('fields:form.errors.nameRequired'));
-      return;
-    }
-    setError(null);
-    if (!formData.color) {
-      patchForm({ color: resolveFieldColor(undefined, draftFieldId) });
-    }
-    setCreateScreen('color');
   };
 
   const nameBody = (
@@ -290,7 +263,7 @@ const FieldFormScreen = () => {
 
   useEffect(() => {
     if (!activation) return;
-    if (!isActiveEdit && (createScreen === 'name' || createScreen === 'color')) {
+    if (!isActiveEdit && createScreen === 'name') {
       activation.setSpotlightScreen('create');
       return () => activation.setSpotlightScreen(null);
     }
@@ -298,7 +271,16 @@ const FieldFormScreen = () => {
     return undefined;
   }, [activation, isActiveEdit, createScreen]);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading || (!isActiveEdit && activation != null && !activation.ready)) {
+    return <LoadingSpinner fullScreen />;
+  }
+
+  const guidedSetup = Boolean(activation?.visible && !isActiveEdit);
+  const nameSuggestions = (() => {
+    const raw = t('fields:createGrove.nameSuggestions', { returnObjects: true });
+    if (!Array.isArray(raw)) return [] as string[];
+    return raw.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  })();
 
   const title = isActiveEdit
     ? t('fields:editField')
@@ -306,65 +288,74 @@ const FieldFormScreen = () => {
       ? t('fields:createGrove.firstTitle')
       : t('fields:createGrove.title');
 
-  const showCreateSpotlight =
-    activation?.spotlightStep === 'createGrove' &&
-    (createScreen === 'name' || createScreen === 'color') &&
-    !isActiveEdit;
-
   return (
-    <ScreenLayout scroll contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
-      {!isActiveEdit ? (
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {t('fields:createGrove.subtitle')}
-        </Text>
-      ) : null}
-
-      {showCreateSpotlight ? (
-        <FocusSpotlight step="createGrove" createPhase={createScreen} />
-      ) : null}
+    <ScreenLayout
+      scroll
+      contentContainerStyle={[styles.content, guidedSetup ? styles.contentGuided : null]}
+    >
+      {guidedSetup ? null : (
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+      )}
 
       {!isActiveEdit ? (
-        <View style={styles.setupRow} accessibilityLabel={t('fields:createGrove.setupLevelAria')}>
-          {(['name', 'color', 'boundary', 'details'] as const).map((key, idx) => {
+        <View style={styles.rail} accessibilityLabel={t('fields:createGrove.setupLevelAria')}>
+          <View style={[styles.railLine, { backgroundColor: colors.border }]} />
+          {(['name', 'boundary', 'details'] as const).map((key, idx) => {
             const state = setupMark(key);
+            const reached = state === 'current' || state === 'done';
             const canPress =
-              key === 'name' ||
-              (key === 'color' && nameValid) ||
-              ((key === 'boundary' || key === 'details') &&
-                Boolean(draftFieldId && loadedField?.status === 'Active'));
+              key === 'boundary'
+                ? Boolean(draftFieldId) && nameValid
+                : key === 'details'
+                  ? loadedField?.status === 'Active' && Boolean(draftFieldId)
+                  : false;
             const onPress = () => {
-              if (key === 'name') setCreateScreen('name');
-              else if (key === 'color' && nameValid) goToColorStep();
-              else if (key === 'boundary' && draftFieldId) {
-                navigation.replace('FieldMapBoundary', { fieldId: draftFieldId });
-              } else if (key === 'details' && draftFieldId) {
+              if (key === 'boundary' && draftFieldId) void continueToPlace();
+              else if (key === 'details' && draftFieldId) {
                 navigation.replace('FieldForm', { fieldId: draftFieldId, focus: 'details' });
               }
             };
-            const label = (
-              <Text
-                style={{
-                  color:
-                    state === 'done' || state === 'current' ? colors.primary : colors.textSecondary,
-                  fontWeight: state === 'current' ? '700' : '500',
-                  fontSize: 13,
-                }}
-              >
-                {state === 'done' ? '✓ ' : `${idx + 1}. `}
-                {t(`fields:createGrove.levels.${key}`)}
-              </Text>
+            const mark = (
+              <View style={styles.railStep}>
+                <View
+                  style={[
+                    styles.railDot,
+                    {
+                      backgroundColor: reached ? colors.primary : colors.background,
+                      borderColor: reached ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: reached ? colors.onOlive : colors.textTertiary,
+                      fontSize: 12,
+                      fontWeight: '700',
+                    }}
+                  >
+                    {state === 'done' ? '✓' : idx + 1}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: state === 'current' ? colors.textPrimary : colors.textTertiary,
+                    fontSize: 12,
+                    fontWeight: state === 'current' ? '700' : '500',
+                    marginTop: 6,
+                  }}
+                  numberOfLines={1}
+                >
+                  {t(`fields:createGrove.levels.${key}`)}
+                </Text>
+              </View>
             );
-            return (
-              <View key={key} style={styles.setupItem}>
-                {idx > 0 ? <Text style={{ color: colors.borderLight }}> · </Text> : null}
-                {canPress ? (
-                  <Pressable onPress={onPress} hitSlop={6}>
-                    {label}
-                  </Pressable>
-                ) : (
-                  label
-                )}
+            return canPress ? (
+              <Pressable key={key} onPress={onPress} style={styles.railStepHit} hitSlop={4}>
+                {mark}
+              </Pressable>
+            ) : (
+              <View key={key} style={styles.railStepHit}>
+                {mark}
               </View>
             );
           })}
@@ -378,41 +369,76 @@ const FieldFormScreen = () => {
       ) : null}
 
       {!isActiveEdit && createScreen === 'name' ? (
-        <Card variant="outlined" style={styles.panel}>
-          {nameBody}
-          <Button
-            title={t('fields:createGrove.continueToColor')}
-            onPress={goToColorStep}
-            disabled={!nameValid}
-            fullWidth
-            style={styles.cta}
-          />
-        </Card>
-      ) : null}
-
-      {!isActiveEdit && createScreen === 'color' ? (
-        <Card variant="outlined" style={styles.panel}>
-          {colorBody}
-          <Text style={[styles.nudge, { color: colors.textSecondary }]}>
-            {t('fields:createGrove.readyNudge')}
+        <View
+          style={[
+            styles.welcome,
+            guidedSetup ? styles.welcomeOpen : styles.welcomeBoxed,
+            {
+              backgroundColor: guidedSetup ? 'transparent' : colors.surface,
+              borderColor: guidedSetup ? 'transparent' : colors.oliveBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
+            {t('fields:createGrove.nameHeading')}
           </Text>
+          <FormField
+            accessibilityLabel={t('fields:createGrove.nameLabel')}
+            value={formData.name}
+            onChangeText={(name) => patchForm({ name })}
+            editable={!saving}
+            autoFocus
+            placeholder={t('fields:form.namePlaceholder', {
+              defaultValue: t('fields:createGrove.nameLabel'),
+            })}
+            containerStyle={styles.welcomeField}
+          />
+          {nameSuggestions.length > 0 ? (
+            <View
+              style={styles.chips}
+              accessibilityRole="radiogroup"
+              accessibilityLabel={t('fields:createGrove.nameSuggestionsLabel')}
+            >
+              {nameSuggestions.map((suggestion) => {
+                const selected = formData.name.trim() === suggestion;
+                return (
+                  <Pressable
+                    key={suggestion}
+                    onPress={() => patchForm({ name: suggestion })}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={[
+                      styles.chip,
+                      {
+                        borderColor: selected ? colors.primary : colors.border,
+                        backgroundColor: selected ? colors.primaryLight : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: selected ? colors.primary : colors.textSecondary,
+                        fontWeight: selected ? '700' : '500',
+                        fontSize: 14,
+                      }}
+                    >
+                      {suggestion}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
           <Button
-            title={t('fields:createGrove.createCta')}
-            onPress={handleCreateGrove}
+            title={t('fields:createGrove.continueToPlace')}
+            onPress={() => void continueToPlace()}
             loading={saving}
             disabled={!nameValid}
             fullWidth
+            size="large"
             style={styles.cta}
           />
-          <Button
-            title={t('common:back')}
-            variant="outline"
-            onPress={() => setCreateScreen('name')}
-            disabled={saving}
-            fullWidth
-            style={styles.cta}
-          />
-        </Card>
+        </View>
       ) : null}
 
       {isActiveEdit && editFocus === 'settings' ? (
@@ -480,16 +506,70 @@ const FieldFormScreen = () => {
 
 const styles = StyleSheet.create({
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
+  contentGuided: { paddingTop: 92 },
   title: { ...typography.styles.h3, fontWeight: '700' },
   subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.sm },
-  setupRow: {
+  rail: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 4,
+    marginBottom: spacing.lg,
+    position: 'relative',
+  },
+  railLine: {
+    position: 'absolute',
+    left: '16%',
+    right: '16%',
+    top: 13,
+    height: 2,
+    borderRadius: 1,
+  },
+  railStepHit: { flex: 1 },
+  railStep: { alignItems: 'center' },
+  railDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  panel: { padding: spacing.base, marginBottom: spacing.md },
+  welcome: {
+    borderRadius: 22,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+  },
+  welcomeOpen: {
+    paddingHorizontal: 2,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  welcomeBoxed: {
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  welcomeTitle: {
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+    marginBottom: 16,
+  },
+  welcomeField: { marginBottom: 12 },
+  chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: spacing.md,
-    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
   },
-  setupItem: { flexDirection: 'row', alignItems: 'center' },
-  panel: { padding: spacing.base, marginBottom: spacing.md },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
   stepTitle: { ...typography.styles.h4, fontWeight: '700', marginBottom: 2 },
   stepDesc: { ...typography.styles.bodySmall, marginBottom: spacing.sm },
   nudge: { ...typography.styles.bodySmall, marginBottom: spacing.md, marginTop: spacing.sm },

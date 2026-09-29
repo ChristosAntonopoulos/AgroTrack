@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import GoogleGIcon from './GoogleGIcon';
 import { loginTheme } from '../../theme/loginTheme';
 import { typography, spacing, radii } from '../../theme';
-
-const GoogleMark = () => (
-  <View style={styles.mark} accessibilityElementsHidden>
-    <Text style={styles.g}>G</Text>
-  </View>
-);
 
 type Props = {
   onBeforeContinue?: () => void;
@@ -20,17 +15,17 @@ const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
 
   return (
     <View style={styles.wrap}>
-      <TouchableOpacity
-        style={styles.btn}
+      <Pressable
+        style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
         onPress={() => {
           onBeforeContinue?.();
           setNotice(t('register.socialComingSoon', { provider: 'Google' }));
         }}
         accessibilityRole="button"
       >
-        <GoogleMark />
+        <GoogleGIcon size={20} />
         <Text style={styles.label}>{t('register.continueGoogle')}</Text>
-      </TouchableOpacity>
+      </Pressable>
       {notice ? (
         <Text style={styles.note} accessibilityRole="text">
           {notice}
@@ -42,11 +37,11 @@ const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     gap: spacing.sm,
   },
   btn: {
-    minHeight: 48,
+    minHeight: 52,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: loginTheme.googleBorder,
@@ -56,19 +51,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
+    shadowColor: loginTheme.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  mark: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  g: {
-    color: '#4285F4',
-    fontWeight: '800',
-    fontSize: 14,
+  btnPressed: {
+    opacity: 0.92,
+    backgroundColor: '#FAFAF8',
   },
   label: {
     ...typography.styles.bodySmall,

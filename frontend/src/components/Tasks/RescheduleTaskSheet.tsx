@@ -40,10 +40,11 @@ const RescheduleTaskSheet: React.FC<RescheduleTaskSheetProps> = ({
       onClose={onClose}
       title={t('fieldWork.reschedule.title')}
       footer={
-        <div className="tasks-dismiss-choices">
+        <div className="tasks-choice-list">
           <Button
             variant="primary"
             size="lg"
+            fullWidth
             disabled={!date || busy}
             onClick={() => onConfirm(date, date)}
           >
@@ -52,9 +53,14 @@ const RescheduleTaskSheet: React.FC<RescheduleTaskSheetProps> = ({
               : t('fieldWork.reschedule.confirm')}
           </Button>
           {onKeep ? (
-            <Button variant="outline" size="lg" onClick={onKeep} disabled={busy}>
-              {t('fieldWork.reschedule.keep')}
-            </Button>
+            <button
+              type="button"
+              className="tasks-choice-row"
+              onClick={onKeep}
+              disabled={busy}
+            >
+              <span className="tasks-choice-label">{t('fieldWork.reschedule.keep')}</span>
+            </button>
           ) : null}
         </div>
       }
@@ -65,7 +71,7 @@ const RescheduleTaskSheet: React.FC<RescheduleTaskSheetProps> = ({
           {t('fieldWork.reschedule.suggested', { date: suggestedDate })}
         </p>
       ) : null}
-      <label className="tasks-context-control" style={{ display: 'block' }}>
+      <label className="tasks-schedule-date">
         <span className="tasks-context-label">{t('fieldWork.reschedule.newDate')}</span>
         <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
       </label>

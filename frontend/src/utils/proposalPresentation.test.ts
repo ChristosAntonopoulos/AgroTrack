@@ -93,7 +93,7 @@ describe('proposal presentation', () => {
         }),
         'el'
       )
-    ).toBe('Εποχική υπενθύμιση — δεν υπάρχουν ακόμη δεδομένα από το χωράφι.');
+    ).toBe('Εποχική υπενθύμιση — δεν υπάρχουν ακόμη δεδομένα από τον ελαιώνα.');
   });
 
   it('never falls back to a template code for the title', () => {

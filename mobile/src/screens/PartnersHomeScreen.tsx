@@ -17,7 +17,7 @@ import { FieldInvite, FieldMembership, fieldPeopleService } from '../services/fi
 import { SavedContact, ServiceCategory } from '../services/partnerService';
 import { fromSavedContacts, GrovePerson, linkedFieldIds, occupiesAccessSeat } from '../utils/grovePeople';
 import { canPickDeviceContact } from '../utils/pickDeviceContact';
-import { isListedGrove } from '../utils/fieldDisplay';
+import { isPartnerScopeField } from '../utils/fieldDisplay';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { personSubtitle } from '../utils/personPresentation';
 import PartnersFieldPicker from '../components/partners/PartnersFieldPicker';
@@ -61,7 +61,10 @@ const PartnersHomeScreen = () => {
   const [inviteTargetFieldId, setInviteTargetFieldId] = useState('');
   const openedAddContact = useRef(false);
 
-  const groveFields = useMemo(() => fields.filter(isListedGrove), [fields]);
+  const groveFields = useMemo(
+    () => fields.filter((field) => isPartnerScopeField(field, user?.id)),
+    [fields, user?.id]
+  );
   const listedFields = useMemo(() => {
     if (fieldId && !groveFields.some((field) => field.id === fieldId)) {
       const extra = fields.find((field) => field.id === fieldId);

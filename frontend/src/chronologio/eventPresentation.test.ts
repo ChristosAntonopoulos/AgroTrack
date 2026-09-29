@@ -70,7 +70,7 @@ describe('eventPresentation', () => {
   it('uses primary Greek labels instead of source enums', () => {
     expect(presentPrimaryCategory('note')).toBe('Παρατηρήσεις');
     expect(presentPrimaryCategory('expense')).toBe('Χρήματα');
-    expect(presentPrimaryCategory('lifecycle')).toBe('Αλλαγές χωραφιού');
+    expect(presentPrimaryCategory('lifecycle')).toBe('Αλλαγές ελαιώνα');
     expect(presentCategory('note')).toBe('Παρατήρηση');
     expect(presentCategory('note')).not.toBe('Observation');
     expect(presentCategory('fuel_and_energy')).not.toBe('fuel_and_energy');

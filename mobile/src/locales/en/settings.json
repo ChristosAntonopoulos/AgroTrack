@@ -22,7 +22,7 @@
   "startupHint": "This screen opens first",
   "startupOptions": {
     "fields": "Fields",
-    "chronologio": "Chronologio"
+    "chronologio": "History"
   },
   "sections": {
     "account": "Account",

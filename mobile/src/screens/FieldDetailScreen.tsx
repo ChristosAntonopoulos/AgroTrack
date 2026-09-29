@@ -37,6 +37,7 @@ import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
 import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
 import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
+import { formatFieldArea } from '../utils/fieldGeo';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -60,7 +61,7 @@ import FieldResultYearControl from '../components/fields/FieldResultYearControl'
 import ChronologioScreen from './ChronologioScreen';
 import type { HarvestRecord } from '../services/harvestService';
 import { spacing } from '../theme';
-import { getDockMetrics } from '../navigation/dockMetrics';
+import { FOOTER_LIFT, getDockMetrics } from '../navigation/dockMetrics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   formatRelativeTime,
@@ -92,14 +93,14 @@ const parseTab = (mode?: string): FieldTab => {
 const FieldDetailScreen = () => {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { fieldId, focus, mode: modeParam, activation: activationParam } = route.params;
+  const { fieldId, focus, mode: modeParam, activation: activationParam, groveReady } = route.params;
   const { user } = useAuth();
   const capture = useCaptureOptional();
   const activation = useOwnerActivationOptional();
   const { colors, tapMin } = useTheme();
   const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks', 'onboarding']);
   const insets = useSafeAreaInsets();
-  const { bottomInset, dockHeight } = getDockMetrics(tapMin, insets.bottom);
+  const dock = getDockMetrics(tapMin, insets.bottom);
   const currentYear = agriculturalYearFor(new Date());
 
   const [field, setField] = useState<Field | null>(null);
@@ -303,7 +304,7 @@ const FieldDetailScreen = () => {
   useEffect(() => {
     if (!field) return;
     navigation.setOptions({
-      title: field.name,
+      title: '',
       headerRight: () => (
         <FieldMoreMenu
           field={field}
@@ -415,6 +416,12 @@ const FieldDetailScreen = () => {
     );
   }
 
+  const showObservationCta = Boolean(
+    capture &&
+      gates.canCapture &&
+      activation?.awaitingFirstObservation &&
+      !activation.completion.firstObservation
+  );
   const latestEntry = [...recentEntries].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
   )[0];
@@ -424,8 +431,16 @@ const FieldDetailScreen = () => {
       ? attention.title
       : undefined;
 
+  const areaLocale = i18n.language?.startsWith('it')
+    ? 'it'
+    : i18n.language?.startsWith('en')
+      ? 'en'
+      : 'el';
+  const readyArea = formatFieldArea(field, areaLocale);
+  const panelStyle = [styles.panel, showObservationCta ? { paddingBottom: 88 } : null];
+
   const renderMapPanel = () => (
-    <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
       <FieldMapDataPanel field={field} weather={weather} />
     </ScrollView>
   );
@@ -436,18 +451,44 @@ const FieldDetailScreen = () => {
         {field.status === 'Draft' ? (
           <Text style={[styles.draft, { color: colors.warning }]}>{t('fields:page.draftField')}</Text>
         ) : null}
-        <FieldIdentity field={field} size="page" hideTitle phenology={phenology} />
+        {groveReady ? (
+          <View
+            style={[
+              styles.readyBanner,
+              { backgroundColor: colors.surface, borderColor: colors.borderLight },
+            ]}
+          >
+            <Text style={[styles.readyTitle, { color: colors.textPrimary }]}>
+              {t('fields:createGrove.readyTitle')}
+            </Text>
+            <Text style={[styles.readyBody, { color: colors.textSecondary }]}>
+              {t('fields:createGrove.readyBody')}
+            </Text>
+            {readyArea && readyArea !== '—' ? (
+              <Text style={[styles.readyBody, { color: colors.textPrimary }]}>
+                {t('fields:addField.boundaryAreaExplained', { area: readyArea })}
+              </Text>
+            ) : null}
+            <Button
+              title={t('chronologio:firstGrove.primary')}
+              onPress={() => capture?.openCapture({ fieldId: field.id })}
+              fullWidth
+            />
+          </View>
+        ) : null}
+        <FieldIdentity field={field} size="page" phenology={phenology} />
         <FieldResultYearControl year={year} onYearChange={setYear} />
       </View>
 
       <FieldLocalNavigation tab={tab} tabs={visibleTabs} onTabChange={setTab} />
 
-      {activation?.eligible &&
-      activation.completion.drawBoundary &&
-      (activationParam === 'spatial' ||
-        (!activation.completion.loadData && activation.celebrating)) &&
+      {(groveReady ||
+        (activation?.eligible &&
+          activation.completion.drawBoundary &&
+          (activationParam === 'spatial' ||
+            (!activation.completion.loadData && activation.celebrating)))) &&
       field ? (
-        <SpatialLoadingPanel fieldId={fieldId} fieldName={field.name} />
+        <SpatialLoadingPanel fieldId={fieldId} fieldName={field.name} ceremony />
       ) : null}
 
       {tab === 'chronologio' ? (
@@ -457,7 +498,7 @@ const FieldDetailScreen = () => {
       ) : null}
 
       {tab === 'overview' ? (
-        <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
           {showWorkSetupBanner ? (
             <WorkSetupBanner
               fieldId={field.id}
@@ -556,7 +597,7 @@ const FieldDetailScreen = () => {
       {tab === 'map' ? renderMapPanel() : null}
 
       {tab === 'details' ? (
-        <ScrollView contentContainerStyle={styles.panel} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
           <FirstObservationGuide fieldId={fieldId} />
           <FieldFacts
             field={field}
@@ -571,15 +612,17 @@ const FieldDetailScreen = () => {
         </ScrollView>
       ) : null}
 
-      {capture &&
-      gates.canCapture &&
-      activation?.awaitingFirstObservation &&
-      !activation.completion.firstObservation ? (
-        <View style={[styles.stickyCapture, { bottom: dockHeight + bottomInset + spacing.sm }]}>
+      {showObservationCta ? (
+        <View
+          style={[
+            styles.stickyCapture,
+            { bottom: dock.bottomInset + FOOTER_LIFT + dock.fabSize + spacing.sm },
+          ]}
+        >
           <Button
             title={t('onboarding:firstObservation.cta')}
             onPress={() =>
-              capture.openCapture({
+              capture?.openCapture({
                 fieldId: field.id,
                 preferredType: 'observation',
                 description: t('onboarding:firstObservation.prefill'),
@@ -605,10 +648,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  readyBanner: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: spacing.base,
+    gap: spacing.sm,
+  },
+  readyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  readyBody: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   panel: {
     padding: spacing.base,
     gap: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.md,
   },
   overviewMapBlock: {
     gap: spacing.md,

@@ -42,7 +42,7 @@ export const LEAN_CHECKS: Record<string, LeanCheck[]> = {
   T05: [
     { key: 'product', el: 'Σωστό λίπασμα', en: 'Correct fertiliser' },
     { key: 'quantity', el: 'Καταγράφηκε η ποσότητα', en: 'Quantity recorded' },
-    { key: 'finished', el: 'Ολοκληρώθηκε το χωράφι', en: 'Field finished' },
+    { key: 'finished', el: 'Ολοκληρώθηκε τον ελαιώνα', en: 'Field finished' },
   ],
   T06: [
     { key: 'damaged', el: 'Αφαιρέθηκαν τα κατεστραμμένα κλαδιά', en: 'Damaged branches removed' },

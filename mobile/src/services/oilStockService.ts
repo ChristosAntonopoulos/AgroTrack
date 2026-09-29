@@ -99,6 +99,7 @@ export type CreateOilCommitmentInput = {
   alreadyDelivered?: boolean;
   promisedFor?: string;
   notes?: string;
+  financialTransactionId?: string;
   allocations?: { oilLotId: string; pack: { tin16: number; tin17: number; bulkLitres: number } }[];
 };
 

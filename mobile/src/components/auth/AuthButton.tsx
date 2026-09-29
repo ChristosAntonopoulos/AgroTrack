@@ -3,6 +3,7 @@ import { StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../ui/Button';
 import { loginTheme } from '../../theme/loginTheme';
+import { radii } from '../../theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -13,6 +14,7 @@ type Props = {
   disabled?: boolean;
   variant?: 'primary' | 'outline' | 'ghost';
   icon?: IconName;
+  iconPosition?: 'left' | 'right';
   style?: ViewStyle;
 };
 
@@ -24,10 +26,16 @@ const AuthButton: React.FC<Props> = ({
   disabled = false,
   variant = 'primary',
   icon,
+  iconPosition = 'left',
   style,
 }) => {
   const isPrimary = variant === 'primary';
-  const foreground = isPrimary ? loginTheme.buttonText : loginTheme.link;
+  const foreground =
+    variant === 'primary'
+      ? loginTheme.buttonText
+      : variant === 'ghost'
+        ? loginTheme.linkMuted
+        : loginTheme.link;
 
   return (
     <Button
@@ -39,6 +47,7 @@ const AuthButton: React.FC<Props> = ({
       size="large"
       variant={variant === 'primary' ? 'primary' : variant}
       textColor={foreground}
+      iconPosition={iconPosition}
       icon={icon ? <Ionicons name={icon} size={18} color={foreground} /> : undefined}
       style={StyleSheet.flatten([
         styles.base,
@@ -53,13 +62,19 @@ const AuthButton: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
+    minHeight: 54,
+    borderRadius: radii.lg,
     elevation: 0,
     shadowOpacity: 0,
   },
   primary: {
     backgroundColor: loginTheme.buttonBg,
     borderWidth: 0,
+    shadowColor: loginTheme.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.26,
+    shadowRadius: 16,
+    elevation: 4,
   },
   outline: {
     backgroundColor: loginTheme.googleBg,
@@ -69,6 +84,7 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: 'transparent',
     borderWidth: 0,
+    minHeight: 44,
   },
 });
 

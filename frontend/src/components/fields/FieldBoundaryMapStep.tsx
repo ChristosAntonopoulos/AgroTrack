@@ -43,7 +43,10 @@ interface Props {
   latitude?: number;
   longitude?: number;
   onBoundaryChange: (boundary: GeoJsonPolygon | undefined, areaSqm?: number) => void;
-  onSkipBoundary?: () => void;
+  onPlaceChange?: (place: { locationText: string; latitude: number; longitude: number }) => void;
+  /** First boundary is required — one CTA beside the measured area. */
+  onContinue?: () => void;
+  continueLoading?: boolean;
   /** First-run: locate via search, then auto-start marking when a place is chosen. */
   activationGuide?: boolean;
 }
@@ -134,7 +137,9 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   latitude,
   longitude,
   onBoundaryChange,
-  onSkipBoundary,
+  onPlaceChange,
+  onContinue,
+  continueLoading = false,
   activationGuide = false,
 }) => {
   const { t, i18n } = useTranslation('fields');
@@ -154,7 +159,6 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   const [localMeasured, setLocalMeasured] = useState<number | undefined>(measuredAreaSqm);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'found' | 'missing'>('idle');
   const [drawError, setDrawError] = useState<string | null>(null);
-  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   const zoomTooLow = liveZoom < MIN_DRAW_ZOOM;
 
@@ -203,7 +207,8 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     setCenter([lat, lng]);
     setMapZoom(PLACE_ZOOM);
     setLocationStatus('found');
-  }, []);
+    onPlaceChange?.({ locationText: label, latitude: lat, longitude: lng });
+  }, [onPlaceChange]);
 
   const handleCurrentLocation = async () => {
     try {
@@ -325,28 +330,30 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
       ? corners.map((c) => [c.lat, c.lng] as [number, number])
       : null;
 
+  const placeQuestion = phase === 'locate' || (phase === 'drawing' && corners.length === 0);
   const coachText =
     phase === 'locate'
       ? t('addField.boundaryCoachLocate')
       : phase === 'drawing'
-        ? corners.length === 0
-          ? t('addField.boundaryCoachFirst')
-          : corners.length < 3
-            ? t('addField.boundaryCoachMore', { count: corners.length })
-            : t('addField.boundaryCoachFinish')
+        ? corners.length === 0 && locationStatus === 'found'
+          ? t('addField.boundaryCoachFound')
+          : corners.length === 0
+            ? t('addField.boundaryCoachFirst')
+            : corners.length < 3
+              ? t('addField.boundaryCoachMore', { count: corners.length })
+              : t('addField.boundaryCoachFinish')
         : t('addField.boundaryCoachDone');
 
   const canDragCorners = phase === 'drawing' || phase === 'done';
 
   return (
     <div
-      className="field-form-panel field-boundary-step"
+      className={`field-form-panel field-boundary-step${onContinue ? ' is-handoff' : ''}${phase === 'done' ? ' is-ready' : ''}`}
       data-onboarding-boundary-phase={phase}
       data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
     >
-      <h2>{t('addField.steps.boundary')}</h2>
+      <h2>{placeQuestion ? t('createGrove.placeHeading') : t('addField.steps.boundary')}</h2>
       <p className="field-form-panel-desc">{t('addField.boundaryDescFriendly')}</p>
-      <p className="field-form-panel-desc field-boundary-optional-hint">{t('addField.boundaryOptionalHint')}</p>
 
       <ol className="boundary-steps-guide" aria-hidden={false}>
         <li className={phase === 'locate' ? 'is-current' : 'is-done'}>{t('addField.boundaryGuide1')}</li>
@@ -568,7 +575,9 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
                 <Trash2 size={16} aria-hidden />
                 {t('addField.boundaryRedraw')}
               </button>
-              <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
+              {onContinue ? null : (
+                <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
+              )}
             </>
           ) : null}
 
@@ -588,35 +597,30 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         </p>
       ) : null}
 
-      <AreaComparisonCard measuredAreaSqm={localMeasured} />
+      {onContinue ? null : <AreaComparisonCard measuredAreaSqm={localMeasured} />}
 
-      {onSkipBoundary ? (
-        <div className="field-boundary-skip">
-          {!showSkipConfirm ? (
-            <button type="button" className="btn btn-outline boundary-skip-btn" onClick={() => setShowSkipConfirm(true)}>
-              {t('addField.skipBoundary')}
-            </button>
-          ) : (
-            <div className="field-boundary-skip-confirm" role="region" aria-label={t('addField.skipBoundary')}>
-              <p>{t('addField.skipBoundaryConsequence')}</p>
-              <div className="field-boundary-skip-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowSkipConfirm(false)}>
-                  {t('form.back')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    clearCorners();
-                    setPhase('locate');
-                    onSkipBoundary();
-                  }}
-                >
-                  {t('addField.skipBoundaryConfirm')}
-                </button>
-              </div>
-            </div>
-          )}
+      {phase === 'done' && liveAreaLabel && !onContinue ? (
+        <div className="boundary-result">
+          <p>{t('addField.boundaryAreaExplained', { area: liveAreaLabel })}</p>
+        </div>
+      ) : null}
+
+      {phase === 'done' && onContinue ? (
+        <div className="boundary-continue-dock" role="region">
+          <p>
+            {liveAreaLabel
+              ? t('addField.boundaryAreaExplained', { area: liveAreaLabel })
+              : t('addField.boundaryCoachDone')}
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary boundary-primary-action"
+            onClick={onContinue}
+            disabled={continueLoading}
+            data-onboarding-target="boundary-save"
+          >
+            {t('addField.continueToChronologio')}
+          </button>
         </div>
       ) : null}
     </div>

@@ -142,9 +142,8 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
           <TaskProposalList
             proposals={proposals}
             fieldNames={fieldNames}
+            fieldColors={colorByField}
             unknownField={t('fieldWork.unknownField')}
-            introTitle={t('fieldWork.proposalsIntro.title')}
-            introSubtitle={t('fieldWork.proposalsIntro.subtitle')}
             emptyTitle={t('fieldWork.empty.proposalsTitle')}
             emptyDescription={t('fieldWork.empty.proposalsDescription')}
             busyId={busyId}

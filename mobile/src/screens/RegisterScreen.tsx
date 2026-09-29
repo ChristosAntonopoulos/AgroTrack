@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import AuthTextField from '../components/auth/AuthTextField';
 import AuthButton from '../components/auth/AuthButton';
 import AuthAlert from '../components/auth/AuthAlert';
 import AuthSocialButtons from '../components/auth/AuthSocialButtons';
+import AuthInviteOption from '../components/auth/AuthInviteOption';
 import { AuthStackParamList } from '../navigation/types';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -62,6 +63,18 @@ const RegisterScreen = () => {
     });
   };
 
+  const openInvitePath = () => {
+    setShowInvite(true);
+    setShowEmailForm(true);
+    setAccountStep('you');
+    persistInvite();
+  };
+
+  const openEmailPath = () => {
+    setShowEmailForm(true);
+    setAccountStep('you');
+  };
+
   const validate = (): Partial<Record<FieldKey, string>> => {
     const next: Partial<Record<FieldKey, string>> = {};
     if (!firstName.trim()) next.firstName = t('auth:register.firstNameRequired');
@@ -102,6 +115,7 @@ const RegisterScreen = () => {
       } else if (lower.includes('invite') || lower.includes('πρόσκλη')) {
         fieldErrors.inviteCode = t('auth:register.inviteInvalid');
         setShowInvite(true);
+        setAccountStep('you');
       } else if (lower.includes('network') || lower.includes('failed to fetch')) {
         setFormError(t('auth:register.networkFailed'));
       } else {
@@ -119,11 +133,34 @@ const RegisterScreen = () => {
       code: inviteCode.trim() || route.params?.code,
     });
 
+  const heading = useMemo(() => {
+    if (!showEmailForm) {
+      return {
+        eyebrow: undefined as string | undefined,
+        title: t(hasInviteIntent ? 'auth:register.inviteTitle' : 'auth:register.title'),
+        subtitle: t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.subtitle'),
+      };
+    }
+    if (accountStep === 'you') {
+      return {
+        eyebrow: t('auth:register.stepProgress', { current: 1, total: 2 }),
+        title: t(hasInviteIntent ? 'auth:register.inviteTitle' : 'auth:register.stepYouTitle'),
+        subtitle: t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.stepYouSubtitle'),
+      };
+    }
+    return {
+      eyebrow: t('auth:register.stepProgress', { current: 2, total: 2 }),
+      title: t('auth:register.stepPasswordTitle'),
+      subtitle: t('auth:register.stepPasswordSubtitle'),
+    };
+  }, [accountStep, hasInviteIntent, showEmailForm, t]);
+
   return (
     <AuthScreen
       variant="register"
-      title={t(hasInviteIntent ? 'auth:register.inviteTitle' : 'auth:register.title')}
-      subtitle={t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.subtitle')}
+      eyebrow={heading.eyebrow}
+      title={heading.title}
+      subtitle={heading.subtitle}
     >
       {formError ? <AuthAlert message={formError} /> : null}
       {errors.email === t('auth:register.emailTaken') ? (
@@ -132,37 +169,56 @@ const RegisterScreen = () => {
         </TouchableOpacity>
       ) : null}
 
-      <AuthSocialButtons onBeforeContinue={persistInvite} />
-      <Text style={authLinkStyles.legal}>
-        {t('auth:register.legalPrefix')}{' '}
-        <Text onPress={() => navigation.navigate('Legal', { kind: 'terms' })} style={authLinkStyles.accent}>
-          {t('auth:login.terms')}
-        </Text>{' '}
-        {t('auth:register.legalAnd')}{' '}
-        <Text onPress={() => navigation.navigate('Legal', { kind: 'privacy' })} style={authLinkStyles.accent}>
-          {t('auth:login.privacy')}
-        </Text>
-        .
-      </Text>
-
       {!showEmailForm ? (
-        <AuthButton
-          title={t('auth:register.continueWithEmail')}
-          variant="outline"
-          icon="mail-outline"
-          onPress={() => setShowEmailForm(true)}
-          style={{ marginTop: 12 }}
-        />
-      ) : (
         <>
-          <View style={authLinkStyles.divider}>
-            <View style={authLinkStyles.dividerLine} />
-            <Text style={authLinkStyles.dividerText}>{t('auth:register.orEmail')}</Text>
-            <View style={authLinkStyles.dividerLine} />
-          </View>
+          <AuthSocialButtons onBeforeContinue={persistInvite} />
+          <Text style={authLinkStyles.legal}>
+            {t('auth:register.legalPrefix')}{' '}
+            <Text onPress={() => navigation.navigate('Legal', { kind: 'terms' })} style={authLinkStyles.accent}>
+              {t('auth:login.terms')}
+            </Text>{' '}
+            {t('auth:register.legalAnd')}{' '}
+            <Text onPress={() => navigation.navigate('Legal', { kind: 'privacy' })} style={authLinkStyles.accent}>
+              {t('auth:login.privacy')}
+            </Text>
+            .
+          </Text>
 
-          {accountStep === 'you' ? (
-          <>
+          <View style={authLinkStyles.actions}>
+            <AuthButton
+              title={t('auth:register.continueWithEmail')}
+              variant="outline"
+              icon="mail-outline"
+              onPress={openEmailPath}
+            />
+            <AuthInviteOption onPress={openInvitePath} disabled={loading} />
+          </View>
+        </>
+      ) : accountStep === 'you' ? (
+        <>
+          {showInvite ? (
+            <AuthTextField
+              label={t('auth:register.inviteCode')}
+              placeholder={t('auth:register.inviteCodePlaceholder')}
+              value={inviteCode}
+              onChangeText={(value) => {
+                setInviteCode(value.toUpperCase());
+                setErrors((prev) => ({ ...prev, inviteCode: undefined }));
+              }}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!loading}
+              leftIcon="ticket-outline"
+              optional
+              helperText={t('auth:register.inviteCodeHint')}
+              error={errors.inviteCode}
+            />
+          ) : (
+            <View style={{ marginBottom: 12 }}>
+              <AuthInviteOption onPress={() => setShowInvite(true)} disabled={loading} />
+            </View>
+          )}
+
           <AuthTextField
             label={t('auth:register.firstName')}
             placeholder={t('auth:register.firstNamePlaceholder')}
@@ -200,8 +256,12 @@ const RegisterScreen = () => {
             required
             error={errors.email}
           />
+
+          <View style={authLinkStyles.actions}>
             <AuthButton
-              title={t('common:next')}
+              title={t('auth:register.nextStep')}
+              icon="arrow-forward"
+              iconPosition="right"
               onPress={() => {
                 const next: Partial<Record<FieldKey, string>> = {};
                 if (!firstName.trim()) next.firstName = t('auth:register.firstNameRequired');
@@ -211,9 +271,19 @@ const RegisterScreen = () => {
                 if (Object.keys(next).length === 0) setAccountStep('password');
               }}
             />
-          </>
-          ) : (
-          <>
+            <AuthButton
+              title={t('common:back')}
+              variant="ghost"
+              onPress={() => {
+                setShowEmailForm(false);
+                setAccountStep('you');
+              }}
+              disabled={loading}
+            />
+          </View>
+        </>
+      ) : (
+        <>
           <AuthTextField
             label={t('auth:login.passwordLabel')}
             placeholder={t('auth:register.passwordPlaceholder')}
@@ -244,39 +314,31 @@ const RegisterScreen = () => {
             error={errors.confirmPassword}
           />
 
-          {showInvite ? (
-            <AuthTextField
-              label={t('auth:register.inviteCode')}
-              placeholder={t('auth:register.inviteCodePlaceholder')}
-              value={inviteCode}
-              onChangeText={(value) => setInviteCode(value.toUpperCase())}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              editable={!loading}
-              leftIcon="ticket-outline"
-              optional
-              helperText={t('auth:register.inviteCodeHint')}
-              error={errors.inviteCode}
-            />
-          ) : (
-            <TouchableOpacity onPress={() => setShowInvite(true)} style={authLinkStyles.row}>
-              <Text style={authLinkStyles.accent}>{t('auth:register.inviteToggle')}</Text>
-            </TouchableOpacity>
-          )}
+          <Text style={authLinkStyles.legal}>
+            {t('auth:register.legalPrefix')}{' '}
+            <Text onPress={() => navigation.navigate('Legal', { kind: 'terms' })} style={authLinkStyles.accent}>
+              {t('auth:login.terms')}
+            </Text>{' '}
+            {t('auth:register.legalAnd')}{' '}
+            <Text onPress={() => navigation.navigate('Legal', { kind: 'privacy' })} style={authLinkStyles.accent}>
+              {t('auth:login.privacy')}
+            </Text>
+            .
+          </Text>
 
-          <AuthButton
-            title={t(hasInviteIntent ? 'auth:register.inviteButton' : 'auth:register.button')}
-            onPress={() => void handleRegister()}
-            loading={loading}
-          />
-          <AuthButton
-            title={t('common:back')}
-            variant="outline"
-            onPress={() => setAccountStep('you')}
-            disabled={loading}
-          />
-          </>
-          )}
+          <View style={authLinkStyles.actions}>
+            <AuthButton
+              title={t(hasInviteIntent ? 'auth:register.inviteButton' : 'auth:register.button')}
+              onPress={() => void handleRegister()}
+              loading={loading}
+            />
+            <AuthButton
+              title={t('common:back')}
+              variant="ghost"
+              onPress={() => setAccountStep('you')}
+              disabled={loading}
+            />
+          </View>
         </>
       )}
 

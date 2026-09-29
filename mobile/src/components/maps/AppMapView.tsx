@@ -14,8 +14,14 @@ export type AppMapViewRef = {
     maxZoom?: number
   ) => void;
   animateToRegion: (region: MapRegion, maxZoom?: number) => void;
+  /** Move to a point at an exact zoom. Region deltas cannot express a close village view. */
+  flyTo: (latitude: number, longitude: number, zoomLevel: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  /** Screen position of a coordinate, in density-independent pixels. */
+  getPointInView: (point: LatLng) => Promise<{ x: number; y: number } | null>;
+  /** Map coordinate under a screen position, in density-independent pixels. */
+  getCoordinateFromView: (x: number, y: number) => Promise<LatLng | null>;
 };
 
 export type AppMapPressEvent = {
@@ -36,6 +42,8 @@ export type AppMapViewProps = {
   pitchEnabled?: boolean;
   onPress?: (event: AppMapPressEvent) => void;
   onMapReady?: () => void;
+  /** Fires after the camera finishes a pan or zoom. */
+  onCameraIdle?: () => void;
   children?: React.ReactNode;
 };
 

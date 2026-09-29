@@ -199,7 +199,7 @@
     "empty": "Trash is empty.",
     "restore": "Restore",
     "purge": "Delete permanently",
-    "purgeConfirm": "Delete permanently? This photo will not return to the library, the field, or Chronologio.",
+    "purgeConfirm": "Delete permanently? This photo will not return to the library, the field, or History.",
     "back": "Back to library",
     "undo": "Photo moved to trash.",
     "undoAction": "Undo",

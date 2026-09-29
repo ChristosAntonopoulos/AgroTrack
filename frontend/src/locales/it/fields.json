@@ -40,8 +40,8 @@
     "seeFinance": "See finances →",
     "costPerKg": "Costo per chilo di olio",
     "completedWork": "Lavori completati",
-    "recentChronologio": "Recent Chronologio",
-    "seeAllChronologio": "Vedi tutto il Chronologio",
+    "recentChronologio": "Cronologia recente",
+    "seeAllChronologio": "Vedi tutta la Cronologia",
     "needsAttention": "Needs attention",
     "needsNow": "Cosa serve ora",
     "statusStrip": {
@@ -86,8 +86,8 @@
     "variety": "Variety",
     "status": "Status",
     "chronoTagline": "The story of this grove lives here.",
-    "openFullChronologio": "Open full Chronologio →",
-    "chronoModesAria": "Chronologio view",
+    "openFullChronologio": "Vedi tutta la Cronologia →",
+    "chronoModesAria": "Vista Cronologia",
     "recent": "Recent",
     "years": "Years"
   },
@@ -100,6 +100,11 @@
     "partners": "Partners"
   },
   "card": {
+    "role": {
+      "Admin": "Amministratore",
+      "Partner": "Partner",
+      "Family": "Famiglia"
+    },
     "open": "Open →",
     "continueSetup": "Continua configurazione →",
     "todayTasks": "{{count}} tasks today",
@@ -603,7 +608,7 @@
     "notesTitle": "Ricordi di quest'anno",
     "notesEmpty": "Nessuna nota per questa stagione.",
     "untitledNote": "Nota",
-    "seeChronologio": "Leggi l'annata nel Cronologio",
+    "seeChronologio": "Leggi l'annata nella Cronologia",
     "liveTitle": "Finora",
     "liveHint": "Numeri dal vivo — non ancora il bilancio.",
     "olivesSoFar": "Olive finora",
@@ -613,7 +618,7 @@
     "upcomingTitle": "Prossimi lavori di raccolta",
     "upcomingEmpty": "Nessuna attività di raccolta aperta.",
     "openMoney": "Vedi costi",
-    "openChronologio": "Apri Cronologio",
+    "openChronologio": "Apri Cronologia",
     "olives": "Olive",
     "oil": "Olio",
     "net": "Saldo",
@@ -643,7 +648,7 @@
     "notesEmpty": "Nessuna nota.",
     "fieldsTitle": "Per campo",
     "openMoney": "Apri costi",
-    "openChronologio": "Cronologio",
+    "openChronologio": "Cronologia",
     "backToProgress": "Stagione corrente",
     "breadcrumb": "Bilancio"
   },
@@ -697,9 +702,9 @@
       "cta": "Iniziamo"
     },
     "fieldLockedLabel": "Campo",
-    "serverActivityHint": "Esistono già registrazioni di raccolta sui tuoi campi (ad es. in Cronologio), ma questo dispositivo non ha ancora una raccolta condivisa attiva. Avviare qui crea una stagione locale finché non c’è la sincronizzazione.",
+    "serverActivityHint": "Esistono già registrazioni di raccolta sui tuoi campi (ad es. nella Cronologia), ma questo dispositivo non ha ancora una raccolta condivisa attiva. Avviare qui crea una stagione locale finché non c’è la sincronizzazione.",
     "historical": {
-      "kicker": "Da Chronologio",
+      "kicker": "Dalla Cronologia",
       "title": "Giorno di raccolta",
       "summary": "Totali del giorno",
       "missing": "Nessuna registrazione di raccolta trovata per questo giorno. Potrebbe essere stata annullata o rimossa.",
@@ -716,7 +721,7 @@
       "reopen": "Riapri la giornata",
       "lockedTitle": "Giornata chiusa",
       "lockedBody": "Aggiungere e modificare le registrazioni è in pausa. Puoi riaprire la giornata in qualsiasi momento — la chiusura è reversibile.",
-      "closeExplain": "La chiusura mette in pausa nuove registrazioni e modifiche per questo giorno. Puoi riaprirlo dopo. Denaro e note Chronologio collegati restano modificabili nelle loro schermate."
+      "closeExplain": "La chiusura mette in pausa nuove registrazioni e modifiche per questo giorno. Puoi riaprirlo dopo. Denaro e note della Cronologia collegati restano modificabili nelle loro schermate."
     },
     "needGrove": "Scegli almeno un campo, oppure aggiungili dopo.",
     "noFields": "Aggiungi prima un campo.",
@@ -896,7 +901,7 @@
     },
     "note": {
       "prompt": "Nota o foto",
-      "chronologioHint": "Le note compaiono anche in Cronologio per questo campo.",
+      "chronologioHint": "Le note compaiono anche nella Cronologia per questo campo.",
       "save": "Salva"
     },
     "today": {
@@ -964,10 +969,11 @@
     },
     "nav": {
       "label": "Navigazione raccolta",
-      "today": "Giorno",
-      "fields": "Campi",
+      "today": "Riepilogo",
+      "fields": "Per campo",
       "totals": "Totali",
-      "log": "Registri"
+      "log": "Registri",
+      "record": "Registra"
     },
     "log": {
       "title": "Giorno per giorno",
@@ -984,7 +990,7 @@
       "finishedTitle": "Raccolta terminata",
       "openConfirm": "Aprire la checklist di fine raccolta?",
       "olives": "{{kg}} kg olive",
-      "oil": "{{kg}} kg olio",
+      "oil": "{{litres}} olio",
       "yield": "{{yield}}% di resa",
       "days_one": "{{count}} giorno",
       "days_other": "{{count}} giorni",
@@ -1043,8 +1049,22 @@
       "emptyHint": "Inizia con + nella scheda Giorno.",
       "needsMill": "senza pesata",
       "needsOil": "senza olio",
+      "stagePendingWeigh": "In attesa di pesata",
+      "stageWeighed": "Pesato",
+      "stagePendingOil": "In attesa di olio",
+      "stageDone": "Completato",
+      "allFields": "Tutti i campi",
+      "fieldFilter": "Campo",
+      "pendingCount_one": "{{count}} voce aperta",
+      "pendingCount_other": "{{count}} voci aperte",
+      "pendingCount": "{{count}} voci aperte",
+      "oilMissing": "— L",
+      "harvestDays_one": "{{count}} giorno di raccolta",
+      "harvestDays_other": "{{count}} giorni di raccolta",
+      "harvestDays": "{{count}} giorni di raccolta",
       "linked": "Collegato",
       "tapHint": "Tocca una scheda per vedere a cosa è collegata.",
+      "scrollMore": "Scorri per vedere il resto",
       "fieldsCount": "{{count}} campi",
       "daysCount_one": "in {{count}} giorno",
       "daysCount_other": "in {{count}} giorni",
@@ -1116,7 +1136,7 @@
       "kgPerSackShort": "≈ {{kg}} kg/sacco",
       "acidityShort": "Acidità {{value}}",
       "sourceSynced": "Registrazione raccolta sincronizzata",
-      "sourceChronologio": "In Chronologio",
+      "sourceChronologio": "Nella Cronologia",
       "linkedExpense": "Spesa collegata",
       "editInMoney": "Modifica in Denaro",
       "expenseOnThisDay": "Solo in questa giornata di raccolta"
@@ -1130,12 +1150,18 @@
   "createGrove": {
     "title": "Aggiungi oliveto",
     "firstTitle": "Metti il tuo primo oliveto in Oleachron",
-    "subtitle": "Prima il nome, poi il colore una sola volta. Confine e dettagli quando vuoi.",
+    "subtitle": "Prima il nome. Poi dov’è e il suo confine.",
+    "placeHeading": "Dov’è?",
+    "continueToPlace": "Continua",
+    "readyTitle": "Il tuo oliveto è pronto",
+    "readyBody": "Il confine è salvato. La prima registrazione avvia la Cronologia.",
     "nameHeading": "Come lo chiamiamo?",
-    "nameHelper": "Un nome breve che riconoscerai — es. Nord o Vigne di sotto.",
+    "nameHelper": "Un nome che riconosci subito.",
+    "nameSuggestionsLabel": "Idee per il nome",
+    "nameSuggestions": ["Nord", "Oliveto di sotto"],
     "nameLabel": "Nome oliveto",
     "colorHeading": "Scegli un colore",
-    "colorHelper": "Compare su Chronologio per riconoscere subito questo oliveto.",
+    "colorHelper": "Compare sulla Cronologia per riconoscere subito questo oliveto.",
     "readyNudge": "Nome e colore pronti. Poi disegni subito i confini dell'oliveto.",
     "createCta": "Continua ai confini",
     "continueToColor": "Continua",
@@ -1188,8 +1214,8 @@
       "treeCountHint": "If you are not sure, leave it blank."
     },
     "appearance": {
-      "title": "Appearance in Chronologio",
-      "subtitle": "Colour helps you recognise the grove in Chronologio.",
+      "title": "Aspetto nella Cronologia",
+      "subtitle": "Il colore aiuta a riconoscere l’oliveto nella Cronologia.",
       "autoLabel": "Colour: chosen automatically",
       "autoHint": "Colour: chosen automatically · Change",
       "change": "Change"
@@ -1203,7 +1229,7 @@
       "readyHeading": "Ready",
       "waitHeading": "Can wait",
       "readyName": "Name",
-      "readyTimeline": "Chronologio ready",
+      "readyTimeline": "Cronologia pronta",
       "readyWork": "Puoi registrare un'uscita, un'entrata o un'osservazione",
       "waitLocation": "Place on the map",
       "waitBoundary": "Confine sulla mappa",
@@ -1211,7 +1237,7 @@
       "recordWork": "Record first work",
       "recordFirst": "Prima registrazione",
       "addLocation": "Add a place on the map",
-      "openChronologio": "Open Chronologio",
+      "openChronologio": "Apri Cronologia",
       "openGrove": "Open my grove"
     },
     "enrich": {

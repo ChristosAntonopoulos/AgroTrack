@@ -8,6 +8,10 @@ type NavRef = React.RefObject<NavigationContainerRef<RootStackParamList> | null>
 const ALLOWED_WHILE_LOCKED = new Set([
   'FieldForm',
   'FieldMapBoundary',
+  'FieldDetail',
+  'FieldsHome',
+  'ChronologioTab',
+  'Chronologio',
   'Settings',
   'Legal',
   'InviteAccept',
@@ -29,11 +33,6 @@ const ActivationGate: React.FC<{ navRef: NavRef }> = ({ navRef }) => {
       const name = route?.name;
       if (!name) return;
       if (ALLOWED_WHILE_LOCKED.has(name)) return;
-      // Spatial welcome right after boundary save.
-      if (name === 'FieldDetail') {
-        const params = route.params as RootStackParamList['FieldDetail'] | undefined;
-        if (params?.activation === 'spatial' || params?.activation === 'observe') return;
-      }
 
       const step =
         activation.activeStep || (activation.completion.createGrove ? 'drawBoundary' : 'createGrove');

@@ -39,38 +39,82 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
   }
 
   const isCreate = mode === 'create';
+  const suggestions = (
+    t('createGrove.nameSuggestions', { returnObjects: true }) as string[]
+  ).filter((item) => typeof item === 'string' && item.trim());
+
+  const applySuggestion = (value: string) => {
+    onChange({
+      target: { name: 'name', value, type: 'text' },
+    } as React.ChangeEvent<HTMLInputElement>);
+  };
+
+  const nameInput = (
+    <input
+      type="text"
+      id="name"
+      name="name"
+      value={formData.name}
+      onChange={onChange}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && formData.name.trim().length >= 2) {
+          e.preventDefault();
+          (e.currentTarget.form || e.currentTarget.closest('.field-form-card'))
+            ?.querySelector<HTMLButtonElement>('.grove-create-nav .btn-primary')
+            ?.click();
+        }
+      }}
+      placeholder={t('form.namePlaceholder')}
+      required
+      aria-invalid={formData.name.trim().length > 0 && formData.name.trim().length < 2}
+      aria-required="true"
+      autoComplete="off"
+    />
+  );
+
+  if (isCreate) {
+    return (
+      <div className="field-form-panel">
+        <div className="grove-name-box" data-onboarding-target="grove-name">
+          <label htmlFor="name" className="grove-name-prompt">
+            {t('createGrove.nameHeading')}
+          </label>
+          <div className="grove-name-field">{nameInput}</div>
+          {suggestions.length > 0 ? (
+            <div
+              className="grove-name-suggestions"
+              role="group"
+              aria-label={t('createGrove.nameSuggestionsLabel')}
+            >
+              {suggestions.map((suggestion) => {
+                const selected = formData.name.trim() === suggestion;
+                return (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className={`grove-name-suggestion${selected ? ' is-selected' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() => applySuggestion(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="field-form-panel">
-      <h2>{isCreate ? t('createGrove.nameHeading') : t('form.editTitle')}</h2>
-      <p className="field-form-panel-desc">
-        {isCreate ? t('createGrove.nameHelper') : t('form.editSubtitle')}
-      </p>
+      <h2>{t('form.editTitle')}</h2>
+      <p className="field-form-panel-desc">{t('form.editSubtitle')}</p>
 
-      <div className="form-group" data-onboarding-target="grove-name">
-        <label htmlFor="name" className="grove-name-label-sr">
-          {t('createGrove.nameLabel')}
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={onChange}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && formData.name.trim().length >= 2) {
-              e.preventDefault();
-              (e.currentTarget.form || e.currentTarget.closest('.field-form-card'))
-                ?.querySelector<HTMLButtonElement>('.grove-create-nav .btn-primary')
-                ?.click();
-            }
-          }}
-          placeholder={t('form.namePlaceholder')}
-          required
-          aria-invalid={formData.name.trim().length > 0 && formData.name.trim().length < 2}
-          aria-required="true"
-          autoComplete="off"
-        />
+      <div className="form-group">
+        <label htmlFor="name">{t('createGrove.nameLabel')}</label>
+        {nameInput}
       </div>
     </div>
   );

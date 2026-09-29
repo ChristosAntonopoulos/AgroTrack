@@ -76,6 +76,7 @@ import { formatHarvestOilAmount } from '../../harvestCampaign/utils/harvestCalcu
 import { resolveFieldColor } from '../../utils/fieldColors';
 import FieldColorMark from '../fields/FieldColorMark';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { oilStockService } from '../../services/oilStockService';
 import { spacing, typography } from '../../theme';
 
 const LARGE_AMOUNT = 2000;
@@ -564,6 +565,40 @@ const MoneyCaptureForm: React.FC<Props> = ({
       }
       await rememberLastMoneyFieldId(entries[0]?.fieldId || undefined);
       await clearMoneyEntryDraft();
+
+      if (
+        !saveAsDraft &&
+        kind === 'income' &&
+        category === 'olive_oil_sale' &&
+        createdId &&
+        value > 0
+      ) {
+        const pack =
+          oilPath && soldLitres > 0
+            ? {
+                tin16: soldPack.tin16,
+                tin17: soldPack.tin17,
+                bulkLitres: soldPack.bulkLitres,
+              }
+            : qtyValue && qtyValue > 0
+              ? { tin16: 0, tin17: 0, bulkLitres: qtyValue }
+              : null;
+        if (pack) {
+          try {
+            await oilStockService.createCommitment({
+              counterpartyName: counterpartyName.trim() || text,
+              requested: pack,
+              isSale: true,
+              amount: value,
+              alreadyDelivered: false,
+              financialTransactionId: createdId,
+            });
+          } catch {
+            // Income stands; farmer can reserve from Το λάδι μου if stock sync fails.
+          }
+        }
+      }
+
       const message =
         savedCount < entries.length
           ? t('capture:money.seriesPartial', { saved: savedCount, total: entries.length })

@@ -7,12 +7,12 @@ using OliveLifecycle.Infrastructure.Persistence.Documents;
 namespace OliveLifecycle.Infrastructure.MongoDB;
 
 /// <summary>
-/// Ensures Kostas is Partner on Giorgos's three Filiatra fields.
-/// He works the trees and does not keep the money or harvest books.
+/// Phase 4: seat Kostas as Partner (work) on both ελαιώνες and record partner acceptance.
 /// </summary>
 public static class OwnerPartnerDemoSeeder
 {
     public const string PartnerOwnedFieldId = DemoFarmDataSeeder.PartnerOwnedFieldId;
+    private const string PartnerAcceptedActivityId = "67555555555555555555a201";
 
     public static async Task SeedAsync(
         MongoDbContext context,
@@ -27,14 +27,13 @@ public static class OwnerPartnerDemoSeeder
 
         var fields = context.GetCollection<FieldDocument>("fields");
         var now = DateTime.UtcNow;
+        var seated = 0;
+        var acceptedAt = new DateTime(now.Date.AddDays(-7).Year, 2, 12, 9, 0, 0, DateTimeKind.Utc);
 
         foreach (var fieldId in DemoFarmDataSeeder.FieldIds)
         {
             var field = await fields.Find(f => f.Id == fieldId).FirstOrDefaultAsync(cancellationToken);
-            if (field == null)
-            {
-                continue;
-            }
+            if (field == null) continue;
 
             field.Memberships ??= new List<FieldMembershipDocument>();
             var legacyWork = field.Memberships
@@ -58,7 +57,7 @@ public static class OwnerPartnerDemoSeeder
                     InvitedBy = DemoFarmDataSeeder.OwnerId,
                     DisplayName = DemoFarmDataSeeder.PartnerDisplayName,
                     Email = "producer1@olivefarm.com",
-                    CreatedAt = now.AddDays(-200),
+                    CreatedAt = acceptedAt,
                 });
             }
             else
@@ -72,9 +71,30 @@ public static class OwnerPartnerDemoSeeder
             }
 
             await fields.ReplaceOneAsync(f => f.Id == fieldId, field, cancellationToken: cancellationToken);
+            seated++;
         }
 
+        await context.GetCollection<ActivityDocument>("activities").ReplaceOneAsync(
+            a => a.Id == PartnerAcceptedActivityId,
+            new ActivityDocument
+            {
+                Id = PartnerAcceptedActivityId,
+                FieldId = DemoFarmDataSeeder.FieldId,
+                Type = "partner_contact_accepted",
+                Message = "Ο Κώστας δουλεύει μαζί μας",
+                ActorUserId = DemoFarmDataSeeder.ProducerId,
+                Timestamp = acceptedAt,
+                Metadata = new Dictionary<string, string>
+                {
+                    ["producerId"] = DemoFarmDataSeeder.ProducerId,
+                },
+            },
+            new ReplaceOptions { IsUpsert = true },
+            cancellationToken);
+
         logger.LogInformation(
-            "Seeded partner seats: producer1 works the three Filiatra fields and does not see money or harvest books.");
+            "Phase 4: partner seat for {Email} (work) on {Count} ελαιώνες.",
+            "producer1@olivefarm.com",
+            seated);
     }
 }

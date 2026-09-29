@@ -27,6 +27,8 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
   const rootRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  /** Last label chosen from the list — do not search or reopen suggestions for it. */
+  const committedQuery = useRef<string | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<GeocodedPlace[]>([]);
@@ -36,6 +38,17 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
 
   useEffect(() => {
     const q = value.trim();
+    if (committedQuery.current && committedQuery.current === q) {
+      setSuggestions([]);
+      setOpen(false);
+      setLoading(false);
+      setSearched(false);
+      setActiveIndex(-1);
+      return;
+    }
+    if (committedQuery.current && committedQuery.current !== q) {
+      committedQuery.current = null;
+    }
     if (q.length < 2) {
       setSuggestions([]);
       setLoading(false);
@@ -113,6 +126,7 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, hideHint = fals
   }, [showList, suggestions.length, loading]);
 
   const pick = (place: GeocodedPlace) => {
+    committedQuery.current = place.label.trim();
     onChange({
       locationText: place.label,
       latitude: place.latitude,

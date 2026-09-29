@@ -272,7 +272,7 @@ export const mockFieldWorkService = {
     if (!proposal) throw new Error('Proposal not found');
     proposal.status =
       decision === 'not_for_this_field' ? 'dismissed_for_field' : 'dismissed_for_year';
-    proposal.statusLabel = decision === 'not_for_this_field' ? 'Όχι για το χωράφι' : 'Όχι φέτος';
+    proposal.statusLabel = decision === 'not_for_this_field' ? 'Όχι για τον ελαιώνα' : 'Όχι φέτος';
     return proposal;
   },
 
@@ -804,7 +804,7 @@ export const mockFieldWorkService = {
       templateCode: code,
       practiceCategory: practice,
       currentPreferenceMode: mode || 'unknown',
-      promptMessage: 'Δεν θέλεις να προτείνουμε αυτή την εργασία για το χωράφι;',
+      promptMessage: 'Δεν θέλεις να προτείνουμε αυτή την εργασία για τον ελαιώνα;',
     };
   },
 

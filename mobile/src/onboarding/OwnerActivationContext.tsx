@@ -35,6 +35,8 @@ type NavRef = React.RefObject<NavigationContainerRef<RootStackParamList> | null>
 
 type OwnerActivationContextValue = {
   eligible: boolean;
+  /** False until fields and saved setup state are loaded — checklist must not paint on a guess. */
+  ready: boolean;
   visible: boolean;
   setupUnlocked: boolean;
   locked: boolean;
@@ -81,21 +83,33 @@ export const OwnerActivationProvider: React.FC<{
   const [celebrating, setCelebrating] = useState(false);
   const [fieldsEpoch, setFieldsEpoch] = useState(0);
   const [fieldsHydrated, setFieldsHydrated] = useState(false);
+  const [persistedHydrated, setPersistedHydrated] = useState(false);
   const [optimisticBoundaryFieldId, setOptimisticBoundaryFieldId] = useState<string | null>(null);
   const [spotlightScreen, setSpotlightScreen] = useState<'create' | 'boundary' | 'spatial' | null>(
     null
   );
   const wasUnlocked = useRef(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshSeq = useRef(0);
 
   useEffect(() => {
     if (!userId) {
       setPersisted(emptyPersisted());
       setFieldsHydrated(false);
+      setPersistedHydrated(false);
       setOptimisticBoundaryFieldId(null);
       return;
     }
-    void readPersisted(userId).then(setPersisted);
+    let cancelled = false;
+    setPersistedHydrated(false);
+    void readPersisted(userId).then((next) => {
+      if (cancelled) return;
+      setPersisted(next);
+      setPersistedHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const persist = useCallback(
@@ -112,13 +126,16 @@ export const OwnerActivationProvider: React.FC<{
       setFieldsHydrated(false);
       return;
     }
+    const seq = ++refreshSeq.current;
     try {
       const list = await getFieldService().getFields(userId, role || 'FieldOwner');
+      if (seq !== refreshSeq.current) return;
       setFields(list);
     } catch {
-      setFields([]);
+      // Keep the last good list. Wiping it resets the ribbon to 0 of 3 and blanks Fields.
+      if (seq !== refreshSeq.current) return;
     } finally {
-      setFieldsHydrated(true);
+      if (seq === refreshSeq.current) setFieldsHydrated(true);
     }
   }, [isAuthenticated, userId, role]);
 
@@ -229,7 +246,8 @@ export const OwnerActivationProvider: React.FC<{
     }
   }, [fields, userId, optimisticBoundaryFieldId]);
 
-  const visible = eligible && (persisted.forceShow || !setupUnlocked);
+  const ready = fieldsHydrated && persistedHydrated;
+  const visible = ready && eligible && (persisted.forceShow || !setupUnlocked);
 
   const activeStep = useMemo((): OwnerActivationStepId | null => {
     for (const step of OWNER_ACTIVATION_STEPS) {
@@ -406,6 +424,7 @@ export const OwnerActivationProvider: React.FC<{
   const value = useMemo<OwnerActivationContextValue>(
     () => ({
       eligible,
+      ready,
       visible,
       setupUnlocked,
       locked,
@@ -436,6 +455,7 @@ export const OwnerActivationProvider: React.FC<{
     }),
     [
       eligible,
+      ready,
       visible,
       setupUnlocked,
       locked,

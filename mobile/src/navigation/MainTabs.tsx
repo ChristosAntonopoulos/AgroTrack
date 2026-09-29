@@ -5,9 +5,8 @@ import FieldsStack from './FieldsStack';
 import TaskListScreen from '../screens/TaskListScreen';
 import MoreScreen from '../screens/MoreScreen';
 import ChronologioScreen from '../screens/ChronologioScreen';
+import LauncherScreen from '../screens/LauncherScreen';
 import { MainTabParamList } from './types';
-import { usePreferences } from '../context/PreferencesContext';
-import { useFamilyMembershipModules } from '../hooks/useFamilyMembershipModules';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -18,26 +17,17 @@ const CapturePlaceholder = () => <View />;
  * so it stays reachable after leaving these tab roots.
  */
 const MainTabs = () => {
-  const { defaultView } = usePreferences();
-  const familyModules = useFamilyMembershipModules();
-
-  const showFields = familyModules === null || Boolean(familyModules.has('fields'));
-  const startMap = {
-    fields: showFields ? 'Fields' : 'ChronologioTab',
-    chronologio: 'ChronologioTab',
-  } as const;
-  const initialRouteName = startMap[defaultView] ?? 'ChronologioTab';
-
   return (
     <Tab.Navigator
-      key="main-tabs-v2"
-      initialRouteName={initialRouteName}
+      key="main-tabs-v3"
+      initialRouteName="Launcher"
       tabBar={() => null}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: 'transparent' },
       }}
     >
+      <Tab.Screen name="Launcher" component={LauncherScreen} />
       <Tab.Screen name="ChronologioTab" component={ChronologioScreen} />
       <Tab.Screen name="Fields" component={FieldsStack} />
       <Tab.Screen name="Capture" component={CapturePlaceholder} />

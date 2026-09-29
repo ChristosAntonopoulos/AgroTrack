@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import { formatGroveMassKg } from '../../utils/groveTotals';
@@ -10,7 +10,7 @@ import {
   type HarvestFlowNode,
   type HarvestFlowNodeKind,
 } from '../flowGraph';
-import { formatHarvestYieldPercent } from '../utils/harvestCalculations';
+import { convertOliveOilKgToLitres, formatHarvestYieldPercent } from '../utils/harvestCalculations';
 import { fieldSummaries } from '../totals';
 import type { HarvestCampaign } from '../types';
 import { HarvestGenealogyConnectors } from './HarvestGenealogyConnectors';
@@ -19,12 +19,21 @@ type Props = {
   campaign: HarvestCampaign;
   fields: Field[];
   locale: string;
+  fieldFilterId?: string | null;
+  onFieldFilter?: (fieldId: string | null) => void;
   onMarkDone: (fieldId: string) => void;
   onOpenMill?: (sackIds: string[]) => void;
   onOpenOil?: (millIds: string[]) => void;
 };
 
 const KIND_ORDER: HarvestFlowNodeKind[] = ['field', 'harvest', 'mill', 'oil'];
+
+/** Whole litres. Three decimals in Greek look like 86,245 L. */
+const formatFlowLitres = (kg: number, locale: string): string | null => {
+  const litres = convertOliveOilKgToLitres(kg);
+  if (!(litres > 0)) return null;
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(litres));
+};
 
 const formatDayLabel = (date: string, locale: string, style: 'short' | 'long' = 'short') => {
   try {
@@ -43,6 +52,8 @@ export const HarvestFlowView: React.FC<Props> = ({
   campaign,
   fields,
   locale,
+  fieldFilterId = null,
+  onFieldFilter,
   onMarkDone,
   onOpenMill,
   onOpenOil,
@@ -50,6 +61,8 @@ export const HarvestFlowView: React.FC<Props> = ({
   const { t } = useTranslation('fields');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [stackEl, setStackEl] = useState<HTMLDivElement | null>(null);
+  const [showMore, setShowMore] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const cardElsRef = useRef<Map<string, HTMLElement>>(new Map());
   const cardRefCbs = useRef(new Map<string, (el: HTMLButtonElement | null) => void>());
 
@@ -132,11 +145,8 @@ export const HarvestFlowView: React.FC<Props> = ({
       );
     }
     if (selectedNode.kind === 'oil' && selectedNode.meta.oilKg) {
-      bits.push(
-        t('harvestCampaign.flow.oilLine', {
-          kg: formatGroveMassKg(selectedNode.meta.oilKg, locale),
-        })
-      );
+      const litres = formatFlowLitres(selectedNode.meta.oilKg, locale);
+      if (litres) bits.push(`${litres} L`);
       if (selectedNode.yieldPct != null) {
         bits.push(
           t('harvestCampaign.flow.yieldBadge', {
@@ -193,33 +203,42 @@ export const HarvestFlowView: React.FC<Props> = ({
       return { value: node.meta.metric, unit: t('harvestCampaign.flow.unitSacks') };
     }
     if (node.kind === 'mill') {
-      return { value: node.meta.metric, unit: t('harvestCampaign.flow.unitFruit') };
+      return { value: node.meta.metric, unit: 'kg' };
     }
-    return {
-      value: node.meta.metric,
-      unit:
-        node.meta.metricUnit === 'L'
-          ? t('harvestCampaign.flow.unitOilLitres')
-          : t('harvestCampaign.flow.unitOil'),
-    };
+    const litres = formatFlowLitres(node.meta.oilKg || 0, locale);
+    if (!litres) return { value: '—', unit: 'L' };
+    return { value: litres, unit: 'L' };
   };
 
-  const metaRows = (node: HarvestFlowNode): string[] => {
-    const rows: string[] = [];
-    const names = (node.meta.fieldNames || []).map(friendlyFieldLabel);
-
+  const detailLine = (node: HarvestFlowNode): string | null => {
+    const parts: string[] = [];
     if (node.kind === 'field') {
+      if (node.meta.oliveKg && node.meta.oliveKg > 0) {
+        parts.push(`${formatGroveMassKg(node.meta.oliveKg, locale)} kg`);
+      }
+      const litres = formatFlowLitres(node.meta.oilKg || 0, locale);
+      if (litres) parts.push(`${litres} L`);
       const days = Number(node.meta.fromSummary);
       if (Number.isFinite(days) && days > 0) {
-        rows.push(t('harvestCampaign.flow.daysCount', { count: days }));
+        parts.push(t('harvestCampaign.flow.daysCount', { count: days }));
       }
-    }
-    if (node.kind === 'harvest') {
-      if (names.length) rows.push(names.join(' · '));
-      if (node.meta.openSacks != null && node.meta.sackCount != null) {
+    } else {
+      const names = (node.meta.fieldNames || []).map(friendlyFieldLabel);
+      if (names.length) parts.push(names.join(' · '));
+      if (node.kind === 'mill' && node.meta.sackCount && node.meta.sackCount > 0) {
+        parts.push(t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount }));
+      }
+      if (node.kind === 'oil' && node.yieldPct != null) {
+        parts.push(
+          t('harvestCampaign.flow.yieldBadge', {
+            yield: formatHarvestYieldPercent(node.yieldPct, locale),
+          })
+        );
+      }
+      if (node.kind === 'harvest' && node.meta.openSacks != null && node.meta.sackCount != null) {
         const weighed = node.meta.sackCount - node.meta.openSacks;
         if (weighed > 0 && node.meta.openSacks > 0) {
-          rows.push(
+          parts.push(
             t('harvestCampaign.flow.weighedSplit', {
               weighed,
               open: node.meta.openSacks,
@@ -228,30 +247,7 @@ export const HarvestFlowView: React.FC<Props> = ({
         }
       }
     }
-    if (node.kind === 'mill') {
-      if (names.length) rows.push(names.join(' · '));
-      if (node.meta.sackCount && node.meta.sackCount > 0) {
-        rows.push(t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount }));
-      }
-    }
-    if (node.kind === 'oil') {
-      if (names.length) rows.push(names.join(' · '));
-      if (node.meta.oliveKg && node.meta.oliveKg > 0) {
-        rows.push(
-          t('harvestCampaign.flow.fromOlives', {
-            kg: formatGroveMassKg(node.meta.oliveKg, locale),
-          })
-        );
-      }
-      if (node.yieldPct != null) {
-        rows.push(
-          t('harvestCampaign.flow.yieldBadge', {
-            yield: formatHarvestYieldPercent(node.yieldPct, locale),
-          })
-        );
-      }
-    }
-    return rows.slice(0, 3);
+    return parts.length > 0 ? parts.join(' · ') : null;
   };
 
   const neighbors = (node: HarvestFlowNode) => {
@@ -270,12 +266,8 @@ export const HarvestFlowView: React.FC<Props> = ({
     const active = !selectedId || highlight.has(node.id);
     const isSelected = selectedId === node.id;
     const metric = metricDisplay(node);
-    const rows = metaRows(node);
-    const chips = node.meta.chips.filter((c) => {
-      if (c === 'ok' || c === 'yield') return false;
-      if (c === 'shared' && node.kind === 'field') return false;
-      return true;
-    });
+    const fact = detailLine(node);
+    const chips = node.meta.chips.filter((c) => c === 'needsMill' || c === 'needsOil');
     const accent =
       node.fieldIds.length === 1 ? fieldColors[node.fieldIds[0]] : undefined;
 
@@ -284,7 +276,7 @@ export const HarvestFlowView: React.FC<Props> = ({
         key={node.id}
         className={`hc-gene-node hc-gene-node-${node.kind}${isSelected ? ' is-selected' : ''}${
           active ? '' : ' is-dim'
-        }${node.pending ? ' is-pending' : ''}${node.kind === 'oil' ? ' is-hero' : ''}`}
+        }${node.pending ? ' is-pending' : ''}`}
       >
         <button
           type="button"
@@ -304,11 +296,7 @@ export const HarvestFlowView: React.FC<Props> = ({
             <em>{metric.value}</em>
             {metric.unit ? <small>{metric.unit}</small> : null}
           </span>
-          {rows.map((row) => (
-            <span key={row} className="hc-gene-card-line">
-              {row}
-            </span>
-          ))}
+          {fact ? <span className="hc-gene-card-line">{fact}</span> : null}
           {chips.length > 0 ? (
             <span className="hc-gene-card-chips">
               {chips.map((chip) => (
@@ -322,7 +310,7 @@ export const HarvestFlowView: React.FC<Props> = ({
             </span>
           ) : null}
         </button>
-        {node.pending === 'needsMill' && onOpenMill && node.entryIds?.length ? (
+        {isSelected && node.pending === 'needsMill' && onOpenMill && node.entryIds?.length ? (
           <button
             type="button"
             className="hc-gene-node-cta"
@@ -331,7 +319,7 @@ export const HarvestFlowView: React.FC<Props> = ({
             {t('harvestCampaign.chain.ctaMill')}
           </button>
         ) : null}
-        {node.pending === 'needsOil' && onOpenOil && node.entryIds?.length ? (
+        {isSelected && node.pending === 'needsOil' && onOpenOil && node.entryIds?.length ? (
           <button
             type="button"
             className="hc-gene-node-cta"
@@ -355,14 +343,89 @@ export const HarvestFlowView: React.FC<Props> = ({
       : null;
 
   const selectedNeighbors = selectedNode ? neighbors(selectedNode) : null;
+  const visibleIds = new Set(
+    graph.nodes
+      .filter((node) => !fieldFilterId || node.fieldIds.includes(fieldFilterId))
+      .map((node) => node.id)
+  );
+
+  const updateScrollHint = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      setShowMore(false);
+      return;
+    }
+    const more = el.scrollHeight > el.clientHeight + 12;
+    const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+    setShowMore(more && !atEnd);
+  }, []);
+
+  useEffect(() => {
+    updateScrollHint();
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => updateScrollHint());
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, [updateScrollHint, fieldFilterId, graph.nodes.length]);
+
+  useEffect(() => {
+    if (!selectedId || !scrollRef.current) return;
+    const card = cardElsRef.current.get(selectedId);
+    const scroller = scrollRef.current;
+    if (!card) return;
+    const cardTop =
+      card.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    const cardBottom = cardTop + card.offsetHeight;
+    const viewTop = scroller.scrollTop;
+    const viewBottom = viewTop + scroller.clientHeight;
+    if (cardTop < viewTop + 8) {
+      scroller.scrollTo({ top: Math.max(0, cardTop - 16), behavior: 'smooth' });
+    } else if (cardBottom > viewBottom - 8) {
+      scroller.scrollTo({
+        top: cardBottom - scroller.clientHeight + 16,
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedId]);
 
   return (
     <section className="hc-gene" aria-label={t('harvestCampaign.flow.title')}>
       <header className="hc-gene-header">
-        <p className="hc-kicker">{t('harvestCampaign.flow.steps')}</p>
         <h1 className="hc-page-title">{t('harvestCampaign.flow.title')}</h1>
-        <p className="hc-help">{t('harvestCampaign.flow.lead')}</p>
       </header>
+
+      {fieldOrder.length > 0 ? (
+        <div className="hc-field-filter" role="group" aria-label={t('harvestCampaign.flow.fieldFilter')}>
+          <button
+            type="button"
+            className={!fieldFilterId ? 'is-on' : ''}
+            onClick={() => onFieldFilter?.(null)}
+          >
+            {t('harvestCampaign.flow.allFields')}
+          </button>
+          {fieldOrder.map((id) => {
+            const color = fieldColors[id];
+            return (
+              <button
+                key={id}
+                type="button"
+                className={fieldFilterId === id ? 'is-on' : ''}
+                style={
+                  color
+                    ? ({ ['--hc-chip-color' as string]: color } as React.CSSProperties)
+                    : undefined
+                }
+                onClick={() => onFieldFilter?.(id)}
+              >
+                <i className="hc-field-filter-dot" aria-hidden />
+                {friendlyFieldLabel(fields.find((field) => field.id === id)?.name || id)}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {pathStory ? (
         <p className="hc-gene-path" role="status">
@@ -392,7 +455,9 @@ export const HarvestFlowView: React.FC<Props> = ({
                     {row.officialKg > 0 ? `${formatGroveMassKg(row.officialKg, locale)} kg` : '—'}
                   </span>
                   <span role="cell">
-                    {row.oilKg > 0 ? `${formatGroveMassKg(row.oilKg, locale)} kg` : '—'}
+                    {formatFlowLitres(row.oilKg, locale)
+                      ? `${formatFlowLitres(row.oilKg, locale)} L`
+                      : '—'}
                   </span>
                 </div>
               ))}
@@ -408,18 +473,26 @@ export const HarvestFlowView: React.FC<Props> = ({
           ) : null}
         </>
       ) : (
+        <div className="hc-gene-scroll-wrap">
+        <div
+          className={`hc-gene-scroll${showMore ? ' is-more' : ''}`}
+          ref={scrollRef}
+          onScroll={updateScrollHint}
+        >
         <div className="hc-gene-stack" ref={bindStack}>
           <HarvestGenealogyConnectors
             container={stackEl}
             cardElsRef={cardElsRef}
-            nodeIds={graph.nodes.map((n) => n.id)}
-            links={graph.links}
+            nodeIds={[...visibleIds]}
+            links={graph.links.filter(
+              (link) => visibleIds.has(link.fromId) && visibleIds.has(link.toId)
+            )}
             highlight={highlight}
             selectedId={selectedId}
             fieldColors={fieldColors}
           />
           {KIND_ORDER.map((kind) => {
-            const nodes = graph.byKind[kind];
+            const nodes = graph.byKind[kind].filter((node) => visibleIds.has(node.id));
             if (nodes.length === 0) return null;
             return (
               <div key={kind} className={`hc-gene-layer hc-gene-layer-${kind}`}>
@@ -428,6 +501,11 @@ export const HarvestFlowView: React.FC<Props> = ({
               </div>
             );
           })}
+        </div>
+        </div>
+        {showMore ? (
+          <p className="hc-gene-scroll-more">{t('harvestCampaign.flow.scrollMore')}</p>
+        ) : null}
         </div>
       )}
 
@@ -439,7 +517,7 @@ export const HarvestFlowView: React.FC<Props> = ({
               <strong>{cardTitle(selectedNode)}</strong>
               {pathStory ? <p className="hc-gene-detail-path">{pathStory}</p> : null}
             </div>
-            {selectedSummary ? (
+            {selectedNode.kind === 'field' && selectedSummary ? (
               <button
                 type="button"
                 className="hc-ghost"

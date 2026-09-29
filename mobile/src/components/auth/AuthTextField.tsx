@@ -127,7 +127,8 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.styles.label,
-    color: loginTheme.textPrimary,
+    color: loginTheme.textSecondary,
+    letterSpacing: 0.2,
     flex: 1,
   },
   required: {
@@ -164,6 +165,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: loginTheme.textPrimary,
     fontSize: typography.fontSize.base,
+    fontWeight: '500',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     minHeight: 52,
@@ -179,11 +181,13 @@ const styles = StyleSheet.create({
     ...typography.styles.caption,
     color: loginTheme.textMuted,
     marginTop: spacing.xs,
+    lineHeight: 16,
   },
   error: {
     ...typography.styles.caption,
     color: loginTheme.error,
     marginTop: spacing.xs,
+    fontWeight: '600',
   },
 });
 

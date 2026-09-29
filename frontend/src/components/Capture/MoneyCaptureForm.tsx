@@ -70,6 +70,7 @@ import RelatedRecordSelector from '../money/RelatedRecordSelector';
 import TransactionAdvancedDetails from '../money/TransactionAdvancedDetails';
 import SaleBuyerPicker from '../money/SaleBuyerPicker';
 import AddMoneyFooter from '../money/AddMoneyFooter';
+import { oilStockService } from '../../services/oilStockService';
 import '../money/Money.css';
 
 type PhotoItem = { id: string; file: File; preview: string; url?: string };
@@ -218,6 +219,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const skippedPresetCategoryRef = useRef(false);
 
   const usableFields = useMemo(
     () => fields.filter((field) => (field.status || 'Active') !== 'Draft'),
@@ -357,6 +359,21 @@ const MoneyCaptureForm: React.FC<Props> = ({
     () => moneySteps(askKind, oilPath, askField),
     [askKind, oilPath, askField]
   );
+
+  // Preselected category from My Oil / deep links — skip the category picker.
+  useEffect(() => {
+    if (skippedPresetCategoryRef.current || activeDraft) return;
+    if (!context.category || askKind) return;
+    skippedPresetCategoryRef.current = true;
+    if (context.category === 'olive_oil_sale' && oilLots.length > 0) {
+      setStep('oil');
+    } else if (askField) {
+      setStep('field');
+    } else {
+      setStep('amount');
+    }
+  }, [context.category, oilLots.length, askField, askKind, activeDraft]);
+
   const oilStock = combineOilPacks(selectedLots);
   const selectedOilLitres = Math.round(selectedLots.reduce((sum, lot) => sum + lot.litres, 0) * 10) / 10;
   const oilSeasonYear =
@@ -608,6 +625,42 @@ const MoneyCaptureForm: React.FC<Props> = ({
       rememberLastMoneyFieldId(entries[0]?.fieldId || undefined);
       clearMoneyEntryDraft();
       onDirtyChange?.(false);
+
+      // Sync cellar reservation when a posted olive-oil sale is recorded via καταγραφή.
+      if (
+        !saveAsDraft &&
+        kind === 'income' &&
+        category === 'olive_oil_sale' &&
+        createdId &&
+        resolvedAmount &&
+        resolvedAmount > 0
+      ) {
+        const pack =
+          oilPath && packLitres(soldPack) > 0
+            ? {
+                tin16: soldPack.tin16,
+                tin17: soldPack.tin17,
+                bulkLitres: soldPack.bulkLitres,
+              }
+            : qtyValue && qtyValue > 0
+              ? { tin16: 0, tin17: 0, bulkLitres: qtyValue }
+              : null;
+        if (pack) {
+          try {
+            await oilStockService.createCommitment({
+              counterpartyName: counterpartyName.trim() || text,
+              requested: pack,
+              isSale: true,
+              amount: resolvedAmount,
+              alreadyDelivered: false,
+              financialTransactionId: createdId,
+            });
+          } catch {
+            // Income stands; farmer can reserve/deliver from Το λάδι μου if stock sync fails.
+          }
+        }
+      }
+
       const message =
         savedCount < entries.length
           ? t('capture:money.seriesPartial', { saved: savedCount, total: entries.length })

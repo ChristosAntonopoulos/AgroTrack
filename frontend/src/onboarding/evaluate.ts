@@ -57,10 +57,15 @@ export const evaluateStepCompletion = (
   fields: Field[],
   primary: Field | null,
   spatial: SpatialReadiness,
-  opts?: { firstObservationDone?: boolean }
+  opts?: { firstObservationDone?: boolean; knownBoundaryFieldId?: string | null }
 ): Record<OwnerActivationStepId, boolean> => {
   const hasGrove = fields.some((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
-  const hasBoundary = primary ? fieldHasBoundary(primary) : false;
+  const hasBoundary =
+    Boolean(primary && fieldHasBoundary(primary)) ||
+    Boolean(
+      opts?.knownBoundaryFieldId &&
+        (!primary || primary.id === opts.knownBoundaryFieldId)
+    );
 
   return {
     createGrove: hasGrove,

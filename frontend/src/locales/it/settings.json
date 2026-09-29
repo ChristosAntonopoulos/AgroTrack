@@ -84,7 +84,7 @@
     "label": "Quando apro OLEACHRON",
     "options": {
       "fields": "Campi",
-      "chronologio": "Cronologio"
+      "chronologio": "Cronologia"
     }
   },
   "profile": {
@@ -113,9 +113,9 @@
       "dashboard": "Dashboard",
       "fields": "Campi",
       "tasks": "Attività",
-      "calendar": "Cronologio",
+      "calendar": "Cronologia",
       "today": "Oggi",
-      "chronologio": "Cronologio"
+      "chronologio": "Cronologia"
     },
     "language": "Lingua",
     "fontScale": "Dimensione testo",
@@ -196,7 +196,7 @@
     "largeControls": "Pulsanti più grandi",
     "largeControlsDesc": "Aree di tocco più grandi per un uso più facile.",
     "setupPhoneTitle": "Configura questo telefono",
-    "setupPhoneBody": "Testo grande · Pulsanti più grandi · Il Cronologio è la home"
+    "setupPhoneBody": "Testo grande · Pulsanti più grandi · La Cronologia è la home"
   },
   "saveButton": "Salva modifiche",
   "savedLegacy": "Modifiche salvate"

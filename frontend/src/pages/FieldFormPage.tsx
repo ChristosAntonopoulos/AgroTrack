@@ -30,7 +30,7 @@ import { ONBOARDING_TARGETS } from '../onboarding/steps';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
-type CreateScreen = 'name' | 'color';
+type CreateScreen = 'name' | 'boundary';
 
 type EditFocus = 'settings' | 'boundary' | 'details' | 'appearance';
 
@@ -65,7 +65,7 @@ const FieldFormPage: React.FC = () => {
   });
   const [boundary, setBoundary] = useState<GeoJsonPolygon | undefined>();
   const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const allowLeaveRef = useRef(false);
@@ -148,6 +148,8 @@ const FieldFormPage: React.FC = () => {
       setFieldStatus(field.status);
       if (field.status === 'Active') {
         setBoundaryConfirmed(true);
+      } else if (searchParams.get('focus') === 'boundary') {
+        setCreateScreen('boundary');
       } else {
         setCreateScreen('name');
       }
@@ -235,7 +237,7 @@ const FieldFormPage: React.FC = () => {
     navigate(path, state ? { state } : undefined);
   };
 
-  const handleCreateGrove = async () => {
+  const continueToBoundary = async () => {
     if (!nameValid) {
       setError(t('fields:form.errors.nameRequired'));
       return;
@@ -245,27 +247,56 @@ const FieldFormPage: React.FC = () => {
     try {
       const fieldId = await ensureDraftField();
       await getFieldService().updateField(fieldId, fieldPayload());
-      if (boundary) {
-        const validation = validateBoundaryPolygon(boundary);
-        if (!validation.ok) {
-          setError(t(`fields:addField.boundaryValidation.${validation.code}`));
-          setLoading(false);
-          return;
-        }
-        await getFieldService().updateBoundary(fieldId, boundary);
-      }
-      await getFieldService().activateField(fieldId, {
-        boundaryConfirmed: boundary ? boundaryConfirmed || true : true,
-        cadastreReferenceAcknowledged: true,
-      });
+      setFieldStatus((prev) => prev || 'Draft');
+      activation?.markFieldsDirty();
       allowLeaveRef.current = true;
       setDirty(false);
-      setFieldStatus('Active');
-      activation?.markFieldsDirty(
-        boundary ? { boundarySavedFieldId: fieldId } : undefined
+      setCreateScreen('boundary');
+      navigate(`/fields/${fieldId}/edit?focus=boundary`, { replace: true });
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinishBoundary = async () => {
+    if (!nameValid) {
+      setError(t('fields:form.errors.nameRequired'));
+      return;
+    }
+    if (!boundary || !fieldHasBoundary({ boundary })) {
+      setError(t('fields:addField.errors.boundaryRequiredNow'));
+      return;
+    }
+    const validation = validateBoundaryPolygon(boundary);
+    if (!validation.ok) {
+      setError(t(`fields:addField.boundaryValidation.${validation.code}`));
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const fieldId = draftFieldId || id!;
+      await getFieldService().updateField(fieldId, fieldPayload());
+      await getFieldService().updateBoundary(fieldId, boundary);
+      if (fieldStatus !== 'Active') {
+        await getFieldService().activateField(fieldId, {
+          boundaryConfirmed: true,
+          cadastreReferenceAcknowledged: true,
+        });
+        setFieldStatus('Active');
+      }
+      setBoundaryConfirmed(true);
+      activation?.markFieldsDirty({ boundarySavedFieldId: fieldId });
+      const groveName = formData.name.trim();
+      const showSpatialWelcome = Boolean(activation?.eligible);
+      leaveClean(
+        showSpatialWelcome
+          ? `/chronologio?fieldId=${encodeURIComponent(fieldId)}&activation=spatial`
+          : `/chronologio?fieldId=${encodeURIComponent(fieldId)}`,
+        { groveName }
       );
-      // Name + colour done → straight to όρια (no intermediate "ready" stop).
-      leaveClean(`/fields/${fieldId}/edit?focus=boundary`);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
     } finally {
@@ -310,17 +341,20 @@ const FieldFormPage: React.FC = () => {
     }
   };
 
+  const onBoundaryStep = createScreen === 'boundary' || editFocus === 'boundary';
+  const finishingFirstBoundary = !fieldHasBoundary({ boundary: initialBoundary });
+
   const setupLevels = (): Array<{ key: SetupLevelKey; state: SetupLevelState }> => {
     const nameState: SetupLevelState =
-      createScreen === 'name' ? 'current' : nameValid ? 'done' : 'upcoming';
-    let colorState: SetupLevelState = 'upcoming';
-    if (createScreen === 'color') colorState = 'current';
-    else if (nameValid && createScreen !== 'name') colorState = 'done';
-    const boundaryState: SetupLevelState = hasBoundary ? 'done' : 'upcoming';
+      !onBoundaryStep && createScreen === 'name' ? 'current' : nameValid ? 'done' : 'upcoming';
+    const boundaryState: SetupLevelState = hasBoundary
+      ? 'done'
+      : onBoundaryStep
+        ? 'current'
+        : 'upcoming';
     const detailsState: SetupLevelState = hasDetails ? 'done' : 'upcoming';
     return [
       { key: 'name', state: nameState },
-      { key: 'color', state: colorState },
       { key: 'boundary', state: boundaryState },
       { key: 'details', state: detailsState },
     ];
@@ -334,34 +368,6 @@ const FieldFormPage: React.FC = () => {
       onChange={handleChange}
     />
   );
-
-  const colorForm = () => (
-    <BasicFieldDetailsStep
-      formData={formData}
-      fieldId={draftFieldId || id}
-      mode="appearance"
-      onChange={handleChange}
-      onColorChange={(color) => {
-        markDirty();
-        setFormData((prev) => ({ ...prev, color }));
-      }}
-    />
-  );
-
-  const goToColorStep = () => {
-    if (!nameValid) {
-      setError(t('fields:form.errors.nameRequired'));
-      return;
-    }
-    setError(null);
-    if (!formData.color) {
-      setFormData((prev) => ({
-        ...prev,
-        color: resolveFieldColor(undefined, draftFieldId || undefined),
-      }));
-    }
-    setCreateScreen('color');
-  };
 
   if (loading && isEdit && !formData.name) {
     return <LoadingSpinner fullScreen />;
@@ -380,54 +386,57 @@ const FieldFormPage: React.FC = () => {
     : t('fields:createGrove.subtitle');
 
   const showCreateChrome = !isActiveEdit;
-  const showNameStep = !isActiveEdit && createScreen === 'name';
-  const showColorStep = !isActiveEdit && createScreen === 'color';
+  const showNameStep = !isActiveEdit && createScreen === 'name' && editFocus !== 'boundary';
+  const showBoundaryEditor = editFocus === 'boundary' || (!isActiveEdit && createScreen === 'boundary');
 
   return (
     <PageContainer>
       <div className="field-form-page">
         <Breadcrumbs />
         <header className="field-form-header">
-          <Button to="/fields" variant="outline" size="sm" icon={<ArrowLeft />}>
-            {t('fields:createGrove.backToGroves')}
-          </Button>
-          <div>
+          <div className="field-form-title-row">
             <h1>{pageTitle}</h1>
-            {pageSubtitle ? <p className="field-form-subtitle">{pageSubtitle}</p> : null}
+            <Button
+              to="/fields"
+              variant="outline"
+              size="sm"
+              className="field-form-back"
+              icon={<ArrowLeft size={14} />}
+            >
+              {t('fields:createGrove.backToGroves')}
+            </Button>
           </div>
+          {pageSubtitle ? <p className="field-form-subtitle">{pageSubtitle}</p> : null}
         </header>
 
-        {showCreateChrome ? (
-          <GroveSetupLevel
-            levels={setupLevels()}
-            canSelect={(key) => {
-              if (key === 'name') return true;
-              if (key === 'color') return nameValid;
-              if (key === 'boundary' || key === 'details') {
-                return Boolean(draftFieldId && fieldStatus === 'Active');
-              }
-              return false;
-            }}
-            onSelect={(key) => {
-              if (key === 'name') {
-                setCreateScreen('name');
-                return;
-              }
-              if (key === 'color' && nameValid) {
-                goToColorStep();
-                return;
-              }
-              if (key === 'boundary' && draftFieldId) {
-                leaveClean(`/fields/${draftFieldId}/edit?focus=boundary`);
-                return;
-              }
-              if (key === 'details' && draftFieldId) {
-                leaveClean(`/fields/${draftFieldId}/edit?focus=details`);
-              }
-            }}
-          />
-        ) : null}
+        <div className={`field-form-stage${showCreateChrome ? ' has-setup-rail' : ''}`}>
+          {showCreateChrome ? (
+            <GroveSetupLevel
+              levels={setupLevels()}
+              canSelect={(key) => {
+                if (key === 'name') return true;
+                if (key === 'boundary') return Boolean(draftFieldId) && nameValid;
+                if (key === 'details') return Boolean(draftFieldId && fieldStatus === 'Active');
+                return false;
+              }}
+              onSelect={(key) => {
+                if (key === 'name') {
+                  setCreateScreen('name');
+                  if (draftFieldId) leaveClean(`/fields/${draftFieldId}/edit`);
+                  return;
+                }
+                if (key === 'boundary' && draftFieldId && nameValid) {
+                  leaveClean(`/fields/${draftFieldId}/edit?focus=boundary`);
+                  return;
+                }
+                if (key === 'details' && draftFieldId) {
+                  leaveClean(`/fields/${draftFieldId}/edit?focus=details`);
+                }
+              }}
+            />
+          ) : null}
 
+          <div className="field-form-stage-main">
         {error && <div className="field-form-error">{error}</div>}
 
         <Card className="field-form-card">
@@ -441,39 +450,11 @@ const FieldFormPage: React.FC = () => {
                 <Button
                   type="button"
                   variant="primary"
-                  onClick={goToColorStep}
-                  disabled={!nameValid}
-                >
-                  {t('fields:createGrove.continueToColor')}
-                </Button>
-              </div>
-            </>
-          ) : null}
-
-          {showColorStep ? (
-            <>
-              {colorForm()}
-              <p className="grove-ready-nudge" role="status">
-                {t('fields:createGrove.readyNudge')}
-              </p>
-              <div className="field-form-nav grove-create-nav" data-onboarding-target={ONBOARDING_TARGETS.createCta}>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={handleCreateGrove}
+                  onClick={() => void continueToBoundary()}
                   loading={loading}
                   disabled={!nameValid}
-                  icon={<Check />}
                 >
-                  {t('fields:createGrove.createCta')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setCreateScreen('name')}
-                  disabled={loading}
-                >
-                  {t('common:back')}
+                  {t('fields:createGrove.continueToPlace')}
                 </Button>
               </div>
             </>
@@ -518,7 +499,7 @@ const FieldFormPage: React.FC = () => {
             </>
           ) : null}
 
-          {isActiveEdit && editFocus === 'boundary' ? (
+          {showBoundaryEditor ? (
             <>
               <FieldBoundaryMapStep
                 boundary={boundary}
@@ -527,25 +508,34 @@ const FieldFormPage: React.FC = () => {
                 latitude={formData.latitude}
                 longitude={formData.longitude}
                 onBoundaryChange={handleBoundaryChange}
-                onSkipBoundary={() => leaveClean(`/fields/${id}`)}
+                onPlaceChange={(place) => {
+                  markDirty();
+                  setFormData((prev) => ({ ...prev, ...place }));
+                }}
+                onContinue={
+                  finishingFirstBoundary ? () => void handleFinishBoundary() : undefined
+                }
+                continueLoading={loading}
                 activationGuide={Boolean(
-                  activation?.visible && !activation.completion.drawBoundary
+                  activation?.eligible && !activation.completion.drawBoundary
                 )}
               />
-              <div className="field-form-nav">
-                <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
-                  {t('fields:form.cancelChanges')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={handleSaveActiveChanges}
-                  loading={loading}
-                  data-onboarding-target={ONBOARDING_TARGETS.boundarySave}
-                >
-                  {t('fields:form.saveChanges')}
-                </Button>
-              </div>
+              {!finishingFirstBoundary ? (
+                <div className="field-form-nav">
+                  <Button type="button" variant="outline" onClick={() => leaveClean(`/fields/${id}`)}>
+                    {t('fields:form.cancelChanges')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleSaveActiveChanges}
+                    loading={loading}
+                    data-onboarding-target={ONBOARDING_TARGETS.boundarySave}
+                  >
+                    {t('fields:form.saveChanges')}
+                  </Button>
+                </div>
+              ) : null}
             </>
           ) : null}
 
@@ -577,6 +567,8 @@ const FieldFormPage: React.FC = () => {
             </>
           ) : null}
         </Card>
+          </div>
+        </div>
       </div>
     </PageContainer>
   );

@@ -21,7 +21,9 @@ type Props = {
   onShift: (delta: -1 | 1) => void;
 };
 
-const CHIP_STRIDE = 48 + spacing.sm;
+const CHIP_WIDTH = 72;
+const CHIP_GAP = spacing.md;
+const CHIP_STRIDE = CHIP_WIDTH + CHIP_GAP;
 
 const HarvestDayStrip: React.FC<Props> = ({
   selectedDay,
@@ -35,7 +37,7 @@ const HarvestDayStrip: React.FC<Props> = ({
   onShift,
 }) => {
   const { t } = useTranslation('fields');
-  const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const { colors, fontScaleMultiplier } = useTheme();
   const yesterday = shiftAthensDateKey(today, -1);
   const scrollRef = useRef<ScrollView>(null);
   const viewportWidth = useRef(0);
@@ -43,7 +45,7 @@ const HarvestDayStrip: React.FC<Props> = ({
   const centerSelected = useCallback(() => {
     const index = stripRows.findIndex((row) => row.date === selectedDay);
     if (index < 0 || viewportWidth.current <= 0) return;
-    const x = index * CHIP_STRIDE - (viewportWidth.current - 48) / 2;
+    const x = index * CHIP_STRIDE - (viewportWidth.current - CHIP_WIDTH) / 2;
     scrollRef.current?.scrollTo({ x: Math.max(0, x), animated: false });
   }, [selectedDay, stripRows]);
 
@@ -64,7 +66,7 @@ const HarvestDayStrip: React.FC<Props> = ({
 
   return (
     <View accessibilityLabel={t('harvestCampaign.dayNav.label')} style={styles.wrap}>
-      <HarvestCard tone="hero">
+      <HarvestCard tone="hero" compact>
         <View style={styles.mastheadRow}>
           <Pressable
             onPress={() => onShift(-1)}
@@ -74,8 +76,8 @@ const HarvestDayStrip: React.FC<Props> = ({
             style={[
               styles.chevron,
               {
-                minWidth: tapMin,
-                minHeight: tapMin,
+                minWidth: 40,
+                minHeight: 40,
                 opacity: canPrev ? 1 : 0.35,
                 backgroundColor: colors.surfaceMuted,
               },
@@ -87,7 +89,7 @@ const HarvestDayStrip: React.FC<Props> = ({
             <Text
               style={[
                 styles.title,
-                { color: colors.textPrimary, fontSize: 17 * fontScaleMultiplier },
+                { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier },
               ]}
               numberOfLines={1}
             >
@@ -106,8 +108,8 @@ const HarvestDayStrip: React.FC<Props> = ({
             style={[
               styles.chevron,
               {
-                minWidth: tapMin,
-                minHeight: tapMin,
+                minWidth: 40,
+                minHeight: 40,
                 opacity: canNext ? 1 : 0.35,
                 backgroundColor: colors.surfaceMuted,
               },
@@ -184,7 +186,7 @@ const HarvestDayStrip: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.md },
+  wrap: { gap: spacing.sm },
   mastheadRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,17 +200,17 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2, alignItems: 'center' },
   title: { fontWeight: '750' as '700', letterSpacing: -0.3, textAlign: 'center' },
   sub: { ...typography.styles.caption, textAlign: 'center' },
-  strip: { gap: spacing.sm, paddingVertical: 2, paddingHorizontal: 2 },
+  strip: { gap: CHIP_GAP, paddingVertical: 4, paddingHorizontal: 2 },
   chip: {
-    width: 48,
+    width: CHIP_WIDTH,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: 6,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
   },
-  weekday: { fontSize: 10, fontWeight: '700', letterSpacing: 0.4 },
+  weekday: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
   dayNum: { fontWeight: '800', fontVariant: ['tabular-nums'] },
   dot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
 });

@@ -19,15 +19,18 @@ import { spacing } from '../../theme';
 type Props = {
   fieldId: string;
   fieldName: string;
+  /** Hold each step so the welcome feels like a moment, not a flash. */
+  ceremony?: boolean;
 };
 
 const STAGES = ['weather', 'satellite', 'personalized'] as const;
 const POLL_MS = 2500;
 const MIN_STAGE_MS = 900;
+const CEREMONY_BEAT_MS = 1100;
 const SATELLITE_SOFT_MS = 22000;
 const MAX_WAIT_MS = 90000;
 
-const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
+const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = false }) => {
   const { t } = useTranslation('onboarding');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
@@ -94,19 +97,29 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
   }, [attempt]);
 
   useEffect(() => {
+    if (ceremony) {
+      if (revealed >= STAGES.length) return;
+      const id = setTimeout(() => setRevealed((n) => Math.min(n + 1, STAGES.length)), CEREMONY_BEAT_MS);
+      return () => clearTimeout(id);
+    }
     if (revealed >= readyCount) return;
     const id = setTimeout(() => setRevealed((n) => Math.min(n + 1, readyCount)), MIN_STAGE_MS);
     return () => clearTimeout(id);
-  }, [revealed, readyCount]);
+  }, [ceremony, revealed, readyCount]);
 
   useEffect(() => {
+    if (ceremony) {
+      if (showWelcome || revealed < STAGES.length) return;
+      const id = setTimeout(() => setShowWelcome(true), 400);
+      return () => clearTimeout(id);
+    }
     if (!canWelcome || showWelcome) return;
     if (revealed < Math.min(readyCount, STAGES.length) && !timedOut && !failed) return;
     const id = setTimeout(() => setShowWelcome(true), 500);
     return () => clearTimeout(id);
-  }, [canWelcome, showWelcome, revealed, readyCount, timedOut, failed]);
+  }, [ceremony, canWelcome, showWelcome, revealed, readyCount, timedOut, failed]);
 
-  if (!completion.drawBoundary) return null;
+  if (!ceremony && !completion.drawBoundary) return null;
 
   const firstName = user?.firstName?.trim();
   const displayName = fieldName.trim() || t('welcome.groveFallback');
@@ -114,7 +127,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
   const continueToGrove = () => {
     beginFirstObservationGuide();
     markFieldsDirty();
-    navigation.replace('FieldDetail', { fieldId, mode: 'details', activation: 'observe' });
+    navigation.replace('FieldDetail', { fieldId, mode: 'chronologio' });
   };
 
   const stageState = (index: number): 'pending' | 'active' | 'done' => {

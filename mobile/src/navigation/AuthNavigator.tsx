@@ -9,6 +9,7 @@ import LegalScreen from '../screens/LegalScreen';
 import SessionExpiredScreen from '../screens/SessionExpiredScreen';
 import InviteAcceptScreen from '../screens/InviteAcceptScreen';
 import { AuthStackParamList } from './types';
+import StackScreenHeader from './StackScreenHeader';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -19,6 +20,9 @@ const AuthNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
+        header: (props) => <StackScreenHeader {...props} />,
+        headerTransparent: true,
+        headerShadowVisible: false,
         contentStyle: { backgroundColor: 'transparent' },
       }}
     >
@@ -31,6 +35,7 @@ const AuthNavigator = () => {
         component={LegalScreen}
         options={({ route }) => ({
           headerShown: true,
+          headerTransparent: true,
           title: t(`legal:${route.params.kind}.title`),
         })}
       />
@@ -38,7 +43,7 @@ const AuthNavigator = () => {
       <Stack.Screen
         name="SessionExpired"
         component={SessionExpiredScreen}
-        options={{ headerShown: true, title: t('auth:sessionExpired.title') }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

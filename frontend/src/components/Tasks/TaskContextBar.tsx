@@ -3,6 +3,15 @@ import type { Field } from '../../services/fieldService';
 import { X } from 'lucide-react';
 
 interface TaskContextBarProps {
+  searchLabel: string;
+  searchPlaceholder: string;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  scopeLabel: string;
+  scope: 'mine' | 'everyone';
+  mineLabel: string;
+  everyoneLabel: string;
+  onScopeChange: (scope: 'mine' | 'everyone') => void;
   fieldLabel: string;
   allFieldsLabel: string;
   fieldId: string;
@@ -25,6 +34,15 @@ interface TaskContextBarProps {
 }
 
 const TaskContextBar: React.FC<TaskContextBarProps> = ({
+  searchLabel,
+  searchPlaceholder,
+  searchValue,
+  onSearchChange,
+  scopeLabel,
+  scope,
+  mineLabel,
+  everyoneLabel,
+  onScopeChange,
   fieldLabel,
   allFieldsLabel,
   fieldId,
@@ -53,10 +71,39 @@ const TaskContextBar: React.FC<TaskContextBarProps> = ({
   const selectedAssignee = assignees.find((person) => person.id === assigneeId);
 
   return (
-    <div className="tasks-context-bar">
-      <div className="tasks-context-controls">
-        <label className="tasks-context-control">
-          <span className="tasks-context-label">{fieldLabel}</span>
+    <div className="tasks-toolbar">
+      <div className="tasks-toolbar-row">
+        <label className="tasks-toolbar-search">
+          <span className="tasks-sr-only">{searchLabel}</span>
+          <input
+            className="notebook-search"
+            type="search"
+            value={searchValue}
+            placeholder={searchPlaceholder}
+            aria-label={searchLabel}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </label>
+        <div className="notebook-scope" role="group" aria-label={scopeLabel}>
+          <button
+            type="button"
+            className={scope === 'mine' ? 'is-active' : ''}
+            aria-pressed={scope === 'mine'}
+            onClick={() => onScopeChange('mine')}
+          >
+            {mineLabel}
+          </button>
+          <button
+            type="button"
+            className={scope === 'everyone' ? 'is-active' : ''}
+            aria-pressed={scope === 'everyone'}
+            onClick={() => onScopeChange('everyone')}
+          >
+            {everyoneLabel}
+          </button>
+        </div>
+        <label className="tasks-context-control tasks-toolbar-field">
+          <span className="tasks-sr-only">{fieldLabel}</span>
           <select
             value={fieldId}
             onChange={(event) => onFieldChange(event.target.value)}

@@ -20,6 +20,7 @@ import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayo
 import { isDateOnlyTimestamp } from '../../chronologio/clockLabel';
 import { chronologioWebDestination, isChronologioMergedHarvestDay } from '../../chronologio/entryDestination';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
+import { waterGapCopy } from '../../utils/weatherReviewDisplay';
 import HarvestDayJourney from './HarvestDayJourney';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import {
@@ -137,6 +138,8 @@ const ChronologioEntryCard: React.FC<Props> = ({
 
   const isPeriodReview =
     entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview';
+  const waterGap =
+    weather?.waterBalanceMm == null ? null : waterGapCopy(weather.waterBalanceMm, numberLocale, t);
   const isExtreme = isWeatherExtremeEventType(entry.eventType);
 
   // Extreme weather: compact colour strip only — not a selectable event card.
@@ -281,36 +284,24 @@ const ChronologioEntryCard: React.FC<Props> = ({
               {isPeriodReview && weather && weatherTile ? (
                 <div className="weather-pick-metrics">
                   {weather.rainfallMm != null ? (
-                    <div className="weather-pick-metric">
+                    <div className="weather-pick-metric is-rain">
                       <strong>
-                        {weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}
+                        {weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm
                       </strong>
                       <span>{t('chronologio:weatherReview.rainMm')}</span>
                     </div>
                   ) : null}
                   {weather.temperatureMin != null && weather.temperatureMax != null ? (
-                    <div className="weather-pick-metric">
+                    <div className="weather-pick-metric is-temp">
                       <strong>
                         {weather.temperatureMin.toFixed(0)}°–{weather.temperatureMax.toFixed(0)}°
                       </strong>
                       <span>{t('chronologio:weatherReview.tempRange')}</span>
                     </div>
                   ) : null}
-                  <div
-                    className={`weather-pick-metric${
-                      weather.waterBalanceMm == null
-                        ? ''
-                        : weather.waterBalanceMm < 0
-                          ? ' is-deficit'
-                          : ' is-surplus'
-                    }`}
-                  >
-                    <strong>
-                      {weather.waterBalanceMm == null
-                        ? '—'
-                        : `${weather.waterBalanceMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm`}
-                    </strong>
-                    <span>{t('chronologio:weatherReview.waterBalance')}</span>
+                  <div className={`weather-pick-metric${waterGap ? ` is-${waterGap.tone}` : ''}`}>
+                    <strong>{waterGap ? waterGap.value : '—'}</strong>
+                    <span>{waterGap ? waterGap.label : t('chronologio:weatherReview.waterMissing')}</span>
                   </div>
                 </div>
               ) : isPeriodReview && weather ? (

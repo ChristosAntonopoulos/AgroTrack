@@ -20,7 +20,7 @@ export type FieldWorkTemplateMeta = {
 
 export const FIELD_WORK_TEMPLATE_META: Record<string, FieldWorkTemplateMeta> = {
   T01: { el: 'Ανασκόπηση προηγούμενης χρονιάς', en: 'Review previous year', category: 'other', weatherSensitive: false },
-  T02: { el: 'Χειμερινός έλεγχος χωραφιού', en: 'Winter field inspection', category: 'inspection', weatherSensitive: true },
+  T02: { el: 'Χειμερινός έλεγχος ελαιώνα', en: 'Winter field inspection', category: 'inspection', weatherSensitive: true },
   T03: { el: 'Ανάλυση εδάφους', en: 'Soil analysis', category: 'analysis', weatherSensitive: false },
   T04: { el: 'Ετήσιο σχέδιο λίπανσης', en: 'Annual fertilisation plan', category: 'fertilisation', weatherSensitive: false },
   T05: { el: 'Βασική λίπανση', en: 'Base fertilisation', category: 'fertilisation', weatherSensitive: true },

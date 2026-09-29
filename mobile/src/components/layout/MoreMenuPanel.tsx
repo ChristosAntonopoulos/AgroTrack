@@ -151,6 +151,13 @@ const MoreMenuPanel: React.FC = () => {
       showArrow: true,
     },
     {
+      id: 'help',
+      icon: 'help-circle-outline',
+      label: t('nav:help', { defaultValue: 'Help' }),
+      onPress: () => navigation.navigate('Help'),
+      showArrow: true,
+    },
+    {
       id: 'settings',
       icon: 'settings-outline',
       label: t('nav:settings'),

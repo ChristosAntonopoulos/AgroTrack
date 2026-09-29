@@ -1,4 +1,5 @@
 import {
+  convertOliveOilKgToLitres,
   convertOliveOilLitresToKg,
   estimateSacksKg,
   extractionYieldPercent,
@@ -17,6 +18,7 @@ describe('harvestCalculations', () => {
     expect(convertOliveOilLitresToKg(100)).toBeCloseTo(91.6, 5);
     expect(oilKgFromAmount(100, 'litres')).toBeCloseTo(91.6, 5);
     expect(oilKgFromAmount(100, 'kg')).toBe(100);
+    expect(convertOliveOilKgToLitres(91.6)).toBeCloseTo(100, 5);
   });
 
   it('formats yield as a percentage, not mass', () => {

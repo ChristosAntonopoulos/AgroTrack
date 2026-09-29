@@ -18,11 +18,11 @@ const AccessDeniedPage: React.FC = () => {
         <h1>{greek ? 'Δεν έχεις πρόσβαση' : 'Access denied'}</h1>
         <p>
           {greek
-            ? `Δεν έχεις δικαίωμα να ανοίξεις ${moduleName ? `την ενότητα «${moduleName}»` : 'αυτή την ενότητα'} για το επιλεγμένο χωράφι.`
+            ? `Δεν έχεις δικαίωμα να ανοίξεις ${moduleName ? `την ενότητα «${moduleName}»` : 'αυτή την ενότητα'} για το επιλεγμένο ελαιώνα.`
             : `You do not have permission to open ${moduleName ? `the “${moduleName}” module` : 'this section'} for the selected field.`}
         </p>
         <Button to="/fields" variant="primary">
-          {greek ? 'Επιστροφή στα χωράφια' : 'Back to fields'}
+          {greek ? 'Επιστροφή στους ελαιώνες' : 'Back to fields'}
         </Button>
       </div>
     </PageContainer>

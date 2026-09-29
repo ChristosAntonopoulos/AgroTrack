@@ -16,6 +16,7 @@ import {
   type TaskUnit,
 } from '../../utils/taskNotebook';
 import { resolveWeatherKind } from '../../utils/taskWeather';
+import TaskCategoryMark from './TaskCategoryMark';
 import './TaskNotebookCard.css';
 
 export type NotebookMenuAction = 'reschedule' | 'block' | 'skip' | 'cancel' | 'reopen';
@@ -103,15 +104,25 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
             ? t('notebook.status.skipped')
             : status === 'cancelled'
               ? t('notebook.status.cancelled')
-              : t('notebook.status.todo');
+              : null;
+
+  const who = personName || t('notebook.unassigned');
+  const metaParts = [where, when, who, progress].filter(Boolean);
 
   useEffect(() => {
     if (!menuOpen) return;
     const close = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
     };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [menuOpen]);
 
   const menu = (id: NotebookMenuAction, label: string) => (
@@ -128,32 +139,29 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
   );
 
   return (
-    <article className={`notebook-card notebook-card--${status}`} data-task-id={task.id}>
+    <article
+      className={`task-row notebook-card notebook-card--${status}${
+        tone === 'overdue' ? ' task-row--urgent' : ''
+      }`}
+      data-task-id={task.id}
+    >
       <button type="button" className="notebook-card-hit" onClick={() => onOpen(task)}>
-        <span className="notebook-card-colors" aria-hidden>
-          {colors.map((color, index) => (
-            <span key={`${color}-${index}`} style={{ background: color }} />
-          ))}
-        </span>
+        <TaskCategoryMark templateCode={task.templateCode} />
         <span className="notebook-card-copy">
-          <span className="notebook-card-title">{title}</span>
-          <span className="notebook-card-where">
-            {where}
-            <span aria-hidden> · </span>
-            <span className={tone === 'overdue' ? 'is-overdue' : undefined}>{when}</span>
+          <span className="task-row-title notebook-card-title">{title}</span>
+          <span className="task-row-meta notebook-card-where">
+            {metaParts.map((part, index) => (
+              <React.Fragment key={`${part}-${index}`}>
+                {index > 0 ? <span aria-hidden> · </span> : null}
+                <span className={index === 1 && tone === 'overdue' ? 'is-overdue' : undefined}>
+                  {part}
+                </span>
+              </React.Fragment>
+            ))}
           </span>
-          <span className="notebook-card-who">
-            {personName ? <span>{personName}</span> : <span>{t('notebook.unassigned')}</span>}
-            {progress ? (
-              <>
-                <span aria-hidden> · </span>
-                <span>{progress}</span>
-              </>
-            ) : null}
-          </span>
-          {status !== 'todo' || showWeather ? (
+          {statusLabel || showWeather ? (
             <span className="notebook-card-status">
-              {status !== 'todo' ? statusLabel : null}
+              {statusLabel ? <span>{statusLabel}</span> : null}
               {showWeather ? (
                 <span className={`notebook-weather notebook-weather--${weatherKind}`}>
                   {weatherKind === 'unsuitable'
@@ -163,9 +171,14 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
               ) : null}
             </span>
           ) : null}
+          <span className="notebook-card-colors" aria-hidden>
+            {colors.map((color, index) => (
+              <span key={`${color}-${index}`} style={{ background: color }} />
+            ))}
+          </span>
         </span>
       </button>
-      <div className="notebook-card-actions">
+      <div className="notebook-card-actions task-row-actions">
         <button
           type="button"
           className="notebook-card-primary"
@@ -181,7 +194,7 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
             open={menuOpen}
             onToggle={(event) => setMenuOpen((event.target as HTMLDetailsElement).open)}
           >
-            <summary aria-label={t('fieldWork.actions.more')} aria-controls={menuId}>
+            <summary aria-label={t('fieldWork.actions.more')} aria-controls={menuId} aria-haspopup="menu">
               <MoreHorizontal size={20} aria-hidden />
             </summary>
             <div id={menuId} className="notebook-card-menu" role="menu">

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useLayoutEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -242,9 +242,18 @@ const CreateTaskScreen = () => {
 
   if (pageLoading) return <LoadingSpinner fullScreen />;
 
+  const proposalSummary =
+    mode === 'proposal' && initialTitle
+      ? t('fieldWork.form.fromSuggestion', {
+          title: initialTitle,
+          field: selectedField?.name ? ` · ${selectedField.name}` : '',
+          defaultValue: `From suggestion · ${initialTitle}${selectedField?.name ? ` · ${selectedField.name}` : ''}`,
+        })
+      : null;
+
   const subtitle =
     mode === 'proposal'
-      ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ')
+      ? t('fieldWork.form.manualSubtitle')
       : templateCodeParam
         ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ') ||
           t('fieldWork.form.manualSubtitle')
@@ -253,7 +262,13 @@ const CreateTaskScreen = () => {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScreenLayout scroll contentContainerStyle={styles.content}>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+      {proposalSummary ? (
+        <View style={[styles.summary, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
+          <Text style={[styles.summaryText, { color: colors.textPrimary }]}>{proposalSummary}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+      )}
       <TaskComposer
         key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}-${fieldId}-${templateCodeParam}`}
         mode={mode}
@@ -281,6 +296,14 @@ const CreateTaskScreen = () => {
 const styles = StyleSheet.create({
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
   subtitle: { ...typography.styles.bodySmall, marginBottom: spacing.md },
+  summary: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: spacing.md,
+  },
+  summaryText: { fontWeight: '700', lineHeight: 20 },
 });
 
 export default CreateTaskScreen;

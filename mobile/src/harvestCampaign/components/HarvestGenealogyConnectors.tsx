@@ -1,15 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, {
-  Circle,
-  Defs,
-  G,
-  LinearGradient,
-  Path,
-  Rect,
-  Stop,
-  Text as SvgText,
-} from 'react-native-svg';
+import Svg, { G, Path, Rect, Text as SvgText } from 'react-native-svg';
 import type { HarvestFlowLink } from '../flowGraph';
 
 export type CardAnchorBox = {
@@ -32,32 +23,21 @@ type Props = {
   fallbackColor?: string;
 };
 
-/**
- * Orthogonal SmoothStep connectors — React Flow / Carbon Traceability style.
- * https://reactflow.dev/examples/edges/custom-edges
- */
-export const smoothStepPath = (
-  sx: number,
-  sy: number,
-  tx: number,
-  ty: number,
-  radius = 10
-): string => {
-  const midY = sy + (ty - sy) / 2;
-  const dx = tx - sx;
-  const r = Math.min(radius, Math.abs(dx) / 2, Math.abs(ty - sy) / 2);
-  if (Math.abs(dx) < 1) {
-    return `M ${sx} ${sy} L ${tx} ${ty}`;
-  }
-  const dir = dx > 0 ? 1 : -1;
-  return [
-    `M ${sx} ${sy}`,
-    `L ${sx} ${midY - r}`,
-    `Q ${sx} ${midY} ${sx + dir * r} ${midY}`,
-    `L ${tx - dir * r} ${midY}`,
-    `Q ${tx} ${midY} ${tx} ${midY + r}`,
-    `L ${tx} ${ty}`,
-  ].join(' ');
+const swayOf = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 33 + seed.charCodeAt(i)) >>> 0;
+  return (hash % 1000) / 500 - 1;
+};
+
+/** A bowed curve. Each link leans a different way so the paths cross instead of stacking. */
+export const weavePath = (sx: number, sy: number, tx: number, ty: number, sway: number): string => {
+  const dy = Math.max(24, ty - sy);
+  const bow = sway * Math.min(84, 26 + Math.abs(tx - sx) * 0.35);
+  const c1x = sx + bow;
+  const c1y = sy + dy * 0.28;
+  const c2x = tx - bow * 0.72;
+  const c2y = sy + dy * 0.78;
+  return `M ${round(sx)} ${round(sy)} C ${round(c1x)} ${round(c1y)}, ${round(c2x)} ${round(c2y)}, ${round(tx)} ${round(ty)}`;
 };
 
 const round = (n: number) => Math.round(n * 10) / 10;
@@ -94,8 +74,11 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
         const lit =
           !selectedId || (highlight.has(link.fromId) && highlight.has(link.toId));
         const color = (link.fieldId && fieldColors[link.fieldId]) || fallbackColor;
-        const d = smoothStepPath(from.x, from.yBottom, to.x, to.yTop, 14);
-        const midX = (from.x + to.x) / 2;
+        const seed = `${link.fromId}|${link.toId}|${link.fieldId || ''}`;
+        const sway = swayOf(seed);
+        const lane = sway * 16;
+        const d = weavePath(from.x + lane * 0.35, from.yBottom, to.x - lane * 0.2, to.yTop, sway);
+        const midX = (from.x + to.x) / 2 + sway * 22;
         const midY = from.yBottom + (to.yTop - from.yBottom) / 2;
         return { link, d, lit, midX, midY, from, to, color };
       })
@@ -116,60 +99,32 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
   return (
     <View pointerEvents="none" style={[styles.wires, { width, height }]}>
       <Svg width={width} height={height}>
-        <Defs>
-          {edges.map(({ link, color }) => {
-            const gid = `hc-wire-${link.fromId}-${link.toId}-${link.fieldId || 'x'}`;
-            return (
-              <LinearGradient key={gid} id={gid} x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor={color} stopOpacity="0.95" />
-                <Stop offset="100%" stopColor={color} stopOpacity="0.55" />
-              </LinearGradient>
-            );
-          })}
-        </Defs>
-        {edges.map(({ link, d, lit, midX, midY, from, to, color }) => {
-          const gid = `hc-wire-${link.fromId}-${link.toId}-${link.fieldId || 'x'}`;
-          const opacity = lit ? 1 : 0.16;
-          const strokeW = selectedId && lit ? 2.85 : 2.25;
-          const glowW = selectedId && lit ? 10 : 7;
-          const glowOp = selectedId && lit ? 0.28 : 0.16;
+        {edges.map(({ link, d, lit, midX, midY, color }, index) => {
+          const active = Boolean(selectedId) && lit;
+          const opacity = !selectedId ? 0.42 : active ? 0.95 : 0.1;
+          const strokeW = active ? 2.6 : 1.6;
           const badgeW = Math.max(link.label?.length || 2, 2) * 3.6 + 12;
           return (
-            <G key={`${link.fromId}->${link.toId}->${link.fieldId || ''}`} opacity={opacity}>
+            <G key={`${link.fromId}->${link.toId}->${link.fieldId || ''}-${index}`}>
+              {active ? (
+                <Path
+                  d={d}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.16}
+                />
+              ) : null}
               <Path
                 d={d}
                 fill="none"
                 stroke={color}
-                strokeWidth={glowW}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={glowOp}
-              />
-              <Path
-                d={d}
-                fill="none"
-                stroke={`url(#${gid})`}
                 strokeWidth={strokeW}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-              />
-              <Circle
-                cx={from.x}
-                cy={from.yBottom}
-                r={3.6}
-                fill={color}
-                fillOpacity={0.35}
-                stroke={color}
-                strokeWidth={1.75}
-              />
-              <Circle
-                cx={to.x}
-                cy={to.yTop}
-                r={3.6}
-                fill={color}
-                fillOpacity={0.35}
-                stroke={color}
-                strokeWidth={1.75}
+                opacity={opacity}
               />
               {selectedId && lit && link.label ? (
                 <G>

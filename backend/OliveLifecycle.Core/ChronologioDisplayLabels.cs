@@ -37,7 +37,7 @@ public static class ChronologioDisplayLabels
                     ? (singular ? "Weather" : "Weather & warnings")
                     : (singular ? "Καιρός" : "Καιρός & προειδοποιήσεις"),
             ChronologioPrimaryCategory.FieldChange =>
-                IsEnglish(language) ? "Field change" : "Αλλαγές χωραφιού",
+                IsEnglish(language) ? "Field change" : "Αλλαγές ελαιώνα",
             _ => IsEnglish(language) ? "Activity" : "Δραστηριότητα"
         };
 

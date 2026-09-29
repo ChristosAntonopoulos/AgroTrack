@@ -152,9 +152,20 @@ export const fieldService = {
     }
 
     try {
+      const startedAt = Date.now();
       const response = await api.get<Field[]>('/api/v1/fields');
-      await EntityCache.setFields(userId, response.data);
-      return response.data;
+      const incoming = response.data ?? [];
+      const cached = (await EntityCache.getFields(userId))?.data ?? [];
+      const incomingIds = new Set(incoming.map((field) => field.id));
+      // A list request that started before create must not wipe the grove just saved.
+      const recentLocal = cached.filter((field) => {
+        if (incomingIds.has(field.id)) return false;
+        const updated = Date.parse(field.updatedAt || '');
+        return Number.isFinite(updated) && updated >= startedAt - 5000;
+      });
+      const merged = [...incoming, ...recentLocal];
+      await EntityCache.setFields(userId, merged);
+      return merged;
     } catch (error) {
       if (isNetworkError(error)) {
         const cached = await EntityCache.getFields(userId);

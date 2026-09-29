@@ -579,7 +579,13 @@ const ChronologioPeekDrawer: React.FC<Props> = ({
       categoryIcon={categoryIcon}
       accent={accent}
       when={
-        peek?.mode === 'event'
+        peek?.mode === 'event' && kind === 'weatherPeriod'
+          ? t(
+              entry?.eventType === 'weather.yearReview'
+                ? 'weatherReview.wholeYear'
+                : 'weatherReview.wholeMonth'
+            )
+          : peek?.mode === 'event'
           ? eventWhen
           : peek?.mode === 'month'
             ? formatMonthSpan(

@@ -7,6 +7,7 @@ import {
   type DayWeatherInput,
 } from '../../chronologio/dayWeather';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
+import { waterGapCopy } from '../../utils/weatherReviewDisplay';
 
 type Props = {
   dateKey: string;
@@ -98,10 +99,8 @@ const ChronologioDayWeatherDetail: React.FC<Props> = ({
           ) : null}
           {weather?.waterBalanceMm != null ? (
             <div>
-              <dt>{t('weatherReview.waterBalance', { defaultValue: 'Water balance' })}</dt>
-              <dd>
-                {weather.waterBalanceMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })} mm
-              </dd>
+              <dt>{waterGapCopy(weather.waterBalanceMm, numberLocale, t).label}</dt>
+              <dd>{waterGapCopy(weather.waterBalanceMm, numberLocale, t).value}</dd>
             </div>
           ) : null}
           {weather?.frost ? (

@@ -124,7 +124,7 @@ public class FieldWorkLearningService : IFieldWorkLearningService
             PracticeCategory = practiceKey,
             CurrentPreferenceMode = mode.ToApiString(),
             PromptMessage = greek
-                ? "Δεν θέλεις να προτείνουμε αυτή την εργασία για το χωράφι;"
+                ? "Δεν θέλεις να προτείνουμε αυτή την εργασία για τον ελαιώνα;"
                 : "Should we stop proposing this task for the field?"
         };
     }

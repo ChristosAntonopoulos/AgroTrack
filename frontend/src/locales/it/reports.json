@@ -109,8 +109,8 @@
     "dryStreak": "Periodo asciutto più lungo: {{count}} giorni.",
     "wetter": "{{value}}% più pioggia rispetto allo stesso periodo dell'anno scorso.",
     "drier": "{{value}}% meno pioggia rispetto allo stesso periodo dell'anno scorso.",
-    "waterDeficit": "La pioggia è stata {{value}} mm sotto l'evapotraspirazione.",
-    "waterSurplus": "La pioggia ha superato l'evapotraspirazione di {{value}} mm.",
+    "waterDeficit": "È piovuto {{value}} mm in meno di quanta acqua servisse al campo.",
+    "waterSurplus": "È piovuto {{value}} mm in più di quanta acqua servisse al campo.",
     "overdueTasks": "{{count}} attività in ritardo.",
     "loss": "L'anno si è chiuso in perdita.",
     "profit": "L'anno si è chiuso in utile."

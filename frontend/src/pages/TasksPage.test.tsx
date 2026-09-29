@@ -180,7 +180,7 @@ describe('TasksPage Phase 1 shell', () => {
     sessionStorage.clear();
     mockGetFields.mockResolvedValue([
       field('field-1', 'Κτήμα Φιλιατρών'),
-      field('field-2', 'Κάτω χωράφι'),
+      field('field-2', 'Κάτω ελαιώνας'),
     ]);
     mockListProposals.mockResolvedValue([
       proposal({ id: 'p-1', fieldId: 'field-1' }),
@@ -359,7 +359,7 @@ describe('TasksPage Phase 1 shell', () => {
     renderTasks('view=todo');
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Προτάσεις για τα χωράφια σου' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Προτάσεις για τους ελαιώνες σου' })).toBeInTheDocument();
     });
     expect(screen.getByText(/Προτείνεται για/)).toBeInTheDocument();
   });
@@ -380,10 +380,10 @@ describe('TasksPage Phase 1 shell', () => {
     renderTasks('view=todo');
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Φίλτρο ανά χωράφι')).toBeInTheDocument();
+      expect(screen.getByLabelText('Φίλτρο ανά ελαιώνα')).toBeInTheDocument();
     });
 
-    await userEvent.selectOptions(screen.getByLabelText('Φίλτρο ανά χωράφι'), 'field-2');
+    await userEvent.selectOptions(screen.getByLabelText('Φίλτρο ανά ελαιώνα'), 'field-2');
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Προτάσεις · 1/ })).toBeInTheDocument();
@@ -422,7 +422,7 @@ describe('TasksPage Phase 1 shell', () => {
     await waitFor(() => {
       expect(screen.getByText('Ολοκληρωμένο κλάδεμα')).toBeInTheDocument();
     });
-    expect(screen.getByText(/Δες το πλήρες Χρονολόγιο/)).toBeInTheDocument();
+    expect(screen.getByText(/Δες το πλήρες Ιστορικό/)).toBeInTheDocument();
   });
 
   it('puts in-progress work on to do', async () => {
@@ -457,7 +457,7 @@ describe('TasksPage Phase 1 shell', () => {
     renderTasks('view=todo');
     const schedule = await screen.findAllByRole('button', { name: 'Προγραμμάτισε' });
     await userEvent.click(schedule[0]);
-    expect(await screen.findByText(/Επίλεξε χωράφια/)).toBeInTheDocument();
+    expect(await screen.findByText(/Επίλεξε ελαιώνες/)).toBeInTheDocument();
   });
 
   it('groups many proposals into priority sections', async () => {

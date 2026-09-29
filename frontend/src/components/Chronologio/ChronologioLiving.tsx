@@ -64,6 +64,7 @@ import {
 } from '../../chronologio/yearPresentation';
 import { PAGE_SIZE } from '../../utils/chronologioGrouping';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { fieldHasBoundary } from '../../utils/fieldDisplay';
 import { uniqueChronologioEntries } from '../../utils/chronologioUnique';
 import { useChronologioLivingState } from '../../chronologio/useChronologioLivingState';
 import { getSeasonStartYear } from '../../utils/harvestSeason';
@@ -73,6 +74,7 @@ import { CAPTURE_SAVED_EVENT } from '../../capture/types';
 import { readWorkProfileDraft } from '../../utils/fieldWorkProfileDraft';
 import WorkSetupBanner from '../fields/WorkSetupBanner';
 import FirstObservationGuide from '../onboarding/FirstObservationGuide';
+import SpatialLoadingPanel from '../onboarding/SpatialLoadingPanel';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import './Chronologio.css';
 
@@ -105,6 +107,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldName, setFieldName] = useState('');
   const [yearSummaries, setYearSummaries] = useState<ChronologioPeriodSummary[]>([]);
+  const [glanceYears, setGlanceYears] = useState<ChronologioPeriodSummary[]>([]);
   const [monthSummaries, setMonthSummaries] = useState<ChronologioMonthSummary[]>([]);
   const [compareLeftMonths, setCompareLeftMonths] = useState<ChronologioMonthSummary[]>([]);
   const [compareRightMonths, setCompareRightMonths] = useState<ChronologioMonthSummary[]>([]);
@@ -141,6 +144,16 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const restoredFocusRef = useRef(false);
 
   const scopedFieldId = fieldMode ? fieldId : living.filters.fieldId;
+  const spatialWelcomeId = (() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('activation') !== 'spatial') return null;
+    return (params.get('fieldId') || params.get('field') || scopedFieldId || '').trim() || null;
+  })();
+  const groveNameFromNav = (location.state as { groveName?: string } | null)?.groveName?.trim() || '';
+  const spatialWelcomeName =
+    fields.find((field) => field.id === spatialWelcomeId)?.name?.trim() ||
+    (fieldMode && fieldId === spatialWelcomeId ? fieldName : '') ||
+    groveNameFromNav;
   const todayIso = toIsoDate(new Date());
   const nowYear = new Date().getFullYear();
   const nowMonth = new Date().getMonth() + 1;
@@ -331,11 +344,24 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         }
 
         if (living.zoom === 'month') {
-          const entries = await fetchJournalPage(0);
+          const svc = getChronologioService();
+          const glanceFilters = {
+            axis: 'agricultural' as const,
+            category: apiCategoryParam(living.filters.category),
+            fieldId: !fieldMode ? living.filters.fieldId : undefined,
+          };
+          const [entries, glances] = await Promise.all([
+            fetchJournalPage(0),
+            (scopedFieldId
+              ? svc.getFieldYearSummaries(scopedFieldId, glanceFilters)
+              : svc.getMyYearSummaries(glanceFilters)
+            ).catch(() => [] as ChronologioPeriodSummary[]),
+          ]);
           if (cancelled) return;
           setMonthEntries(uniqueChronologioEntries(entries));
           setJournalHasMore(entries.length >= PAGE_SIZE);
           setYearEntries([]);
+          setGlanceYears(glances);
         } else if (living.zoom === 'year') {
           const { from, to } = periodBounds(living.periodYear, living.axis);
           const svc = getChronologioService();
@@ -353,10 +379,12 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
           if (cancelled) return;
           setYearEntries(uniqueChronologioEntries(yearRows));
           setMonthEntries([]);
+          setGlanceYears([]);
           setJournalHasMore(false);
         } else {
           setMonthEntries([]);
           setYearEntries([]);
+          setGlanceYears([]);
         }
       } catch (err) {
         if (!cancelled) {
@@ -366,6 +394,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
             setMonthSummaries([]);
             setMonthEntries([]);
             setYearEntries([]);
+            setGlanceYears([]);
           }
           setJournalHasMore(false);
         }
@@ -458,7 +487,9 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   useEffect(() => {
     if (zoomScrollRef.current === living.zoom) return;
     zoomScrollRef.current = living.zoom;
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (living.zoom === 'years') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
   }, [living.zoom]);
 
   useEffect(() => {
@@ -834,14 +865,46 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     [living.compareYears, yearSummaries]
   );
 
-  const empty =
-    !loading &&
-    !error &&
-    yearSummaries.length === 0 &&
-    monthEntries.length === 0 &&
-    !showTodaySummary;
+  const noStory =
+    !loading && !error && yearSummaries.length === 0 && monthEntries.length === 0;
+  const empty = noStory && !showTodaySummary;
 
-  const cta = capture ? (
+  const starterGrove = useMemo(() => {
+    const named = fields.filter((field) => field.status !== 'Archived' && Boolean(field.name?.trim()));
+    if (scopedFieldId) return named.find((field) => field.id === scopedFieldId) ?? null;
+    return named[0] ?? null;
+  }, [fields, scopedFieldId]);
+  const starterNeedsBoundary = Boolean(starterGrove && !fieldHasBoundary(starterGrove));
+  const starterName = fieldName || starterGrove?.name || '';
+  const showStarterEmpty =
+    booted && !error && !living.compareOpen && !refreshing && noStory && Boolean(starterGrove);
+
+  const cta =
+    noStory && starterGrove ? (
+      <div className="chrono-first-actions">
+        {starterNeedsBoundary ? (
+          <>
+            <Button
+              variant="primary"
+              onClick={() => navigate(`/fields/${starterGrove.id}/edit?focus=boundary`)}
+            >
+              {t('chronologio:firstGrove.continuePlace')}
+            </Button>
+            <Button variant="secondary" to={`/fields/${starterGrove.id}`}>
+              {t('chronologio:firstGrove.viewGrove')}
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="primary"
+            onClick={() => capture?.openCapture({ fieldId: starterGrove.id })}
+            disabled={!capture}
+          >
+            {t('chronologio:firstGrove.primary')}
+          </Button>
+        )}
+      </div>
+    ) : capture ? (
     <Button
       variant="primary"
       onClick={() => capture.openCapture({ fieldId: scopedFieldId || fieldId })}
@@ -1058,6 +1121,13 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
 
   return (
     <div className={`chronologio-shell chrono-living${embedded ? ' chronologio-shell--embedded' : ''}`}>
+      {spatialWelcomeId && activation?.eligible ? (
+        <SpatialLoadingPanel
+          fieldId={spatialWelcomeId}
+          fieldName={spatialWelcomeName}
+          continuePath={`/chronologio?fieldId=${encodeURIComponent(spatialWelcomeId)}`}
+        />
+      ) : null}
       {embedded ? null : <Breadcrumbs />}
       <ChronologioChrome
         fieldMode={fieldMode}
@@ -1128,22 +1198,30 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         />
       ) : null}
 
-      {booted && !error && !living.compareOpen && empty && !refreshing ? (
+      {showStarterEmpty || (booted && !error && !living.compareOpen && empty && !refreshing) ? (
         <EmptyState
           icon={<BookOpen size={28} />}
           title={
-            fieldMode ? t('chronologio:emptyFieldTitle') : t('chronologio:emptyGlobalTitle')
+            starterGrove
+              ? t('chronologio:firstGrove.title', { name: starterName })
+              : fieldMode
+                ? t('chronologio:emptyFieldTitle')
+                : t('chronologio:emptyGlobalTitle')
           }
           description={
-            fieldMode
-              ? t('chronologio:emptyFieldDescription')
-              : t('chronologio:emptyGlobalDescription')
+            starterGrove
+              ? starterNeedsBoundary
+                ? t('chronologio:firstGrove.needsBoundary')
+                : t('chronologio:firstGrove.body')
+              : fieldMode
+                ? t('chronologio:emptyFieldDescription')
+                : t('chronologio:emptyGlobalDescription')
           }
           action={cta}
         />
       ) : null}
 
-      {booted && !error && !living.compareOpen && (!empty || refreshing) ? (
+      {booted && !error && !living.compareOpen && !showStarterEmpty && (!empty || refreshing) ? (
         <div
           className={`chronologio-layout chrono-living-layout${living.zoom !== 'years' && yearSummaries.length >= 5 ? ' has-date-rail' : ''}${panelBusy ? ' is-refreshing' : ''}`}
           aria-busy={panelBusy || undefined}
@@ -1247,6 +1325,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         focusDate={living.focusDate}
                         zoom={living.zoom}
                         fieldId={scopedFieldId}
+                        yearGlances={glanceYears}
                         onLoadMore={loadMoreJournal}
                         onSelect={(e) => living.setSelectedEntry(e.id)}
                         onClearSelection={closePeek}

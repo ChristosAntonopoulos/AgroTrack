@@ -35,15 +35,13 @@ const ActivationChecklist: React.FC = () => {
   const resumeStep = activeStep || (completion.createGrove ? 'drawBoundary' : 'createGrove');
   const resumeTarget =
     resumeStep === 'firstObservation' || resumeStep === 'loadData' ? 'loadData' : resumeStep;
-  // FocusSpotlight already coaches on create/boundary — skip duplicate tip while locked.
+  // Name step is the page itself. Boundary tip stays off while the map coach is up.
   const tipKey =
-    locked && (spotlightStep === 'createGrove' || spotlightStep === 'drawBoundary')
+    spotlightStep === 'createGrove' || (locked && spotlightStep === 'drawBoundary')
       ? null
-      : spotlightStep === 'createGrove'
-        ? 'createGrove'
-        : spotlightStep === 'drawBoundary'
-          ? 'drawBoundary'
-          : null;
+      : spotlightStep === 'drawBoundary'
+        ? 'drawBoundary'
+        : null;
 
   if (celebrating) {
     return (
@@ -127,7 +125,7 @@ const ActivationChecklist: React.FC = () => {
               {t(`spotlight.${tipKey}.body`)}
             </Text>
           </View>
-          {setupUnlocked && tipKey !== 'createGrove' ? (
+          {setupUnlocked ? (
             <Pressable onPress={() => (spotlightStep ? skipStep(spotlightStep) : snoozeLater())} hitSlop={6}>
               <Text style={styles.skip}>{t('spotlight.skip')}</Text>
             </Pressable>

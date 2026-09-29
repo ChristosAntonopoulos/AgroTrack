@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
-import HeaderIconButton from '../components/layout/HeaderIconButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/ui/Button';
 import Sheet from '../components/ui/Sheet';
@@ -19,6 +18,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/types';
+import { useDock } from '../navigation/DockContext';
 import { useFields } from '../hooks/useFields';
 import { getHarvestService } from '../services/serviceFactory';
 import type { HarvestRecord } from '../services/harvestService';
@@ -26,6 +26,7 @@ import { CAPTURE_SAVED_EVENT, type CaptureSavedDetail } from '../capture/types';
 import { formatSeasonLabel } from '../utils/harvestSeason';
 import { athensCalendarDateKey } from '../utils/athensDate';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
+import { FieldNameRow } from '../components/fields/FieldName';
 import { formatKg } from '../utils/harvestUtils';
 import {
   addExpense,
@@ -47,7 +48,6 @@ import {
   updatePeople,
   updateSack,
 } from '../harvestCampaign/storage';
-import { formatDaySpan, harvestChainStatus } from '../harvestCampaign/chain';
 import {
   harvestExpenseCaptureContext,
   harvestIncomeCaptureContext,
@@ -108,6 +108,7 @@ import {
   type HarvestSheetKind,
 } from '../harvestCampaign/HarvestSheets';
 import { HarvestCard } from '../harvestCampaign/components/HarvestCard';
+import { HARVEST_ACTION_ICONS } from '../harvestCampaign/harvestActions';
 import { HistoricalHarvestDayBoard } from '../harvestCampaign/components/HistoricalHarvestDayBoard';
 import {
   campaignFromHarvestRecords,
@@ -134,6 +135,7 @@ type HarvestAddPrefill = {
 
 const HarvestCampaignScreen = () => {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const { setAdd } = useDock();
   const { t, i18n } = useTranslation(['fields', 'common', 'chronologio']);
   const locale = i18n.language || 'en';
   const { user, isFieldOwner } = useAuth();
@@ -264,14 +266,20 @@ const HarvestCampaignScreen = () => {
     () => harvestDayStripRows(campaign, today, stripBounds),
     [campaign, today, stripBounds]
   );
-  const chainStatus = useMemo(() => harvestChainStatus(campaign), [campaign]);
-  const showDayStrip = isLive;
+  const showDayStrip = isLive && view === 'today';
   const days = harvestDayNumber(campaign, workingDay);
   const canPrevDay = workingDay > harvestStripFloor(today);
   const canNextDay = workingDay < harvestStripCeiling(today);
   const logs = useMemo(() => allDaySummaries(campaign), [campaign]);
   const labelOf = useCallback(
     (id: string) => friendlyFieldLabel(harvestable.find((f) => f.id === id)?.name || id),
+    [harvestable]
+  );
+  const fieldOf = useCallback(
+    (id: string) => {
+      const field = harvestable.find((item) => item.id === id);
+      return { id, name: field?.name || id, color: field?.color };
+    },
     [harvestable]
   );
 
@@ -464,6 +472,17 @@ const HarvestCampaignScreen = () => {
     }
     setSheet('add');
   };
+
+  const requestAddRef = useRef(requestAdd);
+  requestAddRef.current = requestAdd;
+  useEffect(() => {
+    if (!isLive || harvestCaps.captureKinds.length === 0) {
+      setAdd(null);
+      return;
+    }
+    setAdd({ hideHome: false, onAdd: () => requestAddRef.current() });
+    return () => setAdd(null);
+  }, [harvestCaps.captureKinds.length, isLive, setAdd]);
 
   const openCapture = (kind: HarvestCaptureKind) => {
     const sackIds = addPrefill?.sackIds;
@@ -815,16 +834,11 @@ const HarvestCampaignScreen = () => {
     preferredFieldId,
   };
 
-  const headerSubtitle = [
-    formatSeasonLabel(seasonStartYear),
-    isLive
-      ? campaign.status === 'paused'
-        ? t('fields:harvestCampaign.status.paused')
-        : t('fields:harvestCampaign.status.active')
-      : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const seasonLabel = formatSeasonLabel(seasonStartYear);
+  const liveStatus =
+    campaign.status === 'paused'
+      ? t('fields:harvestCampaign.status.paused')
+      : t('fields:harvestCampaign.headerOpen');
 
   const areaLocale: 'el' | 'en' | 'it' = locale.startsWith('en')
     ? 'en'
@@ -843,22 +857,30 @@ const HarvestCampaignScreen = () => {
   return (
     <ScreenLayout tabBarInset>
       <ScreenHeader
+        dense
         title={t('fields:harvestCampaign.title')}
-        subtitle={headerSubtitle || t('fields:harvestCampaign.opening.body')}
+        subtitle={
+          isLive
+            ? t('fields:harvestCampaign.flow.seasonLine', { years: seasonLabel })
+            : seasonLabel || t('fields:harvestCampaign.opening.body')
+        }
         action={
-          isLive && harvestCaps.captureKinds.length > 0 ? (
-            <HeaderIconButton
-              icon="add"
-              accessibilityLabel={t('fields:harvestCampaign.home.whatAdd')}
-              onPress={requestAdd}
-              active={sheet === 'add'}
-            />
+          isLive ? (
+            <View style={styles.headerActions}>
+              <View style={[styles.livePill, { backgroundColor: colors.primaryLight }]}>
+                <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
+                <Text style={[styles.statusText, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {liveStatus}
+                </Text>
+              </View>
+            </View>
           ) : undefined
         }
         context={
           isLive ? (
             <SegmentedControl
               fullWidth
+              quiet
               ariaLabel={t('fields:harvestCampaign.nav.label')}
               value={view}
               onChange={setView}
@@ -907,7 +929,7 @@ const HarvestCampaignScreen = () => {
             })}
           </Text>
           <Button
-            title={t('fields:thisHarvest.openChronologio', { defaultValue: 'Chronologio' })}
+            title={t('fields:thisHarvest.openChronologio', { defaultValue: 'History' })}
             onPress={() => openChronologioHome(navigation)}
             fullWidth
           />
@@ -979,33 +1001,28 @@ const HarvestCampaignScreen = () => {
 
       {isLive ? (
         <>
-          {showDayStrip ? (
-            <View style={[styles.block, { paddingBottom: 0 }]}>
-              <HarvestDayStrip
-                selectedDay={workingDay}
-                today={today}
-                dayNumber={days}
-                stripRows={stripRows}
-                canPrev={canPrevDay}
-                canNext={canNextDay}
-                locale={locale}
-                onSelectDay={(day) => {
-                  selectWorkingDay(day);
-                  if (view === 'log') setView('today');
-                }}
-                onShift={(delta) =>
-                  selectWorkingDay(shiftHarvestWorkingDay(workingDay, delta, campaign, today))
-                }
-              />
-            </View>
-          ) : null}
           <ScrollView
-            contentContainerStyle={[styles.block, { paddingBottom: spacing.md }]}
+            contentContainerStyle={[styles.block, { paddingBottom: spacing.lg }]}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
           >
             {view === 'today' ? (
-              <View style={{ gap: spacing.base }}>
+              <View style={{ gap: spacing.lg }}>
+                {showDayStrip ? (
+                  <HarvestDayStrip
+                    selectedDay={workingDay}
+                    today={today}
+                    dayNumber={days}
+                    stripRows={stripRows}
+                    canPrev={canPrevDay}
+                    canNext={canNextDay}
+                    locale={locale}
+                    onSelectDay={selectWorkingDay}
+                    onShift={(delta) =>
+                      selectWorkingDay(shiftHarvestWorkingDay(workingDay, delta, campaign, today))
+                    }
+                  />
+                ) : null}
                 {sackSavedHint ? (
                   <View
                     style={{
@@ -1020,171 +1037,67 @@ const HarvestCampaignScreen = () => {
                   </View>
                 ) : null}
 
-                {(chainStatus.pendingSackCount > 0 ||
-                  chainStatus.millKgWithoutOil > 0 ||
-                  chainStatus.latestCompleteYield != null) && (
-                  <View style={{ gap: spacing.sm }}>
-                    {chainStatus.pendingSackCount > 0 ? (
-                      <Pressable
-                        onPress={() => openMillCapture(chainStatus.pendingSackIds)}
-                        style={{
-                          padding: spacing.md,
-                          borderRadius: radii.lg,
-                          borderWidth: StyleSheet.hairlineWidth,
-                          borderColor: colors.borderLight,
-                          backgroundColor: colors.eventHarvestSoft,
-                          gap: 4,
-                        }}
-                      >
-                        <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>
-                          {t('fields:harvestCampaign.chain.openSacks', {
-                            count: chainStatus.pendingSackCount,
-                            span: formatDaySpan(chainStatus.pendingSackDays, locale),
-                          })}
-                        </Text>
-                        <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
-                          {t('fields:harvestCampaign.chain.ctaMill')}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-                    {chainStatus.millKgWithoutOil > 0 ? (
-                      <Pressable
-                        onPress={() =>
-                          openOilCapture(chainStatus.millsWithoutOil.map((m) => m.id))
-                        }
-                        style={{
-                          padding: spacing.md,
-                          borderRadius: radii.lg,
-                          borderWidth: StyleSheet.hairlineWidth,
-                          borderColor: colors.borderLight,
-                          backgroundColor: colors.eventHarvestSoft,
-                          gap: 4,
-                        }}
-                      >
-                        <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>
-                          {t('fields:harvestCampaign.chain.openMill', {
-                            kg: formatKg(chainStatus.millKgWithoutOil),
-                            span: formatDaySpan(
-                              chainStatus.millsWithoutOil.map((m) => m.date),
-                              locale
-                            ),
-                          })}
-                        </Text>
-                        <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
-                          {t('fields:harvestCampaign.chain.ctaOil')}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-                    {chainStatus.pendingSackCount === 0 &&
-                    chainStatus.millKgWithoutOil === 0 &&
-                    chainStatus.latestCompleteYield != null ? (
-                      <Text
-                        style={{
-                          color: colors.textPrimary,
-                          fontWeight: '650' as '600',
-                          padding: spacing.md,
-                          borderRadius: radii.lg,
-                          backgroundColor: colors.eventHarvestSoft,
-                        }}
-                      >
-                        {t('fields:harvestCampaign.chain.latestYield', {
-                          yield: Math.round(chainStatus.latestCompleteYield),
-                        })}
-                      </Text>
-                    ) : null}
-                  </View>
-                )}
+                <HarvestCard tone="hero" compact>
+                  <Text style={[styles.overline, { color: colors.textTertiary }]}>
+                    {workingDay === today
+                      ? t('fields:harvestCampaign.dayNav.today')
+                      : t('fields:harvestCampaign.today.label')}
+                  </Text>
 
-                <HarvestCard tone="hero">
-                  <View style={styles.daySummaryHead}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.overline, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.nav.today')}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.daySummaryTitle,
-                          { color: colors.textPrimary, fontSize: 20 * fontScaleMultiplier },
-                        ]}
-                      >
-                        {workingDay === today
-                          ? t('fields:harvestCampaign.dayNav.today')
-                          : new Date(`${workingDay}T12:00:00`).toLocaleDateString(locale, {
-                              weekday: 'long',
-                              day: 'numeric',
-                              month: 'long',
+                  {activeRow.sacks > 0 ||
+                  activeRow.officialKg > 0 ||
+                  activeRow.oilKg > 0 ||
+                  activeRow.people > 0 ? (
+                    <View style={styles.scanGrid}>
+                      {activeRow.sacks > 0 ? (
+                        <View style={styles.scanCell}>
+                          <Ionicons name={HARVEST_ACTION_ICONS.sacks} size={16} color={colors.eventHarvest} />
+                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
+                            {t('fields:harvestCampaign.today.sacksLine', { count: activeRow.sacks })}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {activeRow.officialKg > 0 ? (
+                        <View style={styles.scanCell}>
+                          <Ionicons name={HARVEST_ACTION_ICONS.mill} size={16} color={colors.eventHarvest} />
+                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
+                            {t('fields:harvestCampaign.today.millLine', {
+                              kg: formatKg(activeRow.officialKg),
                             })}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusPill,
-                        { backgroundColor: colors.eventHarvestSoft },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          color: colors.primary,
-                          fontWeight: '700',
-                          fontSize: 11,
-                        }}
-                      >
-                        {t('fields:harvestCampaign.status.active')}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.dayMetrics}>
-                    <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
-                      <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.actions.mill')}
-                      </Text>
-                      <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                        {activeRow.officialKg > 0 ? `${formatKg(activeRow.officialKg)} kg` : '—'}
-                      </Text>
-                    </View>
-                    <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
-                      <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.sacks.unit')}
-                      </Text>
-                      <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                        {activeRow.sacks > 0 ? activeRow.sacks : '—'}
-                      </Text>
-                      {activeRow.estimatedKg > 0 && activeRow.officialKg <= 0 ? (
-                        <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-                          {t('fields:harvestCampaign.approx', {
-                            kg: formatKg(activeRow.estimatedKg),
-                          })}
-                        </Text>
+                          </Text>
+                        </View>
+                      ) : null}
+                      {activeRow.oilKg > 0 ? (
+                        <View style={styles.scanCell}>
+                          <Ionicons name={HARVEST_ACTION_ICONS.oil} size={16} color={colors.eventHarvest} />
+                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
+                            {t('fields:harvestCampaign.today.oilLine', { kg: formatKg(activeRow.oilKg) })}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {activeRow.people > 0 ? (
+                        <View style={styles.scanCell}>
+                          <Ionicons name={HARVEST_ACTION_ICONS.people} size={16} color={colors.eventHarvest} />
+                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
+                            {t('fields:harvestCampaign.today.people', { count: activeRow.people })}
+                          </Text>
+                        </View>
                       ) : null}
                     </View>
-                    <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
-                      <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.actions.oil')}
-                      </Text>
-                      <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                        {activeRow.oilKg > 0 ? `${formatKg(activeRow.oilKg)} kg` : '—'}
-                      </Text>
-                    </View>
-                    <View style={[styles.dayMetric, { backgroundColor: colors.surface }]}>
-                      <Text style={[styles.dayMetricLabel, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.actions.people')}
-                      </Text>
-                      <Text style={[styles.dayMetricValue, { color: colors.textPrimary }]}>
-                        {activeRow.people > 0 ? activeRow.people : '—'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {activeRow.fieldIds.length > 0 ? (
-                    <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
-                      {activeRow.fieldIds.map(labelOf).join(' · ')}
-                    </Text>
                   ) : (
                     <Text style={{ color: colors.textSecondary }}>
                       {t('fields:harvestCampaign.today.empty')}
                     </Text>
                   )}
+                  {activeRow.estimatedKg > 0 && activeRow.officialKg <= 0 ? (
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                      {t('fields:harvestCampaign.approx', {
+                        kg: formatKg(activeRow.estimatedKg),
+                      })}
+                    </Text>
+                  ) : null}
+
+                  <FieldNameRow fields={activeRow.fieldIds.map(fieldOf)} size="md" />
 
                   {(activeRow.expenseEur > 0 || activeRow.photos > 0) && (
                     <View style={styles.metaRow}>
@@ -1216,36 +1129,12 @@ const HarvestCampaignScreen = () => {
                 <HarvestDayActivity
                   campaign={campaign}
                   date={workingDay}
-                  labelOf={labelOf}
+                  fieldOf={fieldOf}
                   onEdit={openDayEdit}
                   onRemove={removeDayEntry}
                   onAdd={openDayAdd}
                   allowedKinds={harvestCaps.captureKinds}
                 />
-
-                {harvestCaps.captureKinds.length > 0 ? (
-                  <HarvestCard tone="pending" onPress={requestAdd}>
-                    <View style={styles.addCueInner}>
-                      <View style={[styles.addCueIcon, { backgroundColor: colors.surface }]}>
-                        <Ionicons name="add" size={22} color={colors.eventHarvest} />
-                      </View>
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                          {t('fields:harvestCampaign.home.whatAdd')}
-                        </Text>
-                        <Text
-                          style={{
-                            color: colors.textSecondary,
-                            fontSize: 13 * fontScaleMultiplier,
-                          }}
-                        >
-                          {t('fields:harvestCampaign.home.addCue')}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-                    </View>
-                  </HarvestCard>
-                ) : null}
               </View>
             ) : null}
 
@@ -1406,6 +1295,7 @@ const HarvestCampaignScreen = () => {
                     onMarkDone={(fieldId) => void markGroveDone(fieldId)}
                     onOpenMill={openMillCapture}
                     onOpenOil={openOilCapture}
+                    onAdd={() => requestAdd()}
                   />
                 )}
               </View>
@@ -1725,18 +1615,53 @@ const styles = StyleSheet.create({
   },
   daySummaryHead: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.sm,
   },
-  daySummaryTitle: {
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    marginTop: 2,
+  scanGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 6,
+  },
+  scanCell: {
+    width: '50%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  scanText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   statusPill: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   dayMetrics: {
     flexDirection: 'row',

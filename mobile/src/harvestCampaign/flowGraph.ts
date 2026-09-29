@@ -455,25 +455,43 @@ export const fieldAllocationCaption = (
   return { millKg, oilKg, shared };
 };
 
+/**
+ * The path through this node only.
+ * Walk upstream for where it came from, and downstream for where it went.
+ * Do not step sideways into other branches that share a field or a weighing.
+ */
 export const relatedGenealogyIds = (
   nodeId: string | null,
   links: HarvestFlowLink[]
 ): Set<string> => {
   if (!nodeId) return new Set();
   const related = new Set<string>([nodeId]);
-  let changed = true;
-  while (changed) {
-    changed = false;
+
+  const downstream = new Set<string>([nodeId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
     for (const link of links) {
-      if (related.has(link.fromId) && !related.has(link.toId)) {
+      if (downstream.has(link.fromId) && !downstream.has(link.toId)) {
+        downstream.add(link.toId);
         related.add(link.toId);
-        changed = true;
-      }
-      if (related.has(link.toId) && !related.has(link.fromId)) {
-        related.add(link.fromId);
-        changed = true;
+        grew = true;
       }
     }
   }
+
+  const upstream = new Set<string>([nodeId]);
+  grew = true;
+  while (grew) {
+    grew = false;
+    for (const link of links) {
+      if (upstream.has(link.toId) && !upstream.has(link.fromId)) {
+        upstream.add(link.fromId);
+        related.add(link.fromId);
+        grew = true;
+      }
+    }
+  }
+
   return related;
 };

@@ -19,6 +19,7 @@ import enMoney from '../locales/en/money.json';
 import enMyOil from '../locales/en/myOil.json';
 import enPhotos from '../locales/en/photos.json';
 import enFeedback from '../locales/en/feedback.json';
+import enHelp from '../locales/en/help.json';
 import enLegal from '../locales/en/legal.json';
 import enOnboarding from '../locales/en/onboarding.json';
 
@@ -40,12 +41,14 @@ import elMoney from '../locales/el/money.json';
 import elMyOil from '../locales/el/myOil.json';
 import elPhotos from '../locales/el/photos.json';
 import elFeedback from '../locales/el/feedback.json';
+import elHelp from '../locales/el/help.json';
 import elLegal from '../locales/el/legal.json';
 import elOnboarding from '../locales/el/onboarding.json';
 
 import itFields from '../locales/it/fields.json';
 import itOnboarding from '../locales/it/onboarding.json';
 import itPhotos from '../locales/it/photos.json';
+import itMyOil from '../locales/it/myOil.json';
 
 /** Greek is the product default for Oleachron. */
 const defaultLng = 'el';
@@ -72,6 +75,7 @@ i18n.use(initReactI18next).init({
       myOil: enMyOil,
       photos: enPhotos,
       feedback: enFeedback,
+      help: enHelp,
       legal: enLegal,
       onboarding: enOnboarding,
     },
@@ -94,6 +98,7 @@ i18n.use(initReactI18next).init({
       myOil: elMyOil,
       photos: elPhotos,
       feedback: elFeedback,
+      help: elHelp,
       legal: elLegal,
       onboarding: elOnboarding,
     },
@@ -102,6 +107,7 @@ i18n.use(initReactI18next).init({
       fields: itFields,
       onboarding: itOnboarding,
       photos: itPhotos,
+      myOil: itMyOil,
     },
   },
   lng: defaultLng,

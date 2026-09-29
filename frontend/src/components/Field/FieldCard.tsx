@@ -8,6 +8,7 @@ import {
   getFieldOpenPath,
   isFieldSetupIncomplete,
   isOwnedField,
+  viewerFieldRole,
 } from '../../utils/fieldDisplay';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import FieldIdentity from '../fields/FieldIdentity';
@@ -47,7 +48,8 @@ const FieldCard: React.FC<FieldCardProps> = ({
   const locale = normalizeLocale(i18n.language);
 
   const incomplete = isFieldSetupIncomplete(field.status);
-  const mine = isOwnedField(field, currentUserId);
+  const role = viewerFieldRole(field, currentUserId);
+  const mine = role === 'Admin' || (role == null && isOwnedField(field, currentUserId));
   const open = () => navigate(getFieldOpenPath(field));
   const hasTasks = stats.tasksReady && stats.todayTaskCount > 0;
   const todayLine = !stats.tasksReady
@@ -83,7 +85,9 @@ const FieldCard: React.FC<FieldCardProps> = ({
           {incomplete ? <span className="field-card-badge field-card-badge--draft">{t('fields:card.draftBadge')}</span> : null}
           {currentUserId ? (
             <span className={`field-card-badge${mine ? ' field-card-badge--mine' : ' field-card-badge--shared'}`}>
-              {mine ? t('fields:card.ownedBadge') : t('fields:card.sharedBadge')}
+              {role
+                ? t(`fields:card.role.${role}`)
+                : t('fields:card.sharedBadge')}
             </span>
           ) : null}
         </div>

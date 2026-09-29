@@ -20,6 +20,8 @@ type SegmentedControlProps<T extends string = string> = {
   tone?: 'default' | 'olive';
   /** Tighter height for dense chrome (e.g. Chronologio). */
   compact?: boolean;
+  /** About 46px, softer inactive labels. */
+  quiet?: boolean;
 };
 
 function SegmentedControl<T extends string = string>({
@@ -31,14 +33,15 @@ function SegmentedControl<T extends string = string>({
   style,
   tone = 'olive',
   compact = false,
+  quiet = false,
 }: SegmentedControlProps<T>) {
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const trackBg = colors.surfaceMuted;
   const selectedBg = tone === 'olive' ? colors.primaryLight : colors.surface;
   const selectedText = colors.primary;
   const safeOptions = Array.isArray(options) ? options : [];
-  const trackMin = compact ? 36 : Math.max(44, tapMin * 0.9);
-  const segmentMin = compact ? 30 : Math.max(36, tapMin * 0.75);
+  const trackMin = quiet ? 46 : compact ? 36 : Math.max(44, tapMin * 0.9);
+  const segmentMin = quiet ? 38 : compact ? 30 : Math.max(36, tapMin * 0.75);
 
   return (
     <View
@@ -48,7 +51,8 @@ function SegmentedControl<T extends string = string>({
           backgroundColor: trackBg,
           borderColor: colors.borderLight,
           minHeight: trackMin,
-          padding: compact ? 2 : 3,
+          padding: quiet || compact ? 2 : 3,
+          borderRadius: quiet ? 12 : undefined,
         },
         fullWidth && styles.fullWidth,
         style,
@@ -70,6 +74,7 @@ function SegmentedControl<T extends string = string>({
               compact && styles.segmentCompact,
               {
                 minHeight: segmentMin,
+                borderRadius: quiet ? 8 : undefined,
                 opacity: opt.disabled ? 0.45 : pressed ? motion.pressOpacity : 1,
                 backgroundColor: selected ? selectedBg : 'transparent',
                 borderColor: 'transparent',
@@ -83,8 +88,8 @@ function SegmentedControl<T extends string = string>({
               style={[
                 styles.label,
                 {
-                  color: selected ? selectedText : colors.textSecondary,
-                  fontSize: (compact ? 12 : 13) * fontScaleMultiplier,
+                  color: selected ? selectedText : quiet ? colors.textTertiary : colors.textSecondary,
+                  fontSize: (quiet ? 13 : compact ? 12 : 13) * fontScaleMultiplier,
                   fontWeight: selected ? '600' : '500',
                 },
               ]}

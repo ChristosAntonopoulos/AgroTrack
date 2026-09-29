@@ -30,6 +30,7 @@ import ChronologioZoomPager from '../components/chronologio/ChronologioZoomPager
 import TodaySummary from '../components/chronologio/TodaySummary';
 import WeatherPeekSheet from '../components/weather/WeatherPeekSheet';
 import FilterChips from '../components/ui/FilterChips';
+import Button from '../components/ui/Button';
 import FormDateField from '../components/forms/FormDateField';
 import DismissibleChip from '../components/ui/DismissibleChip';
 import Sheet from '../components/ui/Sheet';
@@ -40,6 +41,7 @@ import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
+import { fieldHasBoundary } from '../utils/fieldDisplay';
 import { spacing, radii } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { getChronologioService, getFieldService, getFieldWorkService } from '../services/serviceFactory';
@@ -137,12 +139,12 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const [fieldName, setFieldName] = useState('');
   const [fields, setFields] = useState<Field[]>([]);
   const [zoom, setZoom] = useState<Zoom>('month');
-  const [axis, setAxis] = useState<ChronologioAxis>('calendar');
+  const [axis, setAxis] = useState<ChronologioAxis>('agricultural');
   const [filterCategory, setFilterCategory] = useState('all');
   const [lifecycleYear, setLifecycleYear] = useState<'' | 'low' | 'high'>('');
   const [filterFieldId, setFilterFieldId] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [periodYear, setPeriodYear] = useState(nowYear);
+  const [periodYear, setPeriodYear] = useState(() => agriculturalYearFor(new Date()));
   const [monthYear, setMonthYear] = useState(nowYear);
   const [month, setMonth] = useState(nowMonth);
   const [years, setYears] = useState<ChronologioPeriodSummary[]>([]);
@@ -186,7 +188,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     void getFieldService()
       .getFields(user.id, user.role || 'FieldOwner')
       .then(setFields)
-      .catch(() => setFields([]));
+      .catch(() => undefined);
   }, [user?.id, user?.role]);
 
   const scopedFieldId = fieldMode ? fieldId : filterFieldId || undefined;
@@ -222,6 +224,15 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
 
   const filtersDirty =
     filterCategory !== 'all' || Boolean(lifecycleYear) || (!fieldMode && Boolean(filterFieldId));
+
+  const starterGrove = useMemo(() => {
+    const named = fields.filter((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
+    if (fieldId) return named.find((f) => f.id === fieldId) ?? null;
+    return named[0] ?? null;
+  }, [fields, fieldId]);
+  const starterNeedsBoundary = Boolean(starterGrove && !fieldHasBoundary(starterGrove));
+  const showStarter =
+    booted && !loading && years.length === 0 && !filtersDirty && Boolean(starterGrove);
 
   const journalFilterParams = useMemo(
     () => ({
@@ -413,10 +424,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const setZoomAndPage = useCallback(
     (z: Zoom) => {
       if (z === 'month' && zoom !== 'month') landDaysOnCurrentPeriod();
-      if (z === 'month') {
-        setAxis('calendar');
-      } else {
-        setAxis('agricultural');
+      if (z !== 'month') {
         setPeriodYear(agriculturalYearFor(new Date(Date.UTC(monthYear, month - 1, 15))));
       }
       setZoom(z);
@@ -598,7 +606,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     setMonth(m);
     setPeriodYear(agriculturalYearFor(new Date(Date.UTC(y, m - 1, Number(match[3])))));
     setVisibleMonth({ year: y, month: m });
-    setAxis('calendar');
     setZoomAndPage('month');
   };
 
@@ -982,29 +989,12 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       ) : null}
 
       <View style={styles.toolsRow}>
-        <View style={{ flex: 1, minWidth: 140 }}>
-          <FormDateField
-            label={t('chronologio:living.jumpToDate')}
-            value={focusDate}
-            onValueChange={jumpToDate}
-          />
-        </View>
-        <TouchableOpacity
-          style={styles.toolLink}
-          onPress={() => setAxis(axis === 'calendar' ? 'agricultural' : 'calendar')}
-          hitSlop={8}
-        >
-          <Text style={{ color: colors.textTertiary, fontWeight: '500', fontSize: 12 }}>
-            {axis === 'calendar'
-              ? t('chronologio:living.axisCalendar')
-              : t('chronologio:living.axisAgricultural', {
-                  defaultValue: t('chronologio:living.agriculturalYear', {
-                    defaultValue: t('chronologio:living.axisSeason'),
-                  }),
-                })}
-          </Text>
-          <Ionicons name="chevron-down" size={11} color={colors.textTertiary} />
-        </TouchableOpacity>
+        <FormDateField
+          compact
+          label={t('chronologio:living.jumpToDate')}
+          value={focusDate}
+          onValueChange={jumpToDate}
+        />
         {zoom === 'years' && years.length >= 2 ? (
           <TouchableOpacity
             style={styles.toolLink}
@@ -1078,6 +1068,45 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         </View>
       ) : null}
 
+      {showStarter && starterGrove ? (
+        <View
+          style={[
+            styles.firstGrove,
+            { backgroundColor: colors.surface, borderColor: colors.borderLight },
+          ]}
+        >
+          <Text style={[styles.firstGroveTitle, { color: colors.textPrimary }]}>
+            {t('chronologio:firstGrove.title', { name: starterGrove.name })}
+          </Text>
+          <Text style={[styles.firstGroveBody, { color: colors.textSecondary }]}>
+            {starterNeedsBoundary
+              ? t('chronologio:firstGrove.needsBoundary')
+              : t('chronologio:firstGrove.body')}
+          </Text>
+          {starterNeedsBoundary ? (
+            <>
+              <Button
+                title={t('chronologio:firstGrove.continuePlace')}
+                onPress={() => navigation.navigate('FieldMapBoundary', { fieldId: starterGrove.id })}
+                fullWidth
+              />
+              <Button
+                title={t('chronologio:firstGrove.viewGrove')}
+                variant="outline"
+                onPress={() => navigation.navigate('FieldDetail', { fieldId: starterGrove.id })}
+                fullWidth
+              />
+            </>
+          ) : (
+            <Button
+              title={t('chronologio:firstGrove.primary')}
+              onPress={() => capture?.openCapture({ fieldId: starterGrove.id })}
+              fullWidth
+            />
+          )}
+        </View>
+      ) : null}
+
       {!booted && loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
@@ -1141,7 +1170,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             </View>,
             <View key="months" style={styles.pager}>
               <ScrollView
-                contentContainerStyle={{ paddingBottom: 48 }}
+                contentContainerStyle={{ paddingBottom: spacing.lg }}
                 showsVerticalScrollIndicator={false}
                 nestedScrollEnabled
                 directionalLockEnabled
@@ -1251,7 +1280,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                 <FlatList
                   data={years}
                   keyExtractor={(item) => item.key}
-                  contentContainerStyle={{ paddingBottom: 48 }}
+                  contentContainerStyle={{ paddingBottom: spacing.lg }}
                   nestedScrollEnabled
                   directionalLockEnabled
                   ListHeaderComponent={
@@ -1275,7 +1304,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                           setMonthYear(y);
                           setMonth(m);
                           setPeriodYear(agriculturalYearFor(new Date(Date.UTC(y, m - 1, 15))));
-                          setAxis('calendar');
                           setZoomAndPage('month');
                         }}
                         onClose={() => setCompareOpen(false)}
@@ -1373,27 +1401,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             />
           </>
         ) : null}
-
-        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
-          {t('chronologio:living.yearAxis')}
-        </Text>
-        <FilterChips
-          wrap
-          compact
-          selected={axis}
-          onSelect={(v) => setAxis(v as ChronologioAxis)}
-          contentStyle={{ marginBottom: 12 }}
-          options={[
-            { value: 'calendar', label: t('chronologio:living.axisCalendar') },
-            {
-              value: 'agricultural',
-              label: t('chronologio:living.axisAgricultural', {
-                defaultValue: t('chronologio:living.agriculturalYear', { defaultValue: 'Agricultural year' }),
-              }),
-            },
-            { value: 'season', label: t('chronologio:living.axisSeason') },
-          ]}
-        />
 
         <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
           {t('chronologio:living.lifecycleYear')}
@@ -1505,7 +1512,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
           setMonth(m);
           setPeriodYear(agriculturalYearFor(new Date(Date.UTC(y, m - 1, 15))));
           setPeek(null);
-          setAxis('calendar');
           setZoom('month');
         }}
         onSelectRecent={(entry) => setPeek({ mode: 'event', entry })}
@@ -1532,6 +1538,21 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
 
 const styles = StyleSheet.create({
   shell: { flex: 1 },
+  firstGrove: {
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.base,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  firstGroveTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  firstGroveBody: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   toolsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

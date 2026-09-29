@@ -47,6 +47,7 @@ export const HarvestFormPager: React.FC<Props> = ({
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         bounces={false}
       >
         {total > 1 ? (
@@ -179,7 +180,7 @@ export const HarvestQuickChips: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  shell: { flex: 1, minHeight: 280 },
+  shell: { flex: 1, minHeight: 0 },
   scroll: { flex: 1, minHeight: 0 },
   scrollContent: { gap: spacing.md, paddingBottom: spacing.md },
   progress: { flexDirection: 'row', gap: 6, marginBottom: 4 },

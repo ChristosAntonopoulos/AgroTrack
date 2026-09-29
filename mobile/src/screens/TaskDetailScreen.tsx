@@ -19,10 +19,11 @@ import type { FieldTask, FieldTaskChecklistItem } from '../services/fieldWorkSer
 import type { Field } from '../services/fieldService';
 import type { TaskFinancialSummary } from '../services/financialSummaryService';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
-import { notebookStatus, requiredChecksRemaining } from '../utils/taskNotebook';
+import { checklistCount, notebookStatus, requiredChecksRemaining } from '../utils/taskNotebook';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { formatOfficialAmount } from '../finance/format';
 import { taskExpenseCaptureContext } from '../utils/taskExpenseContext';
+import { formatCompactTaskPeriod } from '../utils/taskDateRange';
 import type { RootStackParamList } from '../navigation/types';
 import { createElevation, radii, spacing, typography } from '../theme';
 import TaskCategoryGlyph from '../components/tasks/TaskCategoryGlyph';
@@ -174,9 +175,23 @@ const TaskDetailScreen = () => {
     : '';
   const locked = status === 'completed' || status === 'cancelled' || status === 'skipped';
   const checks = [...(task.checklist || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const checkProgress = checklistCount(task);
   const remaining = requiredChecksRemaining(task);
   const needsExplanation = confirming && remaining > 0 && !explaining;
   const accent = resolveTaskCategoryAccent(task.templateCode);
+  const period = formatCompactTaskPeriod(
+    task.plannedStart,
+    task.plannedEnd,
+    i18n.language,
+    task.resultYear
+  );
+  const statusLabel = status !== 'todo' ? t(`notebook.status.${status}`) : '';
+  const metaParts = [
+    fieldName,
+    period,
+    started ? t('notebook.work.started', { time: started }) : '',
+    statusLabel,
+  ].filter(Boolean);
   const actualCost = formatOfficialAmount(
     money?.actualCost,
     task.estimatedCostCurrency || 'EUR',
@@ -188,25 +203,14 @@ const TaskDetailScreen = () => {
     <ScreenLayout scroll padded>
       <View style={styles.stack}>
         <View style={styles.hero}>
-          <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} size={52} />
-          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={[styles.title, { color: colors.textPrimary, fontSize: 24 * fontScaleMultiplier }]}>
+          <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} size={44} />
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Text style={[styles.title, { color: colors.textPrimary, fontSize: 22 * fontScaleMultiplier }]}>
               {title}
             </Text>
-            <View style={styles.heroMeta}>
-              <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
-              <Text style={{ color: colors.textSecondary, flex: 1 }} numberOfLines={1}>
-                {fieldName}
-                {started ? ` · ${t('notebook.work.started', { time: started })}` : ''}
-              </Text>
-            </View>
-            {status !== 'todo' ? (
-              <View style={[styles.statusPill, { backgroundColor: colors.primaryLight }]}>
-                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
-                  {t(`notebook.status.${status}`)}
-                </Text>
-              </View>
-            ) : null}
+            <Text style={{ color: colors.textSecondary, lineHeight: 20 }} numberOfLines={2}>
+              {metaParts.join(' · ')}
+            </Text>
           </View>
         </View>
         {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
@@ -218,6 +222,14 @@ const TaskDetailScreen = () => {
           ]}
         >
           <Text style={[styles.heading, { color: colors.textTertiary }]}>{t('notebook.work.checks')}</Text>
+          {checks.length > 0 ? (
+            <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 4 }}>
+              {t('notebook.work.checksProgress', {
+                done: checkProgress.done,
+                total: checkProgress.total,
+              })}
+            </Text>
+          ) : null}
           {checks.length === 0 ? (
             <Text style={{ color: colors.textSecondary }}>{t('notebook.work.noChecks')}</Text>
           ) : (
@@ -229,7 +241,7 @@ const TaskDetailScreen = () => {
                 style={[
                   styles.checkRow,
                   {
-                    minHeight: tapMin,
+                    minHeight: Math.max(52, tapMin),
                     opacity: busy || locked ? 0.6 : 1,
                     backgroundColor: item.isAnswered ? hexToRgba(colors.primary, 0.08) : colors.surfaceMuted,
                   },
@@ -285,7 +297,7 @@ const TaskDetailScreen = () => {
           </Text>
           <Text style={{ color: colors.textTertiary }}>{t('fieldWork.detail.estimateHint')}</Text>
           {!locked ? (
-            <View style={styles.actions}>
+            <View style={styles.secondaryActions}>
               <Button
                 title={t('notebook.work.addPhoto')}
                 variant="outline"
@@ -332,33 +344,34 @@ const TaskDetailScreen = () => {
         {confirming ? (
           <View
             style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.borderLight, ...createElevation(colors, 'sm') },
+              styles.confirmCard,
+              { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight },
             ]}
           >
-            <Text style={[styles.heading, { color: colors.textTertiary }]}>{t('notebook.work.doneNow')}</Text>
+            <Text style={[styles.confirmTitle, { color: colors.textPrimary }]}>{t('notebook.work.doneNow')}</Text>
             {needsExplanation ? (
-              <Text style={{ color: colors.textSecondary }}>
-                {t('notebook.work.incomplete', { open: remaining })}
-              </Text>
-            ) : null}
-            {needsExplanation ? (
-              <View style={styles.actions}>
+              <>
+                <Text style={{ color: colors.textSecondary }}>
+                  {t('notebook.work.incomplete', { open: remaining })}
+                </Text>
                 <Button
                   title={t('notebook.work.backToChecks')}
-                  variant="outline"
                   onPress={() => {
                     setConfirming(false);
                     setExplaining(false);
                   }}
                 />
-                <Button
-                  title={t('notebook.work.completeAnyway')}
-                  variant="outline"
-                  onPress={() => setExplaining(true)}
-                />
-                <Button title={t('notebook.menu.block')} variant="outline" disabled={busy} onPress={() => void blockTask()} />
-              </View>
+                <Pressable onPress={() => setExplaining(true)} style={styles.quietAction}>
+                  <Text style={{ color: colors.textSecondary, fontWeight: '600', textAlign: 'center' }}>
+                    {t('notebook.work.completeAnyway')}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => void blockTask()} disabled={busy} style={styles.quietAction}>
+                  <Text style={{ color: colors.textSecondary, fontWeight: '600', textAlign: 'center' }}>
+                    {t('notebook.menu.block')}
+                  </Text>
+                </Pressable>
+              </>
             ) : (
               <Button
                 title={t('notebook.work.confirm')}
@@ -367,8 +380,8 @@ const TaskDetailScreen = () => {
               />
             )}
           </View>
-        ) : (
-          <View style={styles.actions}>
+        ) : !locked ? (
+          <View style={styles.sticky}>
             {status === 'todo' ? (
               <Button title={t('fieldWork.actions.start')} disabled={busy} onPress={() => void handleStart()} />
             ) : null}
@@ -390,7 +403,7 @@ const TaskDetailScreen = () => {
               <Button title={t('notebook.work.complete')} disabled={busy} onPress={() => setConfirming(true)} />
             ) : null}
           </View>
-        )}
+        ) : null}
       </View>
     </ScreenLayout>
   );
@@ -399,13 +412,6 @@ const TaskDetailScreen = () => {
 const styles = StyleSheet.create({
   stack: { gap: spacing.md, paddingBottom: spacing['2xl'] },
   hero: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusPill: {
-    alignSelf: 'flex-start',
-    borderRadius: radii.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
   title: { fontWeight: '700', letterSpacing: -0.4 },
   heading: { ...typography.styles.overline, marginBottom: spacing.sm },
   card: {
@@ -428,7 +434,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     textAlignVertical: 'top',
   },
-  actions: { gap: spacing.sm },
+  secondaryActions: { gap: spacing.sm, marginTop: spacing.xs },
+  confirmCard: {
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.base,
+    gap: spacing.sm,
+  },
+  confirmTitle: { fontSize: 17, fontWeight: '700' },
+  quietAction: { paddingVertical: 10 },
+  sticky: { gap: spacing.sm, paddingTop: spacing.sm },
 });
 
 export default TaskDetailScreen;

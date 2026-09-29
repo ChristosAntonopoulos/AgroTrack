@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, Smartphone } from 'lucide-react';
+import { Handshake, Plus, Smartphone, Users } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Button from '../components/Common/Button';
@@ -12,7 +12,7 @@ import PartnersFieldPicker from '../components/Partners/PartnersFieldPicker';
 import AddFamilySheet from '../components/Partners/AddFamilySheet';
 import AddPartnerSheet from '../components/Partners/AddPartnerSheet';
 import TeamAccessSection from '../components/Partners/TeamAccessSection';
-import SavedContactSheet from '../components/Partners/SavedContactSheet';
+import SavedContactSheet, { ContactInviteSeats } from '../components/Partners/SavedContactSheet';
 import ImportPhoneContactsSheet from '../components/Partners/ImportPhoneContactsSheet';
 import NeedHelpSection from '../components/Partners/NeedHelpSection';
 import { fromSavedContacts, GrovePerson, linkedFieldIds, occupiesAccessSeat } from '../components/Partners/grovePeople';
@@ -21,6 +21,9 @@ import { Field } from '../services/fieldService';
 import {
   FieldInvite,
   FieldMembership,
+  MAX_FAMILY_SEATS,
+  MAX_PARTNER_SEATS,
+  countSeats,
   fieldPeopleService,
 } from '../services/fieldPeopleService';
 import {
@@ -33,7 +36,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import { canPickDeviceContact } from '../utils/pickDeviceContact';
 import { invalidateAccessContext } from '../hooks/useAccessContext';
-import { isListedGrove } from '../utils/fieldDisplay';
+import { isPartnerScopeField } from '../utils/fieldDisplay';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import './PartnersPage.css';
 
@@ -76,7 +79,10 @@ const PartnersPage: React.FC = () => {
   const [seatsTick, setSeatsTick] = useState(0);
   const canPickPhone = useMemo(() => canPickDeviceContact(), []);
 
-  const groveFields = useMemo(() => fields.filter(isListedGrove), [fields]);
+  const groveFields = useMemo(
+    () => fields.filter((field) => isPartnerScopeField(field, user?.userId)),
+    [fields, user?.userId]
+  );
   const listedFields = useMemo(() => {
     if (fieldId && !groveFields.some((field) => field.id === fieldId)) {
       const extra = fields.find((field) => field.id === fieldId);
@@ -279,6 +285,36 @@ const PartnersPage: React.FC = () => {
     return counts;
   }, [listedFields, peopleByField, people]);
 
+  const seatsByField = useMemo(() => {
+    const next: Record<string, ContactInviteSeats> = {};
+    listedFields.forEach((field) => {
+      const rows = peopleByField[field.id] || [];
+      const userId = user?.userId;
+      const canManage =
+        Boolean(userId) &&
+        (user?.role === 'Administrator' ||
+          field.ownerId === userId ||
+          rows.some((person) => person.userId === userId && person.role === 'Admin'));
+      const familyUsed = countSeats(rows, 'Family');
+      const partnerUsed = countSeats(rows, 'Partner');
+      next[field.id] = {
+        canManage,
+        canInviteFamily: canManage && familyUsed < MAX_FAMILY_SEATS,
+        canInvitePartner: canManage && partnerUsed < MAX_PARTNER_SEATS,
+        familyUsed,
+        familyMax: MAX_FAMILY_SEATS,
+        partnerUsed,
+        partnerMax: MAX_PARTNER_SEATS,
+      };
+    });
+    return next;
+  }, [listedFields, peopleByField, user]);
+
+  const inviteFields = useMemo(
+    () => listedFields.filter((field) => seatsByField[field.id]?.canManage),
+    [listedFields, seatsByField]
+  );
+
   const onSeatsChanged = (invite?: FieldInvite) => {
     if (invite?.id) {
       setPendingInvitesById((prev) => ({ ...prev, [invite.id]: invite }));
@@ -440,6 +476,37 @@ const PartnersPage: React.FC = () => {
           </div>
         </section>
 
+        {user && listedFields.length === 0 ? (
+          <section className="partners-section team-access-section" aria-labelledby="team-access-need-field">
+            <div className="partners-section-head">
+              <div>
+                <h2 id="team-access-need-field">{t('partners:team.title')}</h2>
+                <p className="partners-lead">{t('partners:team.lead')}</p>
+                <p className="partners-inline-hint">{t('partners:appAccessNeedField')}</p>
+              </div>
+            </div>
+            <div className="partners-choice-grid contact-app-actions">
+              <div className="partners-choice-card is-static">
+                <span className="partners-choice-icon" aria-hidden>
+                  <Users size={22} />
+                </span>
+                <span className="partners-choice-title">{t('partners:inviteFamilySeat')}</span>
+                <span className="partners-choice-desc">{t('partners:inviteFamilySeatHint')}</span>
+              </div>
+              <div className="partners-choice-card is-static">
+                <span className="partners-choice-icon" aria-hidden>
+                  <Handshake size={22} />
+                </span>
+                <span className="partners-choice-title">{t('partners:invitePartnerSeat')}</span>
+                <span className="partners-choice-desc">{t('partners:invitePartnerSeatHint')}</span>
+              </div>
+            </div>
+            <Button as={Link} to="/fields/new" variant="outline">
+              {t('partners:appAccessAddField')}
+            </Button>
+          </section>
+        ) : null}
+
         {user
           ? accessFields.map((field) => (
               <TeamAccessSection
@@ -475,6 +542,17 @@ const PartnersPage: React.FC = () => {
             fieldId={fieldId || undefined}
             fields={fields}
             categories={categories}
+            hasFields={listedFields.length > 0}
+            inviteFields={inviteFields}
+            seatsByField={seatsByField}
+            onInviteFamily={(prefill, targetFieldId) => {
+              setAdding(false);
+              openInviteFamily(prefill, targetFieldId);
+            }}
+            onInvitePartner={(prefill, targetFieldId) => {
+              setAdding(false);
+              openInvitePartner(prefill, targetFieldId);
+            }}
             onClose={() => setAdding(false)}
             onSaved={() => {
               setAdding(false);
@@ -533,6 +611,17 @@ const PartnersPage: React.FC = () => {
             fields={fields}
             categories={categories}
             existing={editContactDrawer.value}
+            hasFields={listedFields.length > 0}
+            inviteFields={inviteFields}
+            seatsByField={seatsByField}
+            onInviteFamily={(prefill, targetFieldId) => {
+              setEditing(null);
+              openInviteFamily(prefill, targetFieldId);
+            }}
+            onInvitePartner={(prefill, targetFieldId) => {
+              setEditing(null);
+              openInvitePartner(prefill, targetFieldId);
+            }}
             onClose={() => setEditing(null)}
             onSaved={() => {
               setEditing(null);

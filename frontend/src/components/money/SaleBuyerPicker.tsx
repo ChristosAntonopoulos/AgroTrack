@@ -10,11 +10,13 @@ type Props = {
   onChange: (name: string) => void;
   /** Prefer people linked to this grove when ranking results. */
   fieldId?: string;
+  /** Hide title/hint — parent already labels the step. */
+  compact?: boolean;
 };
 
 const contactLabel = (contact: SavedContact) => contact.displayName.trim() || contact.phone || contact.email || '';
 
-const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId }) => {
+const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId, compact = false }) => {
   const { t } = useTranslation('capture');
   const [contacts, setContacts] = useState<SavedContact[]>([]);
   const [query, setQuery] = useState('');
@@ -87,10 +89,17 @@ const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId }) => {
   if (connected && !typing) {
     return (
       <div className="money-buyer">
-        <p className="money-buyer-label" id="money-buyer-label">
-          {t('money.buyerTitle')}
-        </p>
-        <div className="money-buyer-chip" role="group" aria-labelledby="money-buyer-label">
+        {!compact ? (
+          <p className="money-buyer-label" id="money-buyer-label">
+            {t('money.buyerTitle')}
+          </p>
+        ) : null}
+        <div
+          className="money-buyer-chip"
+          role="group"
+          aria-labelledby={compact ? undefined : 'money-buyer-label'}
+          aria-label={compact ? t('money.buyerTitle') : undefined}
+        >
           <span className="money-buyer-chip__icon" aria-hidden>
             <UserRound size={18} />
           </span>
@@ -126,17 +135,22 @@ const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId }) => {
 
   return (
     <div className="money-buyer">
-      <p className="money-buyer-label" id="money-buyer-label">
-        {t('money.buyerTitle')}
-      </p>
-      <p className="money-buyer-hint">{t('money.buyerHint')}</p>
+      {!compact ? (
+        <>
+          <p className="money-buyer-label" id="money-buyer-label">
+            {t('money.buyerTitle')}
+          </p>
+          <p className="money-buyer-hint">{t('money.buyerHint')}</p>
+        </>
+      ) : null}
       <label className="money-buyer-search">
         <span className="money-sr-only">{t('money.buyerSearch')}</span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('money.buyerSearch')}
-          aria-labelledby="money-buyer-label"
+          aria-labelledby={compact ? undefined : 'money-buyer-label'}
+          aria-label={compact ? t('money.buyerSearch') : undefined}
           autoComplete="off"
         />
       </label>
@@ -160,7 +174,7 @@ const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId }) => {
           })}
         </ul>
       ) : contacts.length === 0 ? (
-        <p className="capture-hint">{t('money.buyerEmpty')}</p>
+        compact ? null : <p className="capture-hint">{t('money.buyerEmpty')}</p>
       ) : needle ? (
         <p className="capture-hint">{t('money.buyerNoMatch')}</p>
       ) : null}
@@ -176,7 +190,7 @@ const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId }) => {
         </button>
       </div>
       <label className="money-buyer-type">
-        <span>{t('money.buyerTypeName')}</span>
+        {!compact ? <span>{t('money.buyerTypeName')}</span> : null}
         <input
           value={value}
           onChange={(e) => {
@@ -187,7 +201,8 @@ const SaleBuyerPicker: React.FC<Props> = ({ value, onChange, fieldId }) => {
           onBlur={() => {
             if (value.trim()) setTyping(false);
           }}
-          placeholder={t('money.counterparty')}
+          placeholder={compact ? t('money.buyerSearch') : t('money.counterparty')}
+          aria-label={compact ? t('money.buyerTypeName') : undefined}
           autoComplete="name"
         />
       </label>

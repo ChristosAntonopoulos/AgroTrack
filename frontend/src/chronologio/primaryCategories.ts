@@ -32,7 +32,7 @@ const PRIMARY_EL: Record<ChronologioPrimaryCategory, { singular: string; plural:
   money: { singular: 'Χρήματα', plural: 'Χρήματα' },
   harvest: { singular: 'Συγκομιδή', plural: 'Συγκομιδή' },
   weather: { singular: 'Καιρός', plural: 'Καιρός & προειδοποιήσεις' },
-  field_change: { singular: 'Αλλαγή χωραφιού', plural: 'Αλλαγές χωραφιού' },
+  field_change: { singular: 'Αλλαγή ελαιώνα', plural: 'Αλλαγές ελαιώνα' },
 };
 
 const PRIMARY_EN: Record<ChronologioPrimaryCategory, { singular: string; plural: string }> = {

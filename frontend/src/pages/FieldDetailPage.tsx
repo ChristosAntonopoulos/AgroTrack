@@ -36,7 +36,9 @@ import FieldDetailsTab from '../components/fields/FieldDetailsTab';
 import FieldTabStatus from '../components/fields/FieldTabStatus';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import { readWorkProfileDraft } from '../utils/fieldWorkProfileDraft';
-import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
+import { fieldHasBoundary, isFieldSetupIncomplete } from '../utils/fieldDisplay';
+import { formatAreaFromSqm, resolveFieldAreaSqm } from '../utils/area';
+import { normalizeLocale } from '../i18n/config';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
 import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
@@ -79,9 +81,9 @@ const FieldDetailPage: React.FC = () => {
   const [weatherTick, setWeatherTick] = useState(0);
   const [overviewTick, setOverviewTick] = useState(0);
 
-  const suggestFromNav = Boolean(
-    (location.state as { suggestLifecyclePlan?: boolean } | null)?.suggestLifecyclePlan
-  );
+  const navState = location.state as { suggestLifecyclePlan?: boolean; groveReady?: boolean } | null;
+  const suggestFromNav = Boolean(navState?.suggestLifecyclePlan);
+  const groveReady = Boolean(navState?.groveReady);
 
   useEffect(() => {
     if (!id) return;
@@ -115,7 +117,7 @@ const FieldDetailPage: React.FC = () => {
         setError(null);
         const fieldData = await getFieldService().getField(id);
         if (cancelled) return;
-        if (isFieldSetupIncomplete(fieldData.status)) {
+        if (isFieldSetupIncomplete(fieldData.status) && !fieldData.name?.trim()) {
           navigate(`/fields/${fieldData.id}/edit`, { replace: true });
           return;
         }
@@ -317,6 +319,26 @@ const FieldDetailPage: React.FC = () => {
     <PageContainer maxWidth="full" padding="none">
       <div className="field-page">
         <Breadcrumbs />
+
+        {groveReady ? (
+          <section className="grove-ready-banner" role="status">
+            <div>
+              <h2>{t('fields:createGrove.readyTitle')}</h2>
+              <p>
+                {fieldHasBoundary(field) && resolveFieldAreaSqm(field)
+                  ? t('fields:addField.boundaryAreaExplained', {
+                      area: formatAreaFromSqm(resolveFieldAreaSqm(field), {
+                        locale: normalizeLocale(i18n.language),
+                      }),
+                    })
+                  : t('fields:createGrove.readyBody')}
+              </p>
+            </div>
+            <Button variant="primary" onClick={openCapture}>
+              {t('chronologio:firstGrove.primary')}
+            </Button>
+          </section>
+        ) : null}
 
         <FieldHeader
           field={field}

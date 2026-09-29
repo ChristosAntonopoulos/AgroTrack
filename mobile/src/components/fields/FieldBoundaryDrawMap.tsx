@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, PanResponder, type GestureResponderEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
@@ -9,33 +9,43 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import MapLayerToggle from '../domain/MapLayerToggle';
 import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MapLayerType } from '../../utils/mapLayers';
-import { regionForCenter, regionForPolygon } from '../../utils/fieldGeo';
+import { formatAreaFromSqm, regionForCenter, regionForPolygon } from '../../utils/fieldGeo';
 import {
   FIELD_HERO_MAX_ZOOM,
   FIELD_HERO_MIN_DELTA,
   FIELD_HERO_POLYGON_FACTOR,
   FIELD_HERO_POLYGON_PADDING,
 } from '../../utils/fieldMapFraming';
-import { capRegionZoom, type MapRegion } from '../../utils/maplibreGeo';
+import { capRegionZoom, zoomToLatitudeDelta, type MapRegion } from '../../utils/maplibreGeo';
 import { estimatePolygonAreaSqm } from '../../utils/polygonArea';
 import { locationService } from '../../services/locationService';
 import { typography, spacing, radii, createElevation } from '../../theme';
 
 export type BoundaryPoint = { latitude: number; longitude: number };
 
-type DrawPhase = 'locate' | 'drawing' | 'done';
+export type DrawPhase = 'locate' | 'drawing' | 'done';
 
 interface Props {
   points: BoundaryPoint[];
   onPointsChange: (points: BoundaryPoint[]) => void;
   onMeasuredAreaChange?: (sqm: number) => void;
+  onPhaseChange?: (phase: DrawPhase) => void;
   onGestureActiveChange?: (active: boolean) => void;
   locationQuery?: string;
   latitude?: number;
   longitude?: number;
+  /** Bumps on every place pick so the same village can be chosen again. */
+  placeFocus?: number;
   /** When set, map fills this height; otherwise uses a compact default. */
   height?: number;
+  /** First-boundary flow shows the area sentence beside the continue button. */
+  showSavedHint?: boolean;
 }
+
+/** Close enough to mark grove corners after a village is chosen. */
+const PLACE_FOCUS_ZOOM = 16;
+/** Finger can grab a corner from this many density-independent pixels away. */
+const VERTEX_HIT_PX = 32;
 
 const GREECE_OVERVIEW: MapRegion = {
   latitude: 38.42,
@@ -48,20 +58,36 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
   points,
   onPointsChange,
   onMeasuredAreaChange,
+  onPhaseChange,
   onGestureActiveChange,
-  locationQuery,
   latitude,
   longitude,
+  placeFocus = 0,
   height = 320,
+  showSavedHint = true,
 }) => {
   const { colors } = useTheme();
-  const { t } = useTranslation('fields');
+  const { t, i18n } = useTranslation('fields');
+  const areaLocale = i18n.language?.startsWith('it')
+    ? 'it'
+    : i18n.language?.startsWith('en')
+      ? 'en'
+      : 'el';
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [region, setRegion] = useState<MapRegion>(GREECE_OVERVIEW);
   const [phase, setPhase] = useState<DrawPhase>(() => (points.length >= 3 ? 'done' : 'locate'));
   const mapRef = useRef<AppMapViewRef>(null);
+  const mapWrapRef = useRef<View>(null);
+  const mapOriginRef = useRef({ x: 0, y: 0 });
   const mapReadyRef = useRef(false);
   const suppressMapTapUntilRef = useRef(0);
+  const pointsRef = useRef(points);
+  pointsRef.current = points;
+  const screensRef = useRef<Array<{ x: number; y: number } | null>>([]);
+  const dragIndexRef = useRef<number | null>(null);
+  const dragGenRef = useRef(0);
+  const projectGenRef = useRef(0);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const hadBoundaryOnMount = useRef(points.length >= 3);
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -93,33 +119,35 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
   const [locationMissing, setLocationMissing] = useState(false);
 
   useEffect(() => {
-    if (points.length >= 3) return;
-    const goTo = (lat: number, lng: number) => {
-      const next = capRegionZoom(
-        regionForCenter({ latitude: lat, longitude: lng }, FIELD_HERO_MIN_DELTA),
-        FIELD_HERO_MAX_ZOOM
-      );
-      setRegion(next);
-      setLocationMissing(false);
-      mapRef.current?.animateToRegion(next, FIELD_HERO_MAX_ZOOM);
-    };
-    // Only move the map when a place was picked (coords). Free-text typing must not jump the map.
-    if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
-      goTo(latitude, longitude);
+    // Corners must not move the camera. Fly when a place is chosen, including the same village again.
+    if (latitude == null || longitude == null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return;
     }
-    if (!(locationQuery || '').trim()) {
-      setRegion(GREECE_OVERVIEW);
-      setLocationMissing(false);
-      mapRef.current?.animateToRegion(GREECE_OVERVIEW);
-    }
-  }, [latitude, longitude, locationQuery, points.length]);
+    const next = regionForCenter({ latitude, longitude }, zoomToLatitudeDelta(PLACE_FOCUS_ZOOM));
+    setRegion(next);
+    setLocationMissing(false);
+    mapRef.current?.flyTo(latitude, longitude, PLACE_FOCUS_ZOOM);
+  }, [placeFocus, latitude, longitude]);
 
   useEffect(() => {
     if (points.length >= 3 && phase === 'locate') {
       setPhase('done');
+      return;
     }
-  }, [points.length, phase]);
+    if (phase !== 'locate') return;
+    if (
+      latitude != null &&
+      longitude != null &&
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude)
+    ) {
+      setPhase('drawing');
+    }
+  }, [points.length, phase, latitude, longitude]);
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   const focusMap = useCallback(() => {
     if (points.length >= 3) {
@@ -157,11 +185,103 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
 
   const movePoint = useCallback(
     (index: number, point: BoundaryPoint) => {
-      const next = points.map((p, i) => (i === index ? point : p));
-      onPointsChange(next);
+      onPointsChange(pointsRef.current.map((p, i) => (i === index ? point : p)));
     },
-    [onPointsChange, points]
+    [onPointsChange]
   );
+  const movePointRef = useRef(movePoint);
+  movePointRef.current = movePoint;
+
+  const measureMap = useCallback(() => {
+    mapWrapRef.current?.measureInWindow((x, y) => {
+      mapOriginRef.current = { x, y };
+    });
+  }, []);
+
+  const refreshScreens = useCallback(async () => {
+    const gen = ++projectGenRef.current;
+    const current = pointsRef.current;
+    const projected = await Promise.all(
+      current.map((point) => mapRef.current?.getPointInView(point) ?? Promise.resolve(null))
+    );
+    if (gen !== projectGenRef.current) return;
+    screensRef.current = projected;
+  }, []);
+
+  useEffect(() => {
+    if (dragIndexRef.current != null) return;
+    void refreshScreens();
+  }, [points, refreshScreens]);
+
+  const borderRef = useRef(1);
+  borderRef.current = phase === 'drawing' ? 2 : 1;
+
+  const fingerOnMap = (event: GestureResponderEvent) => ({
+    x: event.nativeEvent.pageX - mapOriginRef.current.x - borderRef.current,
+    y: event.nativeEvent.pageY - mapOriginRef.current.y - borderRef.current,
+  });
+
+  const hitVertex = (x: number, y: number) => {
+    let best = -1;
+    let bestDist = VERTEX_HIT_PX;
+    screensRef.current.forEach((screen, index) => {
+      if (!screen || !Number.isFinite(screen.x) || !Number.isFinite(screen.y)) return;
+      const dist = Math.hypot(screen.x - x, screen.y - y);
+      if (dist <= bestDist) {
+        best = index;
+        bestDist = dist;
+      }
+    });
+    return best;
+  };
+
+  const holdMapTap = () => {
+    suppressMapTapUntilRef.current = Date.now() + 700;
+  };
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: (event) => {
+        const finger = fingerOnMap(event);
+        const index = hitVertex(finger.x, finger.y);
+        if (index < 0) return false;
+        dragIndexRef.current = index;
+        return true;
+      },
+      onMoveShouldSetPanResponderCapture: () => dragIndexRef.current != null,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        holdMapTap();
+        setActiveIndex(dragIndexRef.current);
+        setGestureActive(true);
+      },
+      onPanResponderMove: (event) => {
+        const index = dragIndexRef.current;
+        if (index == null) return;
+        const finger = fingerOnMap(event);
+        const gen = ++dragGenRef.current;
+        void mapRef.current?.getCoordinateFromView(finger.x, finger.y).then((next) => {
+          if (!next || gen !== dragGenRef.current) return;
+          movePointRef.current(index, next);
+        });
+      },
+      onPanResponderRelease: () => {
+        holdMapTap();
+        dragIndexRef.current = null;
+        dragGenRef.current += 1;
+        setActiveIndex(null);
+        setGestureActive(false);
+        void refreshScreens();
+      },
+      onPanResponderTerminate: () => {
+        dragIndexRef.current = null;
+        dragGenRef.current += 1;
+        setActiveIndex(null);
+        setGestureActive(false);
+        void refreshScreens();
+      },
+    })
+  ).current;
 
   const centerOnUser = async () => {
     try {
@@ -193,7 +313,9 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
         : t('addField.boundaryCoachLocate')
       : phase === 'drawing'
         ? points.length === 0
-          ? t('addField.boundaryCoachFirst')
+          ? latitude != null && longitude != null
+            ? t('addField.boundaryCoachFound')
+            : t('addField.boundaryCoachFirst')
           : points.length < 3
             ? t('addField.boundaryCoachMore', { count: points.length })
             : t('addField.boundaryCoachFinish')
@@ -209,6 +331,7 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
       </Text>
 
       <View
+        ref={mapWrapRef}
         style={[
           styles.mapWrap,
           {
@@ -217,9 +340,11 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
             borderWidth: phase === 'drawing' ? 2 : 1,
           },
         ]}
+        onLayout={measureMap}
         onTouchStart={() => setGestureActive(true)}
         onTouchEnd={() => setGestureActive(false)}
         onTouchCancel={() => setGestureActive(false)}
+        {...pan.panHandlers}
       >
         <AppMapView
           ref={mapRef}
@@ -232,8 +357,13 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
           zoomEnabled
           rotateEnabled={false}
           pitchEnabled={false}
+          onCameraIdle={() => {
+            if (dragIndexRef.current == null) void refreshScreens();
+          }}
           onMapReady={() => {
             mapReadyRef.current = true;
+            measureMap();
+            void refreshScreens();
             if (hadBoundaryOnMount.current && points.length >= 3) {
               focusMap();
             }
@@ -244,13 +374,8 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
             onPointsChange([...points, coordinate]);
           }}
         >
-          <BoundaryVertexPins
-            points={points}
-            onMove={movePoint}
-            suppressMapTapUntilRef={suppressMapTapUntilRef}
-            onDragActiveChange={setGestureActive}
-          />
           {points.length >= 3 ? <MapPolygonLayer id="draft-boundary" ring={points} /> : null}
+          <BoundaryVertexPins points={points} activeIndex={activeIndex} />
         </AppMapView>
 
         {/* Compact map chrome only — tools live under the map */}
@@ -361,16 +486,18 @@ const FieldBoundaryDrawMap: React.FC<Props> = ({
                 {t('addField.boundaryRedraw')}
               </Text>
             </Pressable>
-            <Text style={[styles.doneNote, { color: colors.textSecondary }]} numberOfLines={2}>
-              {t('addField.boundarySavedHint')}
-            </Text>
+            {showSavedHint ? (
+              <Text style={[styles.doneNote, { color: colors.textSecondary }]} numberOfLines={2}>
+                {t('addField.boundarySavedHint')}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
         {points.length > 0 ? (
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
             {t('addField.boundaryCornerCount', { count: points.length })}
-            {measuredSqm > 0 ? ` · ${measuredSqm} m²` : ''}
+            {measuredSqm > 0 ? ` · ${formatAreaFromSqm(measuredSqm, areaLocale)}` : ''}
           </Text>
         ) : null}
       </View>

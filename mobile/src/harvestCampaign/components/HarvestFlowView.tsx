@@ -3,9 +3,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   type LayoutChangeEvent,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
@@ -21,6 +23,7 @@ import {
   type HarvestFlowNodeKind,
 } from '../flowGraph';
 import { formatHarvestYieldPercent } from '../utils/harvestCalculations';
+import { farmerOilLitres } from '../oilSaleLots';
 import { fieldSummaries } from '../totals';
 import type { HarvestCampaign } from '../types';
 import {
@@ -34,6 +37,14 @@ type Props = {
   onMarkDone: (fieldId: string) => void;
   onOpenMill?: (sackIds: string[]) => void;
   onOpenOil?: (millIds: string[]) => void;
+  onAdd?: () => void;
+};
+
+const STAGE_ICON: Record<HarvestFlowNodeKind, React.ComponentProps<typeof Ionicons>['name']> = {
+  field: 'leaf-outline',
+  harvest: 'basket-outline',
+  mill: 'scale-outline',
+  oil: 'water-outline',
 };
 
 const KIND_ORDER: HarvestFlowNodeKind[] = ['field', 'harvest', 'mill', 'oil'];
@@ -56,10 +67,13 @@ export const HarvestFlowView: React.FC<Props> = ({
   onMarkDone,
   onOpenMill,
   onOpenOil,
+  onAdd,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = i18n.language || 'en';
   const { colors, tapMin } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const summaryColumns = windowWidth < 380 ? 2 : 4;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const stackRef = useRef<View>(null);
   const cardRefs = useRef(new Map<string, View | null>());
@@ -200,27 +214,10 @@ export const HarvestFlowView: React.FC<Props> = ({
     }
   };
 
-  const chipLabel = (chip: string) => {
-    switch (chip) {
-      case 'shared':
-        return t('harvestCampaign.shared.badge');
-      case 'needsMill':
-        return t('harvestCampaign.flow.needsMill');
-      case 'needsOil':
-        return t('harvestCampaign.flow.needsOil');
-      case 'ok':
-        return t('harvestCampaign.flow.linked');
-      case 'yield':
-        return t('harvestCampaign.dashboard.yieldLabel');
-      default:
-        return chip;
-    }
-  };
-
   const cardTitle = (node: HarvestFlowNode) => {
-    if (node.kind === 'field') return friendlyFieldLabel(node.label);
-    if (node.date) return formatDayLabel(node.date, locale);
-    return rowLabel(node.kind);
+    const raw = node.kind === 'field' ? friendlyFieldLabel(node.label) : node.date ? formatDayLabel(node.date, locale) : rowLabel(node.kind);
+    if (/^\d{8,}$/.test(raw.replace(/\s/g, ''))) return `···${raw.slice(-4)}`;
+    return raw;
   };
 
   const metricDisplay = (node: HarvestFlowNode) => {
@@ -229,72 +226,6 @@ export const HarvestFlowView: React.FC<Props> = ({
         ? t('harvestCampaign.sacks.unit')
         : node.meta.metricUnit || '';
     return { value: node.meta.metric, unit };
-  };
-
-  const metaRows = (node: HarvestFlowNode): string[] => {
-    const rows: string[] = [];
-    const names = (node.meta.fieldNames || []).map(friendlyFieldLabel);
-    const yieldLine =
-      node.yieldPct != null
-        ? t('harvestCampaign.flow.yieldBadge', {
-            yield: formatHarvestYieldPercent(node.yieldPct, locale),
-          })
-        : null;
-
-    if (node.kind === 'field') {
-      if (yieldLine) rows.push(yieldLine);
-      if (node.meta.fromSummary)
-        rows.push(t('harvestCampaign.flow.daysCount', { count: Number(node.meta.fromSummary) }));
-      if (node.meta.oliveKg && node.meta.oliveKg > 0)
-        rows.push(t('harvestCampaign.flow.oliveLine', { kg: formatKg(node.meta.oliveKg) }));
-      if (node.meta.oilKg && node.meta.oilKg > 0)
-        rows.push(t('harvestCampaign.flow.oilLine', { kg: formatKg(node.meta.oilKg) }));
-      if (node.meta.openSacks && node.meta.openSacks > 0)
-        rows.push(t('harvestCampaign.flow.openSacksLine', { count: node.meta.openSacks }));
-    }
-    if (node.kind === 'harvest') {
-      if (names.length) rows.push(names.join(' · '));
-      if (node.meta.oliveKg && node.meta.openSacks && node.meta.openSacks > 0)
-        rows.push(t('harvestCampaign.flow.approxOlives', { kg: formatKg(node.meta.oliveKg) }));
-      if (node.meta.openSacks != null && node.meta.sackCount != null) {
-        const weighed = node.meta.sackCount - node.meta.openSacks;
-        if (weighed > 0 && node.meta.openSacks > 0) {
-          rows.push(
-            t('harvestCampaign.flow.weighedSplit', {
-              weighed,
-              open: node.meta.openSacks,
-            })
-          );
-        }
-      }
-      if (node.meta.toSummary && node.meta.toSummary !== 'ok') {
-        const millKg = Number(node.meta.toSummary);
-        rows.push(
-          t('harvestCampaign.flow.intoMill', {
-            kg: Number.isFinite(millKg)
-              ? formatKg(millKg)
-              : node.meta.toSummary.replace(/\s*kg\s*$/i, ''),
-          })
-        );
-      }
-    }
-    if (node.kind === 'mill') {
-      if (yieldLine) rows.push(yieldLine);
-      if (names.length) rows.push(names.join(' · '));
-      if (node.meta.sackCount && node.meta.sackCount > 0)
-        rows.push(t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount }));
-      if (node.meta.toSummary && /^\d+$/.test(node.meta.toSummary))
-        rows.push(t('harvestCampaign.flow.daysCount', { count: Number(node.meta.toSummary) }));
-      if (node.meta.oilKg && node.meta.oilKg > 0)
-        rows.push(t('harvestCampaign.flow.oilLine', { kg: formatKg(node.meta.oilKg) }));
-    }
-    if (node.kind === 'oil') {
-      if (yieldLine) rows.push(yieldLine);
-      if (node.meta.oliveKg && node.meta.oliveKg > 0)
-        rows.push(t('harvestCampaign.flow.fromOlives', { kg: formatKg(node.meta.oliveKg) }));
-      if (names.length) rows.push(names.join(' · '));
-    }
-    return rows.slice(0, 3);
   };
 
   const neighbors = (node: HarvestFlowNode) => {
@@ -313,17 +244,17 @@ export const HarvestFlowView: React.FC<Props> = ({
     const active = !selectedId || highlight.has(node.id);
     const isSelected = selectedId === node.id;
     const metric = metricDisplay(node);
-    const rows = metaRows(node);
-    const chips = node.meta.chips.filter(
-      (c) => c !== 'ok' && !(c === 'yield' && node.yieldPct != null)
-    );
     const accent =
-      node.fieldIds.length === 1 ? fieldColors[node.fieldIds[0]] : undefined;
+      node.fieldIds.length === 1 ? fieldColors[node.fieldIds[0]] : colors.primary;
+    const metaLine =
+      node.kind === 'field' && node.meta.fromSummary
+        ? t('harvestCampaign.flow.daysCount', { count: Number(node.meta.fromSummary) || 0 })
+        : null;
 
     return (
       <View
         key={node.id}
-        style={[styles.nodeWrap, { opacity: active ? 1 : 0.2 }]}
+        style={[styles.nodeWrap, { opacity: active ? 1 : 0.34 }]}
       >
         <View
           ref={bindCard(node.id)}
@@ -338,98 +269,37 @@ export const HarvestFlowView: React.FC<Props> = ({
             style={[
               styles.card,
               {
-                minHeight: Math.max(128, tapMin + 44),
-                backgroundColor:
-                  isSelected || node.kind === 'oil'
-                    ? colors.eventHarvestSoft
-                    : colors.surface,
-                borderLeftWidth: accent ? 3 : 0,
-                borderLeftColor: accent || 'transparent',
+                backgroundColor: isSelected ? colors.surfaceElevated : colors.surface,
+                borderWidth: isSelected ? 2 : 1,
+                borderColor: isSelected ? accent : colors.oliveBorder,
               },
-              isSelected && accent
-                ? { borderColor: accent, borderWidth: 2, borderLeftWidth: 3 }
-                : null,
             ]}
           >
-            <Text style={[styles.kicker, { color: colors.textTertiary }]}>
-              {rowLabel(node.kind)}
-            </Text>
-            <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+            {node.pending ? (
+              <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
+            ) : null}
+            <View style={[styles.swatch, { backgroundColor: accent }]} />
+            <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
               {cardTitle(node)}
             </Text>
-            <View style={styles.metricRow}>
+            {metric.value && metric.value !== '—' ? (
               <Text
-                style={[
-                  styles.metric,
-                  { color: colors.textPrimary, fontSize: node.kind === 'oil' ? 30 : 26 },
-                ]}
+                style={[styles.metric, { color: colors.textPrimary }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
               >
                 {metric.value}
+                {metric.unit ? <Text style={styles.unit}> {metric.unit}</Text> : null}
               </Text>
-              {metric.unit ? (
-                <Text style={{ color: colors.textSecondary, fontWeight: '700', fontSize: 13 }}>
-                  {metric.unit}
-                </Text>
-              ) : null}
-            </View>
-            {rows.map((row) => (
-              <Text key={row} style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 16 }}>
-                {row}
+            ) : null}
+            {metaLine ? (
+              <Text style={[styles.meta, { color: colors.textTertiary }]} numberOfLines={1}>
+                {metaLine}
               </Text>
-            ))}
-            {chips.length > 0 ? (
-              <View style={styles.chipRow}>
-                {chips.map((chip) => (
-                  <View
-                    key={chip}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor:
-                          chip === 'needsMill' || chip === 'needsOil'
-                            ? 'rgba(200,146,78,0.22)'
-                            : colors.eventHarvestSoft,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          chip === 'needsMill' || chip === 'needsOil'
-                            ? '#C8924E'
-                            : colors.primary,
-                        fontSize: 11,
-                        fontWeight: '700',
-                      }}
-                    >
-                      {chipLabel(chip)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
             ) : null}
           </Pressable>
         </View>
-        {node.pending === 'needsMill' && onOpenMill && node.entryIds?.length ? (
-          <Pressable
-            onPress={() => onOpenMill(node.entryIds!)}
-            style={[styles.cta, { backgroundColor: colors.eventHarvestSoft }]}
-          >
-            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
-              {t('harvestCampaign.chain.ctaMill')}
-            </Text>
-          </Pressable>
-        ) : null}
-        {node.pending === 'needsOil' && onOpenOil && node.entryIds?.length ? (
-          <Pressable
-            onPress={() => onOpenOil(node.entryIds!)}
-            style={[styles.cta, { backgroundColor: colors.eventHarvestSoft }]}
-          >
-            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
-              {t('harvestCampaign.chain.ctaOil')}
-            </Text>
-          </Pressable>
-        ) : null}
       </View>
     );
   };
@@ -438,6 +308,36 @@ export const HarvestFlowView: React.FC<Props> = ({
     campaign.sacks.length === 0 &&
     campaign.millWeights.length === 0 &&
     campaign.oils.length === 0;
+  const sackTotal = campaign.sacks.reduce((sum, row) => sum + (Number(row.sacks) || 0), 0);
+  const harvestDays = new Set(
+    [
+      ...campaign.sacks.map((row) => row.date),
+      ...campaign.millWeights.map((row) => row.date),
+      ...campaign.oils.map((row) => row.date),
+    ].filter(Boolean)
+  ).size;
+  const oilLitres = Math.round(
+    campaign.oils.reduce((sum, row) => sum + farmerOilLitres(row), 0)
+  );
+  const summary = [
+    { value: String(fieldOrder.length), label: t('harvestCampaign.flow.fields') },
+    { value: String(sackTotal), label: t('harvestCampaign.flow.sacks') },
+    { value: String(harvestDays), label: t('harvestCampaign.flow.days') },
+    { value: String(oilLitres), label: t('harvestCampaign.flow.unitOilLitres') },
+  ];
+  const selectedLabel = selectedNode
+    ? `${cardTitle(selectedNode)}${
+        selectedNode.meta.metric
+          ? ` · ${selectedNode.meta.metric}${
+              selectedNode.meta.metricUnit === 'sacks'
+                ? ` ${t('harvestCampaign.sacks.unit')}`
+                : selectedNode.meta.metricUnit
+                  ? ` ${selectedNode.meta.metricUnit}`
+                  : ''
+            }`
+          : ''
+      }`
+    : '';
 
   const selectedSummary =
     selectedFieldId != null
@@ -448,29 +348,55 @@ export const HarvestFlowView: React.FC<Props> = ({
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.sectionKicker, { color: colors.textTertiary }]}>
-        {t('harvestCampaign.nav.fields')}
-      </Text>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>
-        {t('harvestCampaign.flow.title')}
-      </Text>
-      <Text style={{ color: colors.textSecondary }}>{t('harvestCampaign.flow.lead')}</Text>
+      <View style={[styles.summary, { backgroundColor: colors.surfaceMuted }]}>
+        {summary.map((item) => (
+          <View
+            key={item.label}
+            style={[styles.summaryCell, summaryColumns === 2 ? styles.summaryHalf : styles.summaryQuarter]}
+          >
+            <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{item.value}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textTertiary }]} numberOfLines={1}>
+              {item.label}
+            </Text>
+          </View>
+        ))}
+      </View>
 
-      {pathStory ? (
-        <View style={[styles.path, { backgroundColor: colors.eventHarvestSoft }]}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700', lineHeight: 20 }}>
-            {pathStory}
+      {selectedNode ? (
+        <View style={styles.pathRow}>
+          <Text style={[styles.hint, styles.pathHint, { color: colors.textSecondary }]} numberOfLines={2}>
+            {t('harvestCampaign.flow.showing', { label: selectedLabel })}
           </Text>
+          <Pressable onPress={() => setSelectedId(null)} hitSlop={8}>
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+              {t('harvestCampaign.flow.clear')}
+            </Text>
+          </Pressable>
         </View>
       ) : (
-        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+        <Text style={[styles.hint, { color: colors.textSecondary }]} numberOfLines={2}>
           {t('harvestCampaign.flow.tapHint')}
         </Text>
       )}
 
       {empty ? (
-        <Text style={{ color: colors.textSecondary }}>{t('harvestCampaign.flow.empty')}</Text>
+        <View style={styles.empty}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+            {t('harvestCampaign.flow.emptyTitle')}
+          </Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('harvestCampaign.flow.emptyBody')}
+          </Text>
+          {onAdd ? (
+            <Pressable onPress={onAdd} style={[styles.addFirst, { backgroundColor: colors.primary }]}>
+              <Text style={{ color: colors.onOlive, fontWeight: '700' }}>
+                {t('harvestCampaign.flow.addFirst')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : (
+        <View style={styles.canvas}>
         <View
           ref={stackRef}
           style={styles.stack}
@@ -491,13 +417,19 @@ export const HarvestFlowView: React.FC<Props> = ({
             if (nodes.length === 0) return null;
             return (
               <View key={kind} style={styles.layer}>
-                <Text style={[styles.rowLabel, { color: colors.textTertiary }]}>
-                  {rowLabel(kind)}
-                </Text>
-                <View style={styles.nodes}>{nodes.map(renderNode)}</View>
+                <View style={styles.stageHead}>
+                  <Ionicons name={STAGE_ICON[kind]} size={13} color={colors.textTertiary} />
+                  <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>
+                    {rowLabel(kind)} · {nodes.length}
+                  </Text>
+                </View>
+                <View style={styles.nodes}>
+                  {nodes.map((node) => renderNode(node))}
+                </View>
               </View>
             );
           })}
+        </View>
         </View>
       )}
 
@@ -515,6 +447,26 @@ export const HarvestFlowView: React.FC<Props> = ({
                 <Text style={{ color: colors.textSecondary, marginTop: 4 }}>{pathStory}</Text>
               ) : null}
             </View>
+            {selectedNode.pending === 'needsMill' && onOpenMill && selectedNode.entryIds?.length ? (
+              <Pressable
+                onPress={() => onOpenMill(selectedNode.entryIds!)}
+                style={{ minHeight: tapMin, justifyContent: 'center' }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  {t('harvestCampaign.chain.ctaMill')}
+                </Text>
+              </Pressable>
+            ) : null}
+            {selectedNode.pending === 'needsOil' && onOpenOil && selectedNode.entryIds?.length ? (
+              <Pressable
+                onPress={() => onOpenOil(selectedNode.entryIds!)}
+                style={{ minHeight: tapMin, justifyContent: 'center' }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  {t('harvestCampaign.chain.ctaOil')}
+                </Text>
+              </Pressable>
+            ) : null}
             {selectedSummary ? (
               <Pressable
                 onPress={() => onMarkDone(selectedSummary.fieldId)}
@@ -590,41 +542,82 @@ export const HarvestFlowView: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.md },
-  sectionKicker: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+  wrap: { gap: spacing.sm },
+  summary: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
-  title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
-  path: { borderRadius: radii.lg, padding: spacing.md },
+  summaryCell: { alignItems: 'center', gap: 1, paddingVertical: 4 },
+  summaryQuarter: { width: '25%' },
+  summaryHalf: { width: '50%' },
+  summaryValue: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
+  summaryLabel: { fontSize: 11, fontWeight: '600' },
+  hint: { fontSize: 14, lineHeight: 19 },
+  pathRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pathHint: { flex: 1 },
+  empty: { gap: 8, paddingVertical: 8 },
+  emptyTitle: { fontSize: 17, fontWeight: '700' },
+  addFirst: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  canvas: {
+    borderRadius: 16,
+    backgroundColor: 'rgba(10, 15, 8, 0.16)',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
   stack: {
     position: 'relative',
-    gap: spacing.xl,
+    gap: 4,
     width: '100%',
     paddingBottom: spacing.sm,
   },
-  layer: { gap: spacing.xs, zIndex: 1 },
+  layer: { gap: 8, zIndex: 1, marginTop: 12 },
+  stageHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    fontSize: 13,
+    fontWeight: '600',
   },
   nodes: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    flexWrap: 'wrap',
+    gap: 8,
     alignItems: 'stretch',
     width: '100%',
   },
-  nodeWrap: { flex: 1, minWidth: 0, gap: 6 },
+  nodeWrap: { width: '30.5%', minWidth: 0 },
   card: {
-    borderRadius: radii.xl,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 9,
+    gap: 2,
     overflow: 'hidden',
+    minHeight: 76,
+  },
+  swatch: {
+    width: 16,
+    height: 3,
+    borderRadius: 99,
+    marginBottom: 2,
+    opacity: 0.9,
+  },
+  pendingDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
   },
   kicker: {
     fontSize: 10,
@@ -632,17 +625,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
     textTransform: 'uppercase',
   },
-  cardTitle: { fontWeight: '700', fontSize: 14, lineHeight: 18 },
-  metricRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 },
-  metric: { fontWeight: '800', letterSpacing: -0.6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  chip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  cta: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
+  cardTitle: { fontWeight: '600', fontSize: 12, lineHeight: 15 },
+  metric: { fontWeight: '700', fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
+  unit: { fontWeight: '600', fontSize: 11, opacity: 0.7 },
+  meta: { fontSize: 11, lineHeight: 14 },
   detail: { borderRadius: radii.xl, padding: spacing.md, gap: spacing.sm },
   detailHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   detailCols: { flexDirection: 'row', gap: spacing.md },

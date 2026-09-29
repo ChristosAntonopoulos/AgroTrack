@@ -37,8 +37,8 @@
     "seeFinance": "See finances →",
     "costPerKg": "Cost per kilogram of oil",
     "completedWork": "Completed work",
-    "recentChronologio": "Recent Chronologio",
-    "seeAllChronologio": "View the full Chronologio",
+    "recentChronologio": "Recent History",
+    "seeAllChronologio": "View the full History",
     "needsAttention": "Needs attention",
     "needsNow": "What is needed now",
     "statusStrip": {
@@ -89,8 +89,8 @@
     "variety": "Variety",
     "status": "Status",
     "chronoTagline": "The story of this grove lives here.",
-    "openFullChronologio": "Open full Chronologio →",
-    "chronoModesAria": "Chronologio view",
+    "openFullChronologio": "Open full History →",
+    "chronoModesAria": "History view",
     "recent": "Recent",
     "years": "Years"
   },
@@ -169,6 +169,9 @@
     "boundaryGuide2": "Tap each corner of the grove",
     "boundaryGuide3": "Press Finish when the shape looks right",
     "boundaryCoachLocate": "First, find your grove. Search by village name or tap “Use my location”.",
+    "boundaryCoachFound": "The grove is on the map. Now place 3–6 points around its edge.",
+    "boundaryAreaExplained": "We measured about {{area}} from the outline you drew.",
+    "continueToChronologio": "Continue to History",
     "boundaryCoachFirst": "Tap the first corner of your grove on the map.",
     "boundaryCoachMore": "{{count}} corners marked. Drag a pin to nudge it, or keep tapping around the edge.",
     "boundaryCoachFinish": "Drag pins to fine-tune, then press Finish shape when you are happy.",
@@ -256,7 +259,8 @@
     "errors": {
       "methodRequired": "Please choose how to add this field.",
       "kaekInvalid": "KAEK format is invalid.",
-      "boundaryRequired": "Boundary is optional. Draw it now, or continue with Next / Skip for now.",
+      "boundaryRequired": "A boundary is required before this grove can open.",
+      "boundaryRequiredNow": "Place at least 3 points around the grove before continuing.",
       "confirmBoundary": "Please confirm the boundary checkbox.",
       "confirmCadastre": "Please acknowledge the cadastre reference disclaimer."
     },
@@ -264,6 +268,12 @@
     "selectOption": "Select…"
   },
   "searchPlaceholder": "Search fields...",
+  "almostReady": {
+    "title": "Your first grove is almost ready",
+    "body": "“{{name}}” has a name. Without a place and a boundary, area, weather and History stay closed.",
+    "continuePlace": "Continue the place",
+    "viewGrove": "View the grove"
+  },
   "emptyTitle": "You have not added a grove yet.",
   "emptyDescription": "Add your first grove to start recording its story.",
   "mapTitle": "Fields Map",
@@ -300,7 +310,7 @@
     "tasks": "Tasks",
     "lifecycle": "Lifecycle",
     "monitoring": "Monitoring",
-    "timeline": "Chronologio"
+    "timeline": "History"
   },
   "page": {
     "tabsAria": "Field sections",
@@ -330,7 +340,7 @@
     "tabErrorHint": "Something went wrong while loading. Try again.",
     "mapNoPlace": "No map location yet",
     "mapNoPlaceHint": "Add a boundary or GPS point so the map can show this grove.",
-    "chronologioUnavailable": "Chronologio is not available for your access on this field.",
+    "chronologioUnavailable": "History is not available for your access on this field.",
     "mapUnavailable": "Map and environment data are not available for your access on this field."
   },
   "mapWorkspace": {
@@ -434,13 +444,13 @@
     "danger": {
       "kicker": "Danger zone",
       "title": "Archive and delete",
-      "body": "Permanent deletion removes this field from the list. Related records (tasks, photos, money, harvest, notes, Chronologio) stay in the system but lose this field link; collaborator access to this field is revoked.",
+      "body": "Permanent deletion removes this field from the list. Related records (tasks, photos, money, harvest, notes, History) stay in the system but lose this field link; collaborator access to this field is revoked.",
       "tasks": "Tasks — unlinked from this field",
       "photos": "Photos — unlinked from this field",
       "money": "Money — entries keep their amounts but lose the field link",
       "harvest": "Harvest — daily and annual records lose the field link",
       "notes": "Access notes and the field record itself",
-      "chronologio": "Chronologio — field history loses this field context",
+      "chronologio": "History — field history loses this field context",
       "collaborators": "Collaborator access — revoked for this field",
       "confirmDelete": "Permanently delete this field?",
       "typeNamePrompt": "Type the field name \"{{name}}\" to confirm deletion.",
@@ -517,8 +527,13 @@
     "todayTasks": "{{count}} tasks today",
     "todayTasks_zero": "No tasks today",
     "todayTasksLoading": "Loading tasks…",
-    "ownedBadge": "Mine",
-    "sharedBadge": "Collaborating",
+    "ownedBadge": "Admin",
+    "sharedBadge": "Partner",
+    "role": {
+      "Admin": "Admin",
+      "Partner": "Partner",
+      "Family": "Family"
+    },
     "draftBadge": "Draft",
     "activityDate": "Updated {{date}}",
     "overdue": "{{count}} overdue",
@@ -533,9 +548,9 @@
     "editTitle": "Edit grove",
     "subtitle": "Add your olive grove in a few quick steps.",
     "name": "Grove name",
-    "namePlaceholder": "e.g. North Grove",
+    "namePlaceholder": "Type a name…",
     "color": "Grove colour",
-    "colorHint": "Used on Chronologio cards so you can spot this grove quickly.",
+    "colorHint": "Used on History cards so you can spot this grove quickly.",
     "area": "Area (stremmata)",
     "variety": "Olive variety",
     "varietyCustom": "Enter variety name",
@@ -834,7 +849,7 @@
     "reviewApprovals": "Review approvals",
     "startNextTask": "Start next task",
     "reportIssue": "Report issue",
-    "viewTimeline": "View Chronologio",
+    "viewTimeline": "View History",
     "viewEvidence": "View evidence",
     "tabsAria": "Field control room",
     "tabs": {
@@ -1225,7 +1240,7 @@
     "notesTitle": "Remembered this year",
     "notesEmpty": "No notes for this season yet.",
     "untitledNote": "Note",
-    "seeChronologio": "Read the year in Chronologio",
+    "seeChronologio": "Read the year in History",
     "liveTitle": "So far",
     "liveHint": "Live numbers — not the final review.",
     "olivesSoFar": "Olives so far",
@@ -1235,7 +1250,7 @@
     "upcomingTitle": "Upcoming harvest work",
     "upcomingEmpty": "No open harvest tasks.",
     "openMoney": "View costs",
-    "openChronologio": "Open Chronologio",
+    "openChronologio": "Open History",
     "olives": "Olives",
     "oil": "Oil",
     "net": "Balance",
@@ -1271,7 +1286,7 @@
     "notesEmpty": "No notes.",
     "fieldsTitle": "By field",
     "openMoney": "Open costs",
-    "openChronologio": "Chronologio",
+    "openChronologio": "History",
     "backToProgress": "This harvest",
     "breadcrumb": "Year review"
   },
@@ -1325,9 +1340,9 @@
       "cta": "Let’s begin"
     },
     "fieldLockedLabel": "Field",
-    "serverActivityHint": "Harvest records already exist for your fields (for example in Chronologio), but this device has no shared live harvest yet. Starting here creates a local season until shared harvest sync is available.",
+    "serverActivityHint": "Harvest records already exist for your fields (for example in History), but this device has no shared live harvest yet. Starting here creates a local season until shared harvest sync is available.",
     "historical": {
-      "kicker": "From Chronologio",
+      "kicker": "From History",
       "title": "Harvest day",
       "summary": "Day totals",
       "missing": "No harvest records were found for this day. They may have been voided or removed.",
@@ -1344,7 +1359,7 @@
       "reopen": "Reopen day",
       "lockedTitle": "Day closed",
       "lockedBody": "Adding and editing records is paused. Reopen the day anytime — closing is reversible.",
-      "closeExplain": "Closing pauses new records and edits for this day. You can reopen it later. Linked money and Chronologio notes stay editable in their own screens."
+      "closeExplain": "Closing pauses new records and edits for this day. You can reopen it later. Linked money and History notes stay editable in their own screens."
     },
     "needGrove": "Pick at least one field, or add them later.",
     "noFields": "Add a field first.",
@@ -1524,7 +1539,7 @@
     },
     "note": {
       "prompt": "Note or photo",
-      "chronologioHint": "Saved notes also appear in Chronologio for this field.",
+      "chronologioHint": "Saved notes also appear in History for this field.",
       "save": "Save"
     },
     "today": {
@@ -1572,10 +1587,11 @@
     },
     "nav": {
       "label": "Harvest navigation",
-      "today": "Day",
-      "fields": "Fields",
+      "today": "Summary",
+      "fields": "By field",
       "totals": "Totals",
-      "log": "Records"
+      "log": "Records",
+      "record": "Record"
     },
     "log": {
       "title": "Day by day",
@@ -1612,7 +1628,7 @@
       "finishedTitle": "Harvest finished",
       "openConfirm": "Open the finish harvest checklist?",
       "olives": "{{kg}} kg olives",
-      "oil": "{{kg}} kg oil",
+      "oil": "{{litres}} oil",
       "yield": "{{yield}}% yield",
       "days_one": "{{count}} day",
       "days_other": "{{count}} days",
@@ -1671,8 +1687,22 @@
       "emptyHint": "Start with + on the Day tab.",
       "needsMill": "not weighed",
       "needsOil": "no oil yet",
+      "stagePendingWeigh": "Awaiting weight",
+      "stageWeighed": "Weighed",
+      "stagePendingOil": "Awaiting oil",
+      "stageDone": "Finished",
+      "allFields": "All fields",
+      "fieldFilter": "Field",
+      "pendingCount_one": "{{count}} open item",
+      "pendingCount_other": "{{count}} open items",
+      "pendingCount": "{{count}} open items",
+      "oilMissing": "— L",
+      "harvestDays_one": "{{count}} harvest day",
+      "harvestDays_other": "{{count}} harvest days",
+      "harvestDays": "{{count}} harvest days",
       "linked": "Linked",
       "tapHint": "Tap a card to see what it connects to.",
+      "scrollMore": "Scroll to see the rest",
       "fieldsCount": "{{count}} fields",
       "daysCount_one": "over {{count}} day",
       "daysCount_other": "over {{count}} days",
@@ -1744,7 +1774,7 @@
       "kgPerSackShort": "≈ {{kg}} kg/sack",
       "acidityShort": "Acidity {{value}}",
       "sourceSynced": "Synced harvest record",
-      "sourceChronologio": "In Chronologio",
+      "sourceChronologio": "In History",
       "linkedExpense": "Linked expense",
       "editInMoney": "Edit in Money",
       "expenseOnThisDay": "Only on this harvest day"
@@ -1758,12 +1788,18 @@
   "createGrove": {
     "title": "Add grove",
     "firstTitle": "Put your first grove in Oleachron",
-    "subtitle": "Name first, then colour once. Boundary and details whenever you like.",
+    "subtitle": "A name first. Then where it is, and its boundary.",
+    "placeHeading": "Where is it?",
+    "continueToPlace": "Continue",
+    "readyTitle": "Your grove is ready",
+    "readyBody": "The outline is saved. The first record starts History.",
     "nameHeading": "What shall we call it?",
-    "nameHelper": "A short name you’ll recognise — e.g. North grove or Lower vines.",
+    "nameHelper": "A name you’ll recognise at once.",
+    "nameSuggestionsLabel": "Name ideas",
+    "nameSuggestions": ["North grove", "Lower grove"],
     "nameLabel": "Grove name",
     "colorHeading": "Pick a colour",
-    "colorHelper": "Shown on Chronologio so you can spot this grove quickly.",
+    "colorHelper": "Shown on History so you can spot this grove quickly.",
     "readyNudge": "Name and colour are set. Next you draw the grove boundary.",
     "createCta": "Continue to boundary",
     "continueToColor": "Continue",
@@ -1816,8 +1852,8 @@
       "treeCountHint": "If you are not sure, leave it blank."
     },
     "appearance": {
-      "title": "Appearance in Chronologio",
-      "subtitle": "Colour helps you recognise the grove in Chronologio.",
+      "title": "Appearance in History",
+      "subtitle": "Colour helps you recognise the grove in History.",
       "autoLabel": "Colour: chosen automatically",
       "autoHint": "Colour: chosen automatically · Change",
       "change": "Change"
@@ -1831,7 +1867,7 @@
       "readyHeading": "Ready",
       "waitHeading": "Can wait",
       "readyName": "Name",
-      "readyTimeline": "Chronologio ready",
+      "readyTimeline": "History ready",
       "readyWork": "You can record an expense, income, or observation",
       "waitLocation": "Place on the map",
       "waitBoundary": "Boundary on the map",
@@ -1839,7 +1875,7 @@
       "recordWork": "Record first work",
       "recordFirst": "First entry",
       "addLocation": "Add a place on the map",
-      "openChronologio": "Open Chronologio",
+      "openChronologio": "Open History",
       "openGrove": "Open my grove"
     },
     "enrich": {
