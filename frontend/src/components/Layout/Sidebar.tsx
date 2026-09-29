@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
 import { isMockMode } from '../../services/serviceFactory';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import {
   navItems,
@@ -25,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const feedback = useFeedbackOptional();
+  const activation = useOwnerActivationOptional();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
@@ -92,13 +94,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                       </li>
                     );
                   }
+                  const guideTarget =
+                    item.path === '/fields' ? 'fieldsNav' : item.path === '/chronologio' ? 'historyNav' : undefined;
                   return (
                     <li key={item.path} className="nav-item">
                       <Link
                         to={item.path}
                         reloadDocument={false}
+                        data-guide-target={guideTarget}
                         className={`nav-link ${isNavActive(location.pathname, item.path) ? 'active' : ''}`}
-                        onClick={onNavigate}
+                        onClick={() => {
+                          onNavigate?.();
+                          if (item.path === '/chronologio') activation?.completeHistoryStep();
+                        }}
                       >
                         <span className="nav-icon">{item.icon}</span>
                         <span className="nav-label">{label}</span>

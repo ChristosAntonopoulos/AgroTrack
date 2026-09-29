@@ -285,6 +285,7 @@ const SavedContactSheet: React.FC<Props> = ({
           </form>
         </section>
 
+        {onInviteFamily || onInvitePartner ? (
         <section className="contact-panel contact-panel-app" aria-labelledby="contact-app-access-title">
           <h3 id="contact-app-access-title">{t('partners:appAccessTitle')}</h3>
           <p className="partners-field-hint">{t('partners:appAccessHint')}</p>
@@ -357,6 +358,7 @@ const SavedContactSheet: React.FC<Props> = ({
             </>
           )}
         </section>
+        ) : null}
       </div>
     </PartnersSheet>
   );

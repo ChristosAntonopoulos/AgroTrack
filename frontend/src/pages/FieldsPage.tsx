@@ -283,9 +283,11 @@ const FieldsPage: React.FC = () => {
           </div>
           <div className="fields-page-header-actions">
             {canCreate && (
-              <Button to="/fields/new" icon={<Plus />} size="md" className="fields-add-btn">
-                {t('fields:addFieldCta')}
-              </Button>
+              <span className="fields-add-btn" data-guide-target="createField">
+                <Button to="/fields/new" icon={<Plus />} size="md">
+                  {t('fields:addFieldCta')}
+                </Button>
+              </span>
             )}
           </div>
         </header>

@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, Droplets, Package, Trees } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import { formatGroveMassKg } from '../../utils/groveTotals';
+import { localeTagFor } from '../../utils/localeFormatters';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import {
@@ -11,7 +13,9 @@ import {
   type HarvestFlowNodeKind,
 } from '../flowGraph';
 import { convertOliveOilKgToLitres, formatHarvestYieldPercent } from '../utils/harvestCalculations';
+import { farmerOilLitres } from '../oilSaleLots';
 import { fieldSummaries } from '../totals';
+import { HarvestStatStrip } from './HarvestStatStrip';
 import type { HarvestCampaign } from '../types';
 import { HarvestGenealogyConnectors } from './HarvestGenealogyConnectors';
 
@@ -28,11 +32,13 @@ type Props = {
 
 const KIND_ORDER: HarvestFlowNodeKind[] = ['field', 'harvest', 'mill', 'oil'];
 
-/** Whole litres. Three decimals in Greek look like 86,245 L. */
+/** Whole litres. Greek groups thousands with a dot, so 86.245 L would read as 86 thousand. */
 const formatFlowLitres = (kg: number, locale: string): string | null => {
   const litres = convertOliveOilKgToLitres(kg);
   if (!(litres > 0)) return null;
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(litres));
+  return new Intl.NumberFormat(localeTagFor(locale), { maximumFractionDigits: 0 }).format(
+    Math.round(litres)
+  );
 };
 
 const formatDayLabel = (date: string, locale: string, style: 'short' | 'long' = 'short') => {
@@ -117,25 +123,16 @@ export const HarvestFlowView: React.FC<Props> = ({
         ? selectedNode.fieldIds[0]
         : null;
 
+  const unitKg = t('harvestCampaign.flow.unitKg');
+  const unitLitres = t('harvestCampaign.flow.unitLitres');
+
   const pathStory = useMemo(() => {
     if (!selectedNode) return null;
     const bits: string[] = [];
-    if (selectedNode.kind === 'field') {
-      bits.push(friendlyFieldLabel(selectedNode.label));
+    if (selectedNode.kind === 'field' || selectedNode.kind === 'harvest') {
       if (selectedNode.meta.sackCount) {
-        bits.push(
-          t('harvestCampaign.flow.sackCount', { count: selectedNode.meta.sackCount })
-        );
+        bits.push(t('harvestCampaign.flow.sackCount', { count: selectedNode.meta.sackCount }));
       }
-      return bits.length > 1 ? bits.join(' · ') : null;
-    }
-    const related = graph.nodes.filter((n) => highlight.has(n.id));
-    const fieldNames = related
-      .filter((n) => n.kind === 'field')
-      .map((n) => friendlyFieldLabel(n.label));
-    if (fieldNames.length) bits.push(fieldNames.join(' · '));
-    if (selectedNode.kind === 'harvest' && selectedNode.meta.sackCount) {
-      bits.push(t('harvestCampaign.flow.sackCount', { count: selectedNode.meta.sackCount }));
     }
     if (selectedNode.kind === 'mill' && selectedNode.meta.oliveKg) {
       bits.push(
@@ -146,7 +143,7 @@ export const HarvestFlowView: React.FC<Props> = ({
     }
     if (selectedNode.kind === 'oil' && selectedNode.meta.oilKg) {
       const litres = formatFlowLitres(selectedNode.meta.oilKg, locale);
-      if (litres) bits.push(`${litres} L`);
+      if (litres) bits.push(`${litres} ${unitLitres}`);
       if (selectedNode.yieldPct != null) {
         bits.push(
           t('harvestCampaign.flow.yieldBadge', {
@@ -155,8 +152,8 @@ export const HarvestFlowView: React.FC<Props> = ({
         );
       }
     }
-    return bits.length > 1 ? bits.join(' · ') : null;
-  }, [selectedNode, highlight, graph.nodes, t, locale]);
+    return bits.length > 0 ? bits.join(' · ') : null;
+  }, [selectedNode, t, locale, unitLitres]);
 
   const rowLabel = (kind: HarvestFlowNodeKind) => {
     switch (kind) {
@@ -200,51 +197,58 @@ export const HarvestFlowView: React.FC<Props> = ({
   const metricDisplay = (node: HarvestFlowNode) => {
     if (node.meta.metric === '—') return { value: '—', unit: '' };
     if (node.kind === 'field' || node.kind === 'harvest') {
-      return { value: node.meta.metric, unit: t('harvestCampaign.flow.unitSacks') };
+      const count = node.meta.sackCount;
+      const value =
+        count != null && count > 0
+          ? new Intl.NumberFormat(localeTagFor(locale), { maximumFractionDigits: 0 }).format(count)
+          : node.meta.metric;
+      return { value, unit: t('harvestCampaign.flow.unitSacks') };
     }
     if (node.kind === 'mill') {
-      return { value: node.meta.metric, unit: 'kg' };
+      const kg = node.meta.oliveKg;
+      return {
+        value: kg && kg > 0 ? formatGroveMassKg(kg, locale) : node.meta.metric,
+        unit: unitKg,
+      };
     }
     const litres = formatFlowLitres(node.meta.oilKg || 0, locale);
-    if (!litres) return { value: '—', unit: 'L' };
-    return { value: litres, unit: 'L' };
+    if (!litres) return { value: '—', unit: unitLitres };
+    return { value: litres, unit: unitLitres };
   };
 
   const detailLine = (node: HarvestFlowNode): string | null => {
     const parts: string[] = [];
     if (node.kind === 'field') {
       if (node.meta.oliveKg && node.meta.oliveKg > 0) {
-        parts.push(`${formatGroveMassKg(node.meta.oliveKg, locale)} kg`);
+        parts.push(`${formatGroveMassKg(node.meta.oliveKg, locale)} ${unitKg}`);
       }
       const litres = formatFlowLitres(node.meta.oilKg || 0, locale);
-      if (litres) parts.push(`${litres} L`);
+      if (litres) parts.push(`${litres} ${unitLitres}`);
       const days = Number(node.meta.fromSummary);
       if (Number.isFinite(days) && days > 0) {
         parts.push(t('harvestCampaign.flow.daysCount', { count: days }));
       }
-    } else {
-      const names = (node.meta.fieldNames || []).map(friendlyFieldLabel);
-      if (names.length) parts.push(names.join(' · '));
-      if (node.kind === 'mill' && node.meta.sackCount && node.meta.sackCount > 0) {
-        parts.push(t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount }));
-      }
-      if (node.kind === 'oil' && node.yieldPct != null) {
+    } else if (node.kind === 'mill' && node.meta.sackCount && node.meta.sackCount > 0) {
+      parts.push(t('harvestCampaign.flow.fromSacks', { count: node.meta.sackCount }));
+    } else if (node.kind === 'oil' && node.yieldPct != null) {
+      parts.push(
+        t('harvestCampaign.flow.yieldBadge', {
+          yield: formatHarvestYieldPercent(node.yieldPct, locale),
+        })
+      );
+    } else if (
+      node.kind === 'harvest' &&
+      node.meta.openSacks != null &&
+      node.meta.sackCount != null
+    ) {
+      const weighed = node.meta.sackCount - node.meta.openSacks;
+      if (weighed > 0 && node.meta.openSacks > 0) {
         parts.push(
-          t('harvestCampaign.flow.yieldBadge', {
-            yield: formatHarvestYieldPercent(node.yieldPct, locale),
+          t('harvestCampaign.flow.weighedSplit', {
+            weighed,
+            open: node.meta.openSacks,
           })
         );
-      }
-      if (node.kind === 'harvest' && node.meta.openSacks != null && node.meta.sackCount != null) {
-        const weighed = node.meta.sackCount - node.meta.openSacks;
-        if (weighed > 0 && node.meta.openSacks > 0) {
-          parts.push(
-            t('harvestCampaign.flow.weighedSplit', {
-              weighed,
-              open: node.meta.openSacks,
-            })
-          );
-        }
       }
     }
     return parts.length > 0 ? parts.join(' · ') : null;
@@ -267,7 +271,9 @@ export const HarvestFlowView: React.FC<Props> = ({
     const isSelected = selectedId === node.id;
     const metric = metricDisplay(node);
     const fact = detailLine(node);
-    const chips = node.meta.chips.filter((c) => c === 'needsMill' || c === 'needsOil');
+    const chips = node.meta.chips.filter(
+      (c) => c === 'needsMill' || c === 'needsOil' || (c === 'shared' && node.kind !== 'field')
+    );
     const accent =
       node.fieldIds.length === 1 ? fieldColors[node.fieldIds[0]] : undefined;
 
@@ -336,6 +342,43 @@ export const HarvestFlowView: React.FC<Props> = ({
     campaign.sacks.length === 0 &&
     campaign.millWeights.length === 0 &&
     campaign.oils.length === 0;
+  const sackTotal = campaign.sacks.reduce((sum, row) => sum + (Number(row.sacks) || 0), 0);
+  const harvestDays = new Set(
+    [
+      ...campaign.sacks.map((row) => row.date),
+      ...campaign.millWeights.map((row) => row.date),
+      ...campaign.oils.map((row) => row.date),
+    ].filter(Boolean)
+  ).size;
+  const oilLitres = Math.round(campaign.oils.reduce((sum, row) => sum + farmerOilLitres(row), 0));
+  const countLabel = (value: number) =>
+    new Intl.NumberFormat(localeTagFor(locale), { maximumFractionDigits: 0 }).format(value);
+  const summary = [
+    {
+      id: 'fields',
+      icon: Trees,
+      value: countLabel(fieldOrder.length),
+      label: t('harvestCampaign.flow.fields'),
+    },
+    {
+      id: 'sacks',
+      icon: Package,
+      value: countLabel(sackTotal),
+      label: t('harvestCampaign.flow.sacks'),
+    },
+    {
+      id: 'days',
+      icon: CalendarDays,
+      value: countLabel(harvestDays),
+      label: t('harvestCampaign.flow.days'),
+    },
+    {
+      id: 'oil',
+      icon: Droplets,
+      value: countLabel(oilLitres),
+      label: t('harvestCampaign.flow.unitOilLitres'),
+    },
+  ];
 
   const selectedSummary =
     selectedFieldId != null
@@ -427,10 +470,16 @@ export const HarvestFlowView: React.FC<Props> = ({
         </div>
       ) : null}
 
-      {pathStory ? (
+      {!empty ? (
+        <HarvestStatStrip items={summary} label={t('harvestCampaign.nav.fields')} />
+      ) : null}
+
+      {!empty && pathStory ? (
         <p className="hc-gene-path" role="status">
           {pathStory}
         </p>
+      ) : !empty ? (
+        <p className="hc-gene-hint">{t('harvestCampaign.flow.tapHint')}</p>
       ) : null}
 
       {empty ? (
@@ -452,11 +501,11 @@ export const HarvestFlowView: React.FC<Props> = ({
                   </span>
                   <span role="cell">{row.sacks || '—'}</span>
                   <span role="cell">
-                    {row.officialKg > 0 ? `${formatGroveMassKg(row.officialKg, locale)} kg` : '—'}
+                    {row.officialKg > 0 ? `${formatGroveMassKg(row.officialKg, locale)} ${unitKg}` : '—'}
                   </span>
                   <span role="cell">
                     {formatFlowLitres(row.oilKg, locale)
-                      ? `${formatFlowLitres(row.oilKg, locale)} L`
+                      ? `${formatFlowLitres(row.oilKg, locale)} ${unitLitres}`
                       : '—'}
                   </span>
                 </div>
@@ -479,6 +528,7 @@ export const HarvestFlowView: React.FC<Props> = ({
           ref={scrollRef}
           onScroll={updateScrollHint}
         >
+        <div className="hc-gene-canvas">
         <div className="hc-gene-stack" ref={bindStack}>
           <HarvestGenealogyConnectors
             container={stackEl}
@@ -496,11 +546,14 @@ export const HarvestFlowView: React.FC<Props> = ({
             if (nodes.length === 0) return null;
             return (
               <div key={kind} className={`hc-gene-layer hc-gene-layer-${kind}`}>
-                <p className="hc-gene-layer-label">{rowLabel(kind)}</p>
+                <p className="hc-gene-layer-label">
+                  {rowLabel(kind)} · {nodes.length}
+                </p>
                 <div className="hc-gene-nodes">{nodes.map(renderNode)}</div>
               </div>
             );
           })}
+        </div>
         </div>
         </div>
         {showMore ? (

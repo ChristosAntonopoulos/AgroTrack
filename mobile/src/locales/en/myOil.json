@@ -1,6 +1,6 @@
 {
   "title": "My oil",
-  "pageSupport": "Oil in your cellar.",
+  "pageSupport": "Oil in your warehouse.",
   "seasonLabel": "Harvest {{season}}",
   "seasonHint": "",
   "activity": {
@@ -21,13 +21,13 @@
   },
   "tabs": {
     "overview": "Overview",
-    "stock": "Stock",
+    "stock": "Warehouse",
     "others": "Holds",
-    "lots": "Pressings",
+    "lots": "Fields",
     "movements": "Activity"
   },
   "hero": {
-    "eyebrow": "In the cellar",
+    "eyebrow": "Warehouse",
     "inCellarLine": "",
     "approxTotal": "≈ {{amount}} L",
     "available": "Warehouse",
@@ -51,7 +51,7 @@
     "tins_other": "{{count}} tins",
     "bulkPlus": "{{amount}} L bulk",
     "bulkOnly": "{{amount}} L bulk",
-    "empty": "Empty cellar",
+    "empty": "Empty warehouse",
     "zero": "0",
     "actionsHint": ""
   },
@@ -65,7 +65,7 @@
     "loss": "Loss"
   },
   "stock": {
-    "title": "Stock",
+    "title": "Warehouse",
     "available": "available"
   },
   "needsNow": {
@@ -90,7 +90,7 @@
   },
   "warehouse": {
     "title": "Warehouse",
-    "readyNote": "What remains free in the cellar",
+    "readyNote": "What remains free in the warehouse",
     "pack16": "16 L",
     "pack17": "17 L",
     "packBulk": "Bulk",
@@ -109,12 +109,12 @@
     "ready": "free",
     "heldCount": "{{count}} on hold",
     "heldLitres": "{{amount}} L on hold",
-    "inCellarCount": "{{count}} in cellar",
-    "inCellarLitres": "{{amount}} L in cellar",
+    "inCellarCount": "{{count}} in the warehouse",
+    "inCellarLitres": "{{amount}} L in the warehouse",
     "forOthersCount_one": "{{count}} on hold",
     "forOthersCount_other": "{{count}} on hold",
     "forOthersLitres": "{{amount}} L on hold",
-    "meterCellar": "in cellar",
+    "meterCellar": "in the warehouse",
     "meterOthers": "on hold"
   },
   "forOthersSummary": {
@@ -146,7 +146,7 @@
     "notPaidYet": "Not paid yet",
     "delivered": "Delivered",
     "details": "Details",
-    "fromLots": "From pressings",
+    "fromLots": "From fields",
     "paidOn": "Paid on {{date}}",
     "notDeliveredYet": "Not delivered yet",
     "cancelHold": "Cancel hold",
@@ -159,13 +159,14 @@
     "heldForDate": "Held for {{date}}",
     "heldForSomeone": "Held for {{name}}",
     "heldGeneric": "Held",
+    "atHome": "At home",
     "delivered": "Delivered"
   },
   "lots": {
-    "title": "Pressings",
+    "title": "Fields",
     "intro": "",
-    "emptyTitle": "No pressings yet",
-    "emptyBody": "They appear when you log oil from harvest.",
+    "emptyTitle": "No oil by field yet",
+    "emptyBody": "It appears when you log oil from harvest.",
     "emptyCta": "Harvest",
     "seeLot": "Details",
     "fillTins": "Fill tins",
@@ -173,9 +174,10 @@
     "fields_other": "{{count}} fields",
     "moreFields": "+{{count}} more",
     "totalLitres": "{{amount}} L",
-    "previewTitle": "Pressings",
-    "seeAll": "All pressings →",
-    "tagStored": "In cellar",
+    "previewTitle": "Fields",
+    "seeAll": "All fields →",
+    "noField": "No field",
+    "tagStored": "In the warehouse",
     "tagReady": "Ready",
     "tagPressed": "Pressed",
     "detail": {
@@ -184,7 +186,7 @@
       "mill": "Mill",
       "oil": "Oil",
       "now": "Now",
-      "gone": "Already gone from this pressing",
+      "gone": "Held from this field",
       "millKept": "Mill kept {{amount}} L",
       "farmerTook": "You took home {{amount}} L",
       "totalOil": "{{amount}} L total"
@@ -243,6 +245,7 @@
     "when": "Delivery",
     "later": "Later",
     "now": "Now",
+    "field": "From which field?",
     "isSale": "Sale?",
     "yes": "Yes",
     "no": "No",
@@ -254,10 +257,10 @@
   },
   "fill": {
     "title": "I filled tins",
-    "sourceSubtitle": "Choose whether to link a harvest pressing",
-    "linkedSubtitle": "Linked to a harvest pressing",
-    "unlinkedSubtitle": "From the warehouse, no specific pressing",
-    "chooseSource": "Where from?",
+    "sourceSubtitle": "Which field?",
+    "linkedSubtitle": "From this field",
+    "unlinkedSubtitle": "From this field",
+    "chooseSource": "Field",
     "autoTitle": "No harvest link",
     "autoBody": "Takes bulk automatically from the warehouse",
     "fromHarvest": "From harvest",
@@ -276,9 +279,9 @@
     "noBulk": "No bulk left to fill."
   },
   "repack": "I filled tins",
-  "repackHint": "Moves bulk into tins inside the same pressing.",
+  "repackHint": "Turns this field's bulk into tins.",
   "adjust": "Gift / home / correction",
-  "empty": "No oil recorded in the cellar yet.",
+  "empty": "No oil recorded in the warehouse yet.",
   "emptyHint": "When you log oil from harvest, it will show up here.",
   "loading": "Loading…",
   "error": "Could not load your oil. Try again.",
@@ -301,7 +304,8 @@
     "save": "Update"
   },
   "adjustSheet": {
-    "title": "Cellar change",
+    "title": "Warehouse change",
+    "field": "Which field?",
     "kind": "What happened?",
     "gifted": "Gift",
     "home_use": "For the house",

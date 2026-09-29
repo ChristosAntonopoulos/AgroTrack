@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Field;
+using OliveLifecycle.Application.DTOs.Partners;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
@@ -143,6 +144,21 @@ public class FieldPeopleService : IFieldPeopleService
             ?? FieldPeopleRules.OccupiedSeats(field).FirstOrDefault(p =>
                 string.Equals(p.InviteId, targetUserId, StringComparison.Ordinal))
             ?? throw new NotFoundException("Person not found on this field.");
+
+        if (!string.IsNullOrWhiteSpace(dto.Role))
+        {
+            if (seat.Role == FieldPersonRole.Admin)
+            {
+                throw new ValidationException("Owner access is not edited here. Transfer ownership instead.");
+            }
+
+            if (!FieldPeopleRules.TryParseRelationship(dto.Role, out var relationship))
+            {
+                throw new ValidationException("Relationship must be Family or Collaborator.");
+            }
+
+            seat.Role = relationship;
+        }
 
         FieldPeopleRules.UpdateSeatAccess(seat, dto.Modules, dto.AccessLevel);
         field.UpdatedAt = _dateTimeProvider.UtcNow;
@@ -289,6 +305,164 @@ public class FieldPeopleService : IFieldPeopleService
         var dtoOut = ToInviteDto(invite, publicAppBaseUrl, invitedByName);
         dtoOut.EmailSent = await TrySendInviteEmailAsync(invite, dtoOut, invitedByName, cancellationToken);
         return dtoOut;
+    }
+
+    public async Task<IReadOnlyList<FieldInviteDto>> CreateInvitesAsync(
+        string actorId,
+        CreateMultiFieldInviteDto dto,
+        string? publicAppBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var fieldIds = (dto.FieldIds ?? new List<string>())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (fieldIds.Count == 0)
+        {
+            throw new ValidationException("Choose at least one grove.");
+        }
+
+        if (!FieldPeopleRules.TryParseRelationship(dto.Relationship, out _))
+        {
+            throw new ValidationException("Relationship must be Family or Collaborator.");
+        }
+
+        var created = new List<FieldInviteDto>();
+        foreach (var fieldId in fieldIds)
+        {
+            created.Add(await CreateInviteAsync(
+                fieldId,
+                actorId,
+                new CreateFieldInviteDto
+                {
+                    Role = dto.Relationship,
+                    AccessLevel = string.IsNullOrWhiteSpace(dto.AccessPreset) ? FamilyAccessLevels.View : dto.AccessPreset,
+                    Modules = dto.Modules ?? new List<string>(),
+                    Email = dto.Email,
+                    Phone = dto.Phone,
+                    DisplayName = dto.DisplayName
+                },
+                publicAppBaseUrl,
+                cancellationToken));
+        }
+
+        return created;
+    }
+
+    public async Task<ManagedPeopleDto> GetManagedPeopleAsync(
+        string userId,
+        string? publicAppBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var owned = (await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken)).ToList();
+        var manageable = new List<Field>();
+        foreach (var field in owned)
+        {
+            FieldPeopleRules.EnsureNormalized(field);
+            if (FieldPeopleRules.IsAdmin(field, userId))
+            {
+                manageable.Add(field);
+            }
+        }
+
+        User? owner = null;
+        if (manageable.Count > 0)
+        {
+            owner = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        }
+
+        var ownerName = owner == null ? null : DisplayName(owner);
+        var people = new Dictionary<string, PersonAccessDto>(StringComparer.OrdinalIgnoreCase);
+        var pending = new List<FieldInviteDto>();
+
+        foreach (var field in manageable.OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            foreach (var seat in FieldPeopleRules.OccupiedSeats(field))
+            {
+                if (seat.Role == FieldPersonRole.Admin)
+                {
+                    continue;
+                }
+
+                if (!string.Equals(seat.Status, FamilyMemberStatuses.Active, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var enriched = await EnrichOneAsync(seat, cancellationToken);
+                var key = MembershipKey(enriched);
+                if (!people.TryGetValue(key, out var person))
+                {
+                    person = new PersonAccessDto
+                    {
+                        UserId = enriched.UserId,
+                        DisplayName = enriched.DisplayName ?? string.Empty,
+                        Email = enriched.Email
+                    };
+                    people[key] = person;
+                }
+                else if (string.IsNullOrWhiteSpace(person.DisplayName) && !string.IsNullOrWhiteSpace(enriched.DisplayName))
+                {
+                    person.DisplayName = enriched.DisplayName;
+                    person.Email ??= enriched.Email;
+                }
+
+                person.Memberships.Add(new PersonFieldAccessDto
+                {
+                    FieldId = field.Id,
+                    FieldName = field.Name,
+                    Relationship = enriched.Role,
+                    AccessPreset = enriched.AccessLevel,
+                    Modules = enriched.Modules,
+                    Status = enriched.Status
+                });
+            }
+
+            var invites = await _inviteRepository.GetByFieldIdAsync(field.Id, cancellationToken);
+            foreach (var invite in invites)
+            {
+                if (!string.Equals(invite.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(invite.Status, FamilyInviteStatuses.Expired, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string? invitedByName = ownerName;
+                if (!string.IsNullOrWhiteSpace(invite.InvitedBy)
+                    && !string.Equals(invite.InvitedBy, userId, StringComparison.Ordinal))
+                {
+                    var inviter = await _userRepository.GetByIdAsync(invite.InvitedBy, cancellationToken);
+                    invitedByName = inviter == null ? invitedByName : DisplayName(inviter);
+                }
+
+                pending.Add(ToInviteDto(invite, publicAppBaseUrl, invitedByName));
+            }
+        }
+
+        var contacts = await _savedContacts.GetMineAsync(userId, null, includeUnassigned: true, cancellationToken);
+
+        return new ManagedPeopleDto
+        {
+            People = people.Values
+                .OrderBy(person => person.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+            PendingInvites = pending
+                .OrderByDescending(invite => invite.CreatedAt)
+                .ToList(),
+            Contacts = contacts.ToList(),
+            ManageableFields = manageable
+                .OrderBy(field => field.Name, StringComparer.CurrentCultureIgnoreCase)
+                .Select(field => new ManageableFieldDto
+                {
+                    Id = field.Id,
+                    Name = field.Name,
+                    OwnerUserId = userId,
+                    OwnerDisplayName = ownerName,
+                    OwnerEmail = owner?.Email
+                })
+                .ToList()
+        };
     }
 
     public async Task<IReadOnlyList<FieldInviteDto>> GetInvitesAsync(
@@ -631,14 +805,27 @@ public class FieldPeopleService : IFieldPeopleService
 
     private static FieldPersonRole ResolveInviteRole(CreateFieldInviteDto dto)
     {
-        if (!string.IsNullOrWhiteSpace(dto.Role)
-            && Enum.TryParse<FieldPersonRole>(dto.Role, ignoreCase: true, out var role)
-            && role != FieldPersonRole.Admin)
+        if (FieldPeopleRules.TryParseRelationship(dto.Role, out var role))
         {
             return role;
         }
 
         return FieldPersonRole.Partner;
+    }
+
+    private static string MembershipKey(FieldMembershipDto membership)
+    {
+        if (!string.IsNullOrWhiteSpace(membership.UserId))
+        {
+            return "user:" + membership.UserId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(membership.Email))
+        {
+            return "email:" + membership.Email.Trim().ToLowerInvariant();
+        }
+
+        return "name:" + (membership.DisplayName ?? string.Empty).Trim().ToLowerInvariant();
     }
 
     private async Task<Field> RequireAdminAsync(string fieldId, string actorId, CancellationToken cancellationToken)

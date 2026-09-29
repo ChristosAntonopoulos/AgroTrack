@@ -1,7 +1,10 @@
 import React from 'react';
+import { CalendarDays, Droplets, Percent, Scale, Users, Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { formatGroveLitres, formatGroveMassKg } from '../../utils/groveTotals';
+import { formatGroveMassKg } from '../../utils/groveTotals';
+import { localeTagFor } from '../../utils/localeFormatters';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
+import { HarvestStatStrip, type HarvestStatItem } from '../components/HarvestStatStrip';
 import { convertOliveOilKgToLitres, formatHarvestYieldPercent } from '../utils/harvestCalculations';
 
 export const HarvestCompleteSheet: React.FC<{
@@ -30,6 +33,12 @@ export const HarvestCompleteSheet: React.FC<{
   onFinish,
 }) => {
   const { t } = useTranslation('fields');
+  const whole = (value: number) =>
+    new Intl.NumberFormat(localeTagFor(locale), { maximumFractionDigits: 0 }).format(
+      Math.round(value)
+    );
+  const litres = oilKg > 0 ? Math.round(convertOliveOilKgToLitres(oilKg)) : 0;
+
   const missing: string[] = [];
   if (officialKg <= 0) missing.push(t('harvestCampaign.complete.missingMill'));
   if (oilKg <= 0) missing.push(t('harvestCampaign.complete.missingOil'));
@@ -41,6 +50,47 @@ export const HarvestCompleteSheet: React.FC<{
   }
   if (days <= 0 && officialKg <= 0 && oilKg <= 0) {
     missing.push(t('harvestCampaign.complete.missingEmpty'));
+  }
+
+  const stats: HarvestStatItem[] = [
+    {
+      id: 'mill',
+      icon: Scale,
+      value: officialKg > 0 ? formatGroveMassKg(officialKg, locale) : '—',
+      label: t('harvestCampaign.flow.unitKg'),
+    },
+    {
+      id: 'oil',
+      icon: Droplets,
+      value: litres > 0 ? whole(litres) : '—',
+      label: t('harvestCampaign.flow.unitOilLitres'),
+    },
+    {
+      id: 'days',
+      icon: CalendarDays,
+      value: whole(days),
+      label: t('harvestCampaign.flow.days'),
+    },
+    {
+      id: 'people',
+      icon: Users,
+      value: whole(personDays),
+      label: t('harvestCampaign.complete.personDaysLabel'),
+    },
+    {
+      id: 'expense',
+      icon: Wallet,
+      value: `${whole(expenseEur)} €`,
+      label: t('harvestCampaign.actions.expense'),
+    },
+  ];
+  if (yieldPct != null) {
+    stats.push({
+      id: 'yield',
+      icon: Percent,
+      value: `${formatHarvestYieldPercent(yieldPct, locale)}%`,
+      label: t('harvestCampaign.dashboard.yieldLabel'),
+    });
   }
 
   return (
@@ -61,38 +111,9 @@ export const HarvestCompleteSheet: React.FC<{
       }
     >
       <p className="capture-prompt hc-complete-hero">{t('harvestCampaign.complete.readyTitle')}</p>
-      <div className="hc-complete-metrics" role="list">
-        <div className="hc-complete-metric" role="listitem">
-          <span>{t('harvestCampaign.complete.olives', { kg: formatGroveMassKg(officialKg, locale) })}</span>
-        </div>
-        <div className="hc-complete-metric" role="listitem">
-          <span>
-            {t('harvestCampaign.complete.oil', {
-              litres: formatGroveLitres(convertOliveOilKgToLitres(oilKg), locale),
-            })}
-          </span>
-        </div>
-        {yieldPct != null ? (
-          <div className="hc-complete-metric hc-complete-metric--accent" role="listitem">
-            <span>
-              {t('harvestCampaign.complete.yield', {
-                yield: formatHarvestYieldPercent(yieldPct, locale),
-              })}
-            </span>
-          </div>
-        ) : null}
-        <div className="hc-complete-metric" role="listitem">
-          <span>{t('harvestCampaign.complete.days', { count: days })}</span>
-        </div>
-        <div className="hc-complete-metric" role="listitem">
-          <span>{t('harvestCampaign.complete.personDays', { count: personDays })}</span>
-        </div>
-        <div className="hc-complete-metric" role="listitem">
-          <span>{t('harvestCampaign.complete.expense', { amount: expenseEur })}</span>
-        </div>
-      </div>
+      <HarvestStatStrip items={stats} label={t('harvestCampaign.complete.readyTitle')} />
       {missing.length > 0 ? (
-        <div className="money-warn" role="status">
+        <div className="hc-complete-missing" role="status">
           <p>{t('harvestCampaign.complete.missingTitle')}</p>
           <ul>
             {missing.map((line) => (

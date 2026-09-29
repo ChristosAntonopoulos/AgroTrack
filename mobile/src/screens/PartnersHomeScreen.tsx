@@ -55,6 +55,7 @@ const PartnersHomeScreen = () => {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
   const [importing, setImporting] = useState(false);
+  const [section, setSection] = useState<'people' | 'invites' | 'contacts'>('people');
   const [addingFamily, setAddingFamily] = useState(false);
   const [addingPartner, setAddingPartner] = useState(false);
   const [invitePrefill, setInvitePrefill] = useState<{ name?: string; email?: string }>({});
@@ -62,33 +63,35 @@ const PartnersHomeScreen = () => {
   const openedAddContact = useRef(false);
 
   const groveFields = useMemo(
-    () => fields.filter((field) => isPartnerScopeField(field, user?.id)),
+    () => fields.filter((field) => field.ownerId === user?.id && isPartnerScopeField(field, user?.id)),
     [fields, user?.id]
   );
-  const listedFields = useMemo(() => {
-    if (fieldId && !groveFields.some((field) => field.id === fieldId)) {
-      const extra = fields.find((field) => field.id === fieldId);
-      if (extra) return [extra, ...groveFields];
-    }
-    return groveFields;
-  }, [fields, fieldId, groveFields]);
+  const listedFields = groveFields;
 
   useLayoutEffect(() => {
     navigation.setOptions({
       title: t('nav:partners', { defaultValue: t('partners:title') }),
       headerRight: () => (
         <Pressable
-          onPress={() => setAdding(true)}
+          onPress={() => {
+            const target = fieldId || listedFields[0]?.id;
+            if (!target) {
+              setAdding(true);
+              return;
+            }
+            setInviteTargetFieldId(target);
+            setAddingFamily(true);
+          }}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel={t('partners:addContact')}
+          accessibilityLabel={t('partners:peoplePage.invite', { defaultValue: t('partners:addPerson') })}
           style={{ paddingHorizontal: 12, paddingVertical: 6 }}
         >
           <Ionicons name="add" size={28} color={colors.primary} />
         </Pressable>
       ),
     });
-  }, [navigation, t, colors.primary]);
+  }, [navigation, t, colors.primary, fieldId, listedFields]);
 
   useEffect(() => {
     void (async () => {
@@ -253,13 +256,58 @@ const PartnersHomeScreen = () => {
 
   const inviteFieldId = inviteTargetFieldId || fieldId;
   const inviteField = fields.find((field) => field.id === inviteFieldId);
-  const accessFields = fieldId ? listedFields.filter((field) => field.id === fieldId) : listedFields;
+  const accessFields = fieldId ? listedFields.filter((field) => field.id === fieldId) : [];
+  const peopleAcrossGroves = useMemo(() => {
+    const grouped = new Map<string, { key: string; name: string; detail: string }>();
+    const relationshipLabel = (role: string, level: string, modules: string[]) => {
+      const relation = role === 'Partner' ? 'Collaborator' : 'Family';
+      const preset = level === 'view' ? 'view' : level === 'help' ? 'help' : modules.includes('tasks') ? 'work' : 'record';
+      return `${t(`partners:peoplePage.relationship.${relation}`, { defaultValue: relation })} · ${t(
+        `partners:peoplePage.preset.${preset}`,
+        { defaultValue: preset }
+      )}`;
+    };
+    listedFields.forEach((field) => {
+      (peopleByField[field.id] || []).forEach((person) => {
+        if (person.role === 'Admin' || !/^active$/i.test(person.status)) return;
+        const key = person.userId || person.email || person.displayName || `${field.id}-anon`;
+        const current = grouped.get(key) || {
+          key,
+          name: person.displayName || person.email || '',
+          detail: '',
+        };
+        const line = `${friendlyFieldLabel(field.name)} · ${relationshipLabel(person.role, person.accessLevel, person.modules)}`;
+        current.detail = current.detail ? `${current.detail}\n${line}` : line;
+        grouped.set(key, current);
+      });
+    });
+    return [...grouped.values()];
+  }, [listedFields, peopleByField, t]);
+  const pendingRows = useMemo(() => {
+    const rows: { key: string; name: string; detail: string }[] = [];
+    listedFields.forEach((field) => {
+      (peopleByField[field.id] || []).forEach((person) => {
+        if (!/^(pending|expired|invited)$/i.test(person.status)) return;
+        rows.push({
+          key: `${field.id}-${person.inviteId || person.email || person.userId}`,
+          name: person.displayName || person.email || person.phone || '',
+          detail: friendlyFieldLabel(field.name),
+        });
+      });
+    });
+    return rows;
+  }, [listedFields, peopleByField]);
   const canPickPhone = canPickDeviceContact();
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <ScreenLayout scroll padded canvasOpacity={0.45}>
+      <Text style={[styles.lead, { color: colors.textSecondary, marginBottom: spacing.sm }]}>
+        {t('partners:peoplePage.subtitle', {
+          defaultValue: t('partners:homeLead'),
+        })}
+      </Text>
       {listedFields.length > 0 ? (
         <PartnersFieldPicker
           fields={listedFields}
@@ -269,58 +317,41 @@ const PartnersHomeScreen = () => {
         />
       ) : null}
 
-      <View style={styles.sectionHead}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            {t('partners:contactsSection')}
-            {visiblePeople.length > 0 ? (
-              <Text style={{ color: colors.textSecondary }}> {visiblePeople.length}</Text>
-            ) : null}
-          </Text>
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:contactsSectionHint')}</Text>
-          <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('partners:contactsVsUsers')}</Text>
-        </View>
+      <View style={styles.tabs}>
+        {([
+          ['people', t('partners:peoplePage.tabs.people', { count: peopleAcrossGroves.length, defaultValue: 'People' })],
+          ['invites', t('partners:peoplePage.tabs.invites', { count: pendingRows.length, defaultValue: 'Invitations' })],
+          ['contacts', t('partners:peoplePage.tabs.contacts', { count: visiblePeople.length, defaultValue: 'Contacts' })],
+        ] as const).map(([id, label]) => (
+          <Pressable key={id} onPress={() => setSection(id)} style={styles.tab}>
+            <Text style={{ color: section === id ? colors.textPrimary : colors.textSecondary, fontWeight: '700' }}>
+              {label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      <View style={styles.actions}>
-        {canPickPhone ? (
-          <Button
-            title={t('partners:importPhone.openPhone')}
-            variant="outline"
-            onPress={() => setImporting(true)}
-          />
-        ) : null}
-        <Button title={t('partners:addContact')} onPress={() => setAdding(true)} />
-      </View>
-
-      {visiblePeople.length === 0 ? (
-        <EmptyState
-          title={t('partners:emptyPeople')}
-          description={fieldId ? t('partners:emptyPeopleHintField') : t('partners:emptyPeopleHint')}
-          action={{ label: t('partners:addContact'), onPress: () => setAdding(true) }}
-        />
-      ) : (
-        visiblePeople.map((person) => (
-            <PersonCard
-              key={person.id}
-              name={person.displayName}
-              subtitle={personSubtitle(person, fields, t)}
-              phone={person.phone}
-              email={person.email}
-              hint={person.serviceLabels.join(' · ') || undefined}
-              onPress={() => setSelected(person)}
+      {section === 'people' && !fieldId
+        ? peopleAcrossGroves.length === 0
+          ? (
+            <EmptyState
+              title={t('partners:peoplePage.emptyPeople', { defaultValue: t('partners:emptyPeople') })}
+              description={t('partners:peoplePage.subtitle', { defaultValue: '' })}
             />
+          )
+          : peopleAcrossGroves.map((person) => (
+            <PersonCard key={person.key} name={person.name} subtitle={person.detail} onPress={() => undefined} />
           ))
-      )}
+        : null}
 
-      {user
+      {section === 'people' && fieldId
         ? accessFields.map((field) => (
             <TeamAccessSection
               key={field.id}
               fieldId={field.id}
               fieldName={friendlyFieldLabel(field.name)}
               fieldColor={field.color}
-              showFieldHeading={!fieldId}
+              showFieldHeading
               people={peopleByField[field.id] || []}
               canManage={canManageField(field.id)}
               pendingInvitesById={pendingInvitesById}
@@ -330,6 +361,55 @@ const PartnersHomeScreen = () => {
             />
           ))
         : null}
+
+      {section === 'invites' ? (
+        pendingRows.length === 0 ? (
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>
+            {t('partners:peoplePage.emptyInvites', { defaultValue: t('partners:pendingInvites') })}
+          </Text>
+        ) : (
+          pendingRows.map((row) => (
+            <PersonCard key={row.key} name={row.name} subtitle={row.detail} onPress={() => undefined} />
+          ))
+        )
+      ) : null}
+
+      {section === 'contacts' ? (
+        <>
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>
+            {t('partners:peoplePage.contactsLead', { defaultValue: t('partners:contactsSectionHint') })}
+          </Text>
+          <View style={styles.actions}>
+            {canPickPhone ? (
+              <Button
+                title={t('partners:importPhone.openPhone')}
+                variant="outline"
+                onPress={() => setImporting(true)}
+              />
+            ) : null}
+            <Button title={t('partners:addContact')} onPress={() => setAdding(true)} />
+          </View>
+          {visiblePeople.length === 0 ? (
+            <EmptyState
+              title={t('partners:peoplePage.emptyContacts', { defaultValue: t('partners:emptyPeople') })}
+              description={t('partners:peoplePage.contactsLead', { defaultValue: t('partners:emptyPeopleHint') })}
+              action={{ label: t('partners:addContact'), onPress: () => setAdding(true) }}
+            />
+          ) : (
+            visiblePeople.map((person) => (
+              <PersonCard
+                key={person.id}
+                name={person.displayName}
+                subtitle={personSubtitle(person, fields, t)}
+                phone={person.phone}
+                email={person.email}
+                hint={person.serviceLabels.join(' · ') || undefined}
+                onPress={() => setSelected(person)}
+              />
+            ))
+          )}
+        </>
+      ) : null}
 
       <PersonDetailSheet
         person={selected}
@@ -460,6 +540,8 @@ const styles = StyleSheet.create({
   lead: { fontSize: 14, lineHeight: 20, marginTop: 4 },
   hint: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
+  tabs: { flexDirection: 'row', gap: 16, marginBottom: spacing.md },
+  tab: { paddingVertical: 8 },
 });
 
 export default PartnersHomeScreen;

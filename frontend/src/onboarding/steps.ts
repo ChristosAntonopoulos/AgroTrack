@@ -21,10 +21,38 @@ export type OwnerActivationPersisted = {
   forceShow: boolean;
   /** Later escape before όρια — allows browse until they resume or save boundary. */
   laterSnoozedAt: string | null;
-  /** Soft guide after spatial welcome: details → first observation → chronologio. */
+  /** Soft guide after spatial welcome: details → home → History → first observation. */
   awaitingFirstObservation: boolean;
   firstObservationDoneAt: string | null;
+  /** linger on field details, then the home logo, then History. */
+  navCoachPhase: NavCoachPhase | null;
 };
+
+export type NavCoachPhase = 'linger' | 'home' | 'history';
+
+export const GUIDE_TARGETS = ['fieldsNav', 'createField', 'homeButton', 'historyNav'] as const;
+
+export type GuideTargetId = (typeof GUIDE_TARGETS)[number];
+
+/** One path, welcome through the first note. Numbers on the cards follow this order. */
+export const ONBOARDING_JOURNEY = [
+  'fieldsNav',
+  'createField',
+  'createGrove',
+  'locatePlace',
+  'drawBoundary',
+  'groveReady',
+  'homeButton',
+  'historyNav',
+  'firstObservation',
+] as const;
+
+export type OnboardingJourneyId = (typeof ONBOARDING_JOURNEY)[number];
+
+export const ONBOARDING_JOURNEY_TOTAL = ONBOARDING_JOURNEY.length;
+
+export const onboardingStepNumber = (id: OnboardingJourneyId): number =>
+  ONBOARDING_JOURNEY.indexOf(id) + 1;
 
 export const emptyPersisted = (): OwnerActivationPersisted => ({
   skippedSteps: [],
@@ -34,6 +62,7 @@ export const emptyPersisted = (): OwnerActivationPersisted => ({
   laterSnoozedAt: null,
   awaitingFirstObservation: false,
   firstObservationDoneAt: null,
+  navCoachPhase: null,
 });
 
 export const storageKeyFor = (userId: string) => `oleachron.ownerActivation.v1.${userId}`;

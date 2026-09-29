@@ -102,6 +102,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
         <Link
           to={hideChromeExtras ? location.pathname : roleHomePath(role)}
           className="header-brand"
+          data-guide-target="homeButton"
           aria-label={tCommon('home')}
           onClick={(e) => {
             if (hideChromeExtras) e.preventDefault();

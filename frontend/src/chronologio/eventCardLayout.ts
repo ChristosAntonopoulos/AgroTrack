@@ -50,9 +50,6 @@ export const isFeaturedChronologioCard = (entry: ChronologioEntry): boolean => {
   if (FEATURED_IMPORTANCE.has(importance)) return true;
   const category = (entry.category || '').toLowerCase();
   if (category === 'note' || category === 'photo' || category === 'observation') return false;
-  if (entry.eventType === 'weather.monthReview' || entry.eventType === 'weather.yearReview') {
-    return true;
-  }
   if (category === 'weather') return false;
   if (category === 'harvest') return true;
   return Boolean(category === 'task' && (entry.summary || '').length > 160);

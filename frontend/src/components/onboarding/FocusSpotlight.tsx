@@ -2,7 +2,8 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { OwnerActivationStepId } from '../../onboarding/steps';
-import { ONBOARDING_TARGETS } from '../../onboarding/steps';
+import { ONBOARDING_TARGETS, onboardingStepNumber, type OnboardingJourneyId } from '../../onboarding/steps';
+import OnboardingStepCard from './OnboardingStepCard';
 import './FocusSpotlight.css';
 
 type Props = {
@@ -56,6 +57,7 @@ const readBoundaryFocus = (): BoundaryFocus => {
 const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
   const { t } = useTranslation('onboarding');
   const [rect, setRect] = useState<Rect | null>(null);
+  const [boundaryFocus, setBoundaryFocus] = useState<BoundaryFocus>('search');
 
   const measure = () => {
     if (step === 'createGrove') {
@@ -69,6 +71,7 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
     }
 
     const focus = readBoundaryFocus();
+    setBoundaryFocus((prev) => (prev === focus ? prev : focus));
     const primary =
       focus === 'search'
         ? queryRect(`[data-onboarding-target="${ONBOARDING_TARGETS.boundarySearch}"]`)
@@ -136,13 +139,16 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
 
   if (!rect) return null;
 
-  const label =
-    step === 'createGrove'
-      ? t('spotlight.createGrove.title')
-      : t('spotlight.drawBoundary.title');
+  const journeyId: OnboardingJourneyId =
+    step === 'createGrove' ? 'createGrove' : boundaryFocus === 'search' ? 'locatePlace' : 'drawBoundary';
+  const label = t(`spotlight.${journeyId === 'createGrove' ? 'createGrove' : journeyId}.title`);
+  const cardWidth = Math.min(360, window.innerWidth - 32);
+  const cardLeft = Math.min(Math.max(16, rect.left), window.innerWidth - cardWidth - 16);
+  const roomBelow = window.innerHeight - (rect.top + rect.height);
+  const placeBelow = roomBelow > 220 || rect.top < 200;
 
   return createPortal(
-    <div className="focus-spotlight" role="presentation" aria-hidden>
+    <div className="focus-spotlight">
       <div className="focus-spotlight-block" style={{ top: 0, left: 0, right: 0, height: rect.top }} />
       <div
         className="focus-spotlight-block"
@@ -170,6 +176,19 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
           height: rect.height,
         }}
         aria-label={label}
+      />
+      <OnboardingStepCard
+        step={onboardingStepNumber(journeyId)}
+        title={label}
+        body={t(
+          `spotlight.${journeyId === 'createGrove' ? 'createGrove' : journeyId}.body`
+        )}
+        className="nav-coach-card"
+        style={
+          placeBelow
+            ? { top: rect.top + rect.height + 18, left: cardLeft, width: cardWidth, zIndex: 12002 }
+            : { bottom: window.innerHeight - rect.top + 18, left: cardLeft, width: cardWidth, zIndex: 12002 }
+        }
       />
     </div>,
     document.body

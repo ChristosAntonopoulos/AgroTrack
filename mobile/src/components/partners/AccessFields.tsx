@@ -15,9 +15,10 @@ type Props = {
   accessLevel: FamilyAccessLevel;
   onToggleModule: (module: FamilyModule) => void;
   onSetLevel: (level: FamilyAccessLevel) => void;
+  showLevels?: boolean;
 };
 
-const AccessFields: React.FC<Props> = ({ modules, accessLevel, onToggleModule, onSetLevel }) => {
+const AccessFields: React.FC<Props> = ({ modules, accessLevel, onToggleModule, onSetLevel, showLevels = true }) => {
   const { t } = useTranslation(['partners']);
   const { colors } = useTheme();
   const { tapMin } = usePreferences();
@@ -47,7 +48,8 @@ const AccessFields: React.FC<Props> = ({ modules, accessLevel, onToggleModule, o
           );
         })}
       </View>
-      <Text style={[styles.label, { color: colors.textPrimary }]}>{t('partners:family.levelTitle')}</Text>
+      {showLevels ? <Text style={[styles.label, { color: colors.textPrimary }]}>{t('partners:family.levelTitle')}</Text> : null}
+      {showLevels ? (
       <View style={{ gap: 8 }}>
         {(['view', 'help', 'work'] as FamilyAccessLevel[]).map((level) => {
           const on = accessLevel === level;
@@ -74,6 +76,7 @@ const AccessFields: React.FC<Props> = ({ modules, accessLevel, onToggleModule, o
           );
         })}
       </View>
+      ) : null}
     </View>
   );
 };

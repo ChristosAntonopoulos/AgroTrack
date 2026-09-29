@@ -5,11 +5,6 @@ import type { ChronologioEntry, ChronologioPeriodSummary } from '../../services/
 import { groupChronologioEntries } from '../../utils/chronologioGrouping';
 import { groupSameDayPhotoEntries } from '../../utils/chronologioPhotoGroups';
 import { agriculturalYearFor, agriculturalYearSlashLabel } from '../../chronologio/agriculturalYear';
-import {
-  buildDayWeatherView,
-  dayWeatherDateKey,
-  type DayWeatherInput,
-} from '../../chronologio/dayWeather';
 import { eventCardSpan } from '../../chronologio/eventCardLayout';
 import {
   isCompletedTaskEntry,
@@ -32,7 +27,6 @@ import ChronologioGlanceFacts from './ChronologioGlanceFacts';
 import ChronologioPhotoStackCard from './ChronologioPhotoStackCard';
 import ChronologioPhotoDaySheet from './ChronologioPhotoDaySheet';
 import ChronologioTimelineFrame from './ChronologioTimelineFrame';
-import DailyWeatherStrip from './DailyWeatherStrip';
 import type { SupportedLocale } from '../../i18n/config';
 
 type Props = {
@@ -43,8 +37,6 @@ type Props = {
   hasMore: boolean;
   loadingMore: boolean;
   hiddenEntryIds?: ReadonlySet<string>;
-  weatherByDate?: Record<string, DayWeatherInput>;
-  todayWeather?: DayWeatherInput | null;
   focusDate?: string;
   zoom?: ChronologioZoom;
   fieldId?: string;
@@ -54,7 +46,6 @@ type Props = {
   onSelect: (entry: ChronologioEntry) => void;
   /** Clear the Chronologio side peek so photo day can own the same drawer. */
   onClearSelection?: () => void;
-  onOpenWeather?: (year: number, month: number, dateKey: string) => void;
 };
 
 type MonthStats = {
@@ -110,7 +101,7 @@ const daysBetween = (newer: Date, older: Date) =>
 const isYearWeatherReview = (entry: ChronologioEntry) => entry.eventType === 'weather.yearReview';
 const isMonthWeatherReview = (entry: ChronologioEntry) => entry.eventType === 'weather.monthReview';
 
-/** Weather stays on the day line. It does not take a card beside the record. */
+/** Weather notes stay on the day line. They do not take a card beside the record. */
 const isTimelineWeather = (entry: ChronologioEntry) =>
   entry.category === 'weather' ||
   isMonthWeatherReview(entry) ||
@@ -142,8 +133,6 @@ const ChronologioMonthView: React.FC<Props> = ({
   hasMore,
   loadingMore,
   hiddenEntryIds,
-  weatherByDate,
-  todayWeather,
   focusDate = '',
   zoom = 'month',
   fieldId,
@@ -151,7 +140,6 @@ const ChronologioMonthView: React.FC<Props> = ({
   onLoadMore,
   onSelect,
   onClearSelection,
-  onOpenWeather,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'today']);
   const listRef = useRef<HTMLDivElement>(null);
@@ -162,16 +150,11 @@ const ChronologioMonthView: React.FC<Props> = ({
   const jumpedFocusRef = useRef<string | null>(null);
   const scrollStorageKey = chronologioScrollKey({ zoom, focusDate, fieldId });
   const readingKey = useReadingMonthKey(scrollStorageKey);
-  const todayKey = dayWeatherDateKey(new Date());
   const numberLocale = i18n.language?.startsWith('el')
     ? 'el-GR'
     : i18n.language?.startsWith('it')
       ? 'it-IT'
       : 'en-US';
-  const weatherFor = (dateKey: string): DayWeatherInput | null => {
-    if (dateKey === todayKey && todayWeather) return todayWeather;
-    return weatherByDate?.[dateKey] ?? null;
-  };
 
   const selectEntry = (entry: ChronologioEntry) => {
     setPhotoDayEntries(null);
@@ -329,9 +312,22 @@ const ChronologioMonthView: React.FC<Props> = ({
           .map((item) => item.entry);
         const featured = plain.filter((entry) => eventCardSpan(entry) === 2);
         const compact = plain.length - featured.length;
-        const weatherLine =
-          row.monthReviews.length > 0 || row.entries.some(isTimelineWeather) ? 40 : 0;
-        return 88 + weatherLine + photoGroups * 168 + featured.length * 188 + Math.ceil(compact / 2) * 120;
+        const monthReports = monthReportsFor(row).length;
+        const headerWeather = row.entries.some(
+          (entry) =>
+            isTimelineWeather(entry) &&
+            !isMonthWeatherReview(entry) &&
+            !isYearWeatherReview(entry)
+        );
+        const weatherLine = headerWeather ? 40 : 0;
+        return (
+          88 +
+          weatherLine +
+          monthReports * 132 +
+          photoGroups * 168 +
+          featured.length * 188 +
+          Math.ceil(compact / 2) * 120
+        );
       }
       return 168;
     },
@@ -450,14 +446,18 @@ const ChronologioMonthView: React.FC<Props> = ({
   };
 
   const monthSummaryText = (row: Extract<FlatRow, { kind: 'monthSummary' }>) => {
-    const entriesLabel = t('timeline.entryCount', { count: row.records });
-    if (row.tasksCompleted <= 0) {
+    const entriesLabel = row.records > 0 ? t('timeline.entryCount', { count: row.records }) : '';
+    const tasksLabel =
+      row.tasksCompleted > 0 ? t('timeline.tasksCompleted', { count: row.tasksCompleted }) : '';
+    if (!entriesLabel && !tasksLabel) return row.label;
+    if (!tasksLabel) {
       return t('timeline.monthSummary', { month: row.label, entries: entriesLabel });
     }
+    if (!entriesLabel) return `${row.label} · ${tasksLabel}`;
     return t('timeline.monthSummaryTasks', {
       month: row.label,
       entries: entriesLabel,
-      tasks: t('timeline.tasksCompleted', { count: row.tasksCompleted }),
+      tasks: tasksLabel,
     });
   };
 
@@ -526,17 +526,9 @@ const ChronologioMonthView: React.FC<Props> = ({
                       showField={showField}
                       locale={locale}
                       selectedEntryId={selectedEntryId}
-                      weather={buildDayWeatherView(weatherFor(row.dateKey), numberLocale)}
-                      onOpenWeather={
-                        onOpenWeather
-                          ? () => onOpenWeather(row.year, row.month, row.dateKey)
-                          : undefined
-                      }
                       onSelect={selectEntry}
                       onOpenPhotoDay={openPhotoDay}
-                      entryCountLabel={t('timeline.entryCount', {
-                        count: row.entries.filter((entry) => !isTimelineWeather(entry)).length,
-                      })}
+                      recordCount={row.entries.filter((entry) => !isTimelineWeather(entry)).length}
                     />
                   )}
                 </div>
@@ -554,29 +546,31 @@ const ChronologioMonthView: React.FC<Props> = ({
   );
 };
 
+const monthReportsFor = (row: DayRow) => {
+  const fromEntries = row.entries.filter(
+    (entry) => isMonthWeatherReview(entry) || isYearWeatherReview(entry)
+  );
+  const seen = new Set(fromEntries.map((entry) => entry.id));
+  return [...fromEntries, ...row.monthReviews.filter((entry) => !seen.has(entry.id))];
+};
+
 const DayBlock: React.FC<{
   row: DayRow;
   showField: boolean;
   locale: SupportedLocale;
   selectedEntryId?: string | null;
-  weather: ReturnType<typeof buildDayWeatherView>;
-  entryCountLabel: string;
-  onOpenWeather?: () => void;
+  recordCount: number;
   onSelect: (entry: ChronologioEntry) => void;
   onOpenPhotoDay: (entries: ChronologioEntry[]) => void;
-}> = ({
-  row,
-  showField,
-  locale,
-  selectedEntryId,
-  weather,
-  entryCountLabel,
-  onOpenWeather,
-  onSelect,
-  onOpenPhotoDay,
-}) => {
+}> = ({ row, showField, locale, selectedEntryId, recordCount, onSelect, onOpenPhotoDay }) => {
+  const { t } = useTranslation('chronologio');
   const records = row.entries.filter((entry) => !isTimelineWeather(entry));
-  const weatherNotes = [...row.monthReviews, ...row.entries.filter(isTimelineWeather)];
+  const monthReports = monthReportsFor(row);
+  const headerNotes = row.entries.filter(
+    (entry) =>
+      isTimelineWeather(entry) && !isMonthWeatherReview(entry) && !isYearWeatherReview(entry)
+  );
+  const recordLabel = recordCount > 0 ? t('timeline.entryCount', { count: recordCount }) : '';
 
   return (
     <section className="chrono-day-group" aria-labelledby={`chrono-day-${row.dateKey}`}>
@@ -584,27 +578,40 @@ const DayBlock: React.FC<{
         <h3 id={`chrono-day-${row.dateKey}`} className="chrono-day-heading">
           {row.label}
         </h3>
-        <div className="chrono-day-meta chrono-day-weather-line">
-          <DailyWeatherStrip weather={weather} onOpen={onOpenWeather} />
-          {weatherNotes.map((entry) =>
-            isWeatherExtremeEventType(entry.eventType) ? (
-              <ChronologioExtremeBanner key={entry.id} entry={entry} showField={showField} />
-            ) : (
-              <button
-                key={entry.id}
-                type="button"
-                className="chrono-day-wx-note"
-                onClick={() => onSelect(entry)}
-              >
-                {entry.title}
-              </button>
-            )
-          )}
-          <span>{entryCountLabel}</span>
-        </div>
+        {headerNotes.length > 0 || recordLabel ? (
+          <div className="chrono-day-meta chrono-day-weather-line">
+            {headerNotes.map((entry) =>
+              isWeatherExtremeEventType(entry.eventType) ? (
+                <ChronologioExtremeBanner key={entry.id} entry={entry} showField={showField} />
+              ) : (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className="chrono-day-wx-note"
+                  onClick={() => onSelect(entry)}
+                >
+                  {entry.title}
+                </button>
+              )
+            )}
+            {recordLabel ? <span>{recordLabel}</span> : null}
+          </div>
+        ) : null}
       </header>
-      {records.length > 0 ? (
+      {monthReports.length > 0 || records.length > 0 ? (
         <div className="chrono-day-event-grid">
+          {monthReports.map((entry) => (
+            <div key={entry.id} className="chrono-day-event-cell">
+              <ChronologioEvent
+                entry={entry}
+                density="card"
+                showField={showField}
+                locale={locale}
+                selected={selectedEntryId === entry.id}
+                onSelect={onSelect}
+              />
+            </div>
+          ))}
           {groupSameDayPhotoEntries(records).map((item) => {
             if (item.type === 'photoGroup') {
               const selected = item.entries.some((entry) => entry.id === selectedEntryId);

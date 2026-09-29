@@ -124,7 +124,12 @@ const FieldOverview: React.FC<Props> = ({
               {isHistoricalYear ? (
                 <p className="field-weather-year-note">{t('weather.notThatYear', { year })}</p>
               ) : null}
-              <GroveWeatherCard fieldWeather={weather} fieldName={field.name} />
+              <GroveWeatherCard
+                fieldWeather={weather}
+                fieldName={field.name}
+                fieldId={field.id}
+                fieldColor={field.color}
+              />
               <button type="button" className="field-weather-more" onClick={onOpenMap}>
                 {t('weather.seeCharts')}
               </button>

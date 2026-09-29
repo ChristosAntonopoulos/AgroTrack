@@ -250,7 +250,14 @@
     "limitedDataHint": "Δεν υπολογίζεται ασφαλές μηνιαίο συμπέρασμα.",
     "untilToday": "Μέχρι σήμερα",
     "details": "Αναλυτικά",
-    "openMonth": "Άνοιγμα μήνα",
+    "openMonth": "Δες τον μήνα",
+    "moneyCount_one": "{{count}} έξοδο",
+    "moneyCount_other": "{{count}} έξοδα",
+    "harvestChapter": "Συγκομιδή {{year}}",
+    "harvestCount_one": "{{count}} συγκομιδή",
+    "harvestCount_other": "{{count}} συγκομιδές",
+    "monthSpan_one": "{{count}} μήνας",
+    "monthSpan_other": "{{count}} μήνες",
     "currentMonth": "Τρέχων μήνας",
     "addRecord": "Πρόσθεσε καταγραφή",
     "noRecords": "Δεν υπάρχουν καταγραφές",
@@ -453,7 +460,7 @@
       "wind": "Άνεμος {{kmh}} km/h",
       "windSoon": "Άνεμος έως {{kmh}} km/h",
       "et": "Νερό που χρειάστηκε ο ελαιώνας {{mm}} mm",
-      "deficit": "Έλειψαν {{mm}} mm νερό",
+      "deficit": "Χρειάζεται περίπου {{mm}} mm νερό",
       "windGust": "Άνεμος {{kmh}} · ριπές {{gust}} km/h",
       "humidityHigh": "Υγρασία {{pct}}%",
       "humidityLow": "Ξηρός αέρας {{pct}}%"
@@ -465,7 +472,7 @@
       "heat": "Απόφυγε βαριές εργασίες τις θερμές ώρες.",
       "rainHeavy": "Αναβολή ψεκασμού και λίπανσης μέχρι να στεγνώσει το φύλλωμα.",
       "wind": "Δύσκολες συνθήκες για ψεκασμό.",
-      "dry": "Ο ελαιώνας είναι σε υδατικό στρες· πότισε αν μπορείς.",
+      "dry": "Ο ελαιώνας χρειάζεται νερό. Πότισε αν μπορείς.",
       "fair": "Κατάλληλες συνθήκες για επιθεώρηση και ελαφριές εργασίες."
     }
   },
@@ -496,7 +503,7 @@
       "rain48": "{{mm}} mm στις επόμενες 48 ώρες",
       "rain72": "{{mm}} mm στις επόμενες 72 ώρες",
       "wind": "Άνεμος έως {{kmh}} km/h",
-      "deficit": "Έλειψαν {{mm}} mm νερό"
+      "deficit": "Χρειάζεται περίπου {{mm}} mm νερό"
     }
   },
   "timeline": {
@@ -631,7 +638,7 @@
     "rainChip": "Βροχή {{mm}} mm",
     "tempChip": "Θερμοκρασία {{min}}–{{max}}°C",
     "balanceChip": "Ισοζύγιο {{mm}} mm",
-    "balanceShortDeficit": "Έλειψαν {{mm}} mm",
+    "balanceShortDeficit": "Λείπουν περίπου {{mm}} mm",
     "balanceShortSurplus": "Περίσσεψαν {{mm}} mm",
     "balanceEven": "Η βροχή έφτανε περίπου",
     "treesLook": "Πώς φαίνονταν τα δέντρα",
@@ -667,7 +674,7 @@
     "sharedFields": "Καιρός για {{names}}"
   },
   "activeFilters": "Ενεργά φίλτρα",
-  "clearAllFilters": "Καθαρισμός όλων",
+  "clearAllFilters": "Καθαρισμός",
   "removeFilter": "Αφαίρεση {{label}}",
   "dateControl": {
     "jumpNavigates": "Μετάβαση σε αυτή την ημέρα",

@@ -8,6 +8,12 @@ type Props = {
   months: MonthRailItem[];
   activeKey: string | null;
   onJump: (month: MonthRailItem) => void;
+  /** Record counts keyed by `year-month`. Turns the rail into a year navigator. */
+  counts?: Record<string, number>;
+  /** Months that have a story, even when the record count is zero. */
+  activity?: Record<string, boolean>;
+  /** Show every month, not only the ones nearest the active one. */
+  fullYear?: boolean;
   children: React.ReactNode;
 };
 
@@ -31,10 +37,13 @@ const ChronologioTimelineFrame: React.FC<Props> = ({
   months,
   activeKey,
   onJump,
+  counts,
+  activity,
+  fullYear = false,
   children,
 }) => {
   const { t, i18n } = useTranslation('chronologio');
-  const rail = nearbyMonthWindow(months, activeKey || months[0]?.key || '');
+  const rail = fullYear ? months : nearbyMonthWindow(months, activeKey || months[0]?.key || '');
 
   useLayoutEffect(() => {
     measureReadingTop();
@@ -60,22 +69,29 @@ const ChronologioTimelineFrame: React.FC<Props> = ({
       <div className={`chrono-timeline-body${rail.length > 1 ? ' has-rail' : ''}`}>
         {rail.length > 1 ? (
           <nav className="chrono-month-rail" aria-label={t('timeline.monthRail')}>
-            {rail.map((month) => {
+            {rail.map((month, index) => {
               const selected = month.key === activeKey;
               const name = railMonthLabel(month.month, i18n.language);
+              const count = counts?.[month.key] ?? 0;
+              const marked = activity ? !!activity[month.key] : count > 0;
+              const yearBreak = fullYear && (index === 0 || rail[index - 1].year !== month.year);
               return (
+                <React.Fragment key={month.key}>
+                {yearBreak ? <span className="chrono-rail-year">{month.year}</span> : null}
                 <button
-                  key={month.key}
                   type="button"
-                  className={selected ? 'is-active' : ''}
+                  className={`${selected ? 'is-active' : ''}${marked ? ' has-activity' : ''}`}
                   aria-current={selected ? 'true' : undefined}
                   aria-label={t('timeline.jumpToMonth', {
-                    month: `${name} ${month.year}`,
+                    month: count > 0 ? `${name} ${month.year}, ${count}` : `${name} ${month.year}`,
                   })}
                   onClick={() => onJump(month)}
                 >
-                  {name}
+                  {fullYear ? <span className="chrono-rail-dot" aria-hidden /> : null}
+                  <span>{name}</span>
+                  {fullYear && count > 0 ? <span className="chrono-rail-count">{count}</span> : null}
                 </button>
+                </React.Fragment>
               );
             })}
           </nav>

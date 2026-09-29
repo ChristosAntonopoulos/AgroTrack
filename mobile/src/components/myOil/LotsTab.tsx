@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import Sheet from '../ui/Sheet';
 import { useTheme } from '../../context/ThemeContext';
 import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
+import { groupLotsByField, poolHasOil, poolLabel, type FieldOilPool } from '../../myOil/fieldPools';
 import { packHasType } from './OilOverviewSections';
 import { OilSectionHeader } from './OilStockChrome';
 import type { OilLot } from '../../services/oilStockService';
@@ -21,9 +22,8 @@ type Props = {
   packLabels: PackLabels;
   packFilter?: PackFilter;
   busy: boolean;
-  formatDate: (iso: string) => string;
-  onFill: (lot: OilLot) => void;
-  onAdjust: (lot: OilLot, kind: string) => void;
+  onFill: (pool: FieldOilPool) => void;
+  onAdjust: (pool: FieldOilPool, kind: string) => void;
   preview?: boolean;
   onSeeAll?: () => void;
 };
@@ -34,7 +34,6 @@ export function LotsTab({
   packLabels,
   packFilter = 'all',
   busy,
-  formatDate,
   onFill,
   onAdjust,
   preview,
@@ -44,19 +43,21 @@ export function LotsTab({
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [detail, setDetail] = useState<OilLot | null>(null);
+  const [detail, setDetail] = useState<FieldOilPool | null>(null);
   const locale = i18n.language;
+  const unnamed = t('lots.noField');
 
-  const filtered = useMemo(() => {
-    if (packFilter === 'all') return lots;
-    return lots.filter((lot) =>
-      packHasType(lot.packing, packFilter === 'bulk' ? 'bulk' : packFilter)
+  const pools = useMemo(() => {
+    const grouped = groupLotsByField(lots).filter(poolHasOil);
+    if (packFilter === 'all') return grouped;
+    return grouped.filter((pool) =>
+      packHasType(pool.packing, packFilter === 'bulk' ? 'bulk' : packFilter)
     );
   }, [lots, packFilter]);
 
-  const shown = preview ? filtered.slice(0, 3) : filtered;
+  const shown = preview ? pools.slice(0, 3) : pools;
 
-  if (lots.length === 0) {
+  if (pools.length === 0) {
     return (
       <View style={styles.panel}>
         <View style={styles.empty}>
@@ -76,36 +77,35 @@ export function LotsTab({
   return (
     <View>
       {preview ? (
-        <OilSectionHeader titleKey="lots.previewTitle" icon="layers-outline" />
+        <OilSectionHeader titleKey="lots.previewTitle" icon="leaf-outline" />
       ) : (
-        <OilSectionHeader titleKey="lots.title" icon="layers-outline" />
+        <OilSectionHeader titleKey="lots.title" icon="leaf-outline" />
       )}
       <View style={styles.lotList}>
-        {shown.map((lot) => {
-          const names = lot.fieldIds.map((id) => fieldNames[id]).filter(Boolean);
-          const where = names[0] || null;
-          const extra = names.length > 1 ? names.length - 1 : 0;
-          const total = formatOilNumber(lot.packing.litres || lot.farmerLitres, locale);
+        {shown.map((pool) => {
+          const label = poolLabel(pool, fieldNames, unnamed);
+          const free = formatOilNumber(pool.available.litres, locale);
           return (
             <Pressable
-              key={lot.id}
+              key={pool.key}
               style={styles.lotCardCompact}
-              onPress={() => setDetail(lot)}
+              onPress={() => setDetail(pool)}
             >
               <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
-                <Text style={styles.lotWhen}>{formatDate(lot.pressedOn)}</Text>
-                {where ? (
-                  <Text style={styles.lotWhere} numberOfLines={1}>
-                    {where}
-                    {extra > 0 ? (
-                      <Text style={styles.lotMore}> {t('lots.moreFields', { count: extra })}</Text>
-                    ) : null}
+                <Text style={styles.lotWhen} numberOfLines={1}>
+                  {label}
+                </Text>
+                <Text style={styles.lotTotal}>{t('lots.totalLitres', { amount: free })}</Text>
+                <Text style={styles.lotPack} numberOfLines={1}>
+                  {formatOilPack(pool.available, packLabels)}
+                </Text>
+                {pool.reserved.litres > 0.05 ? (
+                  <Text style={styles.lotMeta}>
+                    {t('warehouse.heldLitres', {
+                      amount: formatOilNumber(pool.reserved.litres, locale),
+                    })}
                   </Text>
                 ) : null}
-                <Text style={styles.lotTotal}>{t('lots.totalLitres', { amount: total })}</Text>
-                <Text style={styles.lotPack} numberOfLines={1}>
-                  {formatOilPack(lot.packing, packLabels)}
-                </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </Pressable>
@@ -119,22 +119,22 @@ export function LotsTab({
       ) : null}
 
       {detail ? (
-        <LotDetailSheet
+        <FieldPoolSheet
           open={!!detail}
-          lot={detail}
-          fieldNames={fieldNames}
+          pool={detail}
+          label={poolLabel(detail, fieldNames, unnamed)}
           packLabels={packLabels}
-          formatDate={formatDate}
+          busy={busy}
           onClose={() => setDetail(null)}
           onFill={() => {
-            const lot = detail;
+            const pool = detail;
             setDetail(null);
-            onFill(lot);
+            onFill(pool);
           }}
           onAdjust={(kind) => {
-            const lot = detail;
+            const pool = detail;
             setDetail(null);
-            onAdjust(lot, kind);
+            onAdjust(pool, kind);
           }}
         />
       ) : null}
@@ -142,21 +142,21 @@ export function LotsTab({
   );
 }
 
-function LotDetailSheet({
+function FieldPoolSheet({
   open,
-  lot,
-  fieldNames,
+  pool,
+  label,
   packLabels,
-  formatDate,
+  busy,
   onClose,
   onFill,
   onAdjust,
 }: {
   open: boolean;
-  lot: OilLot;
-  fieldNames: Record<string, string>;
+  pool: FieldOilPool;
+  label: string;
   packLabels: PackLabels;
-  formatDate: (iso: string) => string;
+  busy: boolean;
   onClose: () => void;
   onFill: () => void;
   onAdjust: (kind: string) => void;
@@ -165,9 +165,7 @@ function LotDetailSheet({
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
-  const names = lot.fieldIds.map((id) => fieldNames[id]).filter(Boolean);
-  const gone = lot.reserved;
-  const hasBulk = lot.packing.bulkLitres > 0.05;
+  const hasBulk = pool.available.bulkLitres > 0.05;
 
   return (
     <Sheet
@@ -176,16 +174,18 @@ function LotDetailSheet({
       edge="end"
       size="lg"
       accent
-      title={formatDate(lot.pressedOn)}
-      subtitle={names.length ? names.join(' · ') : undefined}
-      icon={<Ionicons name="layers-outline" size={18} color={colors.primary} />}
+      title={label}
+      subtitle={t('lots.totalLitres', {
+        amount: formatOilNumber(pool.available.litres, locale),
+      })}
+      icon={<Ionicons name="leaf-outline" size={18} color={colors.primary} />}
       footer={
         <View style={styles.footerRow}>
           <Pressable onPress={onClose} style={styles.btnSecondary}>
             <Text style={styles.btnSecondaryText}>{t('cancel')}</Text>
           </Pressable>
           {hasBulk ? (
-            <Pressable onPress={onFill} style={styles.btnPrimary}>
+            <Pressable disabled={busy} onPress={onFill} style={styles.btnPrimary}>
               <Text style={styles.btnPrimaryText}>{t('lots.fillTins')}</Text>
             </Pressable>
           ) : null}
@@ -196,25 +196,25 @@ function LotDetailSheet({
         <Text style={[styles.flowStep, styles.flowStepFirst]}>{t('lots.detail.oil')}</Text>
         <Text style={styles.waitingPack}>
           {t('lots.detail.totalOil', {
-            amount: formatOilNumber(lot.farmerLitres + (lot.millKept || 0), locale),
+            amount: formatOilNumber(pool.farmerLitres + pool.millKept, locale),
           })}
         </Text>
-        {lot.millKept > 0 ? (
+        {pool.millKept > 0.05 ? (
           <Text style={styles.waitingStory}>
-            {t('lots.detail.millKept', { amount: formatOilNumber(lot.millKept, locale) })}
+            {t('lots.detail.millKept', { amount: formatOilNumber(pool.millKept, locale) })}
           </Text>
         ) : null}
         <Text style={styles.waitingStory}>
-          {t('lots.detail.farmerTook', { amount: formatOilNumber(lot.farmerLitres, locale) })}
+          {t('lots.detail.farmerTook', { amount: formatOilNumber(pool.farmerLitres, locale) })}
         </Text>
 
         <Text style={styles.flowStep}>{t('lots.detail.now')}</Text>
-        <Text style={styles.waitingPack}>{formatOilPack(lot.packing, packLabels)}</Text>
+        <Text style={styles.waitingPack}>{formatOilPack(pool.available, packLabels)}</Text>
 
-        {gone.tin16 + gone.tin17 + gone.bulkLitres > 0.05 ? (
+        {pool.reserved.litres > 0.05 ? (
           <>
             <Text style={styles.flowStep}>{t('lots.detail.gone')}</Text>
-            <Text style={styles.waitingPack}>{formatOilPack(gone, packLabels)}</Text>
+            <Text style={styles.waitingPack}>{formatOilPack(pool.reserved, packLabels)}</Text>
           </>
         ) : null}
 

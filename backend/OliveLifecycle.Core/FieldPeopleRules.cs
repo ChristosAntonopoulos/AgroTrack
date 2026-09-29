@@ -4,12 +4,11 @@ using OliveLifecycle.Core.Enums;
 namespace OliveLifecycle.Core;
 
 /// <summary>
-/// Invariants and helpers for per-field Admin / Partner / Family seats.
+/// Invariants for per-field memberships. A grove has exactly one owner (Admin).
+/// Family and collaborator (Partner) memberships are unlimited.
 /// </summary>
 public static class FieldPeopleRules
 {
-    public const int MaxPartners = 1;
-    public const int MaxFamily = 2;
 
     public static void EnsureNormalized(Field field)
     {
@@ -180,33 +179,52 @@ public static class FieldPeopleRules
         }
     }
 
+    /// <summary>
+    /// Family and collaborator are not capped. Only the owner relationship is singular.
+    /// </summary>
     public static void EnsureSeatAvailable(Field field, FieldPersonRole role, string? excludeUserId = null)
     {
+        if (role != FieldPersonRole.Admin)
+        {
+            return;
+        }
+
         EnsureNormalized(field);
         var occupied = OccupiedSeats(field)
-            .Where(p => p.Role == role)
+            .Where(p => p.Role == FieldPersonRole.Admin)
             .Where(p => string.IsNullOrWhiteSpace(excludeUserId)
                         || !string.Equals(p.UserId, excludeUserId, StringComparison.Ordinal))
             .ToList();
 
-        var limit = role switch
+        if (occupied.Count >= 1)
         {
-            FieldPersonRole.Admin => 1,
-            FieldPersonRole.Partner => MaxPartners,
-            FieldPersonRole.Family => MaxFamily,
-            _ => 0
-        };
-
-        if (occupied.Count >= limit)
-        {
-            throw new InvalidOperationException(role switch
-            {
-                FieldPersonRole.Admin => "A field already has an admin.",
-                FieldPersonRole.Partner => "This field already has a partner seat.",
-                FieldPersonRole.Family => "This field already has the maximum of two family members.",
-                _ => "Seat limit reached."
-            });
+            throw new InvalidOperationException("A field already has an owner.");
         }
+    }
+
+    /// <summary>Family or collaborator. Partner is the stored collaborator value. Never Owner.</summary>
+    public static bool TryParseRelationship(string? value, out FieldPersonRole role)
+    {
+        role = FieldPersonRole.Family;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        if (value.Equals("Family", StringComparison.OrdinalIgnoreCase))
+        {
+            role = FieldPersonRole.Family;
+            return true;
+        }
+
+        if (value.Equals("Partner", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("Collaborator", StringComparison.OrdinalIgnoreCase))
+        {
+            role = FieldPersonRole.Partner;
+            return true;
+        }
+
+        return false;
     }
 
     public static IEnumerable<FieldPerson> OccupiedSeats(Field field) =>

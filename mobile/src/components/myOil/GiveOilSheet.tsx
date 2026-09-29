@@ -6,6 +6,7 @@ import Sheet from '../ui/Sheet';
 import { useTheme } from '../../context/ThemeContext';
 import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../../myOil/packInput';
 import { formatOilNumber } from '../../myOil/formatOilPack';
+import { poolHasFreeOil, poolLabel, type FieldOilPool } from '../../myOil/fieldPools';
 import type { OilPack } from '../../services/oilStockService';
 import SaleBuyerPicker from './SaleBuyerPicker';
 import { createMyOilStyles } from './myOilStyles';
@@ -18,6 +19,8 @@ export type GiveOilSaveInput = {
   alreadyDelivered: boolean;
   alreadyPaid: boolean;
   forHome: boolean;
+  /** Field pile this promise draws from. Omitted when the cellar is one pile. */
+  poolKey?: string;
 };
 
 type WhoMode = 'someone' | 'home' | 'unnamed';
@@ -25,6 +28,8 @@ type WhoMode = 'someone' | 'home' | 'unnamed';
 type Props = {
   open: boolean;
   available?: OilPack;
+  pools?: FieldOilPool[];
+  fieldNames?: Record<string, string>;
   busy: boolean;
   onClose: () => void;
   onSave: (input: GiveOilSaveInput) => Promise<void>;
@@ -35,6 +40,8 @@ type Props = {
 export function GiveOilSheet({
   open,
   available,
+  pools = [],
+  fieldNames = {},
   busy,
   onClose,
   onSave,
@@ -51,6 +58,13 @@ export function GiveOilSheet({
   const [alreadyPaid, setAlreadyPaid] = useState(true);
   const [amount, setAmount] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [poolKey, setPoolKey] = useState<string | null>(null);
+
+  const freePools = useMemo(() => pools.filter(poolHasFreeOil), [pools]);
+  const fullestPool = [...freePools].sort((a, b) => b.available.litres - a.available.litres)[0] || null;
+  const selectedPool = freePools.find((pool) => pool.key === poolKey) || fullestPool;
+  const max = selectedPool?.available || available;
+  const unnamed = t('lots.noField');
 
   useEffect(() => {
     if (open) {
@@ -62,6 +76,7 @@ export function GiveOilSheet({
       setAlreadyPaid(true);
       setAmount('');
       setSaveError(null);
+      setPoolKey(null);
       if (initialWho === 'home') {
         setIsSale(false);
         setTakesNow(false);
@@ -70,7 +85,6 @@ export function GiveOilSheet({
   }, [open, initialWho]);
 
   const totalLitres = packLitresOf(pack);
-  const max = available;
 
   const bump = (key: keyof OilPackInput, delta: number) => {
     setPack((prev) => {
@@ -113,6 +127,7 @@ export function GiveOilSheet({
       alreadyDelivered: takesNow,
       alreadyPaid: isSale ? alreadyPaid : false,
       forHome: whoMode === 'home',
+      poolKey: selectedPool?.key,
     }).catch(() => setSaveError(t('error')));
   };
 
@@ -176,6 +191,41 @@ export function GiveOilSheet({
           <View style={styles.field}>
             <SaleBuyerPicker value={name} onChange={setName} compact />
           </View>
+        ) : null}
+
+        {freePools.length > 1 ? (
+          <>
+            <Text style={styles.flowStep}>{t('give.field')}</Text>
+            <View style={styles.sourceList}>
+              {freePools.map((pool) => {
+                const on = pool.key === selectedPool?.key;
+                return (
+                  <Pressable
+                    key={pool.key}
+                    onPress={() => {
+                      setPoolKey(pool.key);
+                      setPack(emptyOilPackInput());
+                    }}
+                    style={[styles.sourceCard, on && styles.sourceCardOn]}
+                  >
+                    <View style={styles.sourceCardIcon}>
+                      <Ionicons name="leaf-outline" size={18} color={colors.primary} />
+                    </View>
+                    <View style={styles.sourceCardBody}>
+                      <Text style={styles.sourceCardTitle}>
+                        {poolLabel(pool, fieldNames, unnamed)}
+                      </Text>
+                      <Text style={styles.sourceCardMeta}>
+                        {t('give.totalLitres', {
+                          amount: formatOilNumber(pool.available.litres, i18n.language),
+                        })}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
         ) : null}
 
         <Text style={styles.flowStep}>{t('give.what')}</Text>

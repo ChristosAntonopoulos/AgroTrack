@@ -1,26 +1,26 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { StickyNote } from 'lucide-react';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import { useOwnerActivation } from '../../onboarding/OwnerActivationContext';
-import { ONBOARDING_TARGETS } from '../../onboarding/steps';
+import { ONBOARDING_TARGETS, onboardingStepNumber } from '../../onboarding/steps';
 import { CAPTURE_SAVED_EVENT, type CaptureSavedDetail } from '../../capture/types';
 import './FirstObservationGuide.css';
+import './NavCoach.css';
 
 type Props = {
   fieldId: string;
 };
 
 /**
- * Mandatory first Chronologio note on καρτέλα: sticky guide at top,
- * opens a prefilled observation, completes only after save.
+ * First History note. Shown after the grower opens History themselves.
+ * Completes only once they save the observation.
  */
 const FirstObservationGuide: React.FC<Props> = ({ fieldId }) => {
   const { t } = useTranslation('onboarding');
   const navigate = useNavigate();
   const capture = useCaptureOptional();
-  const autoOpened = useRef(false);
   const {
     awaitingFirstObservation,
     completion,
@@ -54,14 +54,6 @@ const FirstObservationGuide: React.FC<Props> = ({ fieldId }) => {
     return () => window.removeEventListener(CAPTURE_SAVED_EVENT, onSaved);
   }, [active, fieldId, finish]);
 
-  // Soft open capture once so the grower lands on σημείωση with prefill ready.
-  useEffect(() => {
-    if (!active || autoOpened.current) return;
-    autoOpened.current = true;
-    const id = window.setTimeout(() => openObservation(), 700);
-    return () => window.clearTimeout(id);
-  }, [active, openObservation]);
-
   if (!active) return null;
 
   return (
@@ -71,12 +63,16 @@ const FirstObservationGuide: React.FC<Props> = ({ fieldId }) => {
       aria-label={t('firstObservation.title')}
       data-onboarding-target={ONBOARDING_TARGETS.firstObservation}
     >
+      <span className="onboarding-step-badge" aria-hidden>
+        {onboardingStepNumber('firstObservation')}
+      </span>
       <span className="first-observation-guide-icon" aria-hidden>
         <StickyNote size={20} strokeWidth={1.75} />
       </span>
       <div className="first-observation-guide-copy">
         <strong>{t('firstObservation.title')}</strong>
         <p>{t('firstObservation.body')}</p>
+        <p className="first-observation-guide-team">{t('coach.team')}</p>
       </div>
       <div className="first-observation-guide-actions">
         <button type="button" className="first-observation-guide-primary" onClick={openObservation}>

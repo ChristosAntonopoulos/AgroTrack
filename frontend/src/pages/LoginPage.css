@@ -374,6 +374,12 @@
   cursor: pointer;
 }
 
+.login-invite-hint {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--login-text-muted);
+}
+
 .login-field-error {
   margin: 6px 0 0;
   font-size: 0.78rem;

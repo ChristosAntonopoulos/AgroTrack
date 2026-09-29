@@ -140,7 +140,7 @@
   "harvestExpenseHere": "Recorded in Harvest. Change the amount here.",
   "openHarvestDay": "Open the harvest day",
   "unsoldTitle": "Still unsold",
-  "unsoldHint": "Still in the cellar. It becomes income when it is sold.",
+  "unsoldHint": "Still in the warehouse. It becomes income when it is sold.",
   "unsoldThisYear": "This harvest year",
   "unsoldYear": "Harvest year {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",

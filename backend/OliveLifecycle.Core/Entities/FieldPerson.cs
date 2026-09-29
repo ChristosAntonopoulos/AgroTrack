@@ -3,7 +3,9 @@ using OliveLifecycle.Core.Enums;
 namespace OliveLifecycle.Core.Entities;
 
 /// <summary>
-/// A seat on a field: Admin, Partner, or Family. Pending invites occupy a seat until accepted/expired/revoked.
+/// Membership of one account on one grove. Relationship (Admin, Family, Partner)
+/// is separate from <see cref="AccessLevel"/> and <see cref="Modules"/>.
+/// Pending invites stay on the membership until accepted, expired, or revoked.
 /// </summary>
 public class FieldPerson
 {

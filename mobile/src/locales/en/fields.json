@@ -132,7 +132,7 @@
     "mapData": "Map",
     "mapDataFull": "Map & environment",
     "details": "Details",
-    "tabDetails": "Record",
+    "tabDetails": "Details",
     "yearAria": "Result year",
     "prevYear": "Previous year",
     "nextYear": "Next year",
@@ -222,14 +222,14 @@
     "hero": {
       "areaFrom": "Boundary on the map",
       "dem": "Copernicus DEM",
-      "groveRecord": "Grove record"
+      "groveRecord": "Grove details"
     },
     "sources": {
       "title": "Data sources",
       "oleachron": "Oleachron record",
-      "fieldRecord": "Field record",
+      "fieldRecord": "Grove details",
       "regional": "Regional estimate — not a soil sample from this grove",
-      "introApi": "Land, soil and greenness come from public maps over the drawn boundary. Trees and irrigation come from the grove record."
+      "introApi": "Land, soil and greenness come from public maps over the drawn boundary. Trees and irrigation come from the grove details."
     },
     "capacities": {
       "own": "Looks after the field",

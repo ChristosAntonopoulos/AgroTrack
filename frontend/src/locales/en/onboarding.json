@@ -64,7 +64,18 @@
     "slope": "Slope",
     "satellite": "Satellite",
     "waiting": "On its way…",
+    "stayHere": "Stay here. You don’t need to tap anything.",
+    "retrying": "Something stalled. We’re trying again.",
     "ready": "Ready",
+    "beats": {
+      "weather0": "Bringing the weather…",
+      "weather1": "Rain, heat, wind…",
+      "satellite0": "Looking at the trees from above…",
+      "satellite1": "Waiting for a clear sky…",
+      "personalized0": "Measuring the area…",
+      "personalized1": "Reading the slope…",
+      "personalized2": "Looking at the soil…"
+    },
     "failed": "Could not load yet",
     "retry": "Try again",
     "openMapAnyway": "Continue anyway",
@@ -89,16 +100,36 @@
     }
   },
   "welcome": {
-    "kicker": "Ready",
+    "kicker": "Welcome in",
     "groveFallback": "your grove",
-    "title": "History for “{{grove}}” can begin",
-    "titleNamed": "{{name}}, History for “{{grove}}” can begin",
-    "body": "A short note is the first page. You can send it as it is.",
+    "title": "“{{grove}}” is ready",
+    "titleNamed": "{{name}}, “{{grove}}” is ready",
+    "body": "Take a look. In a moment I’ll show you how to get home and open History.",
     "pointWeather": "Its weather is already here",
     "pointSatellite": "The trees show when the sky is clear",
-    "pointMap": "Every record stays in its story",
-    "openMap": "Write the first note",
-    "openGrove": "Write the first note"
+    "pointMap": "What you write stays in its story",
+    "openMap": "Let’s see it",
+    "openGrove": "Let’s see it"
+  },
+  "coach": {
+    "progress": "{{current}} of {{total}}",
+    "team": "From the Oleachron team",
+    "fieldsNav": {
+      "title": "Welcome",
+      "body": "In about a minute your grove is on the map. Tap Fields in the menu and we’ll start."
+    },
+    "createField": {
+      "title": "A name of its own",
+      "body": "Tap the button and write what you call it. You can change it whenever you like."
+    },
+    "homeButton": {
+      "title": "You always know the way back",
+      "body": "The logo at the top left brings you home. That’s how you move around Oleachron."
+    },
+    "historyNav": {
+      "title": "The story starts with a few words",
+      "body": "Tap History and leave a short note. It becomes the first page of the grove."
+    }
   },
   "settings": {
     "showTips": "Show grove setup tips"

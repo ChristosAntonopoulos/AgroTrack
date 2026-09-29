@@ -26,6 +26,36 @@ export const isHouseholdCommitment = (c: Pick<OilCommitment, 'counterpartyName'>
   return n === 'σπίτι' || n === 'home' || n === 'casa' || n === 'στο σπίτι' || n === 'for home';
 };
 
+/** Oil the house still has: set aside in the warehouse, or already taken home. */
+export const householdPackOf = (
+  c: Pick<OilCommitment, 'derivedStatus' | 'cancelled' | 'delivered' | 'requested' | 'remaining'>
+): OilPack => {
+  if (c.derivedStatus === 'delivered' && !c.cancelled) {
+    const taken = c.delivered;
+    if (taken.tin16 > 0 || taken.tin17 > 0 || taken.bulkLitres > 0.05 || taken.litres > 0.05) {
+      return taken;
+    }
+    return c.requested;
+  }
+  return c.remaining;
+};
+
+export const visibleHouseholdCommitments = (
+  open: OilCommitment[],
+  closed: OilCommitment[] = []
+): OilCommitment[] => {
+  const openHome = open.filter((c) => isHouseholdCommitment(c) && !c.cancelled);
+  const openIds = new Set(openHome.map((c) => c.id));
+  const takenHome = closed.filter(
+    (c) =>
+      isHouseholdCommitment(c) &&
+      !c.cancelled &&
+      c.derivedStatus === 'delivered' &&
+      !openIds.has(c.id)
+  );
+  return [...openHome, ...takenHome];
+};
+
 export const sumCommitmentPack = (
   items: Pick<OilCommitment, 'remaining'>[]
 ): Pick<OilPack, 'tin16' | 'tin17' | 'bulkLitres' | 'litres'> => {
@@ -46,6 +76,9 @@ export const sumCommitmentPack = (
   };
 };
 
+export const sumHouseholdPack = (items: OilCommitment[]) =>
+  sumCommitmentPack(items.map((c) => ({ remaining: householdPackOf(c) })));
+
 export type CommitmentStoryKey =
   | 'paidWaiting'
   | 'waitingPickup'
@@ -53,10 +86,12 @@ export type CommitmentStoryKey =
   | 'heldForDate'
   | 'heldForSomeone'
   | 'heldGeneric'
+  | 'atHome'
   | 'delivered';
 
 /** Human sentence for a commitment — never expose backend status words. */
 export const commitmentStoryKey = (c: OilCommitment): CommitmentStoryKey => {
+  if (c.derivedStatus === 'delivered' && !c.cancelled && isHouseholdCommitment(c)) return 'atHome';
   if (c.derivedStatus === 'delivered' || c.cancelled) return 'delivered';
   if (c.derivedStatus === 'pending_delivery') {
     return c.isSale ? 'paidWaiting' : 'waitingPickup';

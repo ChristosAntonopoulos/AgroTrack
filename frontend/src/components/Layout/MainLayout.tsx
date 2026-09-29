@@ -14,6 +14,7 @@ import {
 } from '../../onboarding/OwnerActivationContext';
 import OwnerActivationHost from '../onboarding/OwnerActivationHost';
 import ActivationGate from '../onboarding/ActivationGate';
+import NavCoach from '../onboarding/NavCoach';
 import { useIsMobile } from '../../hooks/useBreakpoint';
 import './MainLayout.css';
 
@@ -22,7 +23,7 @@ const MainLayoutChrome: React.FC = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const activation = useOwnerActivationOptional();
-  const hideAppNav = Boolean(activation?.locked);
+  const hideAppNav = Boolean(activation?.locked && !activation.guideBeat);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -64,6 +65,7 @@ const MainLayoutChrome: React.FC = () => {
       {isMobile && !hideAppNav ? <MobileBottomNav onMoreClick={openSidebar} /> : null}
       <ActivationGate />
       <OwnerActivationHost />
+      <NavCoach />
     </div>
   );
 };

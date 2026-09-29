@@ -214,13 +214,26 @@ const MyOilPage: React.FC = () => {
         <Breadcrumbs />
         <OilStockPageHeader season={seasonLabel} />
 
-        <OilStockTabs
-          active={tab}
-          onChange={(next) => {
-            setTab(next);
-            if (next !== 'lots') setPackFilter('all');
-          }}
-        />
+        <div className="my-oil-tabbar">
+          <OilStockTabs
+            active={tab}
+            onChange={(next) => {
+              setTab(next);
+              if (next !== 'lots') setPackFilter('all');
+            }}
+          />
+          {!loading && hasStock ? (
+            <Button
+              variant="primary"
+              size="sm"
+              className="my-oil-hold-cta"
+              disabled={busy}
+              onClick={() => openGive('someone')}
+            >
+              {t('actions.hold')}
+            </Button>
+          ) : null}
+        </div>
 
         {loading ? (
           <LoadingSpinner />
@@ -241,6 +254,7 @@ const MyOilPage: React.FC = () => {
               <>
                 <OilStockActivityBar
                   summary={summary!}
+                  closed={closedCommitments}
                   waiting={waiting}
                   latestMove={movements[0] || null}
                   packLabels={packLabels}
@@ -248,6 +262,7 @@ const MyOilPage: React.FC = () => {
                 />
                 <OilStockHero
                   summary={summary!}
+                  closed={closedCommitments}
                   busy={busy}
                   onGive={() => openGive('someone')}
                   onFill={() => {
@@ -263,6 +278,7 @@ const MyOilPage: React.FC = () => {
                   <OilInventorySummary summary={summary!} onSelectPack={goLotsFiltered} />
                   <OilHouseholdAside
                     summary={summary!}
+                    closed={closedCommitments}
                     packLabels={packLabels}
                     onSetAside={() => openGive('home')}
                     onOpenHolds={() => setTab('others')}

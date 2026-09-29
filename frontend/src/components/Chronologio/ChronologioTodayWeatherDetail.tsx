@@ -28,15 +28,11 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
   const [byId, setById] = useState<Record<string, FieldWeather | null>>(() =>
     seed?.weather ? { [seed.fieldId]: seed.weather } : {}
   );
-  const [loading, setLoading] = useState(fields.length > 0);
   const [selectedId, setSelectedId] = useState(primaryFieldId || fields[0]?.id);
   const fieldKey = fields.map((field) => field.id).join(',');
 
   useEffect(() => {
-    if (!fields.length) {
-      setLoading(false);
-      return;
-    }
+    if (!fields.length) return;
     let cancelled = false;
     void Promise.all(fields.map((field) => geospatialService.getFieldWeather(field.id).catch(() => null))).then(
       (rows) => {
@@ -46,7 +42,6 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
           next[field.id] = rows[index];
         });
         setById(next);
-        setLoading(false);
       }
     );
     return () => {
@@ -123,6 +118,8 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
         embedded
         fieldWeather={selectedWeather}
         fieldName={selected?.name}
+        fieldId={selected?.id}
+        fieldColor={selected?.color}
       />
 
       {week.length >= 2 ? (
@@ -132,13 +129,9 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
         </section>
       ) : null}
 
-      <section className="chrono-grove-peek-outlook">
-        <h3>{t('weatherPeek.problems')}</h3>
-        {loading && problems.length === 0 ? (
-          <p className="chrono-grove-peek-calm">{t('weatherPeek.loading')}</p>
-        ) : problems.length === 0 ? (
-          <p className="chrono-grove-peek-calm">{t('weatherPeek.calm')}</p>
-        ) : (
+      {problems.length > 0 ? (
+        <section className="chrono-grove-peek-outlook">
+          <h3>{t('weatherPeek.problems')}</h3>
           <ul>
             {problems.map(({ item, fieldIds }) => (
               <li key={`${item.id}-${item.window}`} className={item.harsh ? 'is-harsh' : undefined}>
@@ -156,8 +149,8 @@ const ChronologioTodayWeatherDetail: React.FC<Props> = ({ fields, primaryFieldId
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 };

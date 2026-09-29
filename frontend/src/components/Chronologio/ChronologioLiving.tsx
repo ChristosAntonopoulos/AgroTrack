@@ -144,6 +144,10 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const restoredFocusRef = useRef(false);
 
   const scopedFieldId = fieldMode ? fieldId : living.filters.fieldId;
+  const observationFieldId =
+    activation?.awaitingFirstObservation && !activation.completion.firstObservation
+      ? scopedFieldId || activation.primaryField?.id
+      : undefined;
   const spatialWelcomeId = (() => {
     const params = new URLSearchParams(location.search);
     if (params.get('activation') !== 'spatial') return null;
@@ -1125,7 +1129,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         <SpatialLoadingPanel
           fieldId={spatialWelcomeId}
           fieldName={spatialWelcomeName}
-          continuePath={`/chronologio?fieldId=${encodeURIComponent(spatialWelcomeId)}`}
         />
       ) : null}
       {embedded ? null : <Breadcrumbs />}
@@ -1137,6 +1140,8 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         filters={living.filters}
         zoom={living.zoom}
         focusDate={living.focusDate}
+        periodYear={living.periodYear}
+        axis={living.axis}
         compareOpen={living.compareOpen}
         embedded={embedded}
         onBack={embedded || !fieldId ? undefined : () => navigate(`/fields/${fieldId}`)}
@@ -1146,11 +1151,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         onJumpToDate={(isoDate) => living.jumpToDate(isoDate)}
       />
 
-      {scopedFieldId &&
-      activation?.awaitingFirstObservation &&
-      !activation.completion.firstObservation ? (
-        <FirstObservationGuide fieldId={scopedFieldId} />
-      ) : null}
+      {observationFieldId ? <FirstObservationGuide fieldId={observationFieldId} /> : null}
 
       {scopedFieldId && workSetup && !workSetupDismissed ? (
         <WorkSetupBanner
@@ -1320,8 +1321,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         selectedEntryId={living.selectedEntryId}
                         hasMore={journalHasMore}
                         loadingMore={journalLoadingMore}
-                        weatherByDate={weatherByDate}
-                        todayWeather={todayWeather}
                         focusDate={living.focusDate}
                         zoom={living.zoom}
                         fieldId={scopedFieldId}
@@ -1329,15 +1328,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                         onLoadMore={loadMoreJournal}
                         onSelect={(e) => living.setSelectedEntry(e.id)}
                         onClearSelection={closePeek}
-                        onOpenWeather={(year, month, dateKey) => {
-                          living.setSelectedEntry(null);
-                          setWeatherEventPeek(null);
-                          if (dateKey) {
-                            setChapterPeek({ mode: 'dayWeather', year, month, dateKey });
-                            return;
-                          }
-                          setChapterPeek({ mode: 'monthWeather', year, month });
-                        }}
                       />
                     )}
                   </>

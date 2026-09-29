@@ -41,6 +41,8 @@ interface ScreenLayoutProps {
   plain?: boolean;
   /** Soften illustrated parchment (0–1). Default 1. */
   canvasOpacity?: number;
+  /** Fade the parchment into the page color toward the bottom of the screen. */
+  canvasSettle?: boolean;
 }
 
 /** Journal shell — parchment canvas behind paper islands (matches web PageContainer + app-canvas). */
@@ -56,6 +58,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   dockInset = true,
   plain = false,
   canvasOpacity = 1,
+  canvasSettle = false,
 }) => {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -110,7 +113,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 
   return (
     <View style={styles.flex}>
-      <AppCanvas opacity={canvasOpacity} />
+      <AppCanvas opacity={canvasOpacity} settle={canvasSettle} />
       <View style={[styles.flex, headerHeight > 0 ? { paddingTop: headerHeight } : null]}>{body}</View>
     </View>
   );

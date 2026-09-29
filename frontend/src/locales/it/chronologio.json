@@ -246,7 +246,14 @@
     "limitedDataHint": "Non si può trarre una conclusione mensile sicura.",
     "untilToday": "Fino a oggi",
     "details": "Dettagli",
-    "openMonth": "Apri il mese",
+    "openMonth": "Vedi il mese",
+    "moneyCount_one": "{{count}} spesa",
+    "moneyCount_other": "{{count}} spese",
+    "harvestChapter": "Raccolto {{year}}",
+    "harvestCount_one": "{{count}} raccolta",
+    "harvestCount_other": "{{count}} raccolte",
+    "monthSpan_one": "{{count}} mese",
+    "monthSpan_other": "{{count}} mesi",
     "currentMonth": "Mese in corso",
     "addRecord": "Aggiungi una registrazione",
     "noRecords": "Non ci sono registrazioni",
@@ -423,7 +430,7 @@
       "wind": "Vento {{kmh}} km/h",
       "windSoon": "Vento fino a {{kmh}} km/h",
       "et": "Acqua di cui il campo aveva bisogno {{mm}} mm",
-      "deficit": "Mancavano {{mm}} mm d’acqua",
+      "deficit": "Servono circa {{mm}} mm d’acqua",
       "windGust": "Vento {{kmh}} · raffiche {{gust}} km/h",
       "humidityHigh": "Umidità {{pct}}%",
       "humidityLow": "Aria secca {{pct}}%"
@@ -435,7 +442,7 @@
       "heat": "Evita i lavori pesanti nelle ore più calde.",
       "rainHeavy": "Rinvia trattamenti e concimazioni finché le foglie non sono asciutte.",
       "wind": "Condizioni scarse per i trattamenti.",
-      "dry": "L’oliveto è in stress idrico: irrigare se possibile.",
+      "dry": "L’oliveto ha bisogno d’acqua. Irriga se puoi.",
       "fair": "Condizioni adatte a ispezione e lavori leggeri."
     }
   },
@@ -466,7 +473,7 @@
       "rain48": "{{mm}} mm nelle prossime 48 ore",
       "rain72": "{{mm}} mm nelle prossime 72 ore",
       "wind": "Vento fino a {{kmh}} km/h",
-      "deficit": "Mancavano {{mm}} mm d’acqua"
+      "deficit": "Servono circa {{mm}} mm d’acqua"
     }
   },
   "timeline": {
@@ -586,7 +593,7 @@
     "dryDays": "Giorni senza pioggia",
     "humidity": "Umidità dell’aria",
     "gusts": "Vento più forte",
-    "balanceShortDeficit": "Mancavano {{mm}} mm",
+    "balanceShortDeficit": "Mancano circa {{mm}} mm",
     "balanceShortSurplus": "Avanzavano {{mm}} mm",
     "balanceEven": "La pioggia è bastata circa",
     "satelliteCompare": "Come apparivano gli alberi",

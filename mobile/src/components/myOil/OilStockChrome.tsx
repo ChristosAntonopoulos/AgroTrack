@@ -112,11 +112,15 @@ export function OilStockPageHeader({ season }: { season: string }) {
   const support = t('pageSupport');
   return (
     <View style={styles.header}>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        {support ? <Text style={styles.sectionIntro}>{support}</Text> : null}
-      </View>
+      {support ? (
+        <Text style={[styles.sectionIntro, styles.headerSupport]} numberOfLines={1}>
+          {support}
+        </Text>
+      ) : null}
       <View style={styles.seasonBadge}>
-        <Text style={styles.seasonText}>{t('seasonLabel', { season })}</Text>
+        <Text style={styles.seasonText} numberOfLines={1}>
+          {t('seasonLabel', { season })}
+        </Text>
       </View>
     </View>
   );

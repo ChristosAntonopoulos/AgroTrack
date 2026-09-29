@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, GitCompare, Plus, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, GitCompare, Plus, SlidersHorizontal, X } from 'lucide-react';
 import Button from '../Common/Button';
 import ChronologioViewTabs from './ChronologioViewTabs';
 import ChronologioFilterDrawer from './ChronologioFilterDrawer';
@@ -23,6 +23,12 @@ import {
 } from '../../chronologio/livingTypes';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { isListedGrove } from '../../utils/fieldDisplay';
+import {
+  agriculturalYearFor,
+  agriculturalYearSlashLabel,
+} from '../../chronologio/agriculturalYear';
+import { focusDateForPeriod } from '../../chronologio/livingTypes';
+import type { ChronologioAxis } from '../../services/chronologioService';
 
 type Props = {
   fieldMode: boolean;
@@ -32,6 +38,8 @@ type Props = {
   filters: LivingFilters;
   zoom: ChronologioZoom;
   focusDate: string;
+  periodYear: number;
+  axis: ChronologioAxis;
   compareOpen: boolean;
   embedded?: boolean;
   onBack?: () => void;
@@ -73,6 +81,8 @@ const ChronologioChrome: React.FC<Props> = ({
   filters,
   zoom,
   focusDate,
+  periodYear,
+  axis,
   compareOpen,
   embedded = false,
   onBack,
@@ -217,13 +227,70 @@ const ChronologioChrome: React.FC<Props> = ({
             ) : null}
           </div>
         </div>
+        {zoom === 'year' ? (
+          <div className="chrono-year-mode-tabs">
+            <ChronologioViewTabs view={view} onChange={setView} />
+          </div>
+        ) : null}
       </header>
 
-      <div className="chronologio-sticky chrono-locked-toolbar">
+      <div className={`chronologio-sticky chrono-locked-toolbar${zoom === 'year' ? ' is-year-nav' : ''}`}>
         <div className="chrono-toolbar-row">
-          <ChronologioViewTabs view={view} onChange={setView} />
+          {zoom === 'year' ? (
+            <span className="chrono-year-nav-label">{t('chronologio:living.views.months')}</span>
+          ) : (
+            <ChronologioViewTabs view={view} onChange={setView} />
+          )}
           <div className="chrono-toolbar-tools">
-            {onJumpToDate ? (
+            {zoom === 'year' && onJumpToDate ? (
+              <div className="chrono-year-stepper" role="group" aria-label={t('chronologio:dateControl.agriYearOpens')}>
+                <button
+                  type="button"
+                  onClick={() => onJumpToDate(focusDateForPeriod(periodYear - 1, axis))}
+                  aria-label={t('chronologio:timeline.jumpToMonth', {
+                    month: String(periodYear - 1),
+                  })}
+                >
+                  <ChevronLeft size={18} aria-hidden />
+                </button>
+                <strong>
+                  {axis === 'agricultural'
+                    ? agriculturalYearSlashLabel(periodYear).replace('/', '–')
+                    : periodYear}
+                </strong>
+                <button
+                  type="button"
+                  disabled={
+                    periodYear >=
+                    (axis === 'agricultural' ? agriculturalYearFor(new Date()) : new Date().getFullYear())
+                  }
+                  onClick={() => onJumpToDate(focusDateForPeriod(periodYear + 1, axis))}
+                  aria-label={t('chronologio:timeline.jumpToMonth', {
+                    month: String(periodYear + 1),
+                  })}
+                >
+                  <ChevronRight size={18} aria-hidden />
+                </button>
+              </div>
+            ) : null}
+            {zoom === 'year' && !fieldMode && listedFields.length > 1 ? (
+              <label className="chrono-year-field">
+                <span className="sr-only">{t('chronologio:allFields')}</span>
+                <select
+                  value={filters.fieldId}
+                  aria-label={t('chronologio:allFields')}
+                  onChange={(event) => onSetFilters({ fieldId: event.target.value })}
+                >
+                  <option value="">{t('chronologio:allFields')}</option>
+                  {listedFields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {friendlyFieldLabel(field.name)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {zoom !== 'year' && onJumpToDate ? (
               <label className="chrono-jump-date">
                 <span className="chrono-control-label">{t('chronologio:living.jumpToDate')}</span>
                 <input

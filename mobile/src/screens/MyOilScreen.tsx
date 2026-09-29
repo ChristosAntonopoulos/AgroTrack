@@ -36,12 +36,19 @@ import {
 import {
   oilStockService,
   type OilCommitment,
-  type OilLot,
   type OilStockSummary,
   type StockMovement,
 } from '../services/oilStockService';
 import { migrateLocalOilPackingOnce } from '../myOil/syncOilLots';
 import { formatOilNumber } from '../myOil/formatOilPack';
+import {
+  drainCovers,
+  groupLotsByField,
+  planFieldAdd,
+  planFieldDrain,
+  planFieldFill,
+  poolHasOil,
+} from '../myOil/fieldPools';
 import {
   isHouseholdCommitment,
   type OilStockTab,
@@ -71,8 +78,9 @@ const MyOilScreen = () => {
   const [showGive, setShowGive] = useState(false);
   const [giveWho, setGiveWho] = useState<'someone' | 'home' | 'unnamed'>('someone');
   const [showFill, setShowFill] = useState(false);
-  const [fillLot, setFillLot] = useState<OilLot | null>(null);
-  const [adjustLot, setAdjustLot] = useState<OilLot | null>(null);
+  const [fillPoolKey, setFillPoolKey] = useState<string | null>(null);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustLock, setAdjustLock] = useState<string | null>(null);
   const [adjustKind, setAdjustKind] = useState('home_use');
   const [partialFor, setPartialFor] = useState<OilCommitment | null>(null);
   const [partialPack, setPartialPack] = useState<OilPackInput>(emptyOilPackInput());
@@ -135,21 +143,22 @@ const MyOilScreen = () => {
     [i18n.language]
   );
 
+  const fieldPools = useMemo(
+    () => groupLotsByField(summary?.lots || []).filter(poolHasOil),
+    [summary]
+  );
+
   const openGive = useCallback((who: 'someone' | 'home' | 'unnamed') => {
     setGiveWho(who);
     setShowGive(true);
   }, []);
 
-  const openAdjust = useCallback(
-    (kind: string) => {
-      const lot =
-        summary?.lots.find((l) => l.available.litres > 0.05) || summary?.lots[0] || null;
-      if (!lot) return;
-      setAdjustKind(kind);
-      setAdjustLot(lot);
-    },
-    [summary?.lots]
-  );
+  const openAdjust = useCallback((kind: string, poolKey?: string) => {
+    if (!summary?.lots.length) return;
+    setAdjustKind(kind);
+    setAdjustLock(poolKey ?? null);
+    setAdjustOpen(true);
+  }, [summary?.lots.length]);
 
   const openOilMenu = useCallback(() => {
     Alert.alert(t('actions.menuTitle', { defaultValue: t('actions.more') }), undefined, [
@@ -158,7 +167,7 @@ const MyOilScreen = () => {
       {
         text: t('actions.fillTins'),
         onPress: () => {
-          setFillLot(null);
+          setFillPoolKey(null);
           setShowFill(true);
         },
       },
@@ -176,16 +185,17 @@ const MyOilScreen = () => {
   const saveGive = async (input: GiveOilSaveInput) => {
     setBusy(true);
     try {
-      if (input.forHome && input.alreadyDelivered && summary?.lots.length) {
-        const lot =
-          summary.lots.find(
-            (l) => l.available.tin16 + l.available.tin17 + l.available.bulkLitres > 0.05
-          ) || summary.lots[0];
-        await oilStockService.adjust({
-          oilLotId: lot.id,
-          kind: 'home_use',
-          pack: input.requested,
-        });
+      const pool = fieldPools.find((item) => item.key === input.poolKey);
+      const lots = pool?.lots || summary?.lots || [];
+      if (!drainCovers(lots, input.requested)) return;
+      if (input.forHome && input.alreadyDelivered) {
+        for (const slice of planFieldDrain(lots, input.requested)) {
+          await oilStockService.adjust({
+            oilLotId: slice.oilLotId,
+            kind: 'home_use',
+            pack: slice.pack,
+          });
+        }
       } else {
         await oilStockService.createCommitment({
           counterpartyName: input.counterpartyName,
@@ -193,6 +203,10 @@ const MyOilScreen = () => {
           isSale: input.isSale,
           amount: input.amount,
           alreadyDelivered: input.alreadyDelivered,
+          allocations: planFieldDrain(lots, input.requested).map((slice) => ({
+            oilLotId: slice.oilLotId,
+            pack: slice.pack,
+          })),
         });
       }
       setShowGive(false);
@@ -281,12 +295,15 @@ const MyOilScreen = () => {
               <>
                 <OilStockHero
                   summary={summary!}
+                  closed={closedCommitments}
                   onOpenHome={() => setTab('stock')}
                   onOpenHolds={() => setTab('others')}
                 />
 
                 <OilPendingSection
                   waiting={needsAttention}
+                  lots={summary!.lots}
+                  fieldNames={fieldNames}
                   packLabels={packLabels}
                   onOpen={() => setTab('others')}
                   formatDate={formatDate}
@@ -308,6 +325,7 @@ const MyOilScreen = () => {
             {tab === 'stock' ? (
               <StockTab
                 summary={summary!}
+                closed={closedCommitments}
                 packLabels={packLabels}
                 onSetAside={() => openGive('home')}
                 onManageHome={() => setTab('others')}
@@ -342,15 +360,11 @@ const MyOilScreen = () => {
                 packLabels={packLabels}
                 packFilter={packFilter}
                 busy={busy}
-                formatDate={formatDate}
-                onFill={(lot) => {
-                  setFillLot(lot);
+                onFill={(pool) => {
+                  setFillPoolKey(pool.key);
                   setShowFill(true);
                 }}
-                onAdjust={(lot, kind) => {
-                  setAdjustKind(kind);
-                  setAdjustLot(lot);
-                }}
+                onAdjust={(pool, kind) => openAdjust(kind, pool.key)}
               />
             ) : null}
           </View>
@@ -375,6 +389,8 @@ const MyOilScreen = () => {
       <GiveOilSheet
         open={showGive}
         available={summary?.available}
+        pools={fieldPools}
+        fieldNames={fieldNames}
         busy={busy}
         initialWho={giveWho}
         onClose={() => setShowGive(false)}
@@ -383,20 +399,26 @@ const MyOilScreen = () => {
 
       <FillTinsSheet
         open={showFill}
-        lots={summary?.lots || []}
-        preferredLot={fillLot}
+        pools={fieldPools}
         fieldNames={fieldNames}
+        preferredKey={fillPoolKey}
         busy={busy}
         onClose={() => {
           setShowFill(false);
-          setFillLot(null);
+          setFillPoolKey(null);
         }}
-        onSave={async (lotId, add16, add17) => {
+        onSave={async (pool, add16, add17) => {
           setBusy(true);
           try {
-            await oilStockService.repack(lotId, add16, add17);
+            const plan = planFieldFill(pool.lots, add16, add17);
+            for (const move of plan.moves) {
+              await oilStockService.patchPacking(move.oilLotId, move.packing);
+            }
+            for (const slice of plan.repacks) {
+              await oilStockService.repack(slice.oilLotId, slice.addTin16, slice.addTin17);
+            }
             setShowFill(false);
-            setFillLot(null);
+            setFillPoolKey(null);
             await reload();
           } finally {
             setBusy(false);
@@ -430,17 +452,27 @@ const MyOilScreen = () => {
       />
 
       <AdjustSheet
-        open={!!adjustLot}
-        lot={adjustLot}
+        open={adjustOpen}
+        pools={adjustLock ? fieldPools.filter((pool) => pool.key === adjustLock) : fieldPools}
+        fieldNames={fieldNames}
+        lockedKey={adjustLock}
         kind={adjustKind}
         busy={busy}
-        onClose={() => setAdjustLot(null)}
-        onSave={async (kind, pack) => {
-          if (!adjustLot) return;
+        onClose={() => setAdjustOpen(false)}
+        onSave={async (kind, pack, pool) => {
+          const additive = kind === 'correction' || kind === 'returned';
+          const slices = additive ? planFieldAdd(pool.lots, pack) : planFieldDrain(pool.lots, pack);
+          if (!additive && !drainCovers(pool.lots, pack)) return;
           setBusy(true);
           try {
-            await oilStockService.adjust({ oilLotId: adjustLot.id, kind, pack });
-            setAdjustLot(null);
+            for (const slice of slices) {
+              await oilStockService.adjust({
+                oilLotId: slice.oilLotId,
+                kind,
+                pack: slice.pack,
+              });
+            }
+            setAdjustOpen(false);
             await reload();
           } finally {
             setBusy(false);

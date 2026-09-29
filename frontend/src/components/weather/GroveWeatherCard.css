@@ -25,20 +25,81 @@
 
 .grove-weather.is-compact {
   min-height: 0;
-  gap: 0.2rem;
-  padding: 10px 12px 8px;
+  gap: 0;
+  padding: 8px 10px 8px;
   border-radius: 16px;
   box-shadow: none;
 }
 
+.grove-weather.is-compact .grove-weather-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
 .grove-weather.is-compact .grove-weather-temp {
-  font-size: 28px;
-  line-height: 30px;
+  flex: 0 0 auto;
+  font-size: 22px;
+  line-height: 24px;
+}
+
+.grove-weather.is-compact .grove-weather-condition {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.grove-weather.is-compact .grove-weather-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
 }
 
 .grove-weather.is-compact .grove-weather-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.grove-weather.is-compact .grove-week--strip {
+  flex: 1 1 auto;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 8px 0 0;
+}
+
+.grove-weather.is-compact .grove-week--strip li {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 76px;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 2px 6px;
+}
+
+.grove-weather.is-compact .grove-week--strip .grove-week-dow {
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.grove-weather.is-compact .grove-week--strip .grove-week-icon {
   width: 22px;
   height: 22px;
+}
+
+.grove-weather.is-compact .grove-week--strip .grove-week-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.grove-weather.is-compact .grove-week--strip .grove-week-high {
+  font-size: 15px;
+  line-height: 18px;
 }
 
 .grove-weather.is-button {
@@ -209,6 +270,36 @@
   white-space: nowrap;
 }
 
+.grove-weather-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0.35rem 0 0;
+  min-height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: rgba(244, 246, 242, 0.1);
+  color: var(--gw-ink);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 650;
+}
+
+.grove-weather-field span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grove-weather-field-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
 .grove-weather--heat .grove-weather-facts li.is-harsh,
 .grove-weather--clear .grove-weather-facts li.is-harsh {
   background: rgba(214, 122, 103, 0.22);
@@ -263,6 +354,11 @@ html:not([data-theme='dark']) .grove-weather--cloud .grove-weather-sky {
 }
 
 html:not([data-theme='dark']) .grove-weather-reading {
+  color: var(--text-primary, #22281f);
+}
+
+html:not([data-theme='dark']) .grove-weather-field {
+  background: var(--surface-2, #f2f3ec);
   color: var(--text-primary, #22281f);
 }
 

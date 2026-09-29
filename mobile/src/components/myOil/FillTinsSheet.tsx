@@ -5,28 +5,27 @@ import { useTranslation } from 'react-i18next';
 import Sheet from '../ui/Sheet';
 import { useTheme } from '../../context/ThemeContext';
 import { formatOilNumber } from '../../myOil/formatOilPack';
-import type { OilLot } from '../../services/oilStockService';
+import { poolLabel, type FieldOilPool } from '../../myOil/fieldPools';
 import { createMyOilStyles } from './myOilStyles';
 
 type Props = {
   open: boolean;
-  lots: OilLot[];
-  preferredLot?: OilLot | null;
+  pools: FieldOilPool[];
   fieldNames?: Record<string, string>;
+  /** When set, fill this field and skip the chooser. */
+  preferredKey?: string | null;
   busy: boolean;
   onClose: () => void;
-  onSave: (lotId: string, add16: number, add17: number) => Promise<void>;
+  onSave: (pool: FieldOilPool, add16: number, add17: number) => Promise<void>;
 };
 
 type Step = 'source' | 'fill';
 
-const AUTO_SOURCE = '__auto__';
-
 export function FillTinsSheet({
   open,
-  lots,
-  preferredLot,
+  pools,
   fieldNames = {},
+  preferredKey,
   busy,
   onClose,
   onSave,
@@ -35,17 +34,15 @@ export function FillTinsSheet({
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
+  const unnamed = t('lots.noField');
 
   const withBulk = useMemo(
-    () =>
-      [...lots]
-        .filter((l) => l.packing.bulkLitres > 0.05)
-        .sort((a, b) => new Date(a.pressedOn).getTime() - new Date(b.pressedOn).getTime()),
-    [lots]
+    () => pools.filter((pool) => pool.available.bulkLitres > 0.05),
+    [pools]
   );
 
-  const [step, setStep] = useState<Step>('source');
-  const [sourceKey, setSourceKey] = useState<string>(AUTO_SOURCE);
+  const [step, setStep] = useState<Step>('fill');
+  const [poolKey, setPoolKey] = useState<string | null>(null);
   const [add16, setAdd16] = useState(0);
   const [add17, setAdd17] = useState(0);
 
@@ -53,41 +50,23 @@ export function FillTinsSheet({
     if (!open) return;
     setAdd16(0);
     setAdd17(0);
-    if (preferredLot && preferredLot.packing.bulkLitres > 0.05) {
-      setSourceKey(preferredLot.id);
+    const preferred = preferredKey ? withBulk.find((pool) => pool.key === preferredKey) : null;
+    if (preferred) {
+      setPoolKey(preferred.key);
       setStep('fill');
-    } else {
-      setSourceKey(AUTO_SOURCE);
-      setStep(withBulk.length > 1 ? 'source' : 'fill');
+      return;
     }
-  }, [open, preferredLot, withBulk.length]);
+    setPoolKey(withBulk[0]?.key ?? null);
+    setStep(withBulk.length > 1 ? 'source' : 'fill');
+  }, [open, preferredKey, withBulk]);
 
-  const linkedLots = withBulk.filter((l) => (l.harvestRecordIds?.length || 0) > 0);
-  const unlinkedLots = withBulk.filter((l) => (l.harvestRecordIds?.length || 0) === 0);
-
-  const resolvedLot = useMemo(() => {
-    if (sourceKey === AUTO_SOURCE) return withBulk[0] || null;
-    return withBulk.find((l) => l.id === sourceKey) || withBulk[0] || null;
-  }, [sourceKey, withBulk]);
-
-  const bulk = resolvedLot?.packing.bulkLitres || 0;
+  const selected = withBulk.find((pool) => pool.key === poolKey) || withBulk[0] || null;
+  const bulk = selected?.available.bulkLitres || 0;
   const used = add16 * 16 + add17 * 17;
   const left = Math.round((bulk - used) * 10) / 10;
-  const canSave = !!resolvedLot && used > 0 && left >= -0.05;
-  const wantsHarvestLink = sourceKey !== AUTO_SOURCE;
-
-  const formatLotDate = (iso: string) => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
-  };
-
-  const fieldLabel = (lot: OilLot) => {
-    const names = lot.fieldIds.map((id) => fieldNames[id]).filter(Boolean);
-    if (!names.length) return null;
-    if (names.length === 1) return names[0];
-    return `${names[0]} +${names.length - 1}`;
-  };
+  const canSave = !!selected && used > 0 && left >= -0.05;
+  const label = selected ? poolLabel(selected, fieldNames, unnamed) : '';
+  const mustChoose = !preferredKey && withBulk.length > 1;
 
   const footer =
     withBulk.length === 0 ? (
@@ -102,13 +81,13 @@ export function FillTinsSheet({
           <Text style={styles.btnSecondaryText}>{t('fill.cancel')}</Text>
         </Pressable>
         <Pressable
-          disabled={!resolvedLot}
+          disabled={!selected}
           onPress={() => {
             setAdd16(0);
             setAdd17(0);
             setStep('fill');
           }}
-          style={[styles.btnPrimary, !resolvedLot && styles.btnPrimaryDisabled]}
+          style={[styles.btnPrimary, !selected && styles.btnPrimaryDisabled]}
         >
           <Text style={styles.btnPrimaryText}>{t('fill.continue')}</Text>
         </Pressable>
@@ -118,47 +97,22 @@ export function FillTinsSheet({
         <Pressable
           disabled={busy}
           onPress={() => {
-            if (preferredLot && withBulk.length <= 1) onClose();
-            else setStep('source');
+            if (mustChoose) setStep('source');
+            else onClose();
           }}
           style={styles.btnSecondary}
         >
-          <Text style={styles.btnSecondaryText}>
-            {withBulk.length > 1 || !preferredLot ? t('fill.back') : t('fill.cancel')}
-          </Text>
+          <Text style={styles.btnSecondaryText}>{mustChoose ? t('fill.back') : t('fill.cancel')}</Text>
         </Pressable>
         <Pressable
           disabled={busy || !canSave}
-          onPress={() => resolvedLot && void onSave(resolvedLot.id, add16, add17)}
+          onPress={() => selected && void onSave(selected, add16, add17)}
           style={[styles.btnPrimary, (busy || !canSave) && styles.btnPrimaryDisabled]}
         >
           <Text style={styles.btnPrimaryText}>{t('fill.save')}</Text>
         </Pressable>
       </View>
     );
-
-  const renderSourceCard = (
-    key: string,
-    icon: React.ComponentProps<typeof Ionicons>['name'],
-    title: string,
-    sub?: string | null,
-    meta?: string
-  ) => (
-    <Pressable
-      key={key}
-      onPress={() => setSourceKey(key)}
-      style={[styles.sourceCard, sourceKey === key && styles.sourceCardOn]}
-    >
-      <View style={styles.sourceCardIcon}>
-        <Ionicons name={icon} size={18} color={colors.primary} />
-      </View>
-      <View style={styles.sourceCardBody}>
-        <Text style={styles.sourceCardTitle}>{title}</Text>
-        {sub ? <Text style={styles.sourceCardSub}>{sub}</Text> : null}
-        {meta ? <Text style={styles.sourceCardMeta}>{meta}</Text> : null}
-      </View>
-    </Pressable>
-  );
 
   return (
     <Sheet
@@ -170,13 +124,7 @@ export function FillTinsSheet({
       size="lg"
       accent
       title={t('fill.title')}
-      subtitle={
-        step === 'source'
-          ? t('fill.sourceSubtitle')
-          : wantsHarvestLink
-            ? t('fill.linkedSubtitle')
-            : t('fill.unlinkedSubtitle')
-      }
+      subtitle={step === 'source' ? t('fill.sourceSubtitle') : label || undefined}
       icon={<Ionicons name="cube-outline" size={18} color={colors.primary} />}
       footer={footer}
     >
@@ -186,74 +134,34 @@ export function FillTinsSheet({
         ) : step === 'source' ? (
           <>
             <Text style={[styles.flowStep, styles.flowStepFirst]}>{t('fill.chooseSource')}</Text>
-            {renderSourceCard(AUTO_SOURCE, 'business-outline', t('fill.autoTitle'), t('fill.autoBody'))}
-
-            {linkedLots.length > 0 ? (
-              <>
-                <Text style={styles.flowStep}>{t('fill.fromHarvest')}</Text>
-                <View style={styles.sourceList}>
-                  {linkedLots.map((lot) => {
-                    const where = fieldLabel(lot);
-                    return renderSourceCard(
-                      lot.id,
-                      'leaf-outline',
-                      formatLotDate(lot.pressedOn),
-                      where,
-                      `${t('fill.bulkChip', {
-                        amount: formatOilNumber(lot.packing.bulkLitres, locale),
-                      })} · ${t('fill.harvestLinked')}`
-                    );
-                  })}
-                </View>
-              </>
-            ) : null}
-
-            {unlinkedLots.length > 0 ? (
-              <>
-                <Text style={styles.flowStep}>{t('fill.otherLots')}</Text>
-                <View style={styles.sourceList}>
-                  {unlinkedLots.map((lot) => {
-                    const where = fieldLabel(lot);
-                    return renderSourceCard(
-                      lot.id,
-                      'cube-outline',
-                      formatLotDate(lot.pressedOn),
-                      where,
-                      t('fill.bulkChip', {
-                        amount: formatOilNumber(lot.packing.bulkLitres, locale),
-                      })
-                    );
-                  })}
-                </View>
-              </>
-            ) : null}
+            <View style={styles.sourceList}>
+              {withBulk.map((pool) => {
+                const name = poolLabel(pool, fieldNames, unnamed);
+                const on = pool.key === (selected?.key ?? null);
+                return (
+                  <Pressable
+                    key={pool.key}
+                    onPress={() => setPoolKey(pool.key)}
+                    style={[styles.sourceCard, on && styles.sourceCardOn]}
+                  >
+                    <View style={styles.sourceCardIcon}>
+                      <Ionicons name="leaf-outline" size={18} color={colors.primary} />
+                    </View>
+                    <View style={styles.sourceCardBody}>
+                      <Text style={styles.sourceCardTitle}>{name}</Text>
+                      <Text style={styles.sourceCardMeta}>
+                        {t('fill.bulkChip', {
+                          amount: formatOilNumber(pool.available.bulkLitres, locale),
+                        })}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
           </>
         ) : (
           <>
-            {resolvedLot ? (
-              <View style={[styles.sourceCard, styles.sourceCardSummary]}>
-                <View style={styles.sourceCardIcon}>
-                  <Ionicons
-                    name={wantsHarvestLink ? 'leaf-outline' : 'business-outline'}
-                    size={18}
-                    color={colors.primary}
-                  />
-                </View>
-                <View style={styles.sourceCardBody}>
-                  <Text style={styles.sourceCardTitle}>
-                    {wantsHarvestLink ? formatLotDate(resolvedLot.pressedOn) : t('fill.autoTitle')}
-                  </Text>
-                  <Text style={styles.sourceCardSub}>
-                    {wantsHarvestLink && fieldLabel(resolvedLot)
-                      ? fieldLabel(resolvedLot)
-                      : wantsHarvestLink
-                        ? t('fill.harvestLinked')
-                        : t('fill.autoBody')}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-
             <Text style={styles.flowStep}>{t('fill.bulkAvailable')}</Text>
             <Text style={styles.flowQty}>{formatOilNumber(bulk, locale)} L</Text>
 

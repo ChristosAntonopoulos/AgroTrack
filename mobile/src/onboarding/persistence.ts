@@ -3,9 +3,15 @@ import {
   emptyPersisted,
   OWNER_ACTIVATION_STEPS,
   storageKeyFor,
+  type NavCoachPhase,
   type OwnerActivationPersisted,
   type OwnerActivationStepId,
 } from './steps';
+
+const NAV_COACH_PHASES: readonly NavCoachPhase[] = ['linger', 'home', 'history'];
+
+const isNavCoachPhase = (value: unknown): value is NavCoachPhase =>
+  typeof value === 'string' && (NAV_COACH_PHASES as readonly string[]).includes(value);
 
 const isStepId = (value: unknown): value is OwnerActivationStepId =>
   typeof value === 'string' && (OWNER_ACTIVATION_STEPS as readonly string[]).includes(value);
@@ -27,6 +33,7 @@ export const readPersisted = async (userId: string): Promise<OwnerActivationPers
       awaitingFirstObservation: Boolean(parsed.awaitingFirstObservation),
       firstObservationDoneAt:
         typeof parsed.firstObservationDoneAt === 'string' ? parsed.firstObservationDoneAt : null,
+      navCoachPhase: isNavCoachPhase(parsed.navCoachPhase) ? parsed.navCoachPhase : null,
     };
   } catch {
     return emptyPersisted();

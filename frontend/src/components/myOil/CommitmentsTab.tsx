@@ -5,8 +5,8 @@ import Button from '../Common/Button';
 import RightDrawer from '../Common/RightDrawer';
 import { formatOilPack } from '../../myOil/formatOilPack';
 import {
-  commitmentStoryKey,
   deliverButtonKey,
+  isHouseholdCommitment,
   type CommitmentFilter,
 } from '../../myOil/commitmentCopy';
 import { useDrawerPresence } from '../../hooks/useDrawerPresence';
@@ -57,22 +57,34 @@ export function CommitmentsTab({
   );
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return open;
+    if (filter === 'all') {
+      const openIds = new Set(open.map((c) => c.id));
+      const takenHome = delivered.filter(
+        (c) => isHouseholdCommitment(c) && !c.cancelled && c.derivedStatus === 'delivered' && !openIds.has(c.id)
+      );
+      return [...open, ...takenHome];
+    }
     if (filter === 'held') return open.filter((c) => c.derivedStatus === 'reserved');
     if (filter === 'pending') return open.filter((c) => c.derivedStatus === 'pending_delivery');
     return delivered;
   }, [filter, open, delivered]);
 
-  const storyFor = (c: OilCommitment) => {
-    const key = commitmentStoryKey(c);
-    if (key === 'heldForDate' && c.promisedFor) {
-      return t('story.heldForDate', { date: formatDate(c.promisedFor) });
+  const statusFor = (c: OilCommitment) => {
+    if (c.cancelled) return t('commitments.cancelled');
+    if (isHouseholdCommitment(c) && c.derivedStatus === 'delivered') return t('story.atHome');
+    if (c.derivedStatus === 'delivered') return t('commitments.delivered');
+    if (c.derivedStatus === 'pending_delivery') {
+      return c.isSale ? t('commitments.statusPaid') : t('commitments.statusWaiting');
     }
-    if (key === 'heldForSomeone') {
-      return t('story.heldForSomeone', { name: c.counterpartyName });
+    if (c.isSale && (c.amount == null || c.amount <= 0) && !c.financialTransactionId) {
+      return t('commitments.statusUnpaid');
     }
-    return t(`story.${key}`);
+    if (c.promisedFor) return t('commitments.statusForDate', { date: formatDate(c.promisedFor) });
+    return t('commitments.statusHeld');
   };
+
+  const packOf = (c: OilCommitment) =>
+    c.derivedStatus === 'delivered' || c.cancelled ? c.requested : c.remaining;
 
   const lotLines = (c: OilCommitment) =>
     c.allocations
@@ -124,23 +136,21 @@ export function CommitmentsTab({
       ) : (
         <ul className="my-oil-waiting">
           {filtered.map((c) => (
-            <li key={c.id} className="my-oil-waiting__item">
-              <div className="my-oil-waiting__name">{c.counterpartyName}</div>
-              <div className="my-oil-waiting__pack">
-                {formatOilPack(
-                  c.derivedStatus === 'delivered' ? c.requested : c.remaining,
-                  packLabels
-                )}
+            <li key={c.id} className="my-oil-hold">
+              <div className="my-oil-hold__top">
+                <div className="my-oil-hold__who">
+                  <strong>{c.counterpartyName}</strong>
+                  <span>{statusFor(c)}</span>
+                </div>
+                <em>{formatOilPack(packOf(c), packLabels)}</em>
               </div>
               {c.isSale && c.amount != null ? (
-                <p className="my-oil-waiting__story">
+                <p className="my-oil-hold__meta">
                   {t('commitments.paidAmount', { amount: c.amount })}
                 </p>
-              ) : null}
-              <p className="my-oil-waiting__story">{storyFor(c)}</p>
-              {c.promisedFor || c.createdAt ? (
-                <p className="my-oil-waiting__story">
-                  {formatDate(c.promisedFor || c.createdAt)}
+              ) : c.createdAt && !c.promisedFor ? (
+                <p className="my-oil-hold__meta">
+                  {t('commitments.since')} {formatDate(c.createdAt)}
                 </p>
               ) : null}
               <div className="my-oil-waiting__actions">
@@ -164,10 +174,7 @@ export function CommitmentsTab({
           onClose={() => setDetail(null)}
           size="md"
           title={active.counterpartyName}
-          subtitle={formatOilPack(
-            active.derivedStatus === 'delivered' ? active.requested : active.remaining,
-            packLabels
-          )}
+          subtitle={statusFor(active)}
           icon={<Bookmark size={18} strokeWidth={1.75} aria-hidden />}
           closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
           footer={
@@ -191,17 +198,43 @@ export function CommitmentsTab({
           }
         >
           <div className="my-oil-flow">
-            <p className="my-oil-waiting__story">{storyFor(active)}</p>
-            {active.isSale && active.amount != null ? (
-              <p className="my-oil-waiting__story">
-                {t('commitments.paidOn', { date: formatDate(active.createdAt) })}
-              </p>
-            ) : null}
-            {active.derivedStatus !== 'delivered' ? (
-              <p className="my-oil-waiting__story">{t('commitments.notDeliveredYet')}</p>
-            ) : (
-              <p className="my-oil-waiting__story">{t('commitments.delivered')}</p>
-            )}
+            <dl className="my-oil-hold-facts">
+              <div>
+                <dt>{t('commitments.who')}</dt>
+                <dd>{active.counterpartyName}</dd>
+              </div>
+              <div>
+                <dt>{t('commitments.howMuch')}</dt>
+                <dd>{formatOilPack(packOf(active), packLabels)}</dd>
+              </div>
+              <div>
+                <dt>{t('commitments.status')}</dt>
+                <dd>{statusFor(active)}</dd>
+              </div>
+              {active.promisedFor ? (
+                <div>
+                  <dt>{t('commitments.when')}</dt>
+                  <dd>{formatDate(active.promisedFor)}</dd>
+                </div>
+              ) : active.createdAt ? (
+                <div>
+                  <dt>{t('commitments.since')}</dt>
+                  <dd>{formatDate(active.createdAt)}</dd>
+                </div>
+              ) : null}
+              {active.isSale && active.amount != null ? (
+                <div>
+                  <dt>{t('commitments.payment')}</dt>
+                  <dd>{t('commitments.paidAmount', { amount: active.amount })}</dd>
+                </div>
+              ) : null}
+              {active.notes?.trim() ? (
+                <div>
+                  <dt>{t('commitments.note')}</dt>
+                  <dd>{active.notes}</dd>
+                </div>
+              ) : null}
+            </dl>
             {lotLines(active).length > 0 ? (
               <>
                 <p className="my-oil-flow__step">{t('commitments.fromLots')}</p>

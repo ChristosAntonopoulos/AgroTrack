@@ -5,6 +5,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { isMockMode } from '../../services/serviceFactory';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import {
@@ -25,6 +26,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const harvest = useHarvestCampaignOptional();
+  const activation = useOwnerActivationOptional();
   const location = useLocation();
   const userRole = (user?.role || '') as AppRole;
 
@@ -79,8 +81,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
             key={item.path}
             to={item.path}
             reloadDocument={false}
+            data-guide-target={
+              item.path === '/fields' ? 'fieldsNav' : item.path === '/chronologio' ? 'historyNav' : undefined
+            }
             className={`mobile-bottom-nav-item ${active ? 'active' : ''}`}
             aria-current={active ? 'page' : undefined}
+            onClick={() => {
+              if (item.path === '/chronologio') activation?.completeHistoryStep();
+            }}
           >
             <span className="mobile-bottom-nav-icon">{item.icon}</span>
             <span className="mobile-bottom-nav-label">{resolveNavItemLabel(item, userRole, t, { mobile: true })}</span>

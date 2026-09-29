@@ -5,13 +5,13 @@ import FocusSpotlight from './FocusSpotlight';
 
 /** Checklist + focus spotlight for FieldOwner activation. */
 const OwnerActivationHost: React.FC = () => {
-  const { visible, spotlightStep, skipStep } = useOwnerActivation();
+  const { visible, spotlightStep, skipStep, guideBeat } = useOwnerActivation();
 
-  if (!visible) return null;
+  if (!visible || guideBeat) return null;
 
   return (
     <>
-      <ActivationChecklist />
+      {spotlightStep ? null : <ActivationChecklist />}
       {spotlightStep ? (
         <FocusSpotlight
           step={spotlightStep}

@@ -57,50 +57,54 @@ public class FieldPeopleRulesTests
     }
 
     [Fact]
-    public void AddOrReplaceSeat_EnforcesPartnerLimit()
+    public void AddOrReplaceSeat_AllowsManyCollaboratorsAndFamily()
     {
         var field = AdminField();
         FieldPeopleRules.AddOrReplaceSeat(
             field, FieldPersonRole.Partner, "p1", FamilyModules.DefaultOnInvite, FamilyAccessLevels.Work, "owner-1",
             status: FamilyMemberStatuses.Active);
-
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            FieldPeopleRules.AddOrReplaceSeat(
-                field, FieldPersonRole.Partner, "p2", FamilyModules.DefaultOnInvite, FamilyAccessLevels.Work, "owner-1",
-                status: FamilyMemberStatuses.Pending));
-
-        Assert.Contains("partner", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void AddOrReplaceSeat_EnforcesFamilyLimitOfTwo()
-    {
-        var field = AdminField();
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Partner, "p2", FamilyModules.DefaultOnInvite, FamilyAccessLevels.View, "owner-1",
+            status: FamilyMemberStatuses.Pending);
         FieldPeopleRules.AddOrReplaceSeat(
             field, FieldPersonRole.Family, "f1", FamilyModules.DefaultOnInvite, FamilyAccessLevels.Help, "owner-1",
             status: FamilyMemberStatuses.Active);
         FieldPeopleRules.AddOrReplaceSeat(
             field, FieldPersonRole.Family, "f2", FamilyModules.DefaultOnInvite, FamilyAccessLevels.View, "owner-1",
-            status: FamilyMemberStatuses.Pending);
+            status: FamilyMemberStatuses.Active);
+        FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Family, "f3", FamilyModules.DefaultOnInvite, FamilyAccessLevels.View, "owner-1",
+            status: FamilyMemberStatuses.Active);
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            FieldPeopleRules.AddOrReplaceSeat(
-                field, FieldPersonRole.Family, "f3", FamilyModules.DefaultOnInvite, FamilyAccessLevels.View, "owner-1"));
-
-        Assert.Contains("two family", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(6, field.People.Count);
+        Assert.Single(field.People, person => person.Role == FieldPersonRole.Admin);
     }
 
     [Fact]
-    public void PendingSeat_OccupiesSlot()
+    public void PendingCollaborator_DoesNotBlockAnotherCollaborator()
     {
         var field = AdminField();
         FieldPeopleRules.AddOrReplaceSeat(
             field, FieldPersonRole.Partner, null, FamilyModules.DefaultOnInvite, FamilyAccessLevels.Work, "owner-1",
             displayName: "Kostas", email: "k@x.com", inviteId: "inv-1", status: FamilyMemberStatuses.Pending);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            FieldPeopleRules.AddOrReplaceSeat(
-                field, FieldPersonRole.Partner, "other", FamilyModules.DefaultOnInvite, FamilyAccessLevels.Work, "owner-1"));
+        var second = FieldPeopleRules.AddOrReplaceSeat(
+            field, FieldPersonRole.Partner, "other", FamilyModules.DefaultOnInvite, FamilyAccessLevels.Work, "owner-1",
+            status: FamilyMemberStatuses.Active);
+
+        Assert.Equal("other", second.UserId);
+        Assert.Equal(3, field.People.Count);
+    }
+
+    [Fact]
+    public void TryParseRelationship_MapsCollaboratorToPartner_AndRejectsOwner()
+    {
+        Assert.True(FieldPeopleRules.TryParseRelationship("Collaborator", out var collaborator));
+        Assert.Equal(FieldPersonRole.Partner, collaborator);
+        Assert.True(FieldPeopleRules.TryParseRelationship("Family", out var family));
+        Assert.Equal(FieldPersonRole.Family, family);
+        Assert.False(FieldPeopleRules.TryParseRelationship("Owner", out _));
+        Assert.False(FieldPeopleRules.TryParseRelationship("Admin", out _));
     }
 
     [Fact]

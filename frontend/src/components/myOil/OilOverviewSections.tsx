@@ -7,8 +7,9 @@ import {
   commitmentStoryKey,
   deliverButtonKey,
   isHouseholdCommitment,
-  sumCommitmentPack,
+  sumHouseholdPack,
   tinCount,
+  visibleHouseholdCommitments,
 } from '../../myOil/commitmentCopy';
 import { OilSectionHeader } from './OilStockChrome';
 import type { OilCommitment, OilPack, OilStockSummary } from '../../services/oilStockService';
@@ -122,7 +123,7 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
     key: 'tin16' | 'tin17' | 'bulk';
     label: string;
     value: string;
-    meta: string;
+    heldLabel: string | null;
     Icon: typeof Cylinder;
     free: number;
     held: number;
@@ -133,7 +134,7 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
       key: 'tin16',
       label: t('warehouse.pack16'),
       value: String(available.tin16),
-      meta: held16 > 0 ? t('warehouse.heldCount', { count: held16 }) : t('warehouse.free'),
+      heldLabel: held16 > 0 ? t('warehouse.heldCount', { count: held16 }) : null,
       Icon: Cylinder,
       free: available.tin16,
       held: held16,
@@ -144,7 +145,7 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
       key: 'tin17',
       label: t('warehouse.pack17'),
       value: String(available.tin17),
-      meta: held17 > 0 ? t('warehouse.heldCount', { count: held17 }) : t('warehouse.free'),
+      heldLabel: held17 > 0 ? t('warehouse.heldCount', { count: held17 }) : null,
       Icon: Cylinder,
       free: available.tin17,
       held: held17,
@@ -155,10 +156,10 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
       key: 'bulk',
       label: t('warehouse.packBulk'),
       value: `${formatOilNumber(available.bulkLitres, locale)} L`,
-      meta:
+      heldLabel:
         heldBulk > 0.05
           ? t('warehouse.heldLitres', { amount: formatOilNumber(heldBulk, locale) })
-          : t('warehouse.free'),
+          : null,
       Icon: Droplets,
       free: available.bulkLitres,
       held: heldBulk,
@@ -188,8 +189,13 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
                 <c.Icon size={18} strokeWidth={1.6} />
               </span>
               <span className="my-oil-inv-card__label">{c.label}</span>
-              <span className="my-oil-inv-card__value">{c.value}</span>
-              <span className="my-oil-inv-card__meta">{c.meta}</span>
+              <span
+                className={`my-oil-inv-card__value${c.key === 'bulk' ? ' my-oil-inv-card__value--oil' : ''}`}
+              >
+                {c.value}
+              </span>
+              <span className="my-oil-inv-card__meta">{t('warehouse.free')}</span>
+              {c.heldLabel ? <span className="my-oil-inv-card__held">{c.heldLabel}</span> : null}
               <Meter free={c.free} held={c.held} total={c.total} />
             </button>
           ))}
@@ -200,18 +206,27 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
 
 type HouseholdProps = {
   summary: OilStockSummary;
+  closed?: OilCommitment[];
   packLabels: PackLabels;
   onSetAside: () => void;
   onOpenHolds: () => void;
 };
 
-/** Only oil explicitly set aside for the house — not the whole warehouse. */
-export function OilHouseholdAside({ summary, packLabels, onSetAside, onOpenHolds }: HouseholdProps) {
+/** Oil set aside for the house, including what the house already took. */
+export function OilHouseholdAside({
+  summary,
+  closed = [],
+  packLabels,
+  onSetAside,
+  onOpenHolds,
+}: HouseholdProps) {
   const { t, i18n } = useTranslation('myOil');
   const locale = i18n.language;
-  const homeItems = summary.openCommitments.filter(isHouseholdCommitment);
-  const homeHeld = sumCommitmentPack(homeItems);
+  const homeItems = visibleHouseholdCommitments(summary.openCommitments, closed);
+  const homeHeld = sumHouseholdPack(homeItems);
   const hasHome = tinCount(homeHeld) > 0 || homeHeld.bulkLitres > 0.05;
+  const allAtHome =
+    homeItems.length > 0 && homeItems.every((c) => c.derivedStatus === 'delivered');
 
   return (
     <section className="my-oil-panel my-oil-panel--household">
@@ -222,7 +237,9 @@ export function OilHouseholdAside({ summary, packLabels, onSetAside, onOpenHolds
             <strong className="my-oil-household-banner__qty">
               {formatOilPack(homeHeld, packLabels)}
             </strong>
-            <span className="my-oil-household-banner__note">{t('household.setAsideNote')}</span>
+            <span className="my-oil-household-banner__note">
+              {allAtHome ? t('household.atHome') : t('household.setAsideNote')}
+            </span>
           </div>
           <ul className="my-oil-household-bits">
             {homeHeld.tin16 > 0 ? (

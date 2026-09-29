@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
@@ -16,15 +16,14 @@ type Props = {
 };
 
 /**
- * Mandatory first Chronologio note on καρτέλα: sticky guide,
- * opens prefilled observation, completes only after save.
+ * First History note. Shown after the grower opens Ιστορικό themselves.
+ * Completes only once they save the observation.
  */
 const FirstObservationGuide: React.FC<Props> = ({ fieldId }) => {
   const { t } = useTranslation('onboarding');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const capture = useCaptureOptional();
   const { colors, tapMin } = useTheme();
-  const autoOpened = useRef(false);
   const {
     awaitingFirstObservation,
     completion,
@@ -60,13 +59,6 @@ const FirstObservationGuide: React.FC<Props> = ({ fieldId }) => {
     );
     return () => sub.remove();
   }, [active, fieldId, finish]);
-
-  useEffect(() => {
-    if (!active || autoOpened.current) return;
-    autoOpened.current = true;
-    const id = setTimeout(() => openObservation(), 700);
-    return () => clearTimeout(id);
-  }, [active, openObservation]);
 
   if (!active) return null;
 

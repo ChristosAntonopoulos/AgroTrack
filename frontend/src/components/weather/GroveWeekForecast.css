@@ -1,10 +1,16 @@
 .grove-week {
-  display: grid;
-  gap: 2px;
-  margin: 0.15rem 0 0;
+  display: flex;
+  gap: 6px;
+  margin: 0.35rem 0 0;
   padding: 0.55rem 0 0;
   border-top: 1px solid var(--gw-line, rgba(240, 244, 238, 0.1));
   list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.grove-week::-webkit-scrollbar {
+  display: none;
 }
 
 .grove-week-dow,
@@ -17,12 +23,15 @@
 .grove-week li {
   position: relative;
   display: flex;
+  flex: 1 0 52px;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  min-width: 0;
-  padding: 4px 0 3px;
-  border-radius: 10px;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 52px;
+  padding: 8px 4px 7px;
+  border-radius: 12px;
+  background: rgba(244, 246, 242, 0.05);
   color: var(--gw-muted, var(--text-secondary));
 }
 
@@ -35,8 +44,8 @@
 .grove-week-dow {
   max-width: 100%;
   overflow: hidden;
-  font-size: 10px;
-  line-height: 13px;
+  font-size: 11px;
+  line-height: 14px;
   font-weight: 700;
   letter-spacing: 0.01em;
   text-transform: capitalize;
@@ -46,13 +55,30 @@
 .grove-week-icon {
   display: grid;
   place-items: center;
-  height: 18px;
-  margin: 1px 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.grove-week-icon svg {
+  display: block;
+}
+
+.grove-week-temps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.grove-week-high,
+.grove-week-low {
+  white-space: nowrap;
 }
 
 .grove-week-high {
-  font-size: 13px;
-  line-height: 16px;
+  font-size: 14px;
+  line-height: 18px;
   font-weight: 720;
   color: var(--gw-ink, var(--text-primary));
 }
@@ -61,6 +87,7 @@
   font-size: 11px;
   line-height: 14px;
   font-weight: 600;
+  color: var(--gw-muted, var(--text-secondary));
 }
 
 .grove-week-rain {
@@ -78,6 +105,35 @@
   color: transparent;
 }
 
+.grove-week--strip {
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 6px 0 0;
+}
+
+.grove-week--strip li {
+  flex-basis: 40px;
+  min-width: 40px;
+  gap: 2px;
+  padding: 5px 2px 4px;
+  border-radius: 10px;
+}
+
+.grove-week--strip .grove-week-dow {
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.grove-week--strip .grove-week-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.grove-week--strip .grove-week-high {
+  font-size: 12px;
+  line-height: 14px;
+}
+
 .grove-week--detail {
   gap: 4px;
   margin: 0;
@@ -86,9 +142,10 @@
 }
 
 .grove-week--detail li {
-  padding: 8px 2px 7px;
+  flex: 1 1 0;
+  min-width: 46px;
+  padding: 10px 4px 8px;
   border-radius: 14px;
-  background: rgba(244, 246, 242, 0.05);
 }
 
 .grove-week--detail li.is-today {
@@ -110,8 +167,12 @@
   line-height: 18px;
 }
 
+html:not([data-theme='dark']) .grove-week li {
+  background: var(--surface-2, #f2f3ec);
+}
+
 html:not([data-theme='dark']) .grove-week li.is-today {
-  background: rgba(34, 40, 31, 0.06);
+  background: rgba(122, 146, 98, 0.2);
 }
 
 html:not([data-theme='dark']) .grove-week--detail li {

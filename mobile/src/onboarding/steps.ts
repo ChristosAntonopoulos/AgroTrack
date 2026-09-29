@@ -20,10 +20,21 @@ export type OwnerActivationPersisted = {
   forceShow: boolean;
   /** Later escape before όρια — allows browse until they resume or save boundary. */
   laterSnoozedAt: string | null;
-  /** Soft guide after spatial welcome: details → first observation → chronologio. */
+  /** Soft guide after spatial welcome: details → home → History → first observation. */
   awaitingFirstObservation: boolean;
   firstObservationDoneAt: string | null;
+  /**
+   * Game-like navigation lesson after the grove exists.
+   * linger = quiet moment on field details, home = pulse the launcher mark, history = pulse Ιστορικό.
+   */
+  navCoachPhase: NavCoachPhase | null;
 };
+
+export type NavCoachPhase = 'linger' | 'home' | 'history';
+
+export const GUIDE_TARGETS = ['fieldsCard', 'createField', 'homeButton', 'historyCard'] as const;
+
+export type GuideTargetId = (typeof GUIDE_TARGETS)[number];
 
 export const emptyPersisted = (): OwnerActivationPersisted => ({
   skippedSteps: [],
@@ -33,6 +44,7 @@ export const emptyPersisted = (): OwnerActivationPersisted => ({
   laterSnoozedAt: null,
   awaitingFirstObservation: false,
   firstObservationDoneAt: null,
+  navCoachPhase: null,
 });
 
 export const storageKeyFor = (userId: string) => `oleachron.ownerActivation.v1.${userId}`;

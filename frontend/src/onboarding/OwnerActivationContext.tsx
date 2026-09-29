@@ -28,6 +28,8 @@ import {
   emptyPersisted,
   OWNER_ACTIVATION_STEPS,
   stepPath,
+  type GuideTargetId,
+  type NavCoachPhase,
   type OwnerActivationPersisted,
   type OwnerActivationStepId,
 } from './steps';
@@ -51,8 +53,14 @@ type OwnerActivationContextValue = {
   spatialStatus: SpatialReadiness;
   spotlightRoute: SpotlightRoute;
   spotlightStep: OwnerActivationStepId | null;
-  /** Soft post-spatial guide: details → first observation → chronologio. */
+  /** Soft post-spatial guide: details → home → History → first observation. */
   awaitingFirstObservation: boolean;
+  /** The control the grower should use next. */
+  guideBeat: GuideTargetId | null;
+  /** After spatial welcome: land on field details, then teach home → History. */
+  beginDetailsLesson: () => void;
+  /** Grower opened History during the navigation lesson. */
+  completeHistoryStep: () => void;
   refresh: () => Promise<void>;
   skipStep: (step: OwnerActivationStepId) => void;
   /** Before όρια = Later (snooze). After όρια = permanent dismiss. */
@@ -92,6 +100,9 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
   const [optimisticBoundaryFieldId, setOptimisticBoundaryFieldId] = useState<string | null>(null);
   const wasUnlocked = useRef(false);
   const pollRef = useRef<number | undefined>(undefined);
+  const persistedRef = useRef(persisted);
+  persistedRef.current = persisted;
+  const lingerTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!userId) {
@@ -308,6 +319,105 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
         ? 'drawBoundary'
         : null;
 
+  const onFieldDetail = /^\/fields\/(?!new$)[^/]+$/.test(location.pathname);
+
+  const guideBeat = useMemo((): GuideTargetId | null => {
+    if (!fieldsHydrated || !eligible || laterSnoozed || persisted.dismissedAt) return null;
+    if (persisted.firstObservationDoneAt) return null;
+
+    if (!completion.createGrove) {
+      if (location.pathname === '/fields') return 'createField';
+      if (isCreatePath(location.pathname)) return null;
+      return 'fieldsNav';
+    }
+
+    if (persisted.navCoachPhase === 'home') return 'homeButton';
+    if (persisted.navCoachPhase === 'history') return 'historyNav';
+    return null;
+  }, [
+    fieldsHydrated,
+    eligible,
+    laterSnoozed,
+    persisted.dismissedAt,
+    persisted.firstObservationDoneAt,
+    persisted.navCoachPhase,
+    completion.createGrove,
+    location.pathname,
+  ]);
+
+  const setNavCoachPhase = useCallback(
+    (phase: NavCoachPhase | null) => {
+      const current = persistedRef.current;
+      if (current.navCoachPhase === phase) return;
+      persist({ ...current, navCoachPhase: phase });
+    },
+    [persist]
+  );
+
+  const beginDetailsLesson = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.firstObservationDoneAt) return;
+    persist({
+      ...current,
+      navCoachPhase: 'linger',
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
+  const completeHistoryStep = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.navCoachPhase !== 'history' || current.firstObservationDoneAt) return;
+    persist({
+      ...current,
+      navCoachPhase: null,
+      awaitingFirstObservation: true,
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
+  useEffect(() => {
+    const waiting = persisted.navCoachPhase === 'linger' && onFieldDetail;
+    if (!waiting) {
+      if (lingerTimer.current) {
+        window.clearTimeout(lingerTimer.current);
+        lingerTimer.current = undefined;
+      }
+      return;
+    }
+    if (lingerTimer.current) return;
+    lingerTimer.current = window.setTimeout(() => {
+      lingerTimer.current = undefined;
+      setNavCoachPhase('home');
+    }, 5000);
+  }, [persisted.navCoachPhase, onFieldDetail, setNavCoachPhase]);
+
+  useEffect(() => {
+    return () => {
+      if (lingerTimer.current) window.clearTimeout(lingerTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (persisted.navCoachPhase !== 'linger' || onFieldDetail) return;
+    if (location.pathname === '/chronologio') completeHistoryStep();
+    else setNavCoachPhase('history');
+  }, [
+    persisted.navCoachPhase,
+    onFieldDetail,
+    location.pathname,
+    completeHistoryStep,
+    setNavCoachPhase,
+  ]);
+
+  useEffect(() => {
+    if (persisted.navCoachPhase !== 'home' || onFieldDetail) return;
+    setNavCoachPhase('history');
+  }, [persisted.navCoachPhase, onFieldDetail, setNavCoachPhase]);
+
   const snoozeLater = useCallback(() => {
     persist({
       ...persisted,
@@ -370,6 +480,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       laterSnoozedAt: null,
       awaitingFirstObservation: false,
       firstObservationDoneAt: null,
+      navCoachPhase: null,
     });
     setCelebrating(false);
   }, [persist, persisted]);
@@ -427,6 +538,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       dismissedAt: new Date().toISOString(),
       forceShow: false,
       laterSnoozedAt: null,
+      navCoachPhase: null,
     });
     setCelebrating(false);
   }, [persist, persisted]);
@@ -456,6 +568,9 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       spotlightRoute,
       spotlightStep,
       awaitingFirstObservation: persisted.awaitingFirstObservation,
+      guideBeat,
+      beginDetailsLesson,
+      completeHistoryStep,
       refresh,
       skipStep,
       dismiss,
@@ -479,6 +594,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       persisted.checklistCollapsed,
       persisted.skippedSteps,
       persisted.awaitingFirstObservation,
+      guideBeat,
       primaryField,
       completion,
       doneCount,
@@ -497,6 +613,8 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       clearCelebration,
       markFieldsDirty,
       beginFirstObservationGuide,
+      beginDetailsLesson,
+      completeHistoryStep,
       completeFirstObservation,
     ]
   );

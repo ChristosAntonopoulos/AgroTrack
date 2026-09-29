@@ -97,12 +97,31 @@
     "groveFallback": "your grove",
     "title": "“{{grove}}” is ready for its story",
     "titleNamed": "{{name}}, “{{grove}}” is ready for its story",
-    "body": "The shape is saved. A short note is the first page — you can send it as it is.",
+    "body": "The shape is saved. Next you will see the grove, then History for the first note.",
     "pointWeather": "Live weather sits under the map",
     "pointSatellite": "Satellite layers are ready when the sky is clear",
     "pointMap": "Your όρια define what Oleachron watches",
     "openMap": "Continue to my grove",
     "openGrove": "Open History"
+  },
+  "coach": {
+    "kicker": "Your move",
+    "fieldsCard": {
+      "title": "Open Fields",
+      "body": "Tap Fields. That is where a grove begins."
+    },
+    "createField": {
+      "title": "Create your grove",
+      "body": "Tap + and give it a name you will recognise."
+    },
+    "homeButton": {
+      "title": "This brings you home",
+      "body": "The mark opens the launcher. Tap it — History is the next stop."
+    },
+    "historyCard": {
+      "title": "Open History",
+      "body": "Tap History and leave the first note for this grove."
+    }
   },
   "settings": {
     "showTips": "Show grove setup tips"

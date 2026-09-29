@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Package, Sprout, Warehouse } from 'lucide-react';
+import { Minus, Package, Plus, Sprout, Warehouse } from 'lucide-react';
 import Button from '../Common/Button';
 import RightDrawer from '../Common/RightDrawer';
 import { formatOilNumber } from '../../myOil/formatOilPack';
@@ -241,7 +241,7 @@ export function FillTinsDrawer({
         ) : (
           <>
             {resolvedLot ? (
-              <div className="my-oil-source-card my-oil-source-card--summary">
+              <div className="my-oil-fill-source">
                 <span className="my-oil-source-card__icon" aria-hidden>
                   {wantsHarvestLink ? (
                     <Sprout size={18} strokeWidth={1.7} />
@@ -251,72 +251,83 @@ export function FillTinsDrawer({
                 </span>
                 <span className="my-oil-source-card__body">
                   <strong>
-                    {wantsHarvestLink
-                      ? formatLotDate(resolvedLot.pressedOn)
-                      : t('fill.autoTitle')}
+                    {wantsHarvestLink ? formatLotDate(resolvedLot.pressedOn) : t('fill.autoTitle')}
                   </strong>
-                  {wantsHarvestLink && fieldLabel(resolvedLot) ? (
-                    <em>{fieldLabel(resolvedLot)}</em>
-                  ) : (
-                    <em>{wantsHarvestLink ? t('fill.harvestLinked') : t('fill.autoBody')}</em>
-                  )}
+                  {wantsHarvestLink && fieldLabel(resolvedLot) ? <em>{fieldLabel(resolvedLot)}</em> : null}
                 </span>
               </div>
             ) : null}
 
-            <p className="my-oil-flow__step">{t('fill.bulkAvailable')}</p>
-            <p className="my-oil-flow__qty">{formatOilNumber(bulk, locale)} L</p>
+            <dl className="my-oil-fill-balance" aria-live="polite">
+              <div>
+                <dt>{t('fill.balanceAvailable')}</dt>
+                <dd>
+                  {formatOilNumber(bulk, locale)}
+                  <span>{t('fill.unitLitres')}</span>
+                </dd>
+              </div>
+              <div className={used > 0 ? 'is-on' : ''}>
+                <dt>{t('fill.balanceUsed')}</dt>
+                <dd>
+                  {formatOilNumber(used, locale)}
+                  <span>{t('fill.unitLitres')}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>{t('fill.balanceLeft')}</dt>
+                <dd>
+                  {formatOilNumber(Math.max(0, left), locale)}
+                  <span>{t('fill.unitLitres')}</span>
+                </dd>
+              </div>
+            </dl>
 
             <p className="my-oil-flow__step">{t('fill.what')}</p>
-            <div className="my-oil-stepper">
-              <div className="my-oil-stepper__row">
-                <span>16 L</span>
-                <div className="my-oil-stepper__controls">
-                  <button
-                    type="button"
-                    onClick={() => setAdd16((n) => Math.max(0, n - 1))}
-                    disabled={add16 <= 0}
-                  >
-                    −
-                  </button>
-                  <strong>{add16}</strong>
-                  <button
-                    type="button"
-                    onClick={() => setAdd16((n) => n + 1)}
-                    disabled={left - 16 < -0.05}
-                  >
-                    +
-                  </button>
+            <div className="my-oil-tin-grid">
+              {(
+                [
+                  { size: 16, count: add16, setCount: setAdd16 },
+                  { size: 17, count: add17, setCount: setAdd17 },
+                ] as const
+              ).map(({ size, count, setCount }) => (
+                <div key={size} className={`my-oil-tin${count > 0 ? ' is-on' : ''}`}>
+                  <div className="my-oil-tin__size">
+                    <strong>{size}</strong>
+                    <span>{t('fill.unitLitres')}</span>
+                  </div>
+                  <div className="my-oil-tin__copy">
+                    <span>{t('fill.tinName')}</span>
+                    {count > 0 ? (
+                      <em>
+                        {t('fill.tinSubtotal', {
+                          amount: formatOilNumber(count * size, locale),
+                        })}
+                      </em>
+                    ) : null}
+                  </div>
+                  <div className="my-oil-tin__controls">
+                    <button
+                      type="button"
+                      aria-label={t('fill.lessTins', { size })}
+                      onClick={() => setCount((n) => Math.max(0, n - 1))}
+                      disabled={count <= 0}
+                    >
+                      <Minus size={18} aria-hidden />
+                    </button>
+                    <strong>{count}</strong>
+                    <button
+                      type="button"
+                      aria-label={t('fill.moreTins', { size })}
+                      onClick={() => setCount((n) => n + 1)}
+                      disabled={left - size < -0.05}
+                    >
+                      <Plus size={18} aria-hidden />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="my-oil-stepper__row">
-                <span>17 L</span>
-                <div className="my-oil-stepper__controls">
-                  <button
-                    type="button"
-                    onClick={() => setAdd17((n) => Math.max(0, n - 1))}
-                    disabled={add17 <= 0}
-                  >
-                    −
-                  </button>
-                  <strong>{add17}</strong>
-                  <button
-                    type="button"
-                    onClick={() => setAdd17((n) => n + 1)}
-                    disabled={left - 17 < -0.05}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-
-            <p className="my-oil-flow__total">
-              {t('fill.used', { amount: formatOilNumber(used, locale) })}
-            </p>
-            <p className="my-oil-flow__hint">
-              {t('fill.left', { amount: formatOilNumber(Math.max(0, left), locale) })}
-            </p>
+            {used === 0 ? <p className="my-oil-flow__hint">{t('fill.pickHint')}</p> : null}
           </>
         )}
       </div>

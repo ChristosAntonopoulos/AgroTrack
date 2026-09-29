@@ -3627,13 +3627,13 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chronologio-event-card.is-featured {
   padding: 1.1rem 1.15rem 1rem 1.2rem;
 }
-.chronologio-event-card.is-month-report {
-  padding: 1.15rem 1.2rem 1.1rem 1.25rem;
-}
 .chronologio-event-card.is-month-report .chronologio-card-title {
   -webkit-line-clamp: 2;
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   line-height: 1.3;
+}
+.chronologio-event-card.is-month-report .chronologio-card-summary {
+  margin-top: 0.2rem;
 }
 .chronologio-event-card--work { --event-accent: var(--event-work); --event-accent-soft: var(--event-work-soft); }
 .chronologio-event-card--observation { --event-accent: var(--event-observation); --event-accent-soft: var(--event-observation-soft); }
@@ -3721,8 +3721,8 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 }
 .chrono-now .grove-weather.is-compact {
   width: auto;
-  min-width: 8.5rem;
-  max-width: 14rem;
+  min-width: 11rem;
+  max-width: 18.2rem;
   align-self: center;
 }
 .chrono-now-date {
@@ -3834,7 +3834,7 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   display: grid;
   gap: 8px;
 }
-.chrono-grove-peek-outlook li {
+.chrono-grove-peek-outlook ul li {
   display: grid;
   grid-template-columns: 4.75rem minmax(0, 1fr);
   gap: 10px 12px;
@@ -3843,7 +3843,7 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   border-radius: 14px;
   background: rgba(244, 246, 242, 0.05);
 }
-.chrono-grove-peek-outlook li.is-harsh {
+.chrono-grove-peek-outlook ul li.is-harsh {
   background: rgba(214, 122, 103, 0.14);
 }
 .chrono-grove-peek-outlook p,
@@ -4696,6 +4696,302 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   margin-top: 0.75rem;
   color: var(--chrono-link, var(--color-primary));
   font-weight: 700;
+}
+
+.chrono-year-mode-tabs {
+  margin-top: 0.85rem;
+}
+.chrono-year-nav-label {
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chrono-text-secondary, var(--color-text-secondary));
+}
+.chronologio-sticky.is-year-nav {
+  margin-top: 0.55rem;
+  margin-bottom: 0.75rem;
+  padding: 0.35rem 0;
+}
+.chronologio-sticky.is-year-nav .chrono-toolbar-row {
+  min-height: 44px;
+}
+
+.chrono-season-hero {
+  margin: 0 0 0.65rem;
+  padding: 0;
+}
+.chrono-season-hero h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+.chrono-season-range,
+.chrono-season-meta {
+  margin: 0.15rem 0 0;
+  color: var(--chrono-text-secondary, var(--color-text-secondary));
+  font-size: 0.92rem;
+}
+.chrono-season-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+.chrono-season-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+.chrono-season-facts li.is-harvest { color: var(--event-harvest, #c4a15a); }
+
+.chrono-year-feed .chrono-timeline-body.has-rail {
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  column-gap: 0.65rem;
+}
+.chrono-year-feed .chrono-month-rail {
+  position: relative;
+}
+.chrono-year-feed .chrono-month-rail::before {
+  content: '';
+  position: absolute;
+  left: 0.72rem;
+  top: 1.6rem;
+  bottom: 0.7rem;
+  width: 1px;
+  background: color-mix(in srgb, var(--chrono-muted, var(--color-text-secondary)) 35%, transparent);
+  pointer-events: none;
+}
+.chrono-rail-year {
+  position: relative;
+  z-index: 1;
+  margin: 0.35rem 0 0.1rem;
+  padding-left: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: var(--chrono-muted, var(--color-text-secondary));
+  background: var(--bg-page, transparent);
+}
+.chrono-year-feed .chrono-month-rail button {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0 0.35rem;
+  text-align: left;
+}
+.chrono-year-feed .chrono-rail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  justify-self: center;
+}
+.chrono-year-feed .chrono-month-rail button.has-activity .chrono-rail-dot {
+  background: currentColor;
+}
+.chrono-year-feed .chrono-month-rail button.is-active {
+  color: var(--olive-primary, #536b3f);
+  background: color-mix(in srgb, #e2b657 28%, var(--olive-primary, #536b3f) 12%);
+  border-radius: 999px;
+  font-weight: 750;
+}
+.chrono-year-feed .chrono-rail-count {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--chrono-muted, var(--color-text-secondary));
+}
+.chrono-year-feed .chrono-month-rail button.is-active .chrono-rail-count {
+  color: inherit;
+}
+
+.chrono-month-snapshot {
+  background: var(--bg-card, var(--surface-1, var(--color-surface)));
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 10%, transparent);
+}
+.chrono-month-snapshot.is-current,
+.chrono-month-snapshot.is-active {
+  border-color: color-mix(in srgb, #e2b657 55%, var(--olive-primary, #536b3f));
+}
+.chrono-month-snapshot.is-harvest {
+  border-color: color-mix(in srgb, var(--event-harvest, #c4a15a) 45%, var(--color-border));
+}
+.chrono-month-count {
+  margin-left: auto;
+  color: var(--chrono-text-secondary, var(--color-text-secondary));
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.chrono-month-chapter-head { width: 100%; }
+.chrono-month-wx-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  margin: 0.45rem 0 0;
+  color: var(--chrono-muted, var(--color-text-secondary));
+  font-size: 0.88rem;
+}
+.chrono-month-wx-quiet span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+.chrono-month-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+.chrono-month-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+.chrono-month-harvest-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  color: var(--event-harvest, #c4a15a);
+  font-weight: 700;
+}
+.chrono-month-harvest-line span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.chrono-month-harvest-line strong {
+  color: var(--color-text-primary);
+  font-weight: 650;
+}
+.chrono-month-photos {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+.chrono-month-photos .chrono-thumb,
+.chrono-month-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+}
+.chrono-month-highlight {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0.7rem 0 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-soft, var(--color-border));
+}
+.chrono-month-highlight strong { font-size: 0.98rem; }
+.chrono-month-highlight span {
+  color: var(--chrono-text-secondary, var(--color-text-secondary));
+  font-size: 0.84rem;
+}
+
+.chrono-harvest-chapter {
+  margin: 0.35rem 0 0.15rem;
+  padding: 0.45rem 0.1rem 0.2rem;
+  text-align: center;
+}
+.chrono-harvest-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--event-harvest, #c4a15a);
+}
+.chrono-harvest-kicker::before,
+.chrono-harvest-kicker::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: color-mix(in srgb, var(--event-harvest, #c4a15a) 55%, transparent);
+}
+.chrono-harvest-span {
+  margin: 0.2rem 0 0;
+  color: var(--chrono-text-secondary, var(--color-text-secondary));
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.chrono-harvest-chapter ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chrono-harvest-chapter li {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.78rem;
+  color: var(--chrono-text-secondary, var(--color-text-secondary));
+}
+.chrono-harvest-chapter strong {
+  font-size: 1.15rem;
+  color: var(--color-text-primary);
+}
+
+.chrono-year-stepper {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid var(--border-soft, var(--color-border));
+  border-radius: 999px;
+  background: var(--surface-1, var(--color-surface));
+}
+.chrono-year-stepper button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.chrono-year-stepper button:disabled { opacity: 0.35; cursor: default; }
+@media (max-width: 720px) {
+  .chrono-year-stepper { min-height: 52px; }
+  .chrono-year-stepper button { width: 52px; height: 52px; }
+  .chrono-year-stepper strong { font-size: 1.2rem; }
+  .chrono-year-field select { min-height: 52px; }
+}
+.chrono-year-stepper strong {
+  min-width: 5.4rem;
+  text-align: center;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+.chrono-year-field select {
+  min-height: 44px;
+  max-width: 12rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border-soft, var(--color-border));
+  border-radius: 999px;
+  background: var(--surface-1, var(--color-surface));
+  color: inherit;
+  font: inherit;
 }
 .chrono-day-weather-line {
   display: flex;

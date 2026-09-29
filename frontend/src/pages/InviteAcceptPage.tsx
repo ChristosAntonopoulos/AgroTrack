@@ -8,6 +8,7 @@ import Button from '../components/Common/Button';
 import InviteAcceptShell from '../components/Auth/InviteAcceptShell';
 import { invalidateAccessContext } from '../hooks/useAccessContext';
 import { PICKABLE_MODULES } from '../components/Partners/accessPreview';
+import { presetLabelKey } from '../people/aggregatePeople';
 import { authPathWithIntent, clearInviteIntent, rememberInviteIntent } from '../utils/inviteIntent';
 import { mapInviteLifecycle } from '../components/Partners/inviteLifecycle';
 
@@ -37,6 +38,8 @@ const InviteAcceptPage: React.FC = () => {
         rememberInviteIntent({
           token: next.token || token,
           code: next.code,
+          email: next.email,
+          name: next.displayName,
           redirect: `/invite/${next.token || token}`,
         });
       } catch {
@@ -94,17 +97,19 @@ const InviteAcceptPage: React.FC = () => {
     !emailsMatch(invite?.email, user?.email) &&
     !acceptedByThisUser;
 
-  const roleLabel = invite
-    ? invite.role === 'Partner'
-      ? t('partners:connection.partnerSeat')
-      : invite.role === 'Family'
-        ? t('partners:connection.family')
-        : invite.role
-    : '';
+  const relationshipKey =
+    invite?.role === 'Partner' ? 'Collaborator' : invite?.role === 'Family' ? 'Family' : '';
+  const roleLabel = relationshipKey
+    ? t(`partners:peoplePage.relationship.${relationshipKey}`)
+    : invite?.role || '';
 
   const moduleLabels = (invite?.modules || [])
     .filter((module: FieldModule) => PICKABLE_MODULES.includes(module))
-    .map((module: FieldModule) => t(`partners:family.modules.${module}`, { defaultValue: module }));
+    .map((module: FieldModule) =>
+      t(`partners:peoplePage.modules.${module}`, {
+        defaultValue: t(`partners:family.modules.${module}`, { defaultValue: module }),
+      })
+    );
 
   const actionSummary = invite
     ? invite.accessLevel === 'work'
@@ -117,8 +122,18 @@ const InviteAcceptPage: React.FC = () => {
   const inviter = invite?.invitedByName || invite?.invitedBy;
   const fieldName = invite?.fieldName || '';
   const intent = invite
-    ? { token: invite.token || token, code: invite.code, redirect: `/invite/${invite.token || token}` }
+    ? {
+        token: invite.token || token,
+        code: invite.code,
+        email: invite.email,
+        name: invite.displayName,
+        redirect: `/invite/${invite.token || token}`,
+      }
     : { token, redirect: token ? `/invite/${token}` : undefined };
+
+  const accessLabel = invite
+    ? t(`partners:peoplePage.preset.${presetLabelKey(invite.accessLevel, invite.modules)}`)
+    : '';
 
   const openField = () => {
     clearInviteIntent();
@@ -193,7 +208,7 @@ const InviteAcceptPage: React.FC = () => {
             <div>
               <dt>{t('partners:family.levelTitle')}</dt>
               <dd>
-                {t(`partners:family.levels.${invite.accessLevel}`)} — {actionSummary}
+                {accessLabel} — {actionSummary}
               </dd>
             </div>
             <div>

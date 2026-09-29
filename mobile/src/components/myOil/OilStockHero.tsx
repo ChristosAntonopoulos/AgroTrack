@@ -6,27 +6,29 @@ import { useTheme } from '../../context/ThemeContext';
 import { formatHeroStock, formatOilNumber } from '../../myOil/formatOilPack';
 import {
   isHouseholdCommitment,
-  sumCommitmentPack,
+  sumHouseholdPack,
   tinCount,
+  visibleHouseholdCommitments,
 } from '../../myOil/commitmentCopy';
-import type { OilStockSummary } from '../../services/oilStockService';
+import type { OilCommitment, OilStockSummary } from '../../services/oilStockService';
 import { createMyOilStyles } from './myOilStyles';
 
 type Props = {
   summary: OilStockSummary;
+  closed?: OilCommitment[];
   onOpenHome: () => void;
   onOpenHolds: () => void;
 };
 
 /** Compact cellar total — litres first, pack line once, two status chips. */
-export function OilStockHero({ summary, onOpenHome, onOpenHolds }: Props) {
+export function OilStockHero({ summary, closed = [], onOpenHome, onOpenHolds }: Props) {
   const { t, i18n } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
   const physical = summary.physical;
 
-  const homeHeld = sumCommitmentPack(summary.openCommitments.filter(isHouseholdCommitment));
+  const homeHeld = sumHouseholdPack(visibleHouseholdCommitments(summary.openCommitments, closed));
   const thirdParty = summary.openCommitments.filter((c) => !isHouseholdCommitment(c));
   const pending = thirdParty.filter((c) => c.derivedStatus === 'pending_delivery').length;
   const held = thirdParty.filter((c) => c.derivedStatus === 'reserved').length;

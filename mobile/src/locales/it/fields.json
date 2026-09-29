@@ -127,7 +127,7 @@
     "mapData": "Mappa",
     "mapDataFull": "Mappa e dati",
     "details": "Dettagli",
-    "tabDetails": "Scheda",
+    "tabDetails": "Dettagli",
     "yearAria": "Anno di risultato",
     "prevYear": "Anno precedente",
     "nextYear": "Anno successivo",
@@ -239,14 +239,14 @@
     "hero": {
       "areaFrom": "Confine sulla mappa",
       "dem": "Copernicus DEM",
-      "groveRecord": "Scheda oliveto"
+      "groveRecord": "Dettagli dell'oliveto"
     },
     "sources": {
       "title": "Fonti dei dati",
       "oleachron": "Scheda Oleachron",
-      "fieldRecord": "Scheda del campo",
+      "fieldRecord": "Dettagli dell'oliveto",
       "regional": "Stima regionale — non un campione di questo oliveto",
-      "introApi": "Terreno, suolo e verdore arrivano da mappe pubbliche sul confine disegnato. Alberi e irrigazione dalla scheda dell’oliveto."
+      "introApi": "Terreno, suolo e verdore arrivano da mappe pubbliche sul confine disegnato. Alberi e irrigazione dai dettagli dell'oliveto."
     },
     "checklist": {
       "name": "Nome del campo",

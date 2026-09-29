@@ -4,7 +4,7 @@ import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationCont
 
 const OwnerActivationHost: React.FC = () => {
   const activation = useOwnerActivationOptional();
-  if (!activation?.visible) return null;
+  if (!activation?.visible || activation.guideBeat) return null;
   return <ActivationChecklist />;
 };
 

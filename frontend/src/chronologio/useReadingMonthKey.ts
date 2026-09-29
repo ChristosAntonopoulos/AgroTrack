@@ -12,7 +12,11 @@ export const useReadingMonthKey = (resetKey: string): string | null => {
     let frame = 0;
     const sync = () => {
       const bar = document.querySelector('.chrono-now-reading');
-      const edge = (bar?.getBoundingClientRect().bottom ?? 96) + 2;
+      const sticky = document.querySelector('.chronologio-sticky');
+      const edge =
+        (bar?.getBoundingClientRect().bottom ??
+          sticky?.getBoundingClientRect().bottom ??
+          96) + 8;
       let key: string | null = null;
       document.querySelectorAll<HTMLElement>('[data-month-key]').forEach((node) => {
         if (node.getBoundingClientRect().top <= edge) {

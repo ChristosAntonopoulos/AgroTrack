@@ -97,12 +97,31 @@
     "groveFallback": "il tuo oliveto",
     "title": "“{{grove}}” è pronto per la sua storia",
     "titleNamed": "{{name}}, “{{grove}}” è pronto per la sua storia",
-    "body": "La forma è salvata. Una breve nota è la prima pagina — puoi inviarla così com'è.",
+    "body": "La forma è salvata. Poi vedi l'oliveto e quindi la Cronologia per la prima nota.",
     "pointWeather": "Il meteo appare sotto la mappa",
     "pointSatellite": "I livelli satellitari sono pronti a cielo sereno",
     "pointMap": "I tuoi confini definiscono cosa osserva Oleachron",
     "openMap": "Continua al mio oliveto",
     "openGrove": "Apri Cronologia"
+  },
+  "coach": {
+    "kicker": "Tocca a te",
+    "fieldsCard": {
+      "title": "Apri i campi",
+      "body": "Tocca Campi. È lì che inizia un oliveto."
+    },
+    "createField": {
+      "title": "Crea il tuo oliveto",
+      "body": "Tocca + e dagli un nome che riconoscerai."
+    },
+    "homeButton": {
+      "title": "Questo ti riporta a casa",
+      "body": "Il simbolo apre il launcher. Toccalo — poi è il turno della Cronologia."
+    },
+    "historyCard": {
+      "title": "Apri la Cronologia",
+      "body": "Tocca Cronologia e lascia la prima nota per questo oliveto."
+    }
   },
   "settings": {
     "showTips": "Mostra suggerimenti setup oliveto"

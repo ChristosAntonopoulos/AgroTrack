@@ -5,24 +5,24 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { formatHeroStock, formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
 import {
-  isHouseholdCommitment,
-  sumCommitmentPack,
+  sumHouseholdPack,
   tinCount,
+  visibleHouseholdCommitments,
 } from '../../myOil/commitmentCopy';
-import { OilSectionHeader } from './OilStockChrome';
-import type { OilStockSummary } from '../../services/oilStockService';
+import type { OilCommitment, OilStockSummary } from '../../services/oilStockService';
 import type { PackLabels } from './types';
 import { createMyOilStyles } from './myOilStyles';
 
 type Props = {
   summary: OilStockSummary;
+  closed?: OilCommitment[];
   packLabels: PackLabels;
   onSetAside: () => void;
   onManageHome: () => void;
 };
 
 /** Physical stock: 16L, 17L, bulk, and home allocation. */
-export function StockTab({ summary, packLabels, onSetAside, onManageHome }: Props) {
+export function StockTab({ summary, closed = [], packLabels, onSetAside, onManageHome }: Props) {
   const { t, i18n } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
@@ -38,18 +38,18 @@ export function StockTab({ summary, packLabels, onSetAside, onManageHome }: Prop
     empty: t('hero.zero'),
   }).replace(' + ', ' · ');
 
-  const homeHeld = sumCommitmentPack(summary.openCommitments.filter(isHouseholdCommitment));
+  const homeHeld = sumHouseholdPack(visibleHouseholdCommitments(summary.openCommitments, closed));
   const hasHome = tinCount(homeHeld) > 0 || homeHeld.bulkLitres > 0.05;
 
   return (
     <View style={{ gap: 12 }}>
-      <View style={styles.panel}>
-        <OilSectionHeader titleKey="stock.title" />
-        <Text style={styles.heroTotal}>
+      <View style={styles.stockHero}>
+        <Text style={styles.stockEyebrow}>{t('stock.title')}</Text>
+        <Text style={styles.stockHeroAmount}>
           {t('hero.approxTotal', { amount: formatOilNumber(available.litres || 0, locale) })}
         </Text>
-        <Text style={[styles.heroPackLine, { marginTop: 2 }]}>{packLine}</Text>
-        <Text style={styles.householdBannerNote}>{t('warehouse.readyNote')}</Text>
+        <Text style={styles.stockHeroPack}>{packLine}</Text>
+        <Text style={styles.stockHeroNote}>{t('warehouse.readyNote')}</Text>
       </View>
 
       <View style={styles.stockGrid}>
@@ -59,7 +59,9 @@ export function StockTab({ summary, packLabels, onSetAside, onManageHome }: Prop
             <Text style={styles.stockCardValue}>{available.tin16}</Text>
             <Text style={styles.stockCardMeta}>{t('stock.available')}</Text>
             {held16 > 0 ? (
-              <Text style={styles.stockCardHeld}>{t('warehouse.heldCount', { count: held16 })}</Text>
+              <View style={styles.stockHeldPill}>
+                <Text style={styles.stockHeldText}>{t('warehouse.heldCount', { count: held16 })}</Text>
+              </View>
             ) : null}
           </View>
         )}
@@ -69,37 +71,48 @@ export function StockTab({ summary, packLabels, onSetAside, onManageHome }: Prop
             <Text style={styles.stockCardValue}>{available.tin17}</Text>
             <Text style={styles.stockCardMeta}>{t('stock.available')}</Text>
             {held17 > 0 ? (
-              <Text style={styles.stockCardHeld}>{t('warehouse.heldCount', { count: held17 })}</Text>
+              <View style={styles.stockHeldPill}>
+                <Text style={styles.stockHeldText}>{t('warehouse.heldCount', { count: held17 })}</Text>
+              </View>
             ) : null}
           </View>
         )}
       </View>
 
       {(physical.bulkLitres > 0.05 || available.bulkLitres > 0.05) && (
-        <View style={styles.panel}>
-          <View style={styles.heroStatusLabel}>
-            <Ionicons name="water-outline" size={14} color={colors.primary} />
-            <Text style={styles.stockCardLabel}>{t('warehouse.packBulk')}</Text>
+        <View style={styles.stockBulk}>
+          <View style={styles.stockBulkIcon}>
+            <Ionicons name="water-outline" size={18} color={colors.accentGold} />
           </View>
-          <Text style={styles.stockCardValue}>{formatOilNumber(available.bulkLitres, locale)} L</Text>
-          <Text style={styles.stockCardMeta}>{t('stock.available')}</Text>
+          <View style={styles.stockBulkCopy}>
+            <Text style={styles.stockCardLabel}>{t('warehouse.packBulk')}</Text>
+            <Text style={styles.stockCardMeta}>{t('stock.available')}</Text>
+          </View>
+          <Text style={styles.stockBulkValue}>{formatOilNumber(available.bulkLitres, locale)} L</Text>
         </View>
       )}
 
-      <View style={styles.panel}>
-        <OilSectionHeader titleKey="household.title" icon="home-outline" />
+      <View style={styles.stockHome}>
+        <View style={styles.stockHomeHead}>
+          <View style={styles.sectionTitle}>
+            <Ionicons name="home-outline" size={15} color={colors.primary} />
+            <Text style={styles.sectionTitleText}>{t('household.title')}</Text>
+          </View>
+          {hasHome ? (
+            <Pressable onPress={onManageHome} hitSlop={8} accessibilityRole="button">
+              <Text style={styles.linkishText}>{t('household.manage')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {hasHome ? (
           <>
             <Text style={styles.householdBannerQty}>{formatOilPack(homeHeld, packLabels)}</Text>
-            <Text style={styles.householdBannerNote}>
+            <Text style={[styles.householdBannerNote, { color: colors.textSecondary }]}>
               {t('household.totalLitres', {
                 amount: formatOilNumber(homeHeld.litres, locale),
                 defaultValue: `${formatOilNumber(homeHeld.litres, locale)} L total`,
               })}
             </Text>
-            <Pressable style={styles.linkish} onPress={onManageHome}>
-              <Text style={styles.linkishText}>{t('household.manage')}</Text>
-            </Pressable>
           </>
         ) : (
           <>

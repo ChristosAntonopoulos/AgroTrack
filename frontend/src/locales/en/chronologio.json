@@ -260,7 +260,14 @@
     "limitedDataHint": "No safe monthly conclusion can be drawn.",
     "untilToday": "So far this month",
     "details": "Details",
-    "openMonth": "Open month",
+    "openMonth": "See the month",
+    "moneyCount_one": "{{count}} expense",
+    "moneyCount_other": "{{count}} expenses",
+    "harvestChapter": "Harvest {{year}}",
+    "harvestCount_one": "{{count}} harvest",
+    "harvestCount_other": "{{count}} harvests",
+    "monthSpan_one": "{{count}} month",
+    "monthSpan_other": "{{count}} months",
     "currentMonth": "Current month",
     "addRecord": "Add a record",
     "noRecords": "There are no records",
@@ -463,7 +470,7 @@
       "wind": "Wind {{kmh}} km/h",
       "windSoon": "Wind up to {{kmh}} km/h",
       "et": "Water the field needed {{mm}} mm",
-      "deficit": "{{mm}} mm water short",
+      "deficit": "Needs about {{mm}} mm of water",
       "windGust": "Wind {{kmh}} · gusts {{gust}} km/h",
       "humidityHigh": "Humidity {{pct}}%",
       "humidityLow": "Dry air {{pct}}%"
@@ -475,7 +482,7 @@
       "heat": "Avoid heavy work in the hottest hours.",
       "rainHeavy": "Postpone spraying and fertilising until the foliage dries.",
       "wind": "Poor conditions for spraying.",
-      "dry": "The grove is under water stress — irrigate if you can.",
+      "dry": "The grove needs water. Irrigate if you can.",
       "fair": "Suitable conditions for inspection and light work."
     }
   },
@@ -506,7 +513,7 @@
       "rain48": "{{mm}} mm in the next 48 hours",
       "rain72": "{{mm}} mm in the next 72 hours",
       "wind": "Wind up to {{kmh}} km/h",
-      "deficit": "{{mm}} mm water short"
+      "deficit": "Needs about {{mm}} mm of water"
     }
   },
   "timeline": {
@@ -641,7 +648,7 @@
     "rainChip": "Rain {{mm}} mm",
     "tempChip": "Temperature {{min}}–{{max}}°C",
     "balanceChip": "Balance {{mm}} mm",
-    "balanceShortDeficit": "{{mm}} mm short",
+    "balanceShortDeficit": "About {{mm}} mm short",
     "balanceShortSurplus": "{{mm}} mm to spare",
     "balanceEven": "Rain was about enough",
     "treesLook": "How the trees looked",

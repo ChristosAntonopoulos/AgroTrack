@@ -64,7 +64,18 @@
     "slope": "Pendenza",
     "satellite": "Satellite",
     "waiting": "In arrivo…",
+    "stayHere": "Resta qui. Non devi toccare nulla.",
+    "retrying": "Qualcosa si è fermato. Riproviamo.",
     "ready": "Pronto",
+    "beats": {
+      "weather0": "Portiamo il meteo…",
+      "weather1": "Pioggia, caldo, vento…",
+      "satellite0": "Guardiamo gli alberi dall’alto…",
+      "satellite1": "Aspettiamo un cielo sereno…",
+      "personalized0": "Misuriamo la superficie…",
+      "personalized1": "Leggiamo la pendenza…",
+      "personalized2": "Guardiamo il suolo…"
+    },
     "failed": "Non ancora caricato",
     "retry": "Riprova",
     "openMapAnyway": "Continua comunque",
@@ -89,16 +100,36 @@
     }
   },
   "welcome": {
-    "kicker": "Pronto",
-    "groveFallback": "tuo oliveto",
-    "title": "La Cronologia di “{{grove}}” può iniziare",
-    "titleNamed": "{{name}}, la Cronologia di “{{grove}}” può iniziare",
-    "body": "Una nota breve è la prima pagina. Puoi inviarla così com’è.",
+    "kicker": "Benvenuto",
+    "groveFallback": "il tuo oliveto",
+    "title": "“{{grove}}” è pronto",
+    "titleNamed": "{{name}}, “{{grove}}” è pronto",
+    "body": "Dai un’occhiata. Tra un momento ti mostro come torni a casa e apri la Cronologia.",
     "pointWeather": "Il suo meteo è già qui",
     "pointSatellite": "Gli alberi si vedono a cielo sereno",
-    "pointMap": "Ogni annotazione resta nella sua storia",
-    "openMap": "Scrivi la prima nota",
-    "openGrove": "Scrivi la prima nota"
+    "pointMap": "Quello che scrivi resta nella sua storia",
+    "openMap": "Andiamo a vederlo",
+    "openGrove": "Andiamo a vederlo"
+  },
+  "coach": {
+    "progress": "{{current}} di {{total}}",
+    "team": "Dal team di Oleachron",
+    "fieldsNav": {
+      "title": "Benvenuto",
+      "body": "In circa un minuto il tuo oliveto è sulla mappa. Tocca Campi nel menu e iniziamo."
+    },
+    "createField": {
+      "title": "Un nome tutto suo",
+      "body": "Tocca il pulsante e scrivi come lo chiami. Puoi cambiarlo quando vuoi."
+    },
+    "homeButton": {
+      "title": "Sai sempre come tornare",
+      "body": "Il logo in alto a sinistra ti riporta a casa. È così che ti muovi in Oleachron."
+    },
+    "historyNav": {
+      "title": "La storia inizia con due parole",
+      "body": "Tocca Cronologia e lascia una nota breve. È la prima pagina dell’oliveto."
+    }
   },
   "settings": {
     "showTips": "Mostra suggerimenti setup oliveto"

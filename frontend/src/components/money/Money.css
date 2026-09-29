@@ -313,34 +313,43 @@
 }
 
 .money-kind-rail {
-  display: flex;
-  flex: 0 1 auto;
-  justify-content: flex-start;
-  gap: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  margin-top: 0.55rem;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--surface-2, var(--money-surface-2));
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.money-kind-rail::-webkit-scrollbar {
+  display: none;
 }
 
 .money-kind-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  min-height: 48px;
-  padding: 0 0.9rem;
-  border: 1px solid var(--border-subtle, var(--money-border));
-  border-radius: 999px;
-  background: var(--surface-1, var(--money-surface-1));
-  color: inherit;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary, var(--money-text-secondary));
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .money-kind-chip.is-selected {
-  font-weight: 700;
-  border-color: var(--olive-border, var(--money-accent));
-  background: var(--olive-soft, var(--money-accent-soft));
+  background: var(--surface-1, var(--money-surface-1));
+  color: var(--text-primary, var(--money-text-primary));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 12%, transparent);
 }
 
 .year-control {
@@ -426,48 +435,78 @@
 
 .money-summary-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
-.result-card,
-.money-summary-card {
-  min-height: 168px;
-  padding: 24px;
+.money-glance {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border-soft, var(--money-border));
+  border-radius: 16px;
+  background: var(--surface-1, var(--money-surface-1));
 }
 
-.result-card .money-kicker,
-.money-summary-card .money-kicker {
-  display: block;
-  font-size: 14px;
-  font-weight: 650;
-  color: var(--money-text-secondary);
+.money-glance-mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 12px;
+  background: var(--surface-2, var(--money-surface-2));
+  color: var(--text-secondary, var(--money-text-secondary));
 }
 
-.result-card strong,
-.money-summary-value {
-  display: block;
-  margin-top: 8px;
-  font-size: clamp(28px, 4vw, 40px);
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
-}
-
-.result-card.is-profit strong {
+.money-glance.is-profit .money-glance-mark,
+.money-glance.is-income .money-glance-mark {
+  background: var(--money-income-soft);
   color: var(--money-income);
 }
 
-.result-card.is-loss strong {
+.money-glance.is-loss .money-glance-mark,
+.money-glance.is-expense .money-glance-mark {
+  background: var(--money-expense-soft);
+  color: var(--money-expense);
+}
+
+.money-glance-copy {
+  min-width: 0;
+}
+
+.money-glance .money-kicker {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--money-text-secondary);
+}
+
+.money-glance strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.money-glance.is-profit strong {
+  color: var(--money-income);
+}
+
+.money-glance.is-loss strong,
+.money-glance.is-expense strong {
   color: var(--money-expense);
 }
 
 .money-state-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  font-size: 16px;
+  margin: 0.2rem 0 0;
+  font-size: 0.92rem;
   font-weight: 650;
 }
 
@@ -827,7 +866,7 @@
 
 .money-ledger-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
@@ -2051,9 +2090,14 @@
 }
 
 @media (max-width: 1100px) {
-  .money-summary-grid,
   .money-analysis-grid,
   .money-oil-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .money-summary-grid {
     grid-template-columns: 1fr;
   }
 }

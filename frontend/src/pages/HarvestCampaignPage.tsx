@@ -1,7 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, BookOpen, Wallet, Check } from 'lucide-react';
+import {
+  Plus,
+  BookOpen,
+  Wallet,
+  Check,
+  CalendarDays,
+  CircleDollarSign,
+  Droplets,
+  Package,
+  Percent,
+  Scale,
+  Users,
+} from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { useHarvestCampaign } from '../context/HarvestCampaignContext';
@@ -22,6 +34,7 @@ import { formatSeasonLabel as seasonName, formatSeasonRange } from '../utils/har
 import { athensCalendarDateKey } from '../utils/athensDate';
 import { formatGroveLitres, formatGroveMassKg } from '../utils/groveTotals';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
+import { resolveFieldColor } from '../utils/fieldColors';
 import { formatFieldArea } from '../utils/fieldGeo';
 import {
   addExpense,
@@ -98,6 +111,7 @@ import {
 } from '../harvestCampaign/HarvestSheets';
 import { HARVEST_ACTION_ICONS } from '../harvestCampaign/harvestActions';
 import { HarvestFlowView } from '../harvestCampaign/components/HarvestFlowView';
+import { HarvestStatStrip } from '../harvestCampaign/components/HarvestStatStrip';
 import {
   HarvestDayActivity,
   type DayActivityEditTarget,
@@ -138,7 +152,6 @@ const HarvestCampaignPage: React.FC = () => {
   const [serverHarvestHint, setServerHarvestHint] = useState(false);
   const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [view, setView] = useState<HarvestModeView>('today');
-  const [showSeason, setShowSeason] = useState(false);
   const [sheet, setSheet] = useState<HarvestSheetKind>(null);
   const [saving, setSaving] = useState(false);
   const [doneBanner, setDoneBanner] = useState(false);
@@ -390,14 +403,13 @@ const HarvestCampaignPage: React.FC = () => {
 
   const selectView = useCallback(
     (next: HarvestModeView) => {
-      const resolved: HarvestModeView = next === 'totals' ? 'today' : next;
-      setView(resolved);
+      setView(next);
       setSearchParams(
         (prev) => {
           const p = new URLSearchParams(prev);
-          if (resolved === 'today') p.delete('view');
-          else p.set('view', resolved);
-          if (resolved !== 'fields') p.delete('grove');
+          if (next === 'today') p.delete('view');
+          else p.set('view', next);
+          if (next !== 'fields') p.delete('grove');
           return p;
         },
         { replace: true }
@@ -426,16 +438,16 @@ const HarvestCampaignPage: React.FC = () => {
   useEffect(() => {
     if (!isLive) return;
     const viewParam = searchParams.get('view');
-    if (viewParam === 'fields' || viewParam === 'log') {
+    if (viewParam === 'fields' || viewParam === 'log' || viewParam === 'totals') {
       setView(viewParam);
       return;
     }
     setView('today');
-    if (viewParam === 'today' || viewParam === 'totals') {
+    if (viewParam === 'today') {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          if (next.get('view') !== 'today' && next.get('view') !== 'totals') return prev;
+          if (next.get('view') !== 'today') return prev;
           next.delete('view');
           return next;
         },
@@ -1263,7 +1275,7 @@ const HarvestCampaignPage: React.FC = () => {
             <section className="hc-live-chrome">
               <div className="hc-mode-toolbar">
               <nav className="hc-mode-nav hc-mode-nav-top" aria-label={t('harvestCampaign.nav.label')}>
-                {(['today', 'fields', 'log'] as const).map((item) => (
+                {(['today', 'fields', 'totals', 'log'] as const).map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -1279,6 +1291,7 @@ const HarvestCampaignPage: React.FC = () => {
                   className={`hc-record-cta${
                     dayClosed || harvestCaps.captureKinds.length === 0 ? ' is-locked' : ''
                   }`}
+                  aria-label={t('harvestCampaign.nav.record')}
                   onClick={() => {
                     if (harvestCaps.captureKinds.length === 0) return;
                     requestAdd();
@@ -1338,39 +1351,50 @@ const HarvestCampaignPage: React.FC = () => {
                     </span>
                   </header>
 
-                  <div className="hc-day-metrics">
-                    <article className="hc-day-metric">
-                      <span>{t('harvestCampaign.actions.sacks')}</span>
-                      <strong>{activeRow.sacks > 0 ? activeRow.sacks : '—'}</strong>
-                      {activeRow.estimatedKg > 0 && activeRow.officialKg <= 0 ? (
-                        <em>
-                          {t('harvestCampaign.approx', {
-                            kg: formatGroveMassKg(activeRow.estimatedKg, locale),
-                          })}
-                        </em>
-                      ) : null}
-                    </article>
-                    <article className="hc-day-metric">
-                      <span>{t('harvestCampaign.actions.people')}</span>
-                      <strong>{activeRow.people > 0 ? activeRow.people : '—'}</strong>
-                    </article>
-                    <article className="hc-day-metric">
-                      <span>{t('harvestCampaign.actions.millShort', { defaultValue: t('harvestCampaign.actions.mill') })}</span>
-                      <strong>
-                        {activeRow.officialKg > 0
-                          ? `${formatGroveMassKg(activeRow.officialKg, locale)} kg`
-                          : '—'}
-                      </strong>
-                    </article>
-                    <article className="hc-day-metric">
-                      <span>{t('harvestCampaign.actions.oil')}</span>
-                      <strong>
-                        {activeRow.oilKg > 0
-                          ? formatGroveLitres(convertOliveOilKgToLitres(activeRow.oilKg), locale)
-                          : '—'}
-                      </strong>
-                    </article>
-                  </div>
+                  <HarvestStatStrip
+                    label={t('harvestCampaign.nav.today')}
+                    items={[
+                      {
+                        id: 'sacks',
+                        icon: Package,
+                        value: activeRow.sacks > 0 ? formatGroveMassKg(activeRow.sacks, locale) : '—',
+                        label: t('harvestCampaign.actions.sacks'),
+                        hint:
+                          activeRow.estimatedKg > 0 && activeRow.officialKg <= 0
+                            ? t('harvestCampaign.approx', {
+                                kg: formatGroveMassKg(activeRow.estimatedKg, locale),
+                              })
+                            : undefined,
+                      },
+                      {
+                        id: 'people',
+                        icon: Users,
+                        value: activeRow.people > 0 ? formatGroveMassKg(activeRow.people, locale) : '—',
+                        label: t('harvestCampaign.actions.people'),
+                      },
+                      {
+                        id: 'mill',
+                        icon: Scale,
+                        value:
+                          activeRow.officialKg > 0
+                            ? formatGroveMassKg(activeRow.officialKg, locale)
+                            : '—',
+                        label: t('harvestCampaign.flow.unitKg'),
+                      },
+                      {
+                        id: 'oil',
+                        icon: Droplets,
+                        value:
+                          activeRow.oilKg > 0
+                            ? formatGroveMassKg(
+                                Math.round(convertOliveOilKgToLitres(activeRow.oilKg)),
+                                locale
+                              )
+                            : '—',
+                        label: t('harvestCampaign.flow.unitOilLitres'),
+                      },
+                    ]}
+                  />
 
                   {campaign.fieldOrder.length > 0 ? (
                     <p className="hc-day-fields">
@@ -1482,13 +1506,6 @@ const HarvestCampaignPage: React.FC = () => {
                   </section>
                 )}
 
-                <button
-                  type="button"
-                  className="hc-text-btn"
-                  onClick={() => setShowSeason((open) => !open)}
-                >
-                  {t('harvestCampaign.nav.totals')}
-                </button>
                 {harvestCaps.canPause || harvestCaps.canCompleteSeason ? (
                   <div className="hc-hero-actions hc-totals-actions">
                     {harvestCaps.canPause ? (
@@ -1544,125 +1561,161 @@ const HarvestCampaignPage: React.FC = () => {
               </section>
             ) : null}
 
-            {view === 'today' && showSeason ? (
-              <section className="hc-live-home">
+            {view === 'totals' ? (
+              <section className="hc-live-home hc-season">
                 <header className="hc-panel-head">
                   <p className="hc-kicker">{t('harvestCampaign.nav.totals')}</p>
-                  <h1 className="hc-page-title">
-                    {totals.officialKg > 0
-                      ? t('harvestCampaign.dashboard.official', {
-                          kg: formatGroveMassKg(totals.officialKg, locale),
-                        })
-                      : t('harvestCampaign.dashboard.seasonTitle')}
-                  </h1>
+                  <h1 className="hc-page-title">{t('harvestCampaign.dashboard.seasonTitle')}</h1>
                   <p className="hc-help">{t('harvestCampaign.dashboard.seasonLead')}</p>
                 </header>
-                <div className="hc-stat-grid hc-stat-grid-filled">
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.actions.sacks')}</span>
-                    <strong>
-                      {campaign.sacks.reduce((sum, row) => sum + row.sacks, 0) > 0
-                        ? t('harvestCampaign.dashboard.sacks', {
-                            count: campaign.sacks.reduce((sum, row) => sum + row.sacks, 0),
-                          })
-                        : '—'}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.actions.mill')}</span>
-                    <strong>
-                      {totals.officialKg > 0
-                        ? `${formatGroveMassKg(totals.officialKg, locale)} kg`
-                        : '—'}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.actions.oil')}</span>
-                    <strong>
-                      {totals.oilKg > 0
-                        ? formatGroveLitres(convertOliveOilKgToLitres(totals.oilKg), locale)
-                        : '—'}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.dashboard.yieldLabel')}</span>
-                    <strong>
-                      {totals.extractionYield != null
-                        ? t('harvestCampaign.dashboard.yield', {
-                            yield: formatHarvestYieldPercent(totals.extractionYield, locale),
-                          })
-                        : '—'}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.nav.today')}</span>
-                    <strong>
-                      {t('harvestCampaign.dashboard.days', { count: totals.harvestDays || days })}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.actions.people')}</span>
-                    <strong>
-                      {totals.personDays > 0
-                        ? t('harvestCampaign.dashboard.personDays', { count: totals.personDays })
-                        : '—'}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.actions.expense')}</span>
-                    <strong>
-                      {totals.expenseEur > 0
-                        ? t('harvestCampaign.dashboard.expense', { amount: totals.expenseEur })
-                        : '—'}
-                    </strong>
-                  </article>
-                  <article className="hc-stat-card">
-                    <span>{t('harvestCampaign.dashboard.costPerKgLabel')}</span>
-                    <strong>
-                      {totals.officialKg > 0 && totals.expenseEur > 0
-                        ? t('harvestCampaign.dashboard.costPerKg', {
-                            amount: (totals.expenseEur / totals.officialKg).toFixed(2),
-                          })
-                        : '—'}
-                    </strong>
-                  </article>
+                <div className="hc-season-strips">
+                  <HarvestStatStrip
+                    label={t('harvestCampaign.nav.totals')}
+                    items={[
+                      {
+                        id: 'sacks',
+                        icon: Package,
+                        value:
+                          campaign.sacks.reduce((sum, row) => sum + row.sacks, 0) > 0
+                            ? formatGroveMassKg(
+                                campaign.sacks.reduce((sum, row) => sum + row.sacks, 0),
+                                locale
+                              )
+                            : '—',
+                        label: t('harvestCampaign.actions.sacks'),
+                      },
+                      {
+                        id: 'mill',
+                        icon: Scale,
+                        value:
+                          totals.officialKg > 0 ? formatGroveMassKg(totals.officialKg, locale) : '—',
+                        label: t('harvestCampaign.flow.unitKg'),
+                      },
+                      {
+                        id: 'oil',
+                        icon: Droplets,
+                        value:
+                          totals.oilKg > 0
+                            ? formatGroveMassKg(
+                                Math.round(convertOliveOilKgToLitres(totals.oilKg)),
+                                locale
+                              )
+                            : '—',
+                        label: t('harvestCampaign.flow.unitOilLitres'),
+                      },
+                      {
+                        id: 'yield',
+                        icon: Percent,
+                        value:
+                          totals.extractionYield != null
+                            ? `${formatHarvestYieldPercent(totals.extractionYield, locale)}%`
+                            : '—',
+                        label: t('harvestCampaign.dashboard.yieldLabel'),
+                      },
+                    ]}
+                  />
+                  <HarvestStatStrip
+                    label={t('harvestCampaign.dashboard.seasonLead')}
+                    items={[
+                      {
+                        id: 'days',
+                        icon: CalendarDays,
+                        value: formatGroveMassKg(totals.harvestDays || days, locale),
+                        label: t('harvestCampaign.flow.days'),
+                      },
+                      {
+                        id: 'people',
+                        icon: Users,
+                        value:
+                          totals.personDays > 0 ? formatGroveMassKg(totals.personDays, locale) : '—',
+                        label: t('harvestCampaign.complete.personDaysLabel'),
+                      },
+                      {
+                        id: 'expense',
+                        icon: Wallet,
+                        value:
+                          totals.expenseEur > 0
+                            ? `${formatGroveMassKg(totals.expenseEur, locale)} €`
+                            : '—',
+                        label: t('harvestCampaign.actions.expense'),
+                      },
+                      {
+                        id: 'cost',
+                        icon: CircleDollarSign,
+                        value:
+                          totals.officialKg > 0 && totals.expenseEur > 0
+                            ? `${(totals.expenseEur / totals.officialKg).toLocaleString(locale, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} €`
+                            : '—',
+                        label: t('harvestCampaign.dashboard.costPerKgLabel'),
+                      },
+                    ]}
+                  />
                 </div>
                 {fieldRows.length > 0 ? (
-                  <div className="hc-field-summary-table" role="table" aria-label={t('harvestCampaign.nav.fields')}>
-                    <div className="hc-field-summary-row hc-field-summary-head" role="row">
-                      <span role="columnheader">{t('harvestCampaign.nav.fields')}</span>
-                      <span role="columnheader">{t('harvestCampaign.actions.sacks')}</span>
-                      <span role="columnheader">{t('harvestCampaign.actions.mill')}</span>
-                      <span role="columnheader">{t('harvestCampaign.actions.oil')}</span>
-                    </div>
-                    {fieldRows.map((row) => (
-                      <div key={row.fieldId} className="hc-field-summary-row" role="row">
-                        <span role="cell">{labelOf(row.fieldId)}</span>
-                        <span role="cell">{row.sacks || '—'}</span>
-                        <span role="cell">
-                          {row.officialKg > 0
-                            ? `${formatGroveMassKg(row.officialKg, locale)} kg`
-                            : '—'}
-                        </span>
-                        <span role="cell">
-                          {row.oilKg > 0
-                            ? formatGroveLitres(convertOliveOilKgToLitres(row.oilKg), locale)
-                            : '—'}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="hc-grove-board">
+                    <h2>{t('harvestCampaign.flow.fields')}</h2>
+                    <ul>
+                      {fieldRows.map((row) => {
+                        const field = sheetFields.find((item) => item.id === row.fieldId);
+                        const color = resolveFieldColor(field?.color, row.fieldId);
+                        const rowLitres =
+                          row.oilKg > 0
+                            ? formatGroveMassKg(
+                                Math.round(convertOliveOilKgToLitres(row.oilKg)),
+                                locale
+                              )
+                            : null;
+                        return (
+                          <li key={row.fieldId} style={{ ['--hc-grove' as string]: color }}>
+                            <header>
+                              <i aria-hidden />
+                              <strong>{labelOf(row.fieldId)}</strong>
+                            </header>
+                            <dl>
+                              <div>
+                                <dt>{t('harvestCampaign.actions.sacks')}</dt>
+                                <dd>{row.sacks > 0 ? formatGroveMassKg(row.sacks, locale) : '—'}</dd>
+                              </div>
+                              <div>
+                                <dt>{t('harvestCampaign.flow.unitKg')}</dt>
+                                <dd>
+                                  {row.officialKg > 0
+                                    ? formatGroveMassKg(row.officialKg, locale)
+                                    : '—'}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt>{t('harvestCampaign.flow.unitOilLitres')}</dt>
+                                <dd>{rowLitres ?? '—'}</dd>
+                              </div>
+                            </dl>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 ) : null}
                 {totals.unweighedSacks > 0 || totals.millKgWithoutOil > 0 ? (
                   <div className="hc-pending-card">
                     <h2>{t('harvestCampaign.dashboard.needs')}</h2>
                     {totals.unweighedSacks > 0 ? (
-                      <button type="button" className="hc-pending-link" onClick={() => requestAdd({ preferredKind: 'mill', section: 'totals' })}>
+                      <button
+                        type="button"
+                        className="hc-pending-link"
+                        onClick={() => requestAdd({ preferredKind: 'mill', section: 'totals' })}
+                      >
                         {t('harvestCampaign.dashboard.unweighed', { count: totals.unweighedSacks })}
                       </button>
                     ) : null}
                     {totals.millKgWithoutOil > 0 ? (
-                      <button type="button" className="hc-pending-link" onClick={() => requestAdd({ preferredKind: 'oil', section: 'totals' })}>
+                      <button
+                        type="button"
+                        className="hc-pending-link"
+                        onClick={() => requestAdd({ preferredKind: 'oil', section: 'totals' })}
+                      >
                         {t('harvestCampaign.dashboard.needOil', {
                           kg: formatGroveMassKg(totals.millKgWithoutOil, locale),
                         })}

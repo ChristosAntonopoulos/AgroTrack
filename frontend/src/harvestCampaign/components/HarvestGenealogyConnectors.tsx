@@ -14,35 +14,26 @@ type Props = {
   fallbackColor?: string;
 };
 
-/**
- * Orthogonal SmoothStep connectors — React Flow / Carbon Traceability style.
- * https://reactflow.dev/examples/edges/custom-edges
- */
-export const smoothStepPath = (
-  sx: number,
-  sy: number,
-  tx: number,
-  ty: number,
-  radius = 10
-): string => {
-  const midY = sy + (ty - sy) / 2;
-  const dx = tx - sx;
-  const r = Math.min(radius, Math.abs(dx) / 2, Math.abs(ty - sy) / 2);
-  if (Math.abs(dx) < 1) {
-    return `M ${sx} ${sy} L ${tx} ${ty}`;
-  }
-  const dir = dx > 0 ? 1 : -1;
-  return [
-    `M ${sx} ${sy}`,
-    `L ${sx} ${midY - r}`,
-    `Q ${sx} ${midY} ${sx + dir * r} ${midY}`,
-    `L ${tx - dir * r} ${midY}`,
-    `Q ${tx} ${midY} ${tx} ${midY + r}`,
-    `L ${tx} ${ty}`,
-  ].join(' ');
+const round = (n: number) => Math.round(n * 10) / 10;
+
+const swayOf = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 33 + seed.charCodeAt(i)) >>> 0;
+  return (hash % 1000) / 500 - 1;
 };
 
-const round = (n: number) => Math.round(n * 10) / 10;
+/** A bowed curve. Each link leans a different way so the paths cross. */
+export const weavePath = (sx: number, sy: number, tx: number, ty: number, sway: number): string => {
+  const dy = Math.max(28, ty - sy);
+  const span = Math.abs(tx - sx);
+  const bow = sway * Math.min(148, 36 + span * 0.58);
+  const kink = sway * Math.min(52, 14 + dy * 0.16);
+  const c1x = sx + bow;
+  const c1y = sy + dy * 0.24 + kink;
+  const c2x = tx - bow * 0.62;
+  const c2y = sy + dy * 0.74 - kink * 0.45;
+  return `M ${round(sx)} ${round(sy)} C ${round(c1x)} ${round(c1y)}, ${round(c2x)} ${round(c2y)}, ${round(tx)} ${round(ty)}`;
+};
 
 const sameSize = (a: { w: number; h: number }, b: { w: number; h: number }) =>
   a.w === b.w && a.h === b.h;
@@ -127,18 +118,23 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
         const from = anchors.get(link.fromId);
         const to = anchors.get(link.toId);
         if (!from || !to) return null;
-        const lit =
-          !selectedId || (highlight.has(link.fromId) && highlight.has(link.toId));
+        const onPath = highlight.has(link.fromId) && highlight.has(link.toId);
+        const active = Boolean(selectedId) && onPath;
+        const muted = Boolean(selectedId) && !onPath;
         const color = (link.fieldId && fieldColors[link.fieldId]) || fallbackColor;
-        const d = smoothStepPath(from.x, from.yBottom, to.x, to.yTop, 14);
-        const midX = (from.x + to.x) / 2;
+        const seed = `${link.fromId}|${link.toId}|${link.fieldId || ''}`;
+        const sway = swayOf(seed);
+        const lane = sway * 18;
+        const d = weavePath(from.x + lane * 0.35, from.yBottom, to.x - lane * 0.2, to.yTop, sway);
+        const midX = (from.x + to.x) / 2 + sway * 26;
         const midY = from.yBottom + (to.yTop - from.yBottom) / 2;
-        return { link, d, lit, midX, midY, from, to, color };
+        return { link, d, active, muted, midX, midY, from, to, color };
       })
       .filter(Boolean) as Array<{
       link: HarvestFlowLink;
       d: string;
-      lit: boolean;
+      active: boolean;
+      muted: boolean;
       midX: number;
       midY: number;
       from: Anchor;
@@ -172,14 +168,15 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
           </linearGradient>
         ))}
       </defs>
-      {edges.map(({ link, d, lit, from, to, color }) => {
+      {edges.map(({ link, d, active, muted, midX, midY, from, to, color }) => {
         const gid = `hc-wire-${gradId}-${link.fromId}-${link.toId}-${link.fieldId || 'x'}`;
+        const tone = active ? ' is-focus' : muted ? ' is-muted' : ' is-rest';
+        const badge = active && link.label ? link.label : '';
+        const badgeW = badge ? Math.max(badge.length, 2) * 6.4 + 16 : 0;
         return (
           <g
             key={`${link.fromId}->${link.toId}->${link.fieldId || ''}`}
-            className={`hc-gene-wire${lit ? ' is-lit' : ' is-muted'}${
-              selectedId && lit ? ' is-focus' : ''
-            }`}
+            className={`hc-gene-wire${tone}`}
             style={{ color }}
           >
             <path d={d} className="hc-gene-wire-glow" fill="none" stroke={color} />
@@ -198,6 +195,28 @@ export const HarvestGenealogyConnectors: React.FC<Props> = ({
               className="hc-gene-wire-port"
               stroke={color}
             />
+            {badge ? (
+              <g>
+                <rect
+                  x={midX - badgeW / 2}
+                  y={midY - 11}
+                  width={badgeW}
+                  height={22}
+                  rx={11}
+                  className="hc-gene-wire-badge"
+                  stroke={color}
+                />
+                <text
+                  x={midX}
+                  y={midY + 1}
+                  className="hc-gene-wire-badge-text"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {badge}
+                </text>
+              </g>
+            ) : null}
           </g>
         );
       })}

@@ -192,6 +192,10 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   }, [user?.id, user?.role]);
 
   const scopedFieldId = fieldMode ? fieldId : filterFieldId || undefined;
+  const observationFieldId =
+    activation?.awaitingFirstObservation && !activation.completion.firstObservation
+      ? scopedFieldId || activation.primaryField?.id
+      : undefined;
 
   useEffect(() => {
     if (!scopedFieldId) {
@@ -959,11 +963,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         onChange={(z) => setZoomAndPage(z)}
       />
 
-      {scopedFieldId &&
-      activation?.awaitingFirstObservation &&
-      !activation.completion.firstObservation ? (
+      {observationFieldId ? (
         <View style={{ paddingHorizontal: spacing.base }}>
-          <FirstObservationGuide fieldId={scopedFieldId} />
+          <FirstObservationGuide fieldId={observationFieldId} />
         </View>
       ) : null}
 

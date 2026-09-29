@@ -5,8 +5,9 @@ import { formatHeroStock, formatOilPack } from '../../myOil/formatOilPack';
 import {
   isHouseholdCommitment,
   movementActionKey,
-  sumCommitmentPack,
+  sumHouseholdPack,
   tinCount,
+  visibleHouseholdCommitments,
 } from '../../myOil/commitmentCopy';
 import type { OilCommitment, OilStockSummary, StockMovement } from '../../services/oilStockService';
 
@@ -18,6 +19,7 @@ type PackLabels = {
 
 type Props = {
   summary: OilStockSummary;
+  closed?: OilCommitment[];
   waiting: OilCommitment[];
   latestMove?: StockMovement | null;
   packLabels: PackLabels;
@@ -26,6 +28,7 @@ type Props = {
 
 export function OilStockActivityBar({
   summary,
+  closed = [],
   waiting,
   latestMove,
   packLabels,
@@ -34,7 +37,7 @@ export function OilStockActivityBar({
   const { t, i18n } = useTranslation('myOil');
   const locale = i18n.language;
   const available = summary.available;
-  const homeHeld = sumCommitmentPack(summary.openCommitments.filter(isHouseholdCommitment));
+  const homeHeld = sumHouseholdPack(visibleHouseholdCommitments(summary.openCommitments, closed));
   const thirdParty = waiting.filter((c) => !isHouseholdCommitment(c));
   const held = thirdParty.filter((c) => c.derivedStatus === 'reserved').length;
   const pending = thirdParty.filter((c) => c.derivedStatus === 'pending_delivery').length;

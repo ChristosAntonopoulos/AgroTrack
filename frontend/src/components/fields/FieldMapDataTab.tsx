@@ -15,7 +15,14 @@ const FieldMapDataTab: React.FC<Props> = ({ field, weather }) => (
   <section className="field-map-workspace">
     <FieldDetailMap field={field} variant="full" weather={weather} />
     {weather ? (
-      <GroveWeatherCard fieldWeather={weather} fieldName={field.name} embedded compact />
+      <GroveWeatherCard
+        fieldWeather={weather}
+        fieldName={field.name}
+        fieldId={field.id}
+        fieldColor={field.color}
+        embedded
+        compact
+      />
     ) : null}
     <FieldWeatherVegetationCharts fieldId={field.id} compact />
   </section>

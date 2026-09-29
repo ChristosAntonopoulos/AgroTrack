@@ -30,6 +30,7 @@ import { UNASSIGNED_FIELD_QUERY, overlayUnassignedSummary } from '../finance/bui
 import { formatOfficialAmount, isForbiddenError, perAreaForDisplay } from '../finance/format';
 import MoneyPageHeader from '../components/money/MoneyPageHeader';
 import MoneyContextBar from '../components/money/MoneyContextBar';
+import MoneyKindRail from '../components/money/MoneyKindRail';
 import MoneySummaryGrid from '../components/money/MoneySummaryGrid';
 import FinancialDataTrustStrip from '../components/money/FinancialDataTrustStrip';
 import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
@@ -403,10 +404,7 @@ const MoneyPage: React.FC = () => {
         <MoneyContextBar
           year={year}
           yearRangeLabel={agriculturalYearRangeLabel(year, i18n.language)}
-          kind={kind}
-          hideIncome={summaryForbidden}
           onYearChange={(next) => patch({ year: String(next), month: null })}
-          onKindChange={(value) => patch({ kind: value === 'all' ? null : value })}
         />
 
         {summaryForbidden ? (
@@ -545,6 +543,13 @@ const MoneyPage: React.FC = () => {
             category={category}
             month={month}
             monthLabel={month ? harvestMonthTitle(year, month, i18n.language) : undefined}
+            filters={
+              <MoneyKindRail
+                kind={kind}
+                hideIncome={summaryForbidden}
+                onKindChange={(value) => patch({ kind: value === 'all' ? null : value })}
+              />
+            }
             onClearFilters={() => patch({ category: null, month: null, task: null, harvest: null })}
             onOpen={(id) => patch({ tx: id })}
             onLoadMore={() => void loadOlder()}

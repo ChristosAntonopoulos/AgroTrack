@@ -10,19 +10,29 @@ import {
   sumCommitmentPack,
   tinCount,
 } from '../../myOil/commitmentCopy';
+import { commitmentFieldLabel } from '../../myOil/fieldPools';
 import { OilSectionHeader } from './OilStockChrome';
-import type { OilCommitment, OilPack, OilStockSummary } from '../../services/oilStockService';
+import type { OilCommitment, OilLot, OilPack, OilStockSummary } from '../../services/oilStockService';
 import type { PackLabels } from './types';
 import { createMyOilStyles } from './myOilStyles';
 
 type PendingProps = {
   waiting: OilCommitment[];
+  lots?: OilLot[];
+  fieldNames?: Record<string, string>;
   packLabels: PackLabels;
   onOpen: () => void;
   formatDate: (iso: string) => string;
 };
 
-export function OilPendingSection({ waiting, packLabels, onOpen, formatDate }: PendingProps) {
+export function OilPendingSection({
+  waiting,
+  lots = [],
+  fieldNames = {},
+  packLabels,
+  onOpen,
+  formatDate,
+}: PendingProps) {
   const { t } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
@@ -39,6 +49,10 @@ export function OilPendingSection({ waiting, packLabels, onOpen, formatDate }: P
     return t(`story.${key}`);
   };
 
+  const place = first
+    ? commitmentFieldLabel(first.allocations, lots, fieldNames, t('lots.noField'))
+    : null;
+
   return (
     <View style={[styles.panel, first ? styles.panelAction : styles.panelCalm]}>
       <OilSectionHeader titleKey="needsNow.title" />
@@ -54,6 +68,11 @@ export function OilPendingSection({ waiting, packLabels, onOpen, formatDate }: P
               {(first.counterpartyName || '').trim() ||
                 t('commitments.unnamedHold', { defaultValue: t('commitments.unnamed') })}
             </Text>
+            {place ? (
+              <Text style={styles.waitingStory} numberOfLines={1}>
+                {place}
+              </Text>
+            ) : null}
             <Text style={styles.waitingPack}>{formatOilPack(first.remaining, packLabels)}</Text>
             <Text style={styles.waitingStory} numberOfLines={1}>
               {storyFor(first)}

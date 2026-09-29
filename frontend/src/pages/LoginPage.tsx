@@ -28,7 +28,9 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const [searchParams] = useSearchParams();
   const passwordReset = searchParams.get('reset') === '1';
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(
+    () => intentFromSearch(searchParams).email || readInviteIntent()?.email || ''
+  );
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
@@ -44,7 +46,8 @@ const LoginPage: React.FC = () => {
   const registerHref = authPathWithIntent('/register', intent);
 
   useEffect(() => {
-    rememberInviteIntent(intentFromSearch(searchParams));
+    const next = rememberInviteIntent(intentFromSearch(searchParams));
+    if (next.email) setEmail((current) => current || next.email || '');
   }, [searchParams]);
 
   const navigateAfterLogin = async (role: string) => {
@@ -200,6 +203,9 @@ const LoginPage: React.FC = () => {
               aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
             />
           </div>
+          {intent.email ? (
+            <p className="login-invite-hint">{t('auth:login.inviteEmailHint')}</p>
+          ) : null}
           {fieldErrors.email ? (
             <p id="login-email-error" className="login-field-error" role="alert">
               {fieldErrors.email}

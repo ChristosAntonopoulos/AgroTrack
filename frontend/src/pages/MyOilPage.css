@@ -132,6 +132,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+.my-oil-tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 -4px;
+  padding: 0.35rem 4px;
+  background: color-mix(in srgb, var(--bg-page) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.my-oil-tabbar .my-oil-tabs {
+  position: static;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0.1rem 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.my-oil-hold-cta {
+  flex: 0 0 auto;
+}
+
 .my-oil-tabs {
   position: sticky;
   top: 0;
@@ -215,30 +242,26 @@
   margin: 0;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--my-oil-text-muted);
-}
-
-.my-oil-hero__qty {
-  margin: 0.35rem 0 0;
-  font-size: clamp(1.55rem, 3.6vw, 2.15rem);
-  font-weight: 750;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-.my-oil-hero__approx {
-  margin: 0.4rem 0 0;
-  font-size: 14px;
   color: var(--my-oil-text-secondary);
 }
 
-.my-oil-hero__approx--strong {
-  margin-top: 0.15rem;
-  font-weight: 650;
+.my-oil-hero__litres {
+  margin: 0.25rem 0 0;
+  font-size: clamp(2rem, 4.2vw, 2.65rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  color: var(--oleachron-gold, #b48a47);
+}
+
+.my-oil-hero__pack {
+  margin: 0.35rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.35;
   color: var(--my-oil-text);
 }
 
@@ -387,13 +410,8 @@
 }
 
 .my-oil-panel--household {
-  background:
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--olive-soft, #dfe8d4) 28%, transparent),
-      transparent 55%
-    ),
-    var(--my-oil-surface);
+  background: color-mix(in srgb, var(--olive-soft, #e6edde) 62%, var(--my-oil-surface));
+  border-color: color-mix(in srgb, var(--olive-primary) 28%, var(--my-oil-border));
 }
 
 .my-oil-household-bits {
@@ -651,10 +669,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.my-oil-inv-card__value--oil {
+  color: var(--oleachron-gold, #b48a47);
+}
+
 .my-oil-inv-card__meta {
   font-size: 13px;
   color: var(--my-oil-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+.my-oil-inv-card__held {
+  justify-self: start;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--oleachron-gold, #9a7135) 80%, #5c4318);
+  background: color-mix(in srgb, var(--oleachron-gold, #b48a47) 18%, var(--my-oil-surface));
 }
 
 .my-oil-waiting {
@@ -688,6 +721,76 @@
   margin: 0;
   font-size: 13px;
   color: var(--my-oil-text-secondary);
+}
+
+.my-oil-hold {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  background: var(--my-oil-surface);
+  border: 1px solid var(--my-oil-border-soft);
+}
+
+.my-oil-hold__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.my-oil-hold__who {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.my-oil-hold__who strong {
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.my-oil-hold__who span,
+.my-oil-hold__meta {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--my-oil-text-secondary);
+}
+
+.my-oil-hold__top em {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: 0.95rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.my-oil-hold-facts {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.my-oil-hold-facts div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.my-oil-hold-facts dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--my-oil-text-muted, var(--text-muted));
+}
+
+.my-oil-hold-facts dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 680;
 }
 
 .my-oil-waiting__actions {
@@ -951,6 +1054,60 @@
   }
 }
 
+.my-oil-give__picked {
+  margin: 0 0 0.55rem;
+  font-size: 1.05rem;
+  font-weight: 750;
+}
+
+.my-oil-intent {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.my-oil-intent button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--my-oil-border, var(--border-default));
+  background: var(--my-oil-surface, var(--surface-1));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.my-oil-intent button.is-on {
+  border-color: var(--olive-primary, var(--my-oil-accent));
+  background: color-mix(in srgb, var(--olive-soft, #dfe8d4) 45%, var(--surface-1));
+}
+
+.my-oil-intent button span {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.my-oil-intent button strong {
+  font-size: 0.98rem;
+  font-weight: 750;
+}
+
+.my-oil-intent button em {
+  font-style: normal;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--my-oil-text-secondary, var(--text-secondary));
+}
+
+.my-oil-tin__size.is-word strong {
+  font-size: 0.72rem;
+  letter-spacing: 0;
+}
+
 .my-oil-give {
   --my-oil-surface: var(--surface-1);
   --my-oil-surface-2: var(--surface-2);
@@ -1196,6 +1353,157 @@
   border-color: var(--my-oil-accent, var(--olive-primary));
   background: var(--my-oil-accent-soft, var(--olive-soft));
   font-weight: 600;
+}
+
+.my-oil-fill-source {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.my-oil-fill-balance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0 0 0.35rem;
+}
+
+.my-oil-fill-balance div {
+  min-width: 0;
+  padding: 0.7rem 0.55rem 0.65rem;
+  border-radius: 14px;
+  background: var(--my-oil-surface-2, var(--surface-2));
+  border: 1px solid var(--my-oil-border, var(--border-default));
+}
+
+.my-oil-fill-balance .is-on {
+  border-color: color-mix(in srgb, var(--olive-primary) 45%, var(--border-default));
+  background: color-mix(in srgb, var(--olive-soft, #dfe8d4) 55%, var(--surface-1));
+}
+
+.my-oil-fill-balance dt {
+  font-size: 0.72rem;
+  font-weight: 680;
+  letter-spacing: 0.02em;
+  color: var(--my-oil-text-secondary, var(--text-secondary));
+}
+
+.my-oil-fill-balance dd {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-oil-fill-balance dd span {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: var(--my-oil-text-muted, var(--text-muted));
+}
+
+.my-oil-tin-grid {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.my-oil-tin {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 16px;
+  border: 1px solid var(--my-oil-border, var(--border-default));
+  background: var(--my-oil-surface, var(--surface-1));
+}
+
+.my-oil-tin.is-on {
+  border-color: color-mix(in srgb, var(--olive-primary) 50%, var(--border-default));
+  background: color-mix(in srgb, var(--olive-soft, #dfe8d4) 35%, var(--surface-1));
+}
+
+.my-oil-tin__size {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 12px;
+  background: var(--my-oil-surface-2, var(--surface-2));
+}
+
+.my-oil-tin.is-on .my-oil-tin__size {
+  background: var(--surface-1, #fff);
+}
+
+.my-oil-tin__size strong {
+  font-size: 1.15rem;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-oil-tin__size span {
+  margin-top: 0.12rem;
+  font-size: 0.65rem;
+  font-weight: 680;
+  color: var(--my-oil-text-muted, var(--text-muted));
+}
+
+.my-oil-tin__copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.my-oil-tin__copy span {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.my-oil-tin__copy em {
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--my-oil-text-secondary, var(--text-secondary));
+  font-variant-numeric: tabular-nums;
+}
+
+.my-oil-tin__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.my-oil-tin__controls button {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--my-oil-border, var(--border-default));
+  background: var(--my-oil-surface, var(--surface-1));
+  color: var(--my-oil-text, var(--text-primary));
+  cursor: pointer;
+}
+
+.my-oil-tin__controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.my-oil-tin__controls strong {
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
 }
 
 .my-oil-stepper {

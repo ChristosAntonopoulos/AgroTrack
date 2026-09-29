@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,6 +21,8 @@ import { isActiveFieldTask } from '../services/fieldWorkService';
 import { radii, spacing, typography } from '../theme';
 import { athensCalendarDateKey } from '../utils/athensDate';
 import { isTaskDueToday, isTaskOverdue } from '../utils/taskListUtils';
+import GuideTarget from '../components/onboarding/GuideTarget';
+import type { GuideTargetId } from '../onboarding/steps';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -34,7 +36,7 @@ type ModuleId =
   | 'photos'
   | 'partners';
 
-type CardTone = 'neutral' | 'active' | 'attention';
+type StatusKind = 'none' | 'value' | 'success' | 'idle' | 'neutral' | 'attention' | 'oil' | 'production';
 
 type CardModel = {
   id: ModuleId;
@@ -43,14 +45,38 @@ type CardModel = {
   title: string;
   helper: string;
   status: string;
-  tone: CardTone;
-  badge?: string;
+  statusKind: StatusKind;
+  oilLead?: string;
+  oilRest?: string;
   onPress: () => void;
 };
 
+const GOLD_MODULES = new Set<ModuleId>(['harvest', 'myOil']);
+
+const cardShadow: ViewStyle = {
+  shadowColor: '#273625',
+  shadowOffset: { width: 0, height: 5 },
+  shadowOpacity: 0.055,
+  shadowRadius: 18,
+  elevation: 1,
+};
+
+const groupShadow: ViewStyle = {
+  shadowColor: '#273625',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.04,
+  shadowRadius: 8,
+  elevation: 1,
+};
+
+const formatCount = (value: number, language: string) =>
+  new Intl.NumberFormat(language.startsWith('el') ? 'el-GR' : 'en-US', {
+    maximumFractionDigits: 0,
+  }).format(Math.round(value));
+
 const LauncherScreen: React.FC = () => {
-  const { t } = useTranslation('nav');
-  const { colors } = useTheme();
+  const { t, i18n } = useTranslation('nav');
+  const { colors, isDark, fontScaleMultiplier: scale } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<Nav>();
   const harvest = useHarvestCampaignOptional();
@@ -136,7 +162,7 @@ const LauncherScreen: React.FC = () => {
             title: t('chronologio'),
             helper: t('launcher.helpers.chronologio'),
             status: '',
-            tone: 'neutral',
+            statusKind: 'none',
             onPress: () => navigation.navigate('Main', { screen: 'ChronologioTab' }),
           }
         : null
@@ -155,7 +181,7 @@ const LauncherScreen: React.FC = () => {
                 : fieldCount === 0
                   ? t('launcher.status.fieldsEmpty')
                   : t('launcher.fields', { count: fieldCount }),
-            tone: 'neutral',
+            statusKind: fieldCount == null ? 'none' : 'value',
             onPress: () =>
               navigation.navigate('Main', { screen: 'Fields', params: { screen: 'FieldsHome' } }),
           }
@@ -178,7 +204,13 @@ const LauncherScreen: React.FC = () => {
                   : overdue > 0
                     ? t('launcher.status.tasksOverdue', { count: overdue })
                     : t('launcher.status.tasksPending', { count: openTasks.length }),
-            tone: tasksNeedAttention ? 'attention' : 'neutral',
+            statusKind: loading
+              ? 'none'
+              : openTasks.length === 0
+                ? 'success'
+                : tasksNeedAttention
+                  ? 'attention'
+                  : 'value',
             onPress: () => navigation.navigate('Main', { screen: 'Tasks' }),
           }
         : null
@@ -194,10 +226,9 @@ const LauncherScreen: React.FC = () => {
             status: harvest?.isLive
               ? sacksToday > 0
                 ? t('launcher.status.sacks', { count: sacksToday })
-                : ' '
+                : t('launcher.status.inProgress')
               : t('launcher.status.harvestIdle'),
-            badge: harvest?.isLive ? t('launcher.status.inProgress') : undefined,
-            tone: harvest?.isLive ? 'active' : 'neutral',
+            statusKind: harvest?.isLive ? 'production' : 'idle',
             onPress: () => openHarvestCampaign(navigation),
           }
         : null
@@ -211,14 +242,19 @@ const LauncherScreen: React.FC = () => {
             title: t('myOil'),
             helper: t('launcher.helpers.myOil'),
             status:
-              oilLitres == null
-                ? ' '
-                : oilLitres <= 0 && oilTins <= 0
-                  ? t('launcher.status.oilEmpty')
-                  : oilTins > 0
-                    ? t('launcher.status.oilLine', { litres: Math.round(oilLitres), tins: oilTins })
-                    : t('launcher.status.oilLitres', { count: Math.round(oilLitres) }),
-            tone: 'neutral',
+              oilLitres == null || oilLitres > 0 || oilTins > 0
+                ? ''
+                : t('launcher.status.oilEmpty'),
+            statusKind:
+              oilLitres == null ? 'none' : oilLitres > 0 || oilTins > 0 ? 'oil' : 'value',
+            oilLead:
+              oilLitres != null && (oilLitres > 0 || oilTins > 0)
+                ? `${formatCount(oilLitres, i18n.language)} L`
+                : undefined,
+            oilRest:
+              oilLitres != null && oilTins > 0
+                ? ` · ${t('launcher.status.tins', { count: oilTins })}`
+                : undefined,
             onPress: () => navigation.navigate('MyOil'),
           }
         : null
@@ -232,7 +268,7 @@ const LauncherScreen: React.FC = () => {
             title: t('launcher.modules.money'),
             helper: t('launcher.helpers.money'),
             status: t('launcher.status.money'),
-            tone: 'neutral',
+            statusKind: 'neutral',
             onPress: () => navigation.navigate('Money'),
           }
         : null
@@ -251,7 +287,7 @@ const LauncherScreen: React.FC = () => {
                 : photoCount === 0
                   ? t('launcher.status.photosEmpty')
                   : t('launcher.status.photos', { count: photoCount }),
-            tone: 'neutral',
+            statusKind: photoCount == null ? 'none' : 'value',
             onPress: () => navigation.navigate('Photos'),
           }
         : null
@@ -270,7 +306,7 @@ const LauncherScreen: React.FC = () => {
                 : partnerCount === 0
                   ? t('launcher.status.partnersEmpty')
                   : t('launcher.status.partners', { count: partnerCount }),
-            tone: 'neutral',
+            statusKind: partnerCount == null ? 'none' : 'value',
             onPress: () => navigation.navigate('Partners'),
           }
         : null
@@ -294,14 +330,22 @@ const LauncherScreen: React.FC = () => {
     sacksToday,
     tasksNeedAttention,
     t,
+    i18n.language,
   ]);
 
   const subtitleParts: string[] = [];
   if (fieldCount != null && fieldCount > 0) subtitleParts.push(t('launcher.fields', { count: fieldCount }));
   else if (fieldCount === 0) subtitleParts.push(t('launcher.status.fieldsEmpty'));
 
+  const pressedSurface = isDark ? colors.surfaceHover : '#F5F7F0';
+  const oliveInk = isDark ? colors.olive : '#52733F';
+  const iconTile = isDark ? colors.primaryLight : '#E6EDDE';
+  const iconInk = isDark ? colors.primary : '#587747';
+  const goldTile = isDark ? 'rgba(180, 138, 71, 0.2)' : '#F2EBDD';
+  const goldInk = isDark ? colors.accentGold : '#9A7135';
+
   return (
-    <ScreenLayout scroll tabBarInset padded>
+    <ScreenLayout scroll tabBarInset padded canvasOpacity={0.38} canvasSettle>
       <Image
         source={require('../../assets/icon.png')}
         style={styles.appIcon}
@@ -310,14 +354,21 @@ const LauncherScreen: React.FC = () => {
       />
       <View style={styles.identity}>
         <View style={styles.identityCopy}>
-          <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+          <Text
+            style={[styles.name, { color: colors.textPrimary, fontSize: 29 * scale, lineHeight: 34 * scale }]}
+            numberOfLines={1}
+          >
             {displayName}
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+          <Text
+            style={[styles.subtitle, { color: colors.textSecondary, fontSize: 16 * scale, lineHeight: 21 * scale }]}
+            numberOfLines={1}
+          >
             {subtitleParts.join(' · ') || t('launcher.calm')}
           </Text>
         </View>
         <HeaderIconButton
+          paper
           icon="notifications-outline"
           accessibilityLabel={t('inbox')}
           onPress={() => navigation.navigate('Notifications')}
@@ -326,81 +377,131 @@ const LauncherScreen: React.FC = () => {
 
       <View style={styles.grid} accessibilityRole="list">
         {cards.map((card) => {
-          const active = card.tone === 'active';
-          return (
+          const gold = GOLD_MODULES.has(card.id);
+          const showStatus =
+            card.statusKind === 'oil' ||
+            (card.statusKind !== 'none' && card.status.trim().length > 0);
+          const capsule =
+            card.statusKind === 'success'
+              ? { bg: isDark ? colors.successLight : '#E5EDDC', fg: oliveInk, mark: '✓' }
+              : card.statusKind === 'idle'
+                ? { bg: goldTile, fg: goldInk, mark: '○' }
+                : card.statusKind === 'neutral'
+                  ? { bg: isDark ? colors.neutralLight : '#EEF2E7', fg: colors.textSecondary, mark: '—' }
+                  : null;
+          const valueColor =
+            card.statusKind === 'production'
+              ? goldInk
+              : card.statusKind === 'attention'
+                ? isDark
+                  ? colors.warning
+                  : '#8A6230'
+                : colors.textPrimary;
+
+          const coachId: GuideTargetId | null =
+            card.id === 'fields' ? 'fieldsCard' : card.id === 'chronologio' ? 'historyCard' : null;
+          const pressable = (
             <Pressable
-              key={card.id}
               accessibilityRole="button"
-              accessibilityLabel={card.title}
+              accessibilityLabel={[card.title, card.helper, card.oilLead, card.oilRest, card.status]
+                .filter((part) => part && part.trim())
+                .join('. ')}
               onPress={card.onPress}
               style={({ pressed }) => [
-                styles.card,
+                styles.cardShell,
+                coachId ? styles.cardInSlot : null,
+                !isDark && cardShadow,
                 {
-                  backgroundColor: active ? colors.surfaceSelected : colors.surfaceElevated,
-                  borderColor: active ? colors.primary : colors.border,
-                  borderWidth: active ? 1 : StyleSheet.hairlineWidth,
+                  backgroundColor: pressed ? pressedSurface : colors.surfaceElevated,
+                  borderColor: colors.border,
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
-              <Ionicons
-                name={card.motif}
-                size={78}
-                color={colors.primary}
-                style={styles.motif}
-              />
-              <View style={[styles.iconWell, { backgroundColor: colors.primaryLight }]}>
-                <Ionicons name={card.icon} size={18} color={colors.primary} />
+              <View pointerEvents="none" style={styles.motifClip}>
+                <Ionicons name={card.motif} size={78} color={oliveInk} style={styles.motif} />
               </View>
-              <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+              <View style={[styles.iconWell, { backgroundColor: gold ? goldTile : iconTile }]}>
+                <Ionicons name={card.icon} size={18} color={gold ? goldInk : iconInk} />
+              </View>
+              <Text
+                style={[styles.cardTitle, { color: colors.textPrimary, fontSize: 18 * scale, lineHeight: 22 * scale }]}
+                numberOfLines={1}
+              >
                 {card.title}
               </Text>
-              <Text style={[styles.helper, { color: colors.textSecondary }]} numberOfLines={1}>
+              <Text
+                style={[styles.helper, { color: colors.textSecondary, fontSize: 13 * scale, lineHeight: 16 * scale }]}
+                numberOfLines={1}
+              >
                 {card.helper}
               </Text>
-              {card.badge ? (
-                <View style={[styles.badge, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
-                  <View style={[styles.badgeDot, { backgroundColor: colors.primary }]} />
-                  <Text style={[styles.badgeText, { color: colors.primary }]}>{card.badge}</Text>
-                </View>
-              ) : null}
-              {card.status.trim() ? (
-                <View style={styles.statusRow}>
-                  {card.tone === 'attention' ? (
-                    <View style={[styles.attentionDot, { backgroundColor: colors.warning }]} />
-                  ) : null}
-                  <Text
-                    style={[styles.status, { color: colors.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    {card.status}
-                  </Text>
+              {showStatus ? (
+                <View style={styles.statusBlock}>
+                  {card.statusKind === 'oil' ? (
+                    <Text numberOfLines={1} style={[styles.status, { fontSize: 15 * scale, lineHeight: 19 * scale }]}>
+                      <Text style={{ color: oliveInk }}>{card.oilLead}</Text>
+                      {card.oilRest ? <Text style={{ color: colors.textPrimary }}>{card.oilRest}</Text> : null}
+                    </Text>
+                  ) : capsule ? (
+                    <View style={[styles.capsule, { backgroundColor: capsule.bg }]}>
+                      <Text
+                        style={[styles.capsuleText, { color: capsule.fg, fontSize: 13 * scale, lineHeight: 16 * scale }]}
+                        numberOfLines={1}
+                      >
+                        {capsule.mark} {card.status}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.status, { color: valueColor, fontSize: 15 * scale, lineHeight: 19 * scale }]}
+                    >
+                      {card.status}
+                    </Text>
+                  )}
                 </View>
               ) : null}
             </Pressable>
           );
+          if (!coachId) return <React.Fragment key={card.id}>{pressable}</React.Fragment>;
+          return (
+            <GuideTarget key={card.id} id={coachId} style={styles.cardSlot}>
+              {pressable}
+            </GuideTarget>
+          );
         })}
       </View>
 
-      <Text style={[styles.sectionLabel, styles.accountLabel, { color: colors.textSecondary }]}>
+      <Text
+        style={[
+          styles.sectionLabel,
+          styles.accountLabel,
+          { color: colors.textSecondary, fontSize: 13 * scale, lineHeight: 18 * scale },
+        ]}
+      >
         {t('launcher.utilities')}
       </Text>
-      <View style={styles.utilities}>
-        <UtilityRow
-          icon="settings-outline"
-          label={t('launcher.settings')}
-          onPress={() => navigation.navigate('Settings')}
-        />
-        <UtilityRow
-          icon="heart-outline"
-          label={t('launcher.feedback')}
-          onPress={() => navigation.navigate('Feedback')}
-        />
-        <UtilityRow
-          icon="help-circle-outline"
-          label={t('launcher.help')}
-          onPress={() => navigation.navigate('Help')}
-        />
+      <View style={[styles.accountShell, !isDark && groupShadow]}>
+        <View style={[styles.accountCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+          <UtilityRow
+            icon="settings-outline"
+            label={t('launcher.settings')}
+            onPress={() => navigation.navigate('Settings')}
+          />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <UtilityRow
+            icon="heart-outline"
+            label={t('launcher.feedback')}
+            onPress={() => navigation.navigate('Feedback')}
+          />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <UtilityRow
+            icon="help-circle-outline"
+            label={t('launcher.help')}
+            onPress={() => navigation.navigate('Help')}
+          />
+        </View>
       </View>
     </ScreenLayout>
   );
@@ -411,16 +512,19 @@ const UtilityRow: React.FC<{ icon: IconName; label: string; onPress: () => void 
   label,
   onPress,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDark, fontScaleMultiplier: scale } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.utility, { borderBottomColor: colors.border }]}
+      style={({ pressed }) => [
+        styles.utility,
+        pressed && { backgroundColor: isDark ? colors.surfaceHover : '#F5F7F0' },
+      ]}
     >
-      <Ionicons name={icon} size={18} color={colors.textSecondary} />
-      <Text style={[styles.utilityLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+      <Ionicons name={icon} size={20} color={isDark ? colors.primary : '#587747'} />
+      <Text style={[styles.utilityLabel, { color: colors.textPrimary, fontSize: 16 * scale }]}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
     </Pressable>
   );
 };
@@ -430,29 +534,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: 18,
   },
   appIcon: {
-    width: 72,
-    height: 72,
+    width: 74,
+    height: 74,
     alignSelf: 'center',
-    marginBottom: spacing.lg,
-    borderRadius: 16,
+    marginBottom: 10,
+    borderRadius: 18,
   },
   identityCopy: { flex: 1, minWidth: 0 },
   name: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   subtitle: {
-    marginTop: 1,
-    fontSize: typography.fontSize.sm,
+    marginTop: 2,
+    fontFamily: typography.fontFamily.regular,
+    fontWeight: '400',
   },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1.1,
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   grid: {
@@ -460,19 +564,32 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  card: {
+  cardSlot: {
     width: '47%',
     flexGrow: 1,
-    borderRadius: 16,
+  },
+  cardInSlot: {
+    width: '100%',
+    flexGrow: 1,
+  },
+  cardShell: {
+    width: '47%',
+    flexGrow: 1,
+    borderRadius: 22,
+    borderWidth: 1,
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
+  },
+  motifClip: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 22,
     overflow: 'hidden',
   },
   motif: {
     position: 'absolute',
     right: -10,
     bottom: -14,
-    opacity: 0.07,
+    opacity: 0.065,
   },
   iconWell: {
     width: 30,
@@ -481,69 +598,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+    zIndex: 1,
   },
   cardTitle: {
+    zIndex: 1,
     fontFamily: typography.fontFamily.bold,
-    fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   helper: {
+    zIndex: 1,
     marginTop: 1,
-    fontSize: 13,
-    lineHeight: 16,
+    fontFamily: typography.fontFamily.regular,
+    fontWeight: '400',
   },
-  statusRow: {
+  statusBlock: {
+    zIndex: 1,
     marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
   status: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: '700',
   },
-  attentionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  badge: {
+  capsule: {
     alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 6,
+    maxWidth: '100%',
+    borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
   },
-  badgeDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  badgeText: {
-    fontSize: 10,
+  capsuleText: {
+    fontFamily: typography.fontFamily.bold,
     fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   accountLabel: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.xs,
+    marginTop: 26,
+    marginBottom: 10,
   },
-  utilities: {},
+  accountShell: {
+    borderRadius: 22,
+  },
+  accountCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: 16,
+  },
   utility: {
-    minHeight: 44,
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   utilityLabel: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.medium,
+    fontWeight: '500',
   },
 });
 

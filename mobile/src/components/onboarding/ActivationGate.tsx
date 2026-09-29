@@ -6,10 +6,12 @@ import type { RootStackParamList } from '../../navigation/types';
 type NavRef = React.RefObject<NavigationContainerRef<RootStackParamList> | null>;
 
 const ALLOWED_WHILE_LOCKED = new Set([
+  'Launcher',
   'FieldForm',
   'FieldMapBoundary',
   'FieldDetail',
   'FieldsHome',
+  'Fields',
   'ChronologioTab',
   'Chronologio',
   'Settings',
@@ -37,7 +39,7 @@ const ActivationGate: React.FC<{ navRef: NavRef }> = ({ navRef }) => {
       const step =
         activation.activeStep || (activation.completion.createGrove ? 'drawBoundary' : 'createGrove');
       if (step === 'createGrove') {
-        nav.navigate('FieldForm', activation.primaryField ? { fieldId: activation.primaryField.id } : {});
+        nav.navigate('Main', { screen: 'Launcher' });
         return;
       }
       if (activation.primaryField) {

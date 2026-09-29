@@ -70,6 +70,8 @@ public class FieldInviteDto
 
 public class UpdateFieldPersonDto
 {
+    /// <summary>Family or Collaborator (stored as Partner). Owner cannot be assigned here.</summary>
+    public string? Role { get; set; }
     public List<string>? Modules { get; set; }
     public string? AccessLevel { get; set; }
 }
@@ -113,6 +115,58 @@ public class FieldAccessSnapshotDto
 /// <summary>
 /// Effective UI capabilities for one user on one field. Server authorization remains authoritative.
 /// </summary>
+/// <summary>
+/// Person-first payload for the people page. One account appears once, with a membership per grove.
+/// </summary>
+public class ManagedPeopleDto
+{
+    public List<PersonAccessDto> People { get; set; } = new();
+    public List<FieldInviteDto> PendingInvites { get; set; } = new();
+    public List<OliveLifecycle.Application.DTOs.Partners.SavedContactDto> Contacts { get; set; } = new();
+    public List<ManageableFieldDto> ManageableFields { get; set; } = new();
+}
+
+public class PersonAccessDto
+{
+    public string UserId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public List<PersonFieldAccessDto> Memberships { get; set; } = new();
+}
+
+public class PersonFieldAccessDto
+{
+    public string FieldId { get; set; } = string.Empty;
+    public string FieldName { get; set; } = string.Empty;
+    /// <summary>Family or Partner. Partner is the collaborator relationship.</summary>
+    public string Relationship { get; set; } = FieldPersonRole.Family.ToString();
+    public string AccessPreset { get; set; } = "view";
+    public List<string> Modules { get; set; } = new();
+    public string Status { get; set; } = "active";
+}
+
+public class ManageableFieldDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string? OwnerDisplayName { get; set; }
+    public string? OwnerEmail { get; set; }
+}
+
+public class CreateMultiFieldInviteDto
+{
+    public List<string> FieldIds { get; set; } = new();
+    /// <summary>Family or Collaborator.</summary>
+    public string Relationship { get; set; } = FieldPersonRole.Family.ToString();
+    /// <summary>view, help (record), or work (record and tasks).</summary>
+    public string AccessPreset { get; set; } = "view";
+    public List<string> Modules { get; set; } = new();
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? DisplayName { get; set; }
+}
+
 public class FieldCapabilitiesDto
 {
     public bool CanViewField { get; set; }

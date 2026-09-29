@@ -19,7 +19,6 @@ import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
 import { isDateOnlyTimestamp } from '../../chronologio/clockLabel';
 import { chronologioWebDestination, isChronologioMergedHarvestDay } from '../../chronologio/entryDestination';
-import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import { waterGapCopy } from '../../utils/weatherReviewDisplay';
 import HarvestDayJourney from './HarvestDayJourney';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
@@ -174,6 +173,24 @@ const ChronologioEntryCard: React.FC<Props> = ({
       ? friendlyFieldLabel(entry.field.name)
       : presented.label
     : presented.label;
+  const monthFact =
+    isPeriodReview && weather && !weatherTile
+      ? [
+          weather.rainfallMm != null
+            ? t('chronologio:weatherReview.rainChip', {
+                mm: weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 }),
+              })
+            : null,
+          weather.temperatureMin != null && weather.temperatureMax != null
+            ? t('chronologio:weatherReview.tempChip', {
+                min: Math.round(weather.temperatureMin),
+                max: Math.round(weather.temperatureMax),
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
 
   const isHarvestDay = isChronologioMergedHarvestDay(entry);
   const hasExtraDetails = Boolean(
@@ -304,14 +321,8 @@ const ChronologioEntryCard: React.FC<Props> = ({
                     <span>{waterGap ? waterGap.label : t('chronologio:weatherReview.waterMissing')}</span>
                   </div>
                 </div>
-              ) : isPeriodReview && weather ? (
-                <WeatherMonthSnapshot
-                  weather={weather}
-                  eventType={entry.eventType}
-                  numberLocale={numberLocale}
-                  locale={i18n.language}
-                  variant="card"
-                />
+              ) : monthFact ? (
+                <p className="chronologio-card-summary">{monthFact}</p>
               ) : (
                 <>
                   {entry.summary ? <p className="chronologio-card-summary">{entry.summary}</p> : null}

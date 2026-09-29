@@ -1,6 +1,6 @@
 {
   "title": "Το λάδι μου",
-  "pageSupport": "Το λάδι στο κελάρι σου.",
+  "pageSupport": "Το λάδι στην αποθήκη σου.",
   "seasonLabel": "Συγκομιδή {{season}}",
   "seasonHint": "",
   "activity": {
@@ -21,13 +21,13 @@
   },
   "tabs": {
     "overview": "Επισκόπηση",
-    "stock": "Απόθεμα",
+    "stock": "Αποθήκη",
     "others": "Κρατήσεις",
-    "lots": "Παρτίδες",
+    "lots": "Χωράφια",
     "movements": "Κινήσεις"
   },
   "hero": {
-    "eyebrow": "Στο κελάρι",
+    "eyebrow": "Αποθήκη",
     "inCellarLine": "",
     "approxTotal": "≈ {{amount}} L",
     "available": "Αποθήκη",
@@ -51,7 +51,7 @@
     "tins_other": "{{count}} τενεκέδες",
     "bulkPlus": "{{amount}} L χύμα",
     "bulkOnly": "{{amount}} L χύμα",
-    "empty": "Κενό κελάρι",
+    "empty": "Άδεια αποθήκη",
     "zero": "0",
     "actionsHint": ""
   },
@@ -65,7 +65,7 @@
     "loss": "Απώλεια"
   },
   "stock": {
-    "title": "Απόθεμα",
+    "title": "Αποθήκη",
     "available": "διαθέσιμα"
   },
   "needsNow": {
@@ -80,7 +80,7 @@
   },
   "warehouse": {
     "title": "Αποθήκη",
-    "readyNote": "Ό,τι μένει ελεύθερο στο κελάρι",
+    "readyNote": "Ό,τι μένει ελεύθερο στην αποθήκη",
     "pack16": "16 L",
     "pack17": "17 L",
     "packBulk": "Χύμα",
@@ -109,12 +109,12 @@
     "ready": "ελεύθερο",
     "heldCount": "{{count}} δεσμευμένα",
     "heldLitres": "{{amount}} L δεσμευμένα",
-    "inCellarCount": "{{count}} στο κελάρι",
-    "inCellarLitres": "{{amount}} L στο κελάρι",
+    "inCellarCount": "{{count}} στην αποθήκη",
+    "inCellarLitres": "{{amount}} L στην αποθήκη",
     "forOthersCount_one": "{{count}} σε κράτηση",
     "forOthersCount_other": "{{count}} σε κράτηση",
     "forOthersLitres": "{{amount}} L σε κράτηση",
-    "meterCellar": "στο κελάρι",
+    "meterCellar": "στην αποθήκη",
     "meterOthers": "κράτηση"
   },
   "forOthersSummary": {
@@ -146,7 +146,7 @@
     "notPaidYet": "Δεν έχει πληρωθεί ακόμα",
     "delivered": "Παραδόθηκε",
     "details": "Λεπτομέρειες",
-    "fromLots": "Από παρτίδες",
+    "fromLots": "Από χωράφια",
     "paidOn": "Πληρώθηκε στις {{date}}",
     "notDeliveredYet": "Δεν έχει παραδοθεί ακόμα",
     "cancelHold": "Ακύρωση κράτησης",
@@ -159,13 +159,14 @@
     "heldForDate": "Κρατημένο για {{date}}",
     "heldForSomeone": "Κρατημένο για {{name}}",
     "heldGeneric": "Κρατημένο",
+    "atHome": "Στο σπίτι",
     "delivered": "Παραδόθηκε"
   },
   "lots": {
-    "title": "Παρτίδες",
+    "title": "Χωράφια",
     "intro": "",
-    "emptyTitle": "Καμία παρτίδα ακόμα",
-    "emptyBody": "Θα εμφανιστούν όταν καταγράψεις λάδι από τη συγκομιδή.",
+    "emptyTitle": "Δεν υπάρχει λάδι ανά χωράφι",
+    "emptyBody": "Θα εμφανιστεί όταν καταγράψεις λάδι από τη συγκομιδή.",
     "emptyCta": "Συγκομιδή",
     "seeLot": "Λεπτομέρειες",
     "fillTins": "Γέμισε τενεκέδες",
@@ -173,9 +174,10 @@
     "fields_other": "{{count}} ελαιώνες",
     "moreFields": "+{{count}} ακόμη",
     "totalLitres": "{{amount}} L",
-    "previewTitle": "Παρτίδες",
-    "seeAll": "Όλες οι παρτίδες →",
-    "tagStored": "Στο κελάρι",
+    "previewTitle": "Χωράφια",
+    "seeAll": "Όλα τα χωράφια →",
+    "noField": "Χωρίς χωράφι",
+    "tagStored": "Στην αποθήκη",
     "tagReady": "Έτοιμο",
     "tagPressed": "Πατήθηκε",
     "detail": {
@@ -184,7 +186,7 @@
       "mill": "Λιοτρίβι",
       "oil": "Λάδι",
       "now": "Τώρα",
-      "gone": "Από αυτή την παρτίδα έχουν φύγει",
+      "gone": "Κρατημένο από αυτό το χωράφι",
       "millKept": "{{amount}} L κράτησε το λιοτρίβι",
       "farmerTook": "{{amount}} L πήρε ο παραγωγός",
       "totalOil": "{{amount}} L συνολικά"
@@ -243,6 +245,7 @@
     "when": "Παράδοση",
     "later": "Αργότερα",
     "now": "Τώρα",
+    "field": "Από ποιο χωράφι;",
     "isSale": "Πώληση;",
     "yes": "Ναι",
     "no": "Όχι",
@@ -254,10 +257,10 @@
   },
   "fill": {
     "title": "Γέμισα τενεκέδες",
-    "sourceSubtitle": "Διάλεξε αν θα συνδεθεί με συγκομιδή",
-    "linkedSubtitle": "Συνδεδεμένο με παρτίδα συγκομιδής",
-    "unlinkedSubtitle": "Από την αποθήκη, χωρίς συγκεκριμένη παρτίδα",
-    "chooseSource": "Από πού;",
+    "sourceSubtitle": "Από ποιο χωράφι;",
+    "linkedSubtitle": "Από αυτό το χωράφι",
+    "unlinkedSubtitle": "Από αυτό το χωράφι",
+    "chooseSource": "Χωράφι",
     "autoTitle": "Χωρίς σύνδεση με συγκομιδή",
     "autoBody": "Παίρνει χύμα αυτόματα από την αποθήκη",
     "fromHarvest": "Από συγκομιδή",
@@ -276,9 +279,9 @@
     "noBulk": "Δεν υπάρχει χύμα για γέμισμα."
   },
   "repack": "Γέμισα τενεκέδες",
-  "repackHint": "Μετακινεί χύμα σε τενεκέδες μέσα στην ίδια παρτίδα.",
+  "repackHint": "Το χύμα του χωραφιού γίνεται τενεκέδες.",
   "adjust": "Διόρθωση / δώρο / σπίτι",
-  "empty": "Δεν έχει καταγραφεί ακόμα λάδι στο κελάρι.",
+  "empty": "Δεν έχει καταγραφεί ακόμα λάδι στην αποθήκη.",
   "emptyHint": "Όταν καταγράψεις λάδι στη συγκομιδή, θα εμφανιστεί εδώ.",
   "loading": "Φόρτωση…",
   "error": "Δεν φορτώθηκε το λάδι. Δοκίμασε ξανά.",
@@ -301,7 +304,8 @@
     "save": "Ενημέρωση"
   },
   "adjustSheet": {
-    "title": "Αλλαγή στο κελάρι",
+    "title": "Αλλαγή στην αποθήκη",
+    "field": "Σε ποιο χωράφι;",
     "kind": "Τι έγινε;",
     "gifted": "Δώρο",
     "home_use": "Για το σπίτι",

@@ -1,11 +1,10 @@
 import { roleHomePath, type AppRole } from '../navigation/navConfig';
 import { getFieldService } from '../services/serviceFactory';
 import { fieldPeopleService } from '../services/fieldPeopleService';
-import { isFieldSetupIncomplete } from './fieldDisplay';
 
 const GROVE_ROLES: AppRole[] = ['FieldOwner', ''];
 
-/** First-time growers land on new field; drafts resume; invited members skip owner onboarding. */
+/** Invited members open the shared grove. Owners start at home and learn the nav. */
 export async function resolvePostAuthPath(
   role: AppRole,
   redirectTo?: string | null
@@ -22,15 +21,9 @@ export async function resolvePostAuthPath(
     }
 
     const fields = await getFieldService().getFields();
-    // Brand-new owner: create the first grove immediately.
-    if (fields.length === 0) return '/fields/new';
-
+    // Brand-new and unfinished groves start at home so the navigation lesson can run.
     const hasLiveGrove = fields.some((field) => field.status === 'Active');
-    if (!hasLiveGrove) {
-      const draft = fields.find((field) => isFieldSetupIncomplete(field.status));
-      if (draft) return `/fields/${draft.id}/edit`;
-      return '/fields/new';
-    }
+    if (!hasLiveGrove) return roleHomePath(role);
   } catch {
     /* keep default home */
   }

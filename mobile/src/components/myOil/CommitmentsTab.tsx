@@ -10,6 +10,7 @@ import {
   deliverButtonKey,
   type CommitmentFilter,
 } from '../../myOil/commitmentCopy';
+import { commitmentFieldLabel } from '../../myOil/fieldPools';
 import type { OilCommitment, OilLot } from '../../services/oilStockService';
 import type { PackLabels } from './types';
 import { createMyOilStyles } from './myOilStyles';
@@ -71,15 +72,8 @@ export function CommitmentsTab({
     return t(`story.${key}`);
   };
 
-  const lotLines = (c: OilCommitment) =>
-    c.allocations
-      .map((a) => {
-        const lot = lots.find((l) => l.id === a.oilLotId);
-        if (!lot) return null;
-        const where = lot.fieldIds.map((id) => fieldNames[id]).filter(Boolean).join(' · ');
-        return `${formatDate(lot.pressedOn)}${where ? ` · ${where}` : ''}`;
-      })
-      .filter(Boolean) as string[];
+  const placeFor = (c: OilCommitment) =>
+    commitmentFieldLabel(c.allocations, lots, fieldNames, t('lots.noField'));
 
   const filters: CommitmentFilter[] = ['all', 'held', 'pending', 'delivered'];
 
@@ -122,13 +116,20 @@ export function CommitmentsTab({
         </View>
       ) : (
         <View style={styles.waiting}>
-          {filtered.map((c) => (
+          {filtered.map((c) => {
+          const place = placeFor(c);
+          return (
             <Pressable key={c.id} style={styles.holdCard} onPress={() => setDetail(c)}>
               <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
                 <Text style={styles.waitingName} numberOfLines={1}>
                   {(c.counterpartyName || '').trim() ||
                     t('commitments.unnamedHold', { defaultValue: t('commitments.unnamed') })}
                 </Text>
+                {place ? (
+                  <Text style={styles.waitingStory} numberOfLines={1}>
+                    {place}
+                  </Text>
+                ) : null}
                 <Text style={styles.waitingPack}>
                   {formatOilPack(
                     c.derivedStatus === 'delivered' ? c.requested : c.remaining,
@@ -151,7 +152,8 @@ export function CommitmentsTab({
                 <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
               )}
             </Pressable>
-          ))}
+          );
+          })}
         </View>
       )}
 
@@ -212,14 +214,10 @@ export function CommitmentsTab({
             ) : (
               <Text style={styles.waitingStory}>{t('commitments.delivered')}</Text>
             )}
-            {lotLines(detail).length > 0 ? (
+            {placeFor(detail) ? (
               <>
                 <Text style={styles.flowStep}>{t('commitments.fromLots')}</Text>
-                {lotLines(detail).map((line) => (
-                  <Text key={line} style={styles.flowListItem}>
-                    · {line}
-                  </Text>
-                ))}
+                <Text style={styles.flowListItem}>{placeFor(detail)}</Text>
               </>
             ) : null}
             {detail.derivedStatus === 'reserved' && !detail.cancelled ? (

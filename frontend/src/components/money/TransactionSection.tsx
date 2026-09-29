@@ -13,6 +13,7 @@ type Props = {
   category: string;
   month: number;
   monthLabel?: string;
+  filters?: React.ReactNode;
   onClearFilters: () => void;
   onOpen: (id: string) => void;
   onLoadMore: () => void;
@@ -27,6 +28,7 @@ const TransactionSection: React.FC<Props> = ({
   category,
   month,
   monthLabel,
+  filters,
   onClearFilters,
   onOpen,
   onLoadMore,
@@ -49,7 +51,10 @@ const TransactionSection: React.FC<Props> = ({
   return (
     <section className="money-ledger">
       <header className="money-ledger-head">
-        <h2>{t('entries')}</h2>
+        <div>
+          <h2>{t('entries')}</h2>
+          {filters}
+        </div>
         {filtered ? (
           <button type="button" className="money-text-link" onClick={onClearFilters}>
             {t('clearFilters')}

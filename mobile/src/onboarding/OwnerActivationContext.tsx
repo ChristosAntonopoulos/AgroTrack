@@ -27,9 +27,19 @@ import { readPersisted, writePersisted } from './persistence';
 import {
   emptyPersisted,
   OWNER_ACTIVATION_STEPS,
+  type GuideTargetId,
+  type NavCoachPhase,
   type OwnerActivationPersisted,
   type OwnerActivationStepId,
 } from './steps';
+
+export type GuideRect = {
+  id: GuideTargetId;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 type NavRef = React.RefObject<NavigationContainerRef<RootStackParamList> | null>;
 
@@ -51,8 +61,14 @@ type OwnerActivationContextValue = {
   spatialStatus: SpatialReadiness;
   spotlightStep: OwnerActivationStepId | null;
   setSpotlightScreen: (screen: 'create' | 'boundary' | 'spatial' | null) => void;
-  /** Soft post-spatial guide: details → first observation → chronologio. */
+  /** Soft post-spatial guide: details → home → History → first observation. */
   awaitingFirstObservation: boolean;
+  /** The control the grower should tap next. Null while a form or a quiet pause owns the screen. */
+  guideBeat: GuideTargetId | null;
+  guideRect: GuideRect | null;
+  reportGuideTarget: (id: GuideTargetId, rect: Omit<GuideRect, 'id'>) => void;
+  /** After spatial welcome: land on field details, then teach home → History. */
+  beginDetailsLesson: () => void;
   refresh: () => Promise<void>;
   skipStep: (step: OwnerActivationStepId) => void;
   dismiss: () => void;
@@ -88,6 +104,12 @@ export const OwnerActivationProvider: React.FC<{
   const [spotlightScreen, setSpotlightScreen] = useState<'create' | 'boundary' | 'spatial' | null>(
     null
   );
+  const [routeName, setRouteName] = useState('');
+  const [routeMode, setRouteMode] = useState('');
+  const [guideRect, setGuideRect] = useState<GuideRect | null>(null);
+  const persistedRef = useRef(persisted);
+  persistedRef.current = persisted;
+  const lingerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasUnlocked = useRef(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshSeq = useRef(0);
@@ -142,6 +164,33 @@ export const OwnerActivationProvider: React.FC<{
   useEffect(() => {
     void refresh();
   }, [refresh, fieldsEpoch]);
+
+  useEffect(() => {
+    let unsub = () => {};
+    let wait: ReturnType<typeof setTimeout> | null = null;
+
+    const attach = () => {
+      const nav = navRef.current;
+      if (!nav) {
+        wait = setTimeout(attach, 200);
+        return;
+      }
+      const sync = () => {
+        const route = nav.getCurrentRoute();
+        setRouteName(route?.name ?? '');
+        const params = route?.params as { mode?: string } | undefined;
+        setRouteMode(typeof params?.mode === 'string' ? params.mode : '');
+      };
+      sync();
+      unsub = nav.addListener('state', sync);
+    };
+
+    attach();
+    return () => {
+      if (wait) clearTimeout(wait);
+      unsub();
+    };
+  }, [navRef, isAuthenticated]);
 
   const primaryField = useMemo(() => pickActivationField(fields, userId), [fields, userId]);
 
@@ -264,6 +313,129 @@ export const OwnerActivationProvider: React.FC<{
     return null;
   }, [visible, activeStep, laterSnoozed, persisted.skippedSteps, spotlightScreen]);
 
+  const guideBeat = useMemo((): GuideTargetId | null => {
+    if (!ready || !eligible || laterSnoozed || persisted.dismissedAt) return null;
+    if (persisted.firstObservationDoneAt) return null;
+
+    if (!completion.createGrove) {
+      if (routeName === 'Launcher') return 'fieldsCard';
+      if (routeName === 'FieldsHome') return 'createField';
+      return null;
+    }
+
+    if (persisted.navCoachPhase === 'home') return 'homeButton';
+    if (persisted.navCoachPhase === 'history' && routeName === 'Launcher') return 'historyCard';
+    return null;
+  }, [
+    ready,
+    eligible,
+    laterSnoozed,
+    persisted.dismissedAt,
+    persisted.firstObservationDoneAt,
+    persisted.navCoachPhase,
+    completion.createGrove,
+    routeName,
+  ]);
+
+  const setNavCoachPhase = useCallback(
+    (phase: NavCoachPhase | null) => {
+      const current = persistedRef.current;
+      if (current.navCoachPhase === phase) return;
+      persist({ ...current, navCoachPhase: phase });
+    },
+    [persist]
+  );
+
+  const beginDetailsLesson = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.firstObservationDoneAt) return;
+    persist({
+      ...current,
+      navCoachPhase: 'linger',
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
+  const arriveAtHistory = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.firstObservationDoneAt) return;
+    persist({
+      ...current,
+      navCoachPhase: null,
+      awaitingFirstObservation: true,
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
+  useEffect(() => {
+    const onDetails = persisted.navCoachPhase === 'linger' && routeName === 'FieldDetail';
+    if (!onDetails) {
+      if (lingerTimer.current) {
+        clearTimeout(lingerTimer.current);
+        lingerTimer.current = null;
+      }
+      return;
+    }
+    if (lingerTimer.current) return;
+    lingerTimer.current = setTimeout(() => {
+      lingerTimer.current = null;
+      setNavCoachPhase('home');
+    }, 5000);
+  }, [persisted.navCoachPhase, routeName, setNavCoachPhase]);
+
+  useEffect(() => {
+    return () => {
+      if (lingerTimer.current) clearTimeout(lingerTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (persisted.navCoachPhase !== 'linger') return;
+    if (routeName === 'Launcher') setNavCoachPhase('history');
+    if (
+      routeName === 'ChronologioTab' ||
+      routeName === 'Chronologio' ||
+      (routeName === 'FieldDetail' && routeMode === 'chronologio')
+    ) {
+      arriveAtHistory();
+    }
+  }, [persisted.navCoachPhase, routeName, routeMode, setNavCoachPhase, arriveAtHistory]);
+
+  useEffect(() => {
+    if (persisted.navCoachPhase !== 'home' || routeName !== 'Launcher') return;
+    setNavCoachPhase('history');
+  }, [persisted.navCoachPhase, routeName, setNavCoachPhase]);
+
+  useEffect(() => {
+    if (persisted.navCoachPhase !== 'history') return;
+    const onHistory =
+      routeName === 'ChronologioTab' ||
+      routeName === 'Chronologio' ||
+      (routeName === 'FieldDetail' && routeMode === 'chronologio');
+    if (!onHistory) return;
+    arriveAtHistory();
+  }, [persisted.navCoachPhase, routeName, routeMode, arriveAtHistory]);
+
+  const reportGuideTarget = useCallback((id: GuideTargetId, rect: Omit<GuideRect, 'id'>) => {
+    setGuideRect((prev) => {
+      if (
+        prev &&
+        prev.id === id &&
+        Math.abs(prev.x - rect.x) < 1 &&
+        Math.abs(prev.y - rect.y) < 1 &&
+        Math.abs(prev.width - rect.width) < 1 &&
+        Math.abs(prev.height - rect.height) < 1
+      ) {
+        return prev;
+      }
+      return { id, ...rect };
+    });
+  }, []);
+
   const snoozeLater = useCallback(() => {
     persist({
       ...persisted,
@@ -325,6 +497,7 @@ export const OwnerActivationProvider: React.FC<{
       laterSnoozedAt: null,
       awaitingFirstObservation: false,
       firstObservationDoneAt: null,
+      navCoachPhase: null,
     });
     setCelebrating(false);
   }, [persist, persisted]);
@@ -410,6 +583,7 @@ export const OwnerActivationProvider: React.FC<{
       dismissedAt: new Date().toISOString(),
       forceShow: false,
       laterSnoozedAt: null,
+      navCoachPhase: null,
     });
     setCelebrating(false);
   }, [persist, persisted]);
@@ -440,6 +614,10 @@ export const OwnerActivationProvider: React.FC<{
       spotlightStep,
       setSpotlightScreen,
       awaitingFirstObservation: persisted.awaitingFirstObservation,
+      guideBeat,
+      guideRect: guideRect && guideBeat && guideRect.id === guideBeat ? guideRect : null,
+      reportGuideTarget,
+      beginDetailsLesson,
       refresh,
       skipStep,
       dismiss,
@@ -464,6 +642,8 @@ export const OwnerActivationProvider: React.FC<{
       persisted.checklistCollapsed,
       persisted.skippedSteps,
       persisted.awaitingFirstObservation,
+      guideBeat,
+      guideRect,
       primaryField,
       completion,
       doneCount,
@@ -481,6 +661,8 @@ export const OwnerActivationProvider: React.FC<{
       clearCelebration,
       markFieldsDirty,
       beginFirstObservationGuide,
+      beginDetailsLesson,
+      reportGuideTarget,
       completeFirstObservation,
     ]
   );

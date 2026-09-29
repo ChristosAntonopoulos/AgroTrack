@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { roleHomePath, type AppRole } from '../../navigation/navConfig';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import { stepPath } from '../../onboarding/steps';
 
@@ -16,6 +18,7 @@ export const isActivationAllowedPath = (pathname: string, _search = ''): boolean
 /** Redirect locked FieldOwners away from non-setup routes. */
 const ActivationGate: React.FC = () => {
   const activation = useOwnerActivationOptional();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -26,6 +29,10 @@ const ActivationGate: React.FC = () => {
 
     const step =
       activation.activeStep || (activation.completion.createGrove ? 'drawBoundary' : 'createGrove');
+    if (step === 'createGrove') {
+      navigate(roleHomePath((user?.role || '') as AppRole), { replace: true });
+      return;
+    }
     const target = stepPath(step, activation.primaryField?.id ?? null);
     navigate(target, { replace: true });
   }, [
@@ -36,6 +43,7 @@ const ActivationGate: React.FC = () => {
     location.pathname,
     location.search,
     navigate,
+    user?.role,
   ]);
 
   return null;

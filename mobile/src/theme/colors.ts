@@ -1,26 +1,26 @@
 /**
- * Mediterranean field journal — warm ivory + olive + stone.
- * Source of truth: frontend/src/styles/theme.css (light).
- * Not Material-green SaaS; not rustic kitsch.
+ * Mediterranean field journal — warm parchment, deep olive ink, sage controls.
+ * Light surfaces stay ivory (#F5F3EA / #FFFEFA), never pure white or cold gray.
+ * Dark overrides live in themes.ts.
  */
 export const colors = {
   // Brand constants
-  olive: '#536D42',
+  olive: '#52733F',
   sage: '#9AAA85',
-  leaf: '#71845B',
+  leaf: '#587747',
   deepGrove: '#29382A',
   warmStone: '#D9D5C8',
-  limestone: '#F7F6F0',
-  accentGold: '#B09A63',
-  charcoal: '#22281F',
+  limestone: '#F5F3EA',
+  accentGold: '#B48A47',
+  charcoal: '#20291F',
 
-  // Primary olive — aligned with web Oleachron tokens
-  primary: '#536D42',
-  primaryDark: '#486038',
-  primaryActive: '#3E5430',
-  primaryLight: '#E7EDDE',
-  oliveBorder: '#C5CDB8',
-  onOlive: '#FFFFFF',
+  // Primary olive — slightly stronger than the previous muted grove green
+  primary: '#52733F',
+  primaryDark: '#456232',
+  primaryActive: '#3A5429',
+  primaryLight: '#E6EDDE',
+  oliveBorder: '#C9D2BC',
+  onOlive: '#FFFEFA',
 
   // Secondary — warm neutral (status-neutral)
   secondary: '#879086',
@@ -50,60 +50,60 @@ export const colors = {
   white: '#FFFFFF',
   black: '#000000',
 
-  gray50: '#F0F1E7',
-  gray100: '#EBECE4',
-  gray200: '#E3E3D9',
-  gray300: '#D4D4C8',
-  gray400: '#92978E',
-  gray500: '#697065',
+  gray50: '#F5F3EA',
+  gray100: '#EEF2E7',
+  gray200: '#E3E0D6',
+  gray300: '#D5D3C8',
+  gray400: '#8A9186',
+  gray500: '#6E776A',
   gray600: '#525850',
   gray700: '#3A4038',
   gray800: '#29382A',
-  gray900: '#22281F',
+  gray900: '#20291F',
 
-  // Surfaces — warm limestone paper (web-aligned)
-  background: '#F7F6F0',
-  backgroundLight: '#F7F6F0',
+  // Surfaces — warm parchment and ivory cards
+  background: '#F5F3EA',
+  backgroundLight: '#F5F3EA',
   backgroundDark: '#141714',
-  backgroundSidebar: '#F0F1E7',
-  surface: '#FFFDF9',
-  surfaceElevated: '#FFFFFF',
-  surfaceMuted: '#F2F3EC',
-  surface3: '#EBECE4',
-  surfaceHover: '#F1F4EC',
-  surfaceSelected: '#E5EADB',
+  backgroundSidebar: '#EEF2E7',
+  surface: '#FFFEFA',
+  surfaceElevated: '#FFFEFA',
+  surfaceMuted: '#EEF2E7',
+  surface3: '#E8EDE3',
+  surfaceHover: '#F5F7F0',
+  surfaceSelected: '#E5EDDC',
 
-  // Text
-  textPrimary: '#22281F',
-  textSecondary: '#697065',
-  textTertiary: '#92978E',
+  // Text — deep olive-black, warm secondary, no cold gray
+  textPrimary: '#20291F',
+  textSecondary: '#6E776A',
+  textTertiary: '#8A9186',
   textDisabled: '#B0B5AA',
   textInverse: '#FFFFFF',
 
   // Chrome
-  headerBackground: '#FBFAF6',
-  headerForeground: '#22281F',
-  headerForegroundMuted: '#697065',
-  headerAccent: '#536D42',
-  headerBorder: '#E3E3D9',
-  tabBarBackground: '#FBFAF6',
-  tabBarForeground: '#536D42',
-  tabBarForegroundInactive: '#697065',
-  tabBarBorder: '#E3E3D9',
-  tabBarActivePill: '#E7EDDE',
+  headerBackground: '#FFFEFA',
+  headerForeground: '#20291F',
+  headerForegroundMuted: '#6E776A',
+  headerAccent: '#52733F',
+  headerBorder: '#E3E0D6',
+  tabBarBackground: '#FFFEFA',
+  tabBarForeground: '#52733F',
+  tabBarForegroundInactive: '#6E776A',
+  tabBarBorder: '#E3E0D6',
+  tabBarActivePill: '#E6EDDE',
 
-  // Borders
-  border: '#E3E3D9',
-  borderLight: '#EBECE4',
-  borderDark: '#D4D4C8',
+  // Borders — warm stone, visible but quiet
+  border: '#E3E0D6',
+  borderLight: '#E8E6DC',
+  borderDark: '#D5D3C8',
 
-  link: '#486038',
-  linkHover: '#3E5430',
-  focusRing: '#536D42',
-  backdrop: 'rgba(24, 29, 21, 0.42)',
+  link: '#456232',
+  linkHover: '#3A5429',
+  focusRing: '#52733F',
+  backdrop: 'rgba(32, 41, 31, 0.42)',
 
-  shadow: 'rgba(34, 40, 31, 0.08)',
-  shadowDark: 'rgba(34, 40, 31, 0.18)',
+  shadow: 'rgba(39, 54, 37, 0.08)',
+  shadowDark: 'rgba(39, 54, 37, 0.18)',
 
   // Timeline rail
   timeline: '#CED6C6',
@@ -141,9 +141,9 @@ export const colors = {
   wind: '#94A89A',
   frost: '#8CA9BF',
 
-  mapBoundary: '#536D42',
-  mapSelectedFill: 'rgba(83, 109, 66, 0.18)',
-  mapHoverFill: 'rgba(83, 109, 66, 0.10)',
+  mapBoundary: '#52733F',
+  mapSelectedFill: 'rgba(82, 115, 63, 0.18)',
+  mapHoverFill: 'rgba(82, 115, 63, 0.10)',
   mapWarningOutline: '#C96656',
   mapOtherOutline: '#879086',
 
@@ -154,4 +154,4 @@ export const colors = {
   bannerWarningBg: 'rgba(200, 146, 78, 0.16)',
   bannerWarningBorder: '#C8924E',
 };
-
+

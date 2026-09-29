@@ -34,7 +34,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
-import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
 import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { formatFieldArea } from '../utils/fieldGeo';
@@ -61,8 +60,6 @@ import FieldResultYearControl from '../components/fields/FieldResultYearControl'
 import ChronologioScreen from './ChronologioScreen';
 import type { HarvestRecord } from '../services/harvestService';
 import { spacing } from '../theme';
-import { FOOTER_LIFT, getDockMetrics } from '../navigation/dockMetrics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   formatRelativeTime,
   isFieldSetupIncomplete,
@@ -97,10 +94,8 @@ const FieldDetailScreen = () => {
   const { user } = useAuth();
   const capture = useCaptureOptional();
   const activation = useOwnerActivationOptional();
-  const { colors, tapMin } = useTheme();
-  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks', 'onboarding']);
-  const insets = useSafeAreaInsets();
-  const dock = getDockMetrics(tapMin, insets.bottom);
+  const { colors } = useTheme();
+  const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'tasks']);
   const currentYear = agriculturalYearFor(new Date());
 
   const [field, setField] = useState<Field | null>(null);
@@ -341,29 +336,10 @@ const FieldDetailScreen = () => {
   }, [field, fieldId, navigation, gates, t]);
 
   const setTab = (next: FieldTab) => {
-    const observationRequired =
-      activation?.awaitingFirstObservation && !activation.completion.firstObservation;
-    if (observationRequired && next !== 'details') {
-      navigation.setParams({ mode: 'details', activation: 'observe' });
-      return;
-    }
     navigation.setParams({
       mode: next === 'overview' ? undefined : next,
-      activation: observationRequired ? 'observe' : undefined,
     });
   };
-
-  useEffect(() => {
-    if (!activation?.awaitingFirstObservation || activation.completion.firstObservation) return;
-    if (tab === 'details' && activationParam === 'observe') return;
-    navigation.setParams({ mode: 'details', activation: 'observe' });
-  }, [
-    activation?.awaitingFirstObservation,
-    activation?.completion.firstObservation,
-    activationParam,
-    navigation,
-    tab,
-  ]);
 
   useEffect(() => {
     if (tab === 'map' && !gates.canViewMap) setTab('overview');
@@ -416,12 +392,6 @@ const FieldDetailScreen = () => {
     );
   }
 
-  const showObservationCta = Boolean(
-    capture &&
-      gates.canCapture &&
-      activation?.awaitingFirstObservation &&
-      !activation.completion.firstObservation
-  );
   const latestEntry = [...recentEntries].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
   )[0];
@@ -437,7 +407,7 @@ const FieldDetailScreen = () => {
       ? 'en'
       : 'el';
   const readyArea = formatFieldArea(field, areaLocale);
-  const panelStyle = [styles.panel, showObservationCta ? { paddingBottom: 88 } : null];
+  const panelStyle = [styles.panel];
 
   const renderMapPanel = () => (
     <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
@@ -598,7 +568,6 @@ const FieldDetailScreen = () => {
 
       {tab === 'details' ? (
         <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
-          <FirstObservationGuide fieldId={fieldId} />
           <FieldFacts
             field={field}
             year={year}
@@ -612,26 +581,6 @@ const FieldDetailScreen = () => {
         </ScrollView>
       ) : null}
 
-      {showObservationCta ? (
-        <View
-          style={[
-            styles.stickyCapture,
-            { bottom: dock.bottomInset + FOOTER_LIFT + dock.fabSize + spacing.sm },
-          ]}
-        >
-          <Button
-            title={t('onboarding:firstObservation.cta')}
-            onPress={() =>
-              capture?.openCapture({
-                fieldId: field.id,
-                preferredType: 'observation',
-                description: t('onboarding:firstObservation.prefill'),
-              })
-            }
-            fullWidth
-          />
-        </View>
-      ) : null}
     </ScreenLayout>
   );
 };
@@ -684,11 +633,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginBottom: spacing.xs,
-  },
-  stickyCapture: {
-    position: 'absolute',
-    left: spacing.base,
-    right: spacing.base,
   },
 });
 

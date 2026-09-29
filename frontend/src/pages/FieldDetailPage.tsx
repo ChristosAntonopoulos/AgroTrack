@@ -41,7 +41,6 @@ import { formatAreaFromSqm, resolveFieldAreaSqm } from '../utils/area';
 import { normalizeLocale } from '../i18n/config';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
-import FirstObservationGuide from '../components/onboarding/FirstObservationGuide';
 import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import '../components/fields/FieldPageShell.css';
 
@@ -231,43 +230,14 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const setTab = (next: FieldPageTab) => {
-    const observationRequired =
-      activation?.awaitingFirstObservation && !activation.completion.firstObservation;
-    // Soft-lock on καρτέλα until the first Chronologio note is saved.
-    if (observationRequired && next !== 'details') {
-      replaceParams((params) => {
-        params.set('tab', 'details');
-        params.set('activation', 'observe');
-        params.delete('mode');
-      });
-      return;
-    }
     writeFieldViewPreferences({ lastTab: next });
     replaceParams((params) => {
       params.delete('mode');
-      if (observationRequired) {
-        params.set('activation', 'observe');
-      } else {
-        params.delete('activation');
-      }
+      params.delete('activation');
       if (next === 'overview') params.delete('tab');
       else params.set('tab', next);
     });
   };
-
-  // Keep growers on details while the first note is required (page stays scrollable).
-  useEffect(() => {
-    if (!id) return;
-    if (!activation?.awaitingFirstObservation || activation.completion.firstObservation) return;
-    if (tab === 'details' && searchParams.get('activation') === 'observe') return;
-    replaceParams((params) => {
-      params.set('tab', 'details');
-      params.set('activation', 'observe');
-      params.delete('mode');
-    });
-    // Intentionally omit searchParams object — only react to tab / awaiting flag.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, activation?.awaitingFirstObservation, activation?.completion.firstObservation, tab]);
 
   const setYear = (next: number) => {
     replaceParams((params) => {
@@ -481,7 +451,6 @@ const FieldDetailPage: React.FC = () => {
             role="tabpanel"
             aria-labelledby="field-tab-details"
           >
-            {id ? <FirstObservationGuide fieldId={id} /> : null}
             <FieldDetailsTab
               field={field}
               year={year}

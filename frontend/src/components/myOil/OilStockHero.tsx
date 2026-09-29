@@ -5,13 +5,16 @@ import { formatHeroStock, formatOilNumber, formatOilPack } from '../../myOil/for
 import {
   isHouseholdCommitment,
   sumCommitmentPack,
+  sumHouseholdPack,
   tinCount,
+  visibleHouseholdCommitments,
 } from '../../myOil/commitmentCopy';
-import type { OilStockSummary } from '../../services/oilStockService';
+import type { OilCommitment, OilStockSummary } from '../../services/oilStockService';
 import { Home, Bookmark, Warehouse } from 'lucide-react';
 
 type Props = {
   summary: OilStockSummary;
+  closed?: OilCommitment[];
   busy: boolean;
   onGive: () => void;
   onFill: () => void;
@@ -42,6 +45,7 @@ function CellarArt() {
 
 export function OilStockHero({
   summary,
+  closed = [],
   busy,
   onGive,
   onFill,
@@ -65,7 +69,7 @@ export function OilStockHero({
   const physical = summary.physical;
   const available = summary.available;
   const locale = i18n.language;
-  const homeHeld = sumCommitmentPack(summary.openCommitments.filter(isHouseholdCommitment));
+  const homeHeld = sumHouseholdPack(visibleHouseholdCommitments(summary.openCommitments, closed));
   const thirdParty = summary.openCommitments.filter((c) => !isHouseholdCommitment(c));
   const thirdHeld = sumCommitmentPack(thirdParty);
   const held = thirdParty.filter((c) => c.derivedStatus === 'reserved').length;
@@ -110,12 +114,12 @@ export function OilStockHero({
       <div className="my-oil-hero__top">
         <div className="my-oil-hero__main">
           <p className="my-oil-hero__eyebrow">{t('hero.eyebrow')}</p>
-          <p className="my-oil-hero__qty">{heroLine}</p>
-          <p className="my-oil-hero__approx my-oil-hero__approx--strong">
+          <p className="my-oil-hero__litres">
             {t('hero.approxTotal', {
               amount: formatOilNumber(physical.litres || 0, locale),
             })}
           </p>
+          <p className="my-oil-hero__pack">{heroLine}</p>
           <div className="my-oil-hero__chips">
             {physical.tin16 > 0 ? (
               <span className="my-oil-chip">{t('hero.chip16', { count: physical.tin16 })}</span>

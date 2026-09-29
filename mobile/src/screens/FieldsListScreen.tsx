@@ -34,6 +34,7 @@ import { getFieldShortLocation } from '../utils/shortLocation';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { locationService } from '../services/locationService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GuideTarget from '../components/onboarding/GuideTarget';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ViewMode = 'list' | 'map';
@@ -170,12 +171,14 @@ const FieldsListScreen = () => {
         subtitle={subtitle}
         action={
           canCreate ? (
-            <HeaderIconButton
-              icon="add"
-              accessibilityLabel={t('fields:addFieldCta')}
-              onPress={() => navigation.navigate('FieldForm', {})}
-              active
-            />
+            <GuideTarget id="createField">
+              <HeaderIconButton
+                icon="add"
+                accessibilityLabel={t('fields:addFieldCta')}
+                onPress={() => navigation.navigate('FieldForm', {})}
+                active
+              />
+            </GuideTarget>
           ) : undefined
         }
         context={

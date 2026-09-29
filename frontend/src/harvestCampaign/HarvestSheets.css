@@ -354,9 +354,32 @@
 }
 
 .hc-complete-hero {
+  margin: 0 0 0.85rem;
   font-size: 1.15rem;
   font-weight: 750;
   letter-spacing: -0.02em;
+}
+
+.hc-complete-missing {
+  margin: 0.9rem 0 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--harvest-gold-soft, #f3e6d0) 70%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--harvest-gold, #c8a06a) 40%, var(--color-border));
+}
+
+.hc-complete-missing p {
+  margin: 0 0 0.4rem;
+  font-weight: 750;
+}
+
+.hc-complete-missing ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.hc-complete-missing li + li {
+  margin-top: 0.25rem;
 }
 
 .hc-complete-metric--accent {

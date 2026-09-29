@@ -8,8 +8,6 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { getFieldService } from '../services/serviceFactory';
-import { isFieldSetupIncomplete } from '../utils/fieldDisplay';
 import { CaptureProvider } from '../context/CaptureContext';
 import { InAppMessageProvider } from '../context/InAppMessageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -58,6 +56,7 @@ import {
 import { View, StyleSheet } from 'react-native';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
 import ActivationGate from '../components/onboarding/ActivationGate';
+import NavCoach from '../components/onboarding/NavCoach';
 import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
 import AppDock from './AppDock';
 import { DockProvider } from './DockContext';
@@ -66,19 +65,15 @@ import { dockHiddenForRoute, getFocusedRoute, type FocusedRoute } from './dockRo
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
-  const { isAuthenticated, isLoading, logout, user, isFieldOwner } = useAuth();
+  const { isAuthenticated, isLoading, logout } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation(['nav', 'fields', 'partners', 'chronologio', 'settings', 'help', 'feedback', 'common', 'photos', 'legal']);
   const [sessionExpired, setSessionExpired] = useState(false);
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
-  const firstGroveChecked = useRef(false);
   const [focusedRoute, setFocusedRoute] = useState<FocusedRoute>({ name: '' });
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      firstGroveChecked.current = false;
-      return;
-    }
+    if (!isAuthenticated) return;
     const token = takePendingInviteToken() || takePendingFamilyInviteToken() || takePendingPartnerInviteToken();
     if (!token) return;
     const id = setTimeout(() => {
@@ -86,24 +81,6 @@ const RootNavigator = () => {
     }, 0);
     return () => clearTimeout(id);
   }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !isFieldOwner() || firstGroveChecked.current) return;
-    firstGroveChecked.current = true;
-    const userId = user?.id || '';
-    void getFieldService()
-      .getFields(userId, user?.role || 'FieldOwner')
-      .then((fields) => {
-        if (!fields.length) {
-          navRef.current?.navigate('FieldForm', {});
-          return;
-        }
-        if (fields.some((field) => field.status === 'Active')) return;
-        const draft = fields.find((field) => isFieldSetupIncomplete(field.status));
-        if (draft) navRef.current?.navigate('FieldForm', { fieldId: draft.id });
-      })
-      .catch(() => undefined);
-  }, [isAuthenticated, isFieldOwner, user]);
 
   useEffect(() => {
     setSessionExpiredHandler(() => {
@@ -389,6 +366,7 @@ const RootNavigator = () => {
         {isAuthenticated && !dockHiddenForRoute(focusedRoute.name) ? (
           <AppDock route={focusedRoute} />
         ) : null}
+        {isAuthenticated ? <NavCoach /> : null}
         </View>
         </DockProvider>
         </OwnerActivationProvider>

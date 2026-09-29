@@ -14,6 +14,8 @@ export type HeaderIconButtonProps = {
   size?: number;
   /** 34pt control for dense journal chrome. */
   compact?: boolean;
+  /** Ivory paper control — same surface, border, and shadow as dashboard cards. */
+  paper?: boolean;
 };
 
 /** Circular trailing header control — used on tab roots and native headerRight. */
@@ -25,8 +27,9 @@ const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
   badge,
   size = 20,
   compact = false,
+  paper = false,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const dim = compact ? 34 : touch.icon;
   const iconSize = compact ? 18 : size;
 
@@ -43,14 +46,27 @@ const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
           height: dim,
           minWidth: compact ? 34 : touch.min * 0.9,
           minHeight: compact ? 34 : touch.min * 0.9,
-          backgroundColor: active ? colors.primaryLight : colors.surface,
-          borderColor: active ? colors.oliveBorder : colors.borderLight,
+          backgroundColor: active ? colors.primaryLight : colors.surfaceElevated,
+          borderColor: active ? colors.oliveBorder : paper ? colors.border : colors.borderLight,
+          borderWidth: paper ? 1 : StyleSheet.hairlineWidth,
           opacity: pressed ? motion.pressOpacity : 1,
-          ...createElevation(colors, active ? 'sm' : 'flat'),
+          ...(paper
+            ? {
+                shadowColor: '#273625',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: isDark ? 0.28 : 0.06,
+                shadowRadius: 8,
+                elevation: 1,
+              }
+            : createElevation(colors, active ? 'sm' : 'flat')),
         },
       ]}
     >
-      <Ionicons name={icon} size={iconSize} color={active ? colors.primary : colors.textSecondary} />
+      <Ionicons
+        name={icon}
+        size={iconSize}
+        color={active || paper ? colors.primary : colors.textSecondary}
+      />
       {badge != null && badge !== 0 && badge !== '0' ? (
         <View style={[styles.badge, { backgroundColor: colors.error }]}>
           <Text style={[styles.badgeText, { color: colors.onOlive }]}>
@@ -67,7 +83,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radii.full,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   badge: {
     position: 'absolute',

@@ -1,15 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import Button from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import {
   FieldInvite,
   FieldMembership,
-  MAX_FAMILY_SEATS,
-  MAX_PARTNER_SEATS,
-  countSeats,
   fieldPeopleService,
 } from '../../services/fieldPeopleService';
 import { mapInviteLifecycle } from './inviteLifecycle';
@@ -40,16 +36,11 @@ const TeamAccessSection: React.FC<Props> = ({
   canManage,
   pendingInvitesById = {},
   onAddFamily,
-  onAddPartner,
   onChanged,
 }) => {
   const { t } = useTranslation('partners');
   const { colors } = useTheme();
   const [listedInvites, setListedInvites] = useState<FieldInvite[]>([]);
-  const familyUsed = countSeats(people, 'Family');
-  const partnerUsed = countSeats(people, 'Partner');
-  const familyMax = MAX_FAMILY_SEATS;
-  const partnerMax = MAX_PARTNER_SEATS;
   const activePeople = people.filter(
     (p) =>
       p.role !== 'Admin' &&
@@ -63,10 +54,7 @@ const TeamAccessSection: React.FC<Props> = ({
       p.role !== 'Admin' &&
       (/^pending$/i.test(p.status) || /^expired$/i.test(p.status) || /^invited$/i.test(p.status))
   );
-  const familyMembers = activePeople.filter((p) => p.role === 'Family');
-  const partners = activePeople.filter((p) => p.role === 'Partner');
-  const canAddFamily = Boolean(canManage && familyUsed < familyMax);
-  const canAddPartner = Boolean(canManage && partnerUsed < partnerMax);
+  const members = activePeople;
 
   useEffect(() => {
     if (!fieldId || !canManage) {
@@ -110,10 +98,7 @@ const TeamAccessSection: React.FC<Props> = ({
   });
 
   const hasAnyone =
-    familyMembers.length > 0 ||
-    partners.length > 0 ||
-    pendingPeople.length > 0 ||
-    unmatchedPendingInvites.length > 0;
+    members.length > 0 || pendingPeople.length > 0 || unmatchedPendingInvites.length > 0;
 
   const inviteForPerson = (person: FieldMembership) =>
     (person.inviteId ? invitesById[person.inviteId] : null) ||
@@ -169,64 +154,23 @@ const TeamAccessSection: React.FC<Props> = ({
         <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('team.viewOnly')}</Text>
       ) : null}
 
-      <View style={styles.seatRow}>
-        <Ionicons name="people-outline" size={18} color={colors.primary} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{t('family.title')}</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-            {t('seatsOccupied', { used: familyUsed, max: familyMax })}
-          </Text>
-        </View>
-        {canManage ? (
+      {canManage ? (
+        <View style={styles.seatRow}>
           <Button
-            title={t('team.addFamily')}
+            title={t('peoplePage.invite', { defaultValue: t('team.addFamily') })}
             size="small"
             variant="outline"
             onPress={onAddFamily}
-            disabled={!canAddFamily || loading}
+            disabled={loading}
           />
-        ) : null}
-      </View>
-      <Text style={[styles.hint, { color: colors.textTertiary }]}>
-        {t('seatsExplainFamily', { max: familyMax })}
-      </Text>
-      {!canAddFamily && canManage ? (
-        <Text style={[styles.hint, { color: colors.textTertiary }]}>
-          {t('inviteFamilySeatFull', { used: familyUsed, max: familyMax })}
-        </Text>
-      ) : null}
-
-      <View style={styles.seatRow}>
-        <Ionicons name="briefcase-outline" size={18} color={colors.primary} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{t('ownerPartner.title')}</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-            {t('seatsOccupied', { used: partnerUsed, max: partnerMax })}
-          </Text>
         </View>
-        {canManage ? (
-          <Button
-            title={t('team.addPartner')}
-            size="small"
-            variant="outline"
-            onPress={onAddPartner}
-            disabled={!canAddPartner || loading}
-          />
-        ) : null}
-      </View>
-      <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('seatsExplainPartner')}</Text>
-      {!canAddPartner && canManage ? (
-        <Text style={[styles.hint, { color: colors.textTertiary }]}>
-          {t('invitePartnerSeatFull', { used: partnerUsed, max: partnerMax })}
-        </Text>
       ) : null}
 
       {!loading && !hasAnyone ? (
         <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('team.empty')}</Text>
       ) : null}
 
-      {familyMembers.map((member) => renderSeat(member, 'family'))}
-      {partners.map((member) => renderSeat(member, 'partner'))}
+      {members.map((member) => renderSeat(member, member.role === 'Partner' ? 'partner' : 'family'))}
       {pendingPeople.map((member) => renderSeat(member, member.role === 'Partner' ? 'partner' : 'family'))}
       {unmatchedPendingInvites.map((invite) => (
         <TeamMemberCard

@@ -16,9 +16,14 @@ const harvestCanvasDark = require('../../../assets/images/harvest-canvas-dark.jp
 type Props = {
   /** 1 = full parchment, ~0.45 quieter behind dense lists */
   opacity?: number;
+  /**
+   * Wash the lower parchment into the page color.
+   * Line art can stay faintly visible up top without running under text and the FAB.
+   */
+  settle?: boolean;
 };
 
-const AppCanvas: React.FC<Props> = ({ opacity = 1 }) => {
+const AppCanvas: React.FC<Props> = ({ opacity = 1, settle = false }) => {
   const { colors, isDark } = useTheme();
   const harvest = useHarvestCampaignOptional();
   const harvestLive = Boolean(harvest?.isLive);
@@ -42,6 +47,13 @@ const AppCanvas: React.FC<Props> = ({ opacity = 1 }) => {
         style={[styles.image, { opacity }]}
         resizeMode="cover"
       />
+      {settle ? (
+        <View pointerEvents="none" style={styles.settle}>
+          <View style={styles.settleTop} />
+          <View style={[styles.settleMid, { backgroundColor: colors.background }]} />
+          <View style={[styles.settleBottom, { backgroundColor: colors.background }]} />
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -55,6 +67,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  settle: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  settleTop: { flex: 0.55 },
+  settleMid: { flex: 1.4, opacity: 0.9 },
+  settleBottom: { flex: 1.6, opacity: 0.94 },
 });
 
 export default AppCanvas;

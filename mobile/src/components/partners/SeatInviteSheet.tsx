@@ -40,12 +40,16 @@ const SeatInviteSheet: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation(['partners', 'common']);
   const { colors } = useTheme();
-  const isPartner = role === 'Partner';
+  const [relationship, setRelationship] = useState<FieldPersonRole>(role === 'Admin' ? 'Family' : role);
+  const isPartner = relationship === 'Partner';
   const ns = isPartner ? 'ownerPartner' : 'family';
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
-  const [modules, setModules] = useState<FieldModule[]>([...DEFAULT_FIELD_MODULES]);
-  const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>(isPartner ? 'work' : 'view');
+  const [choice, setChoice] = useState<'view' | 'record' | 'work'>(role === 'Partner' ? 'work' : 'view');
+  const [modules, setModules] = useState<FieldModule[]>(
+    role === 'Partner' ? [...DEFAULT_FIELD_MODULES] : ['chronologio', 'photos']
+  );
+  const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>(role === 'Partner' ? 'work' : 'view');
   const [step, setStep] = useState<'who' | 'access'>('who');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +64,11 @@ const SeatInviteSheet: React.FC<Props> = ({
       setSaving(true);
       setError(null);
       const created = await fieldPeopleService.createInvite(fieldId, {
-        role: isPartner ? 'Partner' : 'Family',
+        role: relationship === 'Partner' ? 'Partner' : 'Family',
         displayName: name.trim(),
         email: email.trim(),
         modules,
-        accessLevel,
+        accessLevel: choice === 'view' ? 'view' : 'work',
       });
       setInvite(created);
       onCreated?.(created);
@@ -134,9 +138,42 @@ const SeatInviteSheet: React.FC<Props> = ({
               />
             </>
           ) : (
+            <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
+              {t('partners:peoplePage.steps.3.title', { defaultValue: 'Relationship' })}
+            </Text>
+            {(['Family', 'Partner'] as FieldPersonRole[]).map((option) => (
+              <Button
+                key={option}
+                title={t(`partners:peoplePage.relationship.${option === 'Partner' ? 'Collaborator' : 'Family'}`, {
+                  defaultValue: option,
+                })}
+                variant={relationship === option ? 'primary' : 'outline'}
+                onPress={() => setRelationship(option)}
+              />
+            ))}
+            <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12, marginBottom: 8 }}>
+              {t('partners:peoplePage.steps.4.title', { defaultValue: 'Access' })}
+            </Text>
+            {(['view', 'record', 'work'] as const).map((option) => (
+              <Button
+                key={option}
+                title={t(`partners:peoplePage.preset.${option}`, { defaultValue: option })}
+                variant={choice === option ? 'primary' : 'outline'}
+                onPress={() => {
+                  setChoice(option);
+                  setAccessLevel(option === 'view' ? 'view' : 'work');
+                  setModules(
+                    option === 'work'
+                      ? ['chronologio', 'photos', 'tasks', 'harvest']
+                      : ['chronologio', 'photos']
+                  );
+                }}
+              />
+            ))}
             <AccessFields
               modules={modules}
               accessLevel={accessLevel}
+              showLevels={false}
               onToggleModule={(module) =>
                 setModules((prev) =>
                   prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]

@@ -34,7 +34,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
   const { t } = useTranslation('onboarding');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
-  const { completion, markFieldsDirty, skipStep, beginFirstObservationGuide } = useOwnerActivation();
+  const { completion, markFieldsDirty, skipStep, beginDetailsLesson } = useOwnerActivation();
 
   const [flags, setFlags] = useState<FirstDataFlags>({
     weather: false,
@@ -124,10 +124,10 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
   const firstName = user?.firstName?.trim();
   const displayName = fieldName.trim() || t('welcome.groveFallback');
 
-  const continueToGrove = () => {
-    beginFirstObservationGuide();
+  const continueToDetails = () => {
+    beginDetailsLesson();
     markFieldsDirty();
-    navigation.replace('FieldDetail', { fieldId, mode: 'chronologio' });
+    navigation.replace('FieldDetail', { fieldId, mode: 'details' });
   };
 
   const stageState = (index: number): 'pending' | 'active' | 'done' => {
@@ -208,7 +208,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
                 <Pressable
                   onPress={() => {
                     skipStep('loadData');
-                    continueToGrove();
+                    continueToDetails();
                   }}
                   hitSlop={8}
                 >
@@ -233,8 +233,8 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
                 <Text style={styles.point}>✓ {t('welcome.pointSatellite')}</Text>
                 <Text style={styles.point}>✓ {t('welcome.pointMap')}</Text>
               </View>
-              <Pressable style={styles.btn} onPress={continueToGrove}>
-                <Text style={styles.btnText}>{t('welcome.openGrove')}</Text>
+              <Pressable style={styles.btn} onPress={continueToDetails}>
+                <Text style={styles.btnText}>{t('welcome.openMap')}</Text>
               </Pressable>
             </>
           )}

@@ -14,6 +14,7 @@ import { FOOTER_LIFT, getDockMetrics } from './dockMetrics';
 import type { RootStackParamList } from './types';
 import { captureContextForRoute, type FocusedRoute } from './dockRoute';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import GuideTarget from '../components/onboarding/GuideTarget';
 
 type Props = {
   route: FocusedRoute;
@@ -53,27 +54,29 @@ const AppDock: React.FC<Props> = ({ route }) => {
     <View pointerEvents="box-none" style={[styles.host, { bottom: metrics.bottomInset + FOOTER_LIFT }]}>
       <View style={styles.pair}>
         {showMenu ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('launcher.home')}
-            onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
-            style={({ pressed }) => [{ transform: [{ scale: pressed ? motion.fabPressScale : 1 }] }]}
-          >
-            <View
-              style={[
-                styles.orb,
-                styles.menuOrb,
-                {
-                  width: size,
-                  height: size,
-                  backgroundColor: colors.surfaceElevated,
-                  borderColor: isDark ? 'rgba(235, 239, 230, 0.55)' : colors.primary,
-                },
-              ]}
+          <GuideTarget id="homeButton">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('launcher.home')}
+              onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
+              style={({ pressed }) => [{ transform: [{ scale: pressed ? motion.fabPressScale : 1 }] }]}
             >
-              <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.62)} />
-            </View>
-          </Pressable>
+              <View
+                style={[
+                  styles.orb,
+                  styles.menuOrb,
+                  {
+                    width: size,
+                    height: size,
+                    backgroundColor: colors.surfaceElevated,
+                    borderColor: isDark ? 'rgba(235, 239, 230, 0.55)' : colors.primary,
+                  },
+                ]}
+              >
+                <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.62)} />
+              </View>
+            </Pressable>
+          </GuideTarget>
         ) : null}
         <Pressable
           accessibilityRole="button"
@@ -87,6 +90,7 @@ const AppDock: React.FC<Props> = ({ route }) => {
           <View
             style={[
               styles.orb,
+              styles.addOrb,
               {
                 width: size,
                 height: size,
@@ -109,7 +113,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 40,
-    elevation: 0,
     backgroundColor: 'transparent',
     alignItems: 'center',
   },
@@ -129,6 +132,13 @@ const styles = StyleSheet.create({
   },
   menuOrb: {
     borderWidth: 1.5,
+  },
+  addOrb: {
+    shadowColor: '#273625',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 3,
   },
 });
 

@@ -16,21 +16,14 @@
     rgba(12, 16, 14, 0.72);
 }
 
-.grove-sequence-card {
+.grove-sequence .grove-sequence-card.nav-coach-card {
   position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
   z-index: 1;
-  width: min(420px, 100%);
-  padding: 22px 22px 18px;
-  border-radius: 18px;
-  background: #fffdf8;
-  border: 1px solid rgba(34, 40, 31, 0.14);
-  box-shadow: 0 24px 60px rgba(8, 12, 10, 0.35);
-  color: #1e261c;
+  width: min(440px, 100%);
   animation: grove-sequence-in 0.45s ease-out;
-}
-
-.grove-sequence-card.is-welcome {
-  text-align: center;
 }
 
 @keyframes grove-sequence-in {
@@ -126,8 +119,63 @@
   color: #fff;
 }
 
-.grove-sequence-stage.is-active .grove-sequence-stage-icon {
-  animation: grove-stage-pulse 1.2s ease-in-out infinite;
+.grove-sequence-stage.is-active {
+  position: relative;
+  overflow: hidden;
+}
+
+.grove-sequence-stage.is-active::after {
+  content: '';
+  position: absolute;
+  left: -40%;
+  bottom: 0;
+  width: 40%;
+  height: 3px;
+  border-radius: 99px;
+  background: #2f5d38;
+  animation: grove-stage-sheen 1.5s ease-in-out infinite;
+}
+
+.grove-sequence-spin {
+  animation: grove-sequence-spin 0.9s linear infinite;
+}
+
+@keyframes grove-sequence-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes grove-stage-sheen {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.grove-sequence-track {
+  height: 6px;
+  margin-top: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(47, 93, 56, 0.12);
+}
+
+.grove-sequence-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f5d38;
+  transition: width 0.4s ease;
+}
+
+.grove-sequence-hold {
+  margin: 12px 0 0 !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  color: #3d4a38 !important;
 }
 
 @keyframes grove-stage-pulse {
@@ -218,6 +266,7 @@
   padding: 12px 16px;
   cursor: pointer;
   width: 100%;
+  margin-top: 14px;
 }
 
 .grove-sequence-btn--ghost {
@@ -261,7 +310,7 @@
 
 .grove-welcome-points {
   list-style: none;
-  margin: 0 0 18px;
+  margin: 14px 0 0;
   padding: 0;
   display: grid;
   gap: 8px;
@@ -281,6 +330,13 @@
   content: '✓ ';
   color: #2f5d38;
   font-weight: 700;
+}
+
+.grove-welcome-team {
+  margin: 14px 0 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #2f5d38;
 }
 
 /* Legacy class kept for any external refs */

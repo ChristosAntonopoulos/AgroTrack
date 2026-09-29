@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import { fieldPeopleService } from '../services/fieldPeopleService';
 import { invalidateAccessContext } from '../hooks/useAccessContext';
-import { AppRole } from '../navigation/navConfig';
+import { AppRole, roleHomePath } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolvePostAuthPath } from '../utils/firstGroveDestination';
 import {
@@ -35,16 +35,24 @@ const FIELD_ORDER: FieldKey[] = [
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
+const splitDisplayName = (name: string) => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return { first: parts[0] || '', last: parts.slice(1).join(' ') };
+};
+
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const [searchParams] = useSearchParams();
   const storedIntent = mergeInviteIntent(readInviteIntent(), intentFromSearch(searchParams));
   const inviteFromQuery = storedIntent.code || searchParams.get('code') || '';
   const hasInviteIntent = Boolean(storedIntent.token || storedIntent.code || storedIntent.redirect?.startsWith('/invite/'));
+  const invitedName = splitDisplayName(storedIntent.name || '');
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState(invitedName.first);
+  const [lastName, setLastName] = useState(invitedName.last);
+  const [email, setEmail] = useState(storedIntent.email || '');
+  const [emailLocked, setEmailLocked] = useState(Boolean(storedIntent.email));
+  const [nameFromInvite, setNameFromInvite] = useState(Boolean(storedIntent.name));
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState(inviteFromQuery);
@@ -68,11 +76,54 @@ const RegisterPage: React.FC = () => {
 
   useEffect(() => {
     const next = rememberInviteIntent(intentFromSearch(searchParams));
-    if (next.code) setInviteCode(next.code);
+    if (next.code) setInviteCode((current) => current || next.code || '');
+    if (next.email) {
+      setEmail((current) => current || next.email || '');
+      setEmailLocked(true);
+    }
+    if (next.name) {
+      const parts = splitDisplayName(next.name);
+      setFirstName((current) => current || parts.first);
+      setLastName((current) => current || parts.last);
+      setNameFromInvite(true);
+    }
     if (next.token || next.code || next.redirect?.startsWith('/invite/')) {
       setShowInvite(true);
       setShowEmailForm(true);
     }
+
+    const lookup = next.token || next.code;
+    if (!lookup) return undefined;
+    let cancelled = false;
+    void fieldPeopleService
+      .getInvite(lookup)
+      .then((invite) => {
+        if (cancelled || !invite) return;
+        if (invite.email) {
+          setEmail((current) => current || invite.email || '');
+          setEmailLocked(true);
+        }
+        if (invite.displayName) {
+          const parts = splitDisplayName(invite.displayName);
+          setFirstName((current) => current || parts.first);
+          setLastName((current) => current || parts.last);
+          setNameFromInvite(true);
+        }
+        if (invite.code) setInviteCode((current) => current || invite.code || '');
+        rememberInviteIntent({
+          token: invite.token || next.token,
+          code: invite.code,
+          email: invite.email,
+          name: invite.displayName,
+          redirect: `/invite/${invite.token || next.token || lookup}`,
+        });
+      })
+      .catch(() => {
+        /* The invitation page still carries the code if this lookup fails. */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   const fieldRefs: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = {
@@ -149,7 +200,7 @@ const RegisterPage: React.FC = () => {
 
     const role = (userRole || 'FieldOwner') as AppRole;
     if (role === 'FieldOwner' || role === '') {
-      navigate('/fields/new');
+      navigate(roleHomePath(role));
       return;
     }
     const next = await resolvePostAuthPath(role);
@@ -307,6 +358,9 @@ const RegisterPage: React.FC = () => {
                     aria-describedby={fieldErrors.firstName ? 'firstName-error' : undefined}
                   />
                 </div>
+                {nameFromInvite ? (
+                  <p className="register-hint">{t('auth:register.inviteNameFilled')}</p>
+                ) : null}
                 {fieldErrors.firstName ? (
                   <p id="firstName-error" className="login-field-error" role="alert">
                     {fieldErrors.firstName}
@@ -360,12 +414,20 @@ const RegisterPage: React.FC = () => {
                   placeholder={t('auth:login.emailPlaceholder')}
                   autoComplete="email"
                   required
+                  readOnly={emailLocked}
                   disabled={loading}
                   aria-required="true"
                   aria-invalid={Boolean(fieldErrors.email)}
-                  aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                  aria-describedby={
+                    fieldErrors.email ? 'email-error' : emailLocked ? 'email-invite-hint' : undefined
+                  }
                 />
               </div>
+              {emailLocked ? (
+                <p id="email-invite-hint" className="register-hint">
+                  {t('auth:register.inviteEmailLocked')}
+                </p>
+              ) : null}
               {fieldErrors.email ? (
                 <p id="email-error" className="login-field-error" role="alert">
                   {fieldErrors.email}
