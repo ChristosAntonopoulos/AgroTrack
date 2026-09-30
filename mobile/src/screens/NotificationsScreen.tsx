@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { InboxItem, inAppMessageService } from '../services/inAppCampaignService';
@@ -12,6 +13,7 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScreenLayout from '../components/layout/ScreenLayout';
+import type { RootStackParamList } from '../navigation/types';
 import { typography, spacing, radii } from '../theme';
 
 const kindIcon = (item: InboxItem): React.ComponentProps<typeof Ionicons>['name'] => {
@@ -25,6 +27,7 @@ const NotificationsScreen = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation(['common', 'nav']);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const inApp = useInAppMessagesOptional();
   const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +88,14 @@ const NotificationsScreen = () => {
     if (!item.isRead && !item.id.startsWith('campaign:')) {
       await getPartnerService().markNotificationRead(item.id).catch(() => undefined);
       setInbox((prev) => prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n)));
+    }
+
+    if (item.actionUrl?.startsWith('/invite/')) {
+      const token = item.actionUrl.replace(/^\/invite\//, '').split(/[?#]/)[0];
+      if (token) {
+        navigation.navigate('InviteAccept', { token });
+      }
+      return;
     }
 
     if (item.actionUrl?.startsWith('/')) {

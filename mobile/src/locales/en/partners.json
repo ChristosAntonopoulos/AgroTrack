@@ -222,7 +222,7 @@
     "addMember": "Invite family",
     "addHint": "Invite with an email link or QR code.",
     "contactHint": "Email is required so you can send the invite link.",
-    "partsTitle": "What they can open",
+    "partsTitle": "Grove areas they can see data in",
     "levelTitle": "What they can do",
     "sendInvite": "Send invite",
     "inviteReady": "Invite ready — email the link, or let them scan the QR.",
@@ -264,9 +264,9 @@
       "work": "Works"
     },
     "levelHints": {
-      "view": "Read only.",
+      "view": "Sees selected grove data. Cannot change data.",
       "help": "Help with existing work.",
-      "work": "Add work and records."
+      "work": "Add work and records for those grove areas."
     },
     "acceptTitle": "Family invite",
     "acceptBody": "{{owner}} invites you to their family on Oleachron. You’ll get access to all their fields for: {{modules}}.",

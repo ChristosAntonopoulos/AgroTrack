@@ -9,8 +9,6 @@ import HeaderIconButton from '../components/layout/HeaderIconButton';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
-import { useFamilyMembershipModules } from '../hooks/useFamilyMembershipModules';
-import type { FamilyModule } from '../services/familyService';
 import { useTasks } from '../hooks/useTasks';
 import { openHarvestCampaign } from '../navigation/intents';
 import type { RootStackParamList } from '../navigation/types';
@@ -22,6 +20,7 @@ import { radii, spacing, typography } from '../theme';
 import { athensCalendarDateKey } from '../utils/athensDate';
 import { isTaskDueToday, isTaskOverdue } from '../utils/taskListUtils';
 import GuideTarget from '../components/onboarding/GuideTarget';
+import PendingInvitesBanner from '../components/partners/PendingInvitesBanner';
 import type { GuideTargetId } from '../onboarding/steps';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -80,7 +79,6 @@ const LauncherScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<Nav>();
   const harvest = useHarvestCampaignOptional();
-  const familyModules = useFamilyMembershipModules();
   const { tasks, loading } = useTasks();
   const [fieldCount, setFieldCount] = useState<number | null>(null);
   const [oilLitres, setOilLitres] = useState<number | null>(null);
@@ -134,7 +132,6 @@ const LauncherScreen: React.FC = () => {
   const displayName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || '';
 
-  const allowed = (module: FamilyModule) => familyModules === null || familyModules.has(module);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
 
@@ -153,88 +150,73 @@ const LauncherScreen: React.FC = () => {
       if (card) items.push(card);
     };
 
+    // Product modules stay visible; permissions filter grove data inside each screen.
+    push({
+      id: 'chronologio',
+      icon: 'time-outline',
+      motif: 'time-outline',
+      title: t('chronologio'),
+      helper: t('launcher.helpers.chronologio'),
+      status: '',
+      statusKind: 'none',
+      onPress: () => navigation.navigate('Main', { screen: 'ChronologioTab' }),
+    });
+    push({
+      id: 'fields',
+      icon: 'leaf-outline',
+      motif: 'leaf-outline',
+      title: t('fields'),
+      helper: t('launcher.helpers.fields'),
+      status:
+        fieldCount == null
+          ? ' '
+          : fieldCount === 0
+            ? t('launcher.status.fieldsEmpty')
+            : t('launcher.fields', { count: fieldCount }),
+      statusKind: fieldCount == null ? 'none' : 'value',
+      onPress: () =>
+        navigation.navigate('Main', { screen: 'Fields', params: { screen: 'FieldsHome' } }),
+    });
+    push({
+      id: 'tasks',
+      icon: 'checkmark-circle-outline',
+      motif: 'checkmark-circle-outline',
+      title: t('tasks'),
+      helper: t('launcher.helpers.tasks'),
+      status: loading
+        ? ' '
+        : openTasks.length === 0
+          ? t('launcher.status.tasksEmpty')
+          : dueToday > 0
+            ? t('launcher.status.tasksTodayLine', { pending: openTasks.length, today: dueToday })
+            : overdue > 0
+              ? t('launcher.status.tasksOverdue', { count: overdue })
+              : t('launcher.status.tasksPending', { count: openTasks.length }),
+      statusKind: loading
+        ? 'none'
+        : openTasks.length === 0
+          ? 'success'
+          : tasksNeedAttention
+            ? 'attention'
+            : 'value',
+      onPress: () => navigation.navigate('Main', { screen: 'Tasks' }),
+    });
+    push({
+      id: 'harvest',
+      icon: 'basket-outline',
+      motif: 'basket-outline',
+      title: t('launcher.modules.harvest'),
+      helper: t('launcher.helpers.harvest'),
+      status: harvest?.isLive
+        ? sacksToday > 0
+          ? t('launcher.status.sacks', { count: sacksToday })
+          : t('launcher.status.inProgress')
+        : t('launcher.status.harvestIdle'),
+      statusKind: harvest?.isLive ? 'production' : 'idle',
+      onPress: () => openHarvestCampaign(navigation),
+    });
     push(
-      allowed('chronologio')
-        ? {
-            id: 'chronologio',
-            icon: 'time-outline',
-            motif: 'time-outline',
-            title: t('chronologio'),
-            helper: t('launcher.helpers.chronologio'),
-            status: '',
-            statusKind: 'none',
-            onPress: () => navigation.navigate('Main', { screen: 'ChronologioTab' }),
-          }
-        : null
-    );
-    push(
-      allowed('fields')
-        ? {
-            id: 'fields',
-            icon: 'leaf-outline',
-            motif: 'leaf-outline',
-            title: t('fields'),
-            helper: t('launcher.helpers.fields'),
-            status:
-              fieldCount == null
-                ? ' '
-                : fieldCount === 0
-                  ? t('launcher.status.fieldsEmpty')
-                  : t('launcher.fields', { count: fieldCount }),
-            statusKind: fieldCount == null ? 'none' : 'value',
-            onPress: () =>
-              navigation.navigate('Main', { screen: 'Fields', params: { screen: 'FieldsHome' } }),
-          }
-        : null
-    );
-    push(
-      allowed('tasks')
-        ? {
-            id: 'tasks',
-            icon: 'checkmark-circle-outline',
-            motif: 'checkmark-circle-outline',
-            title: t('tasks'),
-            helper: t('launcher.helpers.tasks'),
-            status: loading
-              ? ' '
-              : openTasks.length === 0
-                ? t('launcher.status.tasksEmpty')
-                : dueToday > 0
-                  ? t('launcher.status.tasksTodayLine', { pending: openTasks.length, today: dueToday })
-                  : overdue > 0
-                    ? t('launcher.status.tasksOverdue', { count: overdue })
-                    : t('launcher.status.tasksPending', { count: openTasks.length }),
-            statusKind: loading
-              ? 'none'
-              : openTasks.length === 0
-                ? 'success'
-                : tasksNeedAttention
-                  ? 'attention'
-                  : 'value',
-            onPress: () => navigation.navigate('Main', { screen: 'Tasks' }),
-          }
-        : null
-    );
-    push(
-      allowed('harvest')
-        ? {
-            id: 'harvest',
-            icon: 'basket-outline',
-            motif: 'basket-outline',
-            title: t('launcher.modules.harvest'),
-            helper: t('launcher.helpers.harvest'),
-            status: harvest?.isLive
-              ? sacksToday > 0
-                ? t('launcher.status.sacks', { count: sacksToday })
-                : t('launcher.status.inProgress')
-              : t('launcher.status.harvestIdle'),
-            statusKind: harvest?.isLive ? 'production' : 'idle',
-            onPress: () => openHarvestCampaign(navigation),
-          }
-        : null
-    );
-    push(
-      canMoney && (allowed('money') || allowed('harvest'))
+      canMoney
         ? {
             id: 'myOil',
             icon: 'water-outline',
@@ -260,7 +242,7 @@ const LauncherScreen: React.FC = () => {
         : null
     );
     push(
-      canMoney && allowed('money')
+      canMoney
         ? {
             id: 'money',
             icon: 'cash-outline',
@@ -273,50 +255,40 @@ const LauncherScreen: React.FC = () => {
           }
         : null
     );
-    push(
-      allowed('photos')
-        ? {
-            id: 'photos',
-            icon: 'images-outline',
-            motif: 'images-outline',
-            title: t('photos'),
-            helper: t('launcher.helpers.photos'),
-            status:
-              photoCount == null
-                ? ' '
-                : photoCount === 0
-                  ? t('launcher.status.photosEmpty')
-                  : t('launcher.status.photos', { count: photoCount }),
-            statusKind: photoCount == null ? 'none' : 'value',
-            onPress: () => navigation.navigate('Photos'),
-          }
-        : null
-    );
-    push(
-      familyModules === null
-        ? {
-            id: 'partners',
-            icon: 'people-outline',
-            motif: 'people-outline',
-            title: t('partners'),
-            helper: t('launcher.helpers.partners'),
-            status:
-              partnerCount == null
-                ? ' '
-                : partnerCount === 0
-                  ? t('launcher.status.partnersEmpty')
-                  : t('launcher.status.partners', { count: partnerCount }),
-            statusKind: partnerCount == null ? 'none' : 'value',
-            onPress: () => navigation.navigate('Partners'),
-          }
-        : null
-    );
+    push({
+      id: 'photos',
+      icon: 'images-outline',
+      motif: 'images-outline',
+      title: t('photos'),
+      helper: t('launcher.helpers.photos'),
+      status:
+        photoCount == null
+          ? ' '
+          : photoCount === 0
+            ? t('launcher.status.photosEmpty')
+            : t('launcher.status.photos', { count: photoCount }),
+      statusKind: photoCount == null ? 'none' : 'value',
+      onPress: () => navigation.navigate('Photos'),
+    });
+    push({
+      id: 'partners',
+      icon: 'people-outline',
+      motif: 'people-outline',
+      title: t('partners'),
+      helper: t('launcher.helpers.partners'),
+      status:
+        partnerCount == null
+          ? ' '
+          : partnerCount === 0
+            ? t('launcher.status.partnersEmpty')
+            : t('launcher.status.partners', { count: partnerCount }),
+      statusKind: partnerCount == null ? 'none' : 'value',
+      onPress: () => navigation.navigate('Partners'),
+    });
     return items;
   }, [
-    allowed,
     canMoney,
     dueToday,
-    familyModules,
     fieldCount,
     harvest?.isLive,
     loading,
@@ -374,6 +346,8 @@ const LauncherScreen: React.FC = () => {
           onPress={() => navigation.navigate('Notifications')}
         />
       </View>
+
+      <PendingInvitesBanner />
 
       <View style={styles.grid} accessibilityRole="list">
         {cards.map((card) => {

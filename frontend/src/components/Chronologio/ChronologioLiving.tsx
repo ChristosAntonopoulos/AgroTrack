@@ -6,6 +6,7 @@ import { BookOpen, ArrowUp } from 'lucide-react';
 import Button from '../Common/Button';
 import EmptyState from '../Common/EmptyState';
 import Breadcrumbs from '../Layout/Breadcrumbs';
+import PendingInvitesBanner from '../Partners/PendingInvitesBanner';
 import ChronologioSkeleton from './ChronologioSkeleton';
 import ChronologioChrome from './ChronologioChrome';
 import ChronologioYearsView from './ChronologioYearsView';
@@ -227,7 +228,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
 
   useEffect(() => {
     void getFieldService()
-      .getFields()
+      .getFields('chronologio')
       .then(setFields)
       .catch(() => setFields([]));
   }, []);
@@ -1132,6 +1133,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         />
       ) : null}
       {embedded ? null : <Breadcrumbs />}
+      {embedded ? null : <PendingInvitesBanner />}
       <ChronologioChrome
         fieldMode={fieldMode}
         fieldName={fieldName}

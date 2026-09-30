@@ -9,22 +9,24 @@ export type ModulePageGuardOptions =
   | { adminOnly: true; module?: never };
 
 export type ModulePageGuardResult = {
-  /** False when the active-field seat lacks the required module / admin role. */
+  /**
+   * Module pages are always allowed after loading — permissions filter field data,
+   * they do not hide product surfaces. Admin-only surfaces still gate here.
+   */
   allowed: boolean;
   /** True while access-context is still loading — avoid flashing forbidden UI. */
   loading: boolean;
 };
 
 /**
- * Thin UX gate for module pages. Backend ACL remains authoritative.
- * Collaborators are checked against the active field seat's modules only.
+ * Thin UX gate. Module routes stay open (empty when no permitted fields).
+ * Admin-only surfaces still redirect. Backend ACL remains authoritative for data.
  */
 export const useModulePageGuard = (opts: ModulePageGuardOptions): ModulePageGuardResult => {
   const { loading } = useAccessContext();
-  const { modules, capabilities, isAdminOnActive, isCollaboratorOnActive } = useActiveFieldAccess();
+  const { capabilities, isAdminOnActive } = useActiveFieldAccess();
   const navigate = useNavigate();
   const adminOnly = opts.adminOnly === true;
-  const requiredModule = adminOnly ? null : opts.module;
 
   const result = useMemo(() => {
     if (loading) {
@@ -35,36 +37,14 @@ export const useModulePageGuard = (opts: ModulePageGuardOptions): ModulePageGuar
       return { allowed: capabilities?.canManageAccess ?? isAdminOnActive, loading: false };
     }
 
-    if (capabilities && requiredModule) {
-      const allowedByCapability = {
-        fields: capabilities.canViewField,
-        tasks: capabilities.canViewTasks,
-        photos: capabilities.canViewPhotos,
-        documents: capabilities.canViewDocuments,
-        money: capabilities.canViewMoney,
-        chronologio: capabilities.canViewChronologio,
-        harvest: capabilities.canViewHarvest,
-      }[requiredModule];
-      return { allowed: allowedByCapability, loading: false };
-    }
-
-    if (isAdminOnActive || modules === null) {
-      return { allowed: true, loading: false };
-    }
-
-    if (isCollaboratorOnActive && requiredModule) {
-      return { allowed: modules.has(requiredModule), loading: false };
-    }
-
     return { allowed: true, loading: false };
-  }, [loading, adminOnly, requiredModule, modules, capabilities, isAdminOnActive, isCollaboratorOnActive]);
+  }, [loading, adminOnly, capabilities, isAdminOnActive]);
 
   useEffect(() => {
-    if (!result.loading && !result.allowed) {
-      const module = adminOnly ? 'access' : requiredModule;
-      navigate(`/access-denied?module=${encodeURIComponent(module || 'field')}`, { replace: true });
+    if (adminOnly && !result.loading && !result.allowed) {
+      navigate('/access-denied?module=access', { replace: true });
     }
-  }, [result.loading, result.allowed, adminOnly, requiredModule, navigate]);
+  }, [adminOnly, result.loading, result.allowed, navigate]);
 
   return result;
 };

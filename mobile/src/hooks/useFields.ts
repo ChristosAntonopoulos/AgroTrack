@@ -23,7 +23,7 @@ export interface UseFieldsResult {
   fromCache: boolean;
 }
 
-export const useFields = (): UseFieldsResult => {
+export const useFields = (module?: string): UseFieldsResult => {
   const { user } = useAuth();
   const { setShowingCachedData, syncGeneration } = useOfflineMode();
   const [fields, setFields] = useState<Field[]>([]);
@@ -74,7 +74,7 @@ export const useFields = (): UseFieldsResult => {
       setError(null);
       const online = await isDeviceOnline();
       const [fieldsData, tasksData] = await Promise.all([
-        getFieldService().getFields(user.id, user.role),
+        getFieldService().getFields(user.id, user.role, module),
         getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
       ]);
 
@@ -86,21 +86,24 @@ export const useFields = (): UseFieldsResult => {
       setFromCache(cached);
       setShowingCachedData(cached);
     } catch (err: unknown) {
-      const cached = await EntityCache.getFields(user.id);
-      if (cached) {
-        const sanitizedFields = sanitizeFields(cached.data);
-        setFields(sanitizedFields);
-        const tasksCached = await EntityCache.getTasks(user.id);
-        buildTaskMaps(sanitizedFields, tasksCached?.data ?? []);
-        setFromCache(true);
-        setShowingCachedData(true);
-        setError(null);
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to load fields');
-        setFromCache(false);
-        setShowingCachedData(false);
-        console.error('Error loading fields:', err);
+      // Module-scoped lists are not identity-cached; only fall back for unscoped fetches.
+      if (!module) {
+        const cached = await EntityCache.getFields(user.id);
+        if (cached) {
+          const sanitizedFields = sanitizeFields(cached.data);
+          setFields(sanitizedFields);
+          const tasksCached = await EntityCache.getTasks(user.id);
+          buildTaskMaps(sanitizedFields, tasksCached?.data ?? []);
+          setFromCache(true);
+          setShowingCachedData(true);
+          setError(null);
+          return;
+        }
       }
+      setError(err instanceof Error ? err.message : 'Failed to load fields');
+      setFromCache(false);
+      setShowingCachedData(false);
+      console.error('Error loading fields:', err);
     } finally {
       setLoading(false);
     }
@@ -108,7 +111,7 @@ export const useFields = (): UseFieldsResult => {
 
   useEffect(() => {
     loadFields();
-  }, [user, syncGeneration]);
+  }, [user, syncGeneration, module]);
 
   return {
     fields,

@@ -38,6 +38,11 @@ export const REPORT_TYPES: {
   { id: 'weather-month', icon: 'cloud-rain', default: true },
   { id: 'weather-year', icon: 'cloud-sun' },
   { id: 'year-overview', icon: 'leaf' },
+  { id: 'agronomic', icon: 'sprout' },
+  { id: 'farm-account', icon: 'landmark' },
+  { id: 'traceability', icon: 'shield' },
+  { id: 'comparison', icon: 'scale' },
+  { id: 'work-register', icon: 'clipboard' },
 ];
 
 export const MOCK_FIELD_SUMMARIES: FieldSummaryData[] = [
@@ -316,6 +321,8 @@ export const MOCK_YEARLY_WEATHER: YearlyWeatherReport = {
       wettestMonth: 11,
       rainVsPreviousPercent: -12,
       ndviMean: 0.388,
+      et0TotalMm: 748.2,
+      waterBalanceMm: -135.8,
       monthlyRainMm: [82, 64, 86, 41, 22, 8, 2, 4, 18, 54, 128, 103],
       totalCost: 18400,
       revenue: 24600,
@@ -343,13 +350,13 @@ export const MOCK_YEARLY_WEATHER: YearlyWeatherReport = {
   ],
 };
 
-export function formatCurrency(value: number, locale = 'el-GR'): string {
+export function formatCurrency(value: number, locale = 'el-GR', digits = 0): string {
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
     }).format(value);
   } catch {
     return `€${Math.round(value).toLocaleString()}`;

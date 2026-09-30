@@ -72,6 +72,9 @@ export interface FieldInvite {
   mailtoUrl?: string;
   smsUrl?: string;
   emailSent?: boolean;
+  inviteeHasAccount?: boolean;
+  targetUserId?: string;
+  notificationQueued?: boolean;
 }
 
 export interface AdvisorComment {
@@ -322,6 +325,9 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
   mailtoUrl: row.mailtoUrl,
   smsUrl: row.smsUrl,
   emailSent: row.emailSent,
+  inviteeHasAccount: row.inviteeHasAccount,
+  targetUserId: row.targetUserId,
+  notificationQueued: row.notificationQueued,
 });
 
 export const capabilitiesForAccess = (
@@ -566,6 +572,12 @@ export const fieldPeopleService = {
   getInvite: async (token: string): Promise<FieldInvite> => {
     const response = await api.get<FieldInvite>(`/api/v1/invites/${token}`);
     return normalizeInvite(response.data);
+  },
+
+  getPendingInvites: async (): Promise<FieldInvite[]> => {
+    if (isMockMode()) return [];
+    const response = await api.get<FieldInvite[]>('/api/v1/me/invites/pending');
+    return (response.data || []).map(normalizeInvite);
   },
 
   acceptInvite: async (token: string): Promise<FieldMembership> => {

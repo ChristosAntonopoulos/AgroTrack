@@ -8,10 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
-import {
-  useFamilyCollaboratorOwnerLabel,
-  useFamilyMembershipModules,
-} from '../../hooks/useFamilyMembershipModules';
+import { useFamilyCollaboratorOwnerLabel } from '../../hooks/useFamilyMembershipModules';
 import { typography, spacing, radii, motion } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
 import { openHarvestCampaign } from '../../navigation/intents';
@@ -48,17 +45,12 @@ const MoreMenuPanel: React.FC = () => {
   const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
   const navigation = useNavigation<Nav>();
   const harvest = useHarvestCampaignOptional();
-  const familyModules = useFamilyMembershipModules();
   const collaboratorOwnerLabel = useFamilyCollaboratorOwnerLabel();
   const inApp = useInAppMessagesOptional();
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const rowHeight = Math.max(tapMin, 52);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
-  const showPartners = familyModules === null;
-  const showMoney = canMoney && (familyModules === null || Boolean(familyModules.has('money')));
-  const showHarvest = familyModules === null || Boolean(familyModules.has('harvest'));
-  const showPhotos = familyModules === null || Boolean(familyModules.has('photos'));
   const collaboratorBadge = collaboratorOwnerLabel
     ? t('common:familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
     : null;
@@ -91,17 +83,16 @@ const MoreMenuPanel: React.FC = () => {
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
   const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
 
-  const workItems: MenuItem[] = [];
-  if (showPartners) {
-    workItems.push({
+  const workItems: MenuItem[] = [
+    {
       id: 'partners',
       icon: 'people-circle-outline',
       label: t('nav:partners'),
       onPress: () => navigation.navigate('Partners'),
       showArrow: true,
-    });
-  }
-  if (showMoney) {
+    },
+  ];
+  if (canMoney) {
     workItems.push({
       id: 'money',
       icon: 'wallet-outline',
@@ -117,17 +108,15 @@ const MoreMenuPanel: React.FC = () => {
       showArrow: true,
     });
   }
-  if (showPhotos) {
-    workItems.push({
+  workItems.push(
+    {
       id: 'photos',
       icon: 'images-outline',
       label: t('nav:photos', { defaultValue: 'Photos' }),
       onPress: () => navigation.navigate('Photos'),
       showArrow: true,
-    });
-  }
-  if (showHarvest) {
-    workItems.push({
+    },
+    {
       id: 'harvest',
       icon: 'basket-outline',
       label: harvest?.isLive
@@ -139,8 +128,8 @@ const MoreMenuPanel: React.FC = () => {
           }),
       onPress: () => openHarvestCampaign(navigation),
       showArrow: true,
-    });
-  }
+    }
+  );
 
   const accountItems: MenuItem[] = [
     {

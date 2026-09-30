@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check } from 'lucide-react';
 import Button from '../Common/Button';
 import PartnersSheet from '../Partners/PartnersSheet';
+import FieldPermissionPanel from './FieldPermissionPanel';
 import {
   FieldAccessLevel,
   FieldModule,
@@ -14,7 +16,6 @@ import {
   choiceFromAccess,
   levelForChoice,
   modulesForChoice,
-  VISIBLE_MODULES,
 } from '../../people/aggregatePeople';
 
 export type EditableMembership = {
@@ -54,9 +55,12 @@ const EditAccessSheet: React.FC<Props> = ({
   const [choice, setChoice] = useState<AccessChoice | null>(
     choiceFromAccess(current.accessLevel, current.modules)
   );
-  const [pickedPreset, setPickedPreset] = useState(choiceFromAccess(current.accessLevel, current.modules) != null);
-  const [selected, setSelected] = useState<FieldModule[]>(current.modules);
-  const [customize, setCustomize] = useState(false);
+  const [pickedPreset, setPickedPreset] = useState(
+    choiceFromAccess(current.accessLevel, current.modules) != null
+  );
+  const [selected, setSelected] = useState<FieldModule[]>(
+    current.modules.length > 0 ? current.modules : modulesForChoice('view')
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -68,19 +72,13 @@ const EditAccessSheet: React.FC<Props> = ({
     const nextChoice = choiceFromAccess(next.accessLevel, next.modules);
     setChoice(nextChoice);
     setPickedPreset(nextChoice != null);
-    setSelected(next.modules);
-    setCustomize(false);
+    setSelected(next.modules.length > 0 ? next.modules : modulesForChoice(nextChoice || 'view'));
     setError('');
   };
 
   const pickChoice = (next: AccessChoice) => {
     setPickedPreset(true);
     setChoice(next);
-    setSelected(modulesForChoice(next));
-  };
-
-  const toggleModule = (module: FieldModule) => {
-    setSelected((rows) => (rows.includes(module) ? rows.filter((item) => item !== module) : [...rows, module]));
   };
 
   const save = async () => {
@@ -89,7 +87,11 @@ const EditAccessSheet: React.FC<Props> = ({
     setError('');
     const keepLegacy = current.accessLevel === 'help' && !pickedPreset;
     const accessLevel = keepLegacy ? 'help' : levelForChoice(choice || 'view');
-    const modules = keepLegacy ? current.modules : selected;
+    const modules = keepLegacy
+      ? current.modules
+      : selected.length > 0
+        ? selected
+        : modulesForChoice(choice || 'view');
     try {
       await fieldPeopleService.updatePerson(fieldId, userId, {
         role,
@@ -108,12 +110,13 @@ const EditAccessSheet: React.FC<Props> = ({
   return (
     <PartnersSheet
       open={open}
+      size="lg"
       kicker={current.fieldName}
       title={t('partners:peoplePage.editTitle', { name: personName })}
       subtitle={t('partners:peoplePage.editHint')}
       onClose={onClose}
       footer={
-        <div className="people-sheet-actions">
+        <div className="invite-footer">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             {t('common:cancel')}
           </Button>
@@ -124,10 +127,16 @@ const EditAccessSheet: React.FC<Props> = ({
       }
     >
       {error ? <p className="people-error">{error}</p> : null}
+
       {memberships.length > 1 ? (
-        <label className="people-label">
-          {t('partners:peoplePage.thisGrove')}
-          <select className="people-select" value={fieldId} onChange={(event) => loadField(event.target.value)}>
+        <label className="invite-field" htmlFor="edit-access-field">
+          <span>{t('partners:peoplePage.thisGrove')}</span>
+          <select
+            id="edit-access-field"
+            className="people-input"
+            value={fieldId}
+            onChange={(event) => loadField(event.target.value)}
+          >
             {memberships.map((row) => (
               <option key={row.fieldId} value={row.fieldId}>
                 {row.fieldName}
@@ -136,49 +145,40 @@ const EditAccessSheet: React.FC<Props> = ({
           </select>
         </label>
       ) : null}
-      <div className="people-choice-list">
-        {(['Family', 'Collaborator'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`people-choice${role === option ? ' is-on' : ''}`}
-            onClick={() => setRole(option)}
-          >
-            <strong>{t(`partners:peoplePage.relationship.${option}`)}</strong>
-          </button>
-        ))}
-      </div>
-      {current.accessLevel === 'help' && !pickedPreset ? (
-        <p className="people-note">{t('partners:peoplePage.legacyHelp')}</p>
-      ) : null}
-      <div className="people-choice-list">
-        {(['view', 'record', 'work'] as AccessChoice[]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`people-choice${choice === option ? ' is-on' : ''}`}
-            onClick={() => pickChoice(option)}
-          >
-            <strong>{t(`partners:peoplePage.preset.${option}`)}</strong>
-            <span>{t(`partners:peoplePage.presetHint.${option}`)}</span>
-          </button>
-        ))}
-      </div>
-      <button type="button" className="people-text-button" onClick={() => setCustomize((value) => !value)}>
-        {t('partners:peoplePage.customize')}
-      </button>
-      {customize ? (
-        <ul className="people-check-list">
-          {VISIBLE_MODULES.map((module) => (
-            <li key={module}>
-              <label className="people-check">
-                <input type="checkbox" checked={selected.includes(module)} onChange={() => toggleModule(module)} />
-                <span>{t(`partners:peoplePage.modules.${module}`)}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+
+      <section className="perm-section">
+        <h3 className="perm-label">{t('partners:peoplePage.relationshipTitle')}</h3>
+        <div className="perm-choice-list">
+          {(['Family', 'Collaborator'] as const).map((option) => {
+            const selectedRole = role === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`perm-choice${selectedRole ? ' is-on' : ''}`}
+                aria-pressed={selectedRole}
+                onClick={() => setRole(option)}
+              >
+                <span className="perm-choice-copy">
+                  <strong>{t(`partners:peoplePage.relationship.${option}`)}</strong>
+                  <span>{t(`partners:peoplePage.relationshipHint.${option}`)}</span>
+                </span>
+                {selectedRole ? <Check size={18} aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <FieldPermissionPanel
+        choice={choice}
+        modules={selected}
+        role={role === 'Collaborator' ? 'Partner' : 'Family'}
+        legacyHelp={current.accessLevel === 'help' && !pickedPreset}
+        previewMode="edit"
+        onPickChoice={pickChoice}
+        onChangeModules={setSelected}
+      />
     </PartnersSheet>
   );
 };

@@ -166,7 +166,7 @@ const PhotoHubScreen: React.FC = () => {
   const load = useCallback(async () => {
     const [fieldList, list] = await Promise.all([
       getFieldService()
-        .getFields(user?.id || '', user?.role || '')
+        .getFields(user?.id || '', user?.role || '', 'photos')
         .then((items) => items.filter((f) => f.status !== 'Draft'))
         .catch(() => [] as Field[]),
       getPhotoService().query({

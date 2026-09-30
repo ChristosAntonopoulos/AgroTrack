@@ -164,15 +164,16 @@ export const navItems: NavItem[] = [
 export const resolveNavItemLabel = (item: NavItem, _role: AppRole, t: TFunction<'nav'>, opts?: { mobile?: boolean }): string =>
   t(opts?.mobile && item.mobileLabelKey ? item.mobileLabelKey : item.labelKey);
 
+/**
+ * Optional active-field context for callers. Module membership no longer hides
+ * product nav — permissions filter field data inside each module instead.
+ */
 export type ActiveFieldNavGate = {
-  /** Partner/Family modules for the active field only — null/empty when Admin / unrestricted. */
+  /** @deprecated Unused for nav visibility; kept so Sidebar/MobileBottomNav call sites stay stable. */
   modules?: ReadonlySet<string> | null;
-  /** True when the user is Admin on the active field (or unrestricted owner). */
+  /** @deprecated Unused for nav visibility. */
   isAdminOnActive?: boolean;
-  /**
-   * When set, overrides module-only harvest visibility (help/view seats, etc.).
-   * Computed via getHarvestCapabilities.canView.
-   */
+  /** @deprecated Unused for nav visibility. */
   canViewHarvest?: boolean;
 };
 
@@ -181,36 +182,14 @@ export const filterNavItemsForUser = (
   items: NavItem[],
   userRole: AppRole,
   mockMode: boolean,
-  gate?: ActiveFieldNavGate | null
+  _gate?: ActiveFieldNavGate | null
 ): NavItem[] => {
-  const modules = gate?.modules;
-  const restrictCollaborator = Boolean(
-    modules && modules.size > 0 && gate?.isAdminOnActive === false
-  );
-
   return items.filter((item) => {
     if (!item.roles.includes(userRole)) return false;
     if (item.mockOnly && !mockMode) return false;
     // Ministry and Reports stay reachable by URL but out of the sidebar.
     if (item.path === '/ministry' || item.path === '/reports') {
       return false;
-    }
-
-    // Partner/Family on the active field: gate by that seat’s modules only (no union).
-    if (restrictCollaborator) {
-      if (item.path === '/reports' || item.path === '/data-sources') {
-        return false;
-      }
-      if (item.path === '/money' && !modules!.has('money')) return false;
-      if (item.path === '/my-oil' && !modules!.has('money') && !modules!.has('harvest')) return false;
-      if (item.path === '/harvest') {
-        if (gate?.canViewHarvest === false) return false;
-        if (!modules!.has('harvest')) return false;
-      }
-      if (item.path === '/tasks' && !modules!.has('tasks')) return false;
-      if (item.path === '/fields' && !modules!.has('fields')) return false;
-      if (item.path === '/photos' && !modules!.has('photos')) return false;
-      if (item.path === '/chronologio' && !modules!.has('chronologio')) return false;
     }
 
     return true;

@@ -143,8 +143,14 @@ export interface ActivateFieldResponse {
 }
 
 export const fieldService = {
-  getFields: async (userId: string, _userRole: string): Promise<Field[]> => {
-    // Cache-first when offline so cold start / app reopen works without API
+  /**
+   * @param module When set, returns only groves where the user has that Family module.
+   * When omitted, returns every grove with an active seat (identity list).
+   * Module-scoped lists do not replace the identity EntityCache.
+   */
+  getFields: async (userId: string, _userRole: string, module?: string): Promise<Field[]> => {
+    const scoped = Boolean(module);
+
     if (!(await isDeviceOnline())) {
       const cached = await EntityCache.getFields(userId);
       if (cached) return cached.data;
@@ -153,8 +159,15 @@ export const fieldService = {
 
     try {
       const startedAt = Date.now();
-      const response = await api.get<Field[]>('/api/v1/fields');
+      const response = await api.get<Field[]>('/api/v1/fields', {
+        params: module ? { module } : undefined,
+      });
       const incoming = response.data ?? [];
+
+      if (scoped) {
+        return incoming;
+      }
+
       const cached = (await EntityCache.getFields(userId))?.data ?? [];
       const incomingIds = new Set(incoming.map((field) => field.id));
       // A list request that started before create must not wipe the grove just saved.

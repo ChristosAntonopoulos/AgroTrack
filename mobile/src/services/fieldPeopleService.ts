@@ -71,6 +71,10 @@ export interface FieldInvite {
   acceptedBy?: string;
   invitedByName?: string;
   createdAt?: string;
+  emailSent?: boolean;
+  inviteeHasAccount?: boolean;
+  targetUserId?: string;
+  notificationQueued?: boolean;
   /** @deprecated */
   capacities?: FieldCapacity[];
 }
@@ -224,6 +228,10 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
     acceptedBy: row.acceptedBy,
     invitedByName: row.invitedByName,
     createdAt: row.createdAt,
+    emailSent: row.emailSent,
+    inviteeHasAccount: row.inviteeHasAccount,
+    targetUserId: row.targetUserId,
+    notificationQueued: row.notificationQueued,
     capacities: capacitiesForMembership({ role, accessLevel }),
   };
 };
@@ -326,6 +334,11 @@ export const fieldPeopleService = {
   getInvite: async (token: string): Promise<FieldInvite> => {
     const response = await api.get<FieldInvite>(`/api/v1/invites/${token}`);
     return normalizeInvite(response.data);
+  },
+
+  getPendingInvites: async (): Promise<FieldInvite[]> => {
+    const response = await api.get<FieldInvite[]>('/api/v1/me/invites/pending');
+    return (response.data || []).map(normalizeInvite);
   },
 
   acceptInvite: async (token: string): Promise<FieldMembership> => {

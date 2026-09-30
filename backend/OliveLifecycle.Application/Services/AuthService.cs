@@ -66,6 +66,14 @@ public class AuthService : IAuthService
             {
                 throw new ValidationException("This invitation code is not valid.");
             }
+
+            if (!string.IsNullOrWhiteSpace(invite.Email)
+                && !string.Equals(invite.Email.Trim(), registerDto.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ForbiddenException(
+                    "Register with the email this invitation was sent to.",
+                    FieldPeopleService.InviteEmailMismatchCode);
+            }
         }
 
         if (await _userRepository.ExistsByEmailAsync(registerDto.Email, cancellationToken))

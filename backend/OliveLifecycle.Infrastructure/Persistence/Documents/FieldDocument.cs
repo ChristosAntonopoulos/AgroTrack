@@ -278,6 +278,9 @@ public class FieldInviteDocument
     [BsonElement("displayName")]
     public string? DisplayName { get; set; }
 
+    [BsonElement("targetUserId")]
+    public string? TargetUserId { get; set; }
+
     [BsonElement("status")]
     public string Status { get; set; } = "pending";
 

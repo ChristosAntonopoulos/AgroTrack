@@ -43,7 +43,7 @@ const ThisHarvestReviewScreen = () => {
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const navigation = useNavigation<Nav>();
-  const { fields } = useFields();
+  const { fields } = useFields('harvest');
   const anyIrrigated = useMemo(() => fields.some((f) => Boolean(f.irrigationStatus)), [fields]);
 
   const [loading, setLoading] = useState(true);

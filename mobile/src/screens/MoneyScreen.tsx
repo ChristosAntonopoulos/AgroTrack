@@ -127,7 +127,7 @@ const MoneyScreen = () => {
   );
 
   const reload = useCallback(async () => {
-    const list = (await getFieldService().getFields(user?.id || '', user?.role || '')).filter(
+    const list = (await getFieldService().getFields(user?.id || '', user?.role || '', 'money')).filter(
       (field) => field.status !== 'Draft'
     );
     setFields(list);

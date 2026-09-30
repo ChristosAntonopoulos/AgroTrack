@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -189,9 +188,6 @@ const MyOilPage: React.FC = () => {
         </div>
       </PageContainer>
     );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=money" replace />;
   }
 
   const waitingAll = summary?.openCommitments || [];

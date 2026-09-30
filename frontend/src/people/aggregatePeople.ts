@@ -108,14 +108,21 @@ export function aggregateManagedPeople(input: {
   };
 }
 
-export const VISIBLE_MODULES: FieldModule[] = ['chronologio', 'tasks', 'photos', 'money', 'harvest'];
+export const VISIBLE_MODULES: FieldModule[] = [
+  'fields',
+  'chronologio',
+  'tasks',
+  'photos',
+  'money',
+  'harvest',
+];
 
 /** What the farmer picks. Stored access is view, or work. Recording without tasks omits the tasks module. */
 export type AccessChoice = 'view' | 'record' | 'work';
 
 export const modulesForChoice = (choice: AccessChoice): FieldModule[] => {
-  if (choice === 'work') return ['chronologio', 'photos', 'tasks', 'harvest'];
-  return ['chronologio', 'photos'];
+  if (choice === 'work') return ['fields', 'chronologio', 'photos', 'tasks', 'harvest'];
+  return ['fields', 'chronologio', 'photos'];
 };
 
 export const levelForChoice = (choice: AccessChoice): FieldAccessLevel =>

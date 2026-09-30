@@ -7,7 +7,15 @@ public interface IFieldService
     Task<FieldDto> CreateFieldAsync(string ownerId, CreateFieldDto createFieldDto, CancellationToken cancellationToken = default);
     Task<FieldDto?> GetFieldByIdAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<IEnumerable<FieldDto>> GetFieldsByOwnerAsync(string ownerId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(string userId, string userRole, CancellationToken cancellationToken = default);
+    /// <param name="module">
+    /// When null, returns every grove with an active seat (identity list).
+    /// When set, returns groves where the user has that Family module.
+    /// </param>
+    Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(
+        string userId,
+        string userRole,
+        string? module = null,
+        CancellationToken cancellationToken = default);
     Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default);
     Task<bool> DeleteFieldAsync(string id, string userId, CancellationToken cancellationToken = default);
     Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreAsync(

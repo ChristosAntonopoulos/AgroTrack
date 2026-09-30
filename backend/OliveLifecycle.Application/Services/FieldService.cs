@@ -191,8 +191,8 @@ public class FieldService : IFieldService
 
     public async Task<FieldDto?> GetFieldByIdAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
-                id, userId, userRole, FamilyModules.Fields, cancellationToken))
+        // Any active seat may resolve grove identity (name/color). Feature data stays module-scoped.
+        if (!await _fieldAccessService.CanUserAccessFieldAsync(id, userId, userRole, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
@@ -212,10 +212,26 @@ public class FieldService : IFieldService
         return fields.Select(f => ToDtoForUser(f, ownerId));
     }
 
-    public async Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(string userId, string userRole, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(
+        string userId,
+        string userRole,
+        string? module = null,
+        CancellationToken cancellationToken = default)
     {
+        string? requiredModule = null;
+        if (!string.IsNullOrWhiteSpace(module))
+        {
+            var normalized = FamilyModules.Normalize(module);
+            if (!FamilyModules.IsKnown(normalized))
+            {
+                throw new ValidationException($"Unknown module '{module}'.");
+            }
+
+            requiredModule = normalized;
+        }
+
         var fields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
-            userId, userRole, FamilyModules.Fields, cancellationToken);
+            userId, userRole, requiredModule, cancellationToken);
         return fields.Select(f => ToDtoForUser(f, userId, userRole));
     }
 

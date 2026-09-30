@@ -47,4 +47,15 @@ public static class FinancialCapabilities
         EditOwnDraft,
         ViewReceipts
     ];
+
+    /// <summary>
+    /// Family with money module at view depth — see household books, no writes.
+    /// </summary>
+    public static readonly string[] HouseholdViewOnly =
+    [
+        ViewSummary,
+        ViewTransactions,
+        ViewIncome,
+        ViewReceipts
+    ];
 }

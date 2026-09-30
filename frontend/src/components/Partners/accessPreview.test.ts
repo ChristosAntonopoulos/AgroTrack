@@ -11,7 +11,7 @@ describe('accessPreview', () => {
     const keys = lines.map((line) => line.key);
     expect(keys).toContain('family.preview.canViewChronologio');
     expect(keys).toContain('family.preview.canViewPhotos');
-    expect(keys).toContain('family.preview.cannotOpen');
+    expect(keys).toContain('family.preview.cannotSeeModuleData');
     expect(keys).not.toContain('family.preview.canManageTasks');
     expect(lines.find((line) => line.module === 'tasks' && line.kind === 'cannot')).toBeTruthy();
   });

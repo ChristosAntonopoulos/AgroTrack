@@ -14,6 +14,8 @@ namespace OliveLifecycle.Application.Services;
 
 public class FieldPeopleService : IFieldPeopleService
 {
+    public const string InviteEmailMismatchCode = "invite_email_mismatch";
+
     private readonly IFieldRepository _fieldRepository;
     private readonly IUserRepository _userRepository;
     private readonly IFieldTaskRepository _fieldTasks;
@@ -22,6 +24,8 @@ public class FieldPeopleService : IFieldPeopleService
     private readonly IFieldAccessService _fieldAccessService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISavedContactService _savedContacts;
+    private readonly IUserNotificationService _notifications;
+    private readonly IPushNotificationSender _push;
     private readonly IEmailSender? _emailSender;
     private readonly ILogger<FieldPeopleService> _logger;
 
@@ -34,6 +38,8 @@ public class FieldPeopleService : IFieldPeopleService
         IFieldAccessService fieldAccessService,
         IDateTimeProvider dateTimeProvider,
         ISavedContactService savedContacts,
+        IUserNotificationService notifications,
+        IPushNotificationSender push,
         ILogger<FieldPeopleService> logger,
         IEmailSender? emailSender = null)
     {
@@ -45,6 +51,8 @@ public class FieldPeopleService : IFieldPeopleService
         _fieldAccessService = fieldAccessService;
         _dateTimeProvider = dateTimeProvider;
         _savedContacts = savedContacts;
+        _notifications = notifications;
+        _push = push;
         _logger = logger;
         _emailSender = emailSender;
     }
@@ -260,6 +268,14 @@ public class FieldPeopleService : IFieldPeopleService
 
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
         var code = await AllocateInviteCodeAsync(cancellationToken);
+        var inviteEmail = dto.Email?.Trim().ToLowerInvariant();
+        string? targetUserId = null;
+        if (!string.IsNullOrWhiteSpace(inviteEmail))
+        {
+            var existingUser = await _userRepository.GetByEmailAsync(inviteEmail, cancellationToken);
+            targetUserId = existingUser?.Id;
+        }
+
         var invite = new FieldInvite
         {
             Token = token,
@@ -271,8 +287,9 @@ public class FieldPeopleService : IFieldPeopleService
             Modules = modules,
             AccessLevel = level,
             Phone = dto.Phone,
-            Email = dto.Email?.Trim().ToLowerInvariant(),
+            Email = inviteEmail,
             DisplayName = dto.DisplayName,
+            TargetUserId = targetUserId,
             Status = FamilyInviteStatuses.Pending,
             ExpiresAt = _dateTimeProvider.UtcNow.AddDays(14),
             CreatedAt = _dateTimeProvider.UtcNow,
@@ -304,6 +321,8 @@ public class FieldPeopleService : IFieldPeopleService
 
         var dtoOut = ToInviteDto(invite, publicAppBaseUrl, invitedByName);
         dtoOut.EmailSent = await TrySendInviteEmailAsync(invite, dtoOut, invitedByName, cancellationToken);
+        dtoOut.NotificationQueued = await TryNotifyExistingInviteeAsync(
+            invite, dtoOut, invitedByName, cancellationToken);
         return dtoOut;
     }
 
@@ -512,6 +531,12 @@ public class FieldPeopleService : IFieldPeopleService
         invite.Status = FamilyInviteStatuses.Pending;
         invite.ExpiresAt = _dateTimeProvider.UtcNow.AddDays(14);
         invite.UpdatedAt = _dateTimeProvider.UtcNow;
+        if (!string.IsNullOrWhiteSpace(invite.Email) && string.IsNullOrWhiteSpace(invite.TargetUserId))
+        {
+            var existingUser = await _userRepository.GetByEmailAsync(invite.Email, cancellationToken);
+            invite.TargetUserId = existingUser?.Id;
+        }
+
         await _inviteRepository.UpdateAsync(invite, cancellationToken);
 
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
@@ -535,6 +560,8 @@ public class FieldPeopleService : IFieldPeopleService
 
         var dtoOut = ToInviteDto(invite, publicAppBaseUrl, invitedByName);
         dtoOut.EmailSent = await TrySendInviteEmailAsync(invite, dtoOut, invitedByName, cancellationToken);
+        dtoOut.NotificationQueued = await TryNotifyExistingInviteeAsync(
+            invite, dtoOut, invitedByName, cancellationToken);
         return dtoOut;
     }
 
@@ -559,6 +586,32 @@ public class FieldPeopleService : IFieldPeopleService
         return ToInviteDto(invite, null, invitedByName);
     }
 
+    public async Task<IReadOnlyList<FieldInviteDto>> GetPendingInvitesForUserAsync(
+        string userId,
+        string? publicAppBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found.");
+
+        var invites = await _inviteRepository.GetPendingForUserAsync(
+            userId, user.Email, cancellationToken);
+        var result = new List<FieldInviteDto>();
+        foreach (var invite in invites)
+        {
+            string? invitedByName = null;
+            if (!string.IsNullOrWhiteSpace(invite.InvitedBy))
+            {
+                var inviter = await _userRepository.GetByIdAsync(invite.InvitedBy, cancellationToken);
+                invitedByName = inviter == null ? null : DisplayName(inviter);
+            }
+
+            result.Add(ToInviteDto(invite, publicAppBaseUrl, invitedByName));
+        }
+
+        return result;
+    }
+
     public async Task<FieldMembershipDto> AcceptInviteAsync(
         string tokenOrCode,
         string userId,
@@ -579,12 +632,14 @@ public class FieldPeopleService : IFieldPeopleService
             throw new ValidationException("This invite has expired.");
         }
 
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found.");
+
+        EnsureInviteEmailMatches(invite, user);
+
         var field = await _fieldRepository.GetByIdAsync(invite.FieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
         FieldPeopleRules.EnsureNormalized(field);
-
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
-            ?? throw new NotFoundException("User not found.");
 
         var existing = FieldPeopleRules.GetActiveByUserId(field, userId);
         if (existing != null && existing.Role != invite.Role)
@@ -638,6 +693,23 @@ public class FieldPeopleService : IFieldPeopleService
             cancellationToken);
 
         return ToPersonDto(seat);
+    }
+
+    private static void EnsureInviteEmailMatches(FieldInvite invite, User user)
+    {
+        if (string.IsNullOrWhiteSpace(invite.Email))
+        {
+            return;
+        }
+
+        var inviteEmail = invite.Email.Trim().ToLowerInvariant();
+        var userEmail = (user.Email ?? string.Empty).Trim().ToLowerInvariant();
+        if (!string.Equals(inviteEmail, userEmail, StringComparison.Ordinal))
+        {
+            throw new ForbiddenException(
+                "Sign in with the email this invitation was sent to.",
+                InviteEmailMismatchCode);
+        }
     }
 
     public async Task<AdvisorCommentDto> AddAdvisorCommentAsync(
@@ -890,6 +962,65 @@ public class FieldPeopleService : IFieldPeopleService
         return string.IsNullOrWhiteSpace(name) ? user.Email : name;
     }
 
+    private async Task<bool> TryNotifyExistingInviteeAsync(
+        FieldInvite invite,
+        FieldInviteDto dto,
+        string? invitedByName,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(invite.TargetUserId))
+        {
+            return false;
+        }
+
+        var who = string.IsNullOrWhiteSpace(invitedByName) ? "Κάποιος" : invitedByName;
+        var title = $"Πρόσκληση στο {invite.FieldName}";
+        var message = $"{who} σε προσκαλεί στο {invite.FieldName}.";
+
+        try
+        {
+            await _notifications.NotifyAsync(new UserNotification
+            {
+                UserId = invite.TargetUserId,
+                Type = "field_invite",
+                Title = title,
+                Message = message,
+                RelatedEntityId = invite.Id,
+                RelatedEntityType = "field_invite",
+                ActionUrl = $"/invite/{invite.Token}",
+                IsRead = false,
+                CreatedAt = _dateTimeProvider.UtcNow,
+                UpdatedAt = _dateTimeProvider.UtcNow
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invite in-app notification failed for user {UserId}", invite.TargetUserId);
+            return false;
+        }
+
+        try
+        {
+            await _push.SendToUserAsync(
+                invite.TargetUserId,
+                title,
+                message,
+                new Dictionary<string, string>
+                {
+                    ["type"] = "field_invite",
+                    ["token"] = invite.Token,
+                    ["path"] = $"/invite/{invite.Token}"
+                },
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invite push failed for user {UserId}", invite.TargetUserId);
+        }
+
+        return true;
+    }
+
     private async Task<bool> TrySendInviteEmailAsync(
         FieldInvite invite,
         FieldInviteDto dto,
@@ -904,9 +1035,15 @@ public class FieldPeopleService : IFieldPeopleService
         try
         {
             var who = string.IsNullOrWhiteSpace(invitedByName) ? "OleaChron" : invitedByName;
-            var subject = $"Πρόσκληση στο {invite.FieldName} — Oleachron";
+            var hasAccount = !string.IsNullOrWhiteSpace(invite.TargetUserId);
+            var subject = hasAccount
+                ? $"{who} σε προσκαλεί στο {invite.FieldName}"
+                : $"Πρόσκληση στο {invite.FieldName} — Oleachron";
+            var intro = hasAccount
+                ? $"{who} σε προσκαλεί στο {invite.FieldName} στο Oleachron. Έχεις ήδη λογαριασμό — άνοιξε την πρόσκληση για να αποδεχτείς."
+                : $"{who} σε προσκαλεί στο {invite.FieldName} στο Oleachron. Δημιούργησε λογαριασμό και μπες στην ομάδα.";
             var body =
-                $"{who} σε προσκαλεί στο {invite.FieldName} στο Oleachron.\n\n" +
+                $"{intro}\n\n" +
                 $"Άνοιξε: {dto.ShareUrl}\n" +
                 (string.IsNullOrWhiteSpace(invite.Code) ? "" : $"Κωδικός πρόσκλησης: {invite.Code}\n");
             await _emailSender.SendAsync(invite.Email, subject, body.Trim(), cancellationToken);
@@ -964,7 +1101,9 @@ public class FieldPeopleService : IFieldPeopleService
             AcceptedBy = invite.AcceptedBy,
             ShareUrl = shareUrl,
             WhatsAppUrl = whatsApp,
-            MailtoUrl = mailto
+            MailtoUrl = mailto,
+            InviteeHasAccount = !string.IsNullOrWhiteSpace(invite.TargetUserId),
+            TargetUserId = invite.TargetUserId
         };
     }
 }

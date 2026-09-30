@@ -3,8 +3,9 @@ import { mockFields, getFieldsByRole, simulateDelay } from './mockDataService';
 import { estimatePolygonAreaSqm } from '../utils/polygonArea';
 
 export const mockFieldService = {
-  getFields: async (userId: string, userRole: string): Promise<Field[]> => {
+  getFields: async (userId: string, userRole: string, _module?: string): Promise<Field[]> => {
     await simulateDelay();
+    // Demo mode has no per-seat module matrix; module filter is a no-op.
     return getFieldsByRole(userId, userRole);
   },
 

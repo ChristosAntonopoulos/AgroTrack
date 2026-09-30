@@ -148,7 +148,7 @@ const TaskListScreen = () => {
       const fw = getFieldWorkService();
       const [fieldsData, proposalsData, tasksData] = await Promise.all([
         getFieldService()
-          .getFields(user?.id ?? '', user?.role ?? 'FieldOwner')
+          .getFields(user?.id ?? '', user?.role ?? 'FieldOwner', 'tasks')
           .catch(() => [] as Field[]),
         fw.listProposals({ resultYear: yearFilter }),
         fw.listFieldTasks({ resultYear: yearFilter }),

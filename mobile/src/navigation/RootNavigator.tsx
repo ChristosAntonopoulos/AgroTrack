@@ -53,7 +53,8 @@ import {
   takePendingInviteToken,
   takePendingPartnerInviteToken,
 } from '../utils/pendingInvite';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
 import ActivationGate from '../components/onboarding/ActivationGate';
 import NavCoach from '../components/onboarding/NavCoach';
@@ -61,6 +62,8 @@ import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
 import AppDock from './AppDock';
 import { DockProvider } from './DockContext';
 import { dockHiddenForRoute, getFocusedRoute, type FocusedRoute } from './dockRoute';
+import { pushNotificationService } from '../services/pushNotificationService';
+import { setPendingInviteToken } from '../utils/pendingInvite';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -80,6 +83,39 @@ const RootNavigator = () => {
       navRef.current?.navigate('InviteAccept', { token });
     }, 0);
     return () => clearTimeout(id);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    const openInviteFromData = (data: Record<string, unknown> | undefined) => {
+      const token = pushNotificationService.extractInviteTokenFromNotificationData(data);
+      if (!token) return;
+      if (isAuthenticated) {
+        navRef.current?.navigate('InviteAccept', { token });
+      } else {
+        setPendingInviteToken(token);
+      }
+    };
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      openInviteFromData(response.notification.request.content.data as Record<string, unknown>);
+    });
+
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        openInviteFromData(response.notification.request.content.data as Record<string, unknown>);
+      }
+    });
+
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && isAuthenticated) {
+        void pushNotificationService.registerForUser();
+      }
+    });
+
+    return () => {
+      responseSub.remove();
+      appStateSub.remove();
+    };
   }, [isAuthenticated]);
 
   useEffect(() => {

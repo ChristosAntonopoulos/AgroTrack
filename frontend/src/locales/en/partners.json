@@ -193,23 +193,25 @@
       "titleEdit": "How this will work",
       "willBeAble": "They can",
       "willNotBeAble": "They cannot",
-      "nothingSelected": "Open at least one part of the app.",
-      "closedModules": "Closed: {{list}}",
+      "nothingSelected": "Pick at least one grove area so they can see its data.",
+      "closedModules": "Won’t see this grove’s data in: {{list}}",
       "extraLimits": "{{list}}",
       "baselineLimits": "They cannot delete other people’s records or manage who else has access.",
-      "canOpen": "Open {{module}}",
-      "canViewTasks": "See tasks",
-      "canManageTasks": "Update tasks",
-      "canViewPhotos": "See photos",
-      "canUploadPhotos": "Upload photos",
-      "canViewMoney": "See Money",
-      "canViewChronologio": "See History",
-      "canViewHarvest": "See Harvest",
+      "canOpen": "See this grove’s {{module}} data",
+      "canViewTasks": "See tasks for this grove",
+      "canManageTasks": "Update tasks for this grove",
+      "canViewPhotos": "See photos for this grove",
+      "canUploadPhotos": "Upload photos for this grove",
+      "canViewMoney": "See Money for this grove",
+      "canViewChronologio": "See History for this grove",
+      "canViewHarvest": "See Harvest for this grove",
+      "canWorkHarvest": "Work on harvest for this grove",
       "canCreateRecords": "Create field records and tasks",
       "canCreateOwnRecords": "Add their own records",
       "canCreateTasks": "Create new tasks",
       "canAddMoney": "Add income and expenses",
-      "cannotOpen": "Open {{module}}",
+      "cannotOpen": "See this grove’s {{module}} data",
+      "cannotSeeModuleData": "See this grove’s {{module}} data",
       "cannotCreateRecords": "Cannot create new field records",
       "cannotCreateTasks": "Cannot create new tasks",
       "cannotAddMoney": "Cannot add income or expenses",
@@ -222,10 +224,10 @@
       "help": "Update tasks",
       "work": "Records and tasks"
     },
-    "levelHints": {
-      "view": "Sees the selected parts. Cannot change data.",
+      "levelHints": {
+      "view": "Sees selected grove data. Cannot change data.",
       "help": "Updates existing and assigned tasks. Cannot create new tasks, expenses, or records.",
-      "work": "Adds their own records, photos, and tasks in the selected parts. Cannot delete other people’s records or manage access."
+      "work": "Adds their own records, photos, and tasks for the selected grove areas. Cannot delete other people’s records or manage access."
     },
     "acceptTitle": "Family invite",
     "acceptBody": "You’re invited to {{field}} as family. You’ll get access for: {{modules}}.",
@@ -468,7 +470,48 @@
     "email": "Email",
     "phone": "Phone",
     "customize": "Customize access",
+    "relationshipTitle": "Relationship",
+    "actionTitle": "What they can do",
+    "actionHint": "This sets whether they only look, also record, or also work with tasks.",
+    "areasTitle": "Grove areas",
+    "areasHint": "Open the parts of the app they need on this grove.",
+    "moduleClosed": "Closed — they cannot open this part.",
+    "oilNote": "Oil follows the grove and harvest. It has no separate permission.",
+    "moduleEffect": {
+      "fields": {
+        "view": "Sees grove details and the map.",
+        "record": "Sees grove details and the map.",
+        "work": "Sees grove details and the map."
+      },
+      "chronologio": {
+        "view": "Sees the history.",
+        "record": "Sees and adds records.",
+        "work": "Sees and adds records."
+      },
+      "tasks": {
+        "view": "Sees tasks.",
+        "record": "Sees tasks.",
+        "work": "Sees, updates, and creates tasks."
+      },
+      "photos": {
+        "view": "Sees photos.",
+        "record": "Sees and uploads photos.",
+        "work": "Sees and uploads photos."
+      },
+      "money": {
+        "view": "Sees income and expenses.",
+        "record": "Sees and records income/expenses.",
+        "work": "Sees and records income/expenses."
+      },
+      "harvest": {
+        "view": "Sees harvest.",
+        "record": "Sees harvest.",
+        "work": "Sees and takes part in harvest."
+      }
+    },
     "sendInvite": "Send invitation",
+    "inviteSentExisting": "They already use Oleachron — notified in the app and by email.",
+    "inviteSentNew": "Invite email sent. They can register with the link or code.",
     "editTitle": "{{name}}",
     "editHint": "This change applies only to this grove.",
     "inviteStep": "Step {{step}} of {{total}}",
@@ -544,7 +587,7 @@
       "1": { "title": "Who do you want to invite?", "hint": "Pick a contact or enter email and phone." },
       "2": { "title": "Which groves?", "hint": "One person can have a relationship with more than one grove." },
       "3": { "title": "What is the relationship?", "hint": "Relationship does not by itself decide what they can do." },
-      "4": { "title": "What can they do?", "hint": "Family and collaborator can have the same or different access." },
+      "4": { "title": "What can they do?", "hint": "Choose how deep they can act and which grove areas open." },
       "5": { "title": "Review", "hint": "This sends one invitation for each selected grove." }
     }
   }

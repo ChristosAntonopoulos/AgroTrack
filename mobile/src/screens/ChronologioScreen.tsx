@@ -186,7 +186,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       return;
     }
     void getFieldService()
-      .getFields(user.id, user.role || 'FieldOwner')
+      .getFields(user.id, user.role || 'FieldOwner', 'chronologio')
       .then(setFields)
       .catch(() => undefined);
   }, [user?.id, user?.role]);

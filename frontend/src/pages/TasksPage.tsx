@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
@@ -158,7 +158,7 @@ const TasksPage: React.FC = () => {
       setError(null);
       const fw = getFieldWorkService();
       const [fieldsData, proposalsData, tasksData] = await Promise.all([
-        getFieldService().getFields().catch(() => [] as Field[]),
+        getFieldService().getFields('tasks').catch(() => [] as Field[]),
         fw.listProposals({ resultYear: yearFilter }),
         fw.listFieldTasks({ resultYear: yearFilter }),
       ]);
@@ -550,9 +550,6 @@ const TasksPage: React.FC = () => {
         <LoadingSpinner />
       </PageContainer>
     );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=tasks" replace />;
   }
 
   if (loading) {

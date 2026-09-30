@@ -1,6 +1,14 @@
 /** Report shapes returned by the live reports API. Mock fixtures live elsewhere. */
 
-export type ReportTypeId = 'weather-month' | 'weather-year' | 'year-overview';
+export type ReportTypeId =
+  | 'weather-month'
+  | 'weather-year'
+  | 'year-overview'
+  | 'agronomic'
+  | 'farm-account'
+  | 'traceability'
+  | 'comparison'
+  | 'work-register';
 
 export interface FieldSummaryData {
   fieldId: string;
@@ -89,6 +97,10 @@ export interface ProfitLossData {
   profitPerHa: number;
   profitPerTree: number;
   profitByField: { fieldId: string; fieldName: string; profit: number; profitPerHa: number; cost?: number; revenue?: number }[];
+  /** Posted receipts by ledger category, when the API classified them. */
+  incomeByCategory?: Record<string, number>;
+  /** Posted costs by ledger category, when the API classified them. */
+  expensesByCategory?: Record<string, number>;
 }
 
 export interface FieldComparisonRow {
@@ -180,6 +192,9 @@ export interface FieldYearlyOperations {
   wettestMonth?: number;
   rainVsPreviousPercent?: number;
   ndviMean?: number;
+  et0TotalMm?: number;
+  /** Rainfall minus reference evapotranspiration. Absent when ET₀ was not recorded. */
+  waterBalanceMm?: number | null;
   monthlyRainMm: number[];
   totalCost: number;
   revenue: number;

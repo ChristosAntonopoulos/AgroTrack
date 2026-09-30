@@ -63,6 +63,32 @@ public class FieldInviteRepository : IFieldInviteRepository
         return documents.Select(ToEntity);
     }
 
+    public async Task<IReadOnlyList<FieldInvite>> GetPendingForUserAsync(
+        string userId,
+        string? email,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var filter = Builders<FieldInviteDocument>.Filter.And(
+            Builders<FieldInviteDocument>.Filter.Eq(x => x.Status, FamilyInviteStatuses.Pending),
+            Builders<FieldInviteDocument>.Filter.Gt(x => x.ExpiresAt, now));
+
+        var identity = Builders<FieldInviteDocument>.Filter.Eq(x => x.TargetUserId, userId);
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var normalized = email.Trim().ToLowerInvariant();
+            identity = Builders<FieldInviteDocument>.Filter.Or(
+                identity,
+                Builders<FieldInviteDocument>.Filter.Eq(x => x.Email, normalized));
+        }
+
+        var documents = await _collection
+            .Find(Builders<FieldInviteDocument>.Filter.And(filter, identity))
+            .SortByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
+    }
+
     private static FieldInvite ToEntity(FieldInviteDocument doc)
     {
         var invite = new FieldInvite
@@ -79,6 +105,7 @@ public class FieldInviteRepository : IFieldInviteRepository
             Phone = doc.Phone,
             Email = doc.Email,
             DisplayName = doc.DisplayName,
+            TargetUserId = doc.TargetUserId,
             Status = doc.Status,
             ExpiresAt = doc.ExpiresAt,
             AcceptedBy = doc.AcceptedBy,
@@ -108,6 +135,7 @@ public class FieldInviteRepository : IFieldInviteRepository
         Phone = entity.Phone,
         Email = entity.Email,
         DisplayName = entity.DisplayName,
+        TargetUserId = entity.TargetUserId,
         Status = entity.Status,
         ExpiresAt = entity.ExpiresAt,
         AcceptedBy = entity.AcceptedBy,

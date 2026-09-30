@@ -53,7 +53,7 @@ const FieldsListScreen = () => {
   const [sortBy, setSortBy] = useState<SortKey>('name');
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const { fields, loading, fieldTodayTaskCounts, refresh } = useFields();
+  const { fields, loading, fieldTodayTaskCounts, refresh } = useFields('fields');
   const { refreshing, onRefresh } = useRefresh(refresh);
   const tasksReady = !loading || fields.length > 0;
   const canCreate = isFieldOwner();

@@ -15,6 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.oleachron.app",
+      "associatedDomains": [
+        "applinks:app.oleachron.app"
+      ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
         "NSLocationAlwaysUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
@@ -31,6 +35,30 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.oleachron.app",
+              "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "app.oleachron.app",
+              "pathPrefix": "/family-invite"
+            },
+            {
+              "scheme": "https",
+              "host": "app.oleachron.app",
+              "pathPrefix": "/partner-invite"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -39,7 +67,8 @@
         "android.permission.ACCESS_MEDIA_LOCATION",
         "android.permission.READ_CONTACTS",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {

@@ -139,6 +139,7 @@ export const reportsService = {
       }>;
       expensesByBucket?: Record<string, number>;
       expensesByCategory?: Record<string, number>;
+      incomeByCategory?: Record<string, number>;
     }>('/api/v1/reports/profit-loss', seasonParams(season));
 
     const data = response.data;
@@ -209,6 +210,8 @@ export const reportsService = {
       profitPerHa: 0,
       profitPerTree: 0,
       profitByField,
+      incomeByCategory: normalizeLedger(data.incomeByCategory),
+      expensesByCategory: normalizeLedger(data.expensesByCategory ?? byCategory),
     };
   },
 
@@ -249,6 +252,15 @@ export const reportsService = {
     };
   },
 };
+
+function normalizeLedger(raw?: Record<string, number>): Record<string, number> | undefined {
+  if (!raw) return undefined;
+  const entries = Object.entries(raw)
+    .map(([key, value]) => [key, Number(value) || 0] as const)
+    .filter(([, value]) => value > 0);
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries);
+}
 
 function mapMonthlyField(row: FieldMonthlyWeather): FieldMonthlyWeather {
   return {

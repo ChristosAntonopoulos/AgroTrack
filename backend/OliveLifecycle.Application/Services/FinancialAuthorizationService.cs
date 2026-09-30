@@ -132,16 +132,21 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
         if (seat != null)
         {
             var hasMoney = FieldPeopleRules.HasModule(field, userId, FamilyModules.Money);
-            if (!hasMoney || !FamilyAccessLevels.CanCreateContent(seat.AccessLevel))
+            if (!hasMoney)
             {
                 return FinancialAccess.None;
             }
 
+            var canWrite = FamilyAccessLevels.CanCreateContent(seat.AccessLevel);
+
             // Family keeps the household books. A partner with the money module
-            // may only add their own expenses.
-            return seat.Role == FieldPersonRole.Family
-                ? HouseholdAccess()
-                : CollaboratorAccess();
+            // may only add (and see) their own expenses. View depth = read only.
+            if (seat.Role == FieldPersonRole.Family)
+            {
+                return canWrite ? HouseholdAccess() : HouseholdViewAccess();
+            }
+
+            return canWrite ? CollaboratorAccess() : CollaboratorViewAccess();
         }
 
         return FinancialAccess.None;
@@ -158,10 +163,21 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
         Capabilities = FinancialCapabilities.HouseholdBooks.ToHashSet()
     };
 
+    private static FinancialAccess HouseholdViewAccess() => new()
+    {
+        Capabilities = FinancialCapabilities.HouseholdViewOnly.ToHashSet()
+    };
+
     private static FinancialAccess CollaboratorAccess() => new()
     {
         OwnExpensesOnly = true,
         Capabilities = FinancialCapabilities.CollaboratorExpenseOnly.ToHashSet()
+    };
+
+    private static FinancialAccess CollaboratorViewAccess() => new()
+    {
+        OwnExpensesOnly = true,
+        Capabilities = new HashSet<string>()
     };
 
     private static bool IsProfessionalRole(string userRole) =>

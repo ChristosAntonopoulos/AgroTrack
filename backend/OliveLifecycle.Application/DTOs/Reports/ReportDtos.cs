@@ -57,6 +57,7 @@ public class ProfitLossReportDto
     public List<FieldProfitDto> ProfitByField { get; set; } = new();
     public Dictionary<string, decimal> ExpensesByBucket { get; set; } = new();
     public Dictionary<string, decimal> ExpensesByCategory { get; set; } = new();
+    public Dictionary<string, decimal> IncomeByCategory { get; set; } = new();
 }
 
 public class FieldProfitDto
@@ -133,6 +134,8 @@ public class FieldYearlyOperationsDto
     public int? WettestMonth { get; set; }
     public double? RainVsPreviousPercent { get; set; }
     public double? NdviMean { get; set; }
+    public double Et0TotalMm { get; set; }
+    public double? WaterBalanceMm { get; set; }
     public List<double> MonthlyRainMm { get; set; } = new();
     public decimal TotalCost { get; set; }
     public decimal Revenue { get; set; }

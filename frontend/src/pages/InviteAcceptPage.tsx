@@ -257,8 +257,9 @@ const InviteAcceptPage: React.FC = () => {
                   {t('fields:people.declineInvite')}
                 </Button>
               </>
-            ) : (
+            ) : invite.inviteeHasAccount ? (
               <>
+                <p className="invite-accept-note">{t('fields:people.inviteExistingAccountHint')}</p>
                 <Button
                   as={Link}
                   to={authPathWithIntent('/login', intent)}
@@ -270,10 +271,29 @@ const InviteAcceptPage: React.FC = () => {
                 <Button
                   as={Link}
                   to={authPathWithIntent('/register', intent)}
-                  variant="outline"
+                  variant="ghost"
                   className="btn-full-width"
                 >
                   {t('fields:people.inviteCreateAccount')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  as={Link}
+                  to={authPathWithIntent('/register', intent)}
+                  variant="primary"
+                  className="btn-full-width"
+                >
+                  {t('fields:people.inviteCreateAccount')}
+                </Button>
+                <Button
+                  as={Link}
+                  to={authPathWithIntent('/login', intent)}
+                  variant="outline"
+                  className="btn-full-width"
+                >
+                  {t('fields:people.inviteSignIn')}
                 </Button>
               </>
             )}

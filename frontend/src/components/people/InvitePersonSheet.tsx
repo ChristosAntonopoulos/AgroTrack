@@ -10,8 +10,8 @@ import {
   defaultPresetForRelationship,
   levelForChoice,
   modulesForChoice,
-  VISIBLE_MODULES,
 } from '../../people/aggregatePeople';
+import FieldPermissionPanel from './FieldPermissionPanel';
 
 type Relationship = 'Family' | 'Collaborator';
 type WhoMode = 'search' | 'new';
@@ -69,9 +69,9 @@ const InvitePersonSheet: React.FC<Props> = ({
   const [choice, setChoice] = useState<AccessChoice>('view');
   const [choiceTouched, setChoiceTouched] = useState(false);
   const [modules, setModules] = useState<FieldModule[]>(modulesForChoice('view'));
-  const [customize, setCustomize] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [successHint, setSuccessHint] = useState('');
   const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
@@ -79,6 +79,7 @@ const InvitePersonSheet: React.FC<Props> = ({
     setStep(1);
     setAttempted(false);
     setError('');
+    setSuccessHint('');
   }, [open]);
 
   const typedEmail = email.trim() || (looksLikeEmail(query) ? query.trim() : '');
@@ -140,13 +141,6 @@ const InvitePersonSheet: React.FC<Props> = ({
   const pickChoice = (next: AccessChoice) => {
     setChoiceTouched(true);
     setChoice(next);
-    setModules(modulesForChoice(next));
-  };
-
-  const toggleModule = (module: FieldModule) => {
-    setModules((current) =>
-      current.includes(module) ? current.filter((item) => item !== module) : [...current, module]
-    );
   };
 
   const toggleField = (id: string) => {
@@ -181,7 +175,7 @@ const InvitePersonSheet: React.FC<Props> = ({
     setSending(true);
     setError('');
     try {
-      await fieldPeopleService.createInvites({
+      const created = await fieldPeopleService.createInvites({
         fieldIds: targets,
         relationship,
         accessPreset: levelForChoice(choice),
@@ -190,8 +184,20 @@ const InvitePersonSheet: React.FC<Props> = ({
         phone: (phone.trim() || typedPhone) || undefined,
         displayName: name.trim() || undefined,
       });
+      const anyExisting = created.some((invite) => invite.inviteeHasAccount);
+      const anyNotified = created.some((invite) => invite.notificationQueued);
+      setSuccessHint(
+        anyExisting
+          ? t('partners:peoplePage.inviteSentExisting', {
+              defaultValue: anyNotified
+                ? 'They already use Oleachron — notified in the app and by email.'
+                : 'They already use Oleachron — invite email sent.',
+            })
+          : t('partners:peoplePage.inviteSentNew', {
+              defaultValue: 'Invite email sent. They can register with the link or code.',
+            })
+      );
       onSent();
-      onClose();
     } catch (err) {
       setError(getApiErrorMessage(err, t));
     } finally {
@@ -207,11 +213,20 @@ const InvitePersonSheet: React.FC<Props> = ({
   return (
     <PartnersSheet
       open={open}
+      size={step >= 4 ? 'lg' : 'md'}
       kicker={t('partners:peoplePage.inviteStep', { step, total: STEPS })}
       title={t(`partners:peoplePage.steps.${step}.title`)}
       subtitle={t(`partners:peoplePage.steps.${step}.hint`)}
       onClose={onClose}
       footer={
+        successHint ? (
+          <div className="invite-footer">
+            <span className="invite-footer-spacer" />
+            <Button variant="primary" onClick={onClose}>
+              {t('common:done', { defaultValue: 'Done' })}
+            </Button>
+          </div>
+        ) : (
         <div className="invite-footer">
           {step > 1 ? (
             <Button variant="ghost" onClick={() => setStep((value) => value - 1)} disabled={sending}>
@@ -235,10 +250,18 @@ const InvitePersonSheet: React.FC<Props> = ({
             </Button>
           )}
         </div>
+        )
       }
     >
       {error ? <p className="people-error">{error}</p> : null}
+      {successHint ? (
+        <p className="people-success" role="status">
+          {successHint}
+        </p>
+      ) : null}
 
+      {!successHint ? (
+      <>
       <div className="invite-progress" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step}>
         {Array.from({ length: STEPS }, (_, index) => {
           const number = index + 1;
@@ -526,61 +549,17 @@ const InvitePersonSheet: React.FC<Props> = ({
       ) : null}
 
       {step === 4 ? (
-        <div className="invite-form">
-          <ul className="invite-option-list">
-            {(['view', 'record', 'work'] as AccessChoice[]).map((option) => {
-              const selected = choice === option;
-              return (
-                <li key={option}>
-                  <button
-                    type="button"
-                    className={`invite-option${selected ? ' is-on' : ''}`}
-                    aria-pressed={selected}
-                    onClick={() => pickChoice(option)}
-                  >
-                    <span className="invite-option-copy">
-                      <strong>{t(`partners:peoplePage.preset.${option}`)}</strong>
-                      <span>{t(`partners:peoplePage.presetHint.${option}`)}</span>
-                    </span>
-                    {selected ? <Check size={18} aria-hidden /> : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          <button
-            type="button"
-            className={`invite-option invite-option-soft${customize ? ' is-on' : ''}`}
-            aria-pressed={customize}
-            onClick={() => setCustomize((value) => !value)}
-          >
-            <span className="invite-option-copy">
-              <strong>{t('partners:peoplePage.customize')}</strong>
-            </span>
-            {customize ? <Check size={18} aria-hidden /> : null}
-          </button>
-
-          {customize ? (
-            <ul className="invite-module-list">
-              {VISIBLE_MODULES.map((module) => {
-                const selected = modules.includes(module);
-                return (
-                  <li key={module}>
-                    <label className={`invite-module${selected ? ' is-on' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleModule(module)}
-                      />
-                      <span>{t(`partners:peoplePage.modules.${module}`)}</span>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </div>
+        <FieldPermissionPanel
+          choice={choice}
+          modules={modules}
+          role={relationship === 'Collaborator' ? 'Partner' : 'Family'}
+          previewMode="invite"
+          onPickChoice={pickChoice}
+          onChangeModules={(next) => {
+            setChoiceTouched(true);
+            setModules(next);
+          }}
+        />
       ) : null}
 
       {step === 5 ? (
@@ -622,6 +601,8 @@ const InvitePersonSheet: React.FC<Props> = ({
             </ul>
           </div>
         </div>
+      ) : null}
+      </>
       ) : null}
     </PartnersSheet>
   );

@@ -5,6 +5,8 @@ const STORAGE_KEY = '@Oleachron/inviteIntent';
 export type InviteIntent = {
   token?: string;
   code?: string;
+  email?: string;
+  name?: string;
 };
 
 let memory: InviteIntent | null = null;
@@ -20,6 +22,8 @@ export const mergeInviteIntent = (...parts: Array<InviteIntent | null | undefine
     if (!part) continue;
     if (part.token) merged.token = tokenFromValue(part.token);
     if (part.code) merged.code = tokenFromValue(part.code);
+    if (part.email?.trim()) merged.email = part.email.trim();
+    if (part.name?.trim()) merged.name = part.name.trim();
   }
   return merged;
 };

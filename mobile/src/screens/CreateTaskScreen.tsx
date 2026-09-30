@@ -71,7 +71,7 @@ const CreateTaskScreen = () => {
     (async () => {
       try {
         const fieldsData = await getFieldService()
-          .getFields(user?.id ?? '', user?.role ?? 'FieldOwner')
+          .getFields(user?.id ?? '', user?.role ?? 'FieldOwner', 'tasks')
           .catch(() => [] as Field[]);
         if (cancelled) return;
         setFields(fieldsData);

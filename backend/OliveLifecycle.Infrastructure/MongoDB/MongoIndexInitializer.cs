@@ -57,6 +57,12 @@ public class MongoIndexInitializer : IHostedService
             invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
                 Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Code),
                 new CreateIndexOptions { Unique = true, Sparse = true, Name = "ix_field_invites_code" }));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.TargetUserId).Ascending(i => i.Status),
+                new CreateIndexOptions { Sparse = true, Name = "ix_field_invites_targetUser_status" }));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Email).Ascending(i => i.Status),
+                new CreateIndexOptions { Sparse = true, Name = "ix_field_invites_email_status" }));
 
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.Status)));
@@ -154,6 +160,14 @@ public class MongoIndexInitializer : IHostedService
             var userNotifications = _context.GetCollection<UserNotificationDocument>("user_notifications");
             userNotifications.Indexes.CreateOne(new CreateIndexModel<UserNotificationDocument>(
                 Builders<UserNotificationDocument>.IndexKeys.Ascending(n => n.UserId).Descending(n => n.CreatedAt)));
+
+            var pushTokens = _context.GetCollection<DevicePushTokenDocument>("device_push_tokens");
+            pushTokens.Indexes.CreateOne(new CreateIndexModel<DevicePushTokenDocument>(
+                Builders<DevicePushTokenDocument>.IndexKeys.Ascending(t => t.ExpoPushToken),
+                new CreateIndexOptions { Unique = true, Name = "ix_device_push_tokens_token" }));
+            pushTokens.Indexes.CreateOne(new CreateIndexModel<DevicePushTokenDocument>(
+                Builders<DevicePushTokenDocument>.IndexKeys.Ascending(t => t.UserId),
+                new CreateIndexOptions { Name = "ix_device_push_tokens_userId" }));
 
             var savedContacts = _context.GetCollection<SavedContactDocument>("saved_contacts");
             savedContacts.Indexes.CreateOne(new CreateIndexModel<SavedContactDocument>(

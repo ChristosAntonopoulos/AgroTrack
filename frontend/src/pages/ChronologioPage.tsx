@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import PageContainer from '../components/Common/PageContainer';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
@@ -17,10 +17,6 @@ const ChronologioPage: React.FC = () => {
         <LoadingSpinner />
       </PageContainer>
     );
-  }
-
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=chronologio" replace />;
   }
 
   return (

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, Camera, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
@@ -215,7 +215,7 @@ const PhotoHubPage: React.FC = () => {
       setError(null);
       try {
         const [fieldList, list] = await Promise.all([
-          getFieldService().getFields(),
+          getFieldService().getFields('photos'),
           getPhotoService().query({
             fieldId: fieldId || undefined,
             linkStatus: linkStatus === 'all' ? undefined : linkStatus,
@@ -465,9 +465,6 @@ const PhotoHubPage: React.FC = () => {
         <LoadingSpinner />
       </PageContainer>
     );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=photos" replace />;
   }
 
   const viewerPhoto = lightbox.open ? photos[lightbox.index] ?? null : null;

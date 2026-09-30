@@ -141,7 +141,7 @@ const HarvestCampaignScreen = () => {
   const { user, isFieldOwner } = useAuth();
   const familyModules = useFamilyMembershipModules();
   const accessLevel = useActiveFieldAccessLevel();
-  const { fields, loading: fieldsLoading } = useFields();
+  const { fields, loading: fieldsLoading } = useFields('harvest');
   const { campaign, seasonStartYear, isLive, start, stop, pause, resume, markGroveDone, patch } =
     useHarvestCampaign();
   const moneyCapture = useCaptureOptional();

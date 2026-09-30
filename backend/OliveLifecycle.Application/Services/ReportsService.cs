@@ -254,6 +254,15 @@ public class ReportsService : IReportsService
             .Where(e => e.Category.HasValue)
             .GroupBy(e => e.Category!.Value.ToApiString())
             .ToDictionary(g => g.Key, g => RoundMoney(g.Sum(e => e.Amount)));
+        var postedIncome = ledger
+            .Where(e =>
+                e.Type == FinancialTransactionType.Income &&
+                MatchesSeason(e.OccurredOn, season, periodBasis) &&
+                MatchesLifecycleYear(e.ResultYear, lifecycleYear))
+            .ToList();
+        var incomeByCategory = postedIncome
+            .GroupBy(e => e.Category?.ToApiString() ?? FinancialTransactionCategory.OtherIncome.ToApiString())
+            .ToDictionary(g => g.Key, g => RoundMoney(g.Sum(e => e.Amount)));
 
         return new ProfitLossReportDto
         {
@@ -263,7 +272,8 @@ public class ReportsService : IReportsService
             NetProfit = RoundMoney(totalIncome - totalExpenses),
             ProfitByField = profitByField,
             ExpensesByBucket = expensesByBucket,
-            ExpensesByCategory = expensesByCategory
+            ExpensesByCategory = expensesByCategory,
+            IncomeByCategory = incomeByCategory
         };
     }
 
@@ -484,6 +494,8 @@ public class ReportsService : IReportsService
         var mins = days.Where(s => s.MinTemperatureC.HasValue).Select(s => s.MinTemperatureC!.Value).ToList();
         var maxs = days.Where(s => s.MaxTemperatureC.HasValue).Select(s => s.MaxTemperatureC!.Value).ToList();
         var rainTotal = RoundOne(days.Sum(s => s.RainTotalMm ?? 0));
+        var hasEt0 = days.Any(s => s.Et0Mm.HasValue);
+        var et0Total = hasEt0 ? RoundOne(days.Sum(s => s.Et0Mm ?? 0)) : 0;
         int? wettest = null;
         var wettestMm = -1.0;
         for (var m = 1; m <= 12; m++)
@@ -526,6 +538,8 @@ public class ReportsService : IReportsService
             WettestMonth = wettest,
             RainVsPreviousPercent = RainChangePercent(rainTotal, previousRain),
             NdviMean = review?.NdviMean is { } ndvi ? Math.Round(ndvi, 3, MidpointRounding.AwayFromZero) : null,
+            Et0TotalMm = et0Total,
+            WaterBalanceMm = hasEt0 ? RoundOne(rainTotal - et0Total) : null,
             MonthlyRainMm = monthlyRain,
             TotalCost = RoundMoney(totalCost),
             Revenue = RoundMoney(revenue),

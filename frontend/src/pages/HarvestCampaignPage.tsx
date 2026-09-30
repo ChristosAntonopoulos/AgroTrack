@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -196,7 +196,7 @@ const HarvestCampaignPage: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const groveList = await getFieldService().getFields().catch(() => [] as Field[]);
+      const groveList = await getFieldService().getFields('harvest').catch(() => [] as Field[]);
       setFields(groveList);
     } finally {
       setLoading(false);
@@ -1030,9 +1030,6 @@ const HarvestCampaignPage: React.FC = () => {
         <LoadingSpinner />
       </PageContainer>
     );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=harvest" replace />;
   }
 
   return (

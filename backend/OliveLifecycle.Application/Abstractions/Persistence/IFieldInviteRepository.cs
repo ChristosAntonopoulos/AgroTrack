@@ -10,4 +10,8 @@ public interface IFieldInviteRepository
     Task<FieldInvite> UpdateAsync(FieldInvite invite, CancellationToken cancellationToken = default);
     Task<IEnumerable<FieldInvite>> GetByFieldIdAsync(string fieldId, CancellationToken cancellationToken = default);
     Task<IEnumerable<FieldInvite>> GetByInvitedByAsync(string invitedBy, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FieldInvite>> GetPendingForUserAsync(
+        string userId,
+        string? email,
+        CancellationToken cancellationToken = default);
 }

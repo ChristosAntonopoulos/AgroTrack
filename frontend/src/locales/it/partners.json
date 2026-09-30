@@ -179,23 +179,25 @@
       "titleEdit": "Come funzionerà",
       "willBeAble": "Potrà",
       "willNotBeAble": "Non potrà",
-      "nothingSelected": "Apri almeno una parte dell’app.",
-      "closedModules": "Senza: {{list}}",
+      "nothingSelected": "Scegli almeno un’area dell’oliveto così può vederne i dati.",
+      "closedModules": "Non vedrà i dati di questo oliveto in: {{list}}",
       "extraLimits": "{{list}}",
       "baselineLimits": "Non elimina le registrazioni di altri e non gestisce chi altro ha accesso.",
-      "canOpen": "Aprire {{module}}",
-      "canViewTasks": "Vedere le attività",
-      "canManageTasks": "Aggiornare le attività",
-      "canViewPhotos": "Vedere le foto",
-      "canUploadPhotos": "Caricare foto",
-      "canViewMoney": "Vedere Denaro",
-      "canViewChronologio": "Vedere Cronologia",
-      "canViewHarvest": "Vedere Raccolta",
+      "canOpen": "Vedere i dati di questo oliveto in {{module}}",
+      "canViewTasks": "Vedere le attività di questo oliveto",
+      "canManageTasks": "Aggiornare le attività di questo oliveto",
+      "canViewPhotos": "Vedere le foto di questo oliveto",
+      "canUploadPhotos": "Caricare foto di questo oliveto",
+      "canViewMoney": "Vedere Denaro di questo oliveto",
+      "canViewChronologio": "Vedere Cronologia di questo oliveto",
+      "canViewHarvest": "Vedere Raccolta di questo oliveto",
+      "canWorkHarvest": "Lavorare sulla raccolta di questo oliveto",
       "canCreateRecords": "Creare registrazioni e attività",
       "canCreateOwnRecords": "Aggiungere le proprie registrazioni",
       "canCreateTasks": "Creare nuove attività",
       "canAddMoney": "Aggiungere entrate e uscite",
-      "cannotOpen": "Aprire {{module}}",
+      "cannotOpen": "Vedere i dati di questo oliveto in {{module}}",
+      "cannotSeeModuleData": "Vedere i dati di questo oliveto in {{module}}",
       "cannotCreateRecords": "Non crea nuove registrazioni",
       "cannotCreateTasks": "Non crea nuove attività",
       "cannotAddMoney": "Non aggiunge entrate o uscite",
@@ -209,9 +211,9 @@
       "work": "Registrazioni e lavori"
     },
     "levelHints": {
-      "view": "Vede le parti selezionate. Non modifica i dati.",
+      "view": "Vede i dati delle aree selezionate. Non modifica i dati.",
       "help": "Aggiorna lavori esistenti e assegnati. Non crea nuovi lavori, spese o registrazioni.",
-      "work": "Aggiunge le proprie registrazioni, foto e lavori nelle parti selezionate. Non cancella le registrazioni altrui e non gestisce gli accessi."
+      "work": "Aggiunge le proprie registrazioni, foto e lavori nelle aree selezionate dell’oliveto. Non cancella le registrazioni altrui e non gestisce gli accessi."
     },
     "acceptTitle": "Invito famiglia",
     "acceptBody": "Sei invitato a {{field}} come famiglia. Avrai accesso per: {{modules}}.",
@@ -464,6 +466,45 @@
     "email": "Email",
     "phone": "Telefono",
     "customize": "Personalizza accesso",
+    "relationshipTitle": "Rapporto",
+    "actionTitle": "Cosa può fare",
+    "actionHint": "Decide se vede soltanto, se registra, o se lavora anche con le attività.",
+    "areasTitle": "Aree dell'uliveto",
+    "areasHint": "Apri le parti dell'app di cui ha bisogno su questo uliveto.",
+    "moduleClosed": "Chiuso — non vede questa parte.",
+    "oilNote": "L'olio segue l'uliveto e la raccolta. Non ha un permesso separato.",
+    "moduleEffect": {
+      "fields": {
+        "view": "Vede i dettagli e la mappa dell'uliveto.",
+        "record": "Vede i dettagli e la mappa dell'uliveto.",
+        "work": "Vede i dettagli e la mappa dell'uliveto."
+      },
+      "chronologio": {
+        "view": "Vede la cronologia.",
+        "record": "Vede e aggiunge registrazioni.",
+        "work": "Vede e aggiunge registrazioni."
+      },
+      "tasks": {
+        "view": "Vede le attività.",
+        "record": "Vede le attività.",
+        "work": "Vede, aggiorna e crea attività."
+      },
+      "photos": {
+        "view": "Vede le foto.",
+        "record": "Vede e carica foto.",
+        "work": "Vede e carica foto."
+      },
+      "money": {
+        "view": "Vede entrate e uscite.",
+        "record": "Vede e registra entrate/uscite.",
+        "work": "Vede e registra entrate/uscite."
+      },
+      "harvest": {
+        "view": "Vede la raccolta.",
+        "record": "Vede la raccolta.",
+        "work": "Vede e partecipa alla raccolta."
+      }
+    },
     "sendInvite": "Invia invito",
     "editTitle": "{{name}}",
     "editHint": "La modifica vale solo per questo uliveto.",
@@ -540,7 +581,7 @@
       "1": { "title": "Chi vuoi invitare?", "hint": "Scegli un contatto oppure inserisci email e telefono." },
       "2": { "title": "In quali uliveti?", "hint": "Una persona può avere un rapporto con più uliveti." },
       "3": { "title": "Che rapporto ha?", "hint": "Il rapporto non decide da solo cosa può fare." },
-      "4": { "title": "Cosa può fare?", "hint": "Famiglia e collaboratore possono avere lo stesso accesso o uno diverso." },
+      "4": { "title": "Cosa può fare?", "hint": "Scegli quanto può agire e quali aree dell'uliveto si aprono." },
       "5": { "title": "Controllo", "hint": "Parte un invito per ogni uliveto selezionato." }
     }
   }

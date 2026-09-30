@@ -258,6 +258,8 @@ public class ReportsServiceTests
         var row = Assert.Single(report.Fields);
 
         Assert.Equal(56, row.RainTotalMm);
+        Assert.Equal(28, row.Et0TotalMm);
+        Assert.Equal(28, row.WaterBalanceMm);
         Assert.Equal(3, row.WettestMonth);
         Assert.Equal(500m, row.TotalCost);
         Assert.Equal(200m, row.Revenue);

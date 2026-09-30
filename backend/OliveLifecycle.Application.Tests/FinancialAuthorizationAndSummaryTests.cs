@@ -102,6 +102,61 @@ public class FinancialAuthorizationServiceTests
     }
 
     [Fact]
+    public async Task Family_WithMoneyView_CanReadButNotWrite()
+    {
+        var field = ActiveField();
+        FieldPeopleRules.AddOrReplaceSeat(
+            field,
+            FieldPersonRole.Family,
+            "family-view",
+            [FamilyModules.Money, FamilyModules.Fields],
+            FamilyAccessLevels.View,
+            "owner-1",
+            status: FamilyMemberStatuses.Active);
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
+        _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "family-view", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _access.Setup(a => a.CanUserModifyFieldAsync("field-1", "family-view", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _service.ResolveForFieldAsync("field-1", "family-view", Roles.FieldOwner);
+
+        Assert.True(result.Can(FinancialCapabilities.ViewSummary));
+        Assert.True(result.Can(FinancialCapabilities.ViewTransactions));
+        Assert.True(result.Can(FinancialCapabilities.ViewIncome));
+        Assert.False(result.Can(FinancialCapabilities.AddExpense));
+        Assert.False(result.Can(FinancialCapabilities.AddIncome));
+        Assert.True(_service.CanViewTransaction(result, PostedIncome(), "family-view"));
+    }
+
+    [Fact]
+    public async Task Partner_WithMoneyView_SeesOwnExpensesOnly_CannotAdd()
+    {
+        var field = ActiveField();
+        FieldPeopleRules.AddOrReplaceSeat(
+            field,
+            FieldPersonRole.Partner,
+            "helper-view",
+            [FamilyModules.Money],
+            FamilyAccessLevels.View,
+            "owner-1",
+            status: FamilyMemberStatuses.Active);
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
+        _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "helper-view", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _access.Setup(a => a.CanUserModifyFieldAsync("field-1", "helper-view", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _service.ResolveForFieldAsync("field-1", "helper-view", Roles.FieldOwner);
+
+        Assert.True(result.OwnExpensesOnly);
+        Assert.False(result.Can(FinancialCapabilities.AddExpense));
+        Assert.True(_service.CanViewTransaction(result, PostedExpense("helper-view"), "helper-view"));
+        Assert.False(_service.CanViewTransaction(result, PostedExpense("other"), "helper-view"));
+        Assert.False(_service.CanViewTransaction(result, PostedIncome(), "helper-view"));
+    }
+
+    [Fact]
     public async Task Owner_HasFullAccess()
     {
         var field = ActiveField();

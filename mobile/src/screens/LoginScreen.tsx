@@ -25,7 +25,7 @@ const LoginScreen = () => {
   const { t } = useTranslation(['auth', 'common']);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(route.params?.email?.trim() || '');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | undefined>();
   const [passwordError, setPasswordError] = useState<string | undefined>();
@@ -37,13 +37,18 @@ const LoginScreen = () => {
     void rememberInviteIntent({
       token: route.params?.token,
       code: route.params?.code,
+      email: route.params?.email,
     });
-  }, [route.params?.token, route.params?.code]);
+    if (route.params?.email?.trim() && !email.trim()) {
+      setEmail(route.params.email.trim());
+    }
+  }, [route.params?.token, route.params?.code, route.params?.email]);
 
   const persistInvite = () => {
     void rememberInviteIntent({
       token: route.params?.token,
       code: route.params?.code,
+      email: route.params?.email || email.trim() || undefined,
     });
   };
 
@@ -146,6 +151,7 @@ const LoginScreen = () => {
           navigation.navigate('Register', {
             token: route.params?.token,
             code: route.params?.code,
+            email: route.params?.email || email.trim() || undefined,
           })
         }
         style={authLinkStyles.row}

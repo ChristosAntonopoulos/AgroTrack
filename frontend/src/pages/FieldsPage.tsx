@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
@@ -82,7 +82,7 @@ const FieldsPage: React.FC = () => {
   const loadFields = async () => {
     try {
       if (fields.length === 0) setLoading(true);
-      setFields(await getFieldService().getFields());
+      setFields(await getFieldService().getFields('fields'));
       setShowingCachedData(!isDeviceOnline());
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:failedLoad'));
@@ -266,9 +266,6 @@ const FieldsPage: React.FC = () => {
         <LoadingSpinner />
       </PageContainer>
     );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=fields" replace />;
   }
 
   return (

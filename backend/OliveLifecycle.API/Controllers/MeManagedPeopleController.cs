@@ -47,4 +47,13 @@ public class MeManagedPeopleController : BaseApiController
         var invites = await _people.CreateInvitesAsync(UserContext.UserId, dto, baseUrl, cancellationToken);
         return OkResult(invites);
     }
+
+    /// <summary>Pending field invites for the signed-in user’s email / account.</summary>
+    [HttpGet("invites/pending")]
+    public async Task<ActionResult<IReadOnlyList<FieldInviteDto>>> GetPendingInvites(CancellationToken cancellationToken)
+    {
+        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var invites = await _people.GetPendingInvitesForUserAsync(UserContext.UserId, baseUrl, cancellationToken);
+        return OkResult(invites);
+    }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Navigate, Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -126,7 +126,7 @@ const MoneyPage: React.FC = () => {
     void (async () => {
       try {
         setLoading(true);
-        const list = await getFieldService().getFields();
+        const list = await getFieldService().getFields('money');
         if (cancelled) return;
         setFields(list.filter((field) => field.status !== 'Draft'));
         setShowingCachedData(!isDeviceOnline());
@@ -364,9 +364,6 @@ const MoneyPage: React.FC = () => {
         <LoadingSpinner />
       </PageContainer>
     );
-  }
-  if (!pageGuard.allowed) {
-    return <Navigate to="/access-denied?module=money" replace />;
   }
 
   if (loading && !summary) {

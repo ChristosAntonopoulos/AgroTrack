@@ -11,6 +11,7 @@ using OliveLifecycle.Infrastructure.Persistence;
 using OliveLifecycle.Infrastructure.Persistence.Repositories;
 using OliveLifecycle.Infrastructure.Geospatial;
 using OliveLifecycle.Infrastructure.FieldWork;
+using OliveLifecycle.Infrastructure.Push;
 using OliveLifecycle.Infrastructure.Storage;
 
 namespace OliveLifecycle.Infrastructure;
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IServiceProviderProfileRepository, ServiceProviderProfileRepository>();
         services.AddScoped<IServiceContactRequestRepository, ServiceContactRequestRepository>();
         services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
+        services.AddScoped<IDevicePushTokenRepository, DevicePushTokenRepository>();
         services.AddScoped<ISavedContactRepository, SavedContactRepository>();
         services.AddScoped<INoteRepository, NoteRepository>();
         services.AddScoped<IMediaAttachmentRepository, MediaAttachmentRepository>();
@@ -61,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IPhotoUploadSessionStore, FilePhotoUploadSessionStore>();
         services.AddScoped<IImageMetadataService, ImageMetadataService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient<IPushNotificationSender, ExpoPushNotificationSender>();
 
         services.AddGeospatial(configuration);
 

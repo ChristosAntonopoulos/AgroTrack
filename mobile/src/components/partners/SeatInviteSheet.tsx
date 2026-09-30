@@ -28,6 +28,9 @@ type Props = {
   onCreated?: (invite: FieldInvite) => void;
 };
 
+const RELATIONSHIP_OPTIONS: FieldPersonRole[] = ['Family', 'Partner'];
+const ACCESS_PRESETS = ['view', 'record', 'work'] as const;
+
 const SeatInviteSheet: React.FC<Props> = ({
   visible,
   role,
@@ -38,7 +41,7 @@ const SeatInviteSheet: React.FC<Props> = ({
   onClose,
   onCreated,
 }) => {
-  const { t } = useTranslation(['partners', 'common']);
+  const { t } = useTranslation(['partners', 'common', 'fields']);
   const { colors } = useTheme();
   const [relationship, setRelationship] = useState<FieldPersonRole>(role === 'Admin' ? 'Family' : role);
   const isPartner = relationship === 'Partner';
@@ -79,6 +82,54 @@ const SeatInviteSheet: React.FC<Props> = ({
     }
   };
 
+  const accessStep = (
+    <>
+      <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
+        {t('partners:peoplePage.steps.3.title', { defaultValue: 'Relationship' })}
+      </Text>
+      {RELATIONSHIP_OPTIONS.map((option) => (
+        <Button
+          key={option}
+          title={t(`partners:peoplePage.relationship.${option === 'Partner' ? 'Collaborator' : 'Family'}`, {
+            defaultValue: option,
+          })}
+          variant={relationship === option ? 'primary' : 'outline'}
+          onPress={() => setRelationship(option)}
+        />
+      ))}
+      <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12, marginBottom: 8 }}>
+        {t('partners:peoplePage.steps.4.title', { defaultValue: 'Access' })}
+      </Text>
+      {ACCESS_PRESETS.map((option) => (
+        <Button
+          key={option}
+          title={t(`partners:peoplePage.preset.${option}`, { defaultValue: option })}
+          variant={choice === option ? 'primary' : 'outline'}
+          onPress={() => {
+            setChoice(option);
+            setAccessLevel(option === 'view' ? 'view' : 'work');
+            setModules(
+              option === 'work'
+                ? ['chronologio', 'photos', 'tasks', 'harvest']
+                : ['chronologio', 'photos']
+            );
+          }}
+        />
+      ))}
+      <AccessFields
+        modules={modules}
+        accessLevel={accessLevel}
+        showLevels={false}
+        onToggleModule={(module) =>
+          setModules((prev) =>
+            prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
+          )
+        }
+        onSetLevel={setAccessLevel}
+      />
+    </>
+  );
+
   return (
     <PartnersSheet
       visible={visible}
@@ -116,7 +167,20 @@ const SeatInviteSheet: React.FC<Props> = ({
       }
     >
       {invite ? (
-        <InviteSharePanel invite={invite} copyNs={ns} onDone={onClose} />
+        <>
+          <Text style={{ color: colors.textSecondary, marginBottom: 8 }}>
+            {invite.inviteeHasAccount
+              ? t('fields:people.inviteSentExisting', {
+                  defaultValue: invite.notificationQueued
+                    ? 'They already use Oleachron — notified in the app and by email.'
+                    : 'They already use Oleachron — invite email sent.',
+                })
+              : t('fields:people.inviteSentNew', {
+                  defaultValue: 'Invite email sent. They can register with the link or code.',
+                })}
+          </Text>
+          <InviteSharePanel invite={invite} copyNs={ns} onDone={onClose} />
+        </>
       ) : (
         <>
           {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
@@ -138,49 +202,7 @@ const SeatInviteSheet: React.FC<Props> = ({
               />
             </>
           ) : (
-            <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
-              {t('partners:peoplePage.steps.3.title', { defaultValue: 'Relationship' })}
-            </Text>
-            {(['Family', 'Partner'] as FieldPersonRole[]).map((option) => (
-              <Button
-                key={option}
-                title={t(`partners:peoplePage.relationship.${option === 'Partner' ? 'Collaborator' : 'Family'}`, {
-                  defaultValue: option,
-                })}
-                variant={relationship === option ? 'primary' : 'outline'}
-                onPress={() => setRelationship(option)}
-              />
-            ))}
-            <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12, marginBottom: 8 }}>
-              {t('partners:peoplePage.steps.4.title', { defaultValue: 'Access' })}
-            </Text>
-            {(['view', 'record', 'work'] as const).map((option) => (
-              <Button
-                key={option}
-                title={t(`partners:peoplePage.preset.${option}`, { defaultValue: option })}
-                variant={choice === option ? 'primary' : 'outline'}
-                onPress={() => {
-                  setChoice(option);
-                  setAccessLevel(option === 'view' ? 'view' : 'work');
-                  setModules(
-                    option === 'work'
-                      ? ['chronologio', 'photos', 'tasks', 'harvest']
-                      : ['chronologio', 'photos']
-                  );
-                }}
-              />
-            ))}
-            <AccessFields
-              modules={modules}
-              accessLevel={accessLevel}
-              showLevels={false}
-              onToggleModule={(module) =>
-                setModules((prev) =>
-                  prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
-                )
-              }
-              onSetLevel={setAccessLevel}
-            />
+            accessStep
           )}
         </>
       )}

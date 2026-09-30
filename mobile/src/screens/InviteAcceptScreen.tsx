@@ -51,6 +51,8 @@ const InviteAcceptScreen = () => {
         await rememberInviteIntent({
           token: next.token || token,
           code: next.code,
+          email: next.email,
+          name: next.displayName,
         });
       } catch {
         setError(t('fields:people.inviteMissing'));
@@ -134,8 +136,13 @@ const InviteAcceptScreen = () => {
   const goAuth = (screen: 'Login' | 'Register') => {
     const intentToken = invite?.token || token;
     if (intentToken) setPendingInviteToken(intentToken);
-    void rememberInviteIntent({ token: intentToken, code: invite?.code });
-    const params = { token: intentToken, code: invite?.code };
+    void rememberInviteIntent({
+      token: intentToken,
+      code: invite?.code,
+      email: invite?.email,
+      name: invite?.displayName,
+    });
+    const params = { token: intentToken, code: invite?.code, email: invite?.email };
     const names = navigation.getState()?.routeNames || [];
     if (names.includes('Login')) {
       navigation.navigate(screen, params);
@@ -229,7 +236,12 @@ const InviteAcceptScreen = () => {
               <Button
                 title={t('fields:people.switchAccount')}
                 onPress={() => {
-                  void rememberInviteIntent({ token: invite.token || token, code: invite.code });
+                  void rememberInviteIntent({
+                    token: invite.token || token,
+                    code: invite.code,
+                    email: invite.email,
+                    name: invite.displayName,
+                  });
                   void logout();
                 }}
               />
@@ -243,13 +255,27 @@ const InviteAcceptScreen = () => {
               />
               <Button title={t('fields:people.declineInvite')} variant="ghost" onPress={() => navigation.navigate('Main', { screen: 'ChronologioTab' })} />
             </>
-          ) : (
+          ) : invite.inviteeHasAccount ? (
             <>
+              <Text style={{ color: colors.textSecondary }}>
+                {t('fields:people.inviteExistingAccountHint', {
+                  defaultValue: 'You already have an Oleachron account. Sign in to accept.',
+                })}
+              </Text>
               <Button title={t('fields:people.inviteSignIn')} onPress={() => goAuth('Login')} />
               <Button
                 title={t('fields:people.inviteCreateAccount')}
-                variant="outline"
+                variant="ghost"
                 onPress={() => goAuth('Register')}
+              />
+            </>
+          ) : (
+            <>
+              <Button title={t('fields:people.inviteCreateAccount')} onPress={() => goAuth('Register')} />
+              <Button
+                title={t('fields:people.inviteSignIn')}
+                variant="outline"
+                onPress={() => goAuth('Login')}
               />
             </>
           )}

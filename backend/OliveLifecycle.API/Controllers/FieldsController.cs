@@ -19,9 +19,12 @@ public class FieldsController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<FieldDto>>> GetFields(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<FieldDto>>> GetFields(
+        [FromQuery] string? module,
+        CancellationToken cancellationToken)
     {
-        var fields = await _fieldService.GetFieldsForUserAsync(UserContext.UserId, UserContext.Role, cancellationToken);
+        var fields = await _fieldService.GetFieldsForUserAsync(
+            UserContext.UserId, UserContext.Role, module, cancellationToken);
         return OkResult(fields);
     }
 

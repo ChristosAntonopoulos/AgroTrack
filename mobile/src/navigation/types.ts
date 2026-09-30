@@ -1,8 +1,8 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
-  Login: { reset?: boolean; token?: string; code?: string } | undefined;
-  Register: { token?: string; code?: string } | undefined;
+  Login: { reset?: boolean; token?: string; code?: string; email?: string } | undefined;
+  Register: { token?: string; code?: string; email?: string; name?: string } | undefined;
   ForgotPassword: undefined;
   ResetPassword: { token?: string } | undefined;
   Legal: { kind: 'privacy' | 'terms' };

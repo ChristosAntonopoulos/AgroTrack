@@ -45,7 +45,7 @@ export const buildAccessPreview = (
   for (const module of PICKABLE_MODULES) {
     const on = modules.includes(module);
     if (!on) {
-      lines.push({ id: `closed-${module}`, kind: 'cannot', key: 'family.preview.cannotOpen', module });
+      lines.push({ id: `closed-${module}`, kind: 'cannot', key: 'family.preview.cannotSeeModuleData', module });
       continue;
     }
 
@@ -83,6 +83,12 @@ export const buildAccessPreview = (
         break;
       case 'harvest':
         lines.push({ id: 'harvest-view', kind: 'can', key: 'family.preview.canViewHarvest', module });
+        if (level === 'work') {
+          lines.push({ id: 'harvest-work', kind: 'can', key: 'family.preview.canWorkHarvest', module });
+        }
+        break;
+      case 'fields':
+        lines.push({ id: 'fields-open', kind: 'can', key: 'family.preview.canOpen', module });
         break;
       default:
         lines.push({ id: `open-${module}`, kind: 'can', key: 'family.preview.canOpen', module });

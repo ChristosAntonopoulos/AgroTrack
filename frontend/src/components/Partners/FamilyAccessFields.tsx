@@ -22,7 +22,7 @@ type Props = {
 };
 
 const LEVELS: FieldAccessLevel[] = ['view', 'help', 'work'];
-const CLOSED_KEY = 'family.preview.cannotOpen';
+const CLOSED_KEY = 'family.preview.cannotSeeModuleData';
 const BASELINE_KEYS = new Set([
   'family.preview.cannotDeleteOthers',
   'family.preview.cannotManageAccess',

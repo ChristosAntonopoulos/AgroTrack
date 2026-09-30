@@ -29,7 +29,7 @@ const RegisterScreen = () => {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(route.params?.email?.trim() || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState(route.params?.code || '');
@@ -47,19 +47,25 @@ const RegisterScreen = () => {
       const stored = await rememberInviteIntent({
         token: route.params?.token,
         code: route.params?.code || inviteCode.trim() || undefined,
+        email: route.params?.email,
+        name: route.params?.name,
       });
       if (stored.code && !inviteCode) setInviteCode(stored.code);
-      if (stored.token || stored.code) {
+      if (stored.email && !email.trim()) setEmail(stored.email);
+      if (route.params?.email?.trim() && !email.trim()) setEmail(route.params.email.trim());
+      if (stored.token || stored.code || route.params?.token || route.params?.code) {
         setShowInvite(true);
         setShowEmailForm(true);
       }
     })();
-  }, [route.params?.token, route.params?.code]);
+  }, [route.params?.token, route.params?.code, route.params?.email, route.params?.name]);
 
   const persistInvite = () => {
     void rememberInviteIntent({
       token: route.params?.token,
       code: inviteCode.trim() || route.params?.code,
+      email: route.params?.email || email.trim() || undefined,
+      name: route.params?.name,
     });
   };
 
